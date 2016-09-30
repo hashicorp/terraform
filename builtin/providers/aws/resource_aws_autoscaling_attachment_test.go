@@ -129,16 +129,16 @@ resource "aws_autoscaling_group" "asg" {
 
 const testAccAWSAutoscalingAttachment_associated = testAccAWSAutoscalingAttachment_basic + `
 resource "aws_autoscaling_attachment" "asg_attachment_foo" {
-  group_name = "${aws_autoscaling_group.asg.id}"
-  elb        = "${aws_elb.foo.id}"
+  autoscaling_group_name = "${aws_autoscaling_group.asg.id}"
+  elb                    = "${aws_elb.foo.id}"
 }
 
 `
 
 const testAccAWSAutoscalingAttachment_double_associated = testAccAWSAutoscalingAttachment_associated + `
 resource "aws_autoscaling_attachment" "asg_attachment_bar" {
-  group_name = "${aws_autoscaling_group.asg.id}"
-  elb        = "${aws_elb.bar.id}"
+  autoscaling_group_name = "${aws_autoscaling_group.asg.id}"
+  elb                    = "${aws_elb.bar.id}"
 }
 
 `

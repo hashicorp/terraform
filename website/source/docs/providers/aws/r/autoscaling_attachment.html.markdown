@@ -21,8 +21,8 @@ conflict and will overwrite attachments.
 ```
 # Create a new load balancer attachment
 resource "aws_autoscaling_attachment" "asg_attachment_bar" {
-  elb        = "${aws_elb.bar.id}"
-  group_name = "${aws_autoscaling_group.asg.id}"
+  autoscaling_group_name = "${aws_autoscaling_group.asg.id}"
+  elb                    = "${aws_elb.bar.id}"
 }
 ```
 
@@ -30,5 +30,6 @@ resource "aws_autoscaling_attachment" "asg_attachment_bar" {
 
 The following arguments are supported:
 
+* `autoscaling_group_name` - (Required) Name of ASG to associate with the ELB.
 * `elb` - (Required) The name of the ELB.
-* `group_name` - (Required) Name of ASG to associate with the ELB.
+

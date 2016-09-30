@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -17,7 +18,7 @@ func resourceAwsAutoscalingAttachment() *schema.Resource {
 		Delete: resourceAwsAutoscalingAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"group_name": &schema.Schema{
+			"autoscaling_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
@@ -34,8 +35,7 @@ func resourceAwsAutoscalingAttachment() *schema.Resource {
 
 func resourceAwsAutoscalingAttachmentCreate(d *schema.ResourceData, meta interface{}) error {
 	asgconn := meta.(*AWSClient).autoscalingconn
-	asgName := d.Get("group_name").(string)
-
+	asgName := d.Get("autoscaling_group_name").(string)
 	elbName := d.Get("elb").(string)
 
 	attachElbInput := &autoscaling.AttachLoadBalancersInput{
@@ -45,19 +45,18 @@ func resourceAwsAutoscalingAttachmentCreate(d *schema.ResourceData, meta interfa
 
 	log.Printf("[INFO] registering asg %s with ELBs %s", asgName, elbName)
 
-	_, err := asgconn.AttachLoadBalancers(attachElbInput)
-	if err != nil {
-		return fmt.Errorf("Failure registering asg with ELBs: %s", err)
+	if _, err := asgconn.AttachLoadBalancers(attachElbInput); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Failure attaching AutoScaling Group %s with Elastic Load Balancer: %s: {{err}}", asgName, elbName), err)
 	}
 
 	d.SetId(resource.PrefixedUniqueId(fmt.Sprintf("%s-", asgName)))
 
-	return nil
+	return resourceAwsAutoscalingAttachmentRead(d, meta)
 }
 
 func resourceAwsAutoscalingAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	asgconn := meta.(*AWSClient).autoscalingconn
-	asgName := d.Get("group_name").(string)
+	asgName := d.Get("autoscaling_group_name").(string)
 	elbName := d.Get("elb").(string)
 
 	// Retrieve the ASG properites to get list of associated ELBs
@@ -77,6 +76,7 @@ func resourceAwsAutoscalingAttachmentRead(d *schema.ResourceData, meta interface
 		if elbName == *i {
 			d.Set("elb", elbName)
 			found = true
+			break
 		}
 	}
 
@@ -90,8 +90,7 @@ func resourceAwsAutoscalingAttachmentRead(d *schema.ResourceData, meta interface
 
 func resourceAwsAutoscalingAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	asgconn := meta.(*AWSClient).autoscalingconn
-	asgName := d.Get("group_name").(string)
-
+	asgName := d.Get("autoscaling_group_name").(string)
 	elbName := d.Get("elb").(string)
 
 	log.Printf("[INFO] Deleting ELB %s association from: %s", elbName, asgName)
@@ -101,9 +100,8 @@ func resourceAwsAutoscalingAttachmentDelete(d *schema.ResourceData, meta interfa
 		LoadBalancerNames:    []*string{aws.String(elbName)},
 	}
 
-	_, err := asgconn.DetachLoadBalancers(detachOpts)
-	if err != nil {
-		return fmt.Errorf("Failure detaching ELB from ASG: %s", err)
+	if _, err := asgconn.DetachLoadBalancers(detachOpts); err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("Failure detaching AutoScaling Group %s with Elastic Load Balancer: %s: {{err}}", asgName, elbName), err)
 	}
 
 	return nil
