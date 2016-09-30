@@ -194,3 +194,74 @@ func TestShadowResourceProviderValidate_badInput(t *testing.T) {
 		t.Fatal("should have error")
 	}
 }
+
+func TestShadowResourceProviderConfigure(t *testing.T) {
+	mock := new(MockResourceProvider)
+	real, shadow := newShadowResourceProvider(mock)
+
+	// Test values
+	config := testResourceConfig(t, map[string]interface{}{
+		"foo": "bar",
+	})
+	returnErr := fmt.Errorf("bar")
+
+	// Configure the mock
+	mock.ConfigureReturnError = returnErr
+
+	// Verify that it blocks until the real func is called
+	var err error
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		err = shadow.Configure(config)
+	}()
+
+	select {
+	case <-doneCh:
+		t.Fatal("should block until finished")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Call the real func
+	realErr := real.Configure(config)
+	if !reflect.DeepEqual(realErr, returnErr) {
+		t.Fatalf("bad: %#v", realErr)
+	}
+
+	// The shadow should finish now
+	<-doneCh
+
+	// Verify the shadow returned the same values
+	if !reflect.DeepEqual(err, returnErr) {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	// Verify we have no errors
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+}
+
+func TestShadowResourceProviderConfigure_badInput(t *testing.T) {
+	mock := new(MockResourceProvider)
+	real, shadow := newShadowResourceProvider(mock)
+
+	// Test values
+	config := testResourceConfig(t, map[string]interface{}{
+		"foo": "bar",
+	})
+	configBad := testResourceConfig(t, map[string]interface{}{
+		"foo": "nope",
+	})
+
+	// Call the real with one
+	real.Configure(config)
+
+	// Call the shadow with another
+	shadow.Configure(configBad)
+
+	// Verify we have an error
+	if err := shadow.CloseShadow(); err == nil {
+		t.Fatal("should have error")
+	}
+}

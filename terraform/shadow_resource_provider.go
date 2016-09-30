@@ -98,6 +98,16 @@ func (p *shadowResourceProviderReal) Validate(c *ResourceConfig) ([]string, []er
 	return warns, errs
 }
 
+func (p *shadowResourceProviderReal) Configure(c *ResourceConfig) error {
+	err := p.ResourceProvider.Configure(c)
+	p.Shared.Configure.SetValue(&shadowResourceProviderConfigure{
+		Config: c.DeepCopy(),
+		Result: err,
+	})
+
+	return err
+}
+
 // shadowResourceProviderShadow is the shadow resource provider. Function
 // calls never affect real resources. This is paired with the "real" side
 // which must be called properly to enable recording.
@@ -113,9 +123,10 @@ type shadowResourceProviderShadow struct {
 }
 
 type shadowResourceProviderShared struct {
-	CloseErr shadow.Value
-	Input    shadow.Value
-	Validate shadow.Value
+	CloseErr  shadow.Value
+	Input     shadow.Value
+	Validate  shadow.Value
+	Configure shadow.Value
 }
 
 func (p *shadowResourceProviderShadow) CloseShadow() error {
@@ -201,6 +212,35 @@ func (p *shadowResourceProviderShadow) Validate(c *ResourceConfig) ([]string, []
 	return result.ResultWarn, result.ResultErr
 }
 
+func (p *shadowResourceProviderShadow) Configure(c *ResourceConfig) error {
+	// Get the result of the call
+	raw := p.Shared.Configure.Value()
+	if raw == nil {
+		return nil
+	}
+
+	result, ok := raw.(*shadowResourceProviderConfigure)
+	if !ok {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'configure' shadow value: %#v", raw))
+		return nil
+	}
+
+	// Compare the parameters, which should be identical
+	if !c.Equal(result.Config) {
+		p.ErrorLock.Lock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Configure had unequal configurations (real, then shadow):\n\n%#v\n\n%#v",
+			result.Config, c))
+		p.ErrorLock.Unlock()
+	}
+
+	// Return the results
+	return result.Result
+}
+
 // TODO
 // TODO
 // TODO
@@ -209,10 +249,6 @@ func (p *shadowResourceProviderShadow) Validate(c *ResourceConfig) ([]string, []
 
 func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
 	return nil, nil
-}
-
-func (p *shadowResourceProviderShadow) Configure(c *ResourceConfig) error {
-	return nil
 }
 
 func (p *shadowResourceProviderShadow) Apply(
@@ -268,4 +304,9 @@ type shadowResourceProviderValidate struct {
 	Config     *ResourceConfig
 	ResultWarn []string
 	ResultErr  []error
+}
+
+type shadowResourceProviderConfigure struct {
+	Config *ResourceConfig
+	Result error
 }
