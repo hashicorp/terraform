@@ -32,7 +32,7 @@ type ShadowEvalContext interface {
 	// itself. In this scenario, you should not compare diffs/states since
 	// they can't be considered accurate since operations during execution
 	// failed.
-	Close() error
+	CloseShadow() error
 }
 
 // NewShadowEvalContext creates a new shadowed EvalContext. This returns
@@ -156,6 +156,11 @@ type shadowEvalContextShared struct {
 	Providers shadow.KeyedValue
 }
 
+func (c *shadowEvalContextShadow) CloseShadow() error {
+	// TODO: somehow shut this thing down
+	return c.Error
+}
+
 func (c *shadowEvalContextShadow) Path() []string {
 	return c.PathValue
 }
@@ -211,7 +216,6 @@ func (c *shadowEvalContextShadow) err(err error) error {
 
 // TODO: All the functions below are EvalContext functions that must be impl.
 
-func (c *shadowEvalContextShadow) Close() error                                    { return nil }
 func (c *shadowEvalContextShadow) Input() UIInput                                  { return nil }
 func (c *shadowEvalContextShadow) Provider(n string) ResourceProvider              { return nil }
 func (c *shadowEvalContextShadow) CloseProvider(n string) error                    { return nil }
