@@ -157,3 +157,80 @@ func TestShadowEvalContextProvider_noInit(t *testing.T) {
 		t.Fatal("should error")
 	}
 }
+
+func TestShadowEvalContextCloseProvider(t *testing.T) {
+	mock := new(MockEvalContext)
+	real, shadow := NewShadowEvalContext(mock)
+
+	// Args, results
+	name := "foo"
+	mockResult := new(MockResourceProvider)
+
+	// Configure the mock
+	mock.InitProviderProvider = mockResult
+
+	// Call the real func
+	real.InitProvider(name)
+	shadow.InitProvider(name)
+
+	// Get the provider twice
+	if err := shadow.CloseProvider(name); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+}
+
+func TestShadowEvalContextCloseProvider_doubleClose(t *testing.T) {
+	mock := new(MockEvalContext)
+	real, shadow := NewShadowEvalContext(mock)
+
+	// Args, results
+	name := "foo"
+	mockResult := new(MockResourceProvider)
+
+	// Configure the mock
+	mock.InitProviderProvider = mockResult
+
+	// Call the real func
+	real.InitProvider(name)
+	shadow.InitProvider(name)
+
+	// Close the provider twice
+	if err := shadow.CloseProvider(name); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := shadow.CloseProvider(name); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := shadow.CloseShadow(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
+func TestShadowEvalContextCloseProvider_noInitClose(t *testing.T) {
+	mock := new(MockEvalContext)
+	real, shadow := NewShadowEvalContext(mock)
+
+	// Args, results
+	name := "foo"
+	mockResult := new(MockResourceProvider)
+
+	// Configure the mock
+	mock.InitProviderProvider = mockResult
+
+	// Call the real func
+	real.InitProvider(name)
+
+	// Close the provider
+	if err := shadow.CloseProvider(name); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := shadow.CloseShadow(); err == nil {
+		t.Fatal("should error")
+	}
+}
