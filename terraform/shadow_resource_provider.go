@@ -138,6 +138,19 @@ func (p *shadowResourceProviderReal) Diff(
 	return result, err
 }
 
+func (p *shadowResourceProviderReal) Refresh(
+	info *InstanceInfo,
+	state *InstanceState) (*InstanceState, error) {
+	result, err := p.ResourceProvider.Refresh(info, state)
+	p.Shared.Refresh.SetValue(info.HumanId(), &shadowResourceProviderRefresh{
+		State:     state,
+		Result:    result,
+		ResultErr: err,
+	})
+
+	return result, err
+}
+
 // shadowResourceProviderShadow is the shadow resource provider. Function
 // calls never affect real resources. This is paired with the "real" side
 // which must be called properly to enable recording.
@@ -159,6 +172,7 @@ type shadowResourceProviderShared struct {
 	Configure shadow.Value
 	Apply     shadow.KeyedValue
 	Diff      shadow.KeyedValue
+	Refresh   shadow.KeyedValue
 }
 
 func (p *shadowResourceProviderShadow) CloseShadow() error {
@@ -356,6 +370,42 @@ func (p *shadowResourceProviderShadow) Diff(
 	return result.Result, result.ResultErr
 }
 
+func (p *shadowResourceProviderShadow) Refresh(
+	info *InstanceInfo,
+	state *InstanceState) (*InstanceState, error) {
+	// Unique key
+	key := info.HumanId()
+	raw := p.Shared.Refresh.Value(key)
+	if raw == nil {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'refresh' call for %q:\n\n%#v",
+			key, state))
+		return nil, nil
+	}
+
+	result, ok := raw.(*shadowResourceProviderRefresh)
+	if !ok {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'refresh' shadow value: %#v", raw))
+		return nil, nil
+	}
+
+	// Compare the parameters, which should be identical
+	if !state.Equal(result.State) {
+		p.ErrorLock.Lock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Refresh %q had unequal states (real, then shadow):\n\n%#v\n\n%#v",
+			key, result.State, state))
+		p.ErrorLock.Unlock()
+	}
+
+	return result.Result, result.ResultErr
+}
+
 // TODO
 // TODO
 // TODO
@@ -363,12 +413,6 @@ func (p *shadowResourceProviderShadow) Diff(
 // TODO
 
 func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
-	return nil, nil
-}
-
-func (p *shadowResourceProviderShadow) Refresh(
-	info *InstanceInfo,
-	s *InstanceState) (*InstanceState, error) {
 	return nil, nil
 }
 
@@ -423,5 +467,11 @@ type shadowResourceProviderDiff struct {
 	State     *InstanceState
 	Desired   *ResourceConfig
 	Result    *InstanceDiff
+	ResultErr error
+}
+
+type shadowResourceProviderRefresh struct {
+	State     *InstanceState
+	Result    *InstanceState
 	ResultErr error
 }
