@@ -63,7 +63,7 @@ func (c *Context) Import(opts *ImportOpts) (*State, error) {
 	}
 
 	// Walk it
-	if _, err := c.walk(graph, walkImport); err != nil {
+	if _, err := c.walk(graph, nil, walkImport); err != nil {
 		return c.state, err
 	}
 

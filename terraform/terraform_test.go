@@ -23,6 +23,7 @@ const fixtureDir = "./test-fixtures"
 
 func TestMain(m *testing.M) {
 	flag.Parse()
+
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
 		logging.SetOutput()
@@ -30,6 +31,9 @@ func TestMain(m *testing.M) {
 		// otherwise silence all logs
 		log.SetOutput(ioutil.Discard)
 	}
+
+	// Make sure shadow operations fail our real tests
+	contextFailOnShadowError = true
 
 	os.Exit(m.Run())
 }

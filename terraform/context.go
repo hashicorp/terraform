@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"sort"
 	"strings"
@@ -30,6 +31,12 @@ const (
 	// InputModeStd is the standard operating mode and asks for both variables
 	// and providers.
 	InputModeStd = InputModeVar | InputModeProvider
+)
+
+var (
+	// contextFailOnShadowError will cause Context operations to return
+	// errors when shadow operations fail. This is only used for testing.
+	contextFailOnShadowError = false
 )
 
 // ContextOpts are the user-configurable options to create a context with
@@ -74,6 +81,7 @@ type Context struct {
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
 	runCh               <-chan struct{}
+	shadowErr           error
 }
 
 // NewContext creates a new Context structure.
@@ -190,6 +198,33 @@ func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
 	}
 }
 
+// ShadowError returns any errors caught during a shadow operation.
+//
+// A shadow operation is an operation run in parallel to a real operation
+// that performs the same tasks using new logic on copied state. The results
+// are compared to ensure that the new logic works the same as the old logic.
+// The shadow never affects the real operation or return values.
+//
+// The result of the shadow operation are only available through this function
+// call after a real operation is complete.
+//
+// For API consumers of Context, you can safely ignore this function
+// completely if you have no interest in helping report experimental feature
+// errors to Terraform maintainers. Otherwise, please call this function
+// after every operation and report this to the user.
+//
+// IMPORTANT: Shadow errors are _never_ critical: they _never_ affect
+// the real state or result of a real operation. They are purely informational
+// to assist in future Terraform versions being more stable. Please message
+// this effectively to the end user.
+//
+// This must be called only when no other operation is running (refresh,
+// plan, etc.). The result can be used in parallel to any other operation
+// running.
+func (c *Context) ShadowError() error {
+	return c.shadowErr
+}
+
 // Input asks for input to fill variables and provider configurations.
 // This modifies the configuration in-place, so asking for Input twice
 // may result in different UI output showing different current values.
@@ -300,7 +335,7 @@ func (c *Context) Input(mode InputMode) error {
 		}
 
 		// Do the walk
-		if _, err := c.walk(graph, walkInput); err != nil {
+		if _, err := c.walk(graph, nil, walkInput); err != nil {
 			return err
 		}
 	}
@@ -329,9 +364,9 @@ func (c *Context) Apply() (*State, error) {
 	// Do the walk
 	var walker *ContextGraphWalker
 	if c.destroy {
-		walker, err = c.walk(graph, walkDestroy)
+		walker, err = c.walk(graph, nil, walkDestroy)
 	} else {
-		walker, err = c.walk(graph, walkApply)
+		walker, err = c.walk(graph, nil, walkApply)
 	}
 
 	if len(walker.ValidationErrors) > 0 {
@@ -396,7 +431,7 @@ func (c *Context) Plan() (*Plan, error) {
 	}
 
 	// Do the walk
-	walker, err := c.walk(graph, operation)
+	walker, err := c.walk(graph, nil, operation)
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +469,7 @@ func (c *Context) Refresh() (*State, error) {
 	}
 
 	// Do the walk
-	if _, err := c.walk(graph, walkRefresh); err != nil {
+	if _, err := c.walk(graph, nil, walkRefresh); err != nil {
 		return nil, err
 	}
 
@@ -502,7 +537,7 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	// Walk
-	walker, err := c.walk(graph, walkValidate)
+	walker, err := c.walk(graph, nil, walkValidate)
 	if err != nil {
 		return nil, multierror.Append(errs, err).Errors
 	}
@@ -541,8 +576,13 @@ func (c *Context) acquireRun() chan<- struct{} {
 		c.l.Lock()
 	}
 
+	// Create the new channel
 	ch := make(chan struct{})
 	c.runCh = ch
+
+	// Reset the shadow errors
+	c.shadowErr = nil
+
 	return ch
 }
 
@@ -556,11 +596,62 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 }
 
 func (c *Context) walk(
-	graph *Graph, operation walkOperation) (*ContextGraphWalker, error) {
-	// Walk the graph
+	graph, shadow *Graph, operation walkOperation) (*ContextGraphWalker, error) {
+	// Keep track of the "real" context which is the context that does
+	// the real work: talking to real providers, modifying real state, etc.
+	realCtx := c
+
+	// If we have a shadow graph, walk that as well
+	var shadowCh chan error
+	var shadowCloser io.Closer
+	if shadow != nil {
+		// Build the shadow context. In the process, override the real context
+		// with the one that is wrapped so that the shadow context can verify
+		// the results of the real.
+		var shadowCtx *Context
+		realCtx, shadowCtx, shadowCloser = newShadowContext(c)
+
+		// Build the graph walker for the shadow.
+		shadowWalker := &ContextGraphWalker{
+			Context:   shadowCtx,
+			Operation: operation,
+		}
+
+		// Kick off the shadow walk. This will block on any operations
+		// on the real walk so it is fine to start first.
+		shadowCh = make(chan error)
+		go func() {
+			shadowCh <- shadow.Walk(shadowWalker)
+		}()
+	}
+
+	// Build the real graph walker
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
-	walker := &ContextGraphWalker{Context: c, Operation: operation}
-	return walker, graph.Walk(walker)
+	walker := &ContextGraphWalker{Context: realCtx, Operation: operation}
+
+	// Walk the real graph, this will block until it completes
+	realErr := graph.Walk(walker)
+
+	// If we have a shadow graph, wait for that to complete
+	if shadowCloser != nil {
+		// Notify the shadow that we're done
+		if err := shadowCloser.Close(); err != nil {
+			c.shadowErr = multierror.Append(c.shadowErr, err)
+		}
+
+		// Wait for the walk to end
+		if err := <-shadowCh; err != nil {
+			c.shadowErr = multierror.Append(c.shadowErr, err)
+		}
+
+		// If we're supposed to fail on shadow errors, then report it
+		if contextFailOnShadowError && c.shadowErr != nil {
+			realErr = multierror.Append(realErr, multierror.Prefix(
+				c.shadowErr, "shadow graph:"))
+		}
+	}
+
+	return walker, realErr
 }
 
 // parseVariableAsHCL parses the value of a single variable as would have been specified
