@@ -123,6 +123,21 @@ func (p *shadowResourceProviderReal) Apply(
 	return result, err
 }
 
+func (p *shadowResourceProviderReal) Diff(
+	info *InstanceInfo,
+	state *InstanceState,
+	desired *ResourceConfig) (*InstanceDiff, error) {
+	result, err := p.ResourceProvider.Diff(info, state, desired)
+	p.Shared.Diff.SetValue(info.HumanId(), &shadowResourceProviderDiff{
+		State:     state,
+		Desired:   desired,
+		Result:    result,
+		ResultErr: err,
+	})
+
+	return result, err
+}
+
 // shadowResourceProviderShadow is the shadow resource provider. Function
 // calls never affect real resources. This is paired with the "real" side
 // which must be called properly to enable recording.
@@ -143,6 +158,7 @@ type shadowResourceProviderShared struct {
 	Validate  shadow.Value
 	Configure shadow.Value
 	Apply     shadow.KeyedValue
+	Diff      shadow.KeyedValue
 }
 
 func (p *shadowResourceProviderShadow) CloseShadow() error {
@@ -296,6 +312,50 @@ func (p *shadowResourceProviderShadow) Apply(
 	return result.Result, result.ResultErr
 }
 
+func (p *shadowResourceProviderShadow) Diff(
+	info *InstanceInfo,
+	state *InstanceState,
+	desired *ResourceConfig) (*InstanceDiff, error) {
+	// Unique key
+	key := info.HumanId()
+	raw := p.Shared.Diff.Value(key)
+	if raw == nil {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'diff' call for %q:\n\n%#v\n\n%#v",
+			key, state, desired))
+		return nil, nil
+	}
+
+	result, ok := raw.(*shadowResourceProviderDiff)
+	if !ok {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'diff' shadow value: %#v", raw))
+		return nil, nil
+	}
+
+	// Compare the parameters, which should be identical
+	if !state.Equal(result.State) {
+		p.ErrorLock.Lock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Diff %q had unequal states (real, then shadow):\n\n%#v\n\n%#v",
+			key, result.State, state))
+		p.ErrorLock.Unlock()
+	}
+	if !desired.Equal(result.Desired) {
+		p.ErrorLock.Lock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Diff %q had unequal states (real, then shadow):\n\n%#v\n\n%#v",
+			key, result.Desired, desired))
+		p.ErrorLock.Unlock()
+	}
+
+	return result.Result, result.ResultErr
+}
+
 // TODO
 // TODO
 // TODO
@@ -303,13 +363,6 @@ func (p *shadowResourceProviderShadow) Apply(
 // TODO
 
 func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
-	return nil, nil
-}
-
-func (p *shadowResourceProviderShadow) Diff(
-	info *InstanceInfo,
-	state *InstanceState,
-	desired *ResourceConfig) (*InstanceDiff, error) {
 	return nil, nil
 }
 
@@ -363,5 +416,12 @@ type shadowResourceProviderApply struct {
 	State     *InstanceState
 	Diff      *InstanceDiff
 	Result    *InstanceState
+	ResultErr error
+}
+
+type shadowResourceProviderDiff struct {
+	State     *InstanceState
+	Desired   *ResourceConfig
+	Result    *InstanceDiff
 	ResultErr error
 }
