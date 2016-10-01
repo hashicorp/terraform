@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Module Sources"
 sidebar_current: "docs-modules-sources"
-description: Explains the use of the source parameter which tells Terraform where the module can be found.
+description: Explains the use of the source parameter, which tells Terraform where modules can be found.
 ---
 
 # Module Sources
