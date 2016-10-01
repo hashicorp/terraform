@@ -71,4 +71,38 @@ func TestShadowEvalContextInitProvider(t *testing.T) {
 	if err := result.Configure(nil); !reflect.DeepEqual(err, mockErr) {
 		t.Fatalf("bad: %#v", err)
 	}
+
+	// Verify we have no errors
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+}
+
+func TestShadowEvalContextInitProvider_doubleInit(t *testing.T) {
+	mock := new(MockEvalContext)
+	real, shadow := NewShadowEvalContext(mock)
+
+	// Args, results
+	name := "foo"
+	mockResult := new(MockResourceProvider)
+
+	// Configure the mock
+	mock.InitProviderProvider = mockResult
+
+	// Call the real func
+	real.InitProvider(name)
+
+	// Get the provider twice
+	shadow.InitProvider(name)
+	p, err := shadow.InitProvider(name)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if p == nil {
+		t.Fatal("should return provider")
+	}
+
+	if err := shadow.CloseShadow(); err == nil {
+		t.Fatal("should error")
+	}
 }
