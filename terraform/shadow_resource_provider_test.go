@@ -265,3 +265,57 @@ func TestShadowResourceProviderConfigure_badInput(t *testing.T) {
 		t.Fatal("should have error")
 	}
 }
+
+func TestShadowResourceProviderApply(t *testing.T) {
+	mock := new(MockResourceProvider)
+	real, shadow := newShadowResourceProvider(mock)
+
+	// Test values
+	info := &InstanceInfo{Id: "foo"}
+	state := &InstanceState{ID: "foo"}
+	diff := &InstanceDiff{Destroy: true}
+	mockResult := &InstanceState{ID: "bar"}
+
+	// Configure the mock
+	mock.ApplyReturn = mockResult
+
+	// Verify that it blocks until the real func is called
+	var result *InstanceState
+	var err error
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		result, err = shadow.Apply(info, state, diff)
+	}()
+
+	select {
+	case <-doneCh:
+		t.Fatal("should block until finished")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Call the real func
+	realResult, realErr := real.Apply(info, state, diff)
+	if !realResult.Equal(mockResult) {
+		t.Fatalf("bad: %#v", realResult)
+	}
+	if realErr != nil {
+		t.Fatalf("bad: %#v", realErr)
+	}
+
+	// The shadow should finish now
+	<-doneCh
+
+	// Verify the shadow returned the same values
+	if !result.Equal(mockResult) {
+		t.Fatalf("bad: %#v", result)
+	}
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	// Verify we have no errors
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+}
