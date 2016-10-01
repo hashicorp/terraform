@@ -199,6 +199,34 @@ func (c *shadowEvalContextShadow) InitProvider(n string) (ResourceProvider, erro
 	return result.Shadow, result.ResultErr
 }
 
+func (c *shadowEvalContextShadow) Provider(n string) ResourceProvider {
+	// Wait for the provider value
+	raw := c.Shared.Providers.Value(n)
+	if raw == nil {
+		c.err(fmt.Errorf(
+			"Unknown 'Provider' call for %q", n))
+		return nil
+	}
+
+	result, ok := raw.(*shadowEvalContextInitProvider)
+	if !ok {
+		c.err(fmt.Errorf(
+			"Unknown 'Provider' shadow value: %#v", raw))
+		return nil
+	}
+
+	result.Lock()
+	defer result.Unlock()
+
+	if !result.Init {
+		// Record the error but continue...
+		c.err(fmt.Errorf(
+			"Provider: provider %q requested but not initialized", n))
+	}
+
+	return result.Shadow
+}
+
 func (c *shadowEvalContextShadow) Diff() (*Diff, *sync.RWMutex) {
 	return c.DiffValue, c.DiffLock
 }
@@ -217,7 +245,6 @@ func (c *shadowEvalContextShadow) err(err error) error {
 // TODO: All the functions below are EvalContext functions that must be impl.
 
 func (c *shadowEvalContextShadow) Input() UIInput                                  { return nil }
-func (c *shadowEvalContextShadow) Provider(n string) ResourceProvider              { return nil }
 func (c *shadowEvalContextShadow) CloseProvider(n string) error                    { return nil }
 func (c *shadowEvalContextShadow) ConfigureProvider(string, *ResourceConfig) error { return nil }
 func (c *shadowEvalContextShadow) SetProviderConfig(string, *ResourceConfig) error { return nil }
