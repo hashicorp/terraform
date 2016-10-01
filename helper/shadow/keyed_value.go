@@ -16,25 +16,19 @@ type KeyedValue struct {
 // Value returns the value that was set for the given key, or blocks
 // until one is available.
 func (w *KeyedValue) Value(k string) interface{} {
-	w.lock.Lock()
-	w.once.Do(w.init)
-
-	// If we have this value already, return it
-	if v, ok := w.values[k]; ok {
-		w.lock.Unlock()
+	v, val := w.valueWaiter(k)
+	if val == nil {
 		return v
 	}
 
-	// No pending value, check for a waiter
-	val := w.waiters[k]
-	if val == nil {
-		val = new(Value)
-		w.waiters[k] = val
-	}
-	w.lock.Unlock()
-
-	// Return the value once we have it
 	return val.Value()
+}
+
+// ValueOk gets the value for the given key, returning immediately if the
+// value doesn't exist. The second return argument is true if the value exists.
+func (w *KeyedValue) ValueOk(k string) (interface{}, bool) {
+	v, val := w.valueWaiter(k)
+	return v, val == nil
 }
 
 func (w *KeyedValue) SetValue(k string, v interface{}) {
@@ -56,4 +50,26 @@ func (w *KeyedValue) SetValue(k string, v interface{}) {
 func (w *KeyedValue) init() {
 	w.values = make(map[string]interface{})
 	w.waiters = make(map[string]*Value)
+}
+
+func (w *KeyedValue) valueWaiter(k string) (interface{}, *Value) {
+	w.lock.Lock()
+	w.once.Do(w.init)
+
+	// If we have this value already, return it
+	if v, ok := w.values[k]; ok {
+		w.lock.Unlock()
+		return v, nil
+	}
+
+	// No pending value, check for a waiter
+	val := w.waiters[k]
+	if val == nil {
+		val = new(Value)
+		w.waiters[k] = val
+	}
+	w.lock.Unlock()
+
+	// Return the waiter
+	return nil, val
 }

@@ -49,3 +49,27 @@ func TestKeyedValue_setFirst(t *testing.T) {
 		t.Fatalf("bad: %#v", val)
 	}
 }
+
+func TestKeyedValueOk(t *testing.T) {
+	var v KeyedValue
+
+	// Try
+	val, ok := v.ValueOk("foo")
+	if ok {
+		t.Fatal("should not be ok")
+	}
+
+	// Set
+	v.SetValue("foo", 42)
+
+	// Try again
+	val, ok = v.ValueOk("foo")
+	if !ok {
+		t.Fatal("should be ok")
+	}
+
+	// Verify
+	if val != 42 {
+		t.Fatalf("bad: %#v", val)
+	}
+}
