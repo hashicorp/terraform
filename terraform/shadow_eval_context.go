@@ -227,6 +227,38 @@ func (c *shadowEvalContextShadow) Provider(n string) ResourceProvider {
 	return result.Shadow
 }
 
+func (c *shadowEvalContextShadow) CloseProvider(n string) error {
+	// Wait for the provider value
+	raw := c.Shared.Providers.Value(n)
+	if raw == nil {
+		c.err(fmt.Errorf(
+			"Unknown 'CloseProvider' call for %q", n))
+		return nil
+	}
+
+	result, ok := raw.(*shadowEvalContextInitProvider)
+	if !ok {
+		c.err(fmt.Errorf(
+			"Unknown 'CloseProvider' shadow value: %#v", raw))
+		return nil
+	}
+
+	result.Lock()
+	defer result.Unlock()
+
+	if !result.Init {
+		// Record the error but continue...
+		c.err(fmt.Errorf(
+			"CloseProvider: provider %q requested but not initialized", n))
+	} else if result.Closed {
+		c.err(fmt.Errorf(
+			"CloseProvider: provider %q requested but already closed", n))
+	}
+
+	result.Closed = true
+	return nil
+}
+
 func (c *shadowEvalContextShadow) Diff() (*Diff, *sync.RWMutex) {
 	return c.DiffValue, c.DiffLock
 }
@@ -245,17 +277,18 @@ func (c *shadowEvalContextShadow) err(err error) error {
 // TODO: All the functions below are EvalContext functions that must be impl.
 
 func (c *shadowEvalContextShadow) Input() UIInput                                  { return nil }
-func (c *shadowEvalContextShadow) CloseProvider(n string) error                    { return nil }
 func (c *shadowEvalContextShadow) ConfigureProvider(string, *ResourceConfig) error { return nil }
 func (c *shadowEvalContextShadow) SetProviderConfig(string, *ResourceConfig) error { return nil }
 func (c *shadowEvalContextShadow) ParentProviderConfig(string) *ResourceConfig     { return nil }
 func (c *shadowEvalContextShadow) ProviderInput(string) map[string]interface{}     { return nil }
 func (c *shadowEvalContextShadow) SetProviderInput(string, map[string]interface{}) {}
+
 func (c *shadowEvalContextShadow) InitProvisioner(string) (ResourceProvisioner, error) {
 	return nil, nil
 }
 func (c *shadowEvalContextShadow) Provisioner(string) ResourceProvisioner { return nil }
 func (c *shadowEvalContextShadow) CloseProvisioner(string) error          { return nil }
+
 func (c *shadowEvalContextShadow) Interpolate(*config.RawConfig, *Resource) (*ResourceConfig, error) {
 	return nil, nil
 }
@@ -270,4 +303,5 @@ type shadowEvalContextInitProvider struct {
 
 	sync.Mutex      // Must be held to modify the field below
 	Init       bool // Keeps track of whether it has been initialized in the shadow
+	Closed     bool // Keeps track of whether this provider is closed
 }
