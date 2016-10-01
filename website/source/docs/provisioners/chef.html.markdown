@@ -116,7 +116,8 @@ The following arguments are supported:
   provisioner.
 
 * `skip_register (boolean)` - (Optional) Skip the registration of Chef Client on the remote
-  machine. This assumes Chef Client is already registered when you run the `chef`
+  machine. This assumes Chef Client is already registered and the private key (`client.pem`)
+  is available in the default Chef configuration directory when you run the `chef`
   provisioner.
 
 * `ssl_verify_mode (string)` - (Optional) Use to set the verify mode for Chef Client HTTPS
