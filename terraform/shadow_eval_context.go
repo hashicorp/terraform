@@ -229,7 +229,12 @@ func (c *shadowEvalContextShadow) Provider(n string) ResourceProvider {
 
 func (c *shadowEvalContextShadow) CloseProvider(n string) error {
 	// Wait for the provider value
-	raw := c.Shared.Providers.Value(n)
+	raw, ok := c.Shared.Providers.ValueOk(n)
+	if !ok {
+		c.err(fmt.Errorf(
+			"CloseProvider called for uninitialized provider %q", n))
+		return nil
+	}
 	if raw == nil {
 		c.err(fmt.Errorf(
 			"Unknown 'CloseProvider' call for %q", n))

@@ -234,3 +234,24 @@ func TestShadowEvalContextCloseProvider_noInitClose(t *testing.T) {
 		t.Fatal("should error")
 	}
 }
+
+func TestShadowEvalContextCloseProvider_noCreate(t *testing.T) {
+	mock := new(MockEvalContext)
+	_, shadow := NewShadowEvalContext(mock)
+
+	// Args, results
+	name := "foo"
+	mockResult := new(MockResourceProvider)
+
+	// Configure the mock
+	mock.InitProviderProvider = mockResult
+
+	// Close the provider
+	if err := shadow.CloseProvider(name); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := shadow.CloseShadow(); err == nil {
+		t.Fatal("should error")
+	}
+}
