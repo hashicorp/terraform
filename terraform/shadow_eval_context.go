@@ -43,17 +43,23 @@ type ShadowEvalContext interface {
 // This should be called before the ctx is ever used in order to ensure
 // a consistent shadow state.
 func NewShadowEvalContext(ctx EvalContext) (EvalContext, ShadowEvalContext) {
-	real := &shadowEvalContextReal{EvalContext: ctx}
+	var shared shadowEvalContextShared
+	real := &shadowEvalContextReal{
+		EvalContext: ctx,
+		Shared:      &shared,
+	}
 
 	// Copy the diff. We do this using some weird scoping so that the
 	// "diff" (real) value never leaks out and can be used.
 	var diffCopy *Diff
 	{
 		diff, lock := ctx.Diff()
-		lock.RLock()
-		diffCopy = diff
-		// TODO: diffCopy = diff.DeepCopy()
-		lock.RUnlock()
+		if lock != nil {
+			lock.RLock()
+			diffCopy = diff
+			// TODO: diffCopy = diff.DeepCopy()
+			lock.RUnlock()
+		}
 	}
 
 	// Copy the state. We do this using some weird scoping so that the
@@ -61,9 +67,11 @@ func NewShadowEvalContext(ctx EvalContext) (EvalContext, ShadowEvalContext) {
 	var stateCopy *State
 	{
 		state, lock := ctx.State()
-		lock.RLock()
-		stateCopy = state.DeepCopy()
-		lock.RUnlock()
+		if lock != nil {
+			lock.RLock()
+			stateCopy = state.DeepCopy()
+			lock.RUnlock()
+		}
 	}
 
 	// Build the shadow copy. For safety, we don't even give the shadow
@@ -71,6 +79,8 @@ func NewShadowEvalContext(ctx EvalContext) (EvalContext, ShadowEvalContext) {
 	// very difficult (impossible without some real obvious mistakes) for
 	// the shadow context to do "real" work.
 	shadow := &shadowEvalContextShadow{
+		Shared: &shared,
+
 		PathValue:  ctx.Path(),
 		StateValue: stateCopy,
 		StateLock:  new(sync.RWMutex),
