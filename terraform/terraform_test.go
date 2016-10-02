@@ -35,6 +35,9 @@ func TestMain(m *testing.M) {
 	// Make sure shadow operations fail our real tests
 	contextFailOnShadowError = true
 
+	// Always DeepCopy the Diff on every Plan during a test
+	contextTestDeepCopyOnPlan = true
+
 	os.Exit(m.Run())
 }
 
