@@ -247,7 +247,6 @@ func flattenCacheBehaviors(cbs *cloudfront.CacheBehaviors) []interface{} {
 	for _, v := range cbs.Items {
 		s = append(s, flattenCacheBehavior(v))
 	}
-	//return schema.NewSet(cacheBehaviorHash, s)
 	return s
 }
 
