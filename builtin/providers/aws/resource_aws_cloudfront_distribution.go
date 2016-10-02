@@ -32,10 +32,9 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      aliasesHash,
 			},
-			"cache_behavior": &schema.Schema{
-				Type:     schema.TypeSet,
+			"cache_behaviors": &schema.Schema{
+				Type:     schema.TypeList,
 				Optional: true,
-				Set:      cacheBehaviorHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"allowed_methods": &schema.Schema{
