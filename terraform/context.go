@@ -37,6 +37,11 @@ var (
 	// contextFailOnShadowError will cause Context operations to return
 	// errors when shadow operations fail. This is only used for testing.
 	contextFailOnShadowError = false
+
+	// contextTestDeepCopyOnPlan will perform a Diff DeepCopy on every
+	// Plan operation, effectively testing the Diff DeepCopy whenever
+	// a Plan occurs. This is enabled for tests.
+	contextTestDeepCopyOnPlan = false
 )
 
 // ContextOpts are the user-configurable options to create a context with
@@ -436,6 +441,17 @@ func (c *Context) Plan() (*Plan, error) {
 		return nil, err
 	}
 	p.Diff = c.diff
+
+	// If this is true, it means we're running unit tests. In this case,
+	// we perform a deep copy just to ensure that all context tests also
+	// test that a diff is copy-able. This will panic if it fails. This
+	// is enabled during unit tests.
+	//
+	// This should never be true during production usage, but even if it is,
+	// it can't do any real harm.
+	if contextTestDeepCopyOnPlan {
+		p.Diff.DeepCopy()
+	}
 
 	// Now that we have a diff, we can build the exact graph that Apply will use
 	// and catch any possible cycles during the Plan phase.

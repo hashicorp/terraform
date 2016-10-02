@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/mitchellh/copystructure"
 )
 
 // DiffChangeType is an enum with the kind of changes a diff has planned.
@@ -77,6 +79,17 @@ func (d *Diff) Empty() bool {
 	}
 
 	return true
+}
+
+// DeepCopy performs a deep copy of all parts of the Diff, making the
+// resulting Diff safe to use without modifying this one.
+func (d *Diff) DeepCopy() *Diff {
+	copy, err := copystructure.Config{Lock: true}.Copy(d)
+	if err != nil {
+		panic(err)
+	}
+
+	return copy.(*Diff)
 }
 
 func (d *Diff) String() string {
