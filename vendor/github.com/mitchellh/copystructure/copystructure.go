@@ -82,6 +82,14 @@ func (c Config) Copy(v interface{}) (interface{}, error) {
 	return result, nil
 }
 
+// Return the key used to index interfaces types we've seen. Store the number
+// of pointers in the upper 32bits, and the depth in the lower 32bits. This is
+// easy to calculate, easy to match a key with our current depth, and we don't
+// need to deal with initializing and cleaning up nested maps or slices.
+func ifaceKey(pointers, depth int) uint64 {
+	return uint64(pointers)<<32 | uint64(depth)
+}
+
 type walker struct {
 	Result interface{}
 
@@ -89,7 +97,16 @@ type walker struct {
 	ignoreDepth int
 	vals        []reflect.Value
 	cs          []reflect.Value
-	ps          []int
+
+	// This stores the number of pointers we've walked over, indexed by depth.
+	ps []int
+
+	// If an interface is indirected by a pointer, we need to know the type of
+	// interface to create when creating the new value.  Store the interface
+	// types here, indexed by both the walk depth and the number of pointers
+	// already seen at that depth. Use ifaceKey to calculate the proper uint64
+	// value.
+	ifaceTypes map[uint64]reflect.Type
 
 	// any locks we've taken, indexed by depth
 	locks []sync.Locker
@@ -119,7 +136,16 @@ func (w *walker) Exit(l reflectwalk.Location) error {
 		defer locker.Unlock()
 	}
 
+	// clear out pointers and interfaces as we exit the stack
 	w.ps[w.depth] = 0
+
+	for k := range w.ifaceTypes {
+		mask := uint64(^uint32(0))
+		if k&mask == uint64(w.depth) {
+			delete(w.ifaceTypes, k)
+		}
+	}
+
 	w.depth--
 	if w.ignoreDepth > w.depth {
 		w.ignoreDepth = 0
@@ -222,6 +248,18 @@ func (w *walker) PointerExit(v bool) error {
 	return nil
 }
 
+func (w *walker) Interface(v reflect.Value) error {
+	if !v.IsValid() {
+		return nil
+	}
+	if w.ifaceTypes == nil {
+		w.ifaceTypes = make(map[uint64]reflect.Type)
+	}
+
+	w.ifaceTypes[ifaceKey(w.ps[w.depth], w.depth)] = v.Type()
+	return nil
+}
+
 func (w *walker) Primitive(v reflect.Value) error {
 	if w.ignoring() {
 		return nil
@@ -312,8 +350,7 @@ func (w *walker) StructField(f reflect.StructField, v reflect.Value) error {
 	// If PkgPath is non-empty, this is a private (unexported) field.
 	// We do not set this unexported since the Go runtime doesn't allow us.
 	if f.PkgPath != "" {
-		w.ignore()
-		return nil
+		return reflectwalk.SkipEntry
 	}
 
 	// Push the field onto the stack, we'll handle it when we exit
@@ -369,6 +406,12 @@ func (w *walker) replacePointerMaybe() {
 
 	v := w.valPop()
 	for i := 1; i < w.ps[w.depth]; i++ {
+		if iType, ok := w.ifaceTypes[ifaceKey(w.ps[w.depth]-i, w.depth)]; ok {
+			iface := reflect.New(iType).Elem()
+			iface.Set(v)
+			v = iface
+		}
+
 		p := reflect.New(v.Type())
 		p.Elem().Set(v)
 		v = p
