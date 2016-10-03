@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -582,7 +583,8 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					diskPath = disk["vmdk"].(string)
 				case disk["name"] != "":
 					snapshotFullDir := mo.Config.Files.SnapshotDirectory
-					split := strings.Split(snapshotFullDir, " ")
+					re := regexp.MustCompile(`(\[.*?\])[\s](.*)`)
+					split := re.Split(snapshotFullDir, -1)
 					if len(split) != 2 {
 						return fmt.Errorf("[ERROR] createVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
 					}
@@ -2024,7 +2026,8 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			diskPath = vm.hardDisks[i].vmdkPath
 		case vm.hardDisks[i].name != "":
 			snapshotFullDir := vm_mo.Config.Files.SnapshotDirectory
-			split := strings.Split(snapshotFullDir, " ")
+			re := regexp.MustCompile(`(\[.*?\])[\s](.*)`)
+			split := re.Split(snapshotFullDir, -1)
 			if len(split) != 2 {
 				return fmt.Errorf("[ERROR] setupVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
 			}
