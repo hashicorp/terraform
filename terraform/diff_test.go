@@ -115,6 +115,39 @@ func TestModuleDiff_ChangeType(t *testing.T) {
 	}
 }
 
+func TestDiff_DeepCopy(t *testing.T) {
+	cases := map[string]*Diff{
+		"empty": &Diff{},
+
+		"basic diff": &Diff{
+			Modules: []*ModuleDiff{
+				&ModuleDiff{
+					Path: []string{"root"},
+					Resources: map[string]*InstanceDiff{
+						"aws_instance.foo": &InstanceDiff{
+							Attributes: map[string]*ResourceAttrDiff{
+								"num": &ResourceAttrDiff{
+									Old: "0",
+									New: "2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			dup := tc.DeepCopy()
+			if !reflect.DeepEqual(dup, tc) {
+				t.Fatalf("\n%#v\n\n%#v", dup, tc)
+			}
+		})
+	}
+}
+
 func TestModuleDiff_Empty(t *testing.T) {
 	diff := new(ModuleDiff)
 	if !diff.Empty() {

@@ -292,6 +292,10 @@ func (d *ModuleDiff) String() string {
 	return buf.String()
 }
 
+func (d *ModuleDiff) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
+}
+
 // InstanceDiff is the diff of a resource from some state to another.
 type InstanceDiff struct {
 	mu             sync.Mutex
