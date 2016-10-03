@@ -81,35 +81,52 @@ func walk(v reflect.Value, w interface{}) (err error) {
 	// almost any part is changed). I will try to explain here.
 	//
 	// First, we check if the value is an interface, if so, we really need
-	// to check the interface's VALUE to see whether it is a pointer (pointers
-	// to interfaces are not allowed).
+	// to check the interface's VALUE to see whether it is a pointer.
 	//
-	// Check whether the value is then an interface. If so, then set pointer
+	// Check whether the value is then a pointer. If so, then set pointer
 	// to true to notify the user.
+	//
+	// If we still have a pointer or an interface after the indirections, then
+	// we unwrap another level
 	//
 	// At this time, we also set "v" to be the dereferenced value. This is
 	// because once we've unwrapped the pointer we want to use that value.
 	pointer := false
 	pointerV := v
-	if pointerV.Kind() == reflect.Interface {
-		pointerV = pointerV.Elem()
-	}
-	if pointerV.Kind() == reflect.Ptr {
-		pointer = true
-		v = reflect.Indirect(pointerV)
-	}
-	if pw, ok := w.(PointerWalker); ok {
-		if err = pw.PointerEnter(pointer); err != nil {
-			return
-		}
 
-		defer func() {
-			if err != nil {
+	for {
+		if pointerV.Kind() == reflect.Interface {
+			pointerV = pointerV.Elem()
+		}
+		if pointerV.Kind() == reflect.Ptr {
+			pointer = true
+			v = reflect.Indirect(pointerV)
+		}
+		if pw, ok := w.(PointerWalker); ok {
+			if err = pw.PointerEnter(pointer); err != nil {
 				return
 			}
 
-			err = pw.PointerExit(pointer)
-		}()
+			defer func(pointer bool) {
+				if err != nil {
+					return
+				}
+
+				err = pw.PointerExit(pointer)
+			}(pointer)
+		}
+
+		if pointer {
+			pointerV = v
+		}
+		pointer = false
+
+		// If we still have a pointer or interface we have to indirect another level.
+		switch pointerV.Kind() {
+		case reflect.Ptr, reflect.Interface:
+			continue
+		}
+		break
 	}
 
 	// We preserve the original value here because if it is an interface

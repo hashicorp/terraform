@@ -1464,10 +1464,10 @@
 			"revision": "8631ce90f28644f54aeedcb3e389a85174e067d1"
 		},
 		{
-			"checksumSHA1": "EDAtec3XSbTjw6gWG+NNScows9M=",
+			"checksumSHA1": "gsIaLhXE/YZahSg33edGHvzVQ1o=",
 			"path": "github.com/mitchellh/copystructure",
-			"revision": "49a4444999946bce1882f9db0eb3ba0a44ed1fbb",
-			"revisionTime": "2016-09-28T02:49:35Z"
+			"revision": "c740739b7b69de009385f52933769c1c037705df",
+			"revisionTime": "2016-10-03T06:35:14Z"
 		},
 		{
 			"path": "github.com/mitchellh/go-homedir",
@@ -1499,10 +1499,10 @@
 			"revision": "6e6954073784f7ee67b28f2d22749d6479151ed7"
 		},
 		{
-			"checksumSHA1": "kXh6sdGViiRK0REpIWydJvpsyY0=",
+			"checksumSHA1": "u+sHUhd/XXvjiVPAJ/h8yvLbSj4=",
 			"path": "github.com/mitchellh/reflectwalk",
-			"revision": "0c9480f65513be815a88d6076a3d8d95d4274236",
-			"revisionTime": "2016-09-28T02:49:03Z"
+			"revision": "4a18c295388e8482403483c88469392f9e6556d7",
+			"revisionTime": "2016-10-02T04:32:56Z"
 		},
 		{
 			"checksumSHA1": "/iig5lYSPCL3C8J7e4nTAevYNDE=",
