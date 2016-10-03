@@ -1,7 +1,7 @@
 ---
 layout: "archive"
 page_title: "Archive: archive_file"
-sidebar_current: "docs-archive-resource-file"
+sidebar_current: "docs-archive-datasource-archive-file"
 description: |-
   Generates an archive from content, a file, or directory of files.
 ---
@@ -13,9 +13,9 @@ Generates an archive from content, a file, or directory of files.
 ## Example Usage
 
 ```
-resource "archive_file" "init" {
-    type = "zip"
-    source_content_filename = "${path.module}/init.tpl"
+data "archive_file" "init" {
+    type        = "zip"
+    source_file = "${path.module}/init.tpl"
     output_path = "${path.module}/files/init.zip"
 }
 ```
@@ -44,4 +44,7 @@ NOTE: One of `source_content_filename` (with `source_content`), `source_file`, o
 The following attributes are exported:
 
 * `output_size` - The size of the output archive file.
+
 * `output_sha` - The SHA1 checksum of output archive file.
+
+* `output_base64sha256` - The base64-encoded SHA256 checksum of output archive file.
