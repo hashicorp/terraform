@@ -1,12 +1,17 @@
 package aws
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccAWSCloudFrontDistribution_importBasic(t *testing.T) {
+	ri := acctest.RandInt()
+	testConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3Config, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
+
 	resourceName := "aws_cloudfront_distribution.s3_distribution"
 
 	resource.Test(t, resource.TestCase{
@@ -15,7 +20,7 @@ func TestAccAWSCloudFrontDistribution_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudFrontDistributionS3Config,
+				Config: testConfig,
 			},
 			resource.TestStep{
 				ResourceName:      resourceName,
