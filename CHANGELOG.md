@@ -37,6 +37,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
  * core: Fixed variables not being in scope for destroy -target on modules [GH-9021]
+ * core: Fixed issue that prevented diffs from being properly generated in a specific resource schema scenario [GH-8891]
  * provider/aws: Remove support for `ah` and `esp` literals in Security Group Ingress/Egress rules; you must use the actual protocol number for protocols other than `tcp`, `udp`, `icmp`, or `all` [GH-8975]
  * provider/aws: Do not report drift for effect values differing only by case in AWS policies [GH-9139]
  * provider/aws: VPC ID, Port, Protocol and Name change on aws_alb_target_group will ForceNew resource [GH-8989]
