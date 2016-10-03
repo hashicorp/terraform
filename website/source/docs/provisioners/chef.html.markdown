@@ -115,13 +115,18 @@ The following arguments are supported:
   machine. This assumes Chef Client is already installed when you run the `chef`
   provisioner.
 
+* `skip_register (boolean)` - (Optional) Skip the registration of Chef Client on the remote
+  machine. This assumes Chef Client is already registered and the private key (`client.pem`)
+  is available in the default Chef configuration directory when you run the `chef`
+  provisioner.
+
 * `ssl_verify_mode (string)` - (Optional) Use to set the verify mode for Chef Client HTTPS
   requests.
 
 * `user_name (string)` - (Required) The name of an existing Chef user to use for registering
   the new Chef Client and (optionally) configure Chef Vaults.
 
-* `user_key (string)` - (Required) The contents of the user key that will be used to 
+* `user_key (string)` - (Required) The contents of the user key that will be used to
   authenticate with the Chef Server. This can be loaded from a file on disk using the [`file()`
   interpolation function](/docs/configuration/interpolation.html#file_path_).
 
