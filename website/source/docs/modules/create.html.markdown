@@ -2,31 +2,21 @@
 layout: "docs"
 page_title: "Creating Modules"
 sidebar_current: "docs-modules-create"
-description: |-
-  Creating modules in Terraform is easy. You may want to do this to better organize your code, to make a reusable component, or just to learn more about Terraform. For any reason, if you already know the basics of Terraform, creating a module is a piece of cake.
+description: How to create modules.
 ---
 
 # Creating Modules
 
-Creating modules in Terraform is easy. You may want to do this to better
-organize your code, to make a reusable component, or just to learn more about
-Terraform. For any reason, if you already know the basics of Terraform,
-creating a module is a piece of cake.
+Creating modules in Terraform is easy. You may want to do this to better organize your code, to make a reusable component, or just to learn more about Terraform. For any reason, if you already know the basics of Terraform, then creating a module is a piece of cake.
 
-Modules in Terraform are just folders with Terraform files. In fact,
-when you run `terraform apply`, the current working directory holding
-the Terraform files you're applying comprise what is called the
-_root module_. It itself is a valid module.
+Modules in Terraform are folders with Terraform files. In fact, when you run `terraform apply`, the current working directory holding
+the Terraform files you're applying comprise what is called the _root module_. This itself is a valid module.
 
-Therefore, you can enter the source of any module, run `terraform apply`,
-and expect it to work (assuming you satisfy the required variables, if any).
+Therefore, you can enter the source of any module, satisfy any required variables, run `terraform apply`, and expect it to work.
 
-## An Example
+## An Example Module
 
-Within a folder containing Terraform configurations, create a subfolder
-"child". In this subfolder, make one empty "main.tf" file. Then, back in
-the root folder containing the "child" folder, add this to one of the
-Terraform files:
+Within a folder containing Terraform configurations, create a subfolder called `child`. In this subfolder, make one empty `main.tf` file. Then, back in the root folder containing the `child` folder, add this to one of your Terraform configuration files:
 
 ```
 module "child" {
@@ -34,25 +24,18 @@ module "child" {
 }
 ```
 
-This will work. You've created your first module! You can add resources
-to the child module to see how that interaction works.
+You've now created your first module! You can now add resources to the `child` module.
 
-Note: Prior to running the above, you'll have to run
-[the get command](/docs/commands/get.html) for Terraform to sync
-your modules. This should be instant since the module is just a local path.
+**Note:** Prior to running the above, you'll have to run [the get command](/docs/commands/get.html) for Terraform to sync
+your modules. This should be instant since the module is a local path.
 
 ## Inputs/Outputs
 
-To make modules more useful than simple isolated containers of Terraform
-configurations, modules can be configured and also have outputs that can be
-consumed by the configuration using the module.
+To make modules more useful than simple isolated containers of Terraform configurations, modules can be configured and also have outputs that can be consumed by your Terraform configuration. 
 
-Inputs of a module are [variables](/docs/configuration/variables.html)
-and outputs are [outputs](/docs/configuration/outputs.html). There is no
-special syntax to define these, they're defined just like any other
-variables or outputs.
+Inputs of a module are [variables](/docs/configuration/variables.html) and outputs are [outputs](/docs/configuration/outputs.html). There is no special syntax to define these, they're defined just like any other variables or outputs. You can think about these variables and outputs as the API interface to your module.
 
-In the "child" module we created above, add the following:
+Let's add a variable and an output to our `child` module.
 
 ```
 variable "memory" {}
@@ -62,8 +45,7 @@ output "received" {
 }
 ```
 
-This will create a required variable "memory" and then an output "received"
-that will simply be the value of the memory variable.
+This will create a required variable, `memory`, and then an output, `received`, that will be the value of the `memory` variable.
 
 You can then configure the module and use the output like so:
 
@@ -79,24 +61,13 @@ output "child_memory" {
 }
 ```
 
-If you run `apply`, you'll again see that this works.
-
-And that is all there is to it. Variables and outputs are used to configure
-modules and provide results. Resources within a module are isolated,
-and the whole thing is managed as a single unit.
+If you now run `terraform apply`, you see how this works.
 
 ## Paths and Embedded Files
 
-It is sometimes useful to embed files within the module that aren't
-Terraform configuration files, such as a script to provision a resource
-or a file to upload.
+It is sometimes useful to embed files within the module that aren't Terraform configuration files, such as a script to provision a resource or a file to upload.
 
-In these cases, you can't use a relative path, since paths in Terraform
-are generally relative to the working directory that Terraform was executed
-from. Instead, you want to use a module-relative path. To do this, use
-the [path interpolated variables](/docs/configuration/interpolation.html).
-
-An example is shown below:
+In these cases, you can't use a relative path, since paths in Terraform are generally relative to the working directory from which Terraform was executed. Instead, you want to use a module-relative path. To do this, you should use the [path interpolated variables](/docs/configuration/interpolation.html).
 
 ```
 resource "aws_instance" "server" {
@@ -108,20 +79,13 @@ resource "aws_instance" "server" {
 }
 ```
 
-In the above, we use `${path.module}` to get a module-relative path. This
-is usually what you'll want in any case.
+Here we use `${path.module}` to get a module-relative path.
 
 ## Nested Modules
 
-You can use a module within a module just like you would anywhere else.
-This module will be hidden from the root user, so you'll have re-expose any
-variables if you need to, as well as outputs.
+You can nest a module within another module. This module will be hidden from your root configuration, so you'll have re-expose any
+variables and outputs you require.
 
-The [get command](/docs/commands/get.html) will automatically get all
-nested modules as well.
+The [get command](/docs/commands/get.html) will automatically get all nested modules.
 
-You don't have to worry about conflicting versions of modules, since
-Terraform builds isolated subtrees of all dependencies. For example,
-one module might use version 1.0 of module "foo" and another module
-might use version 2.0 of module "foo", and this would all work fine
-within Terraform since the modules are created separately.
+You don't have to worry about conflicting versions of modules, since Terraform builds isolated subtrees of all dependencies. For example, one module might use version 1.0 of module `foo` and another module might use version 2.0, and this will all work fine within Terraform since the modules are created separately.
