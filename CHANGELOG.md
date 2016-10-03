@@ -54,6 +54,7 @@ BUG FIXES:
  * provider/aws: Add retry logic to the aws_ecr_repository delete func [GH-9050]
  * provider/aws: Modifying the parameter_group_name of aws_elasticache_replication_group caused a panic [GH-9101]
  * provider/aws: Fix issue with updating ELB subnets for subnets in the same AZ [GH-9131]
+ * provider/aws: aws_route53_record alias refresh manually updated record [GH-9125]
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
  * provisioner/chef: Fix an error with parsing certain `vault_json` content [GH-9114]
  * provisioner/chef: Change to order in which to cleanup the user key so this is done before the Chef run starts [GH-9114]
