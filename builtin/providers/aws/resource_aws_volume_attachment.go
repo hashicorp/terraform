@@ -146,6 +146,7 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if len(vols.Volumes) == 0 || *vols.Volumes[0].State == "available" {
+		log.Printf("[DEBUG] Volume Attachment (%s) not found, removing from state", d.Id())
 		d.SetId("")
 	}
 
