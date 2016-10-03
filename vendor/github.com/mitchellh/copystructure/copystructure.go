@@ -28,6 +28,18 @@ type CopierFunc func(interface{}) (interface{}, error)
 // this map as well as to Copy in a mutex.
 var Copiers map[reflect.Type]CopierFunc = make(map[reflect.Type]CopierFunc)
 
+// Must is a helper that wraps a call to a function returning
+// (interface{}, error) and panics if the error is non-nil. It is intended
+// for use in variable initializations and should only be used when a copy
+// error should be a crashing case.
+func Must(v interface{}, err error) interface{} {
+	if err != nil {
+		panic("copy error: " + err.Error())
+	}
+
+	return v
+}
+
 var errPointerRequired = errors.New("Copy argument must be a pointer when Lock is true")
 
 type Config struct {
@@ -77,7 +89,7 @@ type walker struct {
 	ignoreDepth int
 	vals        []reflect.Value
 	cs          []reflect.Value
-	ps          []bool
+	ps          []int
 
 	// any locks we've taken, indexed by depth
 	locks []sync.Locker
@@ -93,6 +105,10 @@ func (w *walker) Enter(l reflectwalk.Location) error {
 		w.locks = append(w.locks, nil)
 	}
 
+	for len(w.ps) < w.depth+1 {
+		w.ps = append(w.ps, 0)
+	}
+
 	return nil
 }
 
@@ -103,6 +119,7 @@ func (w *walker) Exit(l reflectwalk.Location) error {
 		defer locker.Unlock()
 	}
 
+	w.ps[w.depth] = 0
 	w.depth--
 	if w.ignoreDepth > w.depth {
 		w.ignoreDepth = 0
@@ -154,6 +171,7 @@ func (w *walker) Exit(l reflectwalk.Location) error {
 		if v.IsValid() {
 			s := w.cs[len(w.cs)-1]
 			sf := reflect.Indirect(s).FieldByName(f.Name)
+
 			if sf.CanSet() {
 				sf.Set(v)
 			}
@@ -191,20 +209,16 @@ func (w *walker) MapElem(m, k, v reflect.Value) error {
 }
 
 func (w *walker) PointerEnter(v bool) error {
-	if w.ignoring() {
-		return nil
+	if v {
+		w.ps[w.depth]++
 	}
-
-	w.ps = append(w.ps, v)
 	return nil
 }
 
-func (w *walker) PointerExit(bool) error {
-	if w.ignoring() {
-		return nil
+func (w *walker) PointerExit(v bool) error {
+	if v {
+		w.ps[w.depth]--
 	}
-
-	w.ps = w.ps[:len(w.ps)-1]
 	return nil
 }
 
@@ -219,7 +233,7 @@ func (w *walker) Primitive(v reflect.Value) error {
 	var newV reflect.Value
 	if v.IsValid() && v.CanInterface() {
 		newV = reflect.New(v.Type())
-		reflect.Indirect(newV).Set(v)
+		newV.Elem().Set(v)
 	}
 
 	w.valPush(newV)
@@ -318,7 +332,7 @@ func (w *walker) ignoring() bool {
 }
 
 func (w *walker) pointerPeek() bool {
-	return w.ps[len(w.ps)-1]
+	return w.ps[w.depth] > 0
 }
 
 func (w *walker) valPop() reflect.Value {
@@ -350,7 +364,17 @@ func (w *walker) replacePointerMaybe() {
 	// we need to push that onto the stack.
 	if !w.pointerPeek() {
 		w.valPush(reflect.Indirect(w.valPop()))
+		return
 	}
+
+	v := w.valPop()
+	for i := 1; i < w.ps[w.depth]; i++ {
+		p := reflect.New(v.Type())
+		p.Elem().Set(v)
+		v = p
+	}
+
+	w.valPush(v)
 }
 
 // if this value is a Locker, lock it and add it to the locks slice
