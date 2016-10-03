@@ -68,6 +68,10 @@ type ContextOpts struct {
 //
 // Extra functions on Context can be found in context_*.go files.
 type Context struct {
+	// Maintainer note: Anytime this struct is changed, please verify
+	// that newShadowContext still does the right thing. Tests should
+	// fail regardless but putting this note here as well.
+
 	destroy      bool
 	diff         *Diff
 	diffLock     sync.RWMutex
