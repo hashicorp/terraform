@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
-func TestContext2Apply(t *testing.T) {
+func TestContext2Apply_basic(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn

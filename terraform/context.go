@@ -375,7 +375,7 @@ func (c *Context) Apply() (*State, error) {
 	if c.destroy {
 		walker, err = c.walk(graph, nil, walkDestroy)
 	} else {
-		walker, err = c.walk(graph, nil, walkApply)
+		walker, err = c.walk(graph, graph, walkApply)
 	}
 
 	if len(walker.ValidationErrors) > 0 {
@@ -641,6 +641,7 @@ func (c *Context) walk(
 		// on the real walk so it is fine to start first.
 		shadowCh = make(chan error)
 		go func() {
+			log.Printf("[INFO] Starting shadow graph walk: %s", operation.String())
 			shadowCh <- shadow.Walk(shadowWalker)
 		}()
 	}
@@ -660,14 +661,21 @@ func (c *Context) walk(
 		}
 
 		// Wait for the walk to end
+		log.Printf("[DEBUG] Waiting for shadow graph to complete...")
 		if err := <-shadowCh; err != nil {
 			c.shadowErr = multierror.Append(c.shadowErr, err)
 		}
 
-		// If we're supposed to fail on shadow errors, then report it
-		if contextFailOnShadowError && c.shadowErr != nil {
-			realErr = multierror.Append(realErr, multierror.Prefix(
-				c.shadowErr, "shadow graph:"))
+		if c.shadowErr == nil {
+			log.Printf("[INFO] Shadow graph success!")
+		} else {
+			log.Printf("[ERROR] Shadow graph error: %s", c.shadowErr)
+
+			// If we're supposed to fail on shadow errors, then report it
+			if contextFailOnShadowError {
+				realErr = multierror.Append(realErr, multierror.Prefix(
+					c.shadowErr, "shadow graph:"))
+			}
 		}
 	}
 
