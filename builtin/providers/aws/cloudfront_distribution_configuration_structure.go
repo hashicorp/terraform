@@ -138,7 +138,7 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 		}
 	}
 	if distributionConfig.CacheBehaviors != nil {
-		err = d.Set("cache_behaviors", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
+		err = d.Set("cache_behavior", flattenCacheBehaviors(distributionConfig.CacheBehaviors))
 		if err != nil {
 			return err
 		}
