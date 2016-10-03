@@ -1,5 +1,8 @@
 ## 0.7.5 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * `tls_cert_request` is now a managed resource instead of a data source, restoring the pre-Terraform 0.7 behaviour [GH-9035]
+
 FEATURES:
  * **New Provider:** `bitbucket` [GH-7405]
  * **New Resource:** `aws_api_gateway_client_certificate` [GH-8775]
@@ -8,27 +11,31 @@ IMPROVEMENTS:
  * provider/aws: Add JSON validation to the `aws_cloudwatch_event_rule` resource [GH-8897]
  * provider/aws: S3 bucket policies are imported as separate resources [GH-8915]
  * provider/aws: S3 bucket policies can now be removed via the `aws_s3_bucket` resource [GH-8915]
- * provider/aws: Added a cluster_address attribute to aws elasticache [GH-8935]
- * provider/aws: Add JSON validation to the aws_elasticsearch_domain resource. [GH-8898]
- * provider/aws: Add JSON validation to the aws_kms_key resource. [GH-8900]
- * provider/aws: Add JSON validation to the aws_s3_bucket_policy resource. [GH-8901]
- * provider/aws: Add JSON validation to the aws_sns_topic resource. [GH-8902]
- * provider/aws: Add JSON validation to the aws_sns_topic_policy resource. [GH-8903]
- * provider/aws: Add JSON validation to the aws_sqs_queue resource. [GH-8904]
- * provider/aws: Add JSON validation to the aws_sqs_queue_policy resource. [GH-8905]
- * provider/aws: Add JSON validation to the aws_vpc_endpoint resource. [GH-8906]
- * provider/aws: Update aws_cloudformation_stack data source with new helper function. [GH-8907]
- * provider/aws: Add JSON validation to the aws_s3_bucket resource. [GH-8908]
+ * provider/aws: Added a `cluster_address` attribute to aws elasticache [GH-8935]
+ * provider/aws: Add JSON validation to the `aws_elasticsearch_domain resource`. [GH-8898]
+ * provider/aws: Add JSON validation to the `aws_kms_key resource`. [GH-8900]
+ * provider/aws: Add JSON validation to the `aws_s3_bucket_policy resource`. [GH-8901]
+ * provider/aws: Add JSON validation to the `aws_sns_topic resource`. [GH-8902]
+ * provider/aws: Add JSON validation to the `aws_sns_topic_policy resource`. [GH-8903]
+ * provider/aws: Add JSON validation to the `aws_sqs_queue resource`. [GH-8904]
+ * provider/aws: Add JSON validation to the `aws_sqs_queue_policy resource`. [GH-8905]
+ * provider/aws: Add JSON validation to the `aws_vpc_endpoint resource`. [GH-8906]
+ * provider/aws: Update `aws_cloudformation_stack` data source with new helper function. [GH-8907]
+ * provider/aws: Add JSON validation to the `aws_s3_bucket` resource. [GH-8908]
  * provider/aws: Add support for `cloudwatch_logging_options` to Firehose Delivery Streams [GH-8671]
  * provider/aws: Add HTTP/2 support via the http_version parameter to CloudFront distribution [GH-8777]
- * provider/aws: Add query_string_cache_keys to allow for selective caching of CloudFront keys [GH-8777]
+ * provider/aws: Add `query_string_cache_keys` to allow for selective caching of CloudFront keys [GH-8777]
+ * provider/aws: Support Import `aws_elasticache_cluster` [GH-9010]
+ * provider/aws: Add support for tags to `aws_cloudfront_distribution` [GH-9011]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
  * provider/openstack: Use proxy environment variables for communication with services [GH-8948]
- * provider/vsphere: Adding 'detach_unknown_disks_on_delete' flag for VM resource [GH-8947]
+ * provider/vsphere: Adding `detach_unknown_disks_on_delete` flag for VM resource [GH-8947]
+ * provisioner/chef: Add `skip_register` attribute to allow skipping the registering steps [GH-9127]
 
 BUG FIXES:
  * core: Fixed variables not being in scope for destroy -target on modules [GH-9021]
  * provider/aws: Remove support for `ah` and `esp` literals in Security Group Ingress/Egress rules; you must use the actual protocol number for protocols other than `tcp`, `udp`, `icmp`, or `all` [GH-8975]
+ * provider/aws: Do not report drift for effect values differing only by case in AWS policies [GH-9139]
  * provider/aws: VPC ID, Port, Protocol and Name change on aws_alb_target_group will ForceNew resource [GH-8989]
  * provider/aws: Wait for Spot Fleet to drain before removing from state [GH-8938]
  * provider/aws: Fix issue when importing `aws_eip` resources by IP address [GH-8970]
@@ -41,8 +48,14 @@ BUG FIXES:
  * provider/aws: Refresh AWS EIP association from state when not found [GH-9056]
  * provider/aws: Make encryption in Aurora instances computed-only [GH-9060]
  * provider/aws: Make sure that VPC Peering Connection in a failed state returns an error. [GH-9038]
+ * provider/aws: guard against aws_route53_record delete panic [GH-9049]
+ * provider/aws: aws_db_option_group flattenOptions failing due to missing values [GH-9052]
+ * provider/aws: Add retry logic to the aws_ecr_repository delete func [GH-9050]
+ * provider/aws: Modifying the parameter_group_name of aws_elasticache_replication_group caused a panic [GH-9101]
+ * provider/aws: Fix issue with updating ELB subnets for subnets in the same AZ [GH-9131]
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
-
+ * provisioner/chef: Fix an error with parsing certain `vault_json` content [GH-9114]
+ * provisioner/chef: Change to order in which to cleanup the user key so this is done before the Chef run starts [GH-9114]
 
 ## 0.7.4 (September 19, 2016)
 

@@ -695,19 +695,6 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		removed := expandStringList(os.Difference(ns).List())
 		added := expandStringList(ns.Difference(os).List())
 
-		if len(added) > 0 {
-			attachOpts := &elb.AttachLoadBalancerToSubnetsInput{
-				LoadBalancerName: aws.String(d.Id()),
-				Subnets:          added,
-			}
-
-			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
-			_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
-			if err != nil {
-				return fmt.Errorf("Failure adding ELB subnets: %s", err)
-			}
-		}
-
 		if len(removed) > 0 {
 			detachOpts := &elb.DetachLoadBalancerFromSubnetsInput{
 				LoadBalancerName: aws.String(d.Id()),
@@ -718,6 +705,33 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			_, err := elbconn.DetachLoadBalancerFromSubnets(detachOpts)
 			if err != nil {
 				return fmt.Errorf("Failure removing ELB subnets: %s", err)
+			}
+		}
+
+		if len(added) > 0 {
+			attachOpts := &elb.AttachLoadBalancerToSubnetsInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Subnets:          added,
+			}
+
+			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
+			err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+				_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
+				if err != nil {
+					if awsErr, ok := err.(awserr.Error); ok {
+						// eventually consistent issue with removing a subnet in AZ1 and
+						// immediately adding a new one in the same AZ
+						if awsErr.Code() == "InvalidConfigurationRequest" && strings.Contains(awsErr.Message(), "cannot be attached to multiple subnets in the same AZ") {
+							log.Printf("[DEBUG] retrying az association")
+							return resource.RetryableError(awsErr)
+						}
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			if err != nil {
+				return fmt.Errorf("Failure adding ELB subnets: %s", err)
 			}
 		}
 

@@ -11,6 +11,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -103,6 +104,7 @@ type Provisioner struct {
 	SecretKey             string   `mapstructure:"secret_key"`
 	ServerURL             string   `mapstructure:"server_url"`
 	SkipInstall           bool     `mapstructure:"skip_install"`
+	SkipRegister          bool     `mapstructure:"skip_register"`
 	SSLVerifyMode         string   `mapstructure:"ssl_verify_mode"`
 	UserName              string   `mapstructure:"user_name"`
 	UserKey               string   `mapstructure:"user_key"`
@@ -110,7 +112,7 @@ type Provisioner struct {
 	Version               string   `mapstructure:"version"`
 
 	attributes map[string]interface{}
-	vaults     map[string]string
+	vaults     map[string][]string
 
 	cleanupUserKeyCmd     string
 	createConfigFiles     func(terraform.UIOutput, communicator.Communicator) error
@@ -192,12 +194,14 @@ func (r *ResourceProvisioner) Apply(
 	defer comm.Disconnect()
 
 	// Make sure we always delete the user key from the new node!
-	defer func() {
+	var once sync.Once
+	cleanupUserKey := func() {
 		o.Output("Cleanup user key...")
 		if err := p.runCommand(o, comm, p.cleanupUserKeyCmd); err != nil {
 			o.Output("WARNING: Failed to cleanup user key on new node: " + err.Error())
 		}
-	}()
+	}
+	defer once.Do(cleanupUserKey)
 
 	if !p.SkipInstall {
 		if err := p.installChefClient(o, comm); err != nil {
@@ -210,16 +214,18 @@ func (r *ResourceProvisioner) Apply(
 		return err
 	}
 
-	if p.FetchChefCertificates {
-		o.Output("Fetch Chef certificates...")
-		if err := p.fetchChefCertificates(o, comm); err != nil {
+	if !p.SkipRegister {
+		if p.FetchChefCertificates {
+			o.Output("Fetch Chef certificates...")
+			if err := p.fetchChefCertificates(o, comm); err != nil {
+				return err
+			}
+		}
+
+		o.Output("Generate the private key...")
+		if err := p.generateClientKey(o, comm); err != nil {
 			return err
 		}
-	}
-
-	o.Output("Generate the private key...")
-	if err := p.generateClientKey(o, comm); err != nil {
-		return err
 	}
 
 	if p.VaultJSON != "" {
@@ -228,6 +234,10 @@ func (r *ResourceProvisioner) Apply(
 			return err
 		}
 	}
+
+	// Cleanup the user key before we run Chef-Client to prevent issues
+	// with rights caused by changing settings during the run.
+	once.Do(cleanupUserKey)
 
 	o.Output("Starting initial Chef-Client run...")
 	if err := p.runChefClient(o, comm); err != nil {
@@ -352,11 +362,28 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	}
 
 	if vaults, ok := c.Config["vault_json"].(string); ok {
-		var m map[string]string
+		var m map[string]interface{}
 		if err := json.Unmarshal([]byte(vaults), &m); err != nil {
 			return nil, fmt.Errorf("Error parsing vault_json: %v", err)
 		}
-		p.vaults = m
+
+		v := make(map[string][]string)
+		for vault, items := range m {
+			switch items := items.(type) {
+			case []interface{}:
+				for _, item := range items {
+					if item, ok := item.(string); ok {
+						v[vault] = append(v[vault], item)
+					}
+				}
+			case interface{}:
+				if item, ok := items.(string); ok {
+					v[vault] = append(v[vault], item)
+				}
+			}
+		}
+
+		p.vaults = v
 	}
 
 	return p, nil
@@ -544,16 +571,18 @@ func (p *Provisioner) configureVaultsFunc(
 			path.Join(confDir, p.UserName+".pem"),
 		)
 
-		for vault, item := range p.vaults {
-			updateCmd := fmt.Sprintf("%s vault update %s %s -A %s -M client %s",
-				knifeCmd,
-				vault,
-				item,
-				p.NodeName,
-				options,
-			)
-			if err := p.runCommand(o, comm, updateCmd); err != nil {
-				return err
+		for vault, items := range p.vaults {
+			for _, item := range items {
+				updateCmd := fmt.Sprintf("%s vault update %s %s -A %s -M client %s",
+					knifeCmd,
+					vault,
+					item,
+					p.NodeName,
+					options,
+				)
+				if err := p.runCommand(o, comm, updateCmd); err != nil {
+					return err
+				}
 			}
 		}
 

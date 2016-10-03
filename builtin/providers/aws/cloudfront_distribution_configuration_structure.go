@@ -87,6 +87,7 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 	} else {
 		distributionConfig.WebACLId = aws.String("")
 	}
+
 	return distributionConfig
 }
 

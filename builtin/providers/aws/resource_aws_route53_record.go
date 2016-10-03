@@ -534,6 +534,10 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
+	if changeInfo == nil {
+		log.Printf("[INFO] No ChangeInfo Found. Waiting for Sync not required")
+		return nil
+	}
 
 	err = waitForRoute53RecordSetToSync(conn, cleanChangeID(*changeInfo.Id))
 	if err != nil {
