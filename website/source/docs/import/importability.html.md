@@ -67,6 +67,7 @@ To make a resource importable, please see the
 * aws_nat_gateway
 * aws_network_acl
 * aws_network_interface
+* aws_opsworks_stack
 * aws_placement_group
 * aws_rds_cluster
 * aws_rds_cluster_instance

@@ -76,3 +76,12 @@ The `custom_cookbooks_source` block supports the following arguments:
 The following attributes are exported:
 
 * `id` - The id of the stack.
+
+
+## Import
+
+OpsWorks stacks can be imported using the `id`, e.g.
+
+```
+$ terraform import aws_opsworks_stack.bar 00000000-0000-0000-0000-000000000000
+```
