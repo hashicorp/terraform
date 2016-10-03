@@ -15,7 +15,6 @@
 		line-height: 42px;
 		letter-spacing: 2px;
 		text-transform: uppercase;
-		color: $black;
 		@include lato-light();
 	}
 
@@ -34,7 +33,7 @@
 
 	p.lead{
 		font-size: 24px;
-		max-width: 30em;
+		max-width: 28em;
 	}
 
 	.icn{
@@ -92,91 +91,24 @@
 	}
 }
 
-#feature-auto{
-	position: relative;
-	padding: 200px 0 300px;
-	margin-top: -36px;
+#feature-write{
 
-	#feature-auto-bg{
-		background: #fff image-url("white-wireframe.png") center top no-repeat;
-		background-size: cover;
-		@include skewY(-3deg);
-		z-index: 10;
-	}
-
-	h2{
-		font-size: 43px
-	}
-
-	p{
-		text-align: right;
-		padding-left: 100px;
-	}
-
-	.terminal-text{
-		background: black;
-		color: white;
-		line-height: 88px;
-		text-align: center;
-		margin:  81px 20px 0;
-		font-size: 30px;
-		font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
-	}
 }
 
-#feature-iterate{
+#feature-plan{
 	position: relative;
-	margin-top: -80px;
-	padding: 280px 0 360px;
-	color: white;
+	color: $white;
+	background: $purple;
 
-	>.container{
-		z-index: 21;
-	}
 
-	#feature-iterate-bg{
-		background: #fff image-url("feature-iterate-bg.png") center top no-repeat;
-		border-top: 2px solid white;
-		border-bottom: 2px solid $purple;
-		background-size: cover;
-		@include skewY(3deg);
-		z-index: 20;
-	}
-
-	p{
-		text-align: left;
-		padding-left: 120px;
-		font-weight: 300;
-	}
-
-	.it-icon{
-		margin-top: 40px;
-	}
-
-	.t-block{
-		background-color: rgb(255, 255, 255);
-		width: 80px;
-		height: 80px;
-		@include skewY(26deg);
-		float: left;
-		margin-right: 25px;
-
-		&.t2{
-			background-color: rgba(255, 255, 255, .8);
-		}
-
-		&.t3{
-			background-color: rgba(255, 255, 255, .6);
-		}
-
-		&.t4{
-			background-color: rgba(255, 255, 255, .4);
-		}
-	}
-
-	h2{
-		color: white;
-	}
+	// #feature-iterate-bg{
+	// 	background: #fff image-url("feature-iterate-bg.png") center top no-repeat;
+	// 	border-top: 2px solid white;
+	// 	border-bottom: 2px solid $purple;
+	// 	background-size: cover;
+	// 	@include skewY(3deg);
+	// 	z-index: 20;
+	// }
 }
 
 #feature-clone{
