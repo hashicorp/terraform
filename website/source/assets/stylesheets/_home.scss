@@ -10,19 +10,23 @@
 	@include lato-light();
 
 	h2{
-		text-align: right;
-		font-size: 44px;
-		line-height: 44px;
+		margin-bottom: 40px;
+		font-size: 42px;
+		line-height: 42px;
 		letter-spacing: 2px;
 		text-transform: uppercase;
-		color: $purple;
+		color: $black;
 		@include lato-light();
+	}
+
+	h3 {
+		font-size: 18px;
+		letter-spacing: 1px;
 	}
 
 	p{
 		font-size: 16px;
-		letter-spacing: 1px;
-    	line-height: 1.5em;
+    line-height: 1.5em;
 		font-family: $font-family-lato;
 		font-weight: 300;
 	}
@@ -52,6 +56,28 @@
 		left: 0px;
 		width: 100%;
 		height: 100%;
+	}
+}
+
+.feature-card {
+	height: 230px;
+	border: 2px solid #E6E7E8;
+	padding:20px;
+	font-size: 18px;
+
+	h3 {
+		margin:0;
+		padding: 0;
+		color: $purple;
+		font-size: 16px;
+		font-weight: 400;
+		text-transform: uppercase;
+	}
+
+	p {
+		font-weight: 400;
+		text-transform: uppercase;
+		letter-spacing: 1px;
 	}
 }
 
@@ -107,7 +133,7 @@
 	}
 
 	p{
-		text-align: right;
+		text-align: left;
 		padding-left: 120px;
 		font-weight: 300;
 	}
@@ -745,5 +771,3 @@
 		font-weight: 400;
 	}
 }
-
-
