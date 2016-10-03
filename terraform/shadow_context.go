@@ -19,13 +19,13 @@ import (
 // copied, no real providers or resources are used, etc.
 func newShadowContext(c *Context) (*Context, *Context, io.Closer) {
 	// Copy the targets
-	targetRaw, err := copystructure.Config{Lock: true}.Copy(c.targets)
+	targetRaw, err := copystructure.Copy(c.targets)
 	if err != nil {
 		panic(err)
 	}
 
 	// Copy the variables
-	varRaw, err := copystructure.Config{Lock: true}.Copy(c.variables)
+	varRaw, err := copystructure.Copy(c.variables)
 	if err != nil {
 		panic(err)
 	}
@@ -45,6 +45,12 @@ func newShadowContext(c *Context) (*Context, *Context, io.Closer) {
 		targets:      targetRaw.([]string),
 		uiInput:      nil, // TODO
 		variables:    varRaw.(map[string]interface{}),
+
+		// Hardcoded to 4 since parallelism in the shadow doesn't matter
+		// a ton since we're doing far less compared to the real side
+		// and our operations are MUCH faster.
+		parallelSem:         NewSemaphore(4),
+		providerInputConfig: make(map[string]map[string]interface{}),
 	}
 
 	// Create the real context. This is effectively just a copy of
@@ -53,5 +59,18 @@ func newShadowContext(c *Context) (*Context, *Context, io.Closer) {
 	real := *c
 	real.providers = providerFactory.RealMap()
 
-	return &real, shadow, nil
+	return &real, shadow, &shadowContextCloser{
+		Providers: providerFactory,
+	}
+}
+
+// shadowContextCloser is the io.Closer returned by newShadowContext that
+// closes all the shadows and returns the results.
+type shadowContextCloser struct {
+	Providers interface{}
+}
+
+// Close closes the shadow context.
+func (c *shadowContextCloser) Close() error {
+	return nil
 }
