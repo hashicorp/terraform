@@ -61,7 +61,7 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
 * `monitoring` - (Optional) If true, the launched EC2 instance will have detailed monitoring enabled. (Available since v0.6.0)
-* `security_groups` - (Optional) A list of security group IDs to associate with.
+* `security_groups` - (Optional) A list of security group names to associate with.
    If you are creating Instances in a VPC, use `vpc_security_group_ids` instead.
 * `vpc_security_group_ids` - (Optional) A list of security group IDs to associate with.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
