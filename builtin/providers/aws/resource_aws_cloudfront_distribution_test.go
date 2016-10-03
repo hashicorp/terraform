@@ -530,7 +530,7 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 		max_ttl = 100
 		viewer_protocol_policy = "allow-all"
 	}
-	cache_behaviors = [{
+	cache_behavior {
 		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
 		cached_methods = [ "GET", "HEAD" ]
 		target_origin_id = "myS3Origin"
@@ -545,8 +545,8 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 		max_ttl = 50
 		viewer_protocol_policy = "allow-all"
 		path_pattern = "images1/*.jpg"
-	},
-	{
+	}
+	cache_behavior {
 		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
 		cached_methods = [ "GET", "HEAD" ]
 		target_origin_id = "myCustomOrigin"
@@ -561,7 +561,8 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 		max_ttl = 50
 		viewer_protocol_policy = "allow-all"
 		path_pattern = "images2/*.jpg"
-	}]
+	}
+
 	price_class = "PriceClass_All"
 	custom_error_response {
 		error_code = 404
