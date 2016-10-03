@@ -20,13 +20,15 @@ import (
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
+	ri := acctest.RandInt()
+	testConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3Config, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudFrontDistributionS3Config,
+				Config: testConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.s3_distribution",
@@ -265,7 +267,7 @@ resource "aws_s3_bucket" "s3_bucket_logs" {
 }
 `)
 
-var testAccAWSCloudFrontDistributionS3Config = fmt.Sprintf(`
+var testAccAWSCloudFrontDistributionS3Config = `
 variable rand_id {
 	default = %d
 }
@@ -316,7 +318,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 	}
 	%s
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
+`
 
 var testAccAWSCloudFrontDistributionS3ConfigWithTags = `
 variable rand_id {
