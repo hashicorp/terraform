@@ -42,7 +42,7 @@ func (p StringPtrSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 // Used by the aws_cloudfront_distribution Create and Update functions.
 func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionConfig {
 	distributionConfig := &cloudfront.DistributionConfig{
-		CacheBehaviors:       expandCacheBehaviors(d.Get("cache_behaviors").([]interface{})),
+		CacheBehaviors:       expandCacheBehaviors(d.Get("cache_behavior").([]interface{})),
 		CustomErrorResponses: expandCustomErrorResponses(d.Get("custom_error_response").(*schema.Set)),
 		DefaultCacheBehavior: expandDefaultCacheBehavior(d.Get("default_cache_behavior").(*schema.Set).List()[0].(map[string]interface{})),
 		Enabled:              aws.Bool(d.Get("enabled").(bool)),
