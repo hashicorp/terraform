@@ -502,6 +502,41 @@ func TestAccAWSInstance_privateIP(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_multiplePrivateIPs(t *testing.T) {
+	var v ec2.Instance
+
+	testCheckMultiplePrivateIPs := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if *v.PrivateIpAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", *v.PrivateIpAddress)
+			}
+			if *v.NetworkInterfaces[0].PrivateIpAddresses[0].PrivateIpAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private primary IP: %s", *v.NetworkInterfaces[0].PrivateIpAddresses[0].PrivateIpAddress)
+			}
+			if *v.NetworkInterfaces[0].PrivateIpAddresses[2].PrivateIpAddress != "10.1.1.44" {
+				return fmt.Errorf("bad private ternany IP: %s", *v.NetworkInterfaces[0].PrivateIpAddresses[2].PrivateIpAddress)
+			}
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigMultiplePrivateIPs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckMultiplePrivateIPs(),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 	var v ec2.Instance
 
@@ -986,6 +1021,25 @@ resource "aws_instance" "foo" {
 	instance_type = "t2.micro"
 	subnet_id = "${aws_subnet.foo.id}"
 	private_ip = "10.1.1.42"
+}
+`
+
+const testAccInstanceConfigMultiplePrivateIPs = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	private_ip = "10.1.1.42"
+	private_ip_addresse = ["10.1.1.43","10.1.1.44"]
 }
 `
 

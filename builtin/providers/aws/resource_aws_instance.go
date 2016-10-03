@@ -85,6 +85,14 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"private_ip_addresses": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"source_dest_check": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -493,6 +501,15 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_dns", instance.PrivateDnsName)
 	d.Set("private_ip", instance.PrivateIpAddress)
 	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
+	// Possible future implementation ?
+	// get multiple private ip addresses if present
+	//	if ips := instance.NetworkInterfaces[0].PrivateIpAddresses; len(ips) > 1 {
+	//		for _, ip := range ips {
+	//			//TODO
+	//		}
+	//		d.Set("private_ip_addresses", iplist)
+	//	}
+	//	d.Set("iam_instance_profile", iamInstanceProfileArnToName(instance.IamInstanceProfile))
 
 	if len(instance.NetworkInterfaces) > 0 {
 		for _, ni := range instance.NetworkInterfaces {
@@ -1067,6 +1084,37 @@ func buildAwsInstanceOpts(
 		}
 	}
 
+	// Always send the ENI with DeviceId 0 in the RunInstance request
+	// Reflect the PI structure and gives possibiity of extending all attributes
+	ni := &ec2.InstanceNetworkInterfaceSpecification{
+		AssociatePublicIpAddress: aws.Bool(associatePublicIPAddress),
+		DeviceIndex:              aws.Int64(int64(0)),
+		SubnetId:                 aws.String(subnetID),
+		Groups:                   groups,
+	}
+
+	if v, ok := d.GetOk("private_ip"); ok {
+		ni.PrivateIpAddress = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("private_ip_addresses"); ok {
+		ni.PrivateIpAddresses = []*ec2.PrivateIpAddressSpecification{
+			&ec2.PrivateIpAddressSpecification{
+				Primary:          aws.Bool(true),
+				PrivateIpAddress: ni.PrivateIpAddress,
+			},
+		}
+		// nil the PrivateIpAddress attr
+		ni.PrivateIpAddress = nil
+		// Assign PrivateIpAddresses attr
+		for _, ip := range v.(*schema.Set).List() {
+			ni.PrivateIpAddresses = append(ni.PrivateIpAddresses, &ec2.PrivateIpAddressSpecification{
+				Primary:          aws.Bool(false),
+				PrivateIpAddress: aws.String(ip.(string)),
+			})
+		}
+	}
+
 	if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
@@ -1075,16 +1123,6 @@ func buildAwsInstanceOpts(
 		// You also need to attach Security Groups to the NetworkInterface instead of the instance,
 		// to avoid: Network interfaces and an instance-level security groups may not be specified on
 		// the same request
-		ni := &ec2.InstanceNetworkInterfaceSpecification{
-			AssociatePublicIpAddress: aws.Bool(associatePublicIPAddress),
-			DeviceIndex:              aws.Int64(int64(0)),
-			SubnetId:                 aws.String(subnetID),
-			Groups:                   groups,
-		}
-
-		if v, ok := d.GetOk("private_ip"); ok {
-			ni.PrivateIpAddress = aws.String(v.(string))
-		}
 
 		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
 			for _, v := range v.List() {
@@ -1092,15 +1130,11 @@ func buildAwsInstanceOpts(
 			}
 		}
 
-		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
 	} else {
 		if subnetID != "" {
 			opts.SubnetID = aws.String(subnetID)
 		}
 
-		if v, ok := d.GetOk("private_ip"); ok {
-			opts.PrivateIPAddress = aws.String(v.(string))
-		}
 		if opts.SubnetID != nil &&
 			*opts.SubnetID != "" {
 			opts.SecurityGroupIDs = groups
@@ -1114,6 +1148,9 @@ func buildAwsInstanceOpts(
 			}
 		}
 	}
+
+	// Set the ENI
+	opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
 
 	if v, ok := d.GetOk("key_name"); ok {
 		opts.KeyName = aws.String(v.(string))
