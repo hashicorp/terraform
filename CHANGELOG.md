@@ -7,6 +7,7 @@ FEATURES:
  * **New Provider:** `bitbucket` [GH-7405]
  * **New Resource:** `aws_api_gateway_client_certificate` [GH-8775]
  * **New Resource:** `azurerm_servicebus_topic` [GH-9151]
+ * **New Resource:** `azurerm_servicebus_subscription` [GH-9185]
 
 IMPROVEMENTS:
  * provider/aws: Add JSON validation to the `aws_cloudwatch_event_rule` resource [GH-8897]
