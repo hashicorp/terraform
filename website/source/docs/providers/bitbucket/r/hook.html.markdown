@@ -1,6 +1,6 @@
 ---
 layout: "bitbucket"
-page_title: "Bitbucket: bitbucket_hoook"
+page_title: "Bitbucket: bitbucket_hook"
 sidebar_current: "docs-bitbucket-resource-hook"
 description: |-
   Provides a Bitbucket Webhook
