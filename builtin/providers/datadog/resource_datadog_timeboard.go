@@ -26,6 +26,15 @@ func resourceDatadogTimeboard() *schema.Resource {
 					Optional: true,
 					Default:  false,
 				},
+				"type": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+					Default:  "line",
+				},
+				"style": &schema.Schema{
+					Type:     schema.TypeMap,
+					Optional: true,
+				},
 			},
 		},
 	}
@@ -121,9 +130,16 @@ func appendRequests(datadogGraph *datadog.Graph, terraformRequests *[]interface{
 		t := t_.(map[string]interface{})
 		d := datadog.GraphDefinitionRequest{
 			Query: t["q"].(string),
+			Type:  t["type"].(string),
 		}
 		if stacked, ok := t["stacked"]; ok {
 			d.Stacked = stacked.(bool)
+		}
+		if style, ok := t["style"]; ok {
+			s, _ := style.(map[string]interface{})
+			if palette, ok := s["palette"]; ok {
+				d.Style.Palette = palette.(string)
+			}
 		}
 		datadogGraph.Definition.Requests = append(datadogGraph.Definition.Requests, d)
 	}
