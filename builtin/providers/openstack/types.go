@@ -14,16 +14,5 @@ type SubnetCreateOpts struct {
 // ToSubnetCreateMap casts a CreateOpts struct to a map.
 // It overrides subnets.ToSubnetCreateMap to add the ValueSpecs field.
 func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error) {
-	b, err := gophercloud.BuildRequestBody(opts, "")
-	if err != nil {
-		return nil, err
-	}
-
-	if opts.ValueSpecs != nil {
-		for k, v := range opts.ValueSpecs {
-			b[k] = v
-		}
-	}
-
-	return map[string]interface{}{"subnet": b}, nil
+	return BuildRequest(opts, "subnet")
 }
