@@ -19,9 +19,10 @@
 		@include lato-light();
 	}
 
-	h3 {
+	h3{
 		font-size: 18px;
 		letter-spacing: 1px;
+		text-transform: uppercase;
 	}
 
 	p{
@@ -29,6 +30,11 @@
     line-height: 1.5em;
 		font-family: $font-family-lato;
 		font-weight: 300;
+	}
+
+	p.lead{
+		font-size: 24px;
+		max-width: 30em;
 	}
 
 	.icn{
@@ -59,13 +65,18 @@
 	}
 }
 
+#feature-overview{
+	padding-bottom: 120px;
+	border-bottom: 2px solid #E6E7E8;
+}
+
 .feature-card {
 	height: 230px;
 	border: 2px solid #E6E7E8;
 	padding:20px;
 	font-size: 18px;
 
-	h3 {
+	h3{
 		margin:0;
 		padding: 0;
 		color: $purple;
@@ -74,7 +85,7 @@
 		text-transform: uppercase;
 	}
 
-	p {
+	p{
 		font-weight: 400;
 		text-transform: uppercase;
 		letter-spacing: 1px;
