@@ -10,6 +10,7 @@ FEATURES:
  * **New Resource:** `azurerm_servicebus_subscription` [GH-9185]
 
 IMPROVEMENTS:
+ * helper/schema: Adding of MinItems as a validation to Lists and Maps [GH-9216]
  * provider/aws: Add JSON validation to the `aws_cloudwatch_event_rule` resource [GH-8897]
  * provider/aws: S3 bucket policies are imported as separate resources [GH-8915]
  * provider/aws: S3 bucket policies can now be removed via the `aws_s3_bucket` resource [GH-8915]
