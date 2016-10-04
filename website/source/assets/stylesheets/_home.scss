@@ -4,6 +4,35 @@
 
 body.page-home {
 
+	h2{
+		margin-bottom: 40px;
+		font-size: 42px;
+		line-height: 42px;
+		letter-spacing: 2px;
+		text-transform: uppercase;
+		@include lato-light();
+	}
+
+	h3{
+		margin-bottom: .3em;
+		font-size: 18px;
+		line-height: 1.2;
+		letter-spacing: 1px;
+		text-transform: uppercase;
+	}
+
+	p{
+		font-size: 16px;
+		line-height: 1.5em;
+		font-weight: 300;
+		letter-spacing: .5px;
+	}
+
+	p.lead{
+		font-size: 24px;
+		max-width: 28em;
+	}
+
 	#customer-logos {
 		background: $black;
 	}
@@ -17,33 +46,6 @@ body.page-home {
 	.feature{
 		padding: 240px 0;
 		@include lato-light();
-
-		h2{
-			margin-bottom: 40px;
-			font-size: 42px;
-			line-height: 42px;
-			letter-spacing: 2px;
-			text-transform: uppercase;
-			@include lato-light();
-		}
-
-		h3{
-			font-size: 18px;
-			letter-spacing: 1px;
-			text-transform: uppercase;
-		}
-
-		p{
-			font-size: 16px;
-	    line-height: 1.5em;
-			font-family: $font-family-lato;
-			font-weight: 300;
-		}
-
-		p.lead{
-			font-size: 24px;
-			max-width: 28em;
-		}
 
 		.icn{
 			display: block;
@@ -113,8 +115,6 @@ body.page-home {
 			background: image-url("feature-card-create.svg") 0px 105px no-repeat;
 			background-size: 275px 75px;
 		}
-
-
 	}
 
 	#feature-write{
@@ -229,10 +229,12 @@ body.page-home {
 		}
 
 		h2{
-			margin-top: 0;
-			font-size: 28px;
 			text-align: center;
-			@include lato-light();
+		}
+
+		p {
+			max-width: 35em;
+			margin-bottom: 20px;
 		}
 
 		.terminals{
