@@ -79,7 +79,7 @@ body.page-home {
 	}
 
 	.feature-card {
-		height: 230px;
+		height: 210px;
 		border: 2px solid #E6E7E8;
 		padding:20px;
 		font-size: 18px;
@@ -98,6 +98,23 @@ body.page-home {
 			text-transform: uppercase;
 			letter-spacing: 1px;
 		}
+
+		&.feature-card-write{
+			background: image-url("feature-card-write.svg") 20px 120px no-repeat;
+			background-size: 289px 55px;
+		}
+
+		&.feature-card-plan{
+			background: image-url("feature-card-plan.svg") 0px 137px no-repeat;
+			background-size: 360px 21px;
+		}
+
+		&.feature-card-create{
+			background: image-url("feature-card-create.svg") 0px 105px no-repeat;
+			background-size: 275px 75px;
+		}
+
+
 	}
 
 	#feature-write{
@@ -218,12 +235,6 @@ body.page-home {
 			@include lato-light();
 		}
 
-		.explantion {
-			margin: 40px 0 60px 15px;
-			border-left: 8px solid #1e1e1e;
-
-		}
-
 		.terminals{
 			margin-bottom: 80px;
 
@@ -244,16 +255,6 @@ body.page-home {
 
 					.right{
 						padding-left: 25px;
-
-						h2{
-							margin-top: 0;
-							font-size: 28px;
-							text-transform: uppercase;
-						}
-
-						p{
-							font-size: 16px;
-						}
 					}
 				}
 
@@ -584,8 +585,6 @@ body.page-home {
 
 	@media (max-width: 320px) {
 
-		#feature-clone{
-		}
 
 		#feature-iterate{
 			margin-top: -80px;
@@ -599,12 +598,6 @@ body.page-home {
 
 			>.container{
 				@include skewY(-3deg);
-			}
-
-			p{
-				text-align: right;
-				padding-left: 120px;
-				font-weight: 300;
 			}
 
 			.it-icon{
