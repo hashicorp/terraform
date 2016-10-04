@@ -113,8 +113,14 @@ type Schema struct {
 	// TypeSet or TypeList. Specific use cases would be if a TypeSet is being
 	// used to wrap a complex structure, however more than one instance would
 	// cause instability.
+	//
+	// MinItems defines a minimum amount of items that can exist within a
+	// TypeSet or TypeList. Specific use cases would be if a TypeSet is being
+	// used to wrap a complex structure, however less than one instance would
+	// cause instability.
 	Elem     interface{}
 	MaxItems int
+	MinItems int
 
 	// The following fields are only valid for a TypeSet type.
 	//
@@ -597,8 +603,8 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 				}
 			}
 		} else {
-			if v.MaxItems > 0 {
-				return fmt.Errorf("%s: MaxItems is only supported on lists or sets", k)
+			if v.MaxItems > 0 || v.MinItems > 0 {
+				return fmt.Errorf("%s: MaxItems and MinItems are only supported on lists or sets", k)
 			}
 		}
 
@@ -1126,6 +1132,11 @@ func (m schemaMap) validateList(
 	if schema.MaxItems > 0 && rawV.Len() > schema.MaxItems {
 		return nil, []error{fmt.Errorf(
 			"%s: attribute supports %d item maximum, config has %d declared", k, schema.MaxItems, rawV.Len())}
+	}
+
+	if schema.MinItems > 0 && rawV.Len() < schema.MinItems {
+		return nil, []error{fmt.Errorf(
+			"%s: attribute supports %d item as a minimum, config has %d declared", k, schema.MinItems, rawV.Len())}
 	}
 
 	// Now build the []interface{}
