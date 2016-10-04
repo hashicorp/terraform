@@ -26,8 +26,8 @@ func BuildRequest(opts interface{}, parent string) (map[string]interface{}, erro
 		return nil, err
 	}
 
-	if opts.ValueSpecs != nil {
-		for k, v := range opts.ValueSpecs {
+	if b["value_specs"] != nil {
+		for k, v := range b["value_specs"].(map[string]interface{}) {
 			b[k] = v
 		}
 		delete(b, "value_specs")
