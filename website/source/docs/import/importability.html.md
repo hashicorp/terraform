@@ -35,6 +35,7 @@ To make a resource importable, please see the
 * aws_cloudwatch_log_group
 * aws_cloudwatch_metric_alarm
 * aws_customer_gateway
+* aws_db_event_subscription
 * aws_db_instance
 * aws_db_option_group
 * aws_db_parameter_group
