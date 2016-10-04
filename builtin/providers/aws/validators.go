@@ -467,3 +467,12 @@ func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
 	}
 	return
 }
+
+func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "MOCK" && value != "AWS" && value != "HTTP" && value != "AWS_PROXY" && value != "HTTP_PROXY" {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of 'AWS', 'MOCK', 'HTTP', 'AWS_PROXY', 'HTTP_PROXY'", k))
+	}
+	return
+}
