@@ -66,10 +66,10 @@ func newShadowContext(c *Context) (*Context, *Context, io.Closer) {
 // shadowContextCloser is the io.Closer returned by newShadowContext that
 // closes all the shadows and returns the results.
 type shadowContextCloser struct {
-	Components interface{}
+	Components *shadowComponentFactory
 }
 
 // Close closes the shadow context.
 func (c *shadowContextCloser) Close() error {
-	return nil
+	return c.Components.CloseShadow()
 }
