@@ -80,19 +80,18 @@ func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) 
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	typeName := strings.SplitN(n, ".", 2)[0]
-	uid := n
+	providerPath := make([]string, len(ctx.Path())+1)
+	copy(providerPath, ctx.Path())
+	providerPath[len(providerPath)-1] = n
+	key := PathCacheKey(providerPath)
 
-	p, err := ctx.Components.ResourceProvider(typeName, uid)
+	typeName := strings.SplitN(n, ".", 2)[0]
+	p, err := ctx.Components.ResourceProvider(typeName, key)
 	if err != nil {
 		return nil, err
 	}
 
-	providerPath := make([]string, len(ctx.Path())+1)
-	copy(providerPath, ctx.Path())
-	providerPath[len(providerPath)-1] = n
-
-	ctx.ProviderCache[PathCacheKey(providerPath)] = p
+	ctx.ProviderCache[key] = p
 	return p, nil
 }
 
@@ -226,16 +225,17 @@ func (ctx *BuiltinEvalContext) InitProvisioner(
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	p, err := ctx.Components.ResourceProvisioner(n, n)
+	provPath := make([]string, len(ctx.Path())+1)
+	copy(provPath, ctx.Path())
+	provPath[len(provPath)-1] = n
+	key := PathCacheKey(provPath)
+
+	p, err := ctx.Components.ResourceProvisioner(n, key)
 	if err != nil {
 		return nil, err
 	}
 
-	provPath := make([]string, len(ctx.Path())+1)
-	copy(provPath, ctx.Path())
-	provPath[len(provPath)-1] = n
-
-	ctx.ProvisionerCache[PathCacheKey(provPath)] = p
+	ctx.ProvisionerCache[key] = p
 	return p, nil
 }
 
