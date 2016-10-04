@@ -26,14 +26,13 @@ type BuiltinEvalContext struct {
 	InterpolaterVars    map[string]map[string]interface{}
 	InterpolaterVarLock *sync.Mutex
 
+	Components          contextComponentFactory
 	Hooks               []Hook
 	InputValue          UIInput
-	Providers           map[string]ResourceProviderFactory
 	ProviderCache       map[string]ResourceProvider
 	ProviderConfigCache map[string]*ResourceConfig
 	ProviderInputConfig map[string]map[string]interface{}
 	ProviderLock        *sync.Mutex
-	Provisioners        map[string]ResourceProvisionerFactory
 	ProvisionerCache    map[string]ResourceProvisioner
 	ProvisionerLock     *sync.Mutex
 	DiffValue           *Diff
@@ -82,13 +81,9 @@ func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) 
 	defer ctx.ProviderLock.Unlock()
 
 	typeName := strings.SplitN(n, ".", 2)[0]
+	uid := n
 
-	f, ok := ctx.Providers[typeName]
-	if !ok {
-		return nil, fmt.Errorf("Provider '%s' not found", typeName)
-	}
-
-	p, err := f()
+	p, err := ctx.Components.ResourceProvider(typeName, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -231,12 +226,7 @@ func (ctx *BuiltinEvalContext) InitProvisioner(
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	f, ok := ctx.Provisioners[n]
-	if !ok {
-		return nil, fmt.Errorf("Provisioner '%s' not found", n)
-	}
-
-	p, err := f()
+	p, err := ctx.Components.ResourceProvisioner(n, n)
 	if err != nil {
 		return nil, err
 	}
@@ -341,9 +331,4 @@ func (ctx *BuiltinEvalContext) State() (*State, *sync.RWMutex) {
 }
 
 func (ctx *BuiltinEvalContext) init() {
-	// We nil-check the things below because they're meant to be configured,
-	// and we just default them to non-nil.
-	if ctx.Providers == nil {
-		ctx.Providers = make(map[string]ResourceProviderFactory)
-	}
 }

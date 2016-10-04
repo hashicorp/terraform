@@ -43,17 +43,11 @@ func (c *Context) Import(opts *ImportOpts) (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Get supported providers (for the graph builder)
-	providers := make([]string, 0, len(c.providers))
-	for k, _ := range c.providers {
-		providers = append(providers, k)
-	}
-
 	// Initialize our graph builder
 	builder := &ImportGraphBuilder{
 		ImportTargets: opts.Targets,
 		Module:        opts.Module,
-		Providers:     providers,
+		Providers:     c.components.ResourceProviders(),
 	}
 
 	// Build the graph!
