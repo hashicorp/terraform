@@ -374,15 +374,14 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if alias := record.AliasTarget; alias != nil {
-		if _, ok := d.GetOk("alias"); !ok {
-			d.Set("alias", []interface{}{
-				map[string]interface{}{
-					"zone_id": *alias.HostedZoneId,
-					"name":    *alias.DNSName,
-					"evaluate_target_health": *alias.EvaluateTargetHealth,
-				},
-			})
-		}
+		name := strings.TrimSuffix(*alias.DNSName, ".")
+		d.Set("alias", []interface{}{
+			map[string]interface{}{
+				"zone_id": *alias.HostedZoneId,
+				"name":    name,
+				"evaluate_target_health": *alias.EvaluateTargetHealth,
+			},
+		})
 	}
 
 	d.Set("ttl", record.TTL)

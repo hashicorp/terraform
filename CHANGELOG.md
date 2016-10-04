@@ -6,6 +6,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
  * **New Provider:** `bitbucket` [GH-7405]
  * **New Resource:** `aws_api_gateway_client_certificate` [GH-8775]
+ * **New Resource:** `azurerm_servicebus_topic` [GH-9151]
+ * **New Resource:** `azurerm_servicebus_subscription` [GH-9185]
 
 IMPROVEMENTS:
  * provider/aws: Add JSON validation to the `aws_cloudwatch_event_rule` resource [GH-8897]
@@ -27,6 +29,8 @@ IMPROVEMENTS:
  * provider/aws: Add `query_string_cache_keys` to allow for selective caching of CloudFront keys [GH-8777]
  * provider/aws: Support Import `aws_elasticache_cluster` [GH-9010]
  * provider/aws: Add support for tags to `aws_cloudfront_distribution` [GH-9011]
+ * provider/aws: Support Import `aws_opsworks_stack` [GH-9124]
+ * provider/aws: Support Import `aws_elasticache_replication_groups` [GH-9140]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
  * provider/openstack: Use proxy environment variables for communication with services [GH-8948]
  * provider/vsphere: Adding `detach_unknown_disks_on_delete` flag for VM resource [GH-8947]
@@ -34,6 +38,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
  * core: Fixed variables not being in scope for destroy -target on modules [GH-9021]
+ * core: Fixed issue that prevented diffs from being properly generated in a specific resource schema scenario [GH-8891]
  * provider/aws: Remove support for `ah` and `esp` literals in Security Group Ingress/Egress rules; you must use the actual protocol number for protocols other than `tcp`, `udp`, `icmp`, or `all` [GH-8975]
  * provider/aws: Do not report drift for effect values differing only by case in AWS policies [GH-9139]
  * provider/aws: VPC ID, Port, Protocol and Name change on aws_alb_target_group will ForceNew resource [GH-8989]
@@ -53,6 +58,10 @@ BUG FIXES:
  * provider/aws: Add retry logic to the aws_ecr_repository delete func [GH-9050]
  * provider/aws: Modifying the parameter_group_name of aws_elasticache_replication_group caused a panic [GH-9101]
  * provider/aws: Fix issue with updating ELB subnets for subnets in the same AZ [GH-9131]
+ * provider/aws: aws_route53_record alias refresh manually updated record [GH-9125]
+ * provider/aws: Fix issue detaching volumes that were already detached [GH-9023]
+ * provider/aws: Add retry to the `aws_ssm_document` delete func [GH-9188]
+ * provider/azurerm: fix resource ID parsing for subscriptions resources [GH-9163]
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
  * provisioner/chef: Fix an error with parsing certain `vault_json` content [GH-9114]
  * provisioner/chef: Change to order in which to cleanup the user key so this is done before the Chef run starts [GH-9114]
