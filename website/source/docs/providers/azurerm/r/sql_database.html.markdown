@@ -53,10 +53,10 @@ The following arguments are supported:
 
 * `max_size_bytes` - (Optional) The maximum size that the database can grow to. Applies only if `create_mode` is `Default`.
 
-* `requested_service_object_id` - (Optional) Use `requested_service_object_id` or `requested_service_object_name` to set the performance level for the database.
+* `requested_service_objective_id` - (Optional) Use `requested_service_objective_id` or `requested_service_objective_name` to set the performance level for the database.
  Valid values are: `S0`, `S1`, `S2`, `S3`, `P1`, `P2`, `P4`, `P6`, `P11` and `ElasticPool`.
  
-* `requested_service_object_name` - (Optional) Use `requested_service_object_name` or `requested_service_object_id` to set the performance level for the database.
+* `requested_service_objective_name` - (Optional) Use `requested_service_objective_name` or `requested_service_objective_id` to set the performance level for the database.
 
 * `source_database_deletion_date` - (Optional) The deletion date time of the source database. Only applies to deleted databases where `create_mode` is `PointInTimeRestore`.
 
