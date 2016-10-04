@@ -16,13 +16,14 @@ func newShadowComponentFactory(
 	shared := &shadowComponentFactoryShared{contextComponentFactory: f}
 
 	// Create the real side
-	real := &shadowComponentFactoryReal{
+	real := &shadowComponentFactory{
 		shadowComponentFactoryShared: shared,
 	}
 
 	// Create the shadow
 	shadow := &shadowComponentFactory{
 		shadowComponentFactoryShared: shared,
+		Shadow: true,
 	}
 
 	return real, shadow
@@ -32,36 +33,30 @@ func newShadowComponentFactory(
 // with this factory are fake and will not cause real work to happen.
 type shadowComponentFactory struct {
 	*shadowComponentFactoryShared
+
+	Shadow bool // True if this should return the shadow
 }
 
 func (f *shadowComponentFactory) ResourceProvider(
 	n, uid string) (ResourceProvider, error) {
-	_, shadow, err := f.shadowComponentFactoryShared.ResourceProvider(n, uid)
-	return shadow, err
+	real, shadow, err := f.shadowComponentFactoryShared.ResourceProvider(n, uid)
+	var result ResourceProvider = real
+	if f.Shadow {
+		result = shadow
+	}
+
+	return result, err
 }
 
 func (f *shadowComponentFactory) ResourceProvisioner(
 	n, uid string) (ResourceProvisioner, error) {
-	_, shadow, err := f.shadowComponentFactoryShared.ResourceProvisioner(n, uid)
-	return shadow, err
-}
+	real, shadow, err := f.shadowComponentFactoryShared.ResourceProvisioner(n, uid)
+	var result ResourceProvisioner = real
+	if f.Shadow {
+		result = shadow
+	}
 
-// shadowComponentFactoryReal is the real side of the component factory.
-// Operations here result in real components that do real work.
-type shadowComponentFactoryReal struct {
-	*shadowComponentFactoryShared
-}
-
-func (f *shadowComponentFactoryReal) ResourceProvider(
-	n, uid string) (ResourceProvider, error) {
-	real, _, err := f.shadowComponentFactoryShared.ResourceProvider(n, uid)
-	return real, err
-}
-
-func (f *shadowComponentFactoryReal) ResourceProvisioner(
-	n, uid string) (ResourceProvisioner, error) {
-	real, _, err := f.shadowComponentFactoryShared.ResourceProvisioner(n, uid)
-	return real, err
+	return result, err
 }
 
 // shadowComponentFactoryShared is shared data between the two factories.
