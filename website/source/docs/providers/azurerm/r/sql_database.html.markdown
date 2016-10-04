@@ -32,7 +32,7 @@ resource "azurerm_sql_database" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the SQL Server.
+* `name` - (Required) The name of the database.
 
 * `resource_group_name` - (Required) The name of the resource group in which to create the database.  This must be the same as Database Server resource group currently. 
 
