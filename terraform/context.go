@@ -365,7 +365,8 @@ func (c *Context) Apply() (*State, error) {
 	if c.destroy {
 		walker, err = c.walk(graph, nil, walkDestroy)
 	} else {
-		walker, err = c.walk(graph, nil, walkApply)
+		//walker, err = c.walk(graph, nil, walkApply)
+		walker, err = c.walk(graph, graph, walkApply)
 	}
 
 	if len(walker.ValidationErrors) > 0 {

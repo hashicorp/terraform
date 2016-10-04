@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/shadow"
 )
 
@@ -31,14 +32,23 @@ func newShadowComponentFactory(
 
 // shadowComponentFactory is the shadow side. Any components created
 // with this factory are fake and will not cause real work to happen.
+//
+// Unlike other shadowers, the shadow component factory will allow the
+// shadow to create _any_ component even if it is never requested on the
+// real side. This is because errors will happen later downstream as function
+// calls are made to the shadows that are never matched on the real side.
 type shadowComponentFactory struct {
 	*shadowComponentFactoryShared
 
 	Shadow bool // True if this should return the shadow
+	lock   sync.Mutex
 }
 
 func (f *shadowComponentFactory) ResourceProvider(
 	n, uid string) (ResourceProvider, error) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
 	real, shadow, err := f.shadowComponentFactoryShared.ResourceProvider(n, uid)
 	var result ResourceProvider = real
 	if f.Shadow {
@@ -50,6 +60,9 @@ func (f *shadowComponentFactory) ResourceProvider(
 
 func (f *shadowComponentFactory) ResourceProvisioner(
 	n, uid string) (ResourceProvisioner, error) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
 	real, shadow, err := f.shadowComponentFactoryShared.ResourceProvisioner(n, uid)
 	var result ResourceProvisioner = real
 	if f.Shadow {
@@ -59,13 +72,58 @@ func (f *shadowComponentFactory) ResourceProvisioner(
 	return result, err
 }
 
+// CloseShadow is called when the _real_ side is complete. This will cause
+// all future blocking operations to return immediately on the shadow to
+// ensure the shadow also completes.
+func (f *shadowComponentFactory) CloseShadow() error {
+	// If we aren't the shadow, just return
+	if !f.Shadow {
+		return nil
+	}
+
+	// Lock ourselves so we don't modify state
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	// Grab our shared state
+	shared := f.shadowComponentFactoryShared
+
+	// If we're already closed, its an error
+	if shared.closed {
+		return fmt.Errorf("component factory shadow already closed")
+	}
+
+	// Close all the providers and provisioners and return the error
+	var result error
+	for _, n := range shared.providerKeys {
+		_, shadow, err := shared.ResourceProvider(n, n)
+		if err == nil && shadow != nil {
+			if err := shadow.CloseShadow(); err != nil {
+				result = multierror.Append(result, err)
+			}
+		}
+	}
+
+	// TODO: provisioners once they're done
+
+	// Mark ourselves as closed
+	shared.closed = true
+
+	return result
+}
+
 // shadowComponentFactoryShared is shared data between the two factories.
+//
+// It is NOT SAFE to run any function on this struct in parallel. Lock
+// access to this struct.
 type shadowComponentFactoryShared struct {
 	contextComponentFactory
 
-	providers    shadow.KeyedValue
-	provisioners shadow.KeyedValue
-	lock         sync.Mutex
+	closed          bool
+	providers       shadow.KeyedValue
+	providerKeys    []string
+	provisioners    shadow.KeyedValue
+	provisionerKeys []string
 }
 
 // shadowResourceProviderFactoryEntry is the entry that is stored in
@@ -84,9 +142,6 @@ type shadowComponentFactoryProvisionerEntry struct {
 
 func (f *shadowComponentFactoryShared) ResourceProvider(
 	n, uid string) (ResourceProvider, shadowResourceProvider, error) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-
 	// Determine if we already have a value
 	raw, ok := f.providers.ValueOk(uid)
 	if !ok {
@@ -109,6 +164,7 @@ func (f *shadowComponentFactoryShared) ResourceProvider(
 
 		// Store the value
 		f.providers.SetValue(uid, &entry)
+		f.providerKeys = append(f.providerKeys, uid)
 		raw = &entry
 	}
 
@@ -124,9 +180,6 @@ func (f *shadowComponentFactoryShared) ResourceProvider(
 
 func (f *shadowComponentFactoryShared) ResourceProvisioner(
 	n, uid string) (ResourceProvisioner, ResourceProvisioner, error) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-
 	// Determine if we already have a value
 	raw, ok := f.provisioners.ValueOk(uid)
 	if !ok {
@@ -150,6 +203,7 @@ func (f *shadowComponentFactoryShared) ResourceProvisioner(
 
 		// Store the value
 		f.provisioners.SetValue(uid, &entry)
+		f.provisionerKeys = append(f.provisionerKeys, uid)
 		raw = &entry
 	}
 
