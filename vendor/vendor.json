@@ -304,6 +304,12 @@
 			"revisionTime": "2016-06-29T21:43:12Z"
 		},
 		{
+			"checksumSHA1": "iP+4k3fnjb2r+D9a+MXcLedcHwg=",
+			"path": "github.com/akamai-open/AkamaiOPEN-edgegrid-golang",
+			"revision": "972380196f3f7d1411502949a609ed1fae786688",
+			"revisionTime": "2016-06-11T13:04:17Z"
+		},
+		{
 			"path": "github.com/apparentlymart/go-cidr/cidr",
 			"revision": "a3ebdb999b831ecb6ab8a226e31b07b2b9061c47"
 		},
@@ -911,6 +917,12 @@
 			"path": "github.com/cloudflare/cloudflare-go",
 			"revision": "746075f034254832ead032aee02ac072636ff25a",
 			"revisionTime": "2016-06-01T21:42:51Z"
+		},
+		{
+			"checksumSHA1": "/WRjjMmmS41GR/lD3wUpZ25fC5M=",
+			"path": "github.com/comcast/go-edgegrid/edgegrid",
+			"revision": "c2a0ea4751aa2d0efcb3f646b7c6327a51ea522b",
+			"revisionTime": "2016-06-07T14:22:42Z"
 		},
 		{
 			"comment": "v2.3.0-alpha.0-652-ge552791",
