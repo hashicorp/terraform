@@ -34,8 +34,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the SQL Server.
 
-* `resource_group_name` - (Required) The name of the resource group in which to
-    create the sql server.
+* `resource_group_name` - (Required) The name of the resource group in which to create the database.  This must be the same as Database Server resource group currently. 
 
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 
@@ -49,7 +48,7 @@ The following arguments are supported:
 
 * `edition` - (Optional) The edition of the database to be created. Applies only if `create_mode` is `Default`. Valid values are: `Basic`, `Standard`, `Premium`.
 
-* `collation` - (Optional) The name of the collation. Applies only if `create_mode` is `Default`.
+* `collation` - (Optional) The name of the collation. Applies only if `create_mode` is `Default`.  Azure default is `SQL_LATIN1_GENERAL_CP1_CI_AS`
 
 * `max_size_bytes` - (Optional) The maximum size that the database can grow to. Applies only if `create_mode` is `Default`.
 
