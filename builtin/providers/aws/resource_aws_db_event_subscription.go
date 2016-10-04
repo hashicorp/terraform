@@ -18,6 +18,9 @@ func resourceAwsDbEventSubscription() *schema.Resource {
 		Read:   resourceAwsDbEventSubscriptionRead,
 		Update: resourceAwsDbEventSubscriptionUpdate,
 		Delete: resourceAwsDbEventSubscriptionDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:         schema.TypeString,
