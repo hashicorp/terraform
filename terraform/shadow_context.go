@@ -31,20 +31,19 @@ func newShadowContext(c *Context) (*Context, *Context, io.Closer) {
 	}
 
 	// The factories
-	providerFactory := &shadowResourceProviderFactory{Original: c.providers}
+	componentsReal, componentsShadow := newShadowComponentFactory(c.components)
 
 	// Create the shadow
 	shadow := &Context{
-		destroy:      c.destroy,
-		diff:         c.diff.DeepCopy(),
-		hooks:        nil, // TODO: do we need to copy? stop hook?
-		module:       c.module,
-		providers:    providerFactory.ShadowMap(),
-		provisioners: nil, //TODO
-		state:        c.state.DeepCopy(),
-		targets:      targetRaw.([]string),
-		uiInput:      nil, // TODO
-		variables:    varRaw.(map[string]interface{}),
+		components: componentsShadow,
+		destroy:    c.destroy,
+		diff:       c.diff.DeepCopy(),
+		hooks:      nil, // TODO: do we need to copy? stop hook?
+		module:     c.module,
+		state:      c.state.DeepCopy(),
+		targets:    targetRaw.([]string),
+		uiInput:    nil, // TODO
+		variables:  varRaw.(map[string]interface{}),
 
 		// Hardcoded to 4 since parallelism in the shadow doesn't matter
 		// a ton since we're doing far less compared to the real side
@@ -57,17 +56,17 @@ func newShadowContext(c *Context) (*Context, *Context, io.Closer) {
 	// the context given except we need to modify some of the values
 	// to point to the real side of a shadow so the shadow can compare values.
 	real := *c
-	real.providers = providerFactory.RealMap()
+	real.components = componentsReal
 
 	return &real, shadow, &shadowContextCloser{
-		Providers: providerFactory,
+		Components: componentsShadow,
 	}
 }
 
 // shadowContextCloser is the io.Closer returned by newShadowContext that
 // closes all the shadows and returns the results.
 type shadowContextCloser struct {
-	Providers interface{}
+	Components interface{}
 }
 
 // Close closes the shadow context.

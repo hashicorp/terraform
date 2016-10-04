@@ -72,19 +72,18 @@ type Context struct {
 	// that newShadowContext still does the right thing. Tests should
 	// fail regardless but putting this note here as well.
 
-	destroy      bool
-	diff         *Diff
-	diffLock     sync.RWMutex
-	hooks        []Hook
-	module       *module.Tree
-	providers    map[string]ResourceProviderFactory
-	provisioners map[string]ResourceProvisionerFactory
-	sh           *stopHook
-	state        *State
-	stateLock    sync.RWMutex
-	targets      []string
-	uiInput      UIInput
-	variables    map[string]interface{}
+	components contextComponentFactory
+	destroy    bool
+	diff       *Diff
+	diffLock   sync.RWMutex
+	hooks      []Hook
+	module     *module.Tree
+	sh         *stopHook
+	state      *State
+	stateLock  sync.RWMutex
+	targets    []string
+	uiInput    UIInput
+	variables  map[string]interface{}
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
@@ -153,16 +152,18 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 	}
 
 	return &Context{
-		destroy:      opts.Destroy,
-		diff:         opts.Diff,
-		hooks:        hooks,
-		module:       opts.Module,
-		providers:    opts.Providers,
-		provisioners: opts.Provisioners,
-		state:        state,
-		targets:      opts.Targets,
-		uiInput:      opts.UIInput,
-		variables:    variables,
+		components: &basicComponentFactory{
+			providers:    opts.Providers,
+			provisioners: opts.Provisioners,
+		},
+		destroy:   opts.Destroy,
+		diff:      opts.Diff,
+		hooks:     hooks,
+		module:    opts.Module,
+		state:     state,
+		targets:   opts.Targets,
+		uiInput:   opts.UIInput,
+		variables: variables,
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
@@ -183,22 +184,11 @@ func (c *Context) Graph(g *ContextGraphOpts) (*Graph, error) {
 // GraphBuilder returns the GraphBuilder that will be used to create
 // the graphs for this context.
 func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
-	// TODO test
-	providers := make([]string, 0, len(c.providers))
-	for k, _ := range c.providers {
-		providers = append(providers, k)
-	}
-
-	provisioners := make([]string, 0, len(c.provisioners))
-	for k, _ := range c.provisioners {
-		provisioners = append(provisioners, k)
-	}
-
 	return &BuiltinGraphBuilder{
 		Root:         c.module,
 		Diff:         c.diff,
-		Providers:    providers,
-		Provisioners: provisioners,
+		Providers:    c.components.ResourceProviders(),
+		Provisioners: c.components.ResourceProvisioners(),
 		State:        c.state,
 		Targets:      c.targets,
 		Destroy:      c.destroy,
@@ -375,7 +365,7 @@ func (c *Context) Apply() (*State, error) {
 	if c.destroy {
 		walker, err = c.walk(graph, nil, walkDestroy)
 	} else {
-		walker, err = c.walk(graph, graph, walkApply)
+		walker, err = c.walk(graph, nil, walkApply)
 	}
 
 	if len(walker.ValidationErrors) > 0 {
