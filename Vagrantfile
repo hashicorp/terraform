@@ -60,6 +60,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
+  config.vm.provider "docker" do
+    config.vm.box = "tknerr/baseimage-ubuntu-14.04"
+  end
+  
   config.vm.provider "virtualbox" do |v|
     v.memory = 4096
     v.cpus = 2
