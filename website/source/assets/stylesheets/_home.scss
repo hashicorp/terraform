@@ -171,7 +171,13 @@ body.page-home {
 		padding: 240px 0 300px;
 
 		>.container{
+			background: image-url("feature-create-bg.svg") 95% 20% no-repeat;
+			background-size: 40%;
 			z-index: 21;
+		}
+
+		p.lead {
+			margin-bottom: 220px;
 		}
 
 		#feature-create-bg{
