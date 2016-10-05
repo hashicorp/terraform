@@ -117,7 +117,7 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 	createOpts := RouterCreateOpts{
 		Name:       d.Get("name").(string),
 		TenantID:   d.Get("tenant_id").(string),
-		ValueSpecs: routerValueSpecs(d),
+		ValueSpecs: MapValueSpecs(d),
 	}
 
 	if asuRaw, ok := d.GetOk("admin_state_up"); ok {
@@ -291,12 +291,4 @@ func waitForRouterDelete(networkingClient *gophercloud.ServiceClient, routerId s
 		log.Printf("[DEBUG] OpenStack Router %s still active.\n", routerId)
 		return r, "ACTIVE", nil
 	}
-}
-
-func routerValueSpecs(d *schema.ResourceData) map[string]string {
-	m := make(map[string]string)
-	for key, val := range d.Get("value_specs").(map[string]interface{}) {
-		m[key] = val.(string)
-	}
-	return m
 }
