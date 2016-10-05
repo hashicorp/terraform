@@ -151,6 +151,10 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 		updateHealthCheck.HealthThreshold = aws.Int64(int64(d.Get("child_health_threshold").(int)))
 	}
 
+	if d.HasChange("search_string") {
+		updateHealthCheck.SearchString = aws.String(d.Get("search_string").(string))
+	}
+
 	if d.HasChange("cloudwatch_alarm_name") || d.HasChange("cloudwatch_alarm_region") {
 		cloudwatchAlarm := &route53.AlarmIdentifier{
 			Name:   aws.String(d.Get("cloudwatch_alarm_name").(string)),
