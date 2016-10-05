@@ -1,7 +1,7 @@
 package date
 
 import (
-	"strings"
+	"regexp"
 	"time"
 )
 
@@ -11,6 +11,7 @@ const (
 	azureUtcFormat     = "2006-01-02T15:04:05.999999999"
 	rfc3339JSON        = `"` + time.RFC3339Nano + `"`
 	rfc3339            = time.RFC3339Nano
+	tzOffsetRegex      = `(Z|z|\+|-)(\d+:\d+)*"*$`
 )
 
 // Time defines a type similar to time.Time but assumes a layout of RFC3339 date-time (i.e.,
@@ -40,12 +41,14 @@ func (t Time) MarshalJSON() (json []byte, err error) {
 // UnmarshalJSON reconstitutes the Time from a JSON string conforming to RFC3339 date-time
 // (i.e., 2006-01-02T15:04:05Z).
 func (t *Time) UnmarshalJSON(data []byte) (err error) {
-	stringData := string(data)
 	timeFormat := azureUtcFormatJSON
-	if strings.IndexAny(stringData, "Zz") > -1 {
+	match, err := regexp.Match(tzOffsetRegex, data)
+	if err != nil {
+		return err
+	} else if match {
 		timeFormat = rfc3339JSON
 	}
-	t.Time, err = ParseTime(timeFormat, stringData)
+	t.Time, err = ParseTime(timeFormat, string(data))
 	return err
 }
 
@@ -58,12 +61,14 @@ func (t Time) MarshalText() (text []byte, err error) {
 // UnmarshalText reconstitutes a Time saved as a byte array conforming to RFC3339 date-time
 // (i.e., 2006-01-02T15:04:05Z).
 func (t *Time) UnmarshalText(data []byte) (err error) {
-	stringData := string(data)
 	timeFormat := azureUtcFormat
-	if strings.IndexAny(stringData, "Zz") > -1 {
+	match, err := regexp.Match(tzOffsetRegex, data)
+	if err != nil {
+		return err
+	} else if match {
 		timeFormat = rfc3339
 	}
-	t.Time, err = ParseTime(timeFormat, stringData)
+	t.Time, err = ParseTime(timeFormat, string(data))
 	return err
 }
 
