@@ -10,6 +10,54 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestResourceAzureRMLoadBalancerRuleNameLabel_validation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "-word",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing-",
+			ErrCount: 1,
+		},
+		{
+			Value:    "test123test",
+			ErrCount: 1,
+		},
+		{
+			Value:    acctest.RandStringFromCharSet(81, "abcdedfed"),
+			ErrCount: 1,
+		},
+		{
+			Value:    "test.rule",
+			ErrCount: 0,
+		},
+		{
+			Value:    "test_rule",
+			ErrCount: 0,
+		},
+		{
+			Value:    "test-rule",
+			ErrCount: 0,
+		},
+		{
+			Value:    "TestRule",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateArmLoadBalancerRuleName(tc.Value, "azurerm_lb_rule")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the Azure RM LoadBalancer Rule Name Label to trigger a validation error")
+		}
+	}
+}
+
 func TestAccAzureRMLoadbalancerRule_basic(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()

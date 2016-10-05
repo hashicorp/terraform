@@ -33,7 +33,7 @@ func retrieveLoadbalancerById(loadBalancerId string, meta interface{}) (*network
 		if resp.StatusCode == http.StatusNotFound {
 			return nil, false, nil
 		}
-		return nil, false, fmt.Errorf("Error making Read request on Azure Loadbalancer %s: %s", name, err)
+		return nil, false, fmt.Errorf("Error making Read request on Azure LoadBalancer %s: %s", name, err)
 	}
 
 	return &resp, true, nil
@@ -127,7 +127,7 @@ func loadbalancerStateRefreshFunc(client *ArmClient, resourceGroupName string, l
 	return func() (interface{}, string, error) {
 		res, err := client.loadBalancerClient.Get(resourceGroupName, loadbalancer, "")
 		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in loadbalancerStateRefreshFunc to Azure ARM for Loadbalancer '%s' (RG: '%s'): %s", loadbalancer, resourceGroupName, err)
+			return nil, "", fmt.Errorf("Error issuing read request in loadbalancerStateRefreshFunc to Azure ARM for LoadBalancer '%s' (RG: '%s'): %s", loadbalancer, resourceGroupName, err)
 		}
 
 		return res, *res.Properties.ProvisioningState, nil

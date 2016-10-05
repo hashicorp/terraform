@@ -2,13 +2,15 @@ package azurerm
 
 import (
 	"fmt"
+	"log"
+	"regexp"
+	"time"
+
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jen20/riviera/azure"
-	"log"
-	"time"
 )
 
 func resourceArmLoadbalancerRule() *schema.Resource {
@@ -20,9 +22,10 @@ func resourceArmLoadbalancerRule() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateArmLoadBalancerRuleName,
 			},
 
 			"location": {
@@ -306,4 +309,34 @@ func expandAzureRmLoadbalancerRule(d *schema.ResourceData, lb *network.LoadBalan
 	}
 
 	return &lbRule, nil
+}
+
+func validateArmLoadBalancerRuleName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[a-zA-Z._-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only word characters and hyphens allowed in %q: %q",
+			k, value))
+	}
+
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 80 characters: %q", k, value))
+	}
+
+	if len(value) == 0 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be an empty string: %q", k, value))
+	}
+	if !regexp.MustCompile(`[a-zA-Z]$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must end with a word character: %q", k, value))
+	}
+
+	if !regexp.MustCompile(`^[a-zA-Z]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q must start with a word character: %q", k, value))
+	}
+
+	return
 }
