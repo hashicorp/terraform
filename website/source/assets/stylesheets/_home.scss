@@ -310,6 +310,23 @@ body.page-home {
 		}
 	}
 
+	#announcement{
+		position: relative;
+		padding: 180px 220px;
+		color: $white;
+		text-align: center;
+
+		>.container {
+			z-index: 21;
+		}
+	}
+
+	#announcement-bg{
+		background-color: $purple;
+		@include skewY(3deg);
+		z-index: 20;
+	}
+
 
 	@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
 		#demos{
