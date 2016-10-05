@@ -353,9 +353,10 @@ body.page-home {
 	}
 
 	#announcement-bg{
-		background-color: $purple;
 		@include skewY(3deg);
 		z-index: 20;
+		background: $purple image-url("latest-announce-bg.svg") bottom left no-repeat;
+		background-size: 100%;
 	}
 
 	#enterprise-callout {
