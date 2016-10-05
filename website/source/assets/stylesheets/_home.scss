@@ -79,7 +79,7 @@ body.page-home {
 	}
 
 	#feature-overview{
-		padding-bottom: 120px;
+		padding: 120px 0;
 		border-bottom: 2px solid #E6E7E8;
 	}
 
@@ -121,23 +121,42 @@ body.page-home {
 	}
 
 	#feature-write{
+		position: relative;
+		padding: 180px 0 200px;
+		margin-top: -80px;
 
+		>.container {
+			z-index: 21;
+		}
+
+		#feature-write-bg{
+			border-top: 2px solid white;
+			border-bottom: 2px solid $purple;
+			background: image-url("feature-write-bg.svg") 85% 100% no-repeat;
+			background-size: 570px;
+			z-index: 20;
+		}
 	}
 
 	#feature-plan{
 		position: relative;
 		color: $white;
-		background: $purple;
+		position: relative;
+		padding: 180px 0 60px;
+		margin-top: -80px;
 
+		>.container {
+			z-index: 21;
+		}
 
-		// #feature-iterate-bg{
-		// 	background: #fff image-url("feature-iterate-bg.png") center top no-repeat;
-		// 	border-top: 2px solid white;
-		// 	border-bottom: 2px solid $purple;
-		// 	background-size: cover;
-		// 	@include skewY(3deg);
-		// 	z-index: 20;
-		// }
+		#feature-plan-bg{
+			background: $purple;
+			border-top: 2px solid white;
+			border-bottom: 2px solid $purple;
+			background-size: cover;
+			@include skewY(3deg);
+			z-index: 20;
+		}
 	}
 
 	#feature-create{
@@ -150,7 +169,6 @@ body.page-home {
 		}
 
 		#feature-create-bg{
-			background-color: $purple;
 			@include skewY(3deg);
 			z-index: 20;
 		}
@@ -312,6 +330,7 @@ body.page-home {
 
 	#announcement{
 		position: relative;
+		margin-top: -80px;
 		padding: 180px 220px;
 		color: $white;
 		text-align: center;
@@ -330,11 +349,23 @@ body.page-home {
 	#enterprise-callout {
 		position: relative;
 		padding: 180px 220px;
+		margin-top: -80px;
 		color: #fff;
 		background-color: #000;
 
+		>.container {
+			z-index: 31;
+		}
+
 		.lead {
 			max-width: 30em;
+		}
+
+		#enterprise-callout-bg {
+			background: #000 image-url("enterprise-callout-bg.svg") bottom right no-repeat;
+			background-size: cover;
+			@include skewY(3deg);
+			z-index: 30;
 		}
 	}
 
