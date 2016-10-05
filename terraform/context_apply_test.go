@@ -318,10 +318,10 @@ func TestContext2Apply_computedAttrRefTypeMismatch(t *testing.T) {
 	}
 
 	_, err := ctx.Apply()
-
 	if err == nil {
 		t.Fatalf("Expected err, got none!")
 	}
+
 	expected := "Expected ami to be string"
 	if !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected:\n\n%s\n\nto contain:\n\n%s", err, expected)

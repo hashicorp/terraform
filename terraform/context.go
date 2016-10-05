@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"sort"
 	"strings"
@@ -615,7 +614,7 @@ func (c *Context) walk(
 	// If we have a shadow graph, walk that as well
 	var shadowCtx *Context
 	var shadowCh chan error
-	var shadowCloser io.Closer
+	var shadowCloser Shadow
 	if shadow != nil {
 		// Build the shadow context. In the process, override the real context
 		// with the one that is wrapped so that the shadow context can verify
@@ -647,19 +646,38 @@ func (c *Context) walk(
 	// If we have a shadow graph, wait for that to complete
 	if shadowCloser != nil {
 		// Notify the shadow that we're done
-		if err := shadowCloser.Close(); err != nil {
+		if err := shadowCloser.CloseShadow(); err != nil {
 			c.shadowErr = multierror.Append(c.shadowErr, err)
 		}
 
 		// Wait for the walk to end
 		log.Printf("[DEBUG] Waiting for shadow graph to complete...")
-		if err := <-shadowCh; err != nil {
+		shadowWalkErr := <-shadowCh
+
+		// Get any shadow errors
+		if err := shadowCloser.ShadowError(); err != nil {
 			c.shadowErr = multierror.Append(c.shadowErr, err)
 		}
 
 		// Verify the contexts (compare)
 		if err := shadowContextVerify(realCtx, shadowCtx); err != nil {
 			c.shadowErr = multierror.Append(c.shadowErr, err)
+		}
+
+		// At this point, if we're supposed to fail on error, then
+		// we PANIC. Some tests just verify that there is an error,
+		// so simply appending it to realErr and returning could hide
+		// shadow problems.
+		//
+		// This must be done BEFORE appending shadowWalkErr since the
+		// shadowWalkErr may include expected errors.
+		if c.shadowErr != nil && contextFailOnShadowError {
+			panic(multierror.Prefix(c.shadowErr, "shadow graph:"))
+		}
+
+		// Now, if we have a walk error, we append that through
+		if shadowWalkErr != nil {
+			c.shadowErr = multierror.Append(c.shadowErr, shadowWalkErr)
 		}
 
 		if c.shadowErr == nil {

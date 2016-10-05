@@ -112,6 +112,38 @@ func (f *shadowComponentFactory) CloseShadow() error {
 	return result
 }
 
+func (f *shadowComponentFactory) ShadowError() error {
+	// If we aren't the shadow, just return
+	if !f.Shadow {
+		return nil
+	}
+
+	// Lock ourselves so we don't modify state
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	// Grab our shared state
+	shared := f.shadowComponentFactoryShared
+
+	// If we're not closed, its an error
+	if !shared.closed {
+		return fmt.Errorf("component factory must be closed to retrieve errors")
+	}
+
+	// Close all the providers and provisioners and return the error
+	var result error
+	for _, n := range shared.providerKeys {
+		_, shadow, err := shared.ResourceProvider(n, n)
+		if err == nil && shadow != nil {
+			if err := shadow.ShadowError(); err != nil {
+				result = multierror.Append(result, err)
+			}
+		}
+	}
+
+	return result
+}
+
 // shadowComponentFactoryShared is shared data between the two factories.
 //
 // It is NOT SAFE to run any function on this struct in parallel. Lock
