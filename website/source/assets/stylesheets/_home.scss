@@ -30,7 +30,6 @@ body.page-home {
 
 	p.lead{
 		font-size: 24px;
-		max-width: 28em;
 	}
 
 	#customer-logos {
@@ -233,7 +232,6 @@ body.page-home {
 		}
 
 		p {
-			max-width: 35em;
 			margin-bottom: 20px;
 		}
 
@@ -355,6 +353,15 @@ body.page-home {
 					}
 				}
 			}
+		}
+	}
+
+	.cta {
+		text-align: center;
+
+		.btn {
+			position: relative;
+			margin: 0 50%;
 		}
 	}
 
