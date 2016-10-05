@@ -24,8 +24,9 @@ func (w *KeyedValue) Close() error {
 	w.closed = true
 
 	// For all waiters, complete with ErrClosed
-	for _, w := range w.waiters {
-		w.SetValue(ErrClosed)
+	for k, val := range w.waiters {
+		val.SetValue(ErrClosed)
+		delete(w.waiters, k)
 	}
 
 	return nil
@@ -49,6 +50,11 @@ func (w *KeyedValue) Value(k string) interface{} {
 func (w *KeyedValue) WaitForChange(k string) interface{} {
 	w.lock.Lock()
 	w.once.Do(w.init)
+
+	// If we're closed, we're closed
+	if w.closed {
+		return ErrClosed
+	}
 
 	// Check for an active waiter. If there isn't one, make it
 	val := w.waiters[k]
