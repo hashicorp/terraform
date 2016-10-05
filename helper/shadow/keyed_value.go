@@ -60,7 +60,7 @@ func (w *KeyedValue) SetValue(k string, v interface{}) {
 	// If we have a waiter, set it
 	if val, ok := w.waiters[k]; ok {
 		val.SetValue(v)
-		w.waiters[k] = nil
+		delete(w.waiters, k)
 	}
 }
 
