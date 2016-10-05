@@ -398,125 +398,27 @@ body.page-home {
 
 	@media (min-width: 1500px) {
 
-		#feature-auto{
-			padding: 270px 0 400px;
-		}
-
-		#feature-iterate{
-			margin-top: -180px;
-			padding: 300px 0 410px;
-		}
-
-		#feature-clone{
-			margin-top: -180px;
-			padding: 270px 0 430px;
-		}
-
-		#demos{
-			margin-top: -180px;
-			padding-top: 240px;
-		}
 	}
 
 	@media (min-width: 1200px) {
-		#feature-auto{
-			h2{
-				font-size: 41px;
-			}
-			.terminal-text{
-				background: black;
-				color: white;
-				line-height: 88px;
-				text-align: center;
-				margin: 60px 20px 0;
-				font-size: 32px;
-			}
-		}
+
 	}
 
 
 	@media (max-width: 1200px) {
-		#feature-iterate{
-			h2{
-				font-size: 40px;
-			}
 
-			.it-icon{
-				margin-top: 52px;
-			}
-
-			.t-block{
-				width: 73px;
-				height: 73px;
-				margin-right: 20px;
-			}
-		}
 	}
 
 	@media (min-width: 992px) and (max-width:1200px) {
-		#cta a {
-			margin-top: 15px;
-			font-size: 18px;
-		}
-		#feature-clone{
-			.clone-icon{
-				padding-left: 0 !important;
-			}
-		}
+
 	}
 
 	@media (min-width: 768px) and (max-width:992px) {
-		#cta a {
-			margin-top: 10px;
-		}
+
 	}
 
 	@media (max-width: 992px) {
 
-		.feature{
-			h2,p{
-				text-align: center !important;
-				padding-left: 0 !important;
-			}
-		}
-
-		#feature-iterate{
-			.it-icon{
-				width: 372px;
-				margin: 0 auto 40px;
-				padding-left: 0 !important;
-			}
-		}
-
-
-		#feature-clone{
-			.clone-icon{
-				width: 382px;
-				margin: 40px auto 0;
-				padding-left: 0 !important;
-			}
-		}
-
-		#feature-auto{
-
-			h2{
-				font-size: 43px
-			}
-
-			p{
-				text-align: right;
-				padding-left: 100px;
-			}
-
-			.terminal-text{
-				background: black;
-				color: white;
-				line-height: 88px;
-				text-align: center;
-				margin: 60px 20px 0;
-				font-size: 32px;
-			}
-		}
 
 		#demos{
 			.terminals{
@@ -537,12 +439,6 @@ body.page-home {
 	}
 
 	@media (max-width: 768px) {
-
-		.feature{
-			h2,p{
-				text-align: center;
-			}
-		}
 
 		#demos{
 			.explantion {
@@ -565,16 +461,6 @@ body.page-home {
 				}
 			}
 		}
-
-		#cta{
-			.intro{
-				text-align: center;
-				p{
-					text-align: center;
-					margin-bottom: 15px;
-				}
-			}
-		}
 	}
 
 
@@ -584,26 +470,6 @@ body.page-home {
 			margin: 40px 0 60px 0;
 		}
 
-		#feature-auto .terminal-text {
-			font-size: 24px;
-		}
-
-		.feature{
-			h2{
-				text-align: center;
-				font-size: 28px !important;
-				line-height: 34px;
-				overflow: hidden;
-			}
-			p{
-				text-align: center !important;
-				padding: 0 !important;
-			}
-		}
-
-		#features{
-			text-align: center;
-		}
 	}
 
 
@@ -675,15 +541,6 @@ body.page-home {
 					}
 				}
 			}
-		}
-
-		#demos .explantion{
-			border-left: 8px solid transparent;
-		}
-
-		#cta a {
-			font-size: 14px;
-			font-weight: 400;
 		}
 	}
 }
