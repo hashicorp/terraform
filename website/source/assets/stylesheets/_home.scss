@@ -340,7 +340,7 @@ body.page-home {
 		}
 	}
 
-	#announcement{
+	#latest-announcement{
 		position: relative;
 		margin-top: -80px;
 		padding: 180px 220px;
@@ -352,14 +352,14 @@ body.page-home {
 		}
 	}
 
-	#announcement-bg{
+	#latest-announcement-bg{
 		@include skewY(3deg);
 		z-index: 20;
 		background: $purple image-url("latest-announce-bg.svg") bottom left no-repeat;
 		background-size: 100%;
 	}
 
-	#enterprise-callout {
+	#enterprise-intro {
 		position: relative;
 		padding: 180px 220px;
 		margin-top: -80px;
@@ -373,7 +373,7 @@ body.page-home {
 			max-width: 30em;
 		}
 
-		#enterprise-callout-bg {
+		#enterprise-intro-bg {
 			background: #000 image-url("enterprise-callout-bg.svg") bottom right no-repeat;
 			background-size: 100%;
 			@include skewY(3deg);
