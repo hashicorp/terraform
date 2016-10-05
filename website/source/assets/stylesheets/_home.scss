@@ -26,7 +26,7 @@ body.page-home {
 		font-size: 15px;
 		line-height: 1.4;
 		font-weight: 300;
-		letter-spacing: .5px;
+		letter-spacing: .3px;
 	}
 
 	p.lead{
@@ -37,6 +37,10 @@ body.page-home {
 		padding-bottom: 60px;
 		color: $white;
 		background: $black;
+
+		p.lead{
+			margin-bottom: 40px;
+		}
 	}
 
 	#customer-logos{
@@ -379,8 +383,20 @@ body.page-home {
 			z-index: 21;
 		}
 
+		h2 {
+			position: relative;
+			left: -5px;
+			margin-bottom: 20px;
+			background: image-url("terraform-enterprise-logo.svg") top left no-repeat;
+			background-size: 400px;
+			overflow: hidden;
+
+			span {margin-left: -200%}
+		}
+
 		.lead {
 			max-width: 30em;
+			margin-bottom: 40px;
 		}
 
 		#enterprise-intro-bg {
