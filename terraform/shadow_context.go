@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"io"
 	"reflect"
 
 	"github.com/hashicorp/go-multierror"
@@ -13,14 +12,13 @@ import (
 // when walking the graph. The resulting context should be used _only once_
 // for a graph walk.
 //
-// The returned io.Closer should be closed after the graph walk with the
-// real context is complete. The result of the Close function will be any
-// errors caught during the shadowing operation.
+// The returned Shadow should be closed after the graph walk with the
+// real context is complete. Errors from the shadow can be retrieved there.
 //
 // Most importantly, any operations done on the shadow context (the returned
 // context) will NEVER affect the real context. All structures are deep
 // copied, no real providers or resources are used, etc.
-func newShadowContext(c *Context) (*Context, *Context, io.Closer) {
+func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 	// Copy the targets
 	targetRaw, err := copystructure.Copy(c.targets)
 	if err != nil {
@@ -99,6 +97,10 @@ type shadowContextCloser struct {
 }
 
 // Close closes the shadow context.
-func (c *shadowContextCloser) Close() error {
+func (c *shadowContextCloser) CloseShadow() error {
 	return c.Components.CloseShadow()
+}
+
+func (c *shadowContextCloser) ShadowError() error {
+	return c.Components.ShadowError()
 }

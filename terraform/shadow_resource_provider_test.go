@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+func TestShadowResourceProvider_impl(t *testing.T) {
+	var _ Shadow = new(shadowResourceProviderShadow)
+}
+
 func TestShadowResourceProvider_cachedValues(t *testing.T) {
 	mock := new(MockResourceProvider)
 	real, shadow := newShadowResourceProvider(mock)

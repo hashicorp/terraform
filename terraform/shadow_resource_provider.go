@@ -16,14 +16,7 @@ import (
 // be used directly.
 type shadowResourceProvider interface {
 	ResourceProvider
-
-	// CloseShadow should be called when the _real_ side is complete.
-	// This will immediately end any blocked calls and return any errors.
-	//
-	// Any operations on the shadow provider after this is undefined. It
-	// could be fine, it could result in crashes, etc. Do not use the
-	// shadow after this is called.
-	CloseShadow() error
+	Shadow
 }
 
 // newShadowResourceProvider creates a new shadowed ResourceProvider.
@@ -170,19 +163,20 @@ type shadowResourceProviderShared struct {
 	// NOTE: Anytime a value is added here, be sure to add it to
 	// the Close() method so that it is closed.
 
-	CloseErr  shadow.Value
-	Input     shadow.Value
-	Validate  shadow.Value
-	Configure shadow.Value
-	Apply     shadow.KeyedValue
-	Diff      shadow.KeyedValue
-	Refresh   shadow.KeyedValue
+	CloseErr         shadow.Value
+	Input            shadow.Value
+	Validate         shadow.Value
+	Configure        shadow.Value
+	ValidateResource shadow.KeyedValue
+	Apply            shadow.KeyedValue
+	Diff             shadow.KeyedValue
+	Refresh          shadow.KeyedValue
 }
 
 func (p *shadowResourceProviderShared) Close() error {
 	closers := []io.Closer{
 		&p.CloseErr, &p.Input, &p.Validate,
-		&p.Configure, &p.Apply, &p.Diff,
+		&p.Configure, &p.ValidateResource, &p.Apply, &p.Diff,
 		&p.Refresh,
 	}
 
@@ -199,13 +193,16 @@ func (p *shadowResourceProviderShared) Close() error {
 }
 
 func (p *shadowResourceProviderShadow) CloseShadow() error {
-	result := p.Error
-	if err := p.Shared.Close(); err != nil {
-		result = multierror.Append(result, fmt.Errorf(
-			"close error: %s", err))
+	err := p.Shared.Close()
+	if err != nil {
+		err = fmt.Errorf("close error: %s", err)
 	}
 
-	return result
+	return err
+}
+
+func (p *shadowResourceProviderShadow) ShadowError() error {
+	return p.Error
 }
 
 func (p *shadowResourceProviderShadow) Resources() []ResourceType {
@@ -311,6 +308,57 @@ func (p *shadowResourceProviderShadow) Configure(c *ResourceConfig) error {
 
 	// Return the results
 	return result.Result
+}
+
+func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
+	// Unique key
+	key := t
+
+	// Get the initial value
+	raw := p.Shared.ValidateResource.Value(key)
+
+	// Find a validation with our configuration
+	var result *shadowResourceProviderValidateResource
+	for {
+		// Get the value
+		if raw == nil {
+			p.ErrorLock.Lock()
+			defer p.ErrorLock.Unlock()
+			p.Error = multierror.Append(p.Error, fmt.Errorf(
+				"Unknown 'ValidateResource' call for %q:\n\n%#v",
+				key, c))
+			return nil, nil
+		}
+
+		wrapper, ok := raw.(*shadowResourceProviderValidateResourceWrapper)
+		if !ok {
+			p.ErrorLock.Lock()
+			defer p.ErrorLock.Unlock()
+			p.Error = multierror.Append(p.Error, fmt.Errorf(
+				"Unknown 'ValidateResource' shadow value: %#v", raw))
+			return nil, nil
+		}
+
+		// Look for the matching call with our configuration
+		wrapper.RLock()
+		for _, call := range wrapper.Calls {
+			if call.Config.Equal(c) {
+				result = call
+				break
+			}
+		}
+		wrapper.RUnlock()
+
+		// If we found a result, exit
+		if result != nil {
+			break
+		}
+
+		// Wait for a change so we can get the wrapper again
+		raw = p.Shared.ValidateResource.WaitForChange(key)
+	}
+
+	return result.Warns, result.Errors
 }
 
 func (p *shadowResourceProviderShadow) Apply(
@@ -438,10 +486,6 @@ func (p *shadowResourceProviderShadow) Refresh(
 // TODO
 // TODO
 
-func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
-	return nil, nil
-}
-
 func (p *shadowResourceProviderShadow) ImportState(info *InstanceInfo, id string) ([]*InstanceState, error) {
 	return nil, nil
 }
@@ -480,6 +524,18 @@ type shadowResourceProviderValidate struct {
 type shadowResourceProviderConfigure struct {
 	Config *ResourceConfig
 	Result error
+}
+
+type shadowResourceProviderValidateResourceWrapper struct {
+	sync.RWMutex
+
+	Calls []*shadowResourceProviderValidateResource
+}
+
+type shadowResourceProviderValidateResource struct {
+	Config *ResourceConfig
+	Warns  []string
+	Errors []error
 }
 
 type shadowResourceProviderApply struct {
