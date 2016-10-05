@@ -10,20 +10,21 @@ body.page-home {
 		line-height: 42px;
 		letter-spacing: 2px;
 		text-transform: uppercase;
-		@include lato-light();
+		font-weight: regular;
 	}
 
 	h3{
-		margin-bottom: .3em;
+		margin-bottom: 10px;
 		font-size: 18px;
 		line-height: 1.2;
 		letter-spacing: 1px;
 		text-transform: uppercase;
+		font-weight: bold;
 	}
 
 	p{
-		font-size: 16px;
-		line-height: 1.5em;
+		font-size: 15px;
+		line-height: 1.4;
 		font-weight: 300;
 		letter-spacing: .5px;
 	}
@@ -54,7 +55,6 @@ body.page-home {
 
 	.feature{
 		padding: 240px 0;
-		@include lato-light();
 
 		.lead{
 			max-width: 30em;
