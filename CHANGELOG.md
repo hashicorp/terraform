@@ -35,6 +35,7 @@ IMPROVEMENTS:
  * provider/aws: Add new aws api-gateway integration types [GH-9213]
  * provider/aws: Import `aws_db_event_subscription` [GH-9220]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
+ * provider/azurerm: Support AzureRM Sql Database DataWarehouse [GH-9196]
  * provider/openstack: Use proxy environment variables for communication with services [GH-8948]
  * provider/vsphere: Adding `detach_unknown_disks_on_delete` flag for VM resource [GH-8947]
  * provisioner/chef: Add `skip_register` attribute to allow skipping the registering steps [GH-9127]
