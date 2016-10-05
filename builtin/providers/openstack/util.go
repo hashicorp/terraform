@@ -18,6 +18,15 @@ func CheckDeleted(d *schema.ResourceData, err error, msg string) error {
 	return fmt.Errorf("%s: %s", msg, err)
 }
 
+// MapValueSpecs converts ResourceData into a map
+func MapValueSpecs(d *schema.ResourceData) map[string]string {
+	m := make(map[string]string)
+	for key, val := range d.Get("value_specs").(map[string]interface{}) {
+		m[key] = val.(string)
+	}
+	return m
+}
+
 // BuildRequest takes an opts struct and builds a request body for
 // Gophercloud to execute
 func BuildRequest(opts interface{}, parent string) (map[string]interface{}, error) {
