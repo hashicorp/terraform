@@ -364,10 +364,9 @@ body.page-home {
 		padding: 180px 220px;
 		margin-top: -80px;
 		color: #fff;
-		background-color: #000;
 
 		>.container {
-			z-index: 31;
+			z-index: 21;
 		}
 
 		.lead {
@@ -376,9 +375,9 @@ body.page-home {
 
 		#enterprise-callout-bg {
 			background: #000 image-url("enterprise-callout-bg.svg") bottom right no-repeat;
-			background-size: cover;
+			background-size: 100%;
 			@include skewY(3deg);
-			z-index: 30;
+			z-index: 20;
 		}
 	}
 
