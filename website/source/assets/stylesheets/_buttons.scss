@@ -3,12 +3,27 @@
 // --------------------------------------------------
 
 .outline-btn{
+	position: relative;
+	display: inline-block;
+	// Extra 3px of bottom padding compensates for ::after content
+	padding: 20px 30px 23px;
 	background-color: transparent;
 	color: $white;
 	border: 2px solid $white;
 	//border-radius: $btn-border-radius;
+	ont-size: 20px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 2px;
 	text-decoration: none !important;
 	@include transition(background-color .3s ease-in-out);
+
+	&::after {
+		font-size: 1.2em;
+		content: "»";
+		position: relative;
+		left: 5px;
+	}
 
 	&.purple{
 		color: $purple;
