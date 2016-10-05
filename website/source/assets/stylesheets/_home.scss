@@ -46,6 +46,10 @@ body.page-home {
 		padding: 240px 0;
 		@include lato-light();
 
+		.lead{
+			max-width: 30em;
+		}
+
 		.icn{
 			display: block;
 			width: 186px;
