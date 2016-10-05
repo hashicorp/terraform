@@ -41,3 +41,32 @@ func TestValue(t *testing.T) {
 		t.Fatalf("bad: %#v", val)
 	}
 }
+
+func TestValueClose(t *testing.T) {
+	var v Value
+
+	// Close
+	v.Close()
+
+	// Verify
+	val := v.Value()
+	if val != ErrClosed {
+		t.Fatalf("bad: %#v", val)
+	}
+}
+
+func TestValueClose_existing(t *testing.T) {
+	var v Value
+
+	// Set the value
+	v.SetValue(42)
+
+	// Close
+	v.Close()
+
+	// Verify
+	val := v.Value()
+	if val != 42 {
+		t.Fatalf("bad: %#v", val)
+	}
+}
