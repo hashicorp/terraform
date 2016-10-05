@@ -8,6 +8,8 @@ FEATURES:
  * **New Resource:** `aws_api_gateway_client_certificate` [GH-8775]
  * **New Resource:** `azurerm_servicebus_topic` [GH-9151]
  * **New Resource:** `azurerm_servicebus_subscription` [GH-9185]
+ * **New Resource:** `aws_emr_cluster` [GH-9106]
+  * **New Resource:** `aws_emr_instance_group` [GH-9106]
 
 IMPROVEMENTS:
  * helper/schema: Adding of MinItems as a validation to Lists and Maps [GH-9216]
