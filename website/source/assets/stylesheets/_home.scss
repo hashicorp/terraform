@@ -157,65 +157,6 @@ body.page-home {
 
 	}
 
-
-	#cta {
-		position: relative;
-		padding: 180px 0 220px;
-
-		>.container{
-			z-index: 21;
-		}
-
-		#cta-bg{
-			background-color: $purple;
-			@include skewY(-3deg);
-			z-index: 20;
-		}
-
-		.intro {
-			.left {
-				text-align: right;
-			}
-
-			.right {
-				margin-top: 2px;
-			}
-
-		}
-
-		p{
-			padding-top: 4px;
-			color: white;
-			font-size: 14px;
-			letter-spacing: 1px;
-	    	line-height: 1.5esm;
-			font-family: $font-family-lato;
-		}
-
-
-
-		.outline-btn {
-			padding: 16px 40px;
-			display: inline-block;
-			&:focus {
-		    	outline: 0;
-			}
-		}
-
-		a {
-		    font-size: 24px;
-		    text-transform: uppercase;
-		    letter-spacing: 3px;
-		    color: white;
-		    @include lato-light();
-			font-weight: 500;
-
-	    &:hover {
-	    	text-decoration: none;
-	    }
-		}
-	}
-
 	#demos{
 		position: relative;
 		padding: 180px 0 60px;
