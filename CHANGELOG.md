@@ -64,6 +64,7 @@ BUG FIXES:
  * provider/aws: aws_route53_record alias refresh manually updated record [GH-9125]
  * provider/aws: Fix issue detaching volumes that were already detached [GH-9023]
  * provider/aws: Add retry to the `aws_ssm_document` delete func [GH-9188]
+ * provider/aws: Fix issue updating `search_string` in aws_cloudwatch_metric_alarm [GH-9230]
  * provider/azurerm: fix resource ID parsing for subscriptions resources [GH-9163]
  * provider/librato: Mandatory name and conditions attributes weren't being sent on Update unless changed [GH-8984]
  * provisioner/chef: Fix an error with parsing certain `vault_json` content [GH-9114]
