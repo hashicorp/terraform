@@ -223,3 +223,38 @@ func TestKeyedValueWaitForChange_initial(t *testing.T) {
 		t.Fatalf("bad: %#v", val)
 	}
 }
+
+func TestKeyedValueWaitForChange_closed(t *testing.T) {
+	var v KeyedValue
+
+	// Start reading this should be blocking
+	valueCh := make(chan interface{})
+	go func() {
+		valueCh <- v.WaitForChange("foo")
+	}()
+
+	// We should not get the value
+	select {
+	case <-valueCh:
+		t.Fatal("shouldn't receive value")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Close
+	v.Close()
+
+	// Verify
+	val := <-valueCh
+	if val != ErrClosed {
+		t.Fatalf("bad: %#v", val)
+	}
+
+	// Set a value
+	v.SetValue("foo", 42)
+
+	// Try again
+	val = v.WaitForChange("foo")
+	if val != ErrClosed {
+		t.Fatalf("bad: %#v", val)
+	}
+}
