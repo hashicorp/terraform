@@ -73,3 +73,68 @@ func TestKeyedValueOk(t *testing.T) {
 		t.Fatalf("bad: %#v", val)
 	}
 }
+
+func TestKeyedValueClose(t *testing.T) {
+	var v KeyedValue
+
+	// Close
+	v.Close()
+
+	// Try again
+	val, ok := v.ValueOk("foo")
+	if !ok {
+		t.Fatal("should be ok")
+	}
+
+	// Verify
+	if val != ErrClosed {
+		t.Fatalf("bad: %#v", val)
+	}
+}
+
+func TestKeyedValueClose_blocked(t *testing.T) {
+	var v KeyedValue
+
+	// Start reading this should be blocking
+	valueCh := make(chan interface{})
+	go func() {
+		valueCh <- v.Value("foo")
+	}()
+
+	// We should not get the value
+	select {
+	case <-valueCh:
+		t.Fatal("shouldn't receive value")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Close
+	v.Close()
+
+	// Verify
+	val := <-valueCh
+	if val != ErrClosed {
+		t.Fatalf("bad: %#v", val)
+	}
+}
+
+func TestKeyedValueClose_existing(t *testing.T) {
+	var v KeyedValue
+
+	// Set a value
+	v.SetValue("foo", "bar")
+
+	// Close
+	v.Close()
+
+	// Try again
+	val, ok := v.ValueOk("foo")
+	if !ok {
+		t.Fatal("should be ok")
+	}
+
+	// Verify
+	if val != "bar" {
+		t.Fatalf("bad: %#v", val)
+	}
+}
