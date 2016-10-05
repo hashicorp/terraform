@@ -157,8 +157,16 @@ func (uvt *unknownVariableTester) Index(target InterpolatedVariable, key Interpo
 
 	// gh-3449: if we are trying to access a known element with a known key,
 	// then we needn't mark the test as positive
-	if hasTarget && len(targetVal.Value.([]ast.Variable))-1 >= keyVal.Value.(int) {
-		if targetVal.Value.([]ast.Variable)[keyVal.Value.(int)].Value == UnknownVariableValue {
+	switch targetVal.Value.(type) {
+	case []ast.Variable:
+		if hasTarget && len(targetVal.Value.([]ast.Variable))-1 >= keyVal.Value.(int) {
+			if targetVal.Value.([]ast.Variable)[keyVal.Value.(int)].Value == UnknownVariableValue {
+				uvt.positive = true
+			}
+		}
+		break
+	case string:
+		if targetVal.Value == UnknownVariableValue {
 			uvt.positive = true
 		}
 	}
