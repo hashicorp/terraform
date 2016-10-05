@@ -168,3 +168,58 @@ func TestKeyedValueClose_existingBlocked(t *testing.T) {
 		t.Fatalf("bad: %#v", val)
 	}
 }
+
+func TestKeyedValueWaitForChange(t *testing.T) {
+	var v KeyedValue
+
+	// Set a value
+	v.SetValue("foo", 42)
+
+	// Start reading this should be blocking
+	valueCh := make(chan interface{})
+	go func() {
+		valueCh <- v.WaitForChange("foo")
+	}()
+
+	// We should not get the value
+	select {
+	case <-valueCh:
+		t.Fatal("shouldn't receive value")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Set a new value
+	v.SetValue("foo", 84)
+
+	// Verify
+	val := <-valueCh
+	if val != 84 {
+		t.Fatalf("bad: %#v", val)
+	}
+}
+
+func TestKeyedValueWaitForChange_initial(t *testing.T) {
+	var v KeyedValue
+
+	// Start reading this should be blocking
+	valueCh := make(chan interface{})
+	go func() {
+		valueCh <- v.WaitForChange("foo")
+	}()
+
+	// We should not get the value
+	select {
+	case <-valueCh:
+		t.Fatal("shouldn't receive value")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Set a new value
+	v.SetValue("foo", 84)
+
+	// Verify
+	val := <-valueCh
+	if val != 84 {
+		t.Fatalf("bad: %#v", val)
+	}
+}
