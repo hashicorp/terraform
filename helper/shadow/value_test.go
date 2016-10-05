@@ -55,6 +55,37 @@ func TestValueClose(t *testing.T) {
 	}
 }
 
+func TestValueClose_blocked(t *testing.T) {
+	var v Value
+
+	// Start trying to get the value
+	valueCh := make(chan interface{})
+	go func() {
+		valueCh <- v.Value()
+	}()
+
+	// We should not get the value
+	select {
+	case <-valueCh:
+		t.Fatal("shouldn't receive value")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Set the value
+	v.Close()
+	val := <-valueCh
+
+	// Verify
+	if val != ErrClosed {
+		t.Fatalf("bad: %#v", val)
+	}
+
+	// We should be able to ask for the value again immediately
+	if val := v.Value(); val != ErrClosed {
+		t.Fatalf("bad: %#v", val)
+	}
+}
+
 func TestValueClose_existing(t *testing.T) {
 	var v Value
 

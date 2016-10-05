@@ -11,6 +11,24 @@ type KeyedValue struct {
 	once    sync.Once
 	values  map[string]interface{}
 	waiters map[string]*Value
+	closed  bool
+}
+
+// Close closes the value. This can never fail. For a definition of
+// "close" see the ErrClosed docs.
+func (w *KeyedValue) Close() error {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	// Set closed to true always
+	w.closed = true
+
+	// For all waiters, complete with ErrClosed
+	for _, w := range w.waiters {
+		w.SetValue(ErrClosed)
+	}
+
+	return nil
 }
 
 // Value returns the value that was set for the given key, or blocks
@@ -60,6 +78,11 @@ func (w *KeyedValue) valueWaiter(k string) (interface{}, *Value) {
 	if v, ok := w.values[k]; ok {
 		w.lock.Unlock()
 		return v, nil
+	}
+
+	// If we're closed, return that
+	if w.closed {
+		return ErrClosed, nil
 	}
 
 	// No pending value, check for a waiter
