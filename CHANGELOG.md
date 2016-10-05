@@ -33,6 +33,7 @@ IMPROVEMENTS:
  * provider/aws: Support Import `aws_opsworks_stack` [GH-9124]
  * provider/aws: Support Import `aws_elasticache_replication_groups` [GH-9140]
  * provider/aws: Add new aws api-gateway integration types [GH-9213]
+ * provider/aws: Import `aws_db_event_subscription` [GH-9220]
  * provider/azurerm: Add normalizeJsonString and validateJsonString functions [GH-8909]
  * provider/openstack: Use proxy environment variables for communication with services [GH-8948]
  * provider/vsphere: Adding `detach_unknown_disks_on_delete` flag for VM resource [GH-8947]
