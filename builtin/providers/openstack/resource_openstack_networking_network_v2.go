@@ -107,7 +107,7 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 	createOpts := NetworkCreateOpts{
 		Name:       d.Get("name").(string),
 		TenantID:   d.Get("tenant_id").(string),
-		ValueSpecs: networkValueSpecs(d),
+		ValueSpecs: MapValueSpecs(d),
 	}
 
 	asuRaw := d.Get("admin_state_up").(string)
@@ -283,12 +283,4 @@ func waitForNetworkDelete(networkingClient *gophercloud.ServiceClient, networkId
 		log.Printf("[DEBUG] OpenStack Network %s still active.\n", networkId)
 		return n, "ACTIVE", nil
 	}
-}
-
-func networkValueSpecs(d *schema.ResourceData) map[string]string {
-	m := make(map[string]string)
-	for key, val := range d.Get("value_specs").(map[string]interface{}) {
-		m[key] = val.(string)
-	}
-	return m
 }
