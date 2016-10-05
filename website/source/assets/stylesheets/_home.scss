@@ -327,6 +327,16 @@ body.page-home {
 		z-index: 20;
 	}
 
+	#enterprise-callout {
+		position: relative;
+		padding: 180px 220px;
+		color: #fff;
+		background-color: #000;
+
+		.lead {
+			max-width: 30em;
+		}
+	}
 
 	@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
 		#demos{
