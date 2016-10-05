@@ -42,6 +42,26 @@ func (w *KeyedValue) Value(k string) interface{} {
 	return val.Value()
 }
 
+// WaitForChange waits for the value with the given key to be set again.
+// If the key isn't set, it'll wait for an initial value. Note that while
+// it is called "WaitForChange", the value isn't guaranteed to _change_;
+// this will return when a SetValue is called for the given k.
+func (w *KeyedValue) WaitForChange(k string) interface{} {
+	w.lock.Lock()
+	w.once.Do(w.init)
+
+	// Check for an active waiter. If there isn't one, make it
+	val := w.waiters[k]
+	if val == nil {
+		val = new(Value)
+		w.waiters[k] = val
+	}
+	w.lock.Unlock()
+
+	// And wait
+	return val.Value()
+}
+
 // ValueOk gets the value for the given key, returning immediately if the
 // value doesn't exist. The second return argument is true if the value exists.
 func (w *KeyedValue) ValueOk(k string) (interface{}, bool) {
