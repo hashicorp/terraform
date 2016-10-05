@@ -1,8 +1,11 @@
 package terraform
 
 import (
+	"fmt"
 	"io"
+	"reflect"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 )
 
@@ -61,6 +64,32 @@ func newShadowContext(c *Context) (*Context, *Context, io.Closer) {
 	return &real, shadow, &shadowContextCloser{
 		Components: componentsShadow,
 	}
+}
+
+// shadowContextVerify takes the real and shadow context and verifies they
+// have equal diffs and states.
+func shadowContextVerify(real, shadow *Context) error {
+	var result error
+
+	// Compare the states
+	if !real.state.Equal(shadow.state) {
+		result = multierror.Append(result, fmt.Errorf(
+			"Real and shadow states do not match! "+
+				"Real state:\n\n%s\n\n"+
+				"Shadow state:\n\n%s\n\n",
+			real.state, shadow.state))
+	}
+
+	// Compare the diffs
+	if !reflect.DeepEqual(real.diff, shadow.diff) {
+		result = multierror.Append(result, fmt.Errorf(
+			"Real and shadow diffs do not match! "+
+				"Real diff:\n\n%s\n\n"+
+				"Shadow diff:\n\n%s\n\n",
+			real.diff, shadow.diff))
+	}
+
+	return result
 }
 
 // shadowContextCloser is the io.Closer returned by newShadowContext that
