@@ -138,3 +138,33 @@ func TestKeyedValueClose_existing(t *testing.T) {
 		t.Fatalf("bad: %#v", val)
 	}
 }
+
+func TestKeyedValueClose_existingBlocked(t *testing.T) {
+	var v KeyedValue
+
+	// Start reading this should be blocking
+	valueCh := make(chan interface{})
+	go func() {
+		valueCh <- v.Value("foo")
+	}()
+
+	// Wait
+	time.Sleep(10 * time.Millisecond)
+
+	// Set a value
+	v.SetValue("foo", "bar")
+
+	// Close
+	v.Close()
+
+	// Try again
+	val, ok := v.ValueOk("foo")
+	if !ok {
+		t.Fatal("should be ok")
+	}
+
+	// Verify
+	if val != "bar" {
+		t.Fatalf("bad: %#v", val)
+	}
+}
