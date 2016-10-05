@@ -167,6 +167,9 @@ type shadowResourceProviderShadow struct {
 }
 
 type shadowResourceProviderShared struct {
+	// NOTE: Anytime a value is added here, be sure to add it to
+	// the Close() method so that it is closed.
+
 	CloseErr  shadow.Value
 	Input     shadow.Value
 	Validate  shadow.Value

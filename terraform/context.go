@@ -613,13 +613,13 @@ func (c *Context) walk(
 	realCtx := c
 
 	// If we have a shadow graph, walk that as well
+	var shadowCtx *Context
 	var shadowCh chan error
 	var shadowCloser io.Closer
 	if shadow != nil {
 		// Build the shadow context. In the process, override the real context
 		// with the one that is wrapped so that the shadow context can verify
 		// the results of the real.
-		var shadowCtx *Context
 		realCtx, shadowCtx, shadowCloser = newShadowContext(c)
 
 		// Build the graph walker for the shadow.
@@ -654,6 +654,11 @@ func (c *Context) walk(
 		// Wait for the walk to end
 		log.Printf("[DEBUG] Waiting for shadow graph to complete...")
 		if err := <-shadowCh; err != nil {
+			c.shadowErr = multierror.Append(c.shadowErr, err)
+		}
+
+		// Verify the contexts (compare)
+		if err := shadowContextVerify(realCtx, shadowCtx); err != nil {
 			c.shadowErr = multierror.Append(c.shadowErr, err)
 		}
 
