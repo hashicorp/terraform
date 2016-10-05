@@ -32,11 +32,21 @@ body.page-home {
 		font-size: 24px;
 	}
 
-	#customer-logos {
+	#primary-cta{
+		padding-bottom: 60px;
+		color: $white;
+		background: $black;
+	}
+
+	#customer-logos{
+		position: relative;
+		padding: 60px 0;
+		color: $white;
 		background: $black;
 	}
 
 	ul.customer-list{
+
 		li {
 			display: inline;
 		}
