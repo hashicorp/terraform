@@ -63,7 +63,7 @@ func testCheckAzureRMLoadbalancerNatPoolExists(natPoolName string, lb *network.L
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerNatPoolByName(lb, natPoolName)
 		if !exists {
-			return fmt.Errorf("A Nat Rule with name %q cannot be found.", natPoolName)
+			return fmt.Errorf("A NAT Pool with name %q cannot be found.", natPoolName)
 		}
 
 		return nil
@@ -74,7 +74,7 @@ func testCheckAzureRMLoadbalancerNatPoolNotExists(natPoolName string, lb *networ
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerNatPoolByName(lb, natPoolName)
 		if exists {
-			return fmt.Errorf("A Nat Rule with name %q has been found.", natPoolName)
+			return fmt.Errorf("A NAT Pool with name %q has been found.", natPoolName)
 		}
 
 		return nil

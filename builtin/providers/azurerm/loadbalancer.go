@@ -2,11 +2,12 @@ package azurerm
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
-	"net/http"
-	"strings"
 )
 
 func resourceGroupAndLBNameFromId(loadBalancerId string) (string, string, error) {
@@ -25,7 +26,7 @@ func retrieveLoadbalancerById(loadBalancerId string, meta interface{}) (*network
 
 	resGroup, name, err := resourceGroupAndLBNameFromId(loadBalancerId)
 	if err != nil {
-		return nil, false, errwrap.Wrapf("TODO: error message {{err}}", err)
+		return nil, false, errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
 	}
 
 	resp, err := loadBalancerClient.Get(resGroup, name, "")
@@ -136,13 +137,8 @@ func loadbalancerStateRefreshFunc(client *ArmClient, resourceGroupName string, l
 
 func validateLoadbalancerPrivateIpAddressAllocation(v interface{}, k string) (ws []string, errors []error) {
 	value := strings.ToLower(v.(string))
-	allocations := map[string]bool{
-		"static":  true,
-		"dynamic": true,
-	}
-
-	if !allocations[value] {
-		errors = append(errors, fmt.Errorf("Loadbalancer Allocations can only be Static or Dynamic"))
+	if value != "static" && value != "dynamic" {
+		errors = append(errors, fmt.Errorf("LoadBalancer Allocations can only be Static or Dynamic"))
 	}
 	return
 }

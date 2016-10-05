@@ -63,7 +63,7 @@ func testCheckAzureRMLoadbalancerNatRuleExists(natRuleName string, lb *network.L
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerNatRuleByName(lb, natRuleName)
 		if !exists {
-			return fmt.Errorf("A Nat Rule with name %q cannot be found.", natRuleName)
+			return fmt.Errorf("A NAT Rule with name %q cannot be found.", natRuleName)
 		}
 
 		return nil
@@ -74,7 +74,7 @@ func testCheckAzureRMLoadbalancerNatRuleNotExists(natRuleName string, lb *networ
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerNatRuleByName(lb, natRuleName)
 		if exists {
-			return fmt.Errorf("A Nat Rule with name %q has been found.", natRuleName)
+			return fmt.Errorf("A NAT Rule with name %q has been found.", natRuleName)
 		}
 
 		return nil

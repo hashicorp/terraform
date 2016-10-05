@@ -1,13 +1,12 @@
 package azurerm
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
-	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/jen20/riviera/azure"
@@ -41,7 +40,7 @@ func resourceArmLoadbalancer() *schema.Resource {
 			},
 
 			"frontend_ip_configuration": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				MinItems: 1,
 				Elem: &schema.Resource{
@@ -91,7 +90,6 @@ func resourceArmLoadbalancer() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceArmLoadbalancerFrontEndIpConfigurationHash,
 			},
 
 			"tags": tagsSchema(),
@@ -103,7 +101,7 @@ func resourceArmLoadbalancerCreate(d *schema.ResourceData, meta interface{}) err
 	client := meta.(*ArmClient)
 	loadBalancerClient := client.loadBalancerClient
 
-	log.Printf("[INFO] preparing arguments for Azure ARM Loadbalancer creation.")
+	log.Printf("[INFO] preparing arguments for Azure ARM LoadBalancer creation.")
 
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
@@ -114,11 +112,7 @@ func resourceArmLoadbalancerCreate(d *schema.ResourceData, meta interface{}) err
 	properties := network.LoadBalancerPropertiesFormat{}
 
 	if _, ok := d.GetOk("frontend_ip_configuration"); ok {
-		frontEndConfigs, feIpcErr := expandAzureRmLoadbalancerFrontendIpConfigurations(d)
-		if feIpcErr != nil {
-			return fmt.Errorf("Error Building list of Loadbalancer Frontend IP Configurations: %s", feIpcErr)
-		}
-		properties.FrontendIPConfigurations = &frontEndConfigs
+		properties.FrontendIPConfigurations = expandAzureRmLoadbalancerFrontendIpConfigurations(d)
 	}
 
 	loadbalancer := network.LoadBalancer{
@@ -130,15 +124,15 @@ func resourceArmLoadbalancerCreate(d *schema.ResourceData, meta interface{}) err
 
 	_, err := loadBalancerClient.CreateOrUpdate(resGroup, name, loadbalancer, make(chan struct{}))
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Creating/Updating LoadBalancer {{err}}", err)
 	}
 
 	read, err := loadBalancerClient.Get(resGroup, name, "")
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Getting LoadBalancer {{err}", err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Loadbalancer %s (resource group %s) ID", name, resGroup)
+		return fmt.Errorf("Cannot read LoadBalancer %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
@@ -151,7 +145,7 @@ func resourceArmLoadbalancerCreate(d *schema.ResourceData, meta interface{}) err
 		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Loadbalancer (%s) to become available: %s", name, err)
+		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", name, err)
 	}
 
 	return resourceArmLoadbalancerRead(d, meta)
@@ -160,11 +154,11 @@ func resourceArmLoadbalancerCreate(d *schema.ResourceData, meta interface{}) err
 func resourceArmLoadbalancerRead(d *schema.ResourceData, meta interface{}) error {
 	loadBalancer, exists, err := retrieveLoadbalancerById(d.Id(), meta)
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
 	if !exists {
 		d.SetId("")
-		log.Printf("[INFO] Loadbalancer %q not found. Refreshing from state", d.Get("name").(string))
+		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", d.Get("name").(string))
 		return nil
 	}
 
@@ -182,36 +176,22 @@ func resourceArmLoadbalancerDelete(d *schema.ResourceData, meta interface{}) err
 
 	id, err := parseAzureResourceID(d.Id())
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Parsing Azure Resource ID {{err}}", err)
 	}
 	resGroup := id.ResourceGroup
 	name := id.Path["loadBalancers"]
 
 	_, err = loadBalancerClient.Delete(resGroup, name, make(chan struct{}))
+	if err != nil {
+		return errwrap.Wrapf("Error Deleting LoadBalancer {{err}}", err)
+	}
 
-	return err
+	d.SetId("")
+	return nil
 }
 
-func resourceArmLoadbalancerFrontEndIpConfigurationHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-
-	if m["private_ip_address"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address"].(string)))
-	}
-	if m["public_ip_address_id"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["public_ip_address_id"].(string)))
-	}
-	if m["subnet_id"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", m["subnet_id"].(string)))
-	}
-
-	return hashcode.String(buf.String())
-}
-
-func expandAzureRmLoadbalancerFrontendIpConfigurations(d *schema.ResourceData) ([]network.FrontendIPConfiguration, error) {
-	configs := d.Get("frontend_ip_configuration").(*schema.Set).List()
+func expandAzureRmLoadbalancerFrontendIpConfigurations(d *schema.ResourceData) *[]network.FrontendIPConfiguration {
+	configs := d.Get("frontend_ip_configuration").([]interface{})
 	frontEndConfigs := make([]network.FrontendIPConfiguration, 0, len(configs))
 
 	for _, configRaw := range configs {
@@ -247,11 +227,11 @@ func expandAzureRmLoadbalancerFrontendIpConfigurations(d *schema.ResourceData) (
 		frontEndConfigs = append(frontEndConfigs, frontEndConfig)
 	}
 
-	return frontEndConfigs, nil
+	return &frontEndConfigs
 }
 
-func flattenLoadBalancerFrontendIpConfiguration(ipConfigs *[]network.FrontendIPConfiguration) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(*ipConfigs))
+func flattenLoadBalancerFrontendIpConfiguration(ipConfigs *[]network.FrontendIPConfiguration) []interface{} {
+	result := make([]interface{}, 0, len(*ipConfigs))
 	for _, config := range *ipConfigs {
 		ipConfig := make(map[string]interface{})
 		ipConfig["name"] = *config.Name

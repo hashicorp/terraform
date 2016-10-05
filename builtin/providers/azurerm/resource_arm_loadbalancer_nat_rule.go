@@ -84,42 +84,42 @@ func resourceArmLoadbalancerNatRuleCreate(d *schema.ResourceData, meta interface
 
 	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
 	if !exists {
 		d.SetId("")
-		log.Printf("[INFO] Loadbalancer %q not found. Refreshing from state", d.Get("name").(string))
+		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", d.Get("name").(string))
 		return nil
 	}
 
 	_, _, exists = findLoadBalancerNatRuleByName(loadBalancer, d.Get("name").(string))
 	if exists {
-		return fmt.Errorf("A Nat Rule with name %q already exists.", d.Get("name").(string))
+		return fmt.Errorf("A NAT Rule with name %q already exists.", d.Get("name").(string))
 	}
 
 	newNatRule, err := expandAzureRmLoadbalancerNatRule(d, loadBalancer)
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Expanding NAT Rule {{err}}", err)
 	}
 
 	natRules := append(*loadBalancer.Properties.InboundNatRules, *newNatRule)
 	loadBalancer.Properties.InboundNatRules = &natRules
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
-		return errwrap.Wrapf("TODO: {{err}}", err)
+		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
 	}
 
 	_, err = lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Creating / Updating LoadBalancer {{err}}", err)
 	}
 
 	read, err := lbClient.Get(resGroup, loadBalancerName, "")
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Getting LoadBalancer {{err}}", err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Loadbalancer %s (resource group %s) ID", loadBalancerName, resGroup)
+		return fmt.Errorf("Cannot read LoadBalancer %s (resource group %s) ID", loadBalancerName, resGroup)
 	}
 
 	d.SetId(*read.ID)
@@ -132,7 +132,7 @@ func resourceArmLoadbalancerNatRuleCreate(d *schema.ResourceData, meta interface
 		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for Loadbalancer (%s) to become available: %s", loadBalancerName, err)
+		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
 	}
 
 	return resourceArmLoadbalancerNatRuleRead(d, meta)
@@ -141,11 +141,11 @@ func resourceArmLoadbalancerNatRuleCreate(d *schema.ResourceData, meta interface
 func resourceArmLoadbalancerNatRuleRead(d *schema.ResourceData, meta interface{}) error {
 	loadBalancer, exists, err := retrieveLoadbalancerById(d.Id(), meta)
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
 	if !exists {
 		d.SetId("")
-		log.Printf("[INFO] Loadbalancer %q not found. Refreshing from state", d.Get("name").(string))
+		log.Printf("[INFO] LoadBalancer %q not found. Removing from state", d.Get("name").(string))
 		return nil
 	}
 
@@ -179,7 +179,7 @@ func resourceArmLoadbalancerNatRuleDelete(d *schema.ResourceData, meta interface
 
 	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
 	if !exists {
 		d.SetId("")
@@ -197,20 +197,20 @@ func resourceArmLoadbalancerNatRuleDelete(d *schema.ResourceData, meta interface
 
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
-		return errwrap.Wrapf("TODO: {{err}}", err)
+		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
 	}
 
 	_, err = lbClient.CreateOrUpdate(resGroup, loadBalancerName, *loadBalancer, make(chan struct{}))
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Creating/Updating LoadBalancer {{err}}", err)
 	}
 
 	read, err := lbClient.Get(resGroup, loadBalancerName, "")
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error Getting LoadBalancer {{err}}", err)
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Loadbalancer %s (resource group %s) ID", loadBalancerName, resGroup)
+		return fmt.Errorf("Cannot read LoadBalancer %s (resource group %s) ID", loadBalancerName, resGroup)
 	}
 
 	return nil
