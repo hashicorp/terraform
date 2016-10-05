@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -175,11 +176,33 @@ type shadowResourceProviderShared struct {
 	Refresh   shadow.KeyedValue
 }
 
+func (p *shadowResourceProviderShared) Close() error {
+	closers := []io.Closer{
+		&p.CloseErr, &p.Input, &p.Validate,
+		&p.Configure, &p.Apply, &p.Diff,
+		&p.Refresh,
+	}
+
+	for _, c := range closers {
+		// This should never happen, but we don't panic because a panic
+		// could affect the real behavior of Terraform and a shadow should
+		// never be able to do that.
+		if err := c.Close(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (p *shadowResourceProviderShadow) CloseShadow() error {
-	// For now, just return the error. What we need to do in the future
-	// is marked the provider as "closed" so that any subsequent calls
-	// will fail out.
-	return p.Error
+	result := p.Error
+	if err := p.Shared.Close(); err != nil {
+		result = multierror.Append(result, fmt.Errorf(
+			"close error: %s", err))
+	}
+
+	return result
 }
 
 func (p *shadowResourceProviderShadow) Resources() []ResourceType {
