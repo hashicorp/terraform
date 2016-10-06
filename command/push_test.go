@@ -559,7 +559,7 @@ func TestPush_tfvars(t *testing.T) {
 		"-var-file", path + "/terraform.tfvars",
 		"-vcs=false",
 		"-var",
-		"bar=1",
+		"bar=[1,2]",
 		path,
 	}
 	if code := c.Run(args); code != 0 {
@@ -586,7 +586,7 @@ func TestPush_tfvars(t *testing.T) {
 	// update bar to match cli value
 	for i, v := range tfvars {
 		if v.Key == "bar" {
-			tfvars[i].Value = "1"
+			tfvars[i].Value = "[1, 2]"
 			tfvars[i].IsHCL = true
 		}
 	}
