@@ -8,6 +8,7 @@ IMPROVEMENTS:
  
  
 BUG FIXES:
+ * provider/azurerm: removing resources from state when the API returns a 404 for them [GH-8859]
 
 ## 0.7.5 (October 6, 2016)
 
@@ -20,7 +21,7 @@ FEATURES:
  * **New Resource:** `azurerm_servicebus_topic` ([#9151](https://github.com/hashicorp/terraform/issues/9151))
  * **New Resource:** `azurerm_servicebus_subscription` ([#9185](https://github.com/hashicorp/terraform/issues/9185))
  * **New Resource:** `aws_emr_cluster` ([#9106](https://github.com/hashicorp/terraform/issues/9106))
-  * **New Resource:** `aws_emr_instance_group` ([#9106](https://github.com/hashicorp/terraform/issues/9106))
+ * **New Resource:** `aws_emr_instance_group` ([#9106](https://github.com/hashicorp/terraform/issues/9106))
 
 IMPROVEMENTS:
  * helper/schema: Adding of MinItems as a validation to Lists and Maps ([#9216](https://github.com/hashicorp/terraform/issues/9216))
