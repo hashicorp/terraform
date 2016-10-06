@@ -19,18 +19,6 @@ func (opts NetworkCreateOpts) ToNetworkCreateMap() (map[string]interface{}, erro
 	return BuildRequest(opts, "network")
 }
 
-// SubnetCreateOpts represents the attributes used when creating a new subnet.
-type SubnetCreateOpts struct {
-	subnets.CreateOpts
-	ValueSpecs map[string]string `json:"value_specs,omitempty"`
-}
-
-// ToSubnetCreateMap casts a CreateOpts struct to a map.
-// It overrides subnets.ToSubnetCreateMap to add the ValueSpecs field.
-func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error) {
-	return BuildRequest(opts, "subnet")
-}
-
 // RouterCreateOpts represents the attributes used when creating a new router.
 type RouterCreateOpts struct {
 	routers.CreateOpts
@@ -41,4 +29,16 @@ type RouterCreateOpts struct {
 // It overrides routers.ToRouterCreateMap to add the ValueSpecs field.
 func (opts RouterCreateOpts) ToRouterCreateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "router")
+}
+
+// SubnetCreateOpts represents the attributes used when creating a new subnet.
+type SubnetCreateOpts struct {
+	subnets.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToSubnetCreateMap casts a CreateOpts struct to a map.
+// It overrides subnets.ToSubnetCreateMap to add the ValueSpecs field.
+func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error) {
+	return BuildRequest(opts, "subnet")
 }
