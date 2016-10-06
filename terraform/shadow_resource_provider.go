@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -100,6 +101,45 @@ func (p *shadowResourceProviderReal) Configure(c *ResourceConfig) error {
 	})
 
 	return err
+}
+
+func (p *shadowResourceProviderReal) ValidateResource(
+	t string, c *ResourceConfig) ([]string, []error) {
+	key := t
+
+	// Real operation
+	warns, errs := p.ResourceProvider.ValidateResource(t, c)
+
+	// Get the result
+	raw, ok := p.Shared.ValidateResource.ValueOk(key)
+	if !ok {
+		raw = new(shadowResourceProviderValidateResourceWrapper)
+	}
+
+	wrapper, ok := raw.(*shadowResourceProviderValidateResourceWrapper)
+	if !ok {
+		// If this fails then we just continue with our day... the shadow
+		// will fail to but there isn't much we can do.
+		log.Printf(
+			"[ERROR] unknown value in ValidateResource shadow value: %#v", raw)
+		return warns, errs
+	}
+
+	// Lock the wrapper for writing and record our call
+	wrapper.Lock()
+	defer wrapper.Unlock()
+
+	wrapper.Calls = append(wrapper.Calls, &shadowResourceProviderValidateResource{
+		Config: c,
+		Warns:  warns,
+		Errors: errs,
+	})
+
+	// Set it
+	p.Shared.ValidateResource.SetValue(key, wrapper)
+
+	// Return the result
+	return warns, errs
 }
 
 func (p *shadowResourceProviderReal) Apply(
