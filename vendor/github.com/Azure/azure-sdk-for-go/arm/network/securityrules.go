@@ -59,10 +59,10 @@ func NewSecurityRulesClientWithBaseURI(baseURI string, subscriptionID string) Se
 // operation
 func (client SecurityRulesClient) CreateOrUpdate(resourceGroupName string, networkSecurityGroupName string, securityRuleName string, securityRuleParameters SecurityRule, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{securityRuleParameters,
-			[]validation.Constraint{{"securityRuleParameters.Properties", validation.Null, false,
-				[]validation.Constraint{{"securityRuleParameters.Properties.SourceAddressPrefix", validation.Null, true, nil},
-					{"securityRuleParameters.Properties.DestinationAddressPrefix", validation.Null, true, nil},
+		{TargetValue: securityRuleParameters,
+			Constraints: []validation.Constraint{{Target: "securityRuleParameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "securityRuleParameters.Properties.SourceAddressPrefix", Name: validation.Null, Rule: true, Chain: nil},
+					{Target: "securityRuleParameters.Properties.DestinationAddressPrefix", Name: validation.Null, Rule: true, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "network.SecurityRulesClient", "CreateOrUpdate")
 	}

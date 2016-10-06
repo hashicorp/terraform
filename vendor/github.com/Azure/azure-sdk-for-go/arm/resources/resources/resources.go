@@ -48,10 +48,10 @@ func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
 // identity. resourceName is resource identity.
 func (client Client) CheckExistence(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.Client", "CheckExistence")
 	}
 
@@ -124,14 +124,14 @@ func (client Client) CheckExistenceResponder(resp *http.Response) (result autore
 // update resource parameters.
 func (client Client) CreateOrUpdate(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, parameters GenericResource) (result GenericResource, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}},
-		{parameters,
-			[]validation.Constraint{{"parameters.Identity", validation.Null, false,
-				[]validation.Constraint{{"PrincipalID", validation.ReadOnly, true, nil},
-					{"TenantID", validation.ReadOnly, true, nil},
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Identity", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Identity.PrincipalID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					{Target: "parameters.Identity.TenantID", Name: validation.ReadOnly, Rule: true, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.Client", "CreateOrUpdate")
 	}
@@ -207,10 +207,10 @@ func (client Client) CreateOrUpdateResponder(resp *http.Response) (result Generi
 // identity. resourceName is resource identity.
 func (client Client) Delete(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.Client", "Delete")
 	}
 
@@ -282,10 +282,10 @@ func (client Client) DeleteResponder(resp *http.Response) (result autorest.Respo
 // identity. resourceName is resource identity.
 func (client Client) Get(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result GenericResource, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.Client", "Get")
 	}
 
@@ -455,10 +455,10 @@ func (client Client) ListNextResults(lastResults ResourceListResult) (result Res
 // resources' parameters.
 func (client Client) MoveResources(sourceResourceGroupName string, parameters MoveInfo, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{sourceResourceGroupName,
-			[]validation.Constraint{{"sourceResourceGroupName", validation.MaxLength, 90, nil},
-				{"sourceResourceGroupName", validation.MinLength, 1, nil},
-				{"sourceResourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: sourceResourceGroupName,
+			Constraints: []validation.Constraint{{Target: "sourceResourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "sourceResourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "sourceResourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.Client", "MoveResources")
 	}
 
