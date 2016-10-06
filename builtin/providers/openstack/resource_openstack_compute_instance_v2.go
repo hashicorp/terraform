@@ -965,14 +965,14 @@ func getInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.Res
 		allPages, err := tenantnetworks.List(computeClient).AllPages()
 		if err != nil {
 			if _, ok := err.(gophercloud.ErrDefault404); ok {
-				log.Println("[DEBUG] os-tenant-networks disabled")
+				log.Printf("[DEBUG] os-tenant-networks disabled")
 				tenantNetworkExt = false
 			}
 
-			log.Println("[DEBUG] Err looks like: %+v", err)
+			log.Printf("[DEBUG] Err looks like: %+v", err)
 			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
 				if errCode.Actual == 403 {
-					log.Println("[DEBUG] os-tenant-networks disabled.")
+					log.Printf("[DEBUG] os-tenant-networks disabled.")
 					tenantNetworkExt = false
 				} else {
 					return nil, err
