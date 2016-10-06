@@ -14,6 +14,10 @@ import (
 	"github.com/hashicorp/terraform/helper/signalwrapper"
 )
 
+// The KeySource of storage.Encryption appears to require this value
+// for Encryption services to work
+var storageAccountEncryptionSource = "Microsoft.Storage"
+
 func resourceArmStorageAccount() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceArmStorageAccountCreate,
@@ -49,6 +53,11 @@ func resourceArmStorageAccount() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateArmStorageAccountType,
+			},
+
+			"enable_blob_encryption": {
+				Type:     schema.TypeBool,
+				Optional: true,
 			},
 
 			"primary_location": {
@@ -121,6 +130,7 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	accountType := d.Get("account_type").(string)
 	location := d.Get("location").(string)
 	tags := d.Get("tags").(map[string]interface{})
+	enableBlobEncryption := d.Get("enable_blob_encryption").(bool)
 
 	sku := storage.Sku{
 		Name: storage.SkuName(accountType),
@@ -130,6 +140,16 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		Location: &location,
 		Sku:      &sku,
 		Tags:     expandTags(tags),
+		Properties: &storage.AccountPropertiesCreateParameters{
+			Encryption: &storage.Encryption{
+				Services: &storage.EncryptionServices{
+					Blob: &storage.EncryptionService{
+						Enabled: &enableBlobEncryption,
+					},
+				},
+				KeySource: &storageAccountEncryptionSource,
+			},
+		},
 	}
 
 	// Create the storage account. We wrap this so that it is cancellable
@@ -240,6 +260,29 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("tags")
 	}
 
+	if d.HasChange("enable_blob_encryption") {
+		enableBlobEncryption := d.Get("enable_blob_encryption").(bool)
+
+		opts := storage.AccountUpdateParameters{
+			Properties: &storage.AccountPropertiesUpdateParameters{
+				Encryption: &storage.Encryption{
+					Services: &storage.EncryptionServices{
+						Blob: &storage.EncryptionService{
+							Enabled: &enableBlobEncryption,
+						},
+					},
+					KeySource: &storageAccountEncryptionSource,
+				},
+			},
+		}
+		_, err := client.Update(resourceGroupName, storageAccountName, opts)
+		if err != nil {
+			return fmt.Errorf("Error updating Azure Storage Account enable_blob_encryption %q: %s", storageAccountName, err)
+		}
+
+		d.SetPartial("enable_blob_encryption")
+	}
+
 	d.Partial(false)
 	return nil
 }
@@ -298,6 +341,12 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 			d.Set("secondary_table_endpoint", resp.Properties.SecondaryEndpoints.Table)
 		} else {
 			d.Set("secondary_table_endpoint", "")
+		}
+	}
+
+	if resp.Properties.Encryption != nil {
+		if resp.Properties.Encryption.Services.Blob != nil {
+			d.Set("enable_blob_encryption", resp.Properties.Encryption.Services.Blob.Enabled)
 		}
 	}
 
