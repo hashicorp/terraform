@@ -63,50 +63,6 @@ func resourceNetworkingRouterV2() *schema.Resource {
 	}
 }
 
-// routerCreateOpts contains all the values needed to create a new router. There are
-// no required values.
-type RouterCreateOpts struct {
-	Name         string
-	AdminStateUp *bool
-	Distributed  *bool
-	TenantID     string
-	GatewayInfo  *routers.GatewayInfo
-	ValueSpecs   map[string]string
-}
-
-// ToRouterCreateMap casts a routerCreateOpts struct to a map.
-func (opts RouterCreateOpts) ToRouterCreateMap() (map[string]interface{}, error) {
-	r := make(map[string]interface{})
-
-	if gophercloud.MaybeString(opts.Name) != nil {
-		r["name"] = opts.Name
-	}
-
-	if opts.AdminStateUp != nil {
-		r["admin_state_up"] = opts.AdminStateUp
-	}
-
-	if opts.Distributed != nil {
-		r["distributed"] = opts.Distributed
-	}
-
-	if gophercloud.MaybeString(opts.TenantID) != nil {
-		r["tenant_id"] = opts.TenantID
-	}
-
-	if opts.GatewayInfo != nil {
-		r["external_gateway_info"] = opts.GatewayInfo
-	}
-
-	if opts.ValueSpecs != nil {
-		for k, v := range opts.ValueSpecs {
-			r[k] = v
-		}
-	}
-
-	return map[string]interface{}{"router": r}, nil
-}
-
 func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
@@ -115,9 +71,11 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 	}
 
 	createOpts := RouterCreateOpts{
-		Name:       d.Get("name").(string),
-		TenantID:   d.Get("tenant_id").(string),
-		ValueSpecs: MapValueSpecs(d),
+		routers.CreateOpts{
+			Name:     d.Get("name").(string),
+			TenantID: d.Get("tenant_id").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	if asuRaw, ok := d.GetOk("admin_state_up"); ok {

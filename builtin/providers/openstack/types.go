@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 )
 
@@ -15,4 +16,16 @@ type SubnetCreateOpts struct {
 // It overrides subnets.ToSubnetCreateMap to add the ValueSpecs field.
 func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "subnet")
+}
+
+// RouterCreateOpts represents the attributes used when creating a new router.
+type RouterCreateOpts struct {
+	routers.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToRouterCreateMap casts a CreateOpts struct to a map.
+// It overrides routers.ToRouterCreateMap to add the ValueSpecs field.
+func (opts RouterCreateOpts) ToRouterCreateMap() (map[string]interface{}, error) {
+	return BuildRequest(opts, "router")
 }
