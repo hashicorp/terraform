@@ -108,6 +108,7 @@ func (w *KeyedValue) valueWaiter(k string) (interface{}, *Value) {
 
 	// If we're closed, return that
 	if w.closed {
+		w.lock.Unlock()
 		return ErrClosed, nil
 	}
 
