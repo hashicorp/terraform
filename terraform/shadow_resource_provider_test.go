@@ -324,6 +324,96 @@ func TestShadowResourceProviderApply(t *testing.T) {
 	}
 }
 
+func TestShadowResourceProviderApply_modifyDiff(t *testing.T) {
+	mock := new(MockResourceProvider)
+	real, shadow := newShadowResourceProvider(mock)
+
+	// Test values
+	info := &InstanceInfo{Id: "foo"}
+	state := &InstanceState{ID: "foo"}
+	diff := &InstanceDiff{}
+	mockResult := &InstanceState{ID: "foo"}
+
+	// Configure the mock
+	mock.ApplyFn = func(
+		info *InstanceInfo,
+		s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		d.Destroy = true
+		return s, nil
+	}
+
+	// Call the real func
+	realResult, realErr := real.Apply(info, state.DeepCopy(), diff.DeepCopy())
+	if !realResult.Equal(mockResult) {
+		t.Fatalf("bad: %#v", realResult)
+	}
+	if realErr != nil {
+		t.Fatalf("bad: %#v", realErr)
+	}
+
+	// Verify the shadow returned the same values
+	result, err := shadow.Apply(info, state.DeepCopy(), diff.DeepCopy())
+	if !result.Equal(mockResult) {
+		t.Fatalf("bad: %#v", result)
+	}
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	// Verify we have no errors
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if err := shadow.ShadowError(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+}
+
+func TestShadowResourceProviderApply_modifyState(t *testing.T) {
+	mock := new(MockResourceProvider)
+	real, shadow := newShadowResourceProvider(mock)
+
+	// Test values
+	info := &InstanceInfo{Id: "foo"}
+	state := &InstanceState{ID: ""}
+	diff := &InstanceDiff{}
+	mockResult := &InstanceState{ID: "foo"}
+
+	// Configure the mock
+	mock.ApplyFn = func(
+		info *InstanceInfo,
+		s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		s.ID = "foo"
+		return s, nil
+	}
+
+	// Call the real func
+	realResult, realErr := real.Apply(info, state.DeepCopy(), diff)
+	if !realResult.Equal(mockResult) {
+		t.Fatalf("bad: %#v", realResult)
+	}
+	if realErr != nil {
+		t.Fatalf("bad: %#v", realErr)
+	}
+
+	// Verify the shadow returned the same values
+	result, err := shadow.Apply(info, state.DeepCopy(), diff)
+	if !result.Equal(mockResult) {
+		t.Fatalf("bad: %#v", result)
+	}
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	// Verify we have no errors
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if err := shadow.ShadowError(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+}
+
 func TestShadowResourceProviderDiff(t *testing.T) {
 	mock := new(MockResourceProvider)
 	real, shadow := newShadowResourceProvider(mock)

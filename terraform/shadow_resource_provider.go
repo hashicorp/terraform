@@ -146,11 +146,15 @@ func (p *shadowResourceProviderReal) Apply(
 	info *InstanceInfo,
 	state *InstanceState,
 	diff *InstanceDiff) (*InstanceState, error) {
+	// Thse have to be copied before the call since call can modify
+	stateCopy := state.DeepCopy()
+	diffCopy := diff.DeepCopy()
+
 	result, err := p.ResourceProvider.Apply(info, state, diff)
 	p.Shared.Apply.SetValue(info.HumanId(), &shadowResourceProviderApply{
-		State:     state,
-		Diff:      diff,
-		Result:    result,
+		State:     stateCopy,
+		Diff:      diffCopy,
+		Result:    result.DeepCopy(),
 		ResultErr: err,
 	})
 
@@ -161,11 +165,14 @@ func (p *shadowResourceProviderReal) Diff(
 	info *InstanceInfo,
 	state *InstanceState,
 	desired *ResourceConfig) (*InstanceDiff, error) {
+	// Thse have to be copied before the call since call can modify
+	stateCopy := state.DeepCopy()
+
 	result, err := p.ResourceProvider.Diff(info, state, desired)
 	p.Shared.Diff.SetValue(info.HumanId(), &shadowResourceProviderDiff{
-		State:     state,
+		State:     stateCopy,
 		Desired:   desired,
-		Result:    result,
+		Result:    result.DeepCopy(),
 		ResultErr: err,
 	})
 
@@ -175,10 +182,13 @@ func (p *shadowResourceProviderReal) Diff(
 func (p *shadowResourceProviderReal) Refresh(
 	info *InstanceInfo,
 	state *InstanceState) (*InstanceState, error) {
+	// Thse have to be copied before the call since call can modify
+	stateCopy := state.DeepCopy()
+
 	result, err := p.ResourceProvider.Refresh(info, state)
 	p.Shared.Refresh.SetValue(info.HumanId(), &shadowResourceProviderRefresh{
-		State:     state,
-		Result:    result,
+		State:     stateCopy,
+		Result:    result.DeepCopy(),
 		ResultErr: err,
 	})
 
@@ -430,7 +440,7 @@ func (p *shadowResourceProviderShadow) Apply(
 	if !state.Equal(result.State) {
 		p.ErrorLock.Lock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"State had unequal states (real, then shadow):\n\n%#v\n\n%#v",
+			"Apply: state had unequal states (real, then shadow):\n\n%#v\n\n%#v",
 			result.State, state))
 		p.ErrorLock.Unlock()
 	}
