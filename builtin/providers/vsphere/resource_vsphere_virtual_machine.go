@@ -584,11 +584,11 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 				case disk["name"] != "":
 					snapshotFullDir := mo.Config.Files.SnapshotDirectory
 					re := regexp.MustCompile(`(\[.*?\])[\s](.*)`)
-					split := re.Split(snapshotFullDir, -1)
-					if len(split) != 2 {
+					split := re.FindStringSubmatch(snapshotFullDir)
+					if len(split) != 3 {
 						return fmt.Errorf("[ERROR] createVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
 					}
-					vmWorkingPath := split[1]
+					vmWorkingPath := split[2]
 					diskPath = vmWorkingPath + disk["name"].(string)
 				default:
 					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor vmdk name was given")
@@ -995,11 +995,11 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 			// Separate datastore and path
 			diskRe := regexp.MustCompile(`(\[.*?\])[\s](.*)`)
-			diskFullPathSplit := diskRe.Split(diskFullPath, -1)
-			if len(diskFullPathSplit) != 2 {
+			diskFullPathSplit := diskRe.FindStringSubmatch(diskFullPath)
+			if len(diskFullPathSplit) != 3 {
 				return fmt.Errorf("[ERROR] Failed trying to parse disk path: %v", diskFullPath)
 			}
-			diskPath := diskFullPathSplit[1]
+			diskPath := diskFullPathSplit[2]
 			// Isolate filename
 			diskNameSplit := strings.Split(diskPath, "/")
 			diskName := diskNameSplit[len(diskNameSplit)-1]
@@ -2028,11 +2028,11 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		case vm.hardDisks[i].name != "":
 			snapshotFullDir := vm_mo.Config.Files.SnapshotDirectory
 			re := regexp.MustCompile(`(\[.*?\])[\s](.*)`)
-			split := re.Split(snapshotFullDir, -1)
-			if len(split) != 2 {
+			split := re.FindStringSubmatch(snapshotFullDir)
+			if len(split) != 3 {
 				return fmt.Errorf("[ERROR] setupVirtualMachine - failed to split snapshot directory: %v", snapshotFullDir)
 			}
-			vmWorkingPath := split[1]
+			vmWorkingPath := split[2]
 			diskPath = vmWorkingPath + vm.hardDisks[i].name
 		default:
 			return fmt.Errorf("[ERROR] setupVirtualMachine - Neither vmdk path nor vmdk name was given: %#v", vm.hardDisks[i])
