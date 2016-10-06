@@ -2,10 +2,11 @@ package command
 
 import (
 	"flag"
-	"github.com/davecgh/go-spew/spew"
 	"io/ioutil"
 	"reflect"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestFlagStringKV_impl(t *testing.T) {
@@ -143,6 +144,29 @@ func TestFlagTypedKV(t *testing.T) {
 		{
 			"key=1234.dkr.ecr.us-east-1.amazonaws.com/proj:abcdef",
 			map[string]interface{}{"key": "1234.dkr.ecr.us-east-1.amazonaws.com/proj:abcdef"},
+			false,
+		},
+
+		// simple values that can parse as numbers should remain strings
+		{
+			"key=1",
+			map[string]interface{}{
+				"key": "1",
+			},
+			false,
+		},
+		{
+			"key=1.0",
+			map[string]interface{}{
+				"key": "1.0",
+			},
+			false,
+		},
+		{
+			"key=0x10",
+			map[string]interface{}{
+				"key": "0x10",
+			},
 			false,
 		},
 	}
