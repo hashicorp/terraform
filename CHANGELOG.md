@@ -5,6 +5,7 @@ FEATURES:
 
 IMPROVEMENTS:
  * provider/azurerm: expose default keys for servicebus_namespace [GH-9242]
+ * provider/azurerm: add enable_blob_encryption to storage_account resource [GH-9233]
  
  
 BUG FIXES:
