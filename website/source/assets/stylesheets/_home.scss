@@ -401,7 +401,7 @@ body.page-home {
 
 		#enterprise-intro-bg {
 			background: #000 image-url("enterprise-callout-bg.svg") bottom right no-repeat;
-			background-size: 100%;
+			background-size: 80%;
 			@include skewY(3deg);
 			z-index: 20;
 		}
