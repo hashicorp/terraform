@@ -39,7 +39,7 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 		components: componentsShadow,
 		destroy:    c.destroy,
 		diff:       c.diff.DeepCopy(),
-		hooks:      nil, // TODO: do we need to copy? stop hook?
+		hooks:      nil,
 		module:     c.module,
 		state:      c.state.DeepCopy(),
 		targets:    targetRaw.([]string),
