@@ -1,5 +1,14 @@
 ## 0.7.6 (UNRELEASED)
 
+FEATURES:
+
+
+IMPROVEMENTS:
+ * provider/azurerm: expose default keys for servicebus_namespace [GH-9242]
+ 
+ 
+BUG FIXES:
+
 ## 0.7.5 (October 6, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
