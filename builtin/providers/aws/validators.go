@@ -343,9 +343,21 @@ func validateCIDRNetworkAddress(v interface{}, k string) (ws []string, errors []
 
 func validateHTTPMethod(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if value != "GET" && value != "HEAD" && value != "OPTIONS" && value != "PUT" && value != "POST" && value != "PATCH" && value != "DELETE" {
+
+	validMethods := map[string]bool{
+		"ANY":     true,
+		"DELETE":  true,
+		"GET":     true,
+		"HEAD":    true,
+		"OPTIONS": true,
+		"PATCH":   true,
+		"POST":    true,
+		"PUT":     true,
+	}
+
+	if _, ok := validMethods[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			"%q must be one of 'GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'", k))
+			"%q must be one of 'GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE', or 'ANY'", k))
 	}
 	return
 }
