@@ -62,41 +62,6 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 	}
 }
 
-// NetworkCreateOpts contains all teh values needed to create a new network.
-type NetworkCreateOpts struct {
-	AdminStateUp *bool
-	Name         string
-	Shared       *bool
-	TenantID     string
-	ValueSpecs   map[string]string
-}
-
-// ToNetworkCreateMpa casts a networkCreateOpts struct to a map.
-func (opts NetworkCreateOpts) ToNetworkCreateMap() (map[string]interface{}, error) {
-	n := make(map[string]interface{})
-
-	if opts.AdminStateUp != nil {
-		n["admin_state_up"] = &opts.AdminStateUp
-	}
-	if opts.Name != "" {
-		n["name"] = opts.Name
-	}
-	if opts.Shared != nil {
-		n["shared"] = &opts.Shared
-	}
-	if opts.TenantID != "" {
-		n["tenant_id"] = opts.TenantID
-	}
-
-	if opts.ValueSpecs != nil {
-		for k, v := range opts.ValueSpecs {
-			n[k] = v
-		}
-	}
-
-	return map[string]interface{}{"network": n}, nil
-}
-
 func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
@@ -105,9 +70,11 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 	}
 
 	createOpts := NetworkCreateOpts{
-		Name:       d.Get("name").(string),
-		TenantID:   d.Get("tenant_id").(string),
-		ValueSpecs: MapValueSpecs(d),
+		networks.CreateOpts{
+			Name:     d.Get("name").(string),
+			TenantID: d.Get("tenant_id").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	asuRaw := d.Get("admin_state_up").(string)
