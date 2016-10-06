@@ -1321,15 +1321,16 @@ func (client InterfaceListResult) InterfaceListResultPreparer() (*http.Request, 
 
 // InterfacePropertiesFormat is networkInterface properties.
 type InterfacePropertiesFormat struct {
-	VirtualMachine       *SubResource                `json:"virtualMachine,omitempty"`
-	NetworkSecurityGroup *SecurityGroup              `json:"networkSecurityGroup,omitempty"`
-	IPConfigurations     *[]InterfaceIPConfiguration `json:"ipConfigurations,omitempty"`
-	DNSSettings          *InterfaceDNSSettings       `json:"dnsSettings,omitempty"`
-	MacAddress           *string                     `json:"macAddress,omitempty"`
-	Primary              *bool                       `json:"primary,omitempty"`
-	EnableIPForwarding   *bool                       `json:"enableIPForwarding,omitempty"`
-	ResourceGUID         *string                     `json:"resourceGuid,omitempty"`
-	ProvisioningState    *string                     `json:"provisioningState,omitempty"`
+	VirtualMachine               *SubResource                `json:"virtualMachine,omitempty"`
+	NetworkSecurityGroup         *SecurityGroup              `json:"networkSecurityGroup,omitempty"`
+	IPConfigurations             *[]InterfaceIPConfiguration `json:"ipConfigurations,omitempty"`
+	DNSSettings                  *InterfaceDNSSettings       `json:"dnsSettings,omitempty"`
+	MacAddress                   *string                     `json:"macAddress,omitempty"`
+	Primary                      *bool                       `json:"primary,omitempty"`
+	AcceleratedNetworkingEnabled *bool                       `json:"acceleratedNetworkingEnabled,omitempty"`
+	EnableIPForwarding           *bool                       `json:"enableIPForwarding,omitempty"`
+	ResourceGUID                 *string                     `json:"resourceGuid,omitempty"`
+	ProvisioningState            *string                     `json:"provisioningState,omitempty"`
 }
 
 // IPAddressAvailabilityResult is response for CheckIPAddressAvailability Api

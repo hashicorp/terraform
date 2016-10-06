@@ -48,8 +48,8 @@ func NewVirtualMachineSizesClientWithBaseURI(baseURI string, subscriptionID stri
 // location is the location upon which virtual-machine-sizes is queried.
 func (client VirtualMachineSizesClient) List(location string) (result VirtualMachineSizeListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{location,
-			[]validation.Constraint{{"location", validation.Pattern, `^[-\w\._]+$`, nil}}}}); err != nil {
+		{TargetValue: location,
+			Constraints: []validation.Constraint{{Target: "location", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "compute.VirtualMachineSizesClient", "List")
 	}
 
