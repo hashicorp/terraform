@@ -111,6 +111,10 @@ func loadKVFile(rawPath string) (map[string]interface{}, error) {
 				"Decoding errors are usually caused by an invalid format.",
 			err)
 	}
+	err = flattenMultiMaps(result)
+	if err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }
@@ -185,10 +189,34 @@ func parseVarFlagAsHCL(input string) (string, interface{}, error) {
 		return "", nil, fmt.Errorf("Cannot parse value for variable %s (%q) as valid HCL. Only one value may be specified.", probablyName, input)
 	}
 
-	for k, v := range decoded {
-		return k, v, nil
+	err = flattenMultiMaps(decoded)
+	if err != nil {
+		return probablyName, "", err
 	}
 
-	// Should be unreachable
-	return "", nil, fmt.Errorf("No value for variable: %s", input)
+	var k string
+	var v interface{}
+	for k, v = range decoded {
+		break
+	}
+	return k, v, nil
+}
+
+// Variables don't support any type that can be configured via multiple
+// declarations of the same HCL map, so any instances of
+// []map[string]interface{} are either a single map that can be flattened, or
+// are invalid config.
+func flattenMultiMaps(m map[string]interface{}) error {
+	for k, v := range m {
+		switch v := v.(type) {
+		case []map[string]interface{}:
+			switch {
+			case len(v) > 1:
+				return fmt.Errorf("multiple map declarations not supported for variables")
+			case len(v) == 1:
+				m[k] = v[0]
+			}
+		}
+	}
+	return nil
 }
