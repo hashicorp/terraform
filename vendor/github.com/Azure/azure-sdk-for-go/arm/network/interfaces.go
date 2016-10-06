@@ -55,12 +55,12 @@ func NewInterfacesClientWithBaseURI(baseURI string, subscriptionID string) Inter
 // the create/update NetworkInterface operation
 func (client InterfacesClient) CreateOrUpdate(resourceGroupName string, networkInterfaceName string, parameters Interface, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{parameters,
-			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
-				[]validation.Constraint{{"parameters.Properties.NetworkSecurityGroup", validation.Null, false,
-					[]validation.Constraint{{"parameters.Properties.NetworkSecurityGroup.Properties", validation.Null, false,
-						[]validation.Constraint{{"NetworkInterfaces", validation.ReadOnly, true, nil},
-							{"Subnets", validation.ReadOnly, true, nil},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.NetworkSecurityGroup", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.NetworkSecurityGroup.Properties", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Properties.NetworkSecurityGroup.Properties.NetworkInterfaces", Name: validation.ReadOnly, Rule: true, Chain: nil},
+							{Target: "parameters.Properties.NetworkSecurityGroup.Properties.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil},
 						}},
 					}},
 				}}}}}); err != nil {

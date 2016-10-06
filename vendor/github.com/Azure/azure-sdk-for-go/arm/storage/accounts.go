@@ -48,9 +48,9 @@ func NewAccountsClientWithBaseURI(baseURI string, subscriptionID string) Account
 // in length and use numbers and lower-case letters only.
 func (client AccountsClient) CheckNameAvailability(accountName AccountCheckNameAvailabilityParameters) (result CheckNameAvailabilityResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{accountName,
-			[]validation.Constraint{{"accountName.Name", validation.Null, true, nil},
-				{"accountName.Type", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName.Name", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "accountName.Type", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "CheckNameAvailability")
 	}
 
@@ -128,22 +128,22 @@ func (client AccountsClient) CheckNameAvailabilityResponder(resp *http.Response)
 // parameters is the parameters to provide for the created account.
 func (client AccountsClient) Create(resourceGroupName string, accountName string, parameters AccountCreateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{accountName,
-			[]validation.Constraint{{"accountName", validation.MaxLength, 24, nil},
-				{"accountName", validation.MinLength, 3, nil}}},
-		{parameters,
-			[]validation.Constraint{{"parameters.Sku", validation.Null, true,
-				[]validation.Constraint{{"Tier", validation.ReadOnly, true, nil}}},
-				{"parameters.Location", validation.Null, true, nil},
-				{"parameters.Properties", validation.Null, false,
-					[]validation.Constraint{{"parameters.Properties.CustomDomain", validation.Null, false,
-						[]validation.Constraint{{"parameters.Properties.CustomDomain.Name", validation.Null, true, nil}}},
-						{"parameters.Properties.Encryption", validation.Null, false,
-							[]validation.Constraint{{"parameters.Properties.Encryption.Services", validation.Null, false,
-								[]validation.Constraint{{"parameters.Properties.Encryption.Services.Blob", validation.Null, false,
-									[]validation.Constraint{{"LastEnabledTime", validation.ReadOnly, true, nil}}},
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Sku", Name: validation.Null, Rule: true,
+				Chain: []validation.Constraint{{Target: "parameters.Sku.Tier", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
+				{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.CustomDomain", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Properties.CustomDomain.Name", Name: validation.Null, Rule: true, Chain: nil}}},
+						{Target: "parameters.Properties.Encryption", Name: validation.Null, Rule: false,
+							Chain: []validation.Constraint{{Target: "parameters.Properties.Encryption.Services", Name: validation.Null, Rule: false,
+								Chain: []validation.Constraint{{Target: "parameters.Properties.Encryption.Services.Blob", Name: validation.Null, Rule: false,
+									Chain: []validation.Constraint{{Target: "parameters.Properties.Encryption.Services.Blob.LastEnabledTime", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
 								}},
-								{"parameters.Properties.Encryption.KeySource", validation.Null, true, nil},
+								{Target: "parameters.Properties.Encryption.KeySource", Name: validation.Null, Rule: true, Chain: nil},
 							}},
 					}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "Create")
@@ -218,9 +218,9 @@ func (client AccountsClient) CreateResponder(resp *http.Response) (result autore
 // characters in length and use numbers and lower-case letters only.
 func (client AccountsClient) Delete(resourceGroupName string, accountName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{accountName,
-			[]validation.Constraint{{"accountName", validation.MaxLength, 24, nil},
-				{"accountName", validation.MinLength, 3, nil}}}}); err != nil {
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "Delete")
 	}
 
@@ -291,9 +291,9 @@ func (client AccountsClient) DeleteResponder(resp *http.Response) (result autore
 // characters in length and use numbers and lower-case letters only.
 func (client AccountsClient) GetProperties(resourceGroupName string, accountName string) (result Account, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{accountName,
-			[]validation.Constraint{{"accountName", validation.MaxLength, 24, nil},
-				{"accountName", validation.MinLength, 3, nil}}}}); err != nil {
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "GetProperties")
 	}
 
@@ -484,9 +484,9 @@ func (client AccountsClient) ListByResourceGroupResponder(resp *http.Response) (
 // name of the storage account.
 func (client AccountsClient) ListKeys(resourceGroupName string, accountName string) (result AccountListKeysResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{accountName,
-			[]validation.Constraint{{"accountName", validation.MaxLength, 24, nil},
-				{"accountName", validation.MinLength, 3, nil}}}}); err != nil {
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "ListKeys")
 	}
 
@@ -558,11 +558,11 @@ func (client AccountsClient) ListKeysResponder(resp *http.Response) (result Acco
 // key1 or key2 for the default keys
 func (client AccountsClient) RegenerateKey(resourceGroupName string, accountName string, regenerateKey AccountRegenerateKeyParameters) (result AccountListKeysResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{accountName,
-			[]validation.Constraint{{"accountName", validation.MaxLength, 24, nil},
-				{"accountName", validation.MinLength, 3, nil}}},
-		{regenerateKey,
-			[]validation.Constraint{{"regenerateKey.KeyName", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}},
+		{TargetValue: regenerateKey,
+			Constraints: []validation.Constraint{{Target: "regenerateKey.KeyName", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "RegenerateKey")
 	}
 
@@ -644,9 +644,9 @@ func (client AccountsClient) RegenerateKeyResponder(resp *http.Response) (result
 // parameters is the parameters to provide for the updated account.
 func (client AccountsClient) Update(resourceGroupName string, accountName string, parameters AccountUpdateParameters) (result Account, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{accountName,
-			[]validation.Constraint{{"accountName", validation.MaxLength, 24, nil},
-				{"accountName", validation.MinLength, 3, nil}}}}); err != nil {
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "Update")
 	}
 

@@ -53,15 +53,15 @@ func NewVirtualMachineScaleSetsClientWithBaseURI(baseURI string, subscriptionID 
 // parameters supplied to the Create Virtual Machine Scale Set operation.
 func (client VirtualMachineScaleSetsClient) CreateOrUpdate(resourceGroupName string, name string, parameters VirtualMachineScaleSet, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{parameters,
-			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
-				[]validation.Constraint{{"parameters.Properties.VirtualMachineProfile", validation.Null, false,
-					[]validation.Constraint{{"parameters.Properties.VirtualMachineProfile.StorageProfile", validation.Null, false,
-						[]validation.Constraint{{"parameters.Properties.VirtualMachineProfile.StorageProfile.OsDisk", validation.Null, false,
-							[]validation.Constraint{{"parameters.Properties.VirtualMachineProfile.StorageProfile.OsDisk.Name", validation.Null, true, nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.VirtualMachineProfile", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.VirtualMachineProfile.StorageProfile", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Properties.VirtualMachineProfile.StorageProfile.OsDisk", Name: validation.Null, Rule: false,
+							Chain: []validation.Constraint{{Target: "parameters.Properties.VirtualMachineProfile.StorageProfile.OsDisk.Name", Name: validation.Null, Rule: true, Chain: nil}}},
 						}},
 					}},
-					{"ProvisioningState", validation.ReadOnly, true, nil},
+					{Target: "parameters.Properties.ProvisioningState", Name: validation.ReadOnly, Rule: true, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "compute.VirtualMachineScaleSetsClient", "CreateOrUpdate")
 	}
@@ -279,8 +279,8 @@ func (client VirtualMachineScaleSetsClient) DeleteResponder(resp *http.Response)
 // virtual machine scale set instance IDs.
 func (client VirtualMachineScaleSetsClient) DeleteInstances(resourceGroupName string, vmScaleSetName string, vmInstanceIDs VirtualMachineScaleSetVMInstanceRequiredIDs, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{vmInstanceIDs,
-			[]validation.Constraint{{"vmInstanceIDs.InstanceIds", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: vmInstanceIDs,
+			Constraints: []validation.Constraint{{Target: "vmInstanceIDs.InstanceIds", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "compute.VirtualMachineScaleSetsClient", "DeleteInstances")
 	}
 
@@ -1029,8 +1029,8 @@ func (client VirtualMachineScaleSetsClient) StartResponder(resp *http.Response) 
 // virtual machine scale set instance IDs.
 func (client VirtualMachineScaleSetsClient) UpdateInstances(resourceGroupName string, vmScaleSetName string, vmInstanceIDs VirtualMachineScaleSetVMInstanceRequiredIDs, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{vmInstanceIDs,
-			[]validation.Constraint{{"vmInstanceIDs.InstanceIds", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: vmInstanceIDs,
+			Constraints: []validation.Constraint{{Target: "vmInstanceIDs.InstanceIds", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "compute.VirtualMachineScaleSetsClient", "UpdateInstances")
 	}
 
