@@ -29,6 +29,27 @@ func TestAccAzureRMResourceGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMResourceGroup_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMResourceGroup_basic, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMResourceGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMResourceGroupExists("azurerm_resource_group.test"),
+					testCheckAzureRMResourceGroupDisappears("azurerm_resource_group.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMResourceGroup_withTags(t *testing.T) {
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMResourceGroup_withTags, ri)
@@ -86,6 +107,28 @@ func testCheckAzureRMResourceGroupExists(name string) resource.TestCheckFunc {
 
 		if resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Bad: Virtual Network %q (resource group: %q) does not exist", name, resourceGroup)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMResourceGroupDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		resourceGroup := rs.Primary.Attributes["name"]
+
+		// Ensure resource group exists in API
+		conn := testAccProvider.Meta().(*ArmClient).resourceGroupClient
+
+		_, err := conn.Delete(resourceGroup, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on resourceGroupClient: %s", err)
 		}
 
 		return nil
