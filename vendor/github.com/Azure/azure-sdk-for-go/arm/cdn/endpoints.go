@@ -55,10 +55,10 @@ func NewEndpointsClientWithBaseURI(baseURI string, subscriptionID string) Endpoi
 // resource group within the Azure subscription.
 func (client EndpointsClient) Create(endpointName string, endpointProperties EndpointCreateParameters, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{endpointProperties,
-			[]validation.Constraint{{"endpointProperties.Location", validation.Null, true, nil},
-				{"endpointProperties.Properties", validation.Null, false,
-					[]validation.Constraint{{"endpointProperties.Properties.Origins", validation.Null, true, nil}}}}}}); err != nil {
+		{TargetValue: endpointProperties,
+			Constraints: []validation.Constraint{{Target: "endpointProperties.Location", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "endpointProperties.Properties", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "endpointProperties.Properties.Origins", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Create")
 	}
 
@@ -334,8 +334,8 @@ func (client EndpointsClient) ListByProfileResponder(resp *http.Response) (resul
 // Azure subscription.
 func (client EndpointsClient) LoadContent(endpointName string, contentFilePaths LoadParameters, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{contentFilePaths,
-			[]validation.Constraint{{"contentFilePaths.ContentPaths", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: contentFilePaths,
+			Constraints: []validation.Constraint{{Target: "contentFilePaths.ContentPaths", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "LoadContent")
 	}
 
@@ -413,8 +413,8 @@ func (client EndpointsClient) LoadContentResponder(resp *http.Response) (result 
 // within the Azure subscription.
 func (client EndpointsClient) PurgeContent(endpointName string, contentFilePaths PurgeParameters, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{contentFilePaths,
-			[]validation.Constraint{{"contentFilePaths.ContentPaths", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: contentFilePaths,
+			Constraints: []validation.Constraint{{Target: "contentFilePaths.ContentPaths", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "PurgeContent")
 	}
 
@@ -695,8 +695,8 @@ func (client EndpointsClient) UpdateResponder(resp *http.Response) (result autor
 // the resource group within the Azure subscription.
 func (client EndpointsClient) ValidateCustomDomain(endpointName string, customDomainProperties ValidateCustomDomainInput, profileName string, resourceGroupName string) (result ValidateCustomDomainOutput, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{customDomainProperties,
-			[]validation.Constraint{{"customDomainProperties.HostName", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: customDomainProperties,
+			Constraints: []validation.Constraint{{Target: "customDomainProperties.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "ValidateCustomDomain")
 	}
 

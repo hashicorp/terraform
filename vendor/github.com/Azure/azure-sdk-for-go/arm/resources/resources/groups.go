@@ -46,10 +46,10 @@ func NewGroupsClientWithBaseURI(baseURI string, subscriptionID string) GroupsCli
 // case insensitive.
 func (client GroupsClient) CheckExistence(resourceGroupName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "CheckExistence")
 	}
 
@@ -116,15 +116,15 @@ func (client GroupsClient) CheckExistenceResponder(resp *http.Response) (result 
 // resource group service operation.
 func (client GroupsClient) CreateOrUpdate(resourceGroupName string, parameters ResourceGroup) (result ResourceGroup, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}},
-		{parameters,
-			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
-				[]validation.Constraint{{"ProvisioningState", validation.ReadOnly, true, nil}}},
-				{"parameters.Location", validation.Null, true, nil},
-				{"ID", validation.ReadOnly, true, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.ProvisioningState", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
+				{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "parameters.ID", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "CreateOrUpdate")
 	}
 
@@ -195,10 +195,10 @@ func (client GroupsClient) CreateOrUpdateResponder(resp *http.Response) (result 
 // is case insensitive.
 func (client GroupsClient) Delete(resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "Delete")
 	}
 
@@ -267,10 +267,10 @@ func (client GroupsClient) DeleteResponder(resp *http.Response) (result autorest
 // group operation.
 func (client GroupsClient) ExportTemplate(resourceGroupName string, parameters ExportTemplateRequest) (result ResourceGroupExportResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "ExportTemplate")
 	}
 
@@ -339,10 +339,10 @@ func (client GroupsClient) ExportTemplateResponder(resp *http.Response) (result 
 // case insensitive.
 func (client GroupsClient) Get(resourceGroupName string) (result ResourceGroup, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "Get")
 	}
 
@@ -502,10 +502,10 @@ func (client GroupsClient) ListNextResults(lastResults ResourceGroupListResult) 
 // returns all resource groups.
 func (client GroupsClient) ListResources(resourceGroupName string, filter string, expand string, top *int32) (result ResourceListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "ListResources")
 	}
 
@@ -609,12 +609,12 @@ func (client GroupsClient) ListResourcesNextResults(lastResults ResourceListResu
 // to the update state resource group service operation.
 func (client GroupsClient) Patch(resourceGroupName string, parameters ResourceGroup) (result ResourceGroup, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}},
-		{parameters,
-			[]validation.Constraint{{"ID", validation.ReadOnly, true, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.ID", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "Patch")
 	}
 
