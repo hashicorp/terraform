@@ -12,6 +12,7 @@ mostly used for automating dashboards/alerting and retrieving data (events, etc)
 
 The source API documentation is here: <http://docs.datadoghq.com/api/>
 
+
 ## USAGE
 
 To use this project, include it in your code like:
@@ -24,7 +25,7 @@ Then, you can work with it:
 
 ``` go
     client := datadog.NewClient("api key", "application key")
-    
+
     dash, err := client.GetDashboard(10880)
     if err != nil {
         log.Fatalf("fatal: %s\n", err)
