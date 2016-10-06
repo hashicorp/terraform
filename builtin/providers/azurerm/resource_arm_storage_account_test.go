@@ -109,6 +109,36 @@ func TestAccAzureRMStorageAccount_disappears(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMStorageAccount_blobEncryption(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	preConfig := fmt.Sprintf(testAccAzureRMStorageAccount_blobEncryption, ri, rs)
+	postConfig := fmt.Sprintf(testAccAzureRMStorageAccount_blobEncryptionDisabled, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_blob_encryption", "true"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "enable_blob_encryption", "false"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMStorageAccountExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -216,5 +246,43 @@ resource "azurerm_storage_account" "testsa" {
 
     tags {
         environment = "staging"
+    }
+}`
+
+var testAccAzureRMStorageAccount_blobEncryption = `
+resource "azurerm_resource_group" "testrg" {
+    name = "testAccAzureRMSA-%d"
+    location = "westus"
+}
+
+resource "azurerm_storage_account" "testsa" {
+    name = "unlikely23exst2acct%s"
+    resource_group_name = "${azurerm_resource_group.testrg.name}"
+
+    location = "westus"
+    account_type = "Standard_LRS"
+    enable_blob_encryption = true
+
+    tags {
+        environment = "production"
+    }
+}`
+
+var testAccAzureRMStorageAccount_blobEncryptionDisabled = `
+resource "azurerm_resource_group" "testrg" {
+    name = "testAccAzureRMSA-%d"
+    location = "westus"
+}
+
+resource "azurerm_storage_account" "testsa" {
+    name = "unlikely23exst2acct%s"
+    resource_group_name = "${azurerm_resource_group.testrg.name}"
+
+    location = "westus"
+    account_type = "Standard_LRS"
+    enable_blob_encryption = false
+
+    tags {
+        environment = "production"
     }
 }`
