@@ -104,7 +104,14 @@ func (f *shadowComponentFactory) CloseShadow() error {
 		}
 	}
 
-	// TODO: provisioners once they're done
+	for _, n := range shared.provisionerKeys {
+		_, shadow, err := shared.ResourceProvisioner(n, n)
+		if err == nil && shadow != nil {
+			if err := shadow.CloseShadow(); err != nil {
+				result = multierror.Append(result, err)
+			}
+		}
+	}
 
 	// Mark ourselves as closed
 	shared.closed = true
@@ -141,6 +148,15 @@ func (f *shadowComponentFactory) ShadowError() error {
 		}
 	}
 
+	for _, n := range shared.provisionerKeys {
+		_, shadow, err := shared.ResourceProvisioner(n, n)
+		if err == nil && shadow != nil {
+			if err := shadow.ShadowError(); err != nil {
+				result = multierror.Append(result, err)
+			}
+		}
+	}
+
 	return result
 }
 
@@ -168,7 +184,7 @@ type shadowComponentFactoryProviderEntry struct {
 
 type shadowComponentFactoryProvisionerEntry struct {
 	Real   ResourceProvisioner
-	Shadow ResourceProvisioner
+	Shadow shadowResourceProvisioner
 	Err    error
 }
 
@@ -211,7 +227,7 @@ func (f *shadowComponentFactoryShared) ResourceProvider(
 }
 
 func (f *shadowComponentFactoryShared) ResourceProvisioner(
-	n, uid string) (ResourceProvisioner, ResourceProvisioner, error) {
+	n, uid string) (ResourceProvisioner, shadowResourceProvisioner, error) {
 	// Determine if we already have a value
 	raw, ok := f.provisioners.ValueOk(uid)
 	if !ok {
@@ -227,8 +243,7 @@ func (f *shadowComponentFactoryShared) ResourceProvisioner(
 
 		if p != nil {
 			// For now, just create a mock since we don't support provisioners yet
-			real := p
-			shadow := new(MockResourceProvisioner)
+			real, shadow := newShadowResourceProvisioner(p)
 			entry.Real = real
 			entry.Shadow = shadow
 		}
