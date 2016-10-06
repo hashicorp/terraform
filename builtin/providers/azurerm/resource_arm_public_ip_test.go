@@ -98,6 +98,28 @@ func TestAccAzureRMPublicIpStatic_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMPublicIpStatic_disappears(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVPublicIpStatic_basic, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMPublicIpDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMPublicIpExists("azurerm_public_ip.test"),
+					testCheckAzureRMPublicIpDisappears("azurerm_public_ip.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMPublicIpStatic_idleTimeout(t *testing.T) {
 
 	ri := acctest.RandInt()
@@ -234,6 +256,31 @@ func testCheckAzureRMPublicIpExists(name string) resource.TestCheckFunc {
 
 		if resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Bad: Public IP %q (resource group: %q) does not exist", name, resourceGroup)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMPublicIpDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		publicIpName := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for public ip: %s", publicIpName)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).publicIPClient
+
+		_, err := conn.Delete(resourceGroup, publicIpName, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on publicIPClient: %s", err)
 		}
 
 		return nil

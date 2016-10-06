@@ -118,11 +118,11 @@ func resourceArmAvailabilitySetRead(d *schema.ResourceData, meta interface{}) er
 
 	resp, err := availSetClient.Get(resGroup, name)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Availability Set %s: %s", name, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	availSet := *resp.Properties

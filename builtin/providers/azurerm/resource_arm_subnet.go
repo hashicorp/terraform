@@ -133,11 +133,11 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	resp, err := subnetClient.Get(resGroup, vnetName, name, "")
 
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Subnet %s: %s", name, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	if resp.Properties.IPConfigurations != nil && len(*resp.Properties.IPConfigurations) > 0 {

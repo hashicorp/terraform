@@ -30,6 +30,27 @@ func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMVirtualMachine_basicLinuxMachine_disappears(t *testing.T) {
+	var vm compute.VirtualMachine
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
+					testCheckAzureRMVirtualMachineDisappears("azurerm_virtual_machine.test", &vm),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMVirtualMachine_withDataDisk(t *testing.T) {
 	var vm compute.VirtualMachine
 
@@ -403,6 +424,31 @@ func testCheckAzureRMVirtualMachineVHDExistance(name string, shouldExist bool) r
 			} else if !exists && shouldExist {
 				return fmt.Errorf("Disk VHD Blob should exist")
 			}
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMVirtualMachineDisappears(name string, vm *compute.VirtualMachine) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		vmName := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for virtual machine: %s", vmName)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).vmClient
+
+		_, err := conn.Delete(resourceGroup, vmName, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on vmClient: %s", err)
 		}
 
 		return nil

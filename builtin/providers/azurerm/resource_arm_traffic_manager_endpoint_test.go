@@ -33,6 +33,30 @@ func TestAccAzureRMTrafficManagerEndpoint_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMTrafficManagerEndpoint_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_basic, ri, ri, ri, ri, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMTrafficManagerEndpointExists("azurerm_traffic_manager_endpoint.testAzure"),
+					testCheckAzureRMTrafficManagerEndpointExists("azurerm_traffic_manager_endpoint.testExternal"),
+					resource.TestCheckResourceAttr("azurerm_traffic_manager_endpoint.testAzure", "endpoint_status", "Enabled"),
+					resource.TestCheckResourceAttr("azurerm_traffic_manager_endpoint.testExternal", "endpoint_status", "Enabled"),
+					testCheckAzureRMTrafficManagerEndpointDisappears("azurerm_traffic_manager_endpoint.testAzure"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMTrafficManagerEndpoint_basicDisableExternal(t *testing.T) {
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_basic, ri, ri, ri, ri, ri, ri, ri)
@@ -177,6 +201,34 @@ func testCheckAzureRMTrafficManagerEndpointExists(name string) resource.TestChec
 
 		if resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Bad: Traffic Manager Endpoint %q (resource group: %q) does not exist", name, resourceGroup)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMTrafficManagerEndpointDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		endpointType := rs.Primary.Attributes["type"]
+		profileName := rs.Primary.Attributes["profile_name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for Traffic Manager Profile: %s", name)
+		}
+
+		// Ensure resource group/virtual network combination exists in API
+		conn := testAccProvider.Meta().(*ArmClient).trafficManagerEndpointsClient
+
+		_, err := conn.Delete(resourceGroup, profileName, path.Base(endpointType), name)
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on trafficManagerEndpointsClient: %s", err)
 		}
 
 		return nil
