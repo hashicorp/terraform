@@ -590,6 +590,9 @@ func (c *Context) acquireRun() chan<- struct{} {
 	ch := make(chan struct{})
 	c.runCh = ch
 
+	// Reset the stop hook so we're not stopped
+	c.sh.Reset()
+
 	// Reset the shadow errors
 	c.shadowErr = nil
 
@@ -602,7 +605,6 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 
 	close(ch)
 	c.runCh = nil
-	c.sh.Reset()
 }
 
 func (c *Context) walk(
@@ -628,7 +630,19 @@ func (c *Context) walk(
 	// Walk the real graph, this will block until it completes
 	realErr := graph.Walk(walker)
 
-	// If we have a shadow graph, wait for that to complete
+	// If we have a shadow graph and we interrupted the real graph, then
+	// we just close the shadow and never verify it. It is non-trivial to
+	// recreate the exact execution state up until an interruption so this
+	// isn't supported with shadows at the moment.
+	if shadowCloser != nil && c.sh.Stopped() {
+		// Ignore the error result, there is nothing we could care about
+		shadowCloser.CloseShadow()
+
+		// Set it to nil so we don't do anything
+		shadowCloser = nil
+	}
+
+	// If we have a shadow graph, wait for that to complete.
 	if shadowCloser != nil {
 		// Build the graph walker for the shadow.
 		shadowWalker := &ContextGraphWalker{
