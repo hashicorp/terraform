@@ -83,7 +83,7 @@ func (c *Config) loadAndValidate() error {
 		config.Certificates = []tls.Certificate{cert}
 		config.BuildNameToCertificate()
 	}
-	transport := &http.Transport{TLSClientConfig: config}
+	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
 	client.HTTPClient.Transport = transport
 
 	err = openstack.Authenticate(client, ao)

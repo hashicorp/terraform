@@ -170,6 +170,11 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 		Computed: true,
 	}
 
+	resourceSchema["cluster_address"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
+
 	resourceSchema["replication_group_id"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Computed: true,
@@ -205,6 +210,9 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 		Read:   resourceAwsElasticacheClusterRead,
 		Update: resourceAwsElasticacheClusterUpdate,
 		Delete: resourceAwsElasticacheClusterDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: resourceSchema,
 	}
@@ -348,6 +356,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		if c.ConfigurationEndpoint != nil {
 			d.Set("port", c.ConfigurationEndpoint.Port)
 			d.Set("configuration_endpoint", aws.String(fmt.Sprintf("%s:%d", *c.ConfigurationEndpoint.Address, *c.ConfigurationEndpoint.Port)))
+			d.Set("cluster_address", aws.String(fmt.Sprintf("%s", *c.ConfigurationEndpoint.Address)))
 		}
 
 		if c.ReplicationGroupId != nil {
@@ -355,9 +364,11 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		}
 
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
-		d.Set("security_group_names", c.CacheSecurityGroups)
-		d.Set("security_group_ids", c.SecurityGroups)
-		d.Set("parameter_group_name", c.CacheParameterGroup)
+		d.Set("security_group_names", flattenElastiCacheSecurityGroupNames(c.CacheSecurityGroups))
+		d.Set("security_group_ids", flattenElastiCacheSecurityGroupIds(c.SecurityGroups))
+		if c.CacheParameterGroup != nil {
+			d.Set("parameter_group_name", c.CacheParameterGroup.CacheParameterGroupName)
+		}
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
 		d.Set("snapshot_window", c.SnapshotWindow)
 		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)

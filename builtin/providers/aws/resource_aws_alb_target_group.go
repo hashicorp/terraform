@@ -33,23 +33,27 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"port": {
 				Type:         schema.TypeInt,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateAwsAlbTargetGroupPort,
 			},
 
 			"protocol": {
 				Type:         schema.TypeString,
 				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validateAwsAlbTargetGroupProtocol,
 			},
 
 			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 
 			"deregistration_delay": {

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/henrikhodne/go-librato/librato"
@@ -12,19 +13,20 @@ import (
 
 func TestAccLibratoSpace_Basic(t *testing.T) {
 	var space librato.Space
+	name := acctest.RandString(10)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoSpaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccCheckLibratoSpaceConfig_basic,
+			{
+				Config: testAccCheckLibratoSpaceConfig_basic(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoSpaceExists("librato_space.foobar", &space),
-					testAccCheckLibratoSpaceAttributes(&space),
+					testAccCheckLibratoSpaceAttributes(&space, name),
 					resource.TestCheckResourceAttr(
-						"librato_space.foobar", "name", "Foo Bar"),
+						"librato_space.foobar", "name", name),
 				),
 			},
 		},
@@ -54,10 +56,10 @@ func testAccCheckLibratoSpaceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckLibratoSpaceAttributes(space *librato.Space) resource.TestCheckFunc {
+func testAccCheckLibratoSpaceAttributes(space *librato.Space, name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if space.Name == nil || *space.Name != "Foo Bar" {
+		if space.Name == nil || *space.Name != name {
 			return fmt.Errorf("Bad name: %s", *space.Name)
 		}
 
@@ -100,7 +102,9 @@ func testAccCheckLibratoSpaceExists(n string, space *librato.Space) resource.Tes
 	}
 }
 
-const testAccCheckLibratoSpaceConfig_basic = `
+func testAccCheckLibratoSpaceConfig_basic(name string) string {
+	return fmt.Sprintf(`
 resource "librato_space" "foobar" {
-    name = "Foo Bar"
-}`
+    name = "%s"
+}`, name)
+}

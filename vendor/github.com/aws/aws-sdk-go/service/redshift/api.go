@@ -64,11 +64,11 @@ func (c *Redshift) AuthorizeClusterSecurityGroupIngressRequest(input *AuthorizeC
 // and EC2SecurityGroupOwnerId. The Amazon EC2 security group and Amazon Redshift
 // cluster must be in the same AWS region.
 //
-//  If you authorize access to a CIDR/IP address range, specify CIDRIP. For
+// If you authorize access to a CIDR/IP address range, specify CIDRIP. For
 // an overview of CIDR blocks, see the Wikipedia article on Classless Inter-Domain
 // Routing (http://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
 //
-//  You must also associate the security group with a cluster so that clients
+// You must also associate the security group with a cluster so that clients
 // running on these IP addresses or the EC2 instance are authorized to connect
 // to the cluster. For information about managing security groups, go to Working
 // with Security Groups (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-security-groups.html)
@@ -176,7 +176,7 @@ func (c *Redshift) CopyClusterSnapshotRequest(input *CopyClusterSnapshotInput) (
 // The source must be an automated snapshot and it must be in the available
 // state.
 //
-//  When you delete a cluster, Amazon Redshift deletes any automated snapshots
+// When you delete a cluster, Amazon Redshift deletes any automated snapshots
 // of the cluster. Also, when the retention period of the snapshot expires,
 // Amazon Redshift automatically deletes it. If you want to keep an automated
 // snapshot for a longer period, you can make a manual copy of the snapshot.
@@ -232,13 +232,13 @@ func (c *Redshift) CreateClusterRequest(input *CreateClusterInput) (req *request
 	return
 }
 
-// Creates a new cluster. To create the cluster in virtual private cloud (VPC),
-// you must provide cluster subnet group name. If you don't provide a cluster
-// subnet group name or the cluster security group parameter, Amazon Redshift
-// creates a non-VPC cluster, it associates the default cluster security group
-// with the cluster. For more information about managing clusters, go to Amazon
-// Redshift Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
-// in the Amazon Redshift Cluster Management Guide .
+// Creates a new cluster.
+//
+// To create the cluster in Virtual Private Cloud (VPC), you must provide a
+// cluster subnet group name. The cluster subnet group identifies the subnets
+// of your VPC that Amazon Redshift uses when creating the cluster. For more
+// information about managing clusters, go to Amazon Redshift Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
+// in the Amazon Redshift Cluster Management Guide.
 func (c *Redshift) CreateCluster(input *CreateClusterInput) (*CreateClusterOutput, error) {
 	req, out := c.CreateClusterRequest(input)
 	err := req.Send()
@@ -293,7 +293,7 @@ func (c *Redshift) CreateClusterParameterGroupRequest(input *CreateClusterParame
 // associate an existing cluster with a parameter group after the cluster is
 // created by using ModifyCluster.
 //
-//  Parameters in the parameter group define specific behavior that applies
+// Parameters in the parameter group define specific behavior that applies
 // to the databases you create on the cluster. For more information about parameters
 // and parameter groups, go to Amazon Redshift Parameter Groups (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-parameter-groups.html)
 // in the Amazon Redshift Cluster Management Guide.
@@ -510,7 +510,7 @@ func (c *Redshift) CreateEventSubscriptionRequest(input *CreateEventSubscription
 // obtain an ARN with Amazon SNS, you must create a topic in Amazon SNS and
 // subscribe to the topic. The ARN is displayed in the SNS console.
 //
-//  You can specify the source type, and lists of Amazon Redshift source IDs,
+// You can specify the source type, and lists of Amazon Redshift source IDs,
 // event categories, and event severities. Notifications will be sent for all
 // events you want that match those criteria. For example, you can specify source
 // type = cluster, source ID = my-cluster-1 and mycluster2, event categories
@@ -518,7 +518,7 @@ func (c *Redshift) CreateEventSubscriptionRequest(input *CreateEventSubscription
 // send notifications for those ERROR events in the Availability and Backup
 // categories for the specified clusters.
 //
-//  If you specify both the source type and source IDs, such as source type
+// If you specify both the source type and source IDs, such as source type
 // = cluster and source identifier = my-cluster-1, notifications will be sent
 // for all the cluster events for my-cluster-1. If you specify a source type
 // but do not specify a source identifier, you will receive notice of the events
@@ -744,10 +744,10 @@ func (c *Redshift) CreateTagsRequest(input *CreateTagsInput) (req *request.Reque
 
 // Adds one or more tags to a specified resource.
 //
-//  A resource can have up to 10 tags. If you try to create more than 10 tags
+// A resource can have up to 10 tags. If you try to create more than 10 tags
 // for a resource, you will receive an error and the attempt will fail.
 //
-//  If you specify a key that already exists for the resource, the value for
+// If you specify a key that already exists for the resource, the value for
 // that key will be updated with the new value.
 func (c *Redshift) CreateTags(input *CreateTagsInput) (*CreateTagsOutput, error) {
 	req, out := c.CreateTagsRequest(input)
@@ -801,18 +801,18 @@ func (c *Redshift) DeleteClusterRequest(input *DeleteClusterInput) (req *request
 // to monitor the status of the deletion. The delete operation cannot be canceled
 // or reverted once submitted. For more information about managing clusters,
 // go to Amazon Redshift Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
-// in the Amazon Redshift Cluster Management Guide .
+// in the Amazon Redshift Cluster Management Guide.
 //
-//  If you want to shut down the cluster and retain it for future use, set
-// SkipFinalClusterSnapshot to false and specify a name for FinalClusterSnapshotIdentifier.
-// You can later restore this snapshot to resume using the cluster. If a final
-// cluster snapshot is requested, the status of the cluster will be "final-snapshot"
-// while the snapshot is being taken, then it's "deleting" once Amazon Redshift
-// begins deleting the cluster.
+// If you want to shut down the cluster and retain it for future use, set SkipFinalClusterSnapshot
+// to false and specify a name for FinalClusterSnapshotIdentifier. You can later
+// restore this snapshot to resume using the cluster. If a final cluster snapshot
+// is requested, the status of the cluster will be "final-snapshot" while the
+// snapshot is being taken, then it's "deleting" once Amazon Redshift begins
+// deleting the cluster.
 //
 //  For more information about managing clusters, go to Amazon Redshift Clusters
 // (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
-// in the Amazon Redshift Cluster Management Guide .
+// in the Amazon Redshift Cluster Management Guide.
 func (c *Redshift) DeleteCluster(input *DeleteClusterInput) (*DeleteClusterOutput, error) {
 	req, out := c.DeleteClusterRequest(input)
 	err := req.Send()
@@ -862,8 +862,9 @@ func (c *Redshift) DeleteClusterParameterGroupRequest(input *DeleteClusterParame
 	return
 }
 
-// Deletes a specified Amazon Redshift parameter group. You cannot delete a
-// parameter group if it is associated with a cluster.
+// Deletes a specified Amazon Redshift parameter group.
+//
+//  You cannot delete a parameter group if it is associated with a cluster.
 func (c *Redshift) DeleteClusterParameterGroup(input *DeleteClusterParameterGroupInput) (*DeleteClusterParameterGroupOutput, error) {
 	req, out := c.DeleteClusterParameterGroupRequest(input)
 	err := req.Send()
@@ -915,9 +916,11 @@ func (c *Redshift) DeleteClusterSecurityGroupRequest(input *DeleteClusterSecurit
 
 // Deletes an Amazon Redshift security group.
 //
-// You cannot delete a security group that is associated with any clusters.
-// You cannot delete the default security group.  For information about managing
-// security groups, go to Amazon Redshift Cluster Security Groups (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-security-groups.html)
+//  You cannot delete a security group that is associated with any clusters.
+// You cannot delete the default security group.
+//
+//   For information about managing security groups, go to Amazon Redshift
+// Cluster Security Groups (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-security-groups.html)
 // in the Amazon Redshift Cluster Management Guide.
 func (c *Redshift) DeleteClusterSecurityGroup(input *DeleteClusterSecurityGroupInput) (*DeleteClusterSecurityGroupOutput, error) {
 	req, out := c.DeleteClusterSecurityGroupRequest(input)
@@ -969,7 +972,7 @@ func (c *Redshift) DeleteClusterSnapshotRequest(input *DeleteClusterSnapshotInpu
 // Deletes the specified manual snapshot. The snapshot must be in the available
 // state, with no other users authorized to access the snapshot.
 //
-//  Unlike automated snapshots, manual snapshots are retained even after you
+// Unlike automated snapshots, manual snapshots are retained even after you
 // delete your cluster. Amazon Redshift does not delete your manual snapshots.
 // You must delete manual snapshot explicitly to avoid getting charged. If other
 // accounts are authorized to access the snapshot, you must revoke all of the
@@ -1799,7 +1802,7 @@ func (c *Redshift) DescribeClusterVersionsRequest(input *DescribeClusterVersions
 // can call this operation even before creating any clusters to learn more about
 // the Amazon Redshift versions. For more information about managing clusters,
 // go to Amazon Redshift Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
-// in the Amazon Redshift Cluster Management Guide
+// in the Amazon Redshift Cluster Management Guide.
 func (c *Redshift) DescribeClusterVersions(input *DescribeClusterVersionsInput) (*DescribeClusterVersionsOutput, error) {
 	req, out := c.DescribeClusterVersionsRequest(input)
 	err := req.Send()
@@ -1882,7 +1885,7 @@ func (c *Redshift) DescribeClustersRequest(input *DescribeClustersInput) (req *r
 // cluster database properties, maintenance and backup properties, and security
 // and access properties. This operation supports pagination. For more information
 // about managing clusters, go to Amazon Redshift Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
-// in the Amazon Redshift Cluster Management Guide .
+// in the Amazon Redshift Cluster Management Guide.
 //
 // If you specify both tag keys and tag values in the same request, Amazon
 // Redshift returns all clusters that match any combination of the specified
@@ -2505,7 +2508,7 @@ func (c *Redshift) DescribeOrderableClusterOptionsRequest(input *DescribeOrderab
 // list of cluster options in the specific region and specify values when creating
 // a cluster. For more information about managing clusters, go to Amazon Redshift
 // Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
-// in the Amazon Redshift Cluster Management Guide
+// in the Amazon Redshift Cluster Management Guide.
 func (c *Redshift) DescribeOrderableClusterOptions(input *DescribeOrderableClusterOptionsInput) (*DescribeOrderableClusterOptionsOutput, error) {
 	req, out := c.DescribeOrderableClusterOptionsRequest(input)
 	err := req.Send()
@@ -2750,8 +2753,8 @@ func (c *Redshift) DescribeResizeRequest(input *DescribeResizeInput) (req *reque
 // a HTTP 404 error is returned. If a resize operation was initiated and completed,
 // the status of the resize remains as SUCCEEDED until the next resize.
 //
-//  A resize operation can be requested using ModifyCluster and specifying
-// a different number or type of nodes for the cluster.
+// A resize operation can be requested using ModifyCluster and specifying a
+// different number or type of nodes for the cluster.
 func (c *Redshift) DescribeResize(input *DescribeResizeInput) (*DescribeResizeOutput, error) {
 	req, out := c.DescribeResizeRequest(input)
 	err := req.Send()
@@ -2908,13 +2911,18 @@ func (c *Redshift) DescribeTagsRequest(input *DescribeTagsInput) (req *request.R
 // an ARN, or you can return all tags for a given type of resource, such as
 // clusters, snapshots, and so on.
 //
-//  The following are limitations for DescribeTags:  You cannot specify an
-// ARN and a resource-type value together in the same request. You cannot use
-// the MaxRecords and Marker parameters together with the ARN parameter. The
-// MaxRecords parameter can be a range from 10 to 50 results to return in a
+// The following are limitations for DescribeTags:
+//
+//   You cannot specify an ARN and a resource-type value together in the same
 // request.
 //
-// If you specify both tag keys and tag values in the same request, Amazon
+//   You cannot use the MaxRecords and Marker parameters together with the
+// ARN parameter.
+//
+//   The MaxRecords parameter can be a range from 10 to 50 results to return
+// in a request.
+//
+//   If you specify both tag keys and tag values in the same request, Amazon
 // Redshift returns all resources that match any combination of the specified
 // keys and values. For example, if you have owner and environment for tag keys,
 // and admin and test for tag values, all resources that have any combination
@@ -3176,7 +3184,7 @@ func (c *Redshift) ModifyClusterRequest(input *ModifyClusterInput) (req *request
 // groups associated with a cluster do not need a reboot. However, modifying
 // a parameter group requires a reboot for parameters to take effect. For more
 // information about managing clusters, go to Amazon Redshift Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
-// in the Amazon Redshift Cluster Management Guide .
+// in the Amazon Redshift Cluster Management Guide.
 //
 // You can also change node type and the number of nodes to scale up or down
 // the cluster. When resizing a cluster, you must specify both the number of
@@ -3540,7 +3548,7 @@ func (c *Redshift) RebootClusterRequest(input *RebootClusterInput) (req *request
 // pending cluster modifications (see ModifyCluster) are applied at this reboot.
 // For more information about managing clusters, go to Amazon Redshift Clusters
 // (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html)
-// in the Amazon Redshift Cluster Management Guide
+// in the Amazon Redshift Cluster Management Guide.
 func (c *Redshift) RebootCluster(input *RebootClusterInput) (*RebootClusterOutput, error) {
 	req, out := c.RebootClusterRequest(input)
 	err := req.Send()
@@ -3648,8 +3656,8 @@ func (c *Redshift) RestoreFromClusterSnapshotRequest(input *RestoreFromClusterSn
 // you are using a DS node type, you can also choose to change to another DS
 // node type of the same size during restore.
 //
-//  If you restore a cluster into a VPC, you must provide a cluster subnet
-// group where you want the cluster restored.
+// If you restore a cluster into a VPC, you must provide a cluster subnet group
+// where you want the cluster restored.
 //
 //  For more information about working with snapshots, go to Amazon Redshift
 // Snapshots (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-snapshots.html)
@@ -3908,7 +3916,7 @@ type AuthorizeClusterSecurityGroupIngressInput struct {
 	// EC2SecurityGroupName parameter. The AWS Access Key ID is not an acceptable
 	// value.
 	//
-	//  Example: 111122223333
+	// Example: 111122223333
 	EC2SecurityGroupOwnerId *string `type:"string"`
 }
 
@@ -4033,8 +4041,8 @@ func (s AvailabilityZone) GoString() string {
 type Cluster struct {
 	_ struct{} `type:"structure"`
 
-	// If true, major version upgrades will be applied automatically to the cluster
-	// during the maintenance window.
+	// A Boolean value that, if true, indicates that major version upgrades will
+	// be applied automatically to the cluster during the maintenance window.
 	AllowVersionUpgrade *bool `type:"boolean"`
 
 	// The number of days that automatic cluster snapshots are retained.
@@ -4049,7 +4057,7 @@ type Cluster struct {
 	// The unique identifier of the cluster.
 	ClusterIdentifier *string `type:"string"`
 
-	// The nodes in a cluster.
+	// The nodes in the cluster.
 	ClusterNodes []*ClusterNode `type:"list"`
 
 	// The list of cluster parameter groups that are associated with this cluster.
@@ -4066,19 +4074,48 @@ type Cluster struct {
 	// security group is represented by an element that contains ClusterSecurityGroup.Name
 	// and ClusterSecurityGroup.Status subelements.
 	//
-	// Cluster security groups are used when the cluster is not created in a VPC.
-	// Clusters that are created in a VPC use VPC security groups, which are listed
-	// by the VpcSecurityGroups parameter.
+	// Cluster security groups are used when the cluster is not created in an Amazon
+	// Virtual Private Cloud (VPC). Clusters that are created in a VPC use VPC security
+	// groups, which are listed by the VpcSecurityGroups parameter.
 	ClusterSecurityGroups []*ClusterSecurityGroupMembership `locationNameList:"ClusterSecurityGroup" type:"list"`
 
-	// Returns the destination region and retention period that are configured for
-	// cross-region snapshot copy.
+	// A value that returns the destination region and retention period that are
+	// configured for cross-region snapshot copy.
 	ClusterSnapshotCopyStatus *ClusterSnapshotCopyStatus `type:"structure"`
 
-	// The current state of the cluster. Possible values are:  available creating
-	// deleting final-snapshot hardware-failure incompatible-hsm incompatible-network
-	// incompatible-parameters incompatible-restore modifying rebooting renaming
-	// resizing rotating-keys storage-full updating-hsm
+	// The current state of the cluster. Possible values are the following:
+	//
+	//    available
+	//
+	//    creating
+	//
+	//    deleting
+	//
+	//    final-snapshot
+	//
+	//    hardware-failure
+	//
+	//    incompatible-hsm
+	//
+	//    incompatible-network
+	//
+	//    incompatible-parameters
+	//
+	//    incompatible-restore
+	//
+	//    modifying
+	//
+	//    rebooting
+	//
+	//    renaming
+	//
+	//    resizing
+	//
+	//    rotating-keys
+	//
+	//    storage-full
+	//
+	//    updating-hsm
 	ClusterStatus *string `type:"string"`
 
 	// The name of the subnet group that is associated with the cluster. This parameter
@@ -4090,20 +4127,33 @@ type Cluster struct {
 
 	// The name of the initial database that was created when the cluster was created.
 	// This same name is returned for the life of the cluster. If an initial database
-	// was not specified, a database named "dev" was created by default.
+	// was not specified, a database named devdev was created by default.
 	DBName *string `type:"string"`
 
 	// The status of the elastic IP (EIP) address.
 	ElasticIpStatus *ElasticIpStatus `type:"structure"`
 
-	// If true, data in the cluster is encrypted at rest.
+	// A Boolean value that, if true, indicates that data in the cluster is encrypted
+	// at rest.
 	Encrypted *bool `type:"boolean"`
 
 	// The connection endpoint.
 	Endpoint *Endpoint `type:"structure"`
 
-	// Reports whether the Amazon Redshift cluster has finished applying any HSM
-	// settings changes specified in a modify cluster command.
+	// An option that specifies whether to create the cluster with enhanced VPC
+	// routing enabled. To create a cluster that uses enhanced VPC routing, the
+	// cluster must be in a VPC. For more information, see Enhanced VPC Routing
+	// (http://docs.aws.amazon.com/redshift/latest/mgmt/enhanced-vpc-routing.html)
+	// in the Amazon Redshift Cluster Management Guide.
+	//
+	// If this option is true, enhanced VPC routing is enabled.
+	//
+	// Default: false
+	EnhancedVpcRouting *bool `type:"boolean"`
+
+	// A value that reports whether the Amazon Redshift cluster has finished applying
+	// any hardware security module (HSM) settings changes specified in a modify
+	// cluster command.
 	//
 	// Values: active, applying
 	HsmStatus *HsmStatus `type:"structure"`
@@ -4112,12 +4162,12 @@ type Cluster struct {
 	// by the cluster to access other AWS services.
 	IamRoles []*ClusterIamRole `locationNameList:"ClusterIamRole" type:"list"`
 
-	// The AWS Key Management Service (KMS) key ID of the encryption key used to
-	// encrypt data in the cluster.
+	// The AWS Key Management Service (AWS KMS) key ID of the encryption key used
+	// to encrypt data in the cluster.
 	KmsKeyId *string `type:"string"`
 
 	// The master user name for the cluster. This name is used to connect to the
-	// database that is specified in DBName.
+	// database that is specified in the DBName parameter.
 	MasterUsername *string `type:"string"`
 
 	// The status of a modify operation, if any, initiated for the cluster.
@@ -4129,18 +4179,20 @@ type Cluster struct {
 	// The number of compute nodes in the cluster.
 	NumberOfNodes *int64 `type:"integer"`
 
-	// If present, changes to the cluster are pending. Specific pending changes
-	// are identified by subelements.
+	// A value that, if present, indicates that changes to the cluster are pending.
+	// Specific pending changes are identified by subelements.
 	PendingModifiedValues *PendingModifiedValues `type:"structure"`
 
-	// The weekly time range (in UTC) during which system maintenance can occur.
+	// The weekly time range, in Universal Coordinated Time (UTC), during which
+	// system maintenance can occur.
 	PreferredMaintenanceWindow *string `type:"string"`
 
-	// If true, the cluster can be accessed from a public network.
+	// A Boolean value that, if true, indicates that the cluster can be accessed
+	// from a public network.
 	PubliclyAccessible *bool `type:"boolean"`
 
-	// Describes the status of a cluster restore action. Returns null if the cluster
-	// was not created by restoring a snapshot.
+	// A value that describes the status of a cluster restore action. This parameter
+	// returns null if the cluster was not created by restoring a snapshot.
 	RestoreStatus *RestoreStatus `type:"structure"`
 
 	// The list of tags for the cluster.
@@ -4149,9 +4201,9 @@ type Cluster struct {
 	// The identifier of the VPC the cluster is in, if the cluster is in a VPC.
 	VpcId *string `type:"string"`
 
-	// A list of Virtual Private Cloud (VPC) security groups that are associated
-	// with the cluster. This parameter is returned only if the cluster is in a
-	// VPC.
+	// A list of Amazon Virtual Private Cloud (Amazon VPC) security groups that
+	// are associated with the cluster. This parameter is returned only if the cluster
+	// is in a VPC.
 	VpcSecurityGroups []*VpcSecurityGroupMembership `locationNameList:"VpcSecurityGroup" type:"list"`
 }
 
@@ -4170,16 +4222,20 @@ func (s Cluster) GoString() string {
 type ClusterIamRole struct {
 	_ struct{} `type:"structure"`
 
-	// Describes the status of the IAM role's association with an Amazon Redshift
-	// cluster.
+	// A value that describes the status of the IAM role's association with an Amazon
+	// Redshift cluster.
 	//
-	// The following are possible statuses and descriptions. in-sync: The role
-	// is available for use by the cluster. adding: The role is in the process of
-	// being associated with the cluster. removing: The role is in the process of
-	// being disassociated with the cluster.
+	// The following are possible statuses and descriptions.
+	//
+	//    in-sync: The role is available for use by the cluster.
+	//
+	//    adding: The role is in the process of being associated with the cluster.
+	//
+	//    removing: The role is in the process of being disassociated with the
+	// cluster.
 	ApplyStatus *string `type:"string"`
 
-	// The Amazon Resource Name (ARN) of the IAM role. For example, arn:aws:iam::123456789012:role/RedshiftCopyUnload.
+	// The Amazon Resource Name (ARN) of the IAM role, for example, arn:aws:iam::123456789012:role/RedshiftCopyUnload.
 	IamRoleArn *string `type:"string"`
 }
 
@@ -4306,16 +4362,26 @@ type ClusterParameterStatus struct {
 	// with the database, waiting for a cluster reboot, or encountered an error
 	// when being applied.
 	//
-	// The following are possible statuses and descriptions. in-sync: The parameter
-	// value is in sync with the database. pending-reboot: The parameter value will
-	// be applied after the cluster reboots. applying: The parameter value is being
-	// applied to the database. invalid-parameter: Cannot apply the parameter value
-	// because it has an invalid value or syntax. apply-deferred: The parameter
-	// contains static property changes. The changes are deferred until the cluster
-	// reboots. apply-error: Cannot connect to the cluster. The parameter change
-	// will be applied after the cluster reboots. unknown-error: Cannot apply the
-	// parameter change right now. The change will be applied after the cluster
+	// The following are possible statuses and descriptions.
+	//
+	//    in-sync: The parameter value is in sync with the database.
+	//
+	//    pending-reboot: The parameter value will be applied after the cluster
 	// reboots.
+	//
+	//    applying: The parameter value is being applied to the database.
+	//
+	//    invalid-parameter: Cannot apply the parameter value because it has an
+	// invalid value or syntax.
+	//
+	//    apply-deferred: The parameter contains static property changes. The changes
+	// are deferred until the cluster reboots.
+	//
+	//    apply-error: Cannot connect to the cluster. The parameter change will
+	// be applied after the cluster reboots.
+	//
+	//    unknown-error: Cannot apply the parameter change right now. The change
+	// will be applied after the cluster reboots.
 	ParameterApplyStatus *string `type:"string"`
 
 	// The name of the parameter.
@@ -4480,24 +4546,29 @@ type CopyClusterSnapshotInput struct {
 	//
 	// Constraints:
 	//
-	//  Must be the identifier for a valid cluster.
+	//   Must be the identifier for a valid cluster.
 	SourceSnapshotClusterIdentifier *string `type:"string"`
 
 	// The identifier for the source snapshot.
 	//
 	// Constraints:
 	//
-	//  Must be the identifier for a valid automated snapshot whose state is available.
+	//   Must be the identifier for a valid automated snapshot whose state is available.
 	SourceSnapshotIdentifier *string `type:"string" required:"true"`
 
 	// The identifier given to the new manual snapshot.
 	//
 	// Constraints:
 	//
-	//  Cannot be null, empty, or blank. Must contain from 1 to 255 alphanumeric
-	// characters or hyphens. First character must be a letter. Cannot end with
-	// a hyphen or contain two consecutive hyphens. Must be unique for the AWS account
-	// that is making the request.
+	//   Cannot be null, empty, or blank.
+	//
+	//   Must contain from 1 to 255 alphanumeric characters or hyphens.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
+	//
+	//   Must be unique for the AWS account that is making the request.
 	TargetSnapshotIdentifier *string `type:"string" required:"true"`
 }
 
@@ -4553,7 +4624,7 @@ type CreateClusterInput struct {
 	// If true, major version upgrades can be applied during the maintenance window
 	// to the Amazon Redshift engine that is running on the cluster.
 	//
-	//  When a new major version of the Amazon Redshift engine is released, you
+	// When a new major version of the Amazon Redshift engine is released, you
 	// can request that the service automatically apply upgrades during the maintenance
 	// window to the Amazon Redshift engine that is running on your cluster.
 	//
@@ -4564,7 +4635,7 @@ type CreateClusterInput struct {
 	// 0, automated snapshots are disabled. Even if automated snapshots are disabled,
 	// you can still create manual snapshots when you want with CreateClusterSnapshot.
 	//
-	//  Default: 1
+	// Default: 1
 	//
 	// Constraints: Must be a value from 0 to 35.
 	AutomatedSnapshotRetentionPeriod *int64 `type:"integer"`
@@ -4574,13 +4645,13 @@ type CreateClusterInput struct {
 	// specific Availability Zone, then you might want the cluster to be provisioned
 	// in the same zone in order to decrease network latency.
 	//
-	//  Default: A random, system-chosen Availability Zone in the region that is
+	// Default: A random, system-chosen Availability Zone in the region that is
 	// specified by the endpoint.
 	//
-	//  Example: us-east-1d
+	// Example: us-east-1d
 	//
-	//  Constraint: The specified Availability Zone must be in the same region
-	// as the current endpoint.
+	// Constraint: The specified Availability Zone must be in the same region as
+	// the current endpoint.
 	AvailabilityZone *string `type:"string"`
 
 	// A unique identifier for the cluster. You use this identifier to refer to
@@ -4589,10 +4660,17 @@ type CreateClusterInput struct {
 	//
 	// Constraints:
 	//
-	//  Must contain from 1 to 63 alphanumeric characters or hyphens. Alphabetic
-	// characters must be lowercase. First character must be a letter. Cannot end
-	// with a hyphen or contain two consecutive hyphens. Must be unique for all
-	// clusters within an AWS account.  Example: myexamplecluster
+	//   Must contain from 1 to 63 alphanumeric characters or hyphens.
+	//
+	//   Alphabetic characters must be lowercase.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
+	//
+	//   Must be unique for all clusters within an AWS account.
+	//
+	//   Example: myexamplecluster
 	ClusterIdentifier *string `type:"string" required:"true"`
 
 	// The name of the parameter group to be associated with this cluster.
@@ -4601,28 +4679,33 @@ type CreateClusterInput struct {
 	// about the default parameter group, go to Working with Amazon Redshift Parameter
 	// Groups (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-parameter-groups.html)
 	//
-	//  Constraints:
+	// Constraints:
 	//
-	//  Must be 1 to 255 alphanumeric characters or hyphens. First character must
-	// be a letter. Cannot end with a hyphen or contain two consecutive hyphens.
+	//   Must be 1 to 255 alphanumeric characters or hyphens.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
 	ClusterParameterGroupName *string `type:"string"`
 
 	// A list of security groups to be associated with this cluster.
 	//
-	//  Default: The default cluster security group for Amazon Redshift.
+	// Default: The default cluster security group for Amazon Redshift.
 	ClusterSecurityGroups []*string `locationNameList:"ClusterSecurityGroupName" type:"list"`
 
 	// The name of a cluster subnet group to be associated with this cluster.
 	//
-	//  If this parameter is not provided the resulting cluster will be deployed
+	// If this parameter is not provided the resulting cluster will be deployed
 	// outside virtual private cloud (VPC).
 	ClusterSubnetGroupName *string `type:"string"`
 
-	// The type of the cluster. When cluster type is specified as  single-node,
-	// the NumberOfNodes parameter is not required. multi-node, the NumberOfNodes
-	// parameter is required.
+	// The type of the cluster. When cluster type is specified as
 	//
-	//  Valid Values: multi-node | single-node
+	//    single-node, the NumberOfNodes parameter is not required.
+	//
+	//    multi-node, the NumberOfNodes parameter is required.
+	//
+	//   Valid Values: multi-node | single-node
 	//
 	// Default: multi-node
 	ClusterType *string `type:"string"`
@@ -4630,7 +4713,7 @@ type CreateClusterInput struct {
 	// The version of the Amazon Redshift engine software that you want to deploy
 	// on the cluster.
 	//
-	//  The version selected runs on all the nodes in the cluster.
+	// The version selected runs on all the nodes in the cluster.
 	//
 	// Constraints: Only version 1.0 is currently available.
 	//
@@ -4648,9 +4731,12 @@ type CreateClusterInput struct {
 	//
 	// Constraints:
 	//
-	//  Must contain 1 to 64 alphanumeric characters. Must contain only lowercase
-	// letters. Cannot be a word that is reserved by the service. A list of reserved
-	// words can be found in Reserved Words (http://docs.aws.amazon.com/redshift/latest/dg/r_pg_keywords.html)
+	//   Must contain 1 to 64 alphanumeric characters.
+	//
+	//   Must contain only lowercase letters.
+	//
+	//   Cannot be a word that is reserved by the service. A list of reserved words
+	// can be found in Reserved Words (http://docs.aws.amazon.com/redshift/latest/dg/r_pg_keywords.html)
 	// in the Amazon Redshift Database Developer Guide.
 	DBName *string `type:"string"`
 
@@ -4667,6 +4753,17 @@ type CreateClusterInput struct {
 	// Default: false
 	Encrypted *bool `type:"boolean"`
 
+	// An option that specifies whether to create the cluster with enhanced VPC
+	// routing enabled. To create a cluster that uses enhanced VPC routing, the
+	// cluster must be in a VPC. For more information, see Enhanced VPC Routing
+	// (http://docs.aws.amazon.com/redshift/latest/mgmt/enhanced-vpc-routing.html)
+	// in the Amazon Redshift Cluster Management Guide.
+	//
+	// If this option is true, enhanced VPC routing is enabled.
+	//
+	// Default: false
+	EnhancedVpcRouting *bool `type:"boolean"`
+
 	// Specifies the name of the HSM client certificate the Amazon Redshift cluster
 	// uses to retrieve the data encryption keys stored in an HSM.
 	HsmClientCertificateIdentifier *string `type:"string"`
@@ -4680,7 +4777,7 @@ type CreateClusterInput struct {
 	// in their Amazon Resource Name (ARN) format. You can supply up to 10 IAM roles
 	// in a single request.
 	//
-	// A cluster can have up to 10 IAM roles associated at any time.
+	// A cluster can have up to 10 IAM roles associated with it at any time.
 	IamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
 
 	// The AWS Key Management Service (KMS) key ID of the encryption key that you
@@ -4690,12 +4787,18 @@ type CreateClusterInput struct {
 	// The password associated with the master user account for the cluster that
 	// is being created.
 	//
-	//  Constraints:
+	// Constraints:
 	//
-	//  Must be between 8 and 64 characters in length. Must contain at least one
-	// uppercase letter. Must contain at least one lowercase letter. Must contain
-	// one number. Can be any printable ASCII character (ASCII code 33 to 126) except
-	// ' (single quote), " (double quote), \, /, @, or space.
+	//   Must be between 8 and 64 characters in length.
+	//
+	//   Must contain at least one uppercase letter.
+	//
+	//   Must contain at least one lowercase letter.
+	//
+	//   Must contain one number.
+	//
+	//   Can be any printable ASCII character (ASCII code 33 to 126) except ' (single
+	// quote), " (double quote), \, /, @, or space.
 	MasterUserPassword *string `type:"string" required:"true"`
 
 	// The user name associated with the master user account for the cluster that
@@ -4703,8 +4806,11 @@ type CreateClusterInput struct {
 	//
 	// Constraints:
 	//
-	//  Must be 1 - 128 alphanumeric characters. First character must be a letter.
-	// Cannot be a reserved word. A list of reserved words can be found in Reserved
+	//   Must be 1 - 128 alphanumeric characters.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot be a reserved word. A list of reserved words can be found in Reserved
 	// Words (http://docs.aws.amazon.com/redshift/latest/dg/r_pg_keywords.html)
 	// in the Amazon Redshift Database Developer Guide.
 	MasterUsername *string `type:"string" required:"true"`
@@ -4713,7 +4819,7 @@ type CreateClusterInput struct {
 	// types, go to  Working with Clusters (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-clusters.html#how-many-nodes)
 	// in the Amazon Redshift Cluster Management Guide.
 	//
-	//  Valid Values: ds1.xlarge | ds1.8xlarge | ds2.xlarge | ds2.8xlarge | dc1.large
+	// Valid Values: ds1.xlarge | ds1.8xlarge | ds2.xlarge | ds2.8xlarge | dc1.large
 	// | dc1.8xlarge.
 	NodeType *string `type:"string" required:"true"`
 
@@ -4739,9 +4845,9 @@ type CreateClusterInput struct {
 	// Part of the connection string requires the port on which the cluster will
 	// listen for incoming connections.
 	//
-	//  Default: 5439
+	// Default: 5439
 	//
-	//  Valid Values: 1150-65535
+	// Valid Values: 1150-65535
 	Port *int64 `type:"integer"`
 
 	// The weekly time range (in UTC) during which automated cluster maintenance
@@ -4840,12 +4946,17 @@ type CreateClusterParameterGroupInput struct {
 
 	// The name of the cluster parameter group.
 	//
-	//  Constraints:
+	// Constraints:
 	//
-	//  Must be 1 to 255 alphanumeric characters or hyphens First character must
-	// be a letter. Cannot end with a hyphen or contain two consecutive hyphens.
-	// Must be unique withing your AWS account.  This value is stored as a lower-case
-	// string.
+	//   Must be 1 to 255 alphanumeric characters or hyphens
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
+	//
+	//   Must be unique withing your AWS account.
+	//
+	//    This value is stored as a lower-case string.
 	ParameterGroupName *string `type:"string" required:"true"`
 
 	// A list of tag instances.
@@ -4906,9 +5017,13 @@ type CreateClusterSecurityGroupInput struct {
 	//
 	// Constraints:
 	//
-	//  Must contain no more than 255 alphanumeric characters or hyphens. Must
-	// not be "Default". Must be unique for all security groups that are created
-	// by your AWS account.  Example: examplesecuritygroup
+	//   Must contain no more than 255 alphanumeric characters or hyphens.
+	//
+	//   Must not be "Default".
+	//
+	//   Must be unique for all security groups that are created by your AWS account.
+	//
+	//   Example: examplesecuritygroup
 	ClusterSecurityGroupName *string `type:"string" required:"true"`
 
 	// A description for the security group.
@@ -4972,9 +5087,15 @@ type CreateClusterSnapshotInput struct {
 	//
 	// Constraints:
 	//
-	//  Cannot be null, empty, or blank Must contain from 1 to 255 alphanumeric
-	// characters or hyphens First character must be a letter Cannot end with a
-	// hyphen or contain two consecutive hyphens  Example: my-snapshot-id
+	//   Cannot be null, empty, or blank
+	//
+	//   Must contain from 1 to 255 alphanumeric characters or hyphens
+	//
+	//   First character must be a letter
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens
+	//
+	//   Example: my-snapshot-id
 	SnapshotIdentifier *string `type:"string" required:"true"`
 
 	// A list of tag instances.
@@ -5032,9 +5153,13 @@ type CreateClusterSubnetGroupInput struct {
 	//
 	// Constraints:
 	//
-	//  Must contain no more than 255 alphanumeric characters or hyphens. Must
-	// not be "Default". Must be unique for all subnet groups that are created by
-	// your AWS account.  Example: examplesubnetgroup
+	//   Must contain no more than 255 alphanumeric characters or hyphens.
+	//
+	//   Must not be "Default".
+	//
+	//   Must be unique for all subnet groups that are created by your AWS account.
+	//
+	//   Example: examplesubnetgroup
 	ClusterSubnetGroupName *string `type:"string" required:"true"`
 
 	// A description for the subnet group.
@@ -5143,9 +5268,13 @@ type CreateEventSubscriptionInput struct {
 	//
 	// Constraints:
 	//
-	//  Cannot be null, empty, or blank. Must contain from 1 to 255 alphanumeric
-	// characters or hyphens. First character must be a letter. Cannot end with
-	// a hyphen or contain two consecutive hyphens.
+	//   Cannot be null, empty, or blank.
+	//
+	//   Must contain from 1 to 255 alphanumeric characters or hyphens.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
 	SubscriptionName *string `type:"string" required:"true"`
 
 	// A list of tag instances.
@@ -5343,12 +5472,17 @@ type CreateSnapshotCopyGrantInput struct {
 	// The name of the snapshot copy grant. This name must be unique in the region
 	// for the AWS account.
 	//
-	//  Constraints:
+	// Constraints:
 	//
-	//  Must contain from 1 to 63 alphanumeric characters or hyphens. Alphabetic
-	// characters must be lowercase. First character must be a letter. Cannot end
-	// with a hyphen or contain two consecutive hyphens. Must be unique for all
-	// clusters within an AWS account.
+	//   Must contain from 1 to 63 alphanumeric characters or hyphens.
+	//
+	//   Alphabetic characters must be lowercase.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
+	//
+	//   Must be unique for all clusters within an AWS account.
 	SnapshotCopyGrantName *string `type:"string" required:"true"`
 
 	// A list of tag instances.
@@ -5493,9 +5627,13 @@ type DeleteClusterInput struct {
 	//
 	// Constraints:
 	//
-	//  Must contain lowercase characters. Must contain from 1 to 63 alphanumeric
-	// characters or hyphens. First character must be a letter. Cannot end with
-	// a hyphen or contain two consecutive hyphens.
+	//   Must contain lowercase characters.
+	//
+	//   Must contain from 1 to 63 alphanumeric characters or hyphens.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
 	ClusterIdentifier *string `type:"string" required:"true"`
 
 	// The identifier of the final snapshot that is to be created immediately before
@@ -5504,16 +5642,21 @@ type DeleteClusterInput struct {
 	//
 	// Constraints:
 	//
-	//  Must be 1 to 255 alphanumeric characters. First character must be a letter.
-	// Cannot end with a hyphen or contain two consecutive hyphens.
+	//   Must be 1 to 255 alphanumeric characters.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
 	FinalClusterSnapshotIdentifier *string `type:"string"`
 
 	// Determines whether a final snapshot of the cluster is created before Amazon
 	// Redshift deletes the cluster. If true, a final cluster snapshot is not created.
 	// If false, a final cluster snapshot is created before the cluster is deleted.
 	//
-	// The FinalClusterSnapshotIdentifier parameter must be specified if SkipFinalClusterSnapshot
-	// is false. Default: false
+	//  The FinalClusterSnapshotIdentifier parameter must be specified if SkipFinalClusterSnapshot
+	// is false.
+	//
+	//  Default: false
 	SkipFinalClusterSnapshot *bool `type:"boolean"`
 }
 
@@ -5564,8 +5707,9 @@ type DeleteClusterParameterGroupInput struct {
 	//
 	// Constraints:
 	//
-	//  Must be the name of an existing cluster parameter group. Cannot delete
-	// a default cluster parameter group.
+	//   Must be the name of an existing cluster parameter group.
+	//
+	//   Cannot delete a default cluster parameter group.
 	ParameterGroupName *string `type:"string" required:"true"`
 }
 
@@ -6158,7 +6302,7 @@ type DescribeClusterSecurityGroupsInput struct {
 	// by providing the returned marker value in the Marker parameter and retrying
 	// the request.
 	//
-	//  Constraints: You can specify either the ClusterSecurityGroupName parameter
+	// Constraints: You can specify either the ClusterSecurityGroupName parameter
 	// or the Marker parameter, but not both.
 	Marker *string `type:"string"`
 
@@ -6266,7 +6410,7 @@ type DescribeClusterSnapshotsInput struct {
 	// The type of snapshots for which you are requesting information. By default,
 	// snapshots of all types are returned.
 	//
-	//  Valid Values: automated | manual
+	// Valid Values: automated | manual
 	SnapshotType *string `type:"string"`
 
 	// A value that requests only snapshots created at or after the specified time.
@@ -6411,8 +6555,11 @@ type DescribeClusterVersionsInput struct {
 	//
 	// Constraints:
 	//
-	//  Must be 1 to 255 alphanumeric characters First character must be a letter
-	// Cannot end with a hyphen or contain two consecutive hyphens
+	//   Must be 1 to 255 alphanumeric characters
+	//
+	//   First character must be a letter
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens
 	ClusterParameterGroupFamily *string `type:"string"`
 
 	// The specific cluster version to return.
@@ -6488,8 +6635,8 @@ type DescribeClustersInput struct {
 	// the response. You can retrieve the next set of response records by providing
 	// the returned marker value in the Marker parameter and retrying the request.
 	//
-	//  Constraints: You can specify either the ClusterIdentifier parameter or
-	// the Marker parameter, but not both.
+	// Constraints: You can specify either the ClusterIdentifier parameter or the
+	// Marker parameter, but not both.
 	Marker *string `type:"string"`
 
 	// The maximum number of response records to return in each call. If the number
@@ -6625,7 +6772,7 @@ type DescribeEventCategoriesInput struct {
 	// The source type, such as cluster or parameter group, to which the described
 	// event categories apply.
 	//
-	//  Valid values: cluster, cluster-snapshot, cluster-parameter-group, and cluster-security-group.
+	// Valid values: cluster, cluster-snapshot, cluster-parameter-group, and cluster-security-group.
 	SourceType *string `type:"string"`
 }
 
@@ -6756,10 +6903,13 @@ type DescribeEventsInput struct {
 	//
 	// If SourceIdentifier is supplied, SourceType must also be provided.
 	//
-	//  Specify a cluster identifier when SourceType is cluster. Specify a cluster
-	// security group name when SourceType is cluster-security-group. Specify a
-	// cluster parameter group name when SourceType is cluster-parameter-group.
-	// Specify a cluster snapshot identifier when SourceType is cluster-snapshot.
+	//   Specify a cluster identifier when SourceType is cluster.
+	//
+	//   Specify a cluster security group name when SourceType is cluster-security-group.
+	//
+	//   Specify a cluster parameter group name when SourceType is cluster-parameter-group.
+	//
+	//   Specify a cluster snapshot identifier when SourceType is cluster-snapshot.
 	SourceIdentifier *string `type:"string"`
 
 	// The event source to retrieve events for. If no value is specified, all events
@@ -6769,11 +6919,15 @@ type DescribeEventsInput struct {
 	//
 	// If SourceType is supplied, SourceIdentifier must also be provided.
 	//
-	//  Specify cluster when SourceIdentifier is a cluster identifier. Specify
-	// cluster-security-group when SourceIdentifier is a cluster security group
-	// name. Specify cluster-parameter-group when SourceIdentifier is a cluster
-	// parameter group name. Specify cluster-snapshot when SourceIdentifier is a
-	// cluster snapshot identifier.
+	//   Specify cluster when SourceIdentifier is a cluster identifier.
+	//
+	//   Specify cluster-security-group when SourceIdentifier is a cluster security
+	// group name.
+	//
+	//   Specify cluster-parameter-group when SourceIdentifier is a cluster parameter
+	// group name.
+	//
+	//   Specify cluster-snapshot when SourceIdentifier is a cluster snapshot identifier.
 	SourceType *string `type:"string" enum:"SourceType"`
 
 	// The beginning of the time interval to retrieve events for, specified in ISO
@@ -7312,7 +7466,7 @@ type DescribeSnapshotCopyGrantsInput struct {
 	// by providing the returned marker value in the Marker parameter and retrying
 	// the request.
 	//
-	//  Constraints: You can specify either the SnapshotCopyGrantName parameter
+	// Constraints: You can specify either the SnapshotCopyGrantName parameter
 	// or the Marker parameter, but not both.
 	Marker *string `type:"string"`
 
@@ -7366,7 +7520,7 @@ type DescribeSnapshotCopyGrantsOutput struct {
 	// by providing the returned marker value in the Marker parameter and retrying
 	// the request.
 	//
-	//  Constraints: You can specify either the SnapshotCopyGrantName parameter
+	// Constraints: You can specify either the SnapshotCopyGrantName parameter
 	// or the Marker parameter, but not both.
 	Marker *string `type:"string"`
 
@@ -7458,11 +7612,29 @@ type DescribeTagsInput struct {
 	ResourceName *string `type:"string"`
 
 	// The type of resource with which you want to view tags. Valid resource types
-	// are:  Cluster CIDR/IP EC2 security group Snapshot Cluster security group
-	// Subnet group HSM connection HSM certificate Parameter group Snapshot copy
-	// grant
+	// are:
 	//
-	//  For more information about Amazon Redshift resource types and constructing
+	//   Cluster
+	//
+	//   CIDR/IP
+	//
+	//   EC2 security group
+	//
+	//   Snapshot
+	//
+	//   Cluster security group
+	//
+	//   Subnet group
+	//
+	//   HSM connection
+	//
+	//   HSM certificate
+	//
+	//   Parameter group
+	//
+	//   Snapshot copy grant
+	//
+	//   For more information about Amazon Redshift resource types and constructing
 	// ARNs, go to Constructing an Amazon Redshift Amazon Resource Name (ARN) (http://docs.aws.amazon.com/redshift/latest/mgmt/constructing-redshift-arn.html)
 	// in the Amazon Redshift Cluster Management Guide.
 	ResourceType *string `type:"string"`
@@ -7556,7 +7728,7 @@ type DisableSnapshotCopyInput struct {
 	// The unique identifier of the source cluster that you want to disable copying
 	// of snapshots to a destination region.
 	//
-	//  Constraints: Must be the valid name of an existing cluster that has cross-region
+	// Constraints: Must be the valid name of an existing cluster that has cross-region
 	// snapshot copy enabled.
 	ClusterIdentifier *string `type:"string" required:"true"`
 }
@@ -7657,8 +7829,9 @@ type EnableLoggingInput struct {
 	//
 	// Constraints:
 	//
-	//  Must be in the same region as the cluster The cluster must have read bucket
-	// and put object permissions
+	//   Must be in the same region as the cluster
+	//
+	//   The cluster must have read bucket and put object permissions
 	BucketName *string `type:"string" required:"true"`
 
 	// The identifier of the cluster on which logging is to be started.
@@ -7670,9 +7843,21 @@ type EnableLoggingInput struct {
 	//
 	// Constraints:
 	//
-	//  Cannot exceed 512 characters Cannot contain spaces( ), double quotes ("),
-	// single quotes ('), a backslash (\), or control characters. The hexadecimal
-	// codes for invalid characters are:  x00 to x20 x22 x27 x5c x7f or larger
+	//   Cannot exceed 512 characters
+	//
+	//   Cannot contain spaces( ), double quotes ("), single quotes ('), a backslash
+	// (\), or control characters. The hexadecimal codes for invalid characters
+	// are:
+	//
+	//   x00 to x20
+	//
+	//   x22
+	//
+	//   x27
+	//
+	//   x5c
+	//
+	//   x7f or larger
 	S3KeyPrefix *string `type:"string"`
 }
 
@@ -7707,23 +7892,23 @@ type EnableSnapshotCopyInput struct {
 
 	// The unique identifier of the source cluster to copy snapshots from.
 	//
-	//  Constraints: Must be the valid name of an existing cluster that does not
+	// Constraints: Must be the valid name of an existing cluster that does not
 	// already have cross-region snapshot copy enabled.
 	ClusterIdentifier *string `type:"string" required:"true"`
 
 	// The destination region that you want to copy snapshots to.
 	//
-	//  Constraints: Must be the name of a valid region. For more information,
-	// see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#redshift_region)
+	// Constraints: Must be the name of a valid region. For more information, see
+	// Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#redshift_region)
 	// in the Amazon Web Services General Reference.
 	DestinationRegion *string `type:"string" required:"true"`
 
 	// The number of days to retain automated snapshots in the destination region
 	// after they are copied from the source region.
 	//
-	//  Default: 7.
+	// Default: 7.
 	//
-	//  Constraints: Must be at least 1 and no more than 35.
+	// Constraints: Must be at least 1 and no more than 35.
 	RetentionPeriod *int64 `type:"integer"`
 
 	// The name of the snapshot copy grant to use when snapshots of an AWS KMS-encrypted
@@ -7928,10 +8113,11 @@ type EventSubscription struct {
 	//
 	// Constraints:
 	//
-	//  Can be one of the following: active | no-permission | topic-not-exist The
-	// status "no-permission" indicates that Amazon Redshift no longer has permission
-	// to post to the Amazon SNS topic. The status "topic-not-exist" indicates that
-	// the topic was deleted after the subscription was created.
+	//   Can be one of the following: active | no-permission | topic-not-exist
+	//
+	//   The status "no-permission" indicates that Amazon Redshift no longer has
+	// permission to post to the Amazon SNS topic. The status "topic-not-exist"
+	// indicates that the topic was deleted after the subscription was created.
 	Status *string `type:"string"`
 
 	// The date and time the Amazon Redshift event notification subscription was
@@ -8101,17 +8287,17 @@ func (s LoggingStatus) GoString() string {
 type ModifyClusterIamRolesInput struct {
 	_ struct{} `type:"structure"`
 
-	// Zero or more IAM roles (in their ARN format) to associate with the cluster.
-	// You can associate up to 10 IAM roles with a single cluster in a single request.
+	// Zero or more IAM roles to associate with the cluster. The roles must be in
+	// their Amazon Resource Name (ARN) format. You can associate up to 10 IAM roles
+	// with a single cluster in a single request.
 	AddIamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
 
 	// The unique identifier of the cluster for which you want to associate or disassociate
 	// IAM roles.
 	ClusterIdentifier *string `type:"string" required:"true"`
 
-	// Zero or more IAM roles (in their ARN format) to disassociate from the cluster.
-	// You can disassociate up to 10 IAM roles from a single cluster in a single
-	// request.
+	// Zero or more IAM roles in ARN format to disassociate from the cluster. You
+	// can disassociate up to 10 IAM roles from a single cluster in a single request.
 	RemoveIamRoles []*string `locationNameList:"IamRoleArn" type:"list"`
 }
 
@@ -8168,7 +8354,7 @@ type ModifyClusterInput struct {
 	// 0, automated snapshots are disabled. Even if automated snapshots are disabled,
 	// you can still create manual snapshots when you want with CreateClusterSnapshot.
 	//
-	//  If you decrease the automated snapshot retention period from its current
+	// If you decrease the automated snapshot retention period from its current
 	// value, existing automated snapshots that fall outside of the new retention
 	// period will be immediately deleted.
 	//
@@ -8199,13 +8385,16 @@ type ModifyClusterInput struct {
 	//
 	// Constraints:
 	//
-	//  Must be 1 to 255 alphanumeric characters or hyphens First character must
-	// be a letter Cannot end with a hyphen or contain two consecutive hyphens
+	//   Must be 1 to 255 alphanumeric characters or hyphens
+	//
+	//   First character must be a letter
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens
 	ClusterSecurityGroups []*string `locationNameList:"ClusterSecurityGroupName" type:"list"`
 
 	// The new cluster type.
 	//
-	//  When you submit your cluster resize request, your existing cluster goes
+	// When you submit your cluster resize request, your existing cluster goes
 	// into a read-only mode. After Amazon Redshift provisions a new cluster based
 	// on your resize requirements, there will be outage for a period while the
 	// old cluster is deleted and your connection is switched to the new cluster.
@@ -8216,7 +8405,7 @@ type ModifyClusterInput struct {
 
 	// The new version number of the Amazon Redshift engine to upgrade to.
 	//
-	//  For major version upgrades, if a non-default cluster parameter group is
+	// For major version upgrades, if a non-default cluster parameter group is
 	// currently in use, a new cluster parameter group in the cluster parameter
 	// group family for the new version must be specified. The new cluster parameter
 	// group can be the default for that cluster parameter group family. For more
@@ -8235,6 +8424,17 @@ type ModifyClusterInput struct {
 	// in the Amazon Redshift Cluster Management Guide.
 	ElasticIp *string `type:"string"`
 
+	// An option that specifies whether to create the cluster with enhanced VPC
+	// routing enabled. To create a cluster that uses enhanced VPC routing, the
+	// cluster must be in a VPC. For more information, see Enhanced VPC Routing
+	// (http://docs.aws.amazon.com/redshift/latest/mgmt/enhanced-vpc-routing.html)
+	// in the Amazon Redshift Cluster Management Guide.
+	//
+	// If this option is true, enhanced VPC routing is enabled.
+	//
+	// Default: false
+	EnhancedVpcRouting *bool `type:"boolean"`
+
 	// Specifies the name of the HSM client certificate the Amazon Redshift cluster
 	// uses to retrieve the data encryption keys stored in an HSM.
 	HsmClientCertificateIdentifier *string `type:"string"`
@@ -8246,35 +8446,50 @@ type ModifyClusterInput struct {
 	// The new password for the cluster master user. This change is asynchronously
 	// applied as soon as possible. Between the time of the request and the completion
 	// of the request, the MasterUserPassword element exists in the PendingModifiedValues
-	// element of the operation response.  Operations never return the password,
-	// so this operation provides a way to regain access to the master user account
-	// for a cluster if the password is lost.
+	// element of the operation response.
 	//
-	// Default: Uses existing setting.
+	//  Operations never return the password, so this operation provides a way
+	// to regain access to the master user account for a cluster if the password
+	// is lost.
 	//
-	//  Constraints:
+	//  Default: Uses existing setting.
 	//
-	//  Must be between 8 and 64 characters in length. Must contain at least one
-	// uppercase letter. Must contain at least one lowercase letter. Must contain
-	// one number. Can be any printable ASCII character (ASCII code 33 to 126) except
-	// ' (single quote), " (double quote), \, /, @, or space.
+	// Constraints:
+	//
+	//   Must be between 8 and 64 characters in length.
+	//
+	//   Must contain at least one uppercase letter.
+	//
+	//   Must contain at least one lowercase letter.
+	//
+	//   Must contain one number.
+	//
+	//   Can be any printable ASCII character (ASCII code 33 to 126) except ' (single
+	// quote), " (double quote), \, /, @, or space.
 	MasterUserPassword *string `type:"string"`
 
 	// The new identifier for the cluster.
 	//
 	// Constraints:
 	//
-	//  Must contain from 1 to 63 alphanumeric characters or hyphens. Alphabetic
-	// characters must be lowercase. First character must be a letter. Cannot end
-	// with a hyphen or contain two consecutive hyphens. Must be unique for all
-	// clusters within an AWS account.  Example: examplecluster
+	//   Must contain from 1 to 63 alphanumeric characters or hyphens.
+	//
+	//   Alphabetic characters must be lowercase.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
+	//
+	//   Must be unique for all clusters within an AWS account.
+	//
+	//   Example: examplecluster
 	NewClusterIdentifier *string `type:"string"`
 
 	// The new node type of the cluster. If you specify a new node type, you must
 	// also specify the number of nodes parameter.
 	//
-	//  When you submit your request to resize a cluster, Amazon Redshift sets
-	// access permissions for the cluster to read-only. After Amazon Redshift provisions
+	// When you submit your request to resize a cluster, Amazon Redshift sets access
+	// permissions for the cluster to read-only. After Amazon Redshift provisions
 	// a new cluster according to your resize requirements, there will be a temporary
 	// outage while the old cluster is deleted and your connection is switched to
 	// the new cluster. When the new connection is complete, the original access
@@ -8288,8 +8503,8 @@ type ModifyClusterInput struct {
 	// The new number of nodes of the cluster. If you specify a new number of nodes,
 	// you must also specify the node type parameter.
 	//
-	//  When you submit your request to resize a cluster, Amazon Redshift sets
-	// access permissions for the cluster to read-only. After Amazon Redshift provisions
+	// When you submit your request to resize a cluster, Amazon Redshift sets access
+	// permissions for the cluster to read-only. After Amazon Redshift provisions
 	// a new cluster according to your resize requirements, there will be a temporary
 	// outage while the old cluster is deleted and your connection is switched to
 	// the new cluster. When the new connection is complete, the original access
@@ -8303,7 +8518,7 @@ type ModifyClusterInput struct {
 	// if necessary. If system maintenance is necessary during the window, it may
 	// result in an outage.
 	//
-	//  This maintenance window change is made immediately. If the new maintenance
+	// This maintenance window change is made immediately. If the new maintenance
 	// window indicates the current time, there must be at least 120 minutes between
 	// the current time and end of the window in order to ensure that pending changes
 	// are applied.
@@ -8375,10 +8590,10 @@ type ModifyClusterParameterGroupInput struct {
 	// An array of parameters to be modified. A maximum of 20 parameters can be
 	// modified in a single request.
 	//
-	//  For each parameter to be modified, you must supply at least the parameter
+	// For each parameter to be modified, you must supply at least the parameter
 	// name and parameter value; other name-value pairs of the parameter are optional.
 	//
-	//  For the workload management (WLM) configuration, you must supply all the
+	// For the workload management (WLM) configuration, you must supply all the
 	// name-value pairs in the wlm_json_configuration parameter.
 	Parameters []*Parameter `locationNameList:"Parameter" type:"list" required:"true"`
 }
@@ -8560,19 +8775,19 @@ type ModifySnapshotCopyRetentionPeriodInput struct {
 	// The unique identifier of the cluster for which you want to change the retention
 	// period for automated snapshots that are copied to a destination region.
 	//
-	//  Constraints: Must be the valid name of an existing cluster that has cross-region
+	// Constraints: Must be the valid name of an existing cluster that has cross-region
 	// snapshot copy enabled.
 	ClusterIdentifier *string `type:"string" required:"true"`
 
 	// The number of days to retain automated snapshots in the destination region
 	// after they are copied from the source region.
 	//
-	//  If you decrease the retention period for automated snapshots that are copied
+	// If you decrease the retention period for automated snapshots that are copied
 	// to a destination region, Amazon Redshift will delete any existing automated
 	// snapshots that were copied to the destination region and that fall outside
 	// of the new retention period.
 	//
-	//  Constraints: Must be at least 1 and no more than 35.
+	// Constraints: Must be at least 1 and no more than 35.
 	RetentionPeriod *int64 `type:"integer" required:"true"`
 }
 
@@ -8710,6 +8925,17 @@ type PendingModifiedValues struct {
 
 	// The pending or in-progress change of the service version.
 	ClusterVersion *string `type:"string"`
+
+	// An option that specifies whether to create the cluster with enhanced VPC
+	// routing enabled. To create a cluster that uses enhanced VPC routing, the
+	// cluster must be in a VPC. For more information, see Enhanced VPC Routing
+	// (http://docs.aws.amazon.com/redshift/latest/mgmt/enhanced-vpc-routing.html)
+	// in the Amazon Redshift Cluster Management Guide.
+	//
+	// If this option is true, enhanced VPC routing is enabled.
+	//
+	// Default: false
+	EnhancedVpcRouting *bool `type:"boolean"`
 
 	// The pending or in-progress change of the master user password for the cluster.
 	MasterUserPassword *string `type:"string"`
@@ -8898,10 +9124,13 @@ type ReservedNode struct {
 	//
 	// Possible Values:
 	//
-	//  pending-payment-This reserved node has recently been purchased, and the
-	// sale has been approved, but payment has not yet been confirmed. active-This
-	// reserved node is owned by the caller and is available for use. payment-failed-Payment
-	// failed for the purchase attempt.
+	//   pending-payment-This reserved node has recently been purchased, and the
+	// sale has been approved, but payment has not yet been confirmed.
+	//
+	//   active-This reserved node is owned by the caller and is available for
+	// use.
+	//
+	//   payment-failed-Payment failed for the purchase attempt.
 	State *string `type:"string"`
 
 	// The hourly rate Amazon Redshift charges you for this reserved node.
@@ -9020,7 +9249,7 @@ type RestoreFromClusterSnapshotInput struct {
 	// 0, automated snapshots are disabled. Even if automated snapshots are disabled,
 	// you can still create manual snapshots when you want with CreateClusterSnapshot.
 	//
-	//  Default: The value selected for the cluster from which the snapshot was
+	// Default: The value selected for the cluster from which the snapshot was
 	// taken.
 	//
 	// Constraints: Must be a value from 0 to 35.
@@ -9035,12 +9264,17 @@ type RestoreFromClusterSnapshotInput struct {
 
 	// The identifier of the cluster that will be created from restoring the snapshot.
 	//
-	//  Constraints:
+	// Constraints:
 	//
-	//  Must contain from 1 to 63 alphanumeric characters or hyphens. Alphabetic
-	// characters must be lowercase. First character must be a letter. Cannot end
-	// with a hyphen or contain two consecutive hyphens. Must be unique for all
-	// clusters within an AWS account.
+	//   Must contain from 1 to 63 alphanumeric characters or hyphens.
+	//
+	//   Alphabetic characters must be lowercase.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
+	//
+	//   Must be unique for all clusters within an AWS account.
 	ClusterIdentifier *string `type:"string" required:"true"`
 
 	// The name of the parameter group to be associated with this cluster.
@@ -9049,27 +9283,41 @@ type RestoreFromClusterSnapshotInput struct {
 	// about the default parameter group, go to Working with Amazon Redshift Parameter
 	// Groups (http://docs.aws.amazon.com/redshift/latest/mgmt/working-with-parameter-groups.html).
 	//
-	//  Constraints:
+	// Constraints:
 	//
-	//  Must be 1 to 255 alphanumeric characters or hyphens. First character must
-	// be a letter. Cannot end with a hyphen or contain two consecutive hyphens.
+	//   Must be 1 to 255 alphanumeric characters or hyphens.
+	//
+	//   First character must be a letter.
+	//
+	//   Cannot end with a hyphen or contain two consecutive hyphens.
 	ClusterParameterGroupName *string `type:"string"`
 
 	// A list of security groups to be associated with this cluster.
 	//
-	//  Default: The default cluster security group for Amazon Redshift.
+	// Default: The default cluster security group for Amazon Redshift.
 	//
 	// Cluster security groups only apply to clusters outside of VPCs.
 	ClusterSecurityGroups []*string `locationNameList:"ClusterSecurityGroupName" type:"list"`
 
 	// The name of the subnet group where you want to cluster restored.
 	//
-	//  A snapshot of cluster in VPC can be restored only in VPC. Therefore, you
+	// A snapshot of cluster in VPC can be restored only in VPC. Therefore, you
 	// must provide subnet group name where you want the cluster restored.
 	ClusterSubnetGroupName *string `type:"string"`
 
 	// The elastic IP (EIP) address for the cluster.
 	ElasticIp *string `type:"string"`
+
+	// An option that specifies whether to create the cluster with enhanced VPC
+	// routing enabled. To create a cluster that uses enhanced VPC routing, the
+	// cluster must be in a VPC. For more information, see Enhanced VPC Routing
+	// (http://docs.aws.amazon.com/redshift/latest/mgmt/enhanced-vpc-routing.html)
+	// in the Amazon Redshift Cluster Management Guide.
+	//
+	// If this option is true, enhanced VPC routing is enabled.
+	//
+	// Default: false
+	EnhancedVpcRouting *bool `type:"boolean"`
 
 	// Specifies the name of the HSM client certificate the Amazon Redshift cluster
 	// uses to retrieve the data encryption keys stored in an HSM.
@@ -9094,7 +9342,7 @@ type RestoreFromClusterSnapshotInput struct {
 
 	// The node type that the restored cluster will be provisioned with.
 	//
-	//  Default: The node type of the cluster from which the snapshot was taken.
+	// Default: The node type of the cluster from which the snapshot was taken.
 	// You can modify this if you are using any DS node type. In that case, you
 	// can choose to restore into another DS node type of the same size. For example,
 	// you can restore ds1.8xlarge into ds2.8xlarge, or ds2.xlarge into ds1.xlarge.
@@ -9148,9 +9396,9 @@ type RestoreFromClusterSnapshotInput struct {
 	// A list of Virtual Private Cloud (VPC) security groups to be associated with
 	// the cluster.
 	//
-	//  Default: The default VPC security group is associated with the cluster.
+	// Default: The default VPC security group is associated with the cluster.
 	//
-	//  VPC security groups only apply to clusters in VPCs.
+	// VPC security groups only apply to clusters in VPCs.
 	VpcSecurityGroupIds []*string `locationNameList:"VpcSecurityGroupId" type:"list"`
 }
 
@@ -9448,7 +9696,7 @@ type RotateEncryptionKeyInput struct {
 	// The unique identifier of the cluster that you want to rotate the encryption
 	// keys for.
 	//
-	//  Constraints: Must be the name of valid cluster that has encryption enabled.
+	// Constraints: Must be the name of valid cluster that has encryption enabled.
 	ClusterIdentifier *string `type:"string" required:"true"`
 }
 
@@ -9537,6 +9785,17 @@ type Snapshot struct {
 	// using HSM keys.
 	EncryptedWithHSM *bool `type:"boolean"`
 
+	// An option that specifies whether to create the cluster with enhanced VPC
+	// routing enabled. To create a cluster that uses enhanced VPC routing, the
+	// cluster must be in a VPC. For more information, see Enhanced VPC Routing
+	// (http://docs.aws.amazon.com/redshift/latest/mgmt/enhanced-vpc-routing.html)
+	// in the Amazon Redshift Cluster Management Guide.
+	//
+	// If this option is true, enhanced VPC routing is enabled.
+	//
+	// Default: false
+	EnhancedVpcRouting *bool `type:"boolean"`
+
 	// The estimate of the time remaining before the snapshot backup will complete.
 	// Returns 0 for a completed backup.
 	EstimatedSecondsToCompletion *int64 `type:"long"`
@@ -9580,9 +9839,14 @@ type Snapshot struct {
 	SourceRegion *string `type:"string"`
 
 	// The snapshot status. The value of the status depends on the API operation
-	// used.  CreateClusterSnapshot and CopyClusterSnapshot returns status as "creating".
-	//  DescribeClusterSnapshots returns status as "creating", "available", "final
-	// snapshot", or "failed". DeleteClusterSnapshot returns status as "deleted".
+	// used.
+	//
+	//    CreateClusterSnapshot and CopyClusterSnapshot returns status as "creating".
+	//
+	//    DescribeClusterSnapshots returns status as "creating", "available", "final
+	// snapshot", or "failed".
+	//
+	//    DeleteClusterSnapshot returns status as "deleted".
 	Status *string `type:"string"`
 
 	// The list of tags for the cluster snapshot.
@@ -9754,10 +10018,27 @@ type TaggedResource struct {
 	ResourceName *string `type:"string"`
 
 	// The type of resource with which the tag is associated. Valid resource types
-	// are:  Cluster CIDR/IP EC2 security group Snapshot Cluster security group
-	// Subnet group HSM connection HSM certificate Parameter group
+	// are:
 	//
-	//  For more information about Amazon Redshift resource types and constructing
+	//   Cluster
+	//
+	//   CIDR/IP
+	//
+	//   EC2 security group
+	//
+	//   Snapshot
+	//
+	//   Cluster security group
+	//
+	//   Subnet group
+	//
+	//   HSM connection
+	//
+	//   HSM certificate
+	//
+	//   Parameter group
+	//
+	//   For more information about Amazon Redshift resource types and constructing
 	// ARNs, go to Constructing an Amazon Redshift Amazon Resource Name (ARN) (http://docs.aws.amazon.com/redshift/latest/mgmt/constructing-redshift-arn.html)
 	// in the Amazon Redshift Cluster Management Guide.
 	ResourceType *string `type:"string"`

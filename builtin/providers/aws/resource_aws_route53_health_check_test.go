@@ -41,6 +41,37 @@ func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53HealthCheck_withSearchString(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_health_check.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53HealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53HealthCheckConfigWithSearchString,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "invert_healthcheck", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "search_string", "OK"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccRoute53HealthCheckConfigWithSearchStringUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "invert_healthcheck", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "search_string", "FAILED"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRoute53HealthCheck_withChildHealthChecks(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -245,5 +276,41 @@ resource "aws_route53_health_check" "foo" {
   cloudwatch_alarm_name = "${aws_cloudwatch_metric_alarm.foobar.alarm_name}"
   cloudwatch_alarm_region = "us-west-2"
   insufficient_data_health_status = "Healthy"
+}
+`
+
+const testAccRoute53HealthCheckConfigWithSearchString = `
+resource "aws_route53_health_check" "foo" {
+  fqdn = "dev.notexample.com"
+  port = 80
+  type = "HTTP_STR_MATCH"
+  resource_path = "/"
+  failure_threshold = "2"
+  request_interval = "30"
+  measure_latency = true
+  invert_healthcheck = false
+  search_string = "OK"
+
+  tags = {
+    Name = "tf-test-health-check"
+   }
+}
+`
+
+const testAccRoute53HealthCheckConfigWithSearchStringUpdate = `
+resource "aws_route53_health_check" "foo" {
+  fqdn = "dev.notexample.com"
+  port = 80
+  type = "HTTP_STR_MATCH"
+  resource_path = "/"
+  failure_threshold = "5"
+  request_interval = "30"
+  measure_latency = true
+  invert_healthcheck = true
+  search_string = "FAILED"
+
+  tags = {
+    Name = "tf-test-health-check"
+   }
 }
 `

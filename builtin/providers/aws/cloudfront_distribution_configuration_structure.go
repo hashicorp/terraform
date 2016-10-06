@@ -46,6 +46,7 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 		CustomErrorResponses: expandCustomErrorResponses(d.Get("custom_error_response").(*schema.Set)),
 		DefaultCacheBehavior: expandDefaultCacheBehavior(d.Get("default_cache_behavior").(*schema.Set).List()[0].(map[string]interface{})),
 		Enabled:              aws.Bool(d.Get("enabled").(bool)),
+		HttpVersion:          aws.String(d.Get("http_version").(string)),
 		Origins:              expandOrigins(d.Get("origin").(*schema.Set)),
 		PriceClass:           aws.String(d.Get("price_class").(string)),
 	}
@@ -86,6 +87,7 @@ func expandDistributionConfig(d *schema.ResourceData) *cloudfront.DistributionCo
 	} else {
 		distributionConfig.WebACLId = aws.String("")
 	}
+
 	return distributionConfig
 }
 
@@ -121,6 +123,9 @@ func flattenDistributionConfig(d *schema.ResourceData, distributionConfig *cloud
 	}
 	if distributionConfig.DefaultRootObject != nil {
 		d.Set("default_root_object", distributionConfig.DefaultRootObject)
+	}
+	if distributionConfig.HttpVersion != nil {
+		d.Set("http_version", distributionConfig.HttpVersion)
 	}
 	if distributionConfig.WebACLId != nil {
 		d.Set("web_acl_id", distributionConfig.WebACLId)
@@ -378,6 +383,9 @@ func expandForwardedValues(m map[string]interface{}) *cloudfront.ForwardedValues
 	if v, ok := m["headers"]; ok {
 		fv.Headers = expandHeaders(v.([]interface{}))
 	}
+	if v, ok := m["query_string_cache_keys"]; ok {
+		fv.QueryStringCacheKeys = expandQueryStringCacheKeys(v.([]interface{}))
+	}
 	return fv
 }
 
@@ -389,6 +397,9 @@ func flattenForwardedValues(fv *cloudfront.ForwardedValues) map[string]interface
 	}
 	if fv.Headers != nil {
 		m["headers"] = flattenHeaders(fv.Headers)
+	}
+	if fv.QueryStringCacheKeys != nil {
+		m["query_string_cache_keys"] = flattenQueryStringCacheKeys(fv.QueryStringCacheKeys)
 	}
 	return m
 }
@@ -407,6 +418,11 @@ func forwardedValuesHash(v interface{}) int {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
+	if d, ok := m["query_string_cache_keys"]; ok {
+		for _, e := range sortInterfaceSlice(d.([]interface{})) {
+			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
+		}
+	}
 	return hashcode.String(buf.String())
 }
 
@@ -420,6 +436,20 @@ func expandHeaders(d []interface{}) *cloudfront.Headers {
 func flattenHeaders(h *cloudfront.Headers) []interface{} {
 	if h.Items != nil {
 		return flattenStringList(h.Items)
+	}
+	return []interface{}{}
+}
+
+func expandQueryStringCacheKeys(d []interface{}) *cloudfront.QueryStringCacheKeys {
+	return &cloudfront.QueryStringCacheKeys{
+		Quantity: aws.Int64(int64(len(d))),
+		Items:    expandStringList(d),
+	}
+}
+
+func flattenQueryStringCacheKeys(k *cloudfront.QueryStringCacheKeys) []interface{} {
+	if k.Items != nil {
+		return flattenStringList(k.Items)
 	}
 	return []interface{}{}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -23,8 +24,9 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"access_policies": &schema.Schema{
 				Type:             schema.TypeString,
-				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 				Optional:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"advanced_options": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -269,7 +271,11 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	ds := out.DomainStatus
 
 	if ds.AccessPolicies != nil && *ds.AccessPolicies != "" {
-		d.Set("access_policies", normalizeJson(*ds.AccessPolicies))
+		policies, err := normalizeJsonString(*ds.AccessPolicies)
+		if err != nil {
+			return errwrap.Wrapf("access policies contain an invalid JSON: {{err}}", err)
+		}
+		d.Set("access_policies", policies)
 	}
 	err = d.Set("advanced_options", pointersMapToStringList(ds.AdvancedOptions))
 	if err != nil {

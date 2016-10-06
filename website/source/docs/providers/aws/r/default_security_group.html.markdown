@@ -70,7 +70,7 @@ resource "aws_vpc" "mainvpc" {
 }
 
 resource "aws_default_security_group" "default" {
-  vpc_id = "${aws_vpc.mainvpc.vpc_id}"
+  vpc_id = "${aws_vpc.mainvpc.vpc}"
 
   ingress {
     protocol  = -1
@@ -84,8 +84,8 @@ resource "aws_default_security_group" "default" {
 ## Argument Reference
 
 The arguments of an `aws_default_security_group` differ slightly from `aws_security_group` 
-resources. Namely, the `name` arguement is computed, and the `name_prefix` attribute
-removed. The following arguements are still supported: 
+resources. Namely, the `name` argument is computed, and the `name_prefix` attribute
+removed. The following arguments are still supported: 
 
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
@@ -124,4 +124,4 @@ The following attributes are exported:
 * `ingress` - The ingress rules. See above for more.
 * `egress` - The egress rules. See above for more.
 
-[aws-default-security-groups]: http://docs.aws.amazon.com/fr_fr/AWSEC2/latest/UserGuide/using-network-security.html#default-security-group
+[aws-default-security-groups]: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html#default-security-group

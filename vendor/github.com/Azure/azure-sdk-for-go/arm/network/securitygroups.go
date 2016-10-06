@@ -21,12 +21,13 @@ package network
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
 // SecurityGroupsClient is the the Microsoft Azure Network management API
 // provides a RESTful set of web services that interact with Microsoft Azure
-// Networks service to manage your network resrources. The API has entities
+// Networks service to manage your network resources. The API has entities
 // that capture the relationship between an end user and the Microsoft Azure
 // Networks service.
 type SecurityGroupsClient struct {
@@ -46,7 +47,7 @@ func NewSecurityGroupsClientWithBaseURI(baseURI string, subscriptionID string) S
 }
 
 // CreateOrUpdate the Put NetworkSecurityGroup operation creates/updates a
-// network security groupin the specified resource group. This method may
+// network security group in the specified resource group. This method may
 // poll for completion. Polling can be canceled by passing the cancel channel
 // argument. The channel will be used to cancel polling and any outstanding
 // HTTP requests.
@@ -56,6 +57,15 @@ func NewSecurityGroupsClientWithBaseURI(baseURI string, subscriptionID string) S
 // parameters is parameters supplied to the create/update Network Security
 // Group operation
 func (client SecurityGroupsClient) CreateOrUpdate(resourceGroupName string, networkSecurityGroupName string, parameters SecurityGroup, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{parameters,
+			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
+				[]validation.Constraint{{"NetworkInterfaces", validation.ReadOnly, true, nil},
+					{"Subnets", validation.ReadOnly, true, nil},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "network.SecurityGroupsClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, networkSecurityGroupName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -117,7 +127,7 @@ func (client SecurityGroupsClient) CreateOrUpdateResponder(resp *http.Response) 
 	return
 }
 
-// Delete the Delete NetworkSecurityGroup operation deletes the specifed
+// Delete the Delete NetworkSecurityGroup operation deletes the specified
 // network security group This method may poll for completion. Polling can be
 // canceled by passing the cancel channel argument. The channel will be used
 // to cancel polling and any outstanding HTTP requests.
@@ -318,7 +328,7 @@ func (client SecurityGroupsClient) ListResponder(resp *http.Response) (result Se
 func (client SecurityGroupsClient) ListNextResults(lastResults SecurityGroupListResult) (result SecurityGroupListResult, err error) {
 	req, err := lastResults.SecurityGroupListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -327,12 +337,12 @@ func (client SecurityGroupsClient) ListNextResults(lastResults SecurityGroupList
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -401,7 +411,7 @@ func (client SecurityGroupsClient) ListAllResponder(resp *http.Response) (result
 func (client SecurityGroupsClient) ListAllNextResults(lastResults SecurityGroupListResult) (result SecurityGroupListResult, err error) {
 	req, err := lastResults.SecurityGroupListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -410,12 +420,12 @@ func (client SecurityGroupsClient) ListAllNextResults(lastResults SecurityGroupL
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.SecurityGroupsClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return

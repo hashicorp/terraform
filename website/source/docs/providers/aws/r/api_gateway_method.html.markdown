@@ -38,7 +38,7 @@ The following arguments are supported:
 
 * `rest_api_id` - (Required) The ID of the associated REST API
 * `resource_id` - (Required) The API resource ID
-* `http_method` - (Required) The HTTP Method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`)
+* `http_method` - (Required) The HTTP Method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`, `ANY`)
 * `authorization` - (Required) The type of authorization used for the method (`NONE`, `CUSTOM`)
 * `authorizer_id` - (Optional) The authorizer id to be used when the authorization is `CUSTOM`
 * `api_key_required` - (Optional) Specify if the method requires an API key
