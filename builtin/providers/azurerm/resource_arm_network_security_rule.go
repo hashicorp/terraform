@@ -183,6 +183,7 @@ func resourceArmNetworkSecurityRuleRead(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error making Read request on Azure Network Security Rule %s: %s", sgRuleName, err)
 	}
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("access", resp.Properties.Access)
 	d.Set("destination_address_prefix", resp.Properties.DestinationAddressPrefix)
 	d.Set("destination_port_range", resp.Properties.DestinationPortRange)

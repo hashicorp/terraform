@@ -134,6 +134,7 @@ func resourceArmVirtualNetworkPeeringRead(d *schema.ResourceData, meta interface
 	peer := *resp.Properties
 
 	// update appropriate values
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("virtual_network_name", vnetName)
 	d.Set("allow_virtual_network_access", peer.AllowVirtualNetworkAccess)

@@ -26,9 +26,10 @@ func resourceArmDnsZone() *schema.Resource {
 			},
 
 			"resource_group_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: resourceAzurermResourceGroupNameDiffSuppress,
 			},
 
 			"number_of_record_sets": &schema.Schema{
@@ -96,6 +97,12 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	rivieraClient := client.rivieraClient
 
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	resGroup := id.ResourceGroup
+
 	readRequest := rivieraClient.NewRequestForURI(d.Id())
 	readRequest.Command = &dns.GetDNSZone{}
 
@@ -111,6 +118,7 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 
 	resp := readResponse.Parsed.(*dns.GetDNSZoneResponse)
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("number_of_record_sets", resp.NumberOfRecordSets)
 	d.Set("max_number_of_record_sets", resp.MaxNumberOfRecordSets)
 	d.Set("name", resp.Name)

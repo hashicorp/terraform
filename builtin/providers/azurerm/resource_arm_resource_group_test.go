@@ -160,14 +160,14 @@ func testCheckAzureRMResourceGroupDestroy(s *terraform.State) error {
 
 var testAccAzureRMResourceGroup_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 `
 
 var testAccAzureRMResourceGroup_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 
     tags {
@@ -179,7 +179,7 @@ resource "azurerm_resource_group" "test" {
 
 var testAccAzureRMResourceGroup_withTagsUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 
     tags {

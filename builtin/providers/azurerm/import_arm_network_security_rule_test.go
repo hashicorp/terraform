@@ -22,7 +22,7 @@ func TestAccAzureRMNetworkSecurityRule_importBasic(t *testing.T) {
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"resource_group_name", "network_security_group_name"},
+				ImportStateVerifyIgnore: []string{"network_security_group_name"},
 			},
 		},
 	})

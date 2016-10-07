@@ -171,7 +171,7 @@ func testCheckAzureRMCdnEndpointDestroy(s *terraform.State) error {
 
 var testAccAzureRMCdnEndpoint_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_cdn_profile" "test" {
@@ -198,7 +198,7 @@ resource "azurerm_cdn_endpoint" "test" {
 
 var testAccAzureRMCdnEndpoint_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_cdn_profile" "test" {
@@ -230,7 +230,7 @@ resource "azurerm_cdn_endpoint" "test" {
 
 var testAccAzureRMCdnEndpoint_withTagsUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_cdn_profile" "test" {
