@@ -263,7 +263,7 @@ func testCheckAzureRMTrafficManagerEndpointDestroy(s *terraform.State) error {
 
 var testAccAzureRMTrafficManagerEndpoint_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -313,7 +313,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternal" {
 
 var testAccAzureRMTrafficManagerEndpoint_basicDisableExternal = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -364,7 +364,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternal" {
 
 var testAccAzureRMTrafficManagerEndpoint_weight = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -406,7 +406,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
 
 var testAccAzureRMTrafficManagerEndpoint_updateWeight = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -448,7 +448,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
 
 var testAccAzureRMTrafficManagerEndpoint_priority = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -490,7 +490,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
 
 var testAccAzureRMTrafficManagerEndpoint_updatePriority = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -532,7 +532,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
 
 var testAccAzureRMTrafficManagerEndpoint_nestedEndpoints = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 

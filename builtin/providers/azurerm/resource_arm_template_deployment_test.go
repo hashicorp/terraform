@@ -165,7 +165,7 @@ func testCheckAzureRMTemplateDeploymentDestroy(s *terraform.State) error {
 
 var testAccAzureRMTemplateDeployment_basicExample = `
   resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
   }
 
@@ -230,7 +230,7 @@ DEPLOY
 
 var testAccAzureRMTemplateDeployment_withParams = `
   resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
   }
 
@@ -315,7 +315,7 @@ DEPLOY
 // StorageAccount name is too long, forces error
 var testAccAzureRMTemplateDeployment_withError = `
   resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
   }
 

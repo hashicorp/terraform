@@ -190,7 +190,7 @@ func testCheckAzureRMVirtualNetworkPeeringDestroy(s *terraform.State) error {
 
 var testAccAzureRMVirtualNetworkPeering_basic = `
 resource "azurerm_resource_group" "test" {
-  name     = "acctestrg-%d"
+  name     = "acctestRG-%d"
   location = "West US"
 }
 
@@ -227,7 +227,7 @@ resource "azurerm_virtual_network_peering" "test2" {
 
 var testAccAzureRMVirtualNetworkPeering_basicUpdate = `
 resource "azurerm_resource_group" "test" {
-  name     = "acctestrg-%d"
+  name     = "acctestRG-%d"
   location = "West US"
 }
 

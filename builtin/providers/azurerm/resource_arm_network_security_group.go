@@ -203,6 +203,7 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 		d.Set("security_rule", flattenNetworkSecurityRules(resp.Properties.SecurityRules))
 	}
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("location", resp.Location)
 	flattenAndSetTags(d, resp.Tags)

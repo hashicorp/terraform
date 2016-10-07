@@ -93,9 +93,10 @@ func resourceArmTrafficManagerProfile() *schema.Resource {
 			},
 
 			"resource_group_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: resourceAzurermResourceGroupNameDiffSuppress,
 			},
 
 			"tags": tagsSchema(),
@@ -161,6 +162,7 @@ func resourceArmTrafficManagerProfileRead(d *schema.ResourceData, meta interface
 	profile := *resp.Properties
 
 	// update appropriate values
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("profile_status", profile.ProfileStatus)
 	d.Set("traffic_routing_method", profile.TrafficRoutingMethod)

@@ -482,7 +482,7 @@ func testCheckAzureRMStorageBlobDestroy(s *terraform.State) error {
 
 var testAccAzureRMStorageBlob_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 
@@ -518,7 +518,7 @@ resource "azurerm_storage_blob" "test" {
 
 var testAccAzureRMStorageBlobBlock_source = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 
@@ -556,7 +556,7 @@ resource "azurerm_storage_blob" "source" {
 
 var testAccAzureRMStorageBlobPage_source = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 
@@ -594,7 +594,7 @@ resource "azurerm_storage_blob" "source" {
 
 var testAccAzureRMStorageBlob_source_uri = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 
