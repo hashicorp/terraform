@@ -13,6 +13,55 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/ec2query"
 )
 
+const opAcceptReservedInstancesExchangeQuote = "AcceptReservedInstancesExchangeQuote"
+
+// AcceptReservedInstancesExchangeQuoteRequest generates a "aws/request.Request" representing the
+// client's request for the AcceptReservedInstancesExchangeQuote operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AcceptReservedInstancesExchangeQuote method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AcceptReservedInstancesExchangeQuoteRequest method.
+//    req, resp := client.AcceptReservedInstancesExchangeQuoteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) AcceptReservedInstancesExchangeQuoteRequest(input *AcceptReservedInstancesExchangeQuoteInput) (req *request.Request, output *AcceptReservedInstancesExchangeQuoteOutput) {
+	op := &request.Operation{
+		Name:       opAcceptReservedInstancesExchangeQuote,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AcceptReservedInstancesExchangeQuoteInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &AcceptReservedInstancesExchangeQuoteOutput{}
+	req.Data = output
+	return
+}
+
+// Purchases Convertible Reserved Instance offerings described in the GetReservedInstancesExchangeQuote
+// call.
+func (c *EC2) AcceptReservedInstancesExchangeQuote(input *AcceptReservedInstancesExchangeQuoteInput) (*AcceptReservedInstancesExchangeQuoteOutput, error) {
+	req, out := c.AcceptReservedInstancesExchangeQuoteRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opAcceptVpcPeeringConnection = "AcceptVpcPeeringConnection"
 
 // AcceptVpcPeeringConnectionRequest generates a "aws/request.Request" representing the
@@ -2184,23 +2233,23 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 	return
 }
 
-// Creates a listing for Amazon EC2 Reserved Instances to be sold in the Reserved
-// Instance Marketplace. You can submit one Reserved Instance listing at a time.
-// To get a list of your Reserved Instances, you can use the DescribeReservedInstances
-// operation.
+// Creates a listing for Amazon EC2 Standard Reserved Instances to be sold in
+// the Reserved Instance Marketplace. You can submit one Standard Reserved Instance
+// listing at a time. To get a list of your Standard Reserved Instances, you
+// can use the DescribeReservedInstances operation.
 //
-// The Reserved Instance Marketplace matches sellers who want to resell Reserved
-// Instance capacity that they no longer need with buyers who want to purchase
-// additional capacity. Reserved Instances bought and sold through the Reserved
-// Instance Marketplace work like any other Reserved Instances.
+// The Reserved Instance Marketplace matches sellers who want to resell Standard
+// Reserved Instance capacity that they no longer need with buyers who want
+// to purchase additional capacity. Reserved Instances bought and sold through
+// the Reserved Instance Marketplace work like any other Reserved Instances.
 //
-// To sell your Reserved Instances, you must first register as a seller in
-// the Reserved Instance Marketplace. After completing the registration process,
+// To sell your Standard Reserved Instances, you must first register as a seller
+// in the Reserved Instance Marketplace. After completing the registration process,
 // you can create a Reserved Instance Marketplace listing of some or all of
-// your Reserved Instances, and specify the upfront price to receive for them.
-// Your Reserved Instance listings then become available for purchase. To view
-// the details of your Reserved Instance listing, you can use the DescribeReservedInstancesListings
-// operation.
+// your Standard Reserved Instances, and specify the upfront price to receive
+// for them. Your Standard Reserved Instance listings then become available
+// for purchase. To view the details of your Standard Reserved Instance listing,
+// you can use the DescribeReservedInstancesListings operation.
 //
 // For more information, see Reserved Instance Marketplace (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-market-general.html)
 // in the Amazon Elastic Compute Cloud User Guide.
@@ -7072,6 +7121,9 @@ func (c *EC2) DescribeSpotFleetRequestsRequest(input *DescribeSpotFleetRequestsI
 }
 
 // Describes your Spot fleet requests.
+//
+// Spot fleet requests are deleted 48 hours after they are canceled and their
+// instances are terminated.
 func (c *EC2) DescribeSpotFleetRequests(input *DescribeSpotFleetRequestsInput) (*DescribeSpotFleetRequestsOutput, error) {
 	req, out := c.DescribeSpotFleetRequestsRequest(input)
 	err := req.Send()
@@ -7156,6 +7208,9 @@ func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceReq
 // the instance ID appears in the response and contains the identifier of the
 // instance. Alternatively, you can use DescribeInstances with a filter to look
 // for instances where the instance lifecycle is spot.
+//
+// Spot instance requests are deleted 4 hours after they are canceled and their
+// instances are terminated.
 func (c *EC2) DescribeSpotInstanceRequests(input *DescribeSpotInstanceRequestsInput) (*DescribeSpotInstanceRequestsOutput, error) {
 	req, out := c.DescribeSpotInstanceRequestsRequest(input)
 	err := req.Send()
@@ -9109,6 +9164,56 @@ func (c *EC2) GetPasswordData(input *GetPasswordDataInput) (*GetPasswordDataOutp
 	return out, err
 }
 
+const opGetReservedInstancesExchangeQuote = "GetReservedInstancesExchangeQuote"
+
+// GetReservedInstancesExchangeQuoteRequest generates a "aws/request.Request" representing the
+// client's request for the GetReservedInstancesExchangeQuote operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetReservedInstancesExchangeQuote method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetReservedInstancesExchangeQuoteRequest method.
+//    req, resp := client.GetReservedInstancesExchangeQuoteRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) GetReservedInstancesExchangeQuoteRequest(input *GetReservedInstancesExchangeQuoteInput) (req *request.Request, output *GetReservedInstancesExchangeQuoteOutput) {
+	op := &request.Operation{
+		Name:       opGetReservedInstancesExchangeQuote,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetReservedInstancesExchangeQuoteInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetReservedInstancesExchangeQuoteOutput{}
+	req.Data = output
+	return
+}
+
+// Returns details about the values and term of your specified Convertible Reserved
+// Instances. When an offering ID is specified it returns information about
+// whether the exchange is valid and can be performed.
+func (c *EC2) GetReservedInstancesExchangeQuote(input *GetReservedInstancesExchangeQuoteInput) (*GetReservedInstancesExchangeQuoteOutput, error) {
+	req, out := c.GetReservedInstancesExchangeQuoteRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opImportImage = "ImportImage"
 
 // ImportImageRequest generates a "aws/request.Request" representing the
@@ -9825,9 +9930,9 @@ func (c *EC2) ModifyReservedInstancesRequest(input *ModifyReservedInstancesInput
 }
 
 // Modifies the Availability Zone, instance count, instance type, or network
-// platform (EC2-Classic or EC2-VPC) of your Reserved Instances. The Reserved
-// Instances to be modified must be identical, except for Availability Zone,
-// network platform, and instance type.
+// platform (EC2-Classic or EC2-VPC) of your Standard Reserved Instances. The
+// Reserved Instances to be modified must be identical, except for Availability
+// Zone, network platform, and instance type.
 //
 // For more information, see Modifying Reserved Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-modifying.html)
 // in the Amazon Elastic Compute Cloud User Guide.
@@ -10439,9 +10544,7 @@ func (c *EC2) PurchaseReservedInstancesOfferingRequest(input *PurchaseReservedIn
 }
 
 // Purchases a Reserved Instance for use with your account. With Reserved Instances,
-// you obtain a capacity reservation for a certain instance configuration over
-// a specified period of time and pay a lower hourly rate compared to On-Demand
-// instance pricing.
+// you pay a lower hourly rate compared to On-Demand instance pricing.
 //
 // Use DescribeReservedInstancesOfferings to get a list of Reserved Instance
 // offerings that match your specifications. After you've purchased a Reserved
@@ -11941,6 +12044,9 @@ func (c *EC2) TerminateInstancesRequest(input *TerminateInstancesInput) (req *re
 // Shuts down one or more instances. This operation is idempotent; if you terminate
 // an instance more than once, each call succeeds.
 //
+// If you specify multiple instances and the request fails (for example, because
+// of a single incorrect instance ID), none of the instances are terminated.
+//
 // Terminated instances remain visible after termination (for approximately
 // one hour).
 //
@@ -12064,6 +12170,76 @@ func (c *EC2) UnmonitorInstances(input *UnmonitorInstancesInput) (*UnmonitorInst
 	req, out := c.UnmonitorInstancesRequest(input)
 	err := req.Send()
 	return out, err
+}
+
+// Contains the parameters for accepting the quote.
+type AcceptReservedInstancesExchangeQuoteInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The IDs of the Convertible Reserved Instances that you want to exchange for
+	// other Convertible Reserved Instances of the same or higher value.
+	ReservedInstanceIds []*string `locationName:"ReservedInstanceId" locationNameList:"ReservedInstanceId" type:"list" required:"true"`
+
+	// The configurations of the Convertible Reserved Instance offerings you are
+	// purchasing in this exchange.
+	TargetConfigurations []*TargetConfigurationRequest `locationName:"TargetConfiguration" locationNameList:"TargetConfigurationRequest" type:"list"`
+}
+
+// String returns the string representation
+func (s AcceptReservedInstancesExchangeQuoteInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AcceptReservedInstancesExchangeQuoteInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AcceptReservedInstancesExchangeQuoteInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AcceptReservedInstancesExchangeQuoteInput"}
+	if s.ReservedInstanceIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservedInstanceIds"))
+	}
+	if s.TargetConfigurations != nil {
+		for i, v := range s.TargetConfigurations {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "TargetConfigurations", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The result of the exchange and whether it was successful.
+type AcceptReservedInstancesExchangeQuoteOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the successful exchange.
+	ExchangeId *string `locationName:"exchangeId" type:"string"`
+}
+
+// String returns the string representation
+func (s AcceptReservedInstancesExchangeQuoteOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AcceptReservedInstancesExchangeQuoteOutput) GoString() string {
+	return s.String()
 }
 
 // Contains the parameters for AcceptVpcPeeringConnection.
@@ -15009,11 +15185,11 @@ type CreateReservedInstancesListingInput struct {
 	// ID specified in this call.
 	InstanceCount *int64 `locationName:"instanceCount" type:"integer" required:"true"`
 
-	// A list specifying the price of the Reserved Instance for each month remaining
-	// in the Reserved Instance term.
+	// A list specifying the price of the Standard Reserved Instance for each month
+	// remaining in the Reserved Instance term.
 	PriceSchedules []*PriceScheduleSpecification `locationName:"priceSchedules" locationNameList:"item" type:"list" required:"true"`
 
-	// The ID of the active Reserved Instance.
+	// The ID of the active Standard Reserved Instance.
 	ReservedInstancesId *string `locationName:"reservedInstancesId" type:"string" required:"true"`
 }
 
@@ -15053,7 +15229,7 @@ func (s *CreateReservedInstancesListingInput) Validate() error {
 type CreateReservedInstancesListingOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Information about the Reserved Instance listing.
+	// Information about the Standard Reserved Instance listing.
 	ReservedInstancesListings []*ReservedInstancesListing `locationName:"reservedInstancesListingsSet" locationNameList:"item" type:"list"`
 }
 
@@ -17654,9 +17830,6 @@ type DescribeConversionTasksInput struct {
 	// the required permissions, the error response is DryRunOperation. Otherwise,
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
-
-	// One or more filters.
-	Filters []*Filter `locationName:"filter" locationNameList:"Filter" type:"list"`
 }
 
 // String returns the string representation
@@ -19788,6 +19961,8 @@ type DescribeReservedInstancesInput struct {
 	//
 	//    instance-type - The instance type that is covered by the reservation.
 	//
+	//    scope - The scope of the Reserved Instance (Region or Availability Zone).
+	//
 	//    product-description - The Reserved Instance product platform description.
 	// Instances that include (Amazon VPC) in the product platform description will
 	// only be displayed to EC2-Classic account holders and are for use with Amazon
@@ -19821,6 +19996,9 @@ type DescribeReservedInstancesInput struct {
 	//    usage-price - The usage price of the Reserved Instance, per hour (for
 	// example, 0.84).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
+
+	// Describes whether the Reserved Instance is Standard or Convertible.
+	OfferingClass *string `type:"string" enum:"OfferingClassType"`
 
 	// The Reserved Instance offering type. If you are using tools that predate
 	// the 2011-11-01 API version, you only have access to the Medium Utilization
@@ -19858,7 +20036,7 @@ type DescribeReservedInstancesListingsInput struct {
 	// | cancelled | closed).
 	//
 	//    status-message - The reason for the status.
-	Filters []*Filter `locationName:"filters" locationNameList:"Filter" type:"list"`
+	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more Reserved Instance IDs.
 	ReservedInstancesId *string `locationName:"reservedInstancesId" type:"string"`
@@ -20016,6 +20194,8 @@ type DescribeReservedInstancesOfferingsInput struct {
 	//
 	//    reserved-instances-offering-id - The Reserved Instances offering ID.
 	//
+	//    scope - The scope of the Reserved Instance (Availability Zone or Region).
+	//
 	//    usage-price - The usage price of the Reserved Instance, per hour (for
 	// example, 0.84).
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
@@ -20059,6 +20239,9 @@ type DescribeReservedInstancesOfferingsInput struct {
 
 	// The token to retrieve the next page of results.
 	NextToken *string `locationName:"nextToken" type:"string"`
+
+	// The offering class of the Reserved Instance. Can be standard or convertible.
+	OfferingClass *string `type:"string" enum:"OfferingClassType"`
 
 	// The Reserved Instance offering type. If you are using tools that predate
 	// the 2011-11-01 API version, you only have access to the Medium Utilization
@@ -23828,6 +24011,99 @@ func (s GetPasswordDataOutput) GoString() string {
 	return s.String()
 }
 
+// Contains the parameters for GetReservedInstanceExchangeQuote.
+type GetReservedInstancesExchangeQuoteInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The ID/s of the Convertible Reserved Instances you want to exchange.
+	ReservedInstanceIds []*string `locationName:"ReservedInstanceId" locationNameList:"ReservedInstanceId" type:"list" required:"true"`
+
+	// The configuration requirements of the Convertible Reserved Instances you
+	// want in exchange for your current Convertible Reserved Instances.
+	TargetConfigurations []*TargetConfigurationRequest `locationName:"TargetConfiguration" locationNameList:"TargetConfigurationRequest" type:"list"`
+}
+
+// String returns the string representation
+func (s GetReservedInstancesExchangeQuoteInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetReservedInstancesExchangeQuoteInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetReservedInstancesExchangeQuoteInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetReservedInstancesExchangeQuoteInput"}
+	if s.ReservedInstanceIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("ReservedInstanceIds"))
+	}
+	if s.TargetConfigurations != nil {
+		for i, v := range s.TargetConfigurations {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "TargetConfigurations", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// Contains the output of GetReservedInstancesExchangeQuote.
+type GetReservedInstancesExchangeQuoteOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The currency of the transaction.
+	CurrencyCode *string `locationName:"currencyCode" type:"string"`
+
+	// If true, the exchange is valid. If false, the exchange cannot be performed.
+	IsValidExchange *bool `locationName:"isValidExchange" type:"boolean"`
+
+	// The new end date of the reservation term.
+	OutputReservedInstancesWillExpireAt *time.Time `locationName:"outputReservedInstancesWillExpireAt" type:"timestamp" timestampFormat:"iso8601"`
+
+	// The total true upfront charge for the exchange.
+	PaymentDue *string `locationName:"paymentDue" type:"string"`
+
+	// The cost associated with the Reserved Instance.
+	ReservedInstanceValueRollup *ReservationValue `locationName:"reservedInstanceValueRollup" type:"structure"`
+
+	// The configuration of your Convertible Reserved Instances.
+	ReservedInstanceValueSet []*ReservedInstanceReservationValue `locationName:"reservedInstanceValueSet" locationNameList:"item" type:"list"`
+
+	// The cost associated with the Reserved Instance.
+	TargetConfigurationValueRollup *ReservationValue `locationName:"targetConfigurationValueRollup" type:"structure"`
+
+	// The values of the target Convertible Reserved Instances.
+	TargetConfigurationValueSet []*TargetReservationValue `locationName:"targetConfigurationValueSet" locationNameList:"item" type:"list"`
+
+	// Describes the reason why the exchange can not be completed.
+	ValidationFailureReason *string `locationName:"validationFailureReason" type:"string"`
+}
+
+// String returns the string representation
+func (s GetReservedInstancesExchangeQuoteOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetReservedInstancesExchangeQuoteOutput) GoString() string {
+	return s.String()
+}
+
 // Describes a security group.
 type GroupIdentifier struct {
 	_ struct{} `type:"structure"`
@@ -25329,16 +25605,19 @@ type InstanceNetworkInterfaceSpecification struct {
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string"`
 
 	// The private IP address of the network interface. Applies only if creating
-	// a network interface when launching an instance.
+	// a network interface when launching an instance. You cannot specify this option
+	// if you're launching more than one instance in a RunInstances request.
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
 
 	// One or more private IP addresses to assign to the network interface. Only
-	// one private IP address can be designated as primary.
+	// one private IP address can be designated as primary. You cannot specify this
+	// option if you're launching more than one instance in a RunInstances request.
 	PrivateIpAddresses []*PrivateIpAddressSpecification `locationName:"privateIpAddressesSet" queryName:"PrivateIpAddresses" locationNameList:"item" type:"list"`
 
 	// The number of secondary private IP addresses. You can't specify this option
 	// and specify more than one private IP address using the private IP addresses
-	// option.
+	// option. You cannot specify this option if you're launching more than one
+	// instance in a RunInstances request.
 	SecondaryPrivateIpAddressCount *int64 `locationName:"secondaryPrivateIpAddressCount" type:"integer"`
 
 	// The ID of the subnet associated with the network string. Applies only if
@@ -29112,6 +29391,31 @@ func (s Reservation) GoString() string {
 	return s.String()
 }
 
+// The cost associated with the Reserved Instance.
+type ReservationValue struct {
+	_ struct{} `type:"structure"`
+
+	// The hourly rate of the reservation.
+	HourlyPrice *string `locationName:"hourlyPrice" type:"string"`
+
+	// The balance of the total value (the sum of remainingUpfrontValue + hourlyPrice
+	// * number of hours remaining).
+	RemainingTotalValue *string `locationName:"remainingTotalValue" type:"string"`
+
+	// The remaining upfront cost of the reservation.
+	RemainingUpfrontValue *string `locationName:"remainingUpfrontValue" type:"string"`
+}
+
+// String returns the string representation
+func (s ReservationValue) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReservationValue) GoString() string {
+	return s.String()
+}
+
 // Describes the limit price of a Reserved Instance offering.
 type ReservedInstanceLimitPrice struct {
 	_ struct{} `type:"structure"`
@@ -29132,6 +29436,27 @@ func (s ReservedInstanceLimitPrice) String() string {
 
 // GoString returns the string representation
 func (s ReservedInstanceLimitPrice) GoString() string {
+	return s.String()
+}
+
+// The total value of the Convertible Reserved Instance.
+type ReservedInstanceReservationValue struct {
+	_ struct{} `type:"structure"`
+
+	// The total value of the Convertible Reserved Instance that you are exchanging.
+	ReservationValue *ReservationValue `locationName:"reservationValue" type:"structure"`
+
+	// The ID of the Convertible Reserved Instance that you are exchanging.
+	ReservedInstanceId *string `locationName:"reservedInstanceId" type:"string"`
+}
+
+// String returns the string representation
+func (s ReservedInstanceReservationValue) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ReservedInstanceReservationValue) GoString() string {
 	return s.String()
 }
 
@@ -29164,6 +29489,9 @@ type ReservedInstances struct {
 	// The instance type on which the Reserved Instance can be used.
 	InstanceType *string `locationName:"instanceType" type:"string" enum:"InstanceType"`
 
+	// The offering class of the Reserved Instance.
+	OfferingClass *string `locationName:"offeringClass" type:"string" enum:"OfferingClassType"`
+
 	// The Reserved Instance offering type.
 	OfferingType *string `locationName:"offeringType" type:"string" enum:"OfferingTypeValues"`
 
@@ -29175,6 +29503,9 @@ type ReservedInstances struct {
 
 	// The ID of the Reserved Instance.
 	ReservedInstancesId *string `locationName:"reservedInstancesId" type:"string"`
+
+	// The scope of the Reserved Instance.
+	Scope *string `locationName:"scope" type:"string" enum:"scope"`
 
 	// The date and time the Reserved Instance started.
 	Start *time.Time `locationName:"start" type:"timestamp" timestampFormat:"iso8601"`
@@ -29215,6 +29546,9 @@ type ReservedInstancesConfiguration struct {
 	// The network platform of the modified Reserved Instances, which is either
 	// EC2-Classic or EC2-VPC.
 	Platform *string `locationName:"platform" type:"string"`
+
+	// Whether the Reserved Instance is standard or convertible.
+	Scope *string `locationName:"scope" type:"string" enum:"scope"`
 }
 
 // String returns the string representation
@@ -29388,6 +29722,11 @@ type ReservedInstancesOffering struct {
 	// this is true.
 	Marketplace *bool `locationName:"marketplace" type:"boolean"`
 
+	// If convertible it can be exchanged for Reserved Instances of the same or
+	// higher monetary value, with different configurations. If standard, it is
+	// not possible to perform an exchange.
+	OfferingClass *string `locationName:"offeringClass" type:"string" enum:"OfferingClassType"`
+
 	// The Reserved Instance offering type.
 	OfferingType *string `locationName:"offeringType" type:"string" enum:"OfferingTypeValues"`
 
@@ -29400,8 +29739,13 @@ type ReservedInstancesOffering struct {
 	// The recurring charge tag assigned to the resource.
 	RecurringCharges []*RecurringCharge `locationName:"recurringCharges" locationNameList:"item" type:"list"`
 
-	// The ID of the Reserved Instance offering.
+	// The ID of the Reserved Instance offering. This is the offering ID used in
+	// GetReservedInstancesExchangeQuote to confirm that an exchange can be made.
 	ReservedInstancesOfferingId *string `locationName:"reservedInstancesOfferingId" type:"string"`
+
+	// Whether the Reserved Instance is applied to instances in a region or an Availability
+	// Zone.
+	Scope *string `locationName:"scope" type:"string" enum:"scope"`
 
 	// The usage price of the Reserved Instance, per hour.
 	UsagePrice *float64 `locationName:"usagePrice" type:"float"`
@@ -30093,6 +30437,9 @@ type RunInstancesInput struct {
 	// Only one private IP address can be designated as primary. Therefore, you
 	// can't specify this parameter if PrivateIpAddresses.n.Primary is set to true
 	// and PrivateIpAddresses.n.PrivateIpAddress is set to an IP address.
+	//
+	// You cannot specify this option if you're launching more than one instance
+	// in the request.
 	//
 	// Default: We select an IP address from the IP address range of the subnet.
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
@@ -31951,6 +32298,89 @@ func (s TagDescription) GoString() string {
 	return s.String()
 }
 
+// Information about the Convertible Reserved Instance offering.
+type TargetConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// The number of instances the Convertible Reserved Instance offering can be
+	// applied to. This parameter is reserved and cannot be specified in a request
+	InstanceCount *int64 `locationName:"instanceCount" type:"integer"`
+
+	// The ID of the Convertible Reserved Instance offering.
+	OfferingId *string `locationName:"offeringId" type:"string"`
+}
+
+// String returns the string representation
+func (s TargetConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TargetConfiguration) GoString() string {
+	return s.String()
+}
+
+// Details about the target configuration.
+type TargetConfigurationRequest struct {
+	_ struct{} `type:"structure"`
+
+	// The number of instances the Covertible Reserved Instance offering can be
+	// applied to. This parameter is reserved and cannot be specified in a request
+	InstanceCount *int64 `type:"integer"`
+
+	// The Convertible Reserved Instance offering ID. If this isn't included in
+	// the request, the response lists your current Convertible Reserved Instance/s
+	// and their value/s.
+	OfferingId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s TargetConfigurationRequest) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TargetConfigurationRequest) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TargetConfigurationRequest) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TargetConfigurationRequest"}
+	if s.OfferingId == nil {
+		invalidParams.Add(request.NewErrParamRequired("OfferingId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// The total value of the new Convertible Reserved Instances.
+type TargetReservationValue struct {
+	_ struct{} `type:"structure"`
+
+	// The total value of the Convertible Reserved Instances that make up the exchange.
+	// This is the sum of the list value, remaining upfront price, and additional
+	// upfront cost of the exchange.
+	ReservationValue *ReservationValue `locationName:"reservationValue" type:"structure"`
+
+	// The configuration of the Convertible Reserved Instances that make up the
+	// exchange.
+	TargetConfiguration *TargetConfiguration `locationName:"targetConfiguration" type:"structure"`
+}
+
+// String returns the string representation
+func (s TargetReservationValue) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TargetReservationValue) GoString() string {
+	return s.String()
+}
+
 // Contains the parameters for TerminateInstances.
 type TerminateInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -31962,6 +32392,9 @@ type TerminateInstancesInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// One or more instance IDs.
+	//
+	// Constraints: Up to 1000 instance IDs. We recommend breaking up this request
+	// into smaller batches.
 	InstanceIds []*string `locationName:"InstanceId" locationNameList:"InstanceId" type:"list" required:"true"`
 }
 
@@ -33330,6 +33763,8 @@ const (
 	// @enum InstanceType
 	InstanceTypeM410xlarge = "m4.10xlarge"
 	// @enum InstanceType
+	InstanceTypeM416xlarge = "m4.16xlarge"
+	// @enum InstanceType
 	InstanceTypeM2Xlarge = "m2.xlarge"
 	// @enum InstanceType
 	InstanceTypeM22xlarge = "m2.2xlarge"
@@ -33347,10 +33782,6 @@ const (
 	InstanceTypeR34xlarge = "r3.4xlarge"
 	// @enum InstanceType
 	InstanceTypeR38xlarge = "r3.8xlarge"
-	// @enum InstanceType
-	InstanceTypeX14xlarge = "x1.4xlarge"
-	// @enum InstanceType
-	InstanceTypeX18xlarge = "x1.8xlarge"
 	// @enum InstanceType
 	InstanceTypeX116xlarge = "x1.16xlarge"
 	// @enum InstanceType
@@ -33401,6 +33832,12 @@ const (
 	InstanceTypeG28xlarge = "g2.8xlarge"
 	// @enum InstanceType
 	InstanceTypeCg14xlarge = "cg1.4xlarge"
+	// @enum InstanceType
+	InstanceTypeP2Xlarge = "p2.xlarge"
+	// @enum InstanceType
+	InstanceTypeP28xlarge = "p2.8xlarge"
+	// @enum InstanceType
+	InstanceTypeP216xlarge = "p2.16xlarge"
 	// @enum InstanceType
 	InstanceTypeD2Xlarge = "d2.xlarge"
 	// @enum InstanceType
@@ -33491,6 +33928,13 @@ const (
 	NetworkInterfaceTypeInterface = "interface"
 	// @enum NetworkInterfaceType
 	NetworkInterfaceTypeNatGateway = "natGateway"
+)
+
+const (
+	// @enum OfferingClassType
+	OfferingClassTypeStandard = "standard"
+	// @enum OfferingClassType
+	OfferingClassTypeConvertible = "convertible"
 )
 
 const (
@@ -33930,4 +34374,11 @@ const (
 const (
 	// @enum VpnStaticRouteSource
 	VpnStaticRouteSourceStatic = "Static"
+)
+
+const (
+	// @enum scope
+	ScopeAvailabilityZone = "Availability Zone"
+	// @enum scope
+	ScopeRegion = "Region"
 )
