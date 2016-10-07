@@ -693,7 +693,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// list tags for resource
 	// set tags
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if v.DBName != nil && *v.DBName != "" {
@@ -976,7 +976,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		} else {
@@ -1052,11 +1052,10 @@ func resourceAwsDbInstanceStateRefreshFunc(
 	}
 }
 
-func buildRDSARN(identifier, accountid, region string) (string, error) {
+func buildRDSARN(identifier, partition, accountid, region string) (string, error) {
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:db:%s", partition, region, accountid, identifier)
 	return arn, nil
-
 }
