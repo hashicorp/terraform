@@ -514,10 +514,14 @@ func resourceAwsIotTopicRuleRead(d *schema.ResourceData, meta interface{}) error
 func resourceAwsIotTopicRuleUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iotconn
 
-	conn.ReplaceTopicRule(&iot.ReplaceTopicRuleInput{
+	_, err := conn.ReplaceTopicRule(&iot.ReplaceTopicRuleInput{
 		RuleName:         aws.String(d.Get("name").(string)),
 		TopicRulePayload: createTopicRulePayload(d),
 	})
+
+	if err != nil {
+		return err
+	}
 
 	return resourceAwsIotTopicRuleRead(d, meta)
 }

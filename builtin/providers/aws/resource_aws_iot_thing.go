@@ -197,10 +197,13 @@ func resourceAwsIotThingDelete(d *schema.ResourceData, meta interface{}) error {
 
 	if principals, ok := d.GetOk("principals"); ok {
 		for _, p := range principals.(*schema.Set).List() {
-			conn.DetachThingPrincipal(&iot.DetachThingPrincipalInput{
+			_, err := conn.DetachThingPrincipal(&iot.DetachThingPrincipalInput{
 				ThingName: thingName,
 				Principal: aws.String(p.(string)),
 			})
+			if err != nil {
+				return err
+			}
 		}
 	}
 
