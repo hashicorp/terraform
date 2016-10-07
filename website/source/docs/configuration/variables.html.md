@@ -109,7 +109,7 @@ variable "users" {
 }
 ```
 
-The usage of maps, list, strings, etc. is documented fully in the
+The usage of maps, lists, strings, etc. is documented fully in the
 [interpolation syntax](/docs/configuration/interpolation.html)
 page.
 
@@ -194,7 +194,7 @@ $ TF_VAR_somemap='{foo = "bar", baz = "qux"}' terraform plan
 
 <a id="variable-files"></a>
 
-Variables can be collected in files and passed all at once using the 
+Variables can be collected in files and passed all at once using the
 `-var-file=foo.tfvars` flag. The format for variables in `.tfvars`
 files is [HCL](/docs/configuration/syntax.html#HCL), with top level key/value
 pairs:
