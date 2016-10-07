@@ -270,11 +270,12 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("Your query returned more than one result. Please try a more " +
 				"specific search criteria, or set `most_recent` attribute to true.")
 		}
+	} else {
+		// Query returned single result.
+		image = filteredImages[0]
 	}
 
-	image = filteredImages[0]
 	log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *image.ImageId)
-
 	return amiDescriptionAttributes(d, image)
 }
 
