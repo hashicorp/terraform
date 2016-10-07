@@ -1,6 +1,7 @@
 ## 0.7.6 (UNRELEASED)
 
 FEATURES:
+ * **New Data Source:** `aws_billing_service_account` [GH-8701]
 
 
 IMPROVEMENTS:
