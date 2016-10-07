@@ -210,8 +210,6 @@ body.page-home {
 		}
 
 		#feature-write-bg{
-			border-top: 2px solid white;
-			border-bottom: 2px solid $purple;
 			background: $white image-url("feature-write-bg.svg") 85% bottom no-repeat;
 			background-size: 570px;
 			z-index: 70;
@@ -239,8 +237,6 @@ body.page-home {
 
 		#feature-plan-bg{
 			background: $purple;
-			border-top: 2px solid white;
-			border-bottom: 2px solid $purple;
 			z-index: 60;
 			@include skewY(-3deg);
 		}
