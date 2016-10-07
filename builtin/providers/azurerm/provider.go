@@ -46,9 +46,17 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
-			"azurerm_availability_set":          resourceArmAvailabilitySet(),
-			"azurerm_cdn_endpoint":              resourceArmCdnEndpoint(),
-			"azurerm_cdn_profile":               resourceArmCdnProfile(),
+			"azurerm_availability_set": resourceArmAvailabilitySet(),
+			"azurerm_cdn_endpoint":     resourceArmCdnEndpoint(),
+			"azurerm_cdn_profile":      resourceArmCdnProfile(),
+
+			"azurerm_lb":                      resourceArmLoadBalancer(),
+			"azurerm_lb_backend_address_pool": resourceArmLoadBalancerBackendAddressPool(),
+			"azurerm_lb_nat_rule":             resourceArmLoadBalancerNatRule(),
+			"azurerm_lb_nat_pool":             resourceArmLoadBalancerNatPool(),
+			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
+			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
+
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),
 			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
