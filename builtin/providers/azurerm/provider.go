@@ -50,12 +50,12 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_cdn_endpoint":     resourceArmCdnEndpoint(),
 			"azurerm_cdn_profile":      resourceArmCdnProfile(),
 
-			"azurerm_lb":                      resourceArmLoadbalancer(),
-			"azurerm_lb_backend_address_pool": resourceArmLoadbalancerBackendAddressPool(),
-			"azurerm_lb_nat_rule":             resourceArmLoadbalancerNatRule(),
-			"azurerm_lb_nat_pool":             resourceArmLoadbalancerNatPool(),
-			"azurerm_lb_probe":                resourceArmLoadbalancerProbe(),
-			"azurerm_lb_rule":                 resourceArmLoadbalancerRule(),
+			"azurerm_lb":                      resourceArmLoadBalancer(),
+			"azurerm_lb_backend_address_pool": resourceArmLoadBalancerBackendAddressPool(),
+			"azurerm_lb_nat_rule":             resourceArmLoadBalancerNatRule(),
+			"azurerm_lb_nat_pool":             resourceArmLoadBalancerNatPool(),
+			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
+			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
 
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),

@@ -12,12 +12,12 @@ import (
 	"github.com/jen20/riviera/azure"
 )
 
-func resourceArmLoadbalancerNatPool() *schema.Resource {
+func resourceArmLoadBalancerNatPool() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLoadbalancerNatPoolCreate,
-		Read:   resourceArmLoadbalancerNatPoolRead,
-		Update: resourceArmLoadbalancerNatPoolCreate,
-		Delete: resourceArmLoadbalancerNatPoolDelete,
+		Create: resourceArmLoadBalancerNatPoolCreate,
+		Read:   resourceArmLoadBalancerNatPoolRead,
+		Update: resourceArmLoadBalancerNatPoolCreate,
+		Delete: resourceArmLoadBalancerNatPoolDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -78,11 +78,11 @@ func resourceArmLoadbalancerNatPool() *schema.Resource {
 	}
 }
 
-func resourceArmLoadbalancerNatPoolCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerNatPoolCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -97,7 +97,7 @@ func resourceArmLoadbalancerNatPoolCreate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("A NAT Pool with name %q already exists.", d.Get("name").(string))
 	}
 
-	newNatPool, err := expandAzureRmLoadbalancerNatPool(d, loadBalancer)
+	newNatPool, err := expandAzureRmLoadBalancerNatPool(d, loadBalancer)
 	if err != nil {
 		return errwrap.Wrapf("Error Expanding NAT Pool {{err}}", err)
 	}
@@ -135,11 +135,11 @@ func resourceArmLoadbalancerNatPoolCreate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
 	}
 
-	return resourceArmLoadbalancerNatPoolRead(d, meta)
+	return resourceArmLoadBalancerNatPoolRead(d, meta)
 }
 
-func resourceArmLoadbalancerNatPoolRead(d *schema.ResourceData, meta interface{}) error {
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Id(), meta)
+func resourceArmLoadBalancerNatPoolRead(d *schema.ResourceData, meta interface{}) error {
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -170,11 +170,11 @@ func resourceArmLoadbalancerNatPoolRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceArmLoadbalancerNatPoolDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerNatPoolDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -213,7 +213,7 @@ func resourceArmLoadbalancerNatPoolDelete(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func expandAzureRmLoadbalancerNatPool(d *schema.ResourceData, lb *network.LoadBalancer) (*network.InboundNatPool, error) {
+func expandAzureRmLoadBalancerNatPool(d *schema.ResourceData, lb *network.LoadBalancer) (*network.InboundNatPool, error) {
 
 	properties := network.InboundNatPoolPropertiesFormat{
 		Protocol:               network.TransportProtocol(d.Get("protocol").(string)),

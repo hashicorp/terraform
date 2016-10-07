@@ -13,12 +13,12 @@ import (
 	"github.com/jen20/riviera/azure"
 )
 
-func resourceArmLoadbalancerRule() *schema.Resource {
+func resourceArmLoadBalancerRule() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLoadbalancerRuleCreate,
-		Read:   resourceArmLoadbalancerRuleRead,
-		Update: resourceArmLoadbalancerRuleCreate,
-		Delete: resourceArmLoadbalancerRuleDelete,
+		Create: resourceArmLoadBalancerRuleCreate,
+		Read:   resourceArmLoadBalancerRuleRead,
+		Update: resourceArmLoadBalancerRuleCreate,
+		Delete: resourceArmLoadBalancerRuleDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -105,11 +105,11 @@ func resourceArmLoadbalancerRule() *schema.Resource {
 	}
 }
 
-func resourceArmLoadbalancerRuleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -124,7 +124,7 @@ func resourceArmLoadbalancerRuleCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("A LoadBalancer Rule with name %q already exists.", d.Get("name").(string))
 	}
 
-	newLbRule, err := expandAzureRmLoadbalancerRule(d, loadBalancer)
+	newLbRule, err := expandAzureRmLoadBalancerRule(d, loadBalancer)
 	if err != nil {
 		return errwrap.Wrapf("Error Exanding LoadBalancer Rule {{err}}", err)
 	}
@@ -162,11 +162,11 @@ func resourceArmLoadbalancerRuleCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
 	}
 
-	return resourceArmLoadbalancerRuleRead(d, meta)
+	return resourceArmLoadBalancerRuleRead(d, meta)
 }
 
-func resourceArmLoadbalancerRuleRead(d *schema.ResourceData, meta interface{}) error {
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Id(), meta)
+func resourceArmLoadBalancerRuleRead(d *schema.ResourceData, meta interface{}) error {
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -214,11 +214,11 @@ func resourceArmLoadbalancerRuleRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceArmLoadbalancerRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -257,7 +257,7 @@ func resourceArmLoadbalancerRuleDelete(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func expandAzureRmLoadbalancerRule(d *schema.ResourceData, lb *network.LoadBalancer) (*network.LoadBalancingRule, error) {
+func expandAzureRmLoadBalancerRule(d *schema.ResourceData, lb *network.LoadBalancer) (*network.LoadBalancingRule, error) {
 
 	properties := network.LoadBalancingRulePropertiesFormat{
 		Protocol:         network.TransportProtocol(d.Get("protocol").(string)),

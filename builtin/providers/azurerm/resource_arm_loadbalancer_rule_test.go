@@ -58,7 +58,7 @@ func TestResourceAzureRMLoadBalancerRuleNameLabel_validation(t *testing.T) {
 	}
 }
 
-func TestAccAzureRMLoadbalancerRule_basic(t *testing.T) {
+func TestAccAzureRMLoadBalancerRule_basic(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	lbRuleName := fmt.Sprintf("LbRule-%d", ri)
@@ -66,20 +66,20 @@ func TestAccAzureRMLoadbalancerRule_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadbalancerDestroy,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadbalancerRule_basic(ri, lbRuleName),
+				Config: testAccAzureRMLoadBalancerRule_basic(ri, lbRuleName),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerRuleExists(lbRuleName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerRuleExists(lbRuleName, &lb),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMLoadbalancerRule_removal(t *testing.T) {
+func TestAccAzureRMLoadBalancerRule_removal(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	lbRuleName := fmt.Sprintf("LbRule-%d", ri)
@@ -87,27 +87,27 @@ func TestAccAzureRMLoadbalancerRule_removal(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadbalancerDestroy,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadbalancerRule_basic(ri, lbRuleName),
+				Config: testAccAzureRMLoadBalancerRule_basic(ri, lbRuleName),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerRuleExists(lbRuleName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerRuleExists(lbRuleName, &lb),
 				),
 			},
 			{
-				Config: testAccAzureRMLoadbalancerRule_removal(ri),
+				Config: testAccAzureRMLoadBalancerRule_removal(ri),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerRuleNotExists(lbRuleName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerRuleNotExists(lbRuleName, &lb),
 				),
 			},
 		},
 	})
 }
 
-func testCheckAzureRMLoadbalancerRuleExists(lbRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+func testCheckAzureRMLoadBalancerRuleExists(lbRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerRuleByName(lb, lbRuleName)
 		if !exists {
@@ -118,7 +118,7 @@ func testCheckAzureRMLoadbalancerRuleExists(lbRuleName string, lb *network.LoadB
 	}
 }
 
-func testCheckAzureRMLoadbalancerRuleNotExists(lbRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+func testCheckAzureRMLoadBalancerRuleNotExists(lbRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerRuleByName(lb, lbRuleName)
 		if exists {
@@ -129,7 +129,7 @@ func testCheckAzureRMLoadbalancerRuleNotExists(lbRuleName string, lb *network.Lo
 	}
 }
 
-func testAccAzureRMLoadbalancerRule_basic(rInt int, lbRuleName string) string {
+func testAccAzureRMLoadBalancerRule_basic(rInt int, lbRuleName string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"
@@ -168,7 +168,7 @@ resource "azurerm_lb_rule" "test" {
 `, rInt, rInt, rInt, rInt, lbRuleName, rInt)
 }
 
-func testAccAzureRMLoadbalancerRule_removal(rInt int) string {
+func testAccAzureRMLoadBalancerRule_removal(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"

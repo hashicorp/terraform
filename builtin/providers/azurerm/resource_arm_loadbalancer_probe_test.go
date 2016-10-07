@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAzureRMLoadbalancerProbe_basic(t *testing.T) {
+func TestAccAzureRMLoadBalancerProbe_basic(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	probeName := fmt.Sprintf("probe-%d", ri)
@@ -18,20 +18,20 @@ func TestAccAzureRMLoadbalancerProbe_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadbalancerDestroy,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadbalancerProbe_basic(ri, probeName),
+				Config: testAccAzureRMLoadBalancerProbe_basic(ri, probeName),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerProbeExists(probeName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMLoadbalancerProbe_removal(t *testing.T) {
+func TestAccAzureRMLoadBalancerProbe_removal(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	probeName := fmt.Sprintf("probe-%d", ri)
@@ -39,27 +39,27 @@ func TestAccAzureRMLoadbalancerProbe_removal(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadbalancerDestroy,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadbalancerProbe_basic(ri, probeName),
+				Config: testAccAzureRMLoadBalancerProbe_basic(ri, probeName),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerProbeExists(probeName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
 				),
 			},
 			{
-				Config: testAccAzureRMLoadbalancerProbe_removal(ri),
+				Config: testAccAzureRMLoadBalancerProbe_removal(ri),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerProbeNotExists(probeName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerProbeNotExists(probeName, &lb),
 				),
 			},
 		},
 	})
 }
 
-func testCheckAzureRMLoadbalancerProbeExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+func testCheckAzureRMLoadBalancerProbeExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerProbeByName(lb, natRuleName)
 		if !exists {
@@ -70,7 +70,7 @@ func testCheckAzureRMLoadbalancerProbeExists(natRuleName string, lb *network.Loa
 	}
 }
 
-func testCheckAzureRMLoadbalancerProbeNotExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+func testCheckAzureRMLoadBalancerProbeNotExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerProbeByName(lb, natRuleName)
 		if exists {
@@ -81,7 +81,7 @@ func testCheckAzureRMLoadbalancerProbeNotExists(natRuleName string, lb *network.
 	}
 }
 
-func testAccAzureRMLoadbalancerProbe_basic(rInt int, probeName string) string {
+func testAccAzureRMLoadBalancerProbe_basic(rInt int, probeName string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"
@@ -116,7 +116,7 @@ resource "azurerm_lb_probe" "test" {
 `, rInt, rInt, rInt, rInt, probeName)
 }
 
-func testAccAzureRMLoadbalancerProbe_removal(rInt int) string {
+func testAccAzureRMLoadBalancerProbe_removal(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"

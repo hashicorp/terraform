@@ -12,11 +12,11 @@ import (
 	"github.com/jen20/riviera/azure"
 )
 
-func resourceArmLoadbalancerBackendAddressPool() *schema.Resource {
+func resourceArmLoadBalancerBackendAddressPool() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLoadbalancerBackendAddressPoolCreate,
-		Read:   resourceArmLoadbalancerBackendAddressPoolRead,
-		Delete: resourceArmLoadbalancerBackendAddressPoolDelete,
+		Create: resourceArmLoadBalancerBackendAddressPoolCreate,
+		Read:   resourceArmLoadBalancerBackendAddressPoolRead,
+		Delete: resourceArmLoadBalancerBackendAddressPoolDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -61,11 +61,11 @@ func resourceArmLoadbalancerBackendAddressPool() *schema.Resource {
 	}
 }
 
-func resourceArmLoadbalancerBackendAddressPoolCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -80,7 +80,7 @@ func resourceArmLoadbalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 		return fmt.Errorf("A BackEnd Address Pool with name %q already exists.", d.Get("name").(string))
 	}
 
-	backendAddressPools := append(*loadBalancer.Properties.BackendAddressPools, expandAzureRmLoadbalancerBackendAddressPools(d))
+	backendAddressPools := append(*loadBalancer.Properties.BackendAddressPools, expandAzureRmLoadBalancerBackendAddressPools(d))
 	loadBalancer.Properties.BackendAddressPools = &backendAddressPools
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
@@ -113,11 +113,11 @@ func resourceArmLoadbalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
 	}
 
-	return resourceArmLoadbalancerBackendAddressPoolRead(d, meta)
+	return resourceArmLoadBalancerBackendAddressPoolRead(d, meta)
 }
 
-func resourceArmLoadbalancerBackendAddressPoolRead(d *schema.ResourceData, meta interface{}) error {
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Id(), meta)
+func resourceArmLoadBalancerBackendAddressPoolRead(d *schema.ResourceData, meta interface{}) error {
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -157,11 +157,11 @@ func resourceArmLoadbalancerBackendAddressPoolRead(d *schema.ResourceData, meta 
 	return nil
 }
 
-func resourceArmLoadbalancerBackendAddressPoolDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerBackendAddressPoolDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -200,7 +200,7 @@ func resourceArmLoadbalancerBackendAddressPoolDelete(d *schema.ResourceData, met
 	return nil
 }
 
-func expandAzureRmLoadbalancerBackendAddressPools(d *schema.ResourceData) network.BackendAddressPool {
+func expandAzureRmLoadBalancerBackendAddressPools(d *schema.ResourceData) network.BackendAddressPool {
 	return network.BackendAddressPool{
 		Name: azure.String(d.Get("name").(string)),
 	}

@@ -12,12 +12,12 @@ import (
 	"github.com/jen20/riviera/azure"
 )
 
-func resourceArmLoadbalancer() *schema.Resource {
+func resourceArmLoadBalancer() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLoadbalancerCreate,
-		Read:   resourceArmLoadbalancerRead,
-		Update: resourceArmLoadbalancerCreate,
-		Delete: resourceArmLoadbalancerDelete,
+		Create: resourceArmLoadBalancerCreate,
+		Read:   resourecArmLoadBalancerRead,
+		Update: resourceArmLoadBalancerCreate,
+		Delete: resourceArmLoadBalancerDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -72,7 +72,7 @@ func resourceArmLoadbalancer() *schema.Resource {
 							Type:         schema.TypeString,
 							Optional:     true,
 							Computed:     true,
-							ValidateFunc: validateLoadbalancerPrivateIpAddressAllocation,
+							ValidateFunc: validateLoadBalancerPrivateIpAddressAllocation,
 						},
 
 						"load_balancer_rules": {
@@ -97,7 +97,7 @@ func resourceArmLoadbalancer() *schema.Resource {
 	}
 }
 
-func resourceArmLoadbalancerCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	loadBalancerClient := client.loadBalancerClient
 
@@ -112,7 +112,7 @@ func resourceArmLoadbalancerCreate(d *schema.ResourceData, meta interface{}) err
 	properties := network.LoadBalancerPropertiesFormat{}
 
 	if _, ok := d.GetOk("frontend_ip_configuration"); ok {
-		properties.FrontendIPConfigurations = expandAzureRmLoadbalancerFrontendIpConfigurations(d)
+		properties.FrontendIPConfigurations = expandAzureRmLoadBalancerFrontendIpConfigurations(d)
 	}
 
 	loadbalancer := network.LoadBalancer{
@@ -148,11 +148,11 @@ func resourceArmLoadbalancerCreate(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", name, err)
 	}
 
-	return resourceArmLoadbalancerRead(d, meta)
+	return resourecArmLoadBalancerRead(d, meta)
 }
 
-func resourceArmLoadbalancerRead(d *schema.ResourceData, meta interface{}) error {
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Id(), meta)
+func resourecArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error {
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -171,7 +171,7 @@ func resourceArmLoadbalancerRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceArmLoadbalancerDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerDelete(d *schema.ResourceData, meta interface{}) error {
 	loadBalancerClient := meta.(*ArmClient).loadBalancerClient
 
 	id, err := parseAzureResourceID(d.Id())
@@ -190,7 +190,7 @@ func resourceArmLoadbalancerDelete(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func expandAzureRmLoadbalancerFrontendIpConfigurations(d *schema.ResourceData) *[]network.FrontendIPConfiguration {
+func expandAzureRmLoadBalancerFrontendIpConfigurations(d *schema.ResourceData) *[]network.FrontendIPConfiguration {
 	configs := d.Get("frontend_ip_configuration").([]interface{})
 	frontEndConfigs := make([]network.FrontendIPConfiguration, 0, len(configs))
 

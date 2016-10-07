@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAzureRMLoadbalancerNatRule_basic(t *testing.T) {
+func TestAccAzureRMLoadBalancerNatRule_basic(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	natRuleName := fmt.Sprintf("NatRule-%d", ri)
@@ -18,20 +18,20 @@ func TestAccAzureRMLoadbalancerNatRule_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadbalancerDestroy,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadbalancerNatRule_basic(ri, natRuleName),
+				Config: testAccAzureRMLoadBalancerNatRule_basic(ri, natRuleName),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerNatRuleExists(natRuleName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerNatRuleExists(natRuleName, &lb),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMLoadbalancerNatRule_removal(t *testing.T) {
+func TestAccAzureRMLoadBalancerNatRule_removal(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	natRuleName := fmt.Sprintf("NatRule-%d", ri)
@@ -39,27 +39,27 @@ func TestAccAzureRMLoadbalancerNatRule_removal(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadbalancerDestroy,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadbalancerNatRule_basic(ri, natRuleName),
+				Config: testAccAzureRMLoadBalancerNatRule_basic(ri, natRuleName),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerNatRuleExists(natRuleName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerNatRuleExists(natRuleName, &lb),
 				),
 			},
 			{
-				Config: testAccAzureRMLoadbalancerNatRule_removal(ri),
+				Config: testAccAzureRMLoadBalancerNatRule_removal(ri),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerNatRuleNotExists(natRuleName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerNatRuleNotExists(natRuleName, &lb),
 				),
 			},
 		},
 	})
 }
 
-func testCheckAzureRMLoadbalancerNatRuleExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+func testCheckAzureRMLoadBalancerNatRuleExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerNatRuleByName(lb, natRuleName)
 		if !exists {
@@ -70,7 +70,7 @@ func testCheckAzureRMLoadbalancerNatRuleExists(natRuleName string, lb *network.L
 	}
 }
 
-func testCheckAzureRMLoadbalancerNatRuleNotExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+func testCheckAzureRMLoadBalancerNatRuleNotExists(natRuleName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerNatRuleByName(lb, natRuleName)
 		if exists {
@@ -81,7 +81,7 @@ func testCheckAzureRMLoadbalancerNatRuleNotExists(natRuleName string, lb *networ
 	}
 }
 
-func testAccAzureRMLoadbalancerNatRule_basic(rInt int, natRuleName string) string {
+func testAccAzureRMLoadBalancerNatRule_basic(rInt int, natRuleName string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"
@@ -120,7 +120,7 @@ resource "azurerm_lb_nat_rule" "test" {
 `, rInt, rInt, rInt, rInt, natRuleName, rInt)
 }
 
-func testAccAzureRMLoadbalancerNatRule_removal(rInt int) string {
+func testAccAzureRMLoadBalancerNatRule_removal(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"

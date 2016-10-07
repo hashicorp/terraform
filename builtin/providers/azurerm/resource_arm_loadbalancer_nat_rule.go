@@ -12,12 +12,12 @@ import (
 	"github.com/jen20/riviera/azure"
 )
 
-func resourceArmLoadbalancerNatRule() *schema.Resource {
+func resourceArmLoadBalancerNatRule() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLoadbalancerNatRuleCreate,
-		Read:   resourceArmLoadbalancerNatRuleRead,
-		Update: resourceArmLoadbalancerNatRuleCreate,
-		Delete: resourceArmLoadbalancerNatRuleDelete,
+		Create: resourceArmLoadBalancerNatRuleCreate,
+		Read:   resourceArmLoadBalancerNatRuleRead,
+		Update: resourceArmLoadBalancerNatRuleCreate,
+		Delete: resourceArmLoadBalancerNatRuleDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -78,11 +78,11 @@ func resourceArmLoadbalancerNatRule() *schema.Resource {
 	}
 }
 
-func resourceArmLoadbalancerNatRuleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -97,7 +97,7 @@ func resourceArmLoadbalancerNatRuleCreate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("A NAT Rule with name %q already exists.", d.Get("name").(string))
 	}
 
-	newNatRule, err := expandAzureRmLoadbalancerNatRule(d, loadBalancer)
+	newNatRule, err := expandAzureRmLoadBalancerNatRule(d, loadBalancer)
 	if err != nil {
 		return errwrap.Wrapf("Error Expanding NAT Rule {{err}}", err)
 	}
@@ -135,11 +135,11 @@ func resourceArmLoadbalancerNatRuleCreate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
 	}
 
-	return resourceArmLoadbalancerNatRuleRead(d, meta)
+	return resourceArmLoadBalancerNatRuleRead(d, meta)
 }
 
-func resourceArmLoadbalancerNatRuleRead(d *schema.ResourceData, meta interface{}) error {
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Id(), meta)
+func resourceArmLoadBalancerNatRuleRead(d *schema.ResourceData, meta interface{}) error {
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -173,11 +173,11 @@ func resourceArmLoadbalancerNatRuleRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceArmLoadbalancerNatRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerNatRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -216,7 +216,7 @@ func resourceArmLoadbalancerNatRuleDelete(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func expandAzureRmLoadbalancerNatRule(d *schema.ResourceData, lb *network.LoadBalancer) (*network.InboundNatRule, error) {
+func expandAzureRmLoadBalancerNatRule(d *schema.ResourceData, lb *network.LoadBalancer) (*network.InboundNatRule, error) {
 
 	properties := network.InboundNatRulePropertiesFormat{
 		Protocol:     network.TransportProtocol(d.Get("protocol").(string)),

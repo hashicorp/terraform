@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAzureRMLoadbalancerBackEndAddressPool_basic(t *testing.T) {
+func TestAccAzureRMLoadBalancerBackEndAddressPool_basic(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	addressPoolName := fmt.Sprintf("%d-address-pool", ri)
@@ -18,20 +18,20 @@ func TestAccAzureRMLoadbalancerBackEndAddressPool_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadbalancerDestroy,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadbalancerBackEndAddressPool_basic(ri, addressPoolName),
+				Config: testAccAzureRMLoadBalancerBackEndAddressPool_basic(ri, addressPoolName),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerBackEndAddressPoolExists(addressPoolName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerBackEndAddressPoolExists(addressPoolName, &lb),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMLoadbalancerBackEndAddressPool_removal(t *testing.T) {
+func TestAccAzureRMLoadBalancerBackEndAddressPool_removal(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
 	addressPoolName := fmt.Sprintf("%d-address-pool", ri)
@@ -39,20 +39,20 @@ func TestAccAzureRMLoadbalancerBackEndAddressPool_removal(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLoadbalancerDestroy,
+		CheckDestroy: testCheckAzureRMLoadBalancerDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLoadbalancerBackEndAddressPool_removal(ri),
+				Config: testAccAzureRMLoadBalancerBackEndAddressPool_removal(ri),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLoadbalancerExists("azurerm_lb.test", &lb),
-					testCheckAzureRMLoadbalancerBackEndAddressPoolNotExists(addressPoolName, &lb),
+					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
+					testCheckAzureRMLoadBalancerBackEndAddressPoolNotExists(addressPoolName, &lb),
 				),
 			},
 		},
 	})
 }
 
-func testCheckAzureRMLoadbalancerBackEndAddressPoolExists(addressPoolName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+func testCheckAzureRMLoadBalancerBackEndAddressPoolExists(addressPoolName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerBackEndAddressPoolByName(lb, addressPoolName)
 		if !exists {
@@ -63,7 +63,7 @@ func testCheckAzureRMLoadbalancerBackEndAddressPoolExists(addressPoolName string
 	}
 }
 
-func testCheckAzureRMLoadbalancerBackEndAddressPoolNotExists(addressPoolName string, lb *network.LoadBalancer) resource.TestCheckFunc {
+func testCheckAzureRMLoadBalancerBackEndAddressPoolNotExists(addressPoolName string, lb *network.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		_, _, exists := findLoadBalancerBackEndAddressPoolByName(lb, addressPoolName)
 		if exists {
@@ -74,7 +74,7 @@ func testCheckAzureRMLoadbalancerBackEndAddressPoolNotExists(addressPoolName str
 	}
 }
 
-func testAccAzureRMLoadbalancerBackEndAddressPool_basic(rInt int, addressPoolName string) string {
+func testAccAzureRMLoadBalancerBackEndAddressPool_basic(rInt int, addressPoolName string) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"
@@ -109,7 +109,7 @@ resource "azurerm_lb_backend_address_pool" "test" {
 `, rInt, rInt, rInt, rInt, addressPoolName)
 }
 
-func testAccAzureRMLoadbalancerBackEndAddressPool_removal(rInt int) string {
+func testAccAzureRMLoadBalancerBackEndAddressPool_removal(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"

@@ -12,12 +12,12 @@ import (
 	"github.com/jen20/riviera/azure"
 )
 
-func resourceArmLoadbalancerProbe() *schema.Resource {
+func resourceArmLoadBalancerProbe() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmLoadbalancerProbeCreate,
-		Read:   resourceArmLoadbalancerProbeRead,
-		Update: resourceArmLoadbalancerProbeCreate,
-		Delete: resourceArmLoadbalancerProbeDelete,
+		Create: resourceArmLoadBalancerProbeCreate,
+		Read:   resourceArmLoadBalancerProbeRead,
+		Update: resourceArmLoadBalancerProbeCreate,
+		Delete: resourceArmLoadBalancerProbeDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -84,11 +84,11 @@ func resourceArmLoadbalancerProbe() *schema.Resource {
 	}
 }
 
-func resourceArmLoadbalancerProbeCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -103,7 +103,7 @@ func resourceArmLoadbalancerProbeCreate(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("A Probe with name %q already exists.", d.Get("name").(string))
 	}
 
-	newProbe, err := expandAzureRmLoadbalancerProbe(d, loadBalancer)
+	newProbe, err := expandAzureRmLoadBalancerProbe(d, loadBalancer)
 	if err != nil {
 		return errwrap.Wrapf("Error Expanding Probe {{err}}", err)
 	}
@@ -141,11 +141,11 @@ func resourceArmLoadbalancerProbeCreate(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error waiting for LoadBalancer (%s) to become available: %s", loadBalancerName, err)
 	}
 
-	return resourceArmLoadbalancerProbeRead(d, meta)
+	return resourceArmLoadBalancerProbeRead(d, meta)
 }
 
-func resourceArmLoadbalancerProbeRead(d *schema.ResourceData, meta interface{}) error {
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Id(), meta)
+func resourceArmLoadBalancerProbeRead(d *schema.ResourceData, meta interface{}) error {
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -173,11 +173,11 @@ func resourceArmLoadbalancerProbeRead(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceArmLoadbalancerProbeDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArmLoadBalancerProbeDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadbalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -216,7 +216,7 @@ func resourceArmLoadbalancerProbeDelete(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func expandAzureRmLoadbalancerProbe(d *schema.ResourceData, lb *network.LoadBalancer) (*network.Probe, error) {
+func expandAzureRmLoadBalancerProbe(d *schema.ResourceData, lb *network.LoadBalancer) (*network.Probe, error) {
 
 	properties := network.ProbePropertiesFormat{
 		NumberOfProbes:    azure.Int32(int32(d.Get("number_of_probes").(int))),

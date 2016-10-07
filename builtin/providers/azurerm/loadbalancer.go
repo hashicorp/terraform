@@ -21,7 +21,7 @@ func resourceGroupAndLBNameFromId(loadBalancerId string) (string, string, error)
 	return resGroup, name, nil
 }
 
-func retrieveLoadbalancerById(loadBalancerId string, meta interface{}) (*network.LoadBalancer, bool, error) {
+func retrieveLoadBalancerById(loadBalancerId string, meta interface{}) (*network.LoadBalancer, bool, error) {
 	loadBalancerClient := meta.(*ArmClient).loadBalancerClient
 
 	resGroup, name, err := resourceGroupAndLBNameFromId(loadBalancerId)
@@ -135,7 +135,7 @@ func loadbalancerStateRefreshFunc(client *ArmClient, resourceGroupName string, l
 	}
 }
 
-func validateLoadbalancerPrivateIpAddressAllocation(v interface{}, k string) (ws []string, errors []error) {
+func validateLoadBalancerPrivateIpAddressAllocation(v interface{}, k string) (ws []string, errors []error) {
 	value := strings.ToLower(v.(string))
 	if value != "static" && value != "dynamic" {
 		errors = append(errors, fmt.Errorf("LoadBalancer Allocations can only be Static or Dynamic"))
