@@ -34,7 +34,7 @@ body.page-home {
 	}
 
 	#primary-cta{
-		padding-bottom: 60px;
+		padding-bottom: 160px;
 		color: $white;
 		background: $black;
 
@@ -46,15 +46,26 @@ body.page-home {
 	#customer-logos{
 		position: relative;
 		width: 100%;
+		margin-top: -100px;
 		padding: 60px 0;
 		color: $white;
-		background: $black;
+
+		>.container {
+			z-index: 21;
+		}
 
 		p {
 			display: inline-block;
 			float: left;
 			margin-right: 6%;
 			padding-top: 20px;
+		}
+
+		#customer-logos-bg{
+			@include skewY(-3deg);
+			z-index: 20;
+			background: $black;
+			background-size: 100%;
 		}
 	}
 
