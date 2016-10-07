@@ -13,15 +13,15 @@ description: |-
 ```
 resource "aws_iot_policy_attachment" "cert_policies" {
   name = "cert_policies"
-  principal = "${aws_iot_certificate.cert.arn}"
-  policies = ["${aws_iot_policy.pubsub.name}"]
+  principals = ["${aws_iot_certificate.cert.arn}"]
+  policy = "${aws_iot_policy.pubsub.name}"
 }
 ```
 
 ## Argument Reference
 
 * `name` - A name for the policy attachment
-* `principal` - The principal of the attachment
-* `policies` - List of policies to attach to the principal
+* `principals` - List of principals of the attachment
+* `policy` - Policy to attach to the principals
 
 ## Attributes Reference
