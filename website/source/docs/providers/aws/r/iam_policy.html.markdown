@@ -39,7 +39,9 @@ The following arguments are supported:
 * `description` - (Optional) Description of the IAM policy.
 * `path` - (Optional, default "/") Path in which to create the policy.
 * `policy` - (Required) The policy document. This is a JSON formatted string.
-  The heredoc syntax or `file` function is helpful here.
+  The heredoc syntax, `file` function, or the [`aws_iam_policy_document` data
+  source](/docs/providers/aws/d/iam_policy_document.html)
+  are all helpful here.
 * `name` (Required) - The name of the policy.
 
 ## Attributes Reference
