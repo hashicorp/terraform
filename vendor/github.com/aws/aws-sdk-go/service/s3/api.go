@@ -5487,6 +5487,11 @@ type GetObjectInput struct {
 
 	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
+	// Part number of the object being read. This is a positive integer between
+	// 1 and 10,000. Effectively performs a 'ranged' GET request for the part specified.
+	// Useful for downloading just a part of an object.
+	PartNumber *int64 `location:"querystring" locationName:"partNumber" type:"integer"`
+
 	// Downloads the specified range bytes of an object. For more information about
 	// the HTTP Range header, go to http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35.
 	Range *string `location:"header" locationName:"Range" type:"string"`
@@ -5622,6 +5627,9 @@ type GetObjectOutput struct {
 	// supports more flexible metadata than the REST API. For example, using SOAP,
 	// you can create metadata whose values are not legal HTTP headers.
 	MissingMeta *int64 `location:"header" locationName:"x-amz-missing-meta" type:"integer"`
+
+	// The count of parts this object has.
+	PartsCount *int64 `location:"header" locationName:"x-amz-mp-parts-count" type:"integer"`
 
 	ReplicationStatus *string `location:"header" locationName:"x-amz-replication-status" type:"string" enum:"ReplicationStatus"`
 
@@ -5877,6 +5885,12 @@ type HeadObjectInput struct {
 
 	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
+	// Part number of the object being read. This is a positive integer between
+	// 1 and 10,000. Effectively performs a 'ranged' HEAD request for the part specified.
+	// Useful querying about the size of the part and the number of parts in this
+	// object.
+	PartNumber *int64 `location:"querystring" locationName:"partNumber" type:"integer"`
+
 	// Downloads the specified range bytes of an object. For more information about
 	// the HTTP Range header, go to http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35.
 	Range *string `location:"header" locationName:"Range" type:"string"`
@@ -5988,6 +6002,9 @@ type HeadObjectOutput struct {
 	// supports more flexible metadata than the REST API. For example, using SOAP,
 	// you can create metadata whose values are not legal HTTP headers.
 	MissingMeta *int64 `location:"header" locationName:"x-amz-missing-meta" type:"integer"`
+
+	// The count of parts this object has.
+	PartsCount *int64 `location:"header" locationName:"x-amz-mp-parts-count" type:"integer"`
 
 	ReplicationStatus *string `location:"header" locationName:"x-amz-replication-status" type:"string" enum:"ReplicationStatus"`
 
@@ -6552,6 +6569,11 @@ type ListObjectsInput struct {
 
 	// Limits the response to keys that begin with the specified prefix.
 	Prefix *string `location:"querystring" locationName:"prefix" type:"string"`
+
+	// Confirms that the requester knows that she or he will be charged for the
+	// list objects request. Bucket owners need not specify this parameter in their
+	// requests.
+	RequestPayer *string `location:"header" locationName:"x-amz-request-payer" type:"string" enum:"RequestPayer"`
 }
 
 // String returns the string representation
@@ -6649,6 +6671,11 @@ type ListObjectsV2Input struct {
 
 	// Limits the response to keys that begin with the specified prefix.
 	Prefix *string `location:"querystring" locationName:"prefix" type:"string"`
+
+	// Confirms that the requester knows that she or he will be charged for the
+	// list objects request in V2 style. Bucket owners need not specify this parameter
+	// in their requests.
+	RequestPayer *string `location:"header" locationName:"x-amz-request-payer" type:"string" enum:"RequestPayer"`
 
 	// StartAfter is where you want Amazon S3 to start listing from. Amazon S3 starts
 	// listing after this specified key. StartAfter can be any key in the bucket
