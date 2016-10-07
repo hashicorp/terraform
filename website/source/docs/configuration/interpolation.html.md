@@ -23,7 +23,7 @@ will be rendered as a literal `${foo}`.
 
 ## Available Variables
 
-**To reference user variables**, use the `var.` prefix followed by the
+**To reference user string variables**, use the `var.` prefix followed by the
 variable name. For example, `${var.foo}` will interpolate the
 `foo` variable value.
 
