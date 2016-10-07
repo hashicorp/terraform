@@ -51,19 +51,19 @@ body.page-home {
 		color: $white;
 
 		>.container {
-			z-index: 91;
+			z-index: 21;
 		}
 
 		p {
 			display: inline-block;
 			float: left;
 			margin-right: 6%;
-			padding-top: 30px;
+			padding-top: 20px;
 		}
 
 		#customer-logos-bg{
 			@include skewY(-3deg);
-			z-index: 30;
+			z-index: 20;
 			background: $black;
 			background-size: 100%;
 		}
@@ -156,10 +156,8 @@ body.page-home {
 	}
 
 	#feature-overview{
-		position: relative;
 		padding: 120px 0;
 		border-bottom: 2px solid #E6E7E8;
-		z-index: 80;
 	}
 
 	.feature-card {
@@ -204,18 +202,16 @@ body.page-home {
 		padding: 180px 0 200px;
 		margin-top: -80px;
 
-
 		>.container {
-			z-index: 71;
+			z-index: 21;
 		}
 
 		#feature-write-bg{
 			border-top: 2px solid white;
 			border-bottom: 2px solid $purple;
-			background: $white image-url("feature-write-bg.svg") 85% bottom no-repeat;
+			background: image-url("feature-write-bg.svg") 85% 100% no-repeat;
 			background-size: 570px;
-			z-index: 70;
-			@include skewY(3deg);
+			z-index: 20;
 		}
 	}
 
@@ -224,11 +220,11 @@ body.page-home {
 		color: $white;
 		background-size: 80%;
 		position: relative;
-		padding: 220px 0 180px;
+		padding: 180px 0 180px;
 		margin-top: -80px;
 
 		>.container {
-			z-index: 61;
+			z-index: 21;
 			background: image-url("feature-plan-bg.svg") 0% 45% no-repeat;
 			background-size: 100%;
 		}
@@ -241,20 +237,20 @@ body.page-home {
 			background: $purple;
 			border-top: 2px solid white;
 			border-bottom: 2px solid $purple;
-			z-index: 60;
-			@include skewY(-3deg);
+			z-index: 20;
+			@include skewY(3deg);
 		}
 	}
 
 	#feature-create{
 		position: relative;
 		margin-top: -80px;
-		padding: 240px 0 180px;
+		padding: 240px 0 300px;
 
 		>.container{
 			background: image-url("feature-create-bg.svg") 95% 20% no-repeat;
 			background-size: 40%;
-			z-index: 51;
+			z-index: 21;
 		}
 
 		p.lead {
@@ -263,24 +259,24 @@ body.page-home {
 
 		#feature-create-bg{
 			@include skewY(3deg);
-			z-index: 50;
+			z-index: 20;
 		}
 
 	}
 
 	#demos{
 		position: relative;
-		padding: 120px 0 60px;
+		padding: 180px 0 60px;
 		margin-top: -80px;
 
 		>.container{
-			z-index: 41;
+			z-index: 31;
 		}
 
 		#demo-bg{
 			background-color: #E6E7E8;
-			@include skewY(3deg);
-			z-index: 40;
+			@include skewY(-3deg);
+			z-index: 30;
 		}
 
 		h2{
@@ -424,30 +420,30 @@ body.page-home {
 	#latest-announcement{
 		position: relative;
 		margin-top: -80px;
-		padding: 240px 0 160px;
+		padding: 240px 0;
 		color: $white;
 		text-align: center;
 
 		>.container {
-			z-index: 51;
+			z-index: 21;
 		}
 	}
 
 	#latest-announcement-bg{
-		@include skewY(-3deg);
-		z-index: 30;
+		@include skewY(3deg);
+		z-index: 20;
 		background: $purple image-url("latest-announce-bg.svg") bottom left no-repeat;
 		background-size: 100%;
 	}
 
 	#enterprise-intro {
 		position: relative;
-		padding: 220px 0 180px;
+		padding: 180px 0;
 		margin-top: -80px;
 		color: #fff;
 
 		>.container {
-			z-index: 31;
+			z-index: 21;
 		}
 
 		h2 {
