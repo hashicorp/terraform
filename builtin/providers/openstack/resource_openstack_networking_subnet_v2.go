@@ -245,9 +245,9 @@ func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if d.HasChange("no_gateway") {
-		noGateway := d.Get("no_gateway").(bool)
-		if noGateway {
-			updateOpts.GatewayIP = nil
+		if d.Get("no_gateway").(bool) {
+			gatewayIP := ""
+			updateOpts.GatewayIP = &gatewayIP
 		}
 	}
 
