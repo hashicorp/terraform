@@ -118,6 +118,7 @@ type AWSClient struct {
 	stsconn               *sts.STS
 	redshiftconn          *redshift.Redshift
 	r53conn               *route53.Route53
+	partition             string
 	accountid             string
 	region                string
 	rdsconn               *rds.RDS
@@ -226,8 +227,9 @@ func (c *Config) Client() (interface{}, error) {
 	}
 
 	if !c.SkipRequestingAccountId {
-		accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
+		partition, accountId, err := GetAccountInfo(client.iamconn, client.stsconn, cp.ProviderName)
 		if err == nil {
+			client.partition = partition
 			client.accountid = accountId
 		}
 	}
