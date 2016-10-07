@@ -39,5 +39,14 @@ type SubnetCreateOpts struct {
 // ToSubnetCreateMap casts a CreateOpts struct to a map.
 // It overrides subnets.ToSubnetCreateMap to add the ValueSpecs field.
 func (opts SubnetCreateOpts) ToSubnetCreateMap() (map[string]interface{}, error) {
-	return BuildRequest(opts, "subnet")
+	b, err := BuildRequest(opts, "subnet")
+	if err != nil {
+		return nil, err
+	}
+
+	if m := b["subnet"].(map[string]interface{}); m["gateway_ip"] == "" {
+		m["gateway_ip"] = nil
+	}
+
+	return b, nil
 }
