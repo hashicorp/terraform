@@ -1,5 +1,9 @@
 ## 0.7.6 (UNRELEASED)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * `azurerm_virtual_machine` has deprecated the use of `diagnostics_profile` in favour of `boot_diagnostics`. [GH-9122]
+
+
 FEATURES:
  * **New Data Source:** `aws_billing_service_account` [GH-8701]
  * **New Resource:** `azurerm_lb` [GH-9199]
@@ -23,6 +27,7 @@ BUG FIXES:
  * provider/aws: Return correct AMI image when `most_recent` is set to `true`. [GH-9277]
  * provider/aws: Fix issue with diff on import of aws_eip in EC2 Classic [GH-9009]
  * provider/azurerm: removing resources from state when the API returns a 404 for them [GH-8859]
+ * provider/azurerm: arm_virtual_machine diagnostics_profile was causing a panic on the Read func [GH-9122]
 
 ## 0.7.5 (October 6, 2016)
 
