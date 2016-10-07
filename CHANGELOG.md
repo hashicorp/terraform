@@ -7,6 +7,7 @@ IMPROVEMENTS:
  * provider/aws: Support Import of OpsWorks Custom Layers [GH-9252]
  * provider/azurerm: expose default keys for servicebus_namespace [GH-9242]
  * provider/azurerm: add enable_blob_encryption to storage_account resource [GH-9233]
+ * provider/azurerm: set resource_group_name on resource import across the provider [GH-9073]
  * provider/datadog: add support for Datadog dashboard "type" and "style" options [GH-9228]
  
  
