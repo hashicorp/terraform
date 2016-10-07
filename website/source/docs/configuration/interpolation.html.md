@@ -25,10 +25,15 @@ will be rendered as a literal `${foo}`.
 
 **To reference user variables**, use the `var.` prefix followed by the
 variable name. For example, `${var.foo}` will interpolate the
-`foo` variable value. If the variable is a map, then you
-can reference static keys in the map with the syntax
-`var.MAP["KEY"]`. For example, `${var.amis["us-east-1"]` would
-get the value of the `us-east-1` key within the `amis` map variable.
+`foo` variable value.
+
+**To reference user map variables**, the syntax is `var.MAP["KEY"]`.  For
+example, `${var.amis["us-east-1"]}` would get the value of the `us-east-1`
+key within the `amis` map variable.
+
+**To reference user list variables**, the syntax is `["${var.LIST}"]`.  For
+example, `["${var.subnets}"]` would get the value of the `subnets` list, as a
+list.
 
 **To reference attributes of your own resource**, the syntax is
 `self.ATTRIBUTE`. For example `${self.private_ip_address}` will
