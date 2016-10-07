@@ -62,10 +62,11 @@ body.page-home {
 		}
 
 		#customer-logos-bg{
-			@include skewY(-3deg);
 			z-index: 30;
 			background: $black;
 			background-size: 100%;
+			@include skewY(-3deg);
+			-webkit-backface-visibility: hidden;
 		}
 	}
 
@@ -214,6 +215,7 @@ body.page-home {
 			background-size: 570px;
 			z-index: 70;
 			@include skewY(3deg);
+			-webkit-backface-visibility: hidden;
 		}
 	}
 
@@ -239,6 +241,7 @@ body.page-home {
 			background: $purple;
 			z-index: 60;
 			@include skewY(-3deg);
+			-webkit-backface-visibility: hidden;
 		}
 	}
 
@@ -249,7 +252,7 @@ body.page-home {
 
 		>.container{
 			background: image-url("feature-create-bg.svg") 95% 20% no-repeat;
-			background-size: 40%;
+			background-size: 42%;
 			z-index: 51;
 		}
 
@@ -259,6 +262,7 @@ body.page-home {
 
 		#feature-create-bg{
 			@include skewY(3deg);
+
 			z-index: 50;
 		}
 
