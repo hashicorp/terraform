@@ -28,6 +28,8 @@ func TestAccAzureRMAvailabilitySet_basic(t *testing.T) {
 						"azurerm_availability_set.test", "platform_update_domain_count", "5"),
 					resource.TestCheckResourceAttr(
 						"azurerm_availability_set.test", "platform_fault_domain_count", "3"),
+					resource.TestCheckResourceAttr(
+						"azurerm_availability_set.test", "location", "canadacentral"),
 				),
 			},
 		},
@@ -204,11 +206,11 @@ func testCheckAzureRMAvailabilitySetDestroy(s *terraform.State) error {
 var testAccAzureRMVAvailabilitySet_basic = `
 resource "azurerm_resource_group" "test" {
     name = "acctestrg-%d"
-    location = "West US"
+    location = "Canada Central"
 }
 resource "azurerm_availability_set" "test" {
     name = "acctestavset-%d"
-    location = "West US"
+    location = "Canada Central"
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 `
