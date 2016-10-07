@@ -2,6 +2,12 @@
 
 FEATURES:
  * **New Data Source:** `aws_billing_service_account` [GH-8701]
+ * **New Resource:** `azurerm_lb` [GH-9199]
+ * **New Resource:** `azurerm_lb_backend_address_pool` [GH-9199]
+ * **New Resource:** `azurerm_lb_nat_rule` [GH-9199]
+ * **New Resource:** `azurerm_lb_nat_pool` [GH-9199]
+ * **New Resource:** `azurerm_lb_probe` [GH-9199]
+ * **New Resource:** `azurerm_lb_rule` [GH-9199]
 
 
 IMPROVEMENTS:
