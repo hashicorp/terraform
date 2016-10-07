@@ -88,6 +88,11 @@ func resourceAwsAlb() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 					},
 				},
 			},
@@ -276,7 +281,7 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 			attributes = append(attributes,
 				&elbv2.LoadBalancerAttribute{
 					Key:   aws.String("access_logs.s3.enabled"),
-					Value: aws.String("true"),
+					Value: aws.String(log["enabled"].(bool)),
 				},
 				&elbv2.LoadBalancerAttribute{
 					Key:   aws.String("access_logs.s3.bucket"),
