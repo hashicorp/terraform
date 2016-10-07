@@ -689,6 +689,8 @@ func (c *CloudFormation) DescribeStacksRequest(input *DescribeStacksInput) (req 
 
 // Returns the description for the specified stack; if no stack name was specified,
 // then it returns the description for all the stacks created.
+//
+//  If the stack does not exist, an AmazonCloudFormationException is returned.
 func (c *CloudFormation) DescribeStacks(input *DescribeStacksInput) (*DescribeStacksOutput, error) {
 	req, out := c.DescribeStacksRequest(input)
 	err := req.Send()
@@ -1406,7 +1408,10 @@ func (c *CloudFormation) ValidateTemplateRequest(input *ValidateTemplateInput) (
 	return
 }
 
-// Validates a specified template.
+// Validates a specified template. AWS CloudFormation first checks if the template
+// is valid JSON. If it isn't, AWS CloudFormation checks if the template is
+// valid YAML. If both these checks fail, AWS CloudFormation returns a template
+// validation error.
 func (c *CloudFormation) ValidateTemplate(input *ValidateTemplateInput) (*ValidateTemplateOutput, error) {
 	req, out := c.ValidateTemplateRequest(input)
 	err := req.Send()
@@ -1556,6 +1561,19 @@ func (s ChangeSetSummary) GoString() string {
 type ContinueUpdateRollbackInput struct {
 	_ struct{} `type:"structure"`
 
+	// The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM)
+	// role that AWS CloudFormation assumes to roll back the stack. AWS CloudFormation
+	// uses the role's credentials to make calls on your behalf. AWS CloudFormation
+	// always uses this role for all future operations on the stack. As long as
+	// users have permission to operate on the stack, AWS CloudFormation uses this
+	// role even if the users don't have permission to pass it. Ensure that the
+	// role grants least privilege.
+	//
+	// If you don't specify a value, AWS CloudFormation uses the role that was
+	// previously associated with the stack. If no role is available, AWS CloudFormation
+	// uses a temporary session that is generated from your user credentials.
+	RoleARN *string `min:"20" type:"string"`
+
 	// The name or the unique ID of the stack that you want to continue rolling
 	// back.
 	StackName *string `min:"1" type:"string" required:"true"`
@@ -1574,6 +1592,9 @@ func (s ContinueUpdateRollbackInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *ContinueUpdateRollbackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ContinueUpdateRollbackInput"}
+	if s.RoleARN != nil && len(*s.RoleARN) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 20))
+	}
 	if s.StackName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StackName"))
 	}
@@ -1672,6 +1693,19 @@ type CreateChangeSetInput struct {
 	// in the AWS CloudFormation User Guide.
 	ResourceTypes []*string `type:"list"`
 
+	// The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM)
+	// role that AWS CloudFormation assumes when executing the change set. AWS CloudFormation
+	// uses the role's credentials to make calls on your behalf. AWS CloudFormation
+	// always uses this role for all future operations on the stack. As long as
+	// users have permission to operate on the stack, AWS CloudFormation uses this
+	// role even if the users don't have permission to pass it. Ensure that the
+	// role grants least privilege.
+	//
+	// If you don't specify a value, AWS CloudFormation uses the role that was
+	// previously associated with the stack. If no role is available, AWS CloudFormation
+	// uses a temporary session that is generated from your user credentials.
+	RoleARN *string `min:"20" type:"string"`
+
 	// The name or the unique ID of the stack for which you are creating a change
 	// set. AWS CloudFormation generates the change set by comparing this stack's
 	// information with the information that you submit, such as a modified template
@@ -1727,6 +1761,9 @@ func (s *CreateChangeSetInput) Validate() error {
 	}
 	if s.Description != nil && len(*s.Description) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Description", 1))
+	}
+	if s.RoleARN != nil && len(*s.RoleARN) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 20))
 	}
 	if s.StackName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StackName"))
@@ -1834,6 +1871,19 @@ type CreateStackInput struct {
 	// Management (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html).
 	ResourceTypes []*string `type:"list"`
 
+	// The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM)
+	// role that AWS CloudFormation assumes to create the stack. AWS CloudFormation
+	// uses the role's credentials to make calls on your behalf. AWS CloudFormation
+	// always uses this role for all future operations on the stack. As long as
+	// users have permission to operate on the stack, AWS CloudFormation uses this
+	// role even if the users don't have permission to pass it. Ensure that the
+	// role grants least privilege.
+	//
+	// If you don't specify a value, AWS CloudFormation uses the role that was
+	// previously associated with the stack. If no role is available, AWS CloudFormation
+	// uses a temporary session that is generated from your user credentials.
+	RoleARN *string `min:"20" type:"string"`
+
 	// The name that is associated with the stack. The name must be unique in the
 	// region in which you are creating the stack.
 	//
@@ -1849,7 +1899,7 @@ type CreateStackInput struct {
 	StackPolicyBody *string `min:"1" type:"string"`
 
 	// Location of a file containing the stack policy. The URL must point to a policy
-	// (max size: 16KB) located in an S3 bucket in the same region as the stack.
+	// (maximum size: 16 KB) located in an S3 bucket in the same region as the stack.
 	// You can specify either the StackPolicyBody or the StackPolicyURL parameter,
 	// but not both.
 	StackPolicyURL *string `min:"1" type:"string"`
@@ -1896,6 +1946,9 @@ func (s CreateStackInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateStackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateStackInput"}
+	if s.RoleARN != nil && len(*s.RoleARN) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 20))
+	}
 	if s.StackName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StackName"))
 	}
@@ -2008,6 +2061,15 @@ type DeleteStackInput struct {
 	// a non-empty S3 bucket, but you want to delete the stack.
 	RetainResources []*string `type:"list"`
 
+	// The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM)
+	// role that AWS CloudFormation assumes to delete the stack. AWS CloudFormation
+	// uses the role's credentials to make calls on your behalf.
+	//
+	// If you don't specify a value, AWS CloudFormation uses the role that was
+	// previously associated with the stack. If no role is available, AWS CloudFormation
+	// uses a temporary session that is generated from your user credentials.
+	RoleARN *string `min:"20" type:"string"`
+
 	// The name or the unique stack ID that is associated with the stack.
 	StackName *string `type:"string" required:"true"`
 }
@@ -2025,6 +2087,9 @@ func (s DeleteStackInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DeleteStackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteStackInput"}
+	if s.RoleARN != nil && len(*s.RoleARN) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 20))
+	}
 	if s.StackName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StackName"))
 	}
@@ -2712,6 +2777,9 @@ type GetTemplateOutput struct {
 	// Structure containing the template body. (For more information, go to Template
 	// Anatomy (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html)
 	// in the AWS CloudFormation User Guide.)
+	//
+	// AWS CloudFormation returns the same template that was used when the stack
+	// was created.
 	TemplateBody *string `min:"1" type:"string"`
 }
 
@@ -3454,6 +3522,11 @@ type Stack struct {
 	// A list of Parameter structures.
 	Parameters []*Parameter `type:"list"`
 
+	// The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM)
+	// role that is associated with the stack. During a stack operation, AWS CloudFormation
+	// uses this role's credentials to make calls on your behalf.
+	RoleARN *string `min:"20" type:"string"`
+
 	// Unique identifier of the stack.
 	StackId *string `type:"string"`
 
@@ -3589,8 +3662,8 @@ type StackResourceDetail struct {
 	// The logical name of the resource specified in the template.
 	LogicalResourceId *string `type:"string" required:"true"`
 
-	// The JSON format content of the Metadata attribute declared for the resource.
-	// For more information, see Metadata Attribute (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-metadata.html)
+	// The content of the Metadata attribute declared for the resource. For more
+	// information, see Metadata Attribute (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-metadata.html)
 	// in the AWS CloudFormation User Guide.
 	Metadata *string `type:"string"`
 
@@ -3806,6 +3879,19 @@ type UpdateStackInput struct {
 	// Management (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-template.html).
 	ResourceTypes []*string `type:"list"`
 
+	// The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM)
+	// role that AWS CloudFormation assumes to update the stack. AWS CloudFormation
+	// uses the role's credentials to make calls on your behalf. AWS CloudFormation
+	// always uses this role for all future operations on the stack. As long as
+	// users have permission to operate on the stack, AWS CloudFormation uses this
+	// role even if the users don't have permission to pass it. Ensure that the
+	// role grants least privilege.
+	//
+	// If you don't specify a value, AWS CloudFormation uses the role that was
+	// previously associated with the stack. If no role is available, AWS CloudFormation
+	// uses a temporary session that is generated from your user credentials.
+	RoleARN *string `min:"20" type:"string"`
+
 	// The name or unique stack ID of the stack to update.
 	StackName *string `type:"string" required:"true"`
 
@@ -3891,6 +3977,9 @@ func (s UpdateStackInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *UpdateStackInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "UpdateStackInput"}
+	if s.RoleARN != nil && len(*s.RoleARN) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("RoleARN", 20))
+	}
 	if s.StackName == nil {
 		invalidParams.Add(request.NewErrParamRequired("StackName"))
 	}
