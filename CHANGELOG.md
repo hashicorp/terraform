@@ -15,6 +15,7 @@ IMPROVEMENTS:
  
 BUG FIXES:
  * provider/aws: Return correct AMI image when `most_recent` is set to `true`. [GH-9277]
+ * provider/aws: Fix issue with diff on import of aws_eip in EC2 Classic [GH-9009]
  * provider/azurerm: removing resources from state when the API returns a 404 for them [GH-8859]
 
 ## 0.7.5 (October 6, 2016)
