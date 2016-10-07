@@ -61,7 +61,7 @@ EOF
 
 resource "aws_iot_policy_attachment" "cert_policies" {
   name = "cert_policies"
-  principal = "${aws_iot_certificate.cert.arn}"
-  policies = ["${aws_iot_policy.pubsub.name}"]
+  principals = ["${aws_iot_certificate.cert.arn}"]
+  policy = "${aws_iot_policy.pubsub.name}"
 }
 `
