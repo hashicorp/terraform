@@ -45,16 +45,68 @@ body.page-home {
 
 	#customer-logos{
 		position: relative;
+		width: 100%;
 		padding: 60px 0;
 		color: $white;
 		background: $black;
+
+		p {
+			display: inline-block;
+			float: left;
+			margin-right: 6%;
+			padding-top: 20px;
+		}
 	}
 
 	ul.customer-list{
+		display: inline;
+		width: 100%;
+		text-align: justify;
 
 		li {
-			display: inline;
+			display: inline-block;
+			width: 80px;
+			height: 80px;
+			margin-right: 6%;
+			text-indent: 100%;
+	    white-space: nowrap;
+	    overflow: hidden;
 		}
+
+		li.last {
+			float: right;
+		}
+
+		#nike {
+			background: transparent image-url("customer-logos/nike.svg") center no-repeat;
+			background-size: 100%;
+		}
+
+		#hbo {
+			background: transparent image-url("customer-logos/hbo.svg") center no-repeat;
+			background-size: 80%;
+		}
+
+		#target {
+			background: transparent image-url("customer-logos/target.svg") center no-repeat;
+			background-size: 60%;
+		}
+
+		#capital-one {
+			background: transparent image-url("customer-logos/capital-one.svg") center no-repeat;
+			background-size: 100%;
+		}
+
+		#home-depot {
+			background: transparent image-url("customer-logos/home-depot.svg") center no-repeat;
+			background-size: 70%;
+		}
+
+		#hotels-dot-com {
+			background: transparent image-url("customer-logos/hotels-dot-com.svg") center no-repeat;
+			background-size: 100%;
+		}
+
 	}
 
 	.feature{
