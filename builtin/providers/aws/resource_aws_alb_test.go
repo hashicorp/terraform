@@ -232,6 +232,7 @@ func TestAccAWSALB_accesslogs(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.#", "1"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.0.bucket", bucketName),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.0.prefix", "testAccAWSALBConfig_accessLogs"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.0.enabled", "true"),
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "arn"),
 				),
 			},
@@ -582,6 +583,7 @@ func testAccAWSALBConfig_accessLogs(albName, bucketName string) string {
   access_logs {
   	bucket = "${aws_s3_bucket.logs.bucket}"
   	prefix = "${var.bucket_prefix}"
+  	enabled = "${var.enabled}"
   }
 
   tags {
