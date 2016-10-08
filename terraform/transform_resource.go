@@ -862,7 +862,7 @@ func (n *graphNodeExpandedResourceDestroy) ConfigType() GraphNodeConfigType {
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 	info := n.instanceInfo()
-	info.Id += " (destroy)"
+	info.uniqueExtra = "destroy"
 
 	var diffApply *InstanceDiff
 	var provider ResourceProvider

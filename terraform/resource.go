@@ -62,6 +62,12 @@ type InstanceInfo struct {
 
 	// Type is the resource type of this instance
 	Type string
+
+	// uniqueExtra is an internal field that can be populated to supply
+	// extra metadata that is used to identify a unique instance in
+	// the graph walk. This will be appended to HumanID when uniqueId
+	// is called.
+	uniqueExtra string
 }
 
 // HumanId is a unique Id that is human-friendly and useful for UI elements.
@@ -74,6 +80,15 @@ func (i *InstanceInfo) HumanId() string {
 		"module.%s.%s",
 		strings.Join(i.ModulePath[1:], "."),
 		i.Id)
+}
+
+func (i *InstanceInfo) uniqueId() string {
+	prefix := i.HumanId()
+	if v := i.uniqueExtra; v != "" {
+		prefix += " " + v
+	}
+
+	return prefix
 }
 
 // ResourceConfig holds the configuration given for a resource. This is
