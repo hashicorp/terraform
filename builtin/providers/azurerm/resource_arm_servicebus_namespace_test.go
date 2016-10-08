@@ -158,7 +158,7 @@ func testCheckAzureRMServiceBusNamespaceExists(name string) resource.TestCheckFu
 		namespaceName := rs.Primary.Attributes["name"]
 		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
 		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for public ip: %s", namespaceName)
+			return fmt.Errorf("Bad: no resource group found in state for Service Bus Namespace: %s", namespaceName)
 		}
 
 		conn := testAccProvider.Meta().(*ArmClient).serviceBusNamespacesClient
@@ -169,7 +169,7 @@ func testCheckAzureRMServiceBusNamespaceExists(name string) resource.TestCheckFu
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: Public IP %q (resource group: %q) does not exist", namespaceName, resourceGroup)
+			return fmt.Errorf("Bad: Service Bus Namespace %q (resource group: %q) does not exist", namespaceName, resourceGroup)
 		}
 
 		return nil

@@ -119,7 +119,7 @@ func TestAccAzureRMEventHubNamespace_readDefaultKeys(t *testing.T) {
 }
 
 func testCheckAzureRMEventHubNamespaceDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*ArmClient).serviceBusNamespacesClient
+	conn := testAccProvider.Meta().(*ArmClient).eventHubNamespacesClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "azurerm_eventhub_namespace" {
@@ -154,18 +154,18 @@ func testCheckAzureRMEventHubNamespaceExists(name string) resource.TestCheckFunc
 		namespaceName := rs.Primary.Attributes["name"]
 		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
 		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for public ip: %s", namespaceName)
+			return fmt.Errorf("Bad: no resource group found in state for Event Hub Namespace: %s", namespaceName)
 		}
 
-		conn := testAccProvider.Meta().(*ArmClient).serviceBusNamespacesClient
+		conn := testAccProvider.Meta().(*ArmClient).eventHubNamespacesClient
 
 		resp, err := conn.Get(resourceGroup, namespaceName)
 		if err != nil {
-			return fmt.Errorf("Bad: Get on serviceBusNamespacesClient: %s", err)
+			return fmt.Errorf("Bad: Get on eventHubNamespacesClient: %s", err)
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: Public IP %q (resource group: %q) does not exist", namespaceName, resourceGroup)
+			return fmt.Errorf("Bad: Event Hub Namespace %q (resource group: %q) does not exist", namespaceName, resourceGroup)
 		}
 
 		return nil
