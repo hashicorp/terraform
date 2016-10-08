@@ -155,7 +155,7 @@ func (p *shadowResourceProviderReal) Apply(
 	diffCopy := diff.DeepCopy()
 
 	result, err := p.ResourceProvider.Apply(info, state, diff)
-	p.Shared.Apply.SetValue(info.HumanId(), &shadowResourceProviderApply{
+	p.Shared.Apply.SetValue(info.uniqueId(), &shadowResourceProviderApply{
 		State:     stateCopy,
 		Diff:      diffCopy,
 		Result:    result.DeepCopy(),
@@ -173,7 +173,7 @@ func (p *shadowResourceProviderReal) Diff(
 	stateCopy := state.DeepCopy()
 
 	result, err := p.ResourceProvider.Diff(info, state, desired)
-	p.Shared.Diff.SetValue(info.HumanId(), &shadowResourceProviderDiff{
+	p.Shared.Diff.SetValue(info.uniqueId(), &shadowResourceProviderDiff{
 		State:     stateCopy,
 		Desired:   desired,
 		Result:    result.DeepCopy(),
@@ -190,7 +190,7 @@ func (p *shadowResourceProviderReal) Refresh(
 	stateCopy := state.DeepCopy()
 
 	result, err := p.ResourceProvider.Refresh(info, state)
-	p.Shared.Refresh.SetValue(info.HumanId(), &shadowResourceProviderRefresh{
+	p.Shared.Refresh.SetValue(info.uniqueId(), &shadowResourceProviderRefresh{
 		State:     stateCopy,
 		Result:    result.DeepCopy(),
 		ResultErr: err,
@@ -420,7 +420,7 @@ func (p *shadowResourceProviderShadow) Apply(
 	state *InstanceState,
 	diff *InstanceDiff) (*InstanceState, error) {
 	// Unique key
-	key := info.HumanId()
+	key := info.uniqueId()
 	raw := p.Shared.Apply.Value(key)
 	if raw == nil {
 		p.ErrorLock.Lock()
@@ -459,7 +459,7 @@ func (p *shadowResourceProviderShadow) Diff(
 	state *InstanceState,
 	desired *ResourceConfig) (*InstanceDiff, error) {
 	// Unique key
-	key := info.HumanId()
+	key := info.uniqueId()
 	raw := p.Shared.Diff.Value(key)
 	if raw == nil {
 		p.ErrorLock.Lock()
@@ -502,7 +502,7 @@ func (p *shadowResourceProviderShadow) Refresh(
 	info *InstanceInfo,
 	state *InstanceState) (*InstanceState, error) {
 	// Unique key
-	key := info.HumanId()
+	key := info.uniqueId()
 	raw := p.Shared.Refresh.Value(key)
 	if raw == nil {
 		p.ErrorLock.Lock()
