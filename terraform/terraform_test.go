@@ -1092,6 +1092,43 @@ aws_volume_attachment.foo.0:
   type = aws_volume_attachment
   volume_id = bar-baz
 `
+const testTerraformPlanCountIncreaseIndexListStrCrossModule = `
+DIFF:
+
+CREATE: aws_ebs_volume.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_ebs_volume"
+CREATE: aws_volume_attachment.foo.1
+  instance_id: "" => "<computed>"
+  type:        "" => "aws_volume_attachment"
+  volume_id:   "" => "<computed>"
+
+module.foo:
+  CREATE: aws_instance.foo.1
+    foo:  "" => "foo"
+    type: "" => "aws_instance"
+
+STATE:
+
+aws_ebs_volume.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_ebs_volume
+aws_volume_attachment.foo.0:
+  ID = quux
+  foo = foo
+  instance_id = bar-baz
+  type = aws_volume_attachment
+  volume_id = bar-baz
+
+module.foo:
+  aws_instance.foo.0:
+    ID = bar
+    foo = foo
+    type = aws_instance
+
+  Outputs:
+`
 const testTerraformPlanDestroyStr = `
 DIFF:
 

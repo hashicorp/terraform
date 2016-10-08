@@ -2566,31 +2566,6 @@ func TestContext2Plan_countIncreaseWithListIndexCrossModule(t *testing.T) {
 							},
 						},
 					},
-
-					"aws_instance.bar.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo":  "foo-bar",
-								"id":   "bar",
-								"type": "aws_instance",
-							},
-						},
-					},
-
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-							Attributes: map[string]string{
-								"foo":  "foo",
-								"id":   "bar",
-								"type": "aws_instance",
-							},
-						},
-					},
-
 					"aws_volume_attachment.foo.0": &ResourceState{
 						Type: "aws_volume_attachment",
 						Primary: &InstanceState{
@@ -2601,6 +2576,29 @@ func TestContext2Plan_countIncreaseWithListIndexCrossModule(t *testing.T) {
 								"instance_id": "bar-baz",
 								"type":        "aws_volume_attachment",
 								"volume_id":   "bar-baz",
+							},
+						},
+					},
+				},
+			},
+			&ModuleState{
+				Path: []string{"root", "foo"},
+				Outputs: map[string]*OutputState{
+					"instance_ids": &OutputState{
+						Type:      "list",
+						Sensitive: false,
+						Value:     []string{"bar"},
+					},
+				},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"id":   "bar",
+								"type": "aws_instance",
 							},
 						},
 					},
@@ -2622,7 +2620,7 @@ func TestContext2Plan_countIncreaseWithListIndexCrossModule(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(plan.String())
-	expected := strings.TrimSpace(testTerraformPlanCountIncreaseIndexListStr)
+	expected := strings.TrimSpace(testTerraformPlanCountIncreaseIndexListStrCrossModule)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}

@@ -126,7 +126,7 @@ func (uvt *unknownVariableTester) Access(variable InterpolatedVariable) {
 	} else if varVal.Type == ast.TypeList {
 		for _, elVal := range varVal.Value.([]ast.Variable) {
 			if elVal.Value == UnknownVariableValue {
-				uvt.positive = true
+				//uvt.positive = true
 			}
 		}
 	}
