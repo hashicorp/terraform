@@ -88,3 +88,6 @@ provider "scaleway" {}
 
 - **SCALEWAY_ORGANIZATION**: Your Scaleway organization
 - **SCALEWAY_ACCESS_KEY**: Your API Access key
+
+If you're already using the [scaleway CLI tool](https://github.com/scaleway/scaleway-cli#scw-login), terraform will also try to lookup
+the information from `$HOME/.scwrc`.
