@@ -31,6 +31,12 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 		panic(err)
 	}
 
+	// Copy the provider inputs
+	providerInputRaw, err := copystructure.Copy(c.providerInputConfig)
+	if err != nil {
+		panic(err)
+	}
+
 	// The factories
 	componentsReal, componentsShadow := newShadowComponentFactory(c.components)
 
@@ -50,7 +56,7 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 		// a ton since we're doing far less compared to the real side
 		// and our operations are MUCH faster.
 		parallelSem:         NewSemaphore(4),
-		providerInputConfig: make(map[string]map[string]interface{}),
+		providerInputConfig: providerInputRaw.(map[string]map[string]interface{}),
 	}
 
 	// Create the real context. This is effectively just a copy of

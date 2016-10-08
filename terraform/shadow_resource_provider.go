@@ -72,9 +72,11 @@ func (p *shadowResourceProviderReal) Close() error {
 
 func (p *shadowResourceProviderReal) Input(
 	input UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+	cCopy := c.DeepCopy()
+
 	result, err := p.ResourceProvider.Input(input, c)
 	p.Shared.Input.SetValue(&shadowResourceProviderInput{
-		Config:    c.DeepCopy(),
+		Config:    cCopy,
 		Result:    result.DeepCopy(),
 		ResultErr: err,
 	})
@@ -94,9 +96,11 @@ func (p *shadowResourceProviderReal) Validate(c *ResourceConfig) ([]string, []er
 }
 
 func (p *shadowResourceProviderReal) Configure(c *ResourceConfig) error {
+	cCopy := c.DeepCopy()
+
 	err := p.ResourceProvider.Configure(c)
 	p.Shared.Configure.SetValue(&shadowResourceProviderConfigure{
-		Config: c.DeepCopy(),
+		Config: cCopy,
 		Result: err,
 	})
 
