@@ -110,6 +110,7 @@ func (p *shadowResourceProviderReal) Configure(c *ResourceConfig) error {
 func (p *shadowResourceProviderReal) ValidateResource(
 	t string, c *ResourceConfig) ([]string, []error) {
 	key := t
+	configCopy := c.DeepCopy()
 
 	// Real operation
 	warns, errs := p.ResourceProvider.ValidateResource(t, c)
@@ -134,7 +135,7 @@ func (p *shadowResourceProviderReal) ValidateResource(
 	defer wrapper.Unlock()
 
 	wrapper.Calls = append(wrapper.Calls, &shadowResourceProviderValidateResource{
-		Config: c,
+		Config: configCopy,
 		Warns:  warns,
 		Errors: errs,
 	})
