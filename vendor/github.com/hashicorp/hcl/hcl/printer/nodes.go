@@ -62,6 +62,14 @@ func (p *printer) collectComments(node ast.Node) {
 	ast.Walk(node, func(nn ast.Node) (ast.Node, bool) {
 		switch t := nn.(type) {
 		case *ast.LiteralType:
+			if t.LeadComment != nil {
+				for _, comment := range t.LeadComment.List {
+					if _, ok := standaloneComments[comment.Pos()]; ok {
+						delete(standaloneComments, comment.Pos())
+					}
+				}
+			}
+
 			if t.LineComment != nil {
 				for _, comment := range t.LineComment.List {
 					if _, ok := standaloneComments[comment.Pos()]; ok {
@@ -95,7 +103,6 @@ func (p *printer) collectComments(node ast.Node) {
 	}
 
 	sort.Sort(ByPosition(p.standaloneComments))
-
 }
 
 // output prints creates b printable HCL output and returns it.
@@ -104,11 +111,14 @@ func (p *printer) output(n interface{}) []byte {
 
 	switch t := n.(type) {
 	case *ast.File:
+		// File doesn't trace so we add the tracing here
+		defer un(trace(p, "File"))
 		return p.output(t.Node)
 	case *ast.ObjectList:
+		defer un(trace(p, "ObjectList"))
+
 		var index int
 		var nextItem token.Pos
-		var commented bool
 		for {
 			// TODO(arslan): refactor below comment printing, we have the same in objectType
 			for _, c := range p.standaloneComments {
@@ -121,7 +131,10 @@ func (p *printer) output(n interface{}) []byte {
 
 					if comment.Pos().After(p.prev) && comment.Pos().Before(nextItem) {
 						// if we hit the end add newlines so we can print the comment
-						if index == len(t.Items) {
+						// we don't do this if prev is invalid which means the
+						// beginning of the file since the first comment should
+						// be at the first line.
+						if p.prev.IsValid() && index == len(t.Items) {
 							buf.Write([]byte{newline, newline})
 						}
 
@@ -140,7 +153,7 @@ func (p *printer) output(n interface{}) []byte {
 			}
 
 			buf.Write(p.output(t.Items[index]))
-			if !commented && index != len(t.Items)-1 {
+			if index != len(t.Items)-1 {
 				buf.Write([]byte{newline, newline})
 			}
 			index++
@@ -435,11 +448,33 @@ func (p *printer) list(l *ast.ListType) []byte {
 	}
 
 	insertSpaceBeforeItem := false
+	lastHadLeadComment := false
 	for i, item := range l.List {
 		if item.Pos().Line != l.Lbrack.Line {
 			// multiline list, add newline before we add each item
 			buf.WriteByte(newline)
 			insertSpaceBeforeItem = false
+
+			// If we have a lead comment, then we want to write that first
+			leadComment := false
+			if lit, ok := item.(*ast.LiteralType); ok && lit.LeadComment != nil {
+				leadComment = true
+
+				// If this isn't the first item and the previous element
+				// didn't have a lead comment, then we need to add an extra
+				// newline to properly space things out. If it did have a
+				// lead comment previously then this would be done
+				// automatically.
+				if i > 0 && !lastHadLeadComment {
+					buf.WriteByte(newline)
+				}
+
+				for _, comment := range lit.LeadComment.List {
+					buf.Write(p.indent([]byte(comment.Text)))
+					buf.WriteByte(newline)
+				}
+			}
+
 			// also indent each line
 			val := p.output(item)
 			curLen := len(val)
@@ -458,9 +493,16 @@ func (p *printer) list(l *ast.ListType) []byte {
 				}
 			}
 
-			if i == len(l.List)-1 {
+			lastItem := i == len(l.List)-1
+			if lastItem {
 				buf.WriteByte(newline)
 			}
+
+			if leadComment && !lastItem {
+				buf.WriteByte(newline)
+			}
+
+			lastHadLeadComment = leadComment
 		} else {
 			if insertSpaceBeforeItem {
 				buf.WriteByte(blank)
