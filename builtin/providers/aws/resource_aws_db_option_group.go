@@ -167,7 +167,7 @@ func resourceAwsDbOptionGroupRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	optionGroup := options.OptionGroupsList[0]
-	arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if optionGroup.OptionGroupName != nil && *optionGroup.OptionGroupName != "" {
@@ -261,7 +261,7 @@ func resourceAwsDbOptionGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 	}
 
-	if arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSOptionGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(rdsconn, d, arn); err != nil {
 			return err
 		} else {
@@ -333,11 +333,14 @@ func resourceAwsDbOptionHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func buildRDSOptionGroupARN(identifier, accountid, region string) (string, error) {
+func buildRDSOptionGroupARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS Option Group ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS Option Group ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:og:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:og:%s", partition, region, accountid, identifier)
 	return arn, nil
 }
 

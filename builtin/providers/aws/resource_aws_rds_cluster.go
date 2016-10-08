@@ -626,6 +626,9 @@ func resourceAwsRDSClusterStateRefreshFunc(
 }
 
 func buildRDSClusterARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS Account ID")
 	}

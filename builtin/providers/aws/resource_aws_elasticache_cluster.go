@@ -384,7 +384,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		}
 		// list tags for resource
 		// set tags
-		arn, err := buildECARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+		arn, err := buildECARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 		if err != nil {
 			log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not setting Tags for cluster %s", *c.CacheClusterId)
 		} else {
@@ -409,7 +409,7 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 
 func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
-	arn, err := buildECARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildECARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not updating Tags for cluster %s", d.Id())
 	} else {
@@ -661,11 +661,14 @@ func cacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 	}
 }
 
-func buildECARN(identifier, accountid, region string) (string, error) {
+func buildECARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct ElastiCache ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct ElastiCache ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:elasticache:%s:%s:cluster:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:elasticache:%s:%s:cluster:%s", partition, region, accountid, identifier)
 	return arn, nil
 
 }
