@@ -114,8 +114,11 @@ func TestShadowResourceProviderInput_badInput(t *testing.T) {
 	}
 
 	// Verify we have an error
-	if err := shadow.CloseShadow(); err == nil {
-		t.Fatal("should have error")
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if err := shadow.ShadowError(); err == nil {
+		t.Fatal("should error")
 	}
 }
 
@@ -194,8 +197,11 @@ func TestShadowResourceProviderValidate_badInput(t *testing.T) {
 	shadow.Validate(configBad)
 
 	// Verify we have an error
-	if err := shadow.CloseShadow(); err == nil {
-		t.Fatal("should have error")
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if err := shadow.ShadowError(); err == nil {
+		t.Fatal("should error")
 	}
 }
 
@@ -265,8 +271,11 @@ func TestShadowResourceProviderConfigure_badInput(t *testing.T) {
 	shadow.Configure(configBad)
 
 	// Verify we have an error
-	if err := shadow.CloseShadow(); err == nil {
-		t.Fatal("should have error")
+	if err := shadow.CloseShadow(); err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	if err := shadow.ShadowError(); err == nil {
+		t.Fatal("should error")
 	}
 }
 
