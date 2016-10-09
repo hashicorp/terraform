@@ -40,6 +40,50 @@ func TestDiffEmpty_taintedIsNotEmpty(t *testing.T) {
 	}
 }
 
+func TestDiffEqual(t *testing.T) {
+	cases := map[string]struct {
+		D1, D2 *Diff
+		Equal  bool
+	}{
+		"nil": {
+			nil,
+			new(Diff),
+			false,
+		},
+
+		"empty": {
+			new(Diff),
+			new(Diff),
+			true,
+		},
+
+		"different module order": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}},
+					&ModuleDiff{Path: []string{"root", "bar"}},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "bar"}},
+					&ModuleDiff{Path: []string{"root", "foo"}},
+				},
+			},
+			true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actual := tc.D1.Equal(tc.D2)
+			if actual != tc.Equal {
+				t.Fatalf("expected: %v\n\n%#v\n\n%#v", tc.Equal, tc.D1, tc.D2)
+			}
+		})
+	}
+}
+
 func TestModuleDiff_ChangeType(t *testing.T) {
 	cases := []struct {
 		Diff   *ModuleDiff
