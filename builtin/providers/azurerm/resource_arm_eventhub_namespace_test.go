@@ -29,6 +29,10 @@ func TestAccAzureRMEventHubNamespaceCapacity_validation(t *testing.T) {
 			ErrCount: 0,
 		},
 		{
+			Value:    3,
+			ErrCount: 1,
+		},
+		{
 			Value:    4,
 			ErrCount: 0,
 		},
@@ -55,6 +59,10 @@ func TestAccAzureRMEventHubNamespaceSku_validation(t *testing.T) {
 		{
 			Value:    "Standard",
 			ErrCount: 0,
+		},
+		{
+			Value:    "Premium",
+			ErrCount: 1,
 		},
 		{
 			Value:    "Random",
