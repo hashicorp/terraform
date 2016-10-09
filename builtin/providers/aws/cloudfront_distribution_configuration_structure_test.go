@@ -36,8 +36,8 @@ func cacheBehaviorConf2() map[string]interface{} {
 	return cb
 }
 
-func cacheBehaviorsConf() *schema.Set {
-	return schema.NewSet(cacheBehaviorHash, []interface{}{cacheBehaviorConf1(), cacheBehaviorConf2()})
+func cacheBehaviorsConf() []interface{} {
+	return []interface{}{cacheBehaviorConf1(), cacheBehaviorConf2()}
 }
 
 func trustedSignersConf() []interface{} {
@@ -382,10 +382,10 @@ func TestCloudFrontStructure_flattenCacheBehaviors(t *testing.T) {
 	in := cacheBehaviorsConf()
 	cbs := expandCacheBehaviors(in)
 	out := flattenCacheBehaviors(cbs)
-	diff := in.Difference(out)
-
-	if len(diff.List()) > 0 {
-		t.Fatalf("Expected out to be %v, got %v, diff: %v", in, out, diff)
+	for i := range in {
+		if reflect.DeepEqual(in[i], out[i]) {
+			t.Fatalf("Expected out to be %v, got %v", in, out)
+		}
 	}
 }
 
