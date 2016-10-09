@@ -201,6 +201,62 @@ func (p *shadowResourceProviderReal) Refresh(
 	return result, err
 }
 
+func (p *shadowResourceProviderReal) ValidateDataSource(
+	t string, c *ResourceConfig) ([]string, []error) {
+	key := t
+	configCopy := c.DeepCopy()
+
+	// Real operation
+	warns, errs := p.ResourceProvider.ValidateDataSource(t, c)
+
+	// Get the result
+	raw, ok := p.Shared.ValidateDataSource.ValueOk(key)
+	if !ok {
+		raw = new(shadowResourceProviderValidateDataSourceWrapper)
+	}
+
+	wrapper, ok := raw.(*shadowResourceProviderValidateDataSourceWrapper)
+	if !ok {
+		// If this fails then we just continue with our day... the shadow
+		// will fail to but there isn't much we can do.
+		log.Printf(
+			"[ERROR] unknown value in ValidateDataSource shadow value: %#v", raw)
+		return warns, errs
+	}
+
+	// Lock the wrapper for writing and record our call
+	wrapper.Lock()
+	defer wrapper.Unlock()
+
+	wrapper.Calls = append(wrapper.Calls, &shadowResourceProviderValidateDataSource{
+		Config: configCopy,
+		Warns:  warns,
+		Errors: errs,
+	})
+
+	// Set it
+	p.Shared.ValidateDataSource.SetValue(key, wrapper)
+
+	// Return the result
+	return warns, errs
+}
+
+func (p *shadowResourceProviderReal) ReadDataDiff(
+	info *InstanceInfo,
+	desired *ResourceConfig) (*InstanceDiff, error) {
+	// These have to be copied before the call since call can modify
+	desiredCopy := desired.DeepCopy()
+
+	result, err := p.ResourceProvider.ReadDataDiff(info, desired)
+	p.Shared.ReadDataDiff.SetValue(info.uniqueId(), &shadowResourceProviderReadDataDiff{
+		Desired:   desiredCopy,
+		Result:    result.DeepCopy(),
+		ResultErr: err,
+	})
+
+	return result, err
+}
+
 // shadowResourceProviderShadow is the shadow resource provider. Function
 // calls never affect real resources. This is paired with the "real" side
 // which must be called properly to enable recording.
@@ -219,21 +275,23 @@ type shadowResourceProviderShared struct {
 	// NOTE: Anytime a value is added here, be sure to add it to
 	// the Close() method so that it is closed.
 
-	CloseErr         shadow.Value
-	Input            shadow.Value
-	Validate         shadow.Value
-	Configure        shadow.Value
-	ValidateResource shadow.KeyedValue
-	Apply            shadow.KeyedValue
-	Diff             shadow.KeyedValue
-	Refresh          shadow.KeyedValue
+	CloseErr           shadow.Value
+	Input              shadow.Value
+	Validate           shadow.Value
+	Configure          shadow.Value
+	ValidateResource   shadow.KeyedValue
+	Apply              shadow.KeyedValue
+	Diff               shadow.KeyedValue
+	Refresh            shadow.KeyedValue
+	ValidateDataSource shadow.KeyedValue
+	ReadDataDiff       shadow.KeyedValue
 }
 
 func (p *shadowResourceProviderShared) Close() error {
 	closers := []io.Closer{
 		&p.CloseErr, &p.Input, &p.Validate,
 		&p.Configure, &p.ValidateResource, &p.Apply, &p.Diff,
-		&p.Refresh,
+		&p.Refresh, &p.ValidateDataSource, &p.ReadDataDiff,
 	}
 
 	for _, c := range closers {
@@ -536,6 +594,94 @@ func (p *shadowResourceProviderShadow) Refresh(
 	return result.Result, result.ResultErr
 }
 
+func (p *shadowResourceProviderShadow) ValidateDataSource(
+	t string, c *ResourceConfig) ([]string, []error) {
+	// Unique key
+	key := t
+
+	// Get the initial value
+	raw := p.Shared.ValidateDataSource.Value(key)
+
+	// Find a validation with our configuration
+	var result *shadowResourceProviderValidateDataSource
+	for {
+		// Get the value
+		if raw == nil {
+			p.ErrorLock.Lock()
+			defer p.ErrorLock.Unlock()
+			p.Error = multierror.Append(p.Error, fmt.Errorf(
+				"Unknown 'ValidateDataSource' call for %q:\n\n%#v",
+				key, c))
+			return nil, nil
+		}
+
+		wrapper, ok := raw.(*shadowResourceProviderValidateDataSourceWrapper)
+		if !ok {
+			p.ErrorLock.Lock()
+			defer p.ErrorLock.Unlock()
+			p.Error = multierror.Append(p.Error, fmt.Errorf(
+				"Unknown 'ValidateDataSource' shadow value: %#v", raw))
+			return nil, nil
+		}
+
+		// Look for the matching call with our configuration
+		wrapper.RLock()
+		for _, call := range wrapper.Calls {
+			if call.Config.Equal(c) {
+				result = call
+				break
+			}
+		}
+		wrapper.RUnlock()
+
+		// If we found a result, exit
+		if result != nil {
+			break
+		}
+
+		// Wait for a change so we can get the wrapper again
+		raw = p.Shared.ValidateDataSource.WaitForChange(key)
+	}
+
+	return result.Warns, result.Errors
+}
+
+func (p *shadowResourceProviderShadow) ReadDataDiff(
+	info *InstanceInfo,
+	desired *ResourceConfig) (*InstanceDiff, error) {
+	// Unique key
+	key := info.uniqueId()
+	raw := p.Shared.ReadDataDiff.Value(key)
+	if raw == nil {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'ReadDataDiff' call for %q:\n\n%#v",
+			key, desired))
+		return nil, nil
+	}
+
+	result, ok := raw.(*shadowResourceProviderReadDataDiff)
+	if !ok {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'ReadDataDiff' shadow value: %#v", raw))
+		return nil, nil
+	}
+
+	// Compare the parameters, which should be identical
+	if !desired.Equal(result.Desired) {
+		p.ErrorLock.Lock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"ReadDataDiff %q had unequal configs (real, then shadow):\n\n%#v\n\n%#v",
+			key, result.Desired, desired))
+		p.ErrorLock.Unlock()
+	}
+
+	return result.Result, result.ResultErr
+}
+
 // TODO
 // TODO
 // TODO
@@ -543,16 +689,6 @@ func (p *shadowResourceProviderShadow) Refresh(
 // TODO
 
 func (p *shadowResourceProviderShadow) ImportState(info *InstanceInfo, id string) ([]*InstanceState, error) {
-	return nil, nil
-}
-
-func (p *shadowResourceProviderShadow) ValidateDataSource(t string, c *ResourceConfig) ([]string, []error) {
-	return nil, nil
-}
-
-func (p *shadowResourceProviderShadow) ReadDataDiff(
-	info *InstanceInfo,
-	desired *ResourceConfig) (*InstanceDiff, error) {
 	return nil, nil
 }
 
@@ -611,5 +747,23 @@ type shadowResourceProviderDiff struct {
 type shadowResourceProviderRefresh struct {
 	State     *InstanceState
 	Result    *InstanceState
+	ResultErr error
+}
+
+type shadowResourceProviderValidateDataSourceWrapper struct {
+	sync.RWMutex
+
+	Calls []*shadowResourceProviderValidateDataSource
+}
+
+type shadowResourceProviderValidateDataSource struct {
+	Config *ResourceConfig
+	Warns  []string
+	Errors []error
+}
+
+type shadowResourceProviderReadDataDiff struct {
+	Desired   *ResourceConfig
+	Result    *InstanceDiff
 	ResultErr error
 }
