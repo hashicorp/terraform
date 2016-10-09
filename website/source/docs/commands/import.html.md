@@ -25,7 +25,7 @@ into modules as well directly into the root of your state.
 
 ID is dependent on the resource type being imported. For example, for AWS
 instances it is the instance ID (`i-abcd1234`) but for AWS Route53 zones
-it is the domain. Please reference the provider documentation for details
+it is the zone ID (`Z12ABC4UGMOZ2N`). Please reference the provider documentation for details
 on the ID format. If you're unsure, feel free to just try an ID. If the ID
 is invalid, you'll just receive an error message.
 
