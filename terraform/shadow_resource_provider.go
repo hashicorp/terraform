@@ -172,11 +172,12 @@ func (p *shadowResourceProviderReal) Diff(
 	desired *ResourceConfig) (*InstanceDiff, error) {
 	// Thse have to be copied before the call since call can modify
 	stateCopy := state.DeepCopy()
+	desiredCopy := desired.DeepCopy()
 
 	result, err := p.ResourceProvider.Diff(info, state, desired)
 	p.Shared.Diff.SetValue(info.uniqueId(), &shadowResourceProviderDiff{
 		State:     stateCopy,
-		Desired:   desired,
+		Desired:   desiredCopy,
 		Result:    result.DeepCopy(),
 		ResultErr: err,
 	})
