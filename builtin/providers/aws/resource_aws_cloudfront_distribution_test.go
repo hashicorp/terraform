@@ -195,6 +195,23 @@ func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) 
 	})
 }
 
+func TestResourceAWSCloudFrontDistribution_validateHTTP(t *testing.T) {
+	var value string
+	var errors []error
+
+	value = "incorrect"
+	_, errors = validateHTTP(value, "http_version")
+	if len(errors) == 0 {
+		t.Fatalf("Expected %q to trigger a validation error", value)
+	}
+
+	value = "http1.1"
+	_, errors = validateHTTP(value, "http_version")
+	if len(errors) != 0 {
+		t.Fatalf("Expected %q not to trigger a validation error", value)
+	}
+}
+
 func testAccCheckCloudFrontDistributionDestroy(s *terraform.State) error {
 	for k, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_cloudfront_distribution" {
