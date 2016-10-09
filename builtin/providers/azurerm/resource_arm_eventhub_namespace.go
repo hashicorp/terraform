@@ -54,7 +54,6 @@ func resourceArmEventHubNamespace() *schema.Resource {
 			"capacity": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				ForceNew:     true,
 				Default:      1,
 				ValidateFunc: validateEventHubNamespaceCapacity,
 			},
@@ -92,7 +91,7 @@ func resourceArmEventHubNamespaceCreate(d *schema.ResourceData, meta interface{}
 	name := d.Get("name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
-	sku := strings.ToLower(d.Get("sku").(string))
+	sku := d.Get("sku").(string)
 	capacity := int32(d.Get("capacity").(int))
 	tags := d.Get("tags").(map[string]interface{})
 
@@ -145,7 +144,7 @@ func resourceArmEventHubNamespaceRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("name", resp.Name)
-	d.Set("sku", strings.ToLower(string(resp.Sku.Name)))
+	d.Set("sku", eventhub.SkuTier(string(resp.Sku.Name)))
 	d.Set("capacity", resp.Sku.Capacity)
 
 	keys, err := namespaceClient.ListKeys(resGroup, name, eventHubNamespaceDefaultAuthorizationRule)
