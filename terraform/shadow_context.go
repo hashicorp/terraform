@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
@@ -85,7 +84,7 @@ func shadowContextVerify(real, shadow *Context) error {
 	}
 
 	// Compare the diffs
-	if !reflect.DeepEqual(real.diff, shadow.diff) {
+	if !real.diff.Equal(shadow.diff) {
 		result = multierror.Append(result, fmt.Errorf(
 			"Real and shadow diffs do not match! "+
 				"Real diff:\n\n%s\n\n"+
