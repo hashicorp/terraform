@@ -297,7 +297,7 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 		} else if len(logs) == 0 {
 			attributes = append(attributes, &elbv2.LoadBalancerAttribute{
 				Key:   aws.String("access_logs.s3.enabled"),
-				Value: aws.String(strconv.FormatBool(false)),
+				Value: aws.String("false"),
 			})
 		}
 	}
