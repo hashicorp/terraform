@@ -357,7 +357,8 @@ func validateHTTPMethod(v interface{}, k string) (ws []string, errors []error) {
 
 	if _, ok := validMethods[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			"%q must be one of 'GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE', or 'ANY'", k))
+			"%q contains an invalid method %q. Valid methods are either %q, %q, %q, %q, %q, %q, %q, or %q.",
+			k, value, "ANY", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"))
 	}
 	return
 }
@@ -482,9 +483,19 @@ func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
 
 func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if value != "MOCK" && value != "AWS" && value != "HTTP" && value != "AWS_PROXY" && value != "HTTP_PROXY" {
+
+	validTypes := map[string]bool{
+		"AWS":        true,
+		"AWS_PROXY":  true,
+		"HTTP":       true,
+		"HTTP_PROXY": true,
+		"MOCK":       true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			"%q must be one of 'AWS', 'MOCK', 'HTTP', 'AWS_PROXY', 'HTTP_PROXY'", k))
+			"%q contains an invalid integration type %q. Valid types are either %q, %q, %q, %q, or %q.",
+			k, value, "AWS", "AWS_PROXY", "HTTP", "HTTP_PROXY", "MOCK"))
 	}
 	return
 }
