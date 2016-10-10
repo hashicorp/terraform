@@ -442,17 +442,17 @@ body.page-home {
 		background-size: 100%;
 	}
 
-	#enterprise-intro {
+	#enterprise-intro{
 		position: relative;
 		padding: 220px 0 180px;
 		margin-top: -80px;
 		color: #fff;
 
-		>.container {
+		>.container{
 			z-index: 31;
 		}
 
-		h2 {
+		h2{
 			position: relative;
 			left: -5px;
 			margin-bottom: 20px;
@@ -463,12 +463,12 @@ body.page-home {
 			span {margin-left: -200%}
 		}
 
-		.lead {
+		.lead{
 			max-width: 30em;
 			margin-bottom: 40px;
 		}
 
-		#enterprise-intro-bg {
+		#enterprise-intro-bg{
 			background: #000 image-url("enterprise-callout-bg.svg") bottom right no-repeat;
 			background-size: 80%;
 			@include skewY(3deg);
@@ -570,72 +570,5 @@ body.page-home {
 
 	@media (max-width: 320px) {
 
-
-		#feature-iterate{
-			margin-top: -80px;
-			padding: 280px 0 360px;
-			color: white;
-			background: #fff image-url("feature-iterate-bg.png") center top no-repeat;
-			border-top: 2px solid white;
-			border-bottom: 2px solid $purple;
-			background-size: cover;
-			@include skewY(3deg);
-
-			>.container{
-				@include skewY(-3deg);
-			}
-
-			.it-icon{
-				width: 245px;
-				margin: 0 auto 40px 45px;
-				padding-left: 0 !important;
-			}
-
-			.t-block{
-				background-color: rgb(255, 255, 255);
-				width: 40px;
-				height: 40px;
-				@include skewY(26deg);
-				float: left;
-				margin-right: 15px;
-			}
-		}
-
-		#feature-clone{
-			.clone-icon{
-				width: 290px;
-				margin: 40px auto 0;
-				padding-left: 45px !important;
-			}
-
-			.c-group{
-				&.cg2{
-					opacity: .7;
-				}
-
-				&.cg3{
-					opacity: .5;
-				}
-
-				.c-col{
-
-					&.c1{
-						padding-top: 8px;
-					}
-
-					&.c3{
-						padding-top: 28px;
-					}
-
-					.c-block{
-						background-color: white;
-						width: 15px;
-						height: 15px;
-						@include skewY(30deg);
-						margin: 3px 3px 0 0;
-					}
-				}
-			}
-		}
 	}
 }
