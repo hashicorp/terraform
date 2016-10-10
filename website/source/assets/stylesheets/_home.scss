@@ -85,10 +85,6 @@ body.page-home {
 	    overflow: hidden;
 		}
 
-		li.last {
-			float: right;
-		}
-
 		#nike {
 			background: transparent image-url("customer-logos/nike.svg") center no-repeat;
 			background-size: 100%;
@@ -439,7 +435,7 @@ body.page-home {
 		@include skewY(-3deg);
 		z-index: 30;
 		background: $purple image-url("latest-announce-bg.svg") bottom left no-repeat;
-		background-size: 100%;
+		background-size: cover;
 	}
 
 	#enterprise-intro{
@@ -457,7 +453,7 @@ body.page-home {
 			left: -5px;
 			margin-bottom: 20px;
 			background: image-url("terraform-enterprise-logo.svg") top left no-repeat;
-			background-size: 400px;
+			background-size: 320px;
 			overflow: hidden;
 
 			span {margin-left: -200%}
@@ -557,17 +553,57 @@ body.page-home {
 			line-height: 1.4;
 			font-weight: 300;
 			letter-spacing: .3px;
-			margin-bottom: 30px;
+			margin-bottom: 20px;
 		}
 
 		p.lead{
 			font-size: 18px;
 		}
 
-		#demos{
-			.explantion {
-				margin: 40px 0 60px 0;
+		#primary-cta{
+			padding-bottom: 100px;
+		}
+
+		#customer-logos{
+			padding: 40px 0;
+
+			p {
+				display: block;
+				position: relative;
+				width: 100%;
+				text-align: center;
 			}
+
+			#customer-logos-bg{
+				z-index: 30;
+				background: $black;
+				background-size: 100%;
+				@include skewY(-3deg);
+				-webkit-backface-visibility: hidden;
+			}
+
+			ul.customer-list{
+				 display: block;
+				 position: relative;
+				 width: 100%;
+				 margin: 0 auto;
+				 padding: 0;
+				 text-align: center;
+
+				li{
+					display: inline-block;
+					position: relative;
+					width: 40px;
+					height: 40px;
+					margin: 0 2%;
+					text-indent: 100%;
+			    white-space: nowrap;
+			    overflow: hidden;
+				}
+			}
+		}
+
+		#demos{
 
 			.terminals{
 				.terminal-item{
