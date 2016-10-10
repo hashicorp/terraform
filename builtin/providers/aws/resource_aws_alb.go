@@ -91,7 +91,7 @@ func resourceAwsAlb() *schema.Resource {
 						"enabled": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
-							Default:  true,
+							Default:  false,
 						},
 					},
 				},
@@ -234,6 +234,8 @@ func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 	accessLogMap := map[string]interface{}{}
 	for _, attr := range attributesResp.Attributes {
 		switch *attr.Key {
+		case "access_logs.s3.enabled":
+			accessLogMap["enabled"] = *attr.Value
 		case "access_logs.s3.bucket":
 			accessLogMap["bucket"] = *attr.Value
 		case "access_logs.s3.prefix":
