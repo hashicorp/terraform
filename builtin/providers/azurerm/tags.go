@@ -64,6 +64,7 @@ func expandTags(tagsMap map[string]interface{}) *map[string]*string {
 
 func flattenAndSetTags(d *schema.ResourceData, tagsMap *map[string]*string) {
 	if tagsMap == nil {
+		d.Set("tags", make(map[string]interface{}))
 		return
 	}
 
