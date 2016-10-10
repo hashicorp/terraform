@@ -211,11 +211,20 @@ body.page-home {
 		}
 
 		#feature-write-bg{
-			background: $white image-url("feature-write-bg.svg") 85% bottom no-repeat;
+			background: $white;
 			background-size: 570px;
 			z-index: 70;
 			@include skewY(3deg);
 			-webkit-backface-visibility: hidden;
+			overflow: hidden;
+
+			.feature-image {
+				position: absolute;
+				bottom: 0;
+				right:10%;
+				width: 560px;
+				@include skewY(-3deg);
+			}
 		}
 	}
 
@@ -251,8 +260,6 @@ body.page-home {
 		padding: 240px 0 180px;
 
 		>.container{
-			background: image-url("feature-create-bg.svg") 95% 20% no-repeat;
-			background-size: 42%;
 			z-index: 51;
 		}
 
@@ -262,10 +269,17 @@ body.page-home {
 
 		#feature-create-bg{
 			@include skewY(3deg);
-
 			z-index: 50;
+			overflow: hidden;
 		}
 
+		#feature-create-img{
+			position: absolute;
+			width: 420px;
+			top: 200px;
+			right: 100px;
+			@include skewY(-3deg);
+		}
 	}
 
 	#demos{
