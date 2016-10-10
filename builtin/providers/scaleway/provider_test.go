@@ -36,3 +36,34 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("SCALEWAY_ACCESS_KEY must be set for acceptance tests")
 	}
 }
+
+func TestEnvWithScwrcFallbackFunc_FromEnv(t *testing.T) {
+	os.Setenv("SCALEWAY_TEST", "foo")
+	v, err := envWithScwrcFallbackFunc("SCALEWAY_TEST", "test", "dv")()
+	if err != nil {
+		t.Fatalf("Failed to lookup value from environment")
+	}
+	if v != "foo" {
+		t.Fatalf("Failed to lookup correct value from environment")
+	}
+}
+
+func TestEnvWithScwrcFallbackFunc_FromFile(t *testing.T) {
+	os.Setenv("HOME", "/tmp")
+	f, err := os.OpenFile("/tmp/.scwrc", os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.WriteString(`{"test": "bar"}`)
+	f.Close()
+	defer func() {
+		os.Remove("/tmp/.scwrc")
+	}()
+	v, err := envWithScwrcFallbackFunc("SCALEWAY_TEST", "test", "dv")()
+	if err != nil {
+		t.Fatalf("Failed to lookup value from file")
+	}
+	if v != "bar" {
+		t.Fatalf("Failed to lookup correct value from file. Expected %q got %q", "bar", v)
+	}
+}
