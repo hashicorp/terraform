@@ -69,6 +69,12 @@
   }
 }
 
+@media (max-width: 768px) {
+	.outline-btn, .terra-btn{
+		font-size: 16px;
+	}
+}
+
 //animation on header main nav link hover
 /*.li-under a::after {
   position: absolute;
