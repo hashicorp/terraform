@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -54,6 +56,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/helper/logging"
@@ -198,6 +201,10 @@ func (c *Config) Client() (interface{}, error) {
 		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 	}
 	sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
+
+	if extraDebug := os.Getenv("TERRAFORM_AWS_AUTHFAILURE_DEBUG"); extraDebug != "" {
+		sess.Handlers.UnmarshalError.PushFrontNamed(debugAuthFailure)
+	}
 
 	// Some services exist only in us-east-1, e.g. because they manage
 	// resources that can span across multiple regions, or because
@@ -349,6 +356,17 @@ var addTerraformVersionToUserAgent = request.NamedHandler{
 	Name: "terraform.TerraformVersionUserAgentHandler",
 	Fn: request.MakeAddToUserAgentHandler(
 		"terraform", terraform.VersionString()),
+}
+
+var debugAuthFailure = request.NamedHandler{
+	Name: "terraform.AuthFailureAdditionalDebugHandler",
+	Fn: func(req *request.Request) {
+		if isAWSErr(req.Error, "AuthFailure", "AWS was not able to validate the provided access credentials") {
+			log.Printf("[INFO] Additional AuthFailure Debugging Context")
+			log.Printf("[INFO] Current system UTC time: %s", time.Now().UTC())
+			log.Printf("[INFO] Request object: %s", spew.Sdump(req))
+		}
+	},
 }
 
 type awsLogger struct{}
