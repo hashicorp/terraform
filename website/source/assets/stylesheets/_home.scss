@@ -75,7 +75,7 @@ body.page-home {
 		width: 100%;
 		text-align: justify;
 
-		li {
+		li{
 			display: inline-block;
 			width: 80px;
 			height: 80px;
@@ -118,42 +118,6 @@ body.page-home {
 			background: transparent image-url("customer-logos/hotels-dot-com.svg") center no-repeat;
 			background-size: 100%;
 		}
-
-	}
-
-	.feature{
-		padding: 240px 0;
-
-		.lead{
-			max-width: 30em;
-		}
-
-		.icn{
-			display: block;
-			width: 186px;
-			height: 272px;
-			margin: 0 auto;
-			background-position: center 0;
-			background-repeat: no-repeat;
-		}
-
-	}
-
-	.skew-item{
-		>.container{
-			position: relative;
-			top: 0;
-			z-index: 11;
-		}
-
-		.feature-skew{
-			position: absolute;
-			top: 0px;
-			bottom: 0px;
-			left: 0px;
-			width: 100%;
-			height: 100%;
-		}
 	}
 
 	#feature-overview{
@@ -163,7 +127,7 @@ body.page-home {
 		z-index: 80;
 	}
 
-	.feature-card {
+	.feature-card{
 		height: 210px;
 		border: 2px solid #E6E7E8;
 		padding:20px;
@@ -197,6 +161,30 @@ body.page-home {
 		&.feature-card-create{
 			background: image-url("feature-card-create.svg") 0px 105px no-repeat;
 			background-size: 275px 75px;
+		}
+	}
+
+	.feature{
+
+		p.lead{
+			max-width: 30em;
+		}
+	}
+
+	.skew-item{
+		>.container{
+			position: relative;
+			top: 0;
+			z-index: 11;
+		}
+
+		.feature-skew{
+			position: absolute;
+			top: 0px;
+			bottom: 0px;
+			left: 0px;
+			width: 100%;
+			height: 100%;
 		}
 	}
 
