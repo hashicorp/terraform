@@ -72,12 +72,12 @@ func cookieNamesConf() []interface{} {
 	return []interface{}{"Example1", "Example2"}
 }
 
-func allowedMethodsConf() []interface{} {
-	return []interface{}{"DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"}
+func allowedMethodsConf() *schema.Set {
+	return schema.NewSet(schema.HashString, []interface{}{"DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"})
 }
 
-func cachedMethodsConf() []interface{} {
-	return []interface{}{"GET", "HEAD", "OPTIONS"}
+func cachedMethodsConf() *schema.Set {
+	return schema.NewSet(schema.HashString, []interface{}{"GET", "HEAD", "OPTIONS"})
 }
 
 func originCustomHeadersConf() *schema.Set {
@@ -263,10 +263,10 @@ func TestCloudFrontStructure_expandDefaultCacheBehavior(t *testing.T) {
 	if *dcb.DefaultTTL != 86400 {
 		t.Fatalf("Expected DefaultTTL to be 86400, got %v", *dcb.DefaultTTL)
 	}
-	if reflect.DeepEqual(dcb.AllowedMethods.Items, expandStringList(allowedMethodsConf())) != true {
-		t.Fatalf("Expected TrustedSigners.Items to be %v, got %v", allowedMethodsConf(), dcb.AllowedMethods.Items)
+	if reflect.DeepEqual(dcb.AllowedMethods.Items, expandStringList(allowedMethodsConf().List())) != true {
+		t.Fatalf("Expected Allowed Methods to be %v, got %v", allowedMethodsConf(), dcb.AllowedMethods.Items)
 	}
-	if reflect.DeepEqual(dcb.AllowedMethods.CachedMethods.Items, expandStringList(cachedMethodsConf())) != true {
+	if reflect.DeepEqual(dcb.AllowedMethods.CachedMethods.Items, expandStringList(cachedMethodsConf().List())) != true {
 		t.Fatalf("Expected TrustedSigners.Items to be %v, got %v", cachedMethodsConf(), dcb.AllowedMethods.CachedMethods.Items)
 	}
 }
@@ -312,10 +312,10 @@ func TestCloudFrontStructure_expandCacheBehavior(t *testing.T) {
 	if *cb.DefaultTTL != 86400 {
 		t.Fatalf("Expected DefaultTTL to be 86400, got %v", *cb.DefaultTTL)
 	}
-	if reflect.DeepEqual(cb.AllowedMethods.Items, expandStringList(allowedMethodsConf())) != true {
+	if reflect.DeepEqual(cb.AllowedMethods.Items, expandStringList(allowedMethodsConf().List())) != true {
 		t.Fatalf("Expected AllowedMethods.Items to be %v, got %v", allowedMethodsConf(), cb.AllowedMethods.Items)
 	}
-	if reflect.DeepEqual(cb.AllowedMethods.CachedMethods.Items, expandStringList(cachedMethodsConf())) != true {
+	if reflect.DeepEqual(cb.AllowedMethods.CachedMethods.Items, expandStringList(cachedMethodsConf().List())) != true {
 		t.Fatalf("Expected AllowedMethods.CachedMethods.Items to be %v, got %v", cachedMethodsConf(), cb.AllowedMethods.CachedMethods.Items)
 	}
 	if *cb.PathPattern != "/path1" {
@@ -356,10 +356,12 @@ func TestCloudFrontStructure_flattenCacheBehavior(t *testing.T) {
 	if out["default_ttl"] != int(86400) {
 		t.Fatalf("Expected out[default_ttl] to be 86400 (int), got %v", out["default_ttl"])
 	}
-	if reflect.DeepEqual(out["allowed_methods"], in["allowed_methods"]) != true {
+	diff = out["allowed_methods"].(*schema.Set).Difference(in["allowed_methods"].(*schema.Set))
+	if len(diff.List()) > 0 {
 		t.Fatalf("Expected out[allowed_methods] to be %v, got %v", in["allowed_methods"], out["allowed_methods"])
 	}
-	if reflect.DeepEqual(out["cached_methods"], in["cached_methods"]) != true {
+	diff = out["cached_methods"].(*schema.Set).Difference(in["cached_methods"].(*schema.Set))
+	if len(diff.List()) > 0 {
 		t.Fatalf("Expected out[cached_methods] to be %v, got %v", in["cached_methods"], out["cached_methods"])
 	}
 	if out["path_pattern"] != "/path1" {
@@ -547,7 +549,7 @@ func TestCloudFrontStructure_expandAllowedMethods(t *testing.T) {
 	if *am.Quantity != 7 {
 		t.Fatalf("Expected Quantity to be 3, got %v", *am.Quantity)
 	}
-	if reflect.DeepEqual(am.Items, expandStringList(data)) != true {
+	if reflect.DeepEqual(am.Items, expandStringList(data.List())) != true {
 		t.Fatalf("Expected Items to be %v, got %v", data, am.Items)
 	}
 }
@@ -556,8 +558,9 @@ func TestCloudFrontStructure_flattenAllowedMethods(t *testing.T) {
 	in := allowedMethodsConf()
 	am := expandAllowedMethods(in)
 	out := flattenAllowedMethods(am)
+	diff := in.Difference(out)
 
-	if reflect.DeepEqual(in, out) != true {
+	if len(diff.List()) > 0 {
 		t.Fatalf("Expected out to be %v, got %v", in, out)
 	}
 }
@@ -568,7 +571,7 @@ func TestCloudFrontStructure_expandCachedMethods(t *testing.T) {
 	if *cm.Quantity != 3 {
 		t.Fatalf("Expected Quantity to be 3, got %v", *cm.Quantity)
 	}
-	if reflect.DeepEqual(cm.Items, expandStringList(data)) != true {
+	if reflect.DeepEqual(cm.Items, expandStringList(data.List())) != true {
 		t.Fatalf("Expected Items to be %v, got %v", data, cm.Items)
 	}
 }
@@ -577,8 +580,9 @@ func TestCloudFrontStructure_flattenCachedMethods(t *testing.T) {
 	in := cachedMethodsConf()
 	cm := expandCachedMethods(in)
 	out := flattenCachedMethods(cm)
+	diff := in.Difference(out)
 
-	if reflect.DeepEqual(in, out) != true {
+	if len(diff.List()) > 0 {
 		t.Fatalf("Expected out to be %v, got %v", in, out)
 	}
 }

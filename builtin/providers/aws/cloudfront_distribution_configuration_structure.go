@@ -217,12 +217,12 @@ func defaultCacheBehaviorHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%d-", d.(int)))
 	}
 	if d, ok := m["allowed_methods"]; ok {
-		for _, e := range sortInterfaceSlice(d.([]interface{})) {
+		for _, e := range sortInterfaceSlice(d.(*schema.Set).List()) {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
 	if d, ok := m["cached_methods"]; ok {
-		for _, e := range sortInterfaceSlice(d.([]interface{})) {
+		for _, e := range sortInterfaceSlice(d.(*schema.Set).List()) {
 			buf.WriteString(fmt.Sprintf("%s-", e.(string)))
 		}
 	}
@@ -269,10 +269,10 @@ func expandCacheBehavior(m map[string]interface{}) *cloudfront.CacheBehavior {
 		cb.SmoothStreaming = aws.Bool(v.(bool))
 	}
 	if v, ok := m["allowed_methods"]; ok {
-		cb.AllowedMethods = expandAllowedMethods(v.([]interface{}))
+		cb.AllowedMethods = expandAllowedMethods(v.(*schema.Set))
 	}
 	if v, ok := m["cached_methods"]; ok {
-		cb.AllowedMethods.CachedMethods = expandCachedMethods(v.([]interface{}))
+		cb.AllowedMethods.CachedMethods = expandCachedMethods(v.(*schema.Set))
 	}
 	if v, ok := m["path_pattern"]; ok {
 		cb.PathPattern = aws.String(v.(string))
@@ -461,32 +461,32 @@ func flattenCookieNames(cn *cloudfront.CookieNames) []interface{} {
 	return []interface{}{}
 }
 
-func expandAllowedMethods(s []interface{}) *cloudfront.AllowedMethods {
+func expandAllowedMethods(s *schema.Set) *cloudfront.AllowedMethods {
 	return &cloudfront.AllowedMethods{
-		Quantity: aws.Int64(int64(len(s))),
-		Items:    expandStringList(s),
+		Quantity: aws.Int64(int64(s.Len())),
+		Items:    expandStringList(s.List()),
 	}
 }
 
-func flattenAllowedMethods(am *cloudfront.AllowedMethods) []interface{} {
+func flattenAllowedMethods(am *cloudfront.AllowedMethods) *schema.Set {
 	if am.Items != nil {
-		return flattenStringList(am.Items)
+		return schema.NewSet(schema.HashString, flattenStringList(am.Items))
 	}
-	return []interface{}{}
+	return nil
 }
 
-func expandCachedMethods(s []interface{}) *cloudfront.CachedMethods {
+func expandCachedMethods(s *schema.Set) *cloudfront.CachedMethods {
 	return &cloudfront.CachedMethods{
-		Quantity: aws.Int64(int64(len(s))),
-		Items:    expandStringList(s),
+		Quantity: aws.Int64(int64(s.Len())),
+		Items:    expandStringList(s.List()),
 	}
 }
 
-func flattenCachedMethods(cm *cloudfront.CachedMethods) []interface{} {
+func flattenCachedMethods(cm *cloudfront.CachedMethods) *schema.Set {
 	if cm.Items != nil {
-		return flattenStringList(cm.Items)
+		return schema.NewSet(schema.HashString, flattenStringList(cm.Items))
 	}
-	return []interface{}{}
+	return nil
 }
 
 func expandOrigins(s *schema.Set) *cloudfront.Origins {
