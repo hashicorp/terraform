@@ -28,6 +28,7 @@ BUG FIXES:
  * command/fmt: Leading comments on list items are formatted properly 
  * provider/aws: Return correct AMI image when `most_recent` is set to `true`. [GH-9277]
  * provider/aws: Fix issue with diff on import of aws_eip in EC2 Classic [GH-9009]
+ * provider/aws: Handle EC2 tags related errors in CloudFront Distribution resource. [GH-9298]
  * provider/azurerm: removing resources from state when the API returns a 404 for them [GH-8859]
  * provider/azurerm: arm_virtual_machine diagnostics_profile was causing a panic on the Read func [GH-9122]
 
