@@ -24,7 +24,7 @@ The following arguments are supported:
 
 * `server` - (Optional) ID of ARM server to associate IP with
 
-Field `server` are editable.
+Field `server` is editable.
 
 ## Attributes Reference
 
