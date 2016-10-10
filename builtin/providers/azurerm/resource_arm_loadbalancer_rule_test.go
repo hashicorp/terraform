@@ -61,7 +61,7 @@ func TestResourceAzureRMLoadBalancerRuleNameLabel_validation(t *testing.T) {
 func TestAccAzureRMLoadBalancerRule_basic(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
-	lbRuleName := fmt.Sprintf("LbRule-%d", ri)
+	lbRuleName := fmt.Sprintf("LbRule-%s", acctest.RandStringFromCharSet(8, acctest.CharSetAlpha))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -82,7 +82,7 @@ func TestAccAzureRMLoadBalancerRule_basic(t *testing.T) {
 func TestAccAzureRMLoadBalancerRule_removal(t *testing.T) {
 	var lb network.LoadBalancer
 	ri := acctest.RandInt()
-	lbRuleName := fmt.Sprintf("LbRule-%d", ri)
+	lbRuleName := fmt.Sprintf("LbRule-%s", acctest.RandStringFromCharSet(8, acctest.CharSetAlpha))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
