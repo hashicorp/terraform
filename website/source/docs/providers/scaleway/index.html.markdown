@@ -91,6 +91,6 @@ provider "scaleway" {
 
 ...and instead set these environment variables:
 
-- **SCALEWAY_ORGANIZATION**: Your Scaleway organization
+- **SCALEWAY_ORGANIZATION**: Your Scaleway organization ID
 - **SCALEWAY_ACCESS_KEY**: Your API Access key
 - **SCALEWAY_REGION**: The Scaleway region
