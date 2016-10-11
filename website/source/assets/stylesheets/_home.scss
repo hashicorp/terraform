@@ -192,7 +192,6 @@ body.page-home {
 
 		#feature-write-bg{
 			background: $white;
-			background-size: 570px;
 			z-index: 70;
 			@include skewY(3deg);
 			-webkit-backface-visibility: hidden;
@@ -202,8 +201,9 @@ body.page-home {
 				position: absolute;
 				bottom: 0;
 				right:10%;
-				width: 560px;
+				width: 640px;
 				@include skewY(-3deg);
+				-webkit-backface-visibility: hidden;
 			}
 		}
 	}
@@ -417,7 +417,7 @@ body.page-home {
 		color: $white;
 		text-align: center;
 
-		>.container {
+		>.container{
 			z-index: 51;
 		}
 	}
