@@ -17,9 +17,10 @@ FEATURES:
 IMPROVEMENTS:
  * core-validation: create validation package to provide common validation functions [GH-8103]
  * provider/aws: Support Import of OpsWorks Custom Layers [GH-9252]
- * provider/azurerm: expose default keys for servicebus_namespace [GH-9242]
- * provider/azurerm: add enable_blob_encryption to storage_account resource [GH-9233]
- * provider/azurerm: set resource_group_name on resource import across the provider [GH-9073]
+ * provider/azurerm: expose default keys for `servicebus_namespace` [GH-9242]
+ * provider/azurerm: add `enable_blob_encryption` to `azurerm_storage_account` resource [GH-9233]
+ * provider/azurerm: set `resource_group_name` on resource import across the provider [GH-9073]
+ * provider/azurerm: `azurerm_cdn_profile` resources can now be imported [GH-9306]
  * provider/datadog: add support for Datadog dashboard "type" and "style" options [GH-9228]
  
  
@@ -27,10 +28,10 @@ BUG FIXES:
  * command/fmt: Bare comment groups no longer have superflous newlines
  * command/fmt: Leading comments on list items are formatted properly 
  * provider/aws: Return correct AMI image when `most_recent` is set to `true`. [GH-9277]
- * provider/aws: Fix issue with diff on import of aws_eip in EC2 Classic [GH-9009]
+ * provider/aws: Fix issue with diff on import of `aws_eip` in EC2 Classic [GH-9009]
  * provider/aws: Handle EC2 tags related errors in CloudFront Distribution resource. [GH-9298]
  * provider/azurerm: removing resources from state when the API returns a 404 for them [GH-8859]
- * provider/azurerm: arm_virtual_machine diagnostics_profile was causing a panic on the Read func [GH-9122]
+ * provider/azurerm: Fixed a panic in `azurerm_virtual_machine` when using `diagnostic_profile` [GH-9122]
 
 ## 0.7.5 (October 6, 2016)
 
