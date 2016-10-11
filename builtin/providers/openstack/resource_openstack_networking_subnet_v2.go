@@ -71,12 +71,12 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"no_gateway": &schema.Schema{
-				Type:       schema.TypeBool,
-				Optional:   true,
-				ForceNew:   false,
-				Deprecated: "This argument is no longer required. Instead, omit gateway_ip or set it to an empty string",
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
 			},
 			"ip_version": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -144,13 +144,14 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		MapValueSpecs(d),
 	}
 
-	if v, ok := d.GetOk("gateway_ip"); ok {
-		noGateway := d.Get("no_gateway").(bool)
-		if noGateway {
-			return fmt.Errorf("Both gateway_ip and no_gateway cannot be set.")
-		}
+	noGateway := d.Get("no_gateway").(bool)
+	gatewayIP := d.Get("gateway_ip").(string)
 
-		gatewayIP := v.(string)
+	if gatewayIP != "" && noGateway {
+		return fmt.Errorf("Both gateway_ip and no_gateway cannot be set")
+	}
+
+	if gatewayIP != "" {
 		createOpts.GatewayIP = &gatewayIP
 	}
 
@@ -198,7 +199,7 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 		return CheckDeleted(d, err, "subnet")
 	}
 
-	log.Printf("[DEBUG] Retrieved Subnet %s: %+v", d.Id(), s)
+	log.Printf("[DEBUG] Retrieved Subnet %s: %#v", d.Id(), s)
 
 	d.Set("network_id", s.NetworkID)
 	d.Set("cidr", s.CIDR)
@@ -231,6 +232,13 @@ func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) 
 	}
 
 	var updateOpts subnets.UpdateOpts
+
+	noGateway := d.Get("no_gateway").(bool)
+	gatewayIP := d.Get("gateway_ip").(string)
+
+	if gatewayIP != "" && noGateway {
+		return fmt.Errorf("Both gateway_ip and no_gateway cannot be set")
+	}
 
 	if d.HasChange("name") {
 		updateOpts.Name = d.Get("name").(string)
