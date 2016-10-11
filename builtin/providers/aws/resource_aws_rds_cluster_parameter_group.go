@@ -146,7 +146,7 @@ func resourceAwsRDSClusterParameterGroupRead(d *schema.ResourceData, meta interf
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
 	paramGroup := describeResp.DBClusterParameterGroups[0]
-	arn, err := buildRDSCPGARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSCPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if paramGroup.DBClusterParameterGroupName != nil && *paramGroup.DBClusterParameterGroupName != "" {
@@ -211,7 +211,7 @@ func resourceAwsRDSClusterParameterGroupUpdate(d *schema.ResourceData, meta inte
 		d.SetPartial("parameter")
 	}
 
-	if arn, err := buildRDSCPGARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSCPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(rdsconn, d, arn); err != nil {
 			return err
 		} else {
@@ -262,11 +262,14 @@ func resourceAwsRDSClusterParameterGroupDeleteRefreshFunc(
 	}
 }
 
-func buildRDSCPGARN(identifier, accountid, region string) (string, error) {
+func buildRDSCPGARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:cluster-pg:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:cluster-pg:%s", partition, region, accountid, identifier)
 	return arn, nil
 
 }
