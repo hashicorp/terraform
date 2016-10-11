@@ -495,7 +495,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 		return CheckDeleted(d, err, "server")
 	}
 
-	log.Printf("[DEBUG] Retreived Server %s: %+v", d.Id(), server)
+	log.Printf("[DEBUG] Retrieved Server %s: %+v", d.Id(), server)
 
 	d.Set("name", server.Name)
 

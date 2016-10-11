@@ -181,7 +181,7 @@ func resourceBlockStorageVolumeV2Read(d *schema.ResourceData, meta interface{}) 
 		return CheckDeleted(d, err, "volume")
 	}
 
-	log.Printf("[DEBUG] Retreived volume %s: %+v", d.Id(), v)
+	log.Printf("[DEBUG] Retrieved volume %s: %+v", d.Id(), v)
 
 	d.Set("size", v.Size)
 	d.Set("description", v.Description)

@@ -201,7 +201,7 @@ func resourcePoolV2Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LBV2 Pool")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LBaaSV2 Pool %s: %+v", d.Id(), pool)
+	log.Printf("[DEBUG] Retrieved OpenStack LBaaSV2 Pool %s: %+v", d.Id(), pool)
 
 	d.Set("lb_method", pool.LBMethod)
 	d.Set("protocol", pool.Protocol)

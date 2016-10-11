@@ -171,7 +171,7 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB VIP")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LB VIP %s: %+v", d.Id(), p)
+	log.Printf("[DEBUG] Retrieved OpenStack LB VIP %s: %+v", d.Id(), p)
 
 	d.Set("name", p.Name)
 	d.Set("subnet_id", p.SubnetID)

@@ -99,7 +99,7 @@ func resourceNetworkingRouterInterfaceV2Read(d *schema.ResourceData, meta interf
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router Interface: %s", err)
 	}
 
-	log.Printf("[DEBUG] Retreived Router Interface %s: %+v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved Router Interface %s: %+v", d.Id(), n)
 
 	return nil
 }

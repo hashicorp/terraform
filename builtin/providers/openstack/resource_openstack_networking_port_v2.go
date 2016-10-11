@@ -175,7 +175,7 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 		return CheckDeleted(d, err, "port")
 	}
 
-	log.Printf("[DEBUG] Retreived Port %s: %+v", d.Id(), p)
+	log.Printf("[DEBUG] Retrieved Port %s: %+v", d.Id(), p)
 
 	d.Set("name", p.Name)
 	d.Set("admin_state_up", p.AdminStateUp)
