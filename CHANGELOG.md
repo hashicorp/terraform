@@ -32,6 +32,7 @@ BUG FIXES:
  * provider/aws: Return correct AMI image when `most_recent` is set to `true`. [GH-9277]
  * provider/aws: Fix issue with diff on import of `aws_eip` in EC2 Classic [GH-9009]
  * provider/aws: Handle EC2 tags related errors in CloudFront Distribution resource. [GH-9298]
+ * provider/aws: Fix cause error when using `etag` and `kms_key_id` with `aws_s3_bucket_object` [GH-9168]
  * provider/azurerm: removing resources from state when the API returns a 404 for them [GH-8859]
  * provider/azurerm: Fixed a panic in `azurerm_virtual_machine` when using `diagnostic_profile` [GH-9122]
 
