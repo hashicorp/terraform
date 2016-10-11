@@ -109,6 +109,35 @@ func TestAccAWSSpotInstanceRequest_SubnetAndSG(t *testing.T) {
 	})
 }
 
+func TestAccAWSSpotInstanceRequest_SirAndInstanceTags(t *testing.T) {
+	var sir ec2.SpotInstanceRequest
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSpotInstanceRequestDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSpotInstanceRequestConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSpotInstanceRequestExists(
+						"aws_spot_instance_request.foo", &sir),
+					testAccCheckAWSSpotInstanceRequestSirAndInstanceTags(&sir, "terraform-test"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSSpotInstanceRequestConfig_withUpdatedTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSpotInstanceRequestExists(
+						"aws_spot_instance_request.foo", &sir),
+					testAccCheckAWSSpotInstanceRequestSirAndInstanceTags(&sir, "terraform-test-tag-changed"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckKeyPair(keyName string, sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
 	return func(*terraform.State) error {
 		if sir.LaunchSpecification.KeyName == nil {
@@ -277,6 +306,60 @@ func testAccCheckAWSSpotInstanceRequest_InstanceAttributes(
 	}
 }
 
+func testAccCheckAWSSpotInstanceRequestSirAndInstanceTags(
+	sir *ec2.SpotInstanceRequest, NameTagValue string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIds: []*string{sir.InstanceId},
+		})
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
+				return fmt.Errorf("Spot Instance not found")
+			}
+			return err
+		}
+
+		// If nothing was found, then return no state
+		if len(resp.Reservations) == 0 {
+			return fmt.Errorf("Spot Instance not found")
+		}
+
+		// check Spot instance request tags
+		tagCheck := testAccCheckTags(&sir.Tags, "Name", NameTagValue)
+		err = tagCheck(s)
+		if err != nil {
+			return fmt.Errorf("Error in matching tags on spot instance request. err=%s", err)
+		}
+
+		// Guard against regression of https://github.com/hashicorp/terraform/issues/914
+		tagCheck = testAccCheckTags(&sir.Tags, "#", "")
+		err = tagCheck(s)
+
+		if err != nil {
+			return err
+		}
+
+		instance := resp.Reservations[0].Instances[0]
+
+		// check the instance to see if the same tags exist as on the spot instance request
+		tagCheck = testAccCheckTags(&instance.Tags, "Name", NameTagValue)
+		err = tagCheck(s)
+		if err != nil {
+			return fmt.Errorf("Error in matching tags on the instance that was created by the spot instance request. err=%s", err)
+		}
+
+		// Guard against regression of https://github.com/hashicorp/terraform/issues/914
+		tagCheck = testAccCheckTags(&instance.Tags, "#", "")
+		err = tagCheck(s)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSSpotInstanceRequestAttributesVPC(
 	sir *ec2.SpotInstanceRequest) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -308,6 +391,31 @@ resource "aws_spot_instance_request" "foo" {
 
 	tags {
 		Name = "terraform-test"
+	}
+}
+`
+
+const testAccAWSSpotInstanceRequestConfig_withUpdatedTags = `
+resource "aws_key_pair" "debugging" {
+	key_name = "tmp-key"
+	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
+}
+
+resource "aws_spot_instance_request" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	key_name = "${aws_key_pair.debugging.key_name}"
+
+	// base price is $0.044 hourly, so bidding above that should theoretically
+	// always fulfill
+	spot_price = "0.05"
+
+	// we wait for fulfillment because we want to inspect the launched instance
+	// and verify termination behavior
+	wait_for_fulfillment = true
+
+	tags {
+		Name = "terraform-test-tag-changed"
 	}
 }
 `

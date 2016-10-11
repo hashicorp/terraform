@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -58,6 +59,33 @@ func setElbV2Tags(conn *elbv2.ELBV2, d *schema.ResourceData) error {
 // setTags is a helper to set the tags for a resource. It expects the
 // tags field to be named "tags"
 func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
+	var err error
+
+	id := d.Id()
+
+	// Check for a Spot Instance Requests as it requires special
+	// handling, the tagging process will tag the spot request it self
+	// as its id is stored in d.Id(), to tag the instance the spot
+	// request creates we need to use the the instance id which is stored
+	// under key 'spot_instance_id'
+	if strings.Contains(id, "sir-") {
+		spotInstID := d.Get("spot_instance_id").(string)
+		err = setTagsActual(conn, d, spotInstID)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = setTagsActual(conn, d, id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setTagsActual(conn *ec2.EC2, d *schema.ResourceData, id string) error {
 	if d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
@@ -66,9 +94,9 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 
 		// Set tags
 		if len(remove) > 0 {
-			log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
+			log.Printf("[DEBUG] Removing tags: %#v from %s", remove, id)
 			_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
-				Resources: []*string{aws.String(d.Id())},
+				Resources: []*string{aws.String(id)},
 				Tags:      remove,
 			})
 			if err != nil {
@@ -76,9 +104,9 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 			}
 		}
 		if len(create) > 0 {
-			log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
+			log.Printf("[DEBUG] Creating tags: %s for %s", create, id)
 			_, err := conn.CreateTags(&ec2.CreateTagsInput{
-				Resources: []*string{aws.String(d.Id())},
+				Resources: []*string{aws.String(id)},
 				Tags:      create,
 			})
 			if err != nil {
