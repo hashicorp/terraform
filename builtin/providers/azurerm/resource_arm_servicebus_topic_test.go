@@ -58,6 +58,63 @@ func TestAccAzureRMServiceBusTopic_update(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMServiceBusTopic_enablePartitioning(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_basic, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_enablePartitioning, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMServiceBusTopicExists("azurerm_servicebus_topic.test"),
+				),
+			},
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_topic.test", "enable_partitioning", "true"),
+					// Ensure size is read back in it's original value and not the x16 value returned by Azure
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_topic.test", "max_size_in_megabytes", "10240"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMServiceBusTopic_enableDuplicateDetection(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_basic, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_enableDuplicateDetection, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMServiceBusTopicExists("azurerm_servicebus_topic.test"),
+				),
+			},
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_topic.test", "requires_duplicate_detection", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMServiceBusTopicDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*ArmClient).serviceBusTopicsClient
 
@@ -157,5 +214,50 @@ resource "azurerm_servicebus_topic" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     enable_batched_operations = true
     enable_express = true
+}
+`
+
+var testAccAzureRMServiceBusTopic_enablePartitioning = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_servicebus_namespace" "test" {
+    name = "acctestservicebusnamespace-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    sku = "standard"
+}
+
+resource "azurerm_servicebus_topic" "test" {
+    name = "acctestservicebustopic-%d"
+    location = "West US"
+    namespace_name = "${azurerm_servicebus_namespace.test.name}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    enable_partitioning = true
+	max_size_in_megabytes = 10240
+}
+`
+
+var testAccAzureRMServiceBusTopic_enableDuplicateDetection = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_servicebus_namespace" "test" {
+    name = "acctestservicebusnamespace-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    sku = "standard"
+}
+
+resource "azurerm_servicebus_topic" "test" {
+    name = "acctestservicebustopic-%d"
+    location = "West US"
+    namespace_name = "${azurerm_servicebus_namespace.test.name}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    requires_duplicate_detection = true
 }
 `

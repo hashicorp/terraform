@@ -80,17 +80,20 @@ func resourceArmServiceBusTopic() *schema.Resource {
 			"enable_partitioning": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"max_size_in_megabytes": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateArmServiceBusTopicMaxSize,
 			},
 
 			"requires_duplicate_detection": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"support_ordering": {
@@ -199,9 +202,17 @@ func resourceArmServiceBusTopicRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("enable_express", props.EnableExpress)
 	d.Set("enable_filtering_messages_before_publishing", props.FilteringMessagesBeforePublishing)
 	d.Set("enable_partitioning", props.EnablePartitioning)
-	d.Set("max_size_in_megabytes", int(*props.MaxSizeInMegabytes))
 	d.Set("requires_duplicate_detection", props.RequiresDuplicateDetection)
 	d.Set("support_ordering", props.SupportOrdering)
+
+	// if partitioning is enabled then the max size returned by the API will be
+	// 16 times greater than the value set by the user
+	if *props.EnablePartitioning {
+		const partitionCount = 16
+		d.Set("max_size_in_megabytes", int(*props.MaxSizeInMegabytes/partitionCount))
+	} else {
+		d.Set("max_size_in_megabytes", int(*props.MaxSizeInMegabytes))
+	}
 
 	return nil
 }
@@ -220,4 +231,13 @@ func resourceArmServiceBusTopicDelete(d *schema.ResourceData, meta interface{}) 
 	_, err = client.Delete(resGroup, namespaceName, name)
 
 	return err
+}
+
+func validateArmServiceBusTopicMaxSize(i interface{}, k string) (s []string, es []error) {
+	v := i.(int)
+	if v%1024 != 0 || v < 0 || v > 10240 {
+		es = append(es, fmt.Errorf("%q must be a multiple of 1024 up to and including 10240", k))
+	}
+
+	return
 }
