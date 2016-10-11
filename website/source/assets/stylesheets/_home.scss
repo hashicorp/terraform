@@ -30,7 +30,7 @@ body.page-home {
 	}
 
 	p.lead{
-		font-size: 24px;
+		font-size: 21px;
 	}
 
 	#primary-cta{
@@ -406,13 +406,8 @@ body.page-home {
 		}
 	}
 
-	&.cta {
+	#demo-cta{
 		text-align: center;
-
-		.btn {
-			position: relative;
-			margin: 0 50%;
-		}
 	}
 
 	#latest-announcement{
