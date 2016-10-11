@@ -34,6 +34,7 @@ BUG FIXES:
  * provider/aws: Fix issue with diff on import of `aws_eip` in EC2 Classic [GH-9009]
  * provider/aws: Handle EC2 tags related errors in CloudFront Distribution resource. [GH-9298]
  * provider/aws: Fix cause error when using `etag` and `kms_key_id` with `aws_s3_bucket_object` [GH-9168]
+ * provider/aws: Fix issue reassigning EIP instances appropriately [GH-7686]
  * provider/azurerm: removing resources from state when the API returns a 404 for them [GH-8859]
  * provider/azurerm: Fixed a panic in `azurerm_virtual_machine` when using `diagnostic_profile` [GH-9122]
 
