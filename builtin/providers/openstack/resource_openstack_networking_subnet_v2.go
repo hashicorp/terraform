@@ -198,7 +198,7 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 		return CheckDeleted(d, err, "subnet")
 	}
 
-	log.Printf("[DEBUG] Retreived Subnet %s: %+v", d.Id(), s)
+	log.Printf("[DEBUG] Retrieved Subnet %s: %+v", d.Id(), s)
 
 	d.Set("network_id", s.NetworkID)
 	d.Set("cidr", s.CIDR)

@@ -152,7 +152,7 @@ func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB monitor")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LB Monitor %s: %+v", d.Id(), m)
+	log.Printf("[DEBUG] Retrieved OpenStack LB Monitor %s: %+v", d.Id(), m)
 
 	d.Set("type", m.Type)
 	d.Set("delay", m.Delay)

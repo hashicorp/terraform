@@ -137,7 +137,7 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 	}
 
-	log.Printf("[DEBUG] Retreived Router %s: %+v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved Router %s: %+v", d.Id(), n)
 
 	d.Set("name", n.Name)
 	d.Set("admin_state_up", n.AdminStateUp)

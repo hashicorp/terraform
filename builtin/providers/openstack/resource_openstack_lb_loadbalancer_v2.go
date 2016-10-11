@@ -138,7 +138,7 @@ func resourceLoadBalancerV2Read(d *schema.ResourceData, meta interface{}) error 
 		return CheckDeleted(d, err, "LoadBalancerV2")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LoadBalancerV2 %s: %+v", d.Id(), lb)
+	log.Printf("[DEBUG] Retrieved OpenStack LoadBalancerV2 %s: %+v", d.Id(), lb)
 
 	d.Set("name", lb.Name)
 	d.Set("description", lb.Description)

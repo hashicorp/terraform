@@ -156,7 +156,7 @@ func resourceMemberV2Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LBV2 Member")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LBaaSV2 Member %s: %+v", d.Id(), member)
+	log.Printf("[DEBUG] Retrieved OpenStack LBaaSV2 Member %s: %+v", d.Id(), member)
 
 	d.Set("name", member.Name)
 	d.Set("weight", member.Weight)

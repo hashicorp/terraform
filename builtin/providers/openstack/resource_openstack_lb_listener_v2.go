@@ -178,7 +178,7 @@ func resourceListenerV2Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LBV2 listener")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LBaaSV2 listener %s: %+v", d.Id(), listener)
+	log.Printf("[DEBUG] Retrieved OpenStack LBaaSV2 listener %s: %+v", d.Id(), listener)
 
 	d.Set("id", listener.ID)
 	d.Set("name", listener.Name)

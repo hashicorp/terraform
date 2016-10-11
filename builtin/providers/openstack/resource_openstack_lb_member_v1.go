@@ -130,7 +130,7 @@ func resourceLBMemberV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB member")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LB member %s: %+v", d.Id(), m)
+	log.Printf("[DEBUG] Retrieved OpenStack LB member %s: %+v", d.Id(), m)
 
 	d.Set("address", m.Address)
 	d.Set("pool_id", m.PoolID)

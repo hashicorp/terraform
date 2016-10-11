@@ -154,7 +154,7 @@ func resourceMonitorV2Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LBV2 Monitor")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LBaaSV2 Monitor %s: %+v", d.Id(), monitor)
+	log.Printf("[DEBUG] Retrieved OpenStack LBaaSV2 Monitor %s: %+v", d.Id(), monitor)
 
 	d.Set("id", monitor.ID)
 	d.Set("tenant_id", monitor.TenantID)

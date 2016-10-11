@@ -132,7 +132,7 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 		return CheckDeleted(d, err, "network")
 	}
 
-	log.Printf("[DEBUG] Retreived Network %s: %+v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved Network %s: %+v", d.Id(), n)
 
 	d.Set("name", n.Name)
 	d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
