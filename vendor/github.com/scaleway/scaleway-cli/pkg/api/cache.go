@@ -64,7 +64,7 @@ type ScalewayCache struct {
 }
 
 const (
-	// IdentifierUnknown is used when we don't know explicitely the type key of the object (used for nil comparison)
+	// IdentifierUnknown is used when we don't know explicitly the type key of the object (used for nil comparison)
 	IdentifierUnknown = 1 << iota
 	// IdentifierServer is the type key of cached server objects
 	IdentifierServer
@@ -239,9 +239,7 @@ func (c *ScalewayCache) Save() error {
 			return err
 		}
 		defer file.Close()
-		encoder := json.NewEncoder(file)
-		err = encoder.Encode(*c)
-		if err != nil {
+		if err := json.NewEncoder(file).Encode(c); err != nil {
 			os.Remove(file.Name())
 			return err
 		}
