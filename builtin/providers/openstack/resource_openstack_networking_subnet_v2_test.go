@@ -27,7 +27,7 @@ func TestAccNetworkingV2Subnet_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Subnet_update,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "name", "tf-test-subnet"),
+					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "name", "subnet_1"),
 					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "gateway_ip", "192.168.199.1"),
 					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "enable_dhcp", "true"),
 				),
