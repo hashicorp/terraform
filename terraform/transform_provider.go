@@ -523,9 +523,10 @@ func (n *graphNodeProviderFlat) DependableName() []string {
 func (n *graphNodeProviderFlat) DependentOn() []string {
 	var result []string
 
-	// If we're in a module, then depend on our parent's provider
-	if len(n.PathValue) > 1 {
-		prefix := modulePrefixStr(n.PathValue[:len(n.PathValue)-1])
+	// If we're in a module, then depend on all parent providers. Some of
+	// these may not exist, hence we depend on all of them.
+	for i := len(n.PathValue); i > 1; i-- {
+		prefix := modulePrefixStr(n.PathValue[:i-1])
 		result = modulePrefixList(n.graphNodeProvider.DependableName(), prefix)
 	}
 
