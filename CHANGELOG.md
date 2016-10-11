@@ -22,6 +22,7 @@ IMPROVEMENTS:
  * provider/azurerm: set `resource_group_name` on resource import across the provider [GH-9073]
  * provider/azurerm: `azurerm_cdn_profile` resources can now be imported [GH-9306]
  * provider/datadog: add support for Datadog dashboard "type" and "style" options [GH-9228]
+ * provider/scaleway: `region` is now supported for provider configuration
  
  
 BUG FIXES:
