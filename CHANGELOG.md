@@ -17,6 +17,7 @@ FEATURES:
 IMPROVEMENTS:
  * core-validation: create validation package to provide common validation functions [GH-8103]
  * provider/aws: Support Import of OpsWorks Custom Layers [GH-9252]
+ * provider/aws: Automatically constructed ARNs now support partitions other than `aws`, allowing operation with `aws-cn` and `aws-us-gov` [GH-9273]
  * provider/azurerm: expose default keys for `servicebus_namespace` [GH-9242]
  * provider/azurerm: add `enable_blob_encryption` to `azurerm_storage_account` resource [GH-9233]
  * provider/azurerm: set `resource_group_name` on resource import across the provider [GH-9073]
