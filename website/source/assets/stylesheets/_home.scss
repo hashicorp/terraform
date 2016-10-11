@@ -34,12 +34,13 @@ body.page-home {
 	}
 
 	#primary-cta{
-		padding-bottom: 160px;
+		margin-top: -30px;
+		padding-bottom: 100px;
 		color: $white;
 		background: $black;
 
-		p.lead{
-			margin-bottom: 40px;
+		.terra-btn{
+			margin-top: 30px;
 		}
 	}
 
@@ -55,10 +56,8 @@ body.page-home {
 		}
 
 		p {
-			display: inline-block;
-			float: left;
-			margin-right: 6%;
-			padding-top: 30px;
+			text-transform: uppercase;
+			letter-spacing: 2px;
 		}
 
 		#customer-logos-bg{
@@ -71,48 +70,45 @@ body.page-home {
 	}
 
 	ul.customer-list{
-		display: inline;
-		width: 100%;
-		text-align: justify;
+		padding-left: 15px;
 
 		li{
 			display: inline-block;
-			width: 80px;
+			width: 16%;
 			height: 80px;
-			margin-right: 6%;
 			text-indent: 100%;
 	    white-space: nowrap;
 	    overflow: hidden;
 		}
 
 		#nike {
-			background: transparent image-url("customer-logos/nike.svg") center no-repeat;
-			background-size: 100%;
+			background: transparent image-url("customer-logos/nike.svg") left no-repeat;
+			background-size: 80px;
 		}
 
 		#hbo {
-			background: transparent image-url("customer-logos/hbo.svg") center no-repeat;
-			background-size: 80%;
+			background: transparent image-url("customer-logos/hbo.svg") left no-repeat;
+			background-size: 80px;
 		}
 
 		#target {
-			background: transparent image-url("customer-logos/target.svg") center no-repeat;
-			background-size: 60%;
+			background: transparent image-url("customer-logos/target.svg") left no-repeat;
+			background-size: 50px;
 		}
 
 		#capital-one {
-			background: transparent image-url("customer-logos/capital-one.svg") center no-repeat;
-			background-size: 100%;
+			background: transparent image-url("customer-logos/capital-one.svg") left no-repeat;
+			background-size: 100px;
 		}
 
 		#home-depot {
-			background: transparent image-url("customer-logos/home-depot.svg") center no-repeat;
-			background-size: 70%;
+			background: transparent image-url("customer-logos/home-depot.svg") left no-repeat;
+			background-size: 50px;
 		}
 
 		#hotels-dot-com {
-			background: transparent image-url("customer-logos/hotels-dot-com.svg") center no-repeat;
-			background-size: 100%;
+			background: transparent image-url("customer-logos/hotels-dot-com.svg") left no-repeat;
+			background-size: 100px;
 		}
 	}
 
@@ -410,7 +406,7 @@ body.page-home {
 		}
 	}
 
-	.cta {
+	&.cta {
 		text-align: center;
 
 		.btn {
