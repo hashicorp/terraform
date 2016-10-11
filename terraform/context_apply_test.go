@@ -1390,6 +1390,54 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_moduleOrphanGrandchildProvider(t *testing.T) {
+	m := testModule(t, "apply-module-orphan-provider-inherit")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if _, ok := c.Get("value"); !ok {
+			return fmt.Errorf("value is not found")
+		}
+
+		return nil
+	}
+
+	// Create a state with an orphan module that is nested (grandchild)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "parent", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		State:  state,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContext2Apply_moduleGrandchildProvider(t *testing.T) {
 	m := testModule(t, "apply-module-grandchild-provider-inherit")
 	p := testProvider("aws")
