@@ -67,10 +67,31 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 	// Create the real context. This is effectively just a copy of
 	// the context given except we need to modify some of the values
 	// to point to the real side of a shadow so the shadow can compare values.
-	real := *c
-	real.components = componentsReal
+	real := &Context{
+		// The fields below are changed.
+		components: componentsReal,
 
-	return &real, shadow, &shadowContextCloser{
+		// The fields below are direct copies
+		destroy: c.destroy,
+		diff:    c.diff,
+		// diffLock - no copy
+		hooks:  c.hooks,
+		module: c.module,
+		sh:     c.sh,
+		state:  c.state,
+		// stateLock - no copy
+		targets:   c.targets,
+		uiInput:   c.uiInput,
+		variables: c.variables,
+
+		// l - no copy
+		parallelSem:         c.parallelSem,
+		providerInputConfig: c.providerInputConfig,
+		runCh:               c.runCh,
+		shadowErr:           c.shadowErr,
+	}
+
+	return real, shadow, &shadowContextCloser{
 		Components: componentsShadow,
 	}
 }
