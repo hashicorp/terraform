@@ -169,6 +169,60 @@ func TestKeyedValueClose_existingBlocked(t *testing.T) {
 	}
 }
 
+func TestKeyedValueInit(t *testing.T) {
+	var v KeyedValue
+
+	v.Init("foo", 42)
+
+	// We should get the value
+	val := v.Value("foo")
+	if val != 42 {
+		t.Fatalf("bad: %#v", val)
+	}
+
+	// We should get the value
+	val = v.Value("foo")
+	if val != 42 {
+		t.Fatalf("bad: %#v", val)
+	}
+
+	// This should do nothing
+	v.Init("foo", 84)
+
+	// We should get the value
+	val = v.Value("foo")
+	if val != 42 {
+		t.Fatalf("bad: %#v", val)
+	}
+}
+
+func TestKeyedValueInit_set(t *testing.T) {
+	var v KeyedValue
+
+	v.SetValue("foo", 42)
+
+	// We should get the value
+	val := v.Value("foo")
+	if val != 42 {
+		t.Fatalf("bad: %#v", val)
+	}
+
+	// We should get the value
+	val = v.Value("foo")
+	if val != 42 {
+		t.Fatalf("bad: %#v", val)
+	}
+
+	// This should do nothing
+	v.Init("foo", 84)
+
+	// We should get the value
+	val = v.Value("foo")
+	if val != 42 {
+		t.Fatalf("bad: %#v", val)
+	}
+}
+
 func TestKeyedValueWaitForChange(t *testing.T) {
 	var v KeyedValue
 
