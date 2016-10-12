@@ -479,7 +479,7 @@ func (c *Context) Refresh() (*State, error) {
 	}
 
 	// Do the walk
-	if _, err := c.walk(graph, nil, walkRefresh); err != nil {
+	if _, err := c.walk(graph, graph, walkRefresh); err != nil {
 		return nil, err
 	}
 
@@ -547,7 +547,7 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	// Walk
-	walker, err := c.walk(graph, nil, walkValidate)
+	walker, err := c.walk(graph, graph, walkValidate)
 	if err != nil {
 		return nil, multierror.Append(errs, err).Errors
 	}
