@@ -30,6 +30,7 @@ IMPROVEMENTS:
  
 BUG FIXES:
  * core: Orphaned nested (depth 2+) modules will inherit provider configs [GH-9318]
+ * core: Fix crash when a map key contains an interpolation function [GH-9282]
  * command/fmt: Bare comment groups no longer have superflous newlines
  * command/fmt: Leading comments on list items are formatted properly 
  * provider/aws: Return correct AMI image when `most_recent` is set to `true`. [GH-9277]
