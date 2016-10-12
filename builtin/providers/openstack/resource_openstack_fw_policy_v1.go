@@ -7,6 +7,7 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -61,7 +62,6 @@ func resourceFWPolicyV1() *schema.Resource {
 }
 
 func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
-
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
@@ -130,7 +130,6 @@ func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceFWPolicyV1Update(d *schema.ResourceData, meta interface{}) error {
-
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
@@ -179,15 +178,27 @@ func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	for i := 0; i < 15; i++ {
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     []string{"DELETED"},
+		Refresh:    waitForFirewallPolicyDeletion(networkingClient, d.Id()),
+		Timeout:    120 * time.Second,
+		Delay:      0,
+		MinTimeout: 2 * time.Second,
+	}
 
-		err = policies.Delete(networkingClient, d.Id()).Err
+	if _, err = stateConf.WaitForState(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func waitForFirewallPolicyDeletion(networkingClient *gophercloud.ServiceClient, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		err := policies.Delete(networkingClient, id).Err
 		if err == nil {
-			break
-		}
-
-		if _, ok := err.(gophercloud.ErrDefault404); ok {
-			return nil
+			return "", "DELETED", nil
 		}
 
 		if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
@@ -195,13 +206,10 @@ func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {
 				// This error usually means that the policy is attached
 				// to a firewall. At this point, the firewall is probably
 				// being delete. So, we retry a few times.
-				time.Sleep(time.Second * 2)
-				continue
+				return nil, "ACTIVE", nil
 			}
 		}
 
-		return err
+		return nil, "ACTIVE", err
 	}
-
-	return nil
 }
