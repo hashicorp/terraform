@@ -182,13 +182,13 @@ func TestAWSCloudFrontDistributionMigrateState(t *testing.T) {
 func stateDiff(expected map[string]string, actual map[string]string) map[string]string {
 	var diff = make(map[string]string, 0)
 	for k, v := range expected {
-		if value, ok := actual[k]; !ok && value != v {
+		if value, ok := actual[k]; !ok || value != v {
 			newKey := fmt.Sprintf("%s_EXPECTED", k)
 			diff[newKey] = v
 		}
 	}
 	for k, v := range actual {
-		if value, ok := expected[k]; !ok && value != v {
+		if value, ok := expected[k]; !ok || value != v {
 			newKey := fmt.Sprintf("%s_ACTUAL", k)
 			diff[newKey] = v
 		}

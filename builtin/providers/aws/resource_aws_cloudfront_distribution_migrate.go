@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -35,7 +36,13 @@ func migrateCloudFrontDistributionStateV0toV1(is *terraform.InstanceState) (*ter
 	var newAttributes = make(map[string]string, 0)
 
 	log.Printf("[DEBUG] Attributes before migration: %#v", is.Attributes)
-	for k, v := range is.Attributes {
+	var keys []string
+	for k, _ := range is.Attributes {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := is.Attributes[k]
 
 		// change cache_behavior.1784951082 to cache_behavior.0
 		newKey := migrateCacheBehaviorKeyFromSetToList(&hashToIdx, k)
