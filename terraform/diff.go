@@ -400,6 +400,21 @@ func (d *InstanceDiff) Empty() bool {
 	return !d.Destroy && !d.DestroyTainted && len(d.Attributes) == 0
 }
 
+// Equal compares two diffs for exact equality.
+//
+// This is different from the Same comparison that is supported which
+// checks for operation equality taking into account computed values. Equal
+// instead checks for exact equality.
+func (d *InstanceDiff) Equal(d2 *InstanceDiff) bool {
+	// If one is nil, they must both be nil
+	if d == nil || d2 == nil {
+		return d == d2
+	}
+
+	// Use DeepEqual
+	return reflect.DeepEqual(d, d2)
+}
+
 // DeepCopy performs a deep copy of all parts of the InstanceDiff
 func (d *InstanceDiff) DeepCopy() *InstanceDiff {
 	copy, err := copystructure.Config{Lock: true}.Copy(d)

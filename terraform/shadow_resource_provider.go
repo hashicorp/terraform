@@ -254,6 +254,22 @@ func (p *shadowResourceProviderReal) ReadDataDiff(
 	return result, err
 }
 
+func (p *shadowResourceProviderReal) ReadDataApply(
+	info *InstanceInfo,
+	diff *InstanceDiff) (*InstanceState, error) {
+	// Thse have to be copied before the call since call can modify
+	diffCopy := diff.DeepCopy()
+
+	result, err := p.ResourceProvider.ReadDataApply(info, diff)
+	p.Shared.ReadDataApply.SetValue(info.uniqueId(), &shadowResourceProviderReadDataApply{
+		Diff:      diffCopy,
+		Result:    result.DeepCopy(),
+		ResultErr: err,
+	})
+
+	return result, err
+}
+
 // shadowResourceProviderShadow is the shadow resource provider. Function
 // calls never affect real resources. This is paired with the "real" side
 // which must be called properly to enable recording.
@@ -282,6 +298,7 @@ type shadowResourceProviderShared struct {
 	Refresh            shadow.KeyedValue
 	ValidateDataSource shadow.KeyedValue
 	ReadDataDiff       shadow.KeyedValue
+	ReadDataApply      shadow.KeyedValue
 }
 
 func (p *shadowResourceProviderShared) Close() error {
@@ -679,6 +696,42 @@ func (p *shadowResourceProviderShadow) ReadDataDiff(
 	return result.Result, result.ResultErr
 }
 
+func (p *shadowResourceProviderShadow) ReadDataApply(
+	info *InstanceInfo,
+	d *InstanceDiff) (*InstanceState, error) {
+	// Unique key
+	key := info.uniqueId()
+	raw := p.Shared.ReadDataApply.Value(key)
+	if raw == nil {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'ReadDataApply' call for %q:\n\n%#v",
+			key, d))
+		return nil, nil
+	}
+
+	result, ok := raw.(*shadowResourceProviderReadDataApply)
+	if !ok {
+		p.ErrorLock.Lock()
+		defer p.ErrorLock.Unlock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Unknown 'ReadDataApply' shadow value: %#v", raw))
+		return nil, nil
+	}
+
+	// Compare the parameters, which should be identical
+	if !d.Equal(result.Diff) {
+		p.ErrorLock.Lock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"ReadDataApply: unequal diffs (real, then shadow):\n\n%#v\n\n%#v",
+			result.Diff, d))
+		p.ErrorLock.Unlock()
+	}
+
+	return result.Result, result.ResultErr
+}
+
 // TODO
 // TODO
 // TODO
@@ -686,12 +739,6 @@ func (p *shadowResourceProviderShadow) ReadDataDiff(
 // TODO
 
 func (p *shadowResourceProviderShadow) ImportState(info *InstanceInfo, id string) ([]*InstanceState, error) {
-	return nil, nil
-}
-
-func (p *shadowResourceProviderShadow) ReadDataApply(
-	info *InstanceInfo,
-	d *InstanceDiff) (*InstanceState, error) {
 	return nil, nil
 }
 
@@ -762,5 +809,11 @@ type shadowResourceProviderValidateDataSource struct {
 type shadowResourceProviderReadDataDiff struct {
 	Desired   *ResourceConfig
 	Result    *InstanceDiff
+	ResultErr error
+}
+
+type shadowResourceProviderReadDataApply struct {
+	Diff      *InstanceDiff
+	Result    *InstanceState
 	ResultErr error
 }
