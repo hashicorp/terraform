@@ -35,11 +35,16 @@ func (w *KeyedValue) Close() error {
 // Value returns the value that was set for the given key, or blocks
 // until one is available.
 func (w *KeyedValue) Value(k string) interface{} {
+	w.lock.Lock()
 	v, val := w.valueWaiter(k)
+	w.lock.Unlock()
+
+	// If we have no waiter, then return the value
 	if val == nil {
 		return v
 	}
 
+	// We have a waiter, so wait
 	return val.Value()
 }
 
@@ -71,6 +76,9 @@ func (w *KeyedValue) WaitForChange(k string) interface{} {
 // ValueOk gets the value for the given key, returning immediately if the
 // value doesn't exist. The second return argument is true if the value exists.
 func (w *KeyedValue) ValueOk(k string) (interface{}, bool) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
 	v, val := w.valueWaiter(k)
 	return v, val == nil
 }
@@ -78,6 +86,30 @@ func (w *KeyedValue) ValueOk(k string) (interface{}, bool) {
 func (w *KeyedValue) SetValue(k string, v interface{}) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
+	w.setValue(k, v)
+}
+
+// Init will initialize the key to a given value only if the key has
+// not been set before. This is safe to call multiple times and in parallel.
+func (w *KeyedValue) Init(k string, v interface{}) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	// If we have a waiter, set the value.
+	_, val := w.valueWaiter(k)
+	if val != nil {
+		w.setValue(k, v)
+	}
+}
+
+// Must be called with w.lock held.
+func (w *KeyedValue) init() {
+	w.values = make(map[string]interface{})
+	w.waiters = make(map[string]*Value)
+}
+
+// setValue is like SetValue but assumes the lock is held.
+func (w *KeyedValue) setValue(k string, v interface{}) {
 	w.once.Do(w.init)
 
 	// Set the value, always
@@ -90,25 +122,19 @@ func (w *KeyedValue) SetValue(k string, v interface{}) {
 	}
 }
 
-// Must be called with w.lock held.
-func (w *KeyedValue) init() {
-	w.values = make(map[string]interface{})
-	w.waiters = make(map[string]*Value)
-}
-
+// valueWaiter gets the value or the Value waiter for a given key.
+//
+// This must be called with lock held.
 func (w *KeyedValue) valueWaiter(k string) (interface{}, *Value) {
-	w.lock.Lock()
 	w.once.Do(w.init)
 
 	// If we have this value already, return it
 	if v, ok := w.values[k]; ok {
-		w.lock.Unlock()
 		return v, nil
 	}
 
 	// If we're closed, return that
 	if w.closed {
-		w.lock.Unlock()
 		return ErrClosed, nil
 	}
 
@@ -118,7 +144,6 @@ func (w *KeyedValue) valueWaiter(k string) (interface{}, *Value) {
 		val = new(Value)
 		w.waiters[k] = val
 	}
-	w.lock.Unlock()
 
 	// Return the waiter
 	return nil, val
