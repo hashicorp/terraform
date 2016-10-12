@@ -523,7 +523,13 @@ func (p *shadowResourceProviderShadow) Apply(
 		p.ErrorLock.Unlock()
 	}
 
-	// TODO: compare diffs
+	if !diff.Equal(result.Diff) {
+		p.ErrorLock.Lock()
+		p.Error = multierror.Append(p.Error, fmt.Errorf(
+			"Apply: unequal diffs (real, then shadow):\n\n%#v\n\n%#v",
+			result.Diff, diff))
+		p.ErrorLock.Unlock()
+	}
 
 	return result.Result, result.ResultErr
 }
