@@ -244,6 +244,11 @@ func waitForNetworkDelete(networkingClient *gophercloud.ServiceClient, networkId
 				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
 				return n, "DELETED", nil
 			}
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					return n, "ACTIVE", nil
+				}
+			}
 			return n, "ACTIVE", err
 		}
 
