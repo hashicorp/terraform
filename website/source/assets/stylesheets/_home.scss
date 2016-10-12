@@ -24,13 +24,18 @@ body.page-home {
 
 	p{
 		font-size: 15px;
-		line-height: 1.4;
-		font-weight: 300;
-		letter-spacing: .3px;
+		line-height: 1.5;
+		font-weight: regular;
+		letter-spacing: .1px;
+		margin-bottom: 2.2em;
+		font-family: $font-family-open-sans;
+		font-weight: $font-weight-open;
 	}
 
 	p.lead{
 		font-size: 21px;
+		font-family: $font-family-open-sans;
+		font-weight: $font-weight-open;
 	}
 
 	#primary-cta{
@@ -120,8 +125,9 @@ body.page-home {
 	}
 
 	.feature-card{
-		height: 210px;
+		height: 200px;
 		border: 2px solid #E6E7E8;
+		margin-bottom: 15px;
 		padding:20px;
 		font-size: 18px;
 
@@ -130,29 +136,32 @@ body.page-home {
 			padding: 0;
 			color: $purple;
 			font-size: 16px;
+			line-height: 1.2;
 			font-weight: 400;
 			text-transform: uppercase;
 		}
 
 		p{
+			font-size: 16px;
+			line-height: 1.2;
 			font-weight: 400;
 			text-transform: uppercase;
 			letter-spacing: 1px;
 		}
 
 		&.feature-card-write{
-			background: image-url("feature-card-write.svg") 20px 120px no-repeat;
-			background-size: 289px 55px;
+			background: image-url("feature-card-write.svg") left 20px top 70% no-repeat;
+			background-size: 80%;
 		}
 
 		&.feature-card-plan{
-			background: image-url("feature-card-plan.svg") 0px 137px no-repeat;
-			background-size: 360px 21px;
+			background: image-url("feature-card-plan.svg") left 0 top 69% no-repeat;
+			background-size: 100%;
 		}
 
 		&.feature-card-create{
-			background: image-url("feature-card-create.svg") 0px 105px no-repeat;
-			background-size: 275px 75px;
+			background: image-url("feature-card-create.svg") left 0 top 70% no-repeat;
+			background-size: 80%;
 		}
 	}
 
@@ -309,6 +318,7 @@ body.page-home {
 				}
 
 				.terminal{
+
 					border: 2px solid #1e1e1e;
 					background: $black;
 					//border-radius: 4px;
@@ -358,12 +368,15 @@ body.page-home {
 						min-height: 140px;
 						padding: 20px;
 						font-size: 15px;
-						font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
 						color: $white;
 						background-color: transparent;
 						overflow:auto;
 						font-weight: 500;
 						-webkit-font-smoothing: subpixel-antialiased;
+
+						p {
+							font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
+						}
 
 						.txt-spe {
 							color: lighten($blue, 5%);
@@ -523,7 +536,7 @@ body.page-home {
 	@media (max-width: 768px) {
 		h2{
 			margin-bottom: 40px;
-			font-size: 32px;
+			font-size: 28px;
 			line-height: 32px;
 			letter-spacing: 2px;
 			text-transform: uppercase;
@@ -541,14 +554,10 @@ body.page-home {
 
 		p{
 			font-size: 14px;
-			line-height: 1.4;
-			font-weight: 300;
-			letter-spacing: .3px;
-			margin-bottom: 20px;
 		}
 
 		p.lead{
-			font-size: 18px;
+			font-size: 17px;
 		}
 
 		#primary-cta{
@@ -574,6 +583,49 @@ body.page-home {
 			}
 
 			ul.customer-list{
+				padding-left: 15px;
+
+				li{
+					display: inline-block;
+					width: 16%;
+					height: 80px;
+					text-indent: 100%;
+			    white-space: nowrap;
+			    overflow: hidden;
+				}
+
+				#nike {
+					background: transparent image-url("customer-logos/nike.svg") left no-repeat;
+					background-size: 40px;
+				}
+
+				#hbo {
+					background: transparent image-url("customer-logos/hbo.svg") left no-repeat;
+					background-size: 40px;
+				}
+
+				#target {
+					background: transparent image-url("customer-logos/target.svg") left no-repeat;
+					background-size: 30px;
+				}
+
+				#capital-one {
+					background: transparent image-url("customer-logos/capital-one.svg") left no-repeat;
+					background-size: 40px;
+				}
+
+				#home-depot {
+					background: transparent image-url("customer-logos/home-depot.svg") left no-repeat;
+					background-size: 30px;
+				}
+
+				#hotels-dot-com {
+					background: transparent image-url("customer-logos/hotels-dot-com.svg") left no-repeat;
+					background-size: 40px;
+				}
+			}
+
+			ul.customer-list{
 				 display: block;
 				 position: relative;
 				 width: 100%;
@@ -593,6 +645,7 @@ body.page-home {
 				}
 			}
 		}
+
 
 		#demos{
 
