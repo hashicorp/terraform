@@ -738,14 +738,8 @@ func (p *shadowResourceProviderShadow) ReadDataApply(
 	return result.Result, result.ResultErr
 }
 
-// TODO
-// TODO
-// TODO
-// TODO
-// TODO
-
 func (p *shadowResourceProviderShadow) ImportState(info *InstanceInfo, id string) ([]*InstanceState, error) {
-	return nil, nil
+	panic("import not supported by shadow graph")
 }
 
 // The structs for the various function calls are put below. These structs

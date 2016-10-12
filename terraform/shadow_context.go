@@ -48,8 +48,14 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 		module:     c.module,
 		state:      c.state.DeepCopy(),
 		targets:    targetRaw.([]string),
-		uiInput:    nil, // TODO
 		variables:  varRaw.(map[string]interface{}),
+
+		// NOTE(mitchellh): This is not going to work for shadows that are
+		// testing that input results in the proper end state. At the time
+		// of writing, input is not used in any state-changing graph
+		// walks anyways, so this checks nothing. We set it to this to avoid
+		// any panics but even a "nil" value worked here.
+		uiInput: new(MockUIInput),
 
 		// Hardcoded to 4 since parallelism in the shadow doesn't matter
 		// a ton since we're doing far less compared to the real side
