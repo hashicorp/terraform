@@ -115,12 +115,12 @@ func (p *shadowResourceProviderReal) ValidateResource(
 	// Real operation
 	warns, errs := p.ResourceProvider.ValidateResource(t, c)
 
-	// Get the result
-	raw, ok := p.Shared.ValidateResource.ValueOk(key)
-	if !ok {
-		raw = new(shadowResourceProviderValidateResourceWrapper)
-	}
+	// Initialize to ensure we always have a wrapper with a lock
+	p.Shared.ValidateResource.Init(
+		key, &shadowResourceProviderValidateResourceWrapper{})
 
+	// Get the result
+	raw := p.Shared.ValidateResource.Value(key)
 	wrapper, ok := raw.(*shadowResourceProviderValidateResourceWrapper)
 	if !ok {
 		// If this fails then we just continue with our day... the shadow
@@ -139,9 +139,6 @@ func (p *shadowResourceProviderReal) ValidateResource(
 		Warns:  warns,
 		Errors: errs,
 	})
-
-	// Set it
-	p.Shared.ValidateResource.SetValue(key, wrapper)
 
 	// Return the result
 	return warns, errs
@@ -209,12 +206,12 @@ func (p *shadowResourceProviderReal) ValidateDataSource(
 	// Real operation
 	warns, errs := p.ResourceProvider.ValidateDataSource(t, c)
 
-	// Get the result
-	raw, ok := p.Shared.ValidateDataSource.ValueOk(key)
-	if !ok {
-		raw = new(shadowResourceProviderValidateDataSourceWrapper)
-	}
+	// Initialize
+	p.Shared.ValidateDataSource.Init(
+		key, &shadowResourceProviderValidateDataSourceWrapper{})
 
+	// Get the result
+	raw := p.Shared.ValidateDataSource.Value(key)
 	wrapper, ok := raw.(*shadowResourceProviderValidateDataSourceWrapper)
 	if !ok {
 		// If this fails then we just continue with our day... the shadow
