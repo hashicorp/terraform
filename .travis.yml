@@ -2,6 +2,7 @@ sudo: false
 language: go
 go:
 - 1.7
+go_import_path: github.com/hashicorp/terraform
 install:
 # This script is used by the Travis build to install a cookie for
 # go.googlesource.com so rate limits are higher when using `go get` to fetch
@@ -13,12 +14,6 @@ script:
 branches:
   only:
   - master
-notifications:
-  irc:
-    channels:
-    - irc.freenode.org#terraform-tool
-    skip_join: true
-    use_notice: true
 matrix:
   fast_finish: true
   allow_failures:
