@@ -51,7 +51,7 @@ Only valid with `egress`.
      depending on the `type`. Cannot be specified with `cidr_blocks`.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
-* `to_port` - (Required) The end range port (or ICMP code if protocol is "icmp").
+* `to_port` - (Required) The end port (or ICMP code if protocol is "icmp").
 
 ## Usage with prefix list IDs
 
@@ -80,6 +80,6 @@ The following attributes are exported:
 
 * `id` - The ID of the security group rule
 * `type` - The type of rule, `ingress` or `egress`
-* `from_port` - The source port
-* `to_port` - The destination port
+* `from_port` - The start port (or ICMP type number if protocol is "icmp")
+* `to_port` - The end port (or ICMP code if protocol is "icmp")
 * `protocol` – The protocol used
