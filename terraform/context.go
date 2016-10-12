@@ -362,7 +362,7 @@ func (c *Context) Apply() (*State, error) {
 	// Do the walk
 	var walker *ContextGraphWalker
 	if c.destroy {
-		walker, err = c.walk(graph, nil, walkDestroy)
+		walker, err = c.walk(graph, graph, walkDestroy)
 	} else {
 		//walker, err = c.walk(graph, nil, walkApply)
 		walker, err = c.walk(graph, graph, walkApply)
@@ -430,7 +430,7 @@ func (c *Context) Plan() (*Plan, error) {
 	}
 
 	// Do the walk
-	walker, err := c.walk(graph, nil, operation)
+	walker, err := c.walk(graph, graph, operation)
 	if err != nil {
 		return nil, err
 	}
