@@ -1234,14 +1234,14 @@
 		{
 			"checksumSHA1": "OrnLOmhc0FcHYs02wtbu1siIsnM=",
 			"path": "github.com/hashicorp/hil",
-			"revision": "227af97932d6a832b7d50a82cb1d72ddebecb9ae",
-			"revisionTime": "2016-08-18T19:04:49Z"
+			"revision": "37d5c183ca6a28a9177e5a375a3f0f3663160742",
+			"revisionTime": "2016-10-12T19:56:11Z"
 		},
 		{
-			"checksumSHA1": "UICubs001+Q4MsUf9zl2vcMzWQQ=",
+			"checksumSHA1": "2NAuBxZXtp0e9orDclwc5ucnTSw=",
 			"path": "github.com/hashicorp/hil/ast",
-			"revision": "1e86c6b523c55d1fa6c6e930ce80b548664c95c2",
-			"revisionTime": "2016-07-11T23:18:37Z"
+			"revision": "37d5c183ca6a28a9177e5a375a3f0f3663160742",
+			"revisionTime": "2016-10-12T19:56:11Z"
 		},
 		{
 			"path": "github.com/hashicorp/logutils",
