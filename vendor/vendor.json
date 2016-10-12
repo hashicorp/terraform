@@ -1961,8 +1961,22 @@
 			"revision": "1f22c0103821b9390939b6776727195525381532"
 		},
 		{
+			"checksumSHA1": "wGb//LjBPNxYHqk+dcLo7BjPXK8=",
+			"path": "golang.org/x/crypto/ed25519",
+			"revision": "4cd25d65a015cc83d41bf3454e6e8d6c116d16da",
+			"revisionTime": "2016-07-26T13:00:17Z"
+		},
+		{
+			"checksumSHA1": "LXFcVx8I587SnWmKycSDEq9yvK8=",
+			"path": "golang.org/x/crypto/ed25519/internal/edwards25519",
+			"revision": "4cd25d65a015cc83d41bf3454e6e8d6c116d16da",
+			"revisionTime": "2016-07-26T13:00:17Z"
+		},
+		{
+			"checksumSHA1": "LlElMHeTC34ng8eHzjvtUhAgrr8=",
 			"path": "golang.org/x/crypto/ssh",
-			"revision": "1f22c0103821b9390939b6776727195525381532"
+			"revision": "4cd25d65a015cc83d41bf3454e6e8d6c116d16da",
+			"revisionTime": "2016-07-26T13:00:17Z"
 		},
 		{
 			"path": "golang.org/x/crypto/ssh/agent",
