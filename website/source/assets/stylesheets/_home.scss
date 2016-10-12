@@ -191,12 +191,33 @@ body.page-home {
 
 	#feature-write{
 		position: relative;
-		padding: 180px 0 200px;
+		padding: 180px 0 120px;
 		margin-top: -80px;
 
 
 		>.container {
 			z-index: 71;
+		}
+
+		// This svg appears twice in the markup and swapped for layout purposes.
+		// Image for small screens. Styles below are for larger screens.
+		#feature-image-write-sm-screen {
+			display: block;
+			position: relative;
+			margin: 0 auto;
+			width:80%;
+			max-width: 400px;
+		}
+
+		// Image hidden, made visible for larger screens
+		#feature-image-write-lg-screen {
+			display: none;
+			position: absolute;
+			bottom: 2px;
+			right: 3%;
+			width: 581px;
+			@include skewY(-3deg);
+			-webkit-backface-visibility: hidden;
 		}
 
 		#feature-write-bg{
@@ -205,15 +226,6 @@ body.page-home {
 			@include skewY(3deg);
 			-webkit-backface-visibility: hidden;
 			overflow: hidden;
-
-			.feature-image {
-				position: absolute;
-				bottom: 0;
-				right:10%;
-				width: 640px;
-				@include skewY(-3deg);
-				-webkit-backface-visibility: hidden;
-			}
 		}
 	}
 
@@ -490,26 +502,27 @@ body.page-home {
 		}
 	}
 
+	@media (min-width: 768px) {
+		#feature-write{
+			// Hide image for small screens
+			#feature-image-write-sm-screen {
+				display: none;
+			}
 
-	@media (min-width: 1500px) {
-
+			// Image hidden, made visible for larger screens
+			#feature-image-write-lg-screen {
+				display: block;
+			}
+		}
 	}
 
-	@media (min-width: 1200px) {
-
-	}
-
-
-	@media (max-width: 1200px) {
-
-	}
-
-	@media (min-width: 992px) and (max-width:1200px) {
-
-	}
-
-	@media (min-width: 768px) and (max-width:992px) {
-
+	@media (min-width: 1024px) {
+		#feature-write{
+			#feature-image-write-lg-screen {
+				right: 10%;
+				width: 640px;
+			}
+		}
 	}
 
 	@media (max-width: 992px) {
