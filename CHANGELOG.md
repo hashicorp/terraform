@@ -33,7 +33,10 @@ IMPROVEMENTS:
 BUG FIXES:
  * core: Orphaned nested (depth 2+) modules will inherit provider configs [GH-9318]
  * core: Fix crash when a map key contains an interpolation function [GH-9282]
- * command/fmt: Bare comment groups no longer have superflous newlines
+ * core: Numeric variables values were incorrectly converted to numbers [GH-9263]
+ * core: Fix input and output of map variables from HCL [GH-9268]
+ * core: Crash when interpolating a map value with a function in the key [GH-9282]
+ * command/fmt: Bare comment groups no longer have superfluous newlines
  * command/fmt: Leading comments on list items are formatted properly 
  * provider/aws: Return correct AMI image when `most_recent` is set to `true`. [GH-9277]
  * provider/aws: Fix issue with diff on import of `aws_eip` in EC2 Classic [GH-9009]
