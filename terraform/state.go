@@ -1403,9 +1403,18 @@ func (s *ResourceState) init() {
 		s.Deposed = make([]*InstanceState, 0)
 	}
 
-	for _, dep := range s.Deposed {
-		dep.init()
+	// clean out any possible nil values read in from the state file
+	end := len(s.Deposed) - 1
+	for i := 0; i <= end; i++ {
+		if s.Deposed[i] == nil {
+			s.Deposed[i], s.Deposed[end] = s.Deposed[end], s.Deposed[i]
+			end--
+			i--
+		} else {
+			s.Deposed[i].init()
+		}
 	}
+	s.Deposed = s.Deposed[:end+1]
 }
 
 func (s *ResourceState) deepcopy() *ResourceState {
