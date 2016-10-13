@@ -30,7 +30,12 @@ func (n *NodeDestroyResource) CreateBeforeDestroy() bool {
 
 // GraphNodeReferenceable, overriding NodeAbstractResource
 func (n *NodeDestroyResource) ReferenceableName() []string {
-	return nil
+	result := n.NodeAbstractResource.ReferenceableName()
+	for i, v := range result {
+		result[i] = v + ".destroy"
+	}
+
+	return result
 }
 
 // GraphNodeReferencer, overriding NodeAbstractResource
