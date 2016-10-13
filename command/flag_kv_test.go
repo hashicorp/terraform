@@ -119,11 +119,9 @@ func TestFlagTypedKV(t *testing.T) {
 		{
 			`key={"hello" = "world", "foo" = "bar"}`,
 			map[string]interface{}{
-				"key": []map[string]interface{}{
-					map[string]interface{}{
-						"hello": "world",
-						"foo":   "bar",
-					},
+				"key": map[string]interface{}{
+					"hello": "world",
+					"foo":   "bar",
 				},
 			},
 			false,
@@ -193,6 +191,10 @@ func TestFlagKVFile(t *testing.T) {
 	inputLibucl := `
 foo = "bar"
 `
+	inputMap := `
+foo = {
+	k = "v"
+}`
 
 	inputJson := `{
 		"foo": "bar"}`
@@ -217,6 +219,16 @@ foo = "bar"
 		{
 			`map.key = "foo"`,
 			map[string]interface{}{"map.key": "foo"},
+			false,
+		},
+
+		{
+			inputMap,
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"k": "v",
+				},
+			},
 			false,
 		},
 	}
