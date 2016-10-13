@@ -76,10 +76,11 @@ resource "scaleway_security_group_rule" "https_accept" {
 
 ```
 
-You'll need to provide your Scaleway organization and access key,
-so that Terraform can connect. If you don't want to put
-credentials in your configuration file, you can leave them
-out:
+You'll need to provide your Scaleway organization access key
+(available in Scaleway panel in *Credentials > Tokens > access key*)
+and token (you can generate it in the same section), so that Terraform can connect.
+If you don't want to put credentials in your configuration file,
+you can leave them out:
 
 ```
 provider "scaleway" {
@@ -91,6 +92,6 @@ provider "scaleway" {
 
 ...and instead set these environment variables:
 
-- **SCALEWAY_ORGANIZATION**: Your Scaleway organization ID
-- **SCALEWAY_ACCESS_KEY**: Your API Access key
+- **SCALEWAY_ORGANIZATION**: Your Scaleway organization `access key`
+- **SCALEWAY_ACCESS_KEY**: Your API access `token`
 - **SCALEWAY_REGION**: The Scaleway region
