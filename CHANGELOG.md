@@ -40,6 +40,7 @@ BUG FIXES:
  * core: Numeric variables values were incorrectly converted to numbers [GH-9263]
  * core: Fix input and output of map variables from HCL [GH-9268]
  * core: Crash when interpolating a map value with a function in the key [GH-9282]
+ * core: Crash when copying a nil value in an InstanceState [GH-9356]
  * command/fmt: Bare comment groups no longer have superfluous newlines
  * command/fmt: Leading comments on list items are formatted properly 
  * provider/aws: Return correct AMI image when `most_recent` is set to `true`. [GH-9277]
