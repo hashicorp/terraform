@@ -21,6 +21,7 @@ IMPROVEMENTS:
  * provider/aws: Automatically constructed ARNs now support partitions other than `aws`, allowing operation with `aws-cn` and `aws-us-gov` [GH-9273]
  * provider/aws: Retry setTags operation for EC2 resources [GH-7890]
  * provider/aws: Support refresh of EC2 instance `user_data` [GH-6736]
+ * provider/aws: Poll to confirm delete of `resource_aws_customer_gateway` [GH-9346]
  * provider/azurerm: expose default keys for `servicebus_namespace` [GH-9242]
  * provider/azurerm: add `enable_blob_encryption` to `azurerm_storage_account` resource [GH-9233]
  * provider/azurerm: set `resource_group_name` on resource import across the provider [GH-9073]
