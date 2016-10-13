@@ -59,9 +59,15 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 func resourceAwsVPCEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	input := &ec2.CreateVpcEndpointInput{
-		VpcId:         aws.String(d.Get("vpc_id").(string)),
-		RouteTableIds: expandStringList(d.Get("route_table_ids").(*schema.Set).List()),
-		ServiceName:   aws.String(d.Get("service_name").(string)),
+		VpcId:       aws.String(d.Get("vpc_id").(string)),
+		ServiceName: aws.String(d.Get("service_name").(string)),
+	}
+
+	if v, ok := d.GetOk("route_table_ids"); ok {
+		list := v.(*schema.Set).List()
+		if len(list) > 0 {
+			input.RouteTableIds = expandStringList(list)
+		}
 	}
 
 	if v, ok := d.GetOk("policy"); ok {
