@@ -415,6 +415,9 @@ func init() {
 
 		"assume_role_external_id": "The external ID to use when assuming the role. If omitted," +
 			" no external ID is passed to the AssumeRole call.",
+
+		"assume_role_mfa_serial": "The serial of a MFA device.",
+		"assume_role_token_code": "The MFA OTP code.",
 	}
 }
 
@@ -442,6 +445,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.AssumeRoleARN = assumeRole["role_arn"].(string)
 		config.AssumeRoleSessionName = assumeRole["session_name"].(string)
 		config.AssumeRoleExternalID = assumeRole["external_id"].(string)
+		config.AssumeRoleMFASerial = assumeRole["mfa_serial"].(string)
+		config.AssumeRoleTokenCode = assumeRole["token_code"].(string)
 		log.Printf("[INFO] assume_role configuration set: (ARN: %q, SessionID: %q, ExternalID: %q)",
 			config.AssumeRoleARN, config.AssumeRoleSessionName, config.AssumeRoleExternalID)
 	} else {
@@ -496,6 +501,17 @@ func assumeRoleSchema() *schema.Schema {
 					Optional:    true,
 					Description: descriptions["assume_role_external_id"],
 				},
+
+				"mfa_serial": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: descriptions["assume_role_mfa_serial"],
+				},
+				"token_code": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: descriptions["assume_role_token_code"],
+				},
 			},
 		},
 		Set: assumeRoleToHash,
@@ -508,6 +524,8 @@ func assumeRoleToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["role_arn"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["session_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["external_id"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["mfa_serial"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["token_code"].(string)))
 	return hashcode.String(buf.String())
 }
 

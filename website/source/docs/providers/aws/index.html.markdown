@@ -124,6 +124,8 @@ provider "aws" {
     role_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
     session_name = "SESSION_NAME"
     external_id = "EXTERNAL_ID"
+    mfa_serial = "arn:aws:iam::ACCOUNT_ID:mfa/USERNAME"
+    token_code = "${var.token_code}"
   }
 }
 ```
@@ -215,7 +217,13 @@ The nested `assume_role` block supports the following:
   AssumeRole call.
 
 * `external_id` - (Optional) The external ID to use when making the
-  AssumeRole  call.
+  AssumeRole call.
+
+* `mfa_serial` - (Optional) The MFA serial to use when making the
+  AssumeRole call.
+
+* `token_code` - (Optional) The MFA OTP code to use when making the
+  AssumeRole call. Required if `mfa_serial` is given.
 
 Nested `endpoints` block supports the following:
 

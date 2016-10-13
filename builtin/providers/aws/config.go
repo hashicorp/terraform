@@ -75,6 +75,8 @@ type Config struct {
 	AssumeRoleARN         string
 	AssumeRoleExternalID  string
 	AssumeRoleSessionName string
+	AssumeRoleMFASerial   string
+	AssumeRoleTokenCode   string
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
