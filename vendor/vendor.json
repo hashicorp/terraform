@@ -1474,10 +1474,10 @@
 			"revision": "8631ce90f28644f54aeedcb3e389a85174e067d1"
 		},
 		{
-			"checksumSHA1": "BsIMq23KDyxdhQC7g2dDz/9oHbA=",
+			"checksumSHA1": "guxbLo8KHHBeM0rzou4OTzzpDNs=",
 			"path": "github.com/mitchellh/copystructure",
-			"revision": "c4815f984fb5c5486f6db1c9a5660e7605fd4c20",
-			"revisionTime": "2016-10-03T18:23:19Z"
+			"revision": "5af94aef99f597e6a9e1f6ac6be6ce0f3c96b49d",
+			"revisionTime": "2016-10-13T19:53:42Z"
 		},
 		{
 			"path": "github.com/mitchellh/go-homedir",
