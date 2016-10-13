@@ -10,6 +10,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 func resourceArmTrafficManagerProfile() *schema.Resource {
@@ -33,13 +34,13 @@ func resourceArmTrafficManagerProfile() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
-				ValidateFunc: validateAzureRMTrafficManagerStatus,
+				ValidateFunc: validation.StringInSlice([]string{"Enabled", "Disabled"}, true),
 			},
 
 			"traffic_routing_method": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ValidateFunc: validateAzureRMTrafficManagerRoutingMethod,
+				ValidateFunc: validation.StringInSlice([]string{"Performance", "Weighted", "Priority"}, false),
 			},
 
 			"dns_config": {
@@ -55,7 +56,7 @@ func resourceArmTrafficManagerProfile() *schema.Resource {
 						"ttl": {
 							Type:         schema.TypeInt,
 							Required:     true,
-							ValidateFunc: validateAzureRMTrafficManagerTTL,
+							ValidateFunc: validation.IntBetween(30, 999999),
 						},
 					},
 				},
@@ -76,12 +77,12 @@ func resourceArmTrafficManagerProfile() *schema.Resource {
 						"protocol": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validateAzureRMTrafficManagerMonitorProtocol,
+							ValidateFunc: validation.StringInSlice([]string{"http", "https"}, false),
 						},
 						"port": {
 							Type:         schema.TypeInt,
 							Required:     true,
-							ValidateFunc: validateAzureRMTrafficManagerMonitorPort,
+							ValidateFunc: validation.IntBetween(1, 65535),
 						},
 						"path": {
 							Type:     schema.TypeString,
@@ -93,9 +94,10 @@ func resourceArmTrafficManagerProfile() *schema.Resource {
 			},
 
 			"resource_group_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: resourceAzurermResourceGroupNameDiffSuppress,
 			},
 
 			"tags": tagsSchema(),
@@ -151,16 +153,17 @@ func resourceArmTrafficManagerProfileRead(d *schema.ResourceData, meta interface
 
 	resp, err := client.Get(resGroup, name)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Traffic Manager Profile %s: %s", name, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	profile := *resp.Properties
 
 	// update appropriate values
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("profile_status", profile.ProfileStatus)
 	d.Set("traffic_routing_method", profile.TrafficRoutingMethod)
@@ -276,49 +279,4 @@ func resourceAzureRMTrafficManagerMonitorConfigHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["path"].(string)))
 
 	return hashcode.String(buf.String())
-}
-
-func validateAzureRMTrafficManagerStatus(i interface{}, k string) (s []string, errors []error) {
-	status := strings.ToLower(i.(string))
-	if status != "enabled" && status != "disabled" {
-		errors = append(errors, fmt.Errorf("%s must be one of: Enabled, Disabled", k))
-	}
-	return
-}
-
-func validateAzureRMTrafficManagerRoutingMethod(i interface{}, k string) (s []string, errors []error) {
-	valid := map[string]struct{}{
-		"Performance": struct{}{},
-		"Weighted":    struct{}{},
-		"Priority":    struct{}{},
-	}
-
-	if _, ok := valid[i.(string)]; !ok {
-		errors = append(errors, fmt.Errorf("traffic_routing_method must be one of (Performance, Weighted, Priority), got %s", i.(string)))
-	}
-	return
-}
-
-func validateAzureRMTrafficManagerTTL(i interface{}, k string) (s []string, errors []error) {
-	ttl := i.(int)
-	if ttl < 30 || ttl > 999999 {
-		errors = append(errors, fmt.Errorf("ttl must be between 30 and 999,999 inclusive"))
-	}
-	return
-}
-
-func validateAzureRMTrafficManagerMonitorProtocol(i interface{}, k string) (s []string, errors []error) {
-	p := i.(string)
-	if p != "http" && p != "https" {
-		errors = append(errors, fmt.Errorf("monitor_config.protocol must be one of: http, https"))
-	}
-	return
-}
-
-func validateAzureRMTrafficManagerMonitorPort(i interface{}, k string) (s []string, errors []error) {
-	p := i.(int)
-	if p < 1 || p > 65535 {
-		errors = append(errors, fmt.Errorf("monitor_config.port must be between 1 - 65535 inclusive"))
-	}
-	return
 }

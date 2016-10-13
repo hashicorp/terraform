@@ -21,6 +21,7 @@ package servicebus
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -46,6 +47,12 @@ func NewQueuesClientWithBaseURI(baseURI string, subscriptionID string) QueuesCli
 // namespace name. queueName is the queue name. parameters is parameters
 // supplied to create a Queue Resource.
 func (client QueuesClient) CreateOrUpdate(resourceGroupName string, namespaceName string, queueName string, parameters QueueCreateOrUpdateParameters) (result QueueResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "servicebus.QueuesClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, namespaceName, queueName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -114,6 +121,13 @@ func (client QueuesClient) CreateOrUpdateResponder(resp *http.Response) (result 
 // aauthorization Rule Name. parameters is the shared access authorization
 // rule.
 func (client QueuesClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, queueName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "servicebus.QueuesClient", "CreateOrUpdateAuthorizationRule")
+	}
+
 	req, err := client.CreateOrUpdateAuthorizationRulePreparer(resourceGroupName, namespaceName, queueName, authorizationRuleName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "CreateOrUpdateAuthorizationRule", nil, "Failure preparing request")
@@ -233,7 +247,7 @@ func (client QueuesClient) DeleteResponder(resp *http.Response) (result autorest
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusNoContent, http.StatusOK),
 		autorest.ByClosing())
 	result.Response = resp
 	return
@@ -298,7 +312,7 @@ func (client QueuesClient) DeleteAuthorizationRuleResponder(resp *http.Response)
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusNoContent, http.StatusOK),
 		autorest.ByClosing())
 	result.Response = resp
 	return
@@ -501,7 +515,7 @@ func (client QueuesClient) ListAllResponder(resp *http.Response) (result QueueLi
 func (client QueuesClient) ListAllNextResults(lastResults QueueListResult) (result QueueListResult, err error) {
 	req, err := lastResults.QueueListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -510,12 +524,12 @@ func (client QueuesClient) ListAllNextResults(lastResults QueueListResult) (resu
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -589,7 +603,7 @@ func (client QueuesClient) ListAuthorizationRulesResponder(resp *http.Response) 
 func (client QueuesClient) ListAuthorizationRulesNextResults(lastResults SharedAccessAuthorizationRuleListResult) (result SharedAccessAuthorizationRuleListResult, err error) {
 	req, err := lastResults.SharedAccessAuthorizationRuleListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -598,12 +612,12 @@ func (client QueuesClient) ListAuthorizationRulesNextResults(lastResults SharedA
 	resp, err := client.ListAuthorizationRulesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAuthorizationRulesResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "servicebus.QueuesClient", "ListAuthorizationRules", resp, "Failure responding to next results request")
 	}
 
 	return

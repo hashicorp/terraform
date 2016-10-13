@@ -3,6 +3,7 @@ package azurerm
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -94,6 +95,33 @@ func TestAccAzureRMServiceBusNamespace_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMServiceBusNamespace_readDefaultKeys(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMServiceBusNamespace_basic, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMServiceBusNamespaceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMServiceBusNamespaceExists("azurerm_servicebus_namespace.test"),
+					resource.TestMatchResourceAttr(
+						"azurerm_servicebus_namespace.test", "default_primary_connection_string", regexp.MustCompile("Endpoint=.+")),
+					resource.TestMatchResourceAttr(
+						"azurerm_servicebus_namespace.test", "default_secondary_connection_string", regexp.MustCompile("Endpoint=.+")),
+					resource.TestMatchResourceAttr(
+						"azurerm_servicebus_namespace.test", "default_primary_key", regexp.MustCompile(".+")),
+					resource.TestMatchResourceAttr(
+						"azurerm_servicebus_namespace.test", "default_secondary_key", regexp.MustCompile(".+")),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMServiceBusNamespaceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).serviceBusNamespacesClient
 
@@ -150,7 +178,7 @@ func testCheckAzureRMServiceBusNamespaceExists(name string) resource.TestCheckFu
 
 var testAccAzureRMServiceBusNamespace_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_servicebus_namespace" "test" {

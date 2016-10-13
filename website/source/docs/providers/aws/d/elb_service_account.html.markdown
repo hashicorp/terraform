@@ -68,3 +68,4 @@ resource "aws_elb" "bar" {
 ## Attributes Reference
 
 * `id` - The ID of the AWS ELB service account in the selected region.
+* `arn` - The ARN of the AWS ELB service account in the selected region.

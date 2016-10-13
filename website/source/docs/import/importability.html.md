@@ -35,6 +35,7 @@ To make a resource importable, please see the
 * aws_cloudwatch_log_group
 * aws_cloudwatch_metric_alarm
 * aws_customer_gateway
+* aws_db_event_subscription
 * aws_db_instance
 * aws_db_option_group
 * aws_db_parameter_group
@@ -48,6 +49,7 @@ To make a resource importable, please see the
 * aws_eip
 * aws_elastic_beanstalk_application
 * aws_elastic_beanstalk_environment
+* aws_elasticache_cluster
 * aws_elasticache_parameter_group
 * aws_elasticache_subnet_group
 * aws_elb
@@ -66,6 +68,8 @@ To make a resource importable, please see the
 * aws_nat_gateway
 * aws_network_acl
 * aws_network_interface
+* aws_opsworks_custom_layer
+* aws_opsworks_stack
 * aws_placement_group
 * aws_rds_cluster
 * aws_rds_cluster_instance
@@ -149,4 +153,3 @@ To make a resource importable, please see the
 * triton_key
 * triton_machine
 * triton_vlan
-

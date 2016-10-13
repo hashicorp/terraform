@@ -2,9 +2,9 @@ package azurerm
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -25,6 +25,28 @@ func TestAccAzureRMVirtualNetwork_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkExists("azurerm_virtual_network.test"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMVirtualNetwork_disappears(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualNetwork_basic, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualNetworkDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualNetworkExists("azurerm_virtual_network.test"),
+					testCheckAzureRMVirtualNetworkDisappears("azurerm_virtual_network.test"),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -98,6 +120,32 @@ func testCheckAzureRMVirtualNetworkExists(name string) resource.TestCheckFunc {
 	}
 }
 
+func testCheckAzureRMVirtualNetworkDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		virtualNetworkName := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for virtual network: %s", virtualNetworkName)
+		}
+
+		// Ensure resource group/virtual network combination exists in API
+		conn := testAccProvider.Meta().(*ArmClient).vnetClient
+
+		_, err := conn.Delete(resourceGroup, virtualNetworkName, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on vnetClient: %s", err)
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMVirtualNetworkDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).vnetClient
 
@@ -125,7 +173,7 @@ func testCheckAzureRMVirtualNetworkDestroy(s *terraform.State) error {
 
 var testAccAzureRMVirtualNetwork_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -144,7 +192,7 @@ resource "azurerm_virtual_network" "test" {
 
 var testAccAzureRMVirtualNetwork_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -168,7 +216,7 @@ resource "azurerm_virtual_network" "test" {
 
 var testAccAzureRMVirtualNetwork_withTagsUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 

@@ -265,6 +265,7 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: false,
 				Optional: true,
+				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
@@ -605,7 +606,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"creating", "backing-up", "modifying", "resetting-master-credentials",
-			"maintenance", "renaming", "rebooting", "upgrading"},
+			"maintenance", "renaming", "rebooting", "upgrading", "configuring-enhanced-monitoring"},
 		Target:     []string{"available"},
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
@@ -692,7 +693,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// list tags for resource
 	// set tags
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if v.DBName != nil && *v.DBName != "" {
@@ -938,7 +939,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 
 		stateConf := &resource.StateChangeConf{
 			Pending: []string{"creating", "backing-up", "modifying", "resetting-master-credentials",
-				"maintenance", "renaming", "rebooting", "upgrading"},
+				"maintenance", "renaming", "rebooting", "upgrading", "configuring-enhanced-monitoring"},
 			Target:     []string{"available"},
 			Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 			Timeout:    80 * time.Minute,
@@ -975,7 +976,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		} else {
@@ -1051,11 +1052,13 @@ func resourceAwsDbInstanceStateRefreshFunc(
 	}
 }
 
-func buildRDSARN(identifier, accountid, region string) (string, error) {
+func buildRDSARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:db:%s", partition, region, accountid, identifier)
 	return arn, nil
-
 }

@@ -2,9 +2,9 @@ package azurerm
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -29,6 +29,32 @@ func TestAccAzureRMVirtualNetworkPeering_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"azurerm_virtual_network_peering.test2", "allow_virtual_network_access", "true"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMVirtualNetworkPeering_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualNetworkPeering_basic, ri, ri, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualNetworkPeeringDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualNetworkPeeringExists("azurerm_virtual_network_peering.test1"),
+					testCheckAzureRMVirtualNetworkPeeringExists("azurerm_virtual_network_peering.test2"),
+					resource.TestCheckResourceAttr(
+						"azurerm_virtual_network_peering.test1", "allow_virtual_network_access", "true"),
+					resource.TestCheckResourceAttr(
+						"azurerm_virtual_network_peering.test2", "allow_virtual_network_access", "true"),
+					testCheckAzureRMVirtualNetworkPeeringDisappears("azurerm_virtual_network_peering.test1"),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -110,6 +136,33 @@ func testCheckAzureRMVirtualNetworkPeeringExists(name string) resource.TestCheck
 	}
 }
 
+func testCheckAzureRMVirtualNetworkPeeringDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		vnetName := rs.Primary.Attributes["virtual_network_name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for virtual network peering: %s", name)
+		}
+
+		// Ensure resource group/virtual network peering combination exists in API
+		conn := testAccProvider.Meta().(*ArmClient).vnetPeeringsClient
+
+		_, err := conn.Delete(resourceGroup, vnetName, name, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on vnetPeeringsClient: %s", err)
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMVirtualNetworkPeeringDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).vnetPeeringsClient
 
@@ -137,7 +190,7 @@ func testCheckAzureRMVirtualNetworkPeeringDestroy(s *terraform.State) error {
 
 var testAccAzureRMVirtualNetworkPeering_basic = `
 resource "azurerm_resource_group" "test" {
-  name     = "acctestrg-%d"
+  name     = "acctestRG-%d"
   location = "West US"
 }
 
@@ -174,7 +227,7 @@ resource "azurerm_virtual_network_peering" "test2" {
 
 var testAccAzureRMVirtualNetworkPeering_basicUpdate = `
 resource "azurerm_resource_group" "test" {
-  name     = "acctestrg-%d"
+  name     = "acctestRG-%d"
   location = "West US"
 }
 

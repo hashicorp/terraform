@@ -1,19 +1,17 @@
 package aws
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 // Mutable attributes
@@ -46,23 +44,14 @@ func resourceAwsSnsTopic() *schema.Resource {
 				ForceNew: false,
 			},
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 				StateFunc: func(v interface{}) string {
-					s, ok := v.(string)
-					if !ok || s == "" {
-						return ""
-					}
-					jsonb := []byte(s)
-					buffer := new(bytes.Buffer)
-					if err := json.Compact(buffer, jsonb); err != nil {
-						log.Printf("[WARN] Error compacting JSON for Policy in SNS Topic")
-						return ""
-					}
-					value := normalizeJson(buffer.String())
-					log.Printf("[DEBUG] topic policy before save: %s", value)
-					return value
+					json, _ := normalizeJsonString(v)
+					return json
 				},
 			},
 			"delivery_policy": &schema.Schema{
@@ -190,7 +179,10 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 				if resource.Schema[iKey] != nil {
 					var value string
 					if iKey == "policy" {
-						value = normalizeJson(*attrmap[oKey])
+						value, err = normalizeJsonString(*attrmap[oKey])
+						if err != nil {
+							return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+						}
 					} else {
 						value = *attrmap[oKey]
 					}

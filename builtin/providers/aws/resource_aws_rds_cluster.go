@@ -85,6 +85,11 @@ func resourceAwsRDSCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"reader_endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"engine": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -443,6 +448,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("preferred_backup_window", dbc.PreferredBackupWindow)
 	d.Set("preferred_maintenance_window", dbc.PreferredMaintenanceWindow)
 	d.Set("kms_key_id", dbc.KmsKeyId)
+	d.Set("reader_endpoint", dbc.ReaderEndpoint)
 
 	var vpcg []string
 	for _, g := range dbc.VpcSecurityGroups {
@@ -461,7 +467,7 @@ func resourceAwsRDSClusterRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Fetch and save tags
-	arn, err := buildRDSClusterARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSClusterARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		log.Printf("[DEBUG] Error building ARN for RDS Cluster (%s), not setting Tags", *dbc.DBClusterIdentifier)
 	} else {
@@ -530,7 +536,7 @@ func resourceAwsRDSClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if arn, err := buildRDSClusterARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSClusterARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		} else {
@@ -619,12 +625,15 @@ func resourceAwsRDSClusterStateRefreshFunc(
 	}
 }
 
-func buildRDSClusterARN(identifier, accountid, region string) (string, error) {
+func buildRDSClusterARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS Cluster ARN because of missing AWS Account ID")
 	}
 
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:cluster:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:cluster:%s", partition, region, accountid, identifier)
 	return arn, nil
 
 }

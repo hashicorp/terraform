@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Organization string
 	APIKey       string
+	Region       string
 }
 
 // Client contains scaleway api clients
@@ -27,6 +28,7 @@ func (c *Config) Client() (*Client, error) {
 		c.Organization,
 		c.APIKey,
 		scwversion.UserAgent(),
+		c.Region,
 		func(s *api.ScalewayAPI) {
 			s.Logger = newTerraformLogger()
 		},

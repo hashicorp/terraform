@@ -8267,7 +8267,11 @@ type Integration struct {
 	// value.
 	RequestTemplates map[string]*string `locationName:"requestTemplates" type:"map"`
 
-	// Specifies the integration's type. The valid value is HTTP, AWS, or MOCK.
+	// Specifies the integration's type. The valid value is HTTP for integrating
+	// with an HTTP back end, AWS for any AWS service endpoints, MOCK for testing
+	// without actually invoking the back end, HTTP_PROXY for integrating with the
+	// HTTP proxy integration, or AWS_PROXY for integrating with the Lambda proxy
+	// integration type.
 	Type *string `locationName:"type" type:"string" enum:"IntegrationType"`
 
 	// Specifies the integration's Uniform Resource Identifier (URI). For HTTP integrations,
@@ -8730,7 +8734,7 @@ type PatchOperation struct {
 	// for a given resource. Support of the operations depends on specific operational
 	// contexts. Attempts to apply an unsupported operation on a resource will return
 	// an error message.
-	Op *string `locationName:"op" type:"string" enum:"op"`
+	Op *string `locationName:"op" type:"string" enum:"Op"`
 
 	// The op operation's target, as identified by a JSON Pointer (https://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-08)
 	// value that references a location within the targeted resource. For example,
@@ -9294,8 +9298,7 @@ type Stage struct {
 	// A map that defines the method settings for a Stage resource. Keys (designated
 	// as /{method_setting_key below) are method paths defined as {resource_path}/{http_method}
 	// for an individual method override, or /\*/\* for overriding all methods in
-	// the stage. Any forward slash ("/") characters in the resource_path part must
-	// be encoded as "~1" as in, for example, ~1resource~1sub-resource/GET.
+	// the stage.
 	MethodSettings map[string]*MethodSetting `locationName:"methodSettings" type:"map"`
 
 	// The name of the stage is the first path segment in the Uniform Resource Identifier
@@ -10392,7 +10395,10 @@ const (
 	CacheClusterStatusFlushInProgress = "FLUSH_IN_PROGRESS"
 )
 
-// The integration type. The valid value is HTTP, AWS, or MOCK.
+// The integration type. The valid value is HTTP for integrating with an HTTP
+// back end, AWS for any AWS service endpoints, MOCK for testing without actually
+// invoking the back end, HTTP_PROXY for integrating with the HTTP proxy integration,
+// or AWS_PROXY for integrating with the Lambda proxy integration type.
 const (
 	// @enum IntegrationType
 	IntegrationTypeHttp = "HTTP"
@@ -10400,6 +10406,25 @@ const (
 	IntegrationTypeAws = "AWS"
 	// @enum IntegrationType
 	IntegrationTypeMock = "MOCK"
+	// @enum IntegrationType
+	IntegrationTypeHttpProxy = "HTTP_PROXY"
+	// @enum IntegrationType
+	IntegrationTypeAwsProxy = "AWS_PROXY"
+)
+
+const (
+	// @enum Op
+	OpAdd = "add"
+	// @enum Op
+	OpRemove = "remove"
+	// @enum Op
+	OpReplace = "replace"
+	// @enum Op
+	OpMove = "move"
+	// @enum Op
+	OpCopy = "copy"
+	// @enum Op
+	OpTest = "test"
 )
 
 const (
@@ -10425,19 +10450,4 @@ const (
 	UnauthorizedCacheControlHeaderStrategySucceedWithResponseHeader = "SUCCEED_WITH_RESPONSE_HEADER"
 	// @enum UnauthorizedCacheControlHeaderStrategy
 	UnauthorizedCacheControlHeaderStrategySucceedWithoutResponseHeader = "SUCCEED_WITHOUT_RESPONSE_HEADER"
-)
-
-const (
-	// @enum op
-	OpAdd = "add"
-	// @enum op
-	OpRemove = "remove"
-	// @enum op
-	OpReplace = "replace"
-	// @enum op
-	OpMove = "move"
-	// @enum op
-	OpCopy = "copy"
-	// @enum op
-	OpTest = "test"
 )

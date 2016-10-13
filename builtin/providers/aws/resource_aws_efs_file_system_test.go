@@ -90,6 +90,10 @@ func TestAccAWSEFSFileSystem_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSEFSFileSystemConfig,
 				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_efs_file_system.foo",
+						"performance_mode",
+						"generalPurpose"),
 					testAccCheckEfsFileSystem(
 						"aws_efs_file_system.foo",
 					),
@@ -278,13 +282,13 @@ func testAccCheckEfsFileSystemPerformanceMode(resourceID string, expectedMode st
 
 const testAccAWSEFSFileSystemConfig = `
 resource "aws_efs_file_system" "foo" {
-	reference_name = "radeksimko"
+	creation_token = "radeksimko"
 }
 `
 
 const testAccAWSEFSFileSystemConfigWithTags = `
 resource "aws_efs_file_system" "foo-with-tags" {
-	reference_name = "yada_yada"
+	creation_token = "yada_yada"
 	tags {
 		Name = "foo-efs"
 		Another = "tag"

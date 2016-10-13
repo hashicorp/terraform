@@ -113,11 +113,11 @@ func resourceArmRouteRead(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := routesClient.Get(resGroup, rtName, routeName)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Route %s: %s", routeName, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	return nil

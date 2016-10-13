@@ -40,6 +40,7 @@ func resourceCloudStackInstance() *schema.Resource {
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 

@@ -182,8 +182,8 @@ func resourceLibratoAlertCreate(d *schema.ResourceData, meta interface{}) error 
 			if v, ok := conditionData["detect_reset"].(bool); ok {
 				condition.DetectReset = librato.Bool(v)
 			}
-			if v, ok := conditionData["duration"].(uint); ok {
-				condition.Duration = librato.Uint(v)
+			if v, ok := conditionData["duration"].(int); ok {
+				condition.Duration = librato.Uint(uint(v))
 			}
 			if v, ok := conditionData["summary_function"].(string); ok && v != "" {
 				condition.SummaryFunction = librato.String(v)
@@ -335,9 +335,7 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	alert := new(librato.Alert)
-	if d.HasChange("name") {
-		alert.Name = librato.String(d.Get("name").(string))
-	}
+	alert.Name = librato.String(d.Get("name").(string))
 	if d.HasChange("description") {
 		alert.Description = librato.String(d.Get("description").(string))
 	}
@@ -345,7 +343,7 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 		alert.Active = librato.Bool(d.Get("active").(bool))
 	}
 	if d.HasChange("rearm_seconds") {
-		alert.RearmSeconds = librato.Uint(d.Get("rearm_seconds").(uint))
+		alert.RearmSeconds = librato.Uint(uint(d.Get("rearm_seconds").(int)))
 	}
 	if d.HasChange("services") {
 		vs := d.Get("services").(*schema.Set)
@@ -355,35 +353,34 @@ func resourceLibratoAlertUpdate(d *schema.ResourceData, meta interface{}) error 
 		}
 		alert.Services = services
 	}
-	if d.HasChange("condition") {
-		vs := d.Get("condition").(*schema.Set)
-		conditions := make([]librato.AlertCondition, vs.Len())
-		for i, conditionDataM := range vs.List() {
-			conditionData := conditionDataM.(map[string]interface{})
-			var condition librato.AlertCondition
-			if v, ok := conditionData["type"].(string); ok && v != "" {
-				condition.Type = librato.String(v)
-			}
-			if v, ok := conditionData["threshold"].(float64); ok && !math.IsNaN(v) {
-				condition.Threshold = librato.Float(v)
-			}
-			if v, ok := conditionData["metric_name"].(string); ok && v != "" {
-				condition.MetricName = librato.String(v)
-			}
-			if v, ok := conditionData["source"].(string); ok && v != "" {
-				condition.Source = librato.String(v)
-			}
-			if v, ok := conditionData["detect_reset"].(bool); ok {
-				condition.DetectReset = librato.Bool(v)
-			}
-			if v, ok := conditionData["duration"].(uint); ok {
-				condition.Duration = librato.Uint(v)
-			}
-			if v, ok := conditionData["summary_function"].(string); ok && v != "" {
-				condition.SummaryFunction = librato.String(v)
-			}
-			conditions[i] = condition
+
+	vs := d.Get("condition").(*schema.Set)
+	conditions := make([]librato.AlertCondition, vs.Len())
+	for i, conditionDataM := range vs.List() {
+		conditionData := conditionDataM.(map[string]interface{})
+		var condition librato.AlertCondition
+		if v, ok := conditionData["type"].(string); ok && v != "" {
+			condition.Type = librato.String(v)
 		}
+		if v, ok := conditionData["threshold"].(float64); ok && !math.IsNaN(v) {
+			condition.Threshold = librato.Float(v)
+		}
+		if v, ok := conditionData["metric_name"].(string); ok && v != "" {
+			condition.MetricName = librato.String(v)
+		}
+		if v, ok := conditionData["source"].(string); ok && v != "" {
+			condition.Source = librato.String(v)
+		}
+		if v, ok := conditionData["detect_reset"].(bool); ok {
+			condition.DetectReset = librato.Bool(v)
+		}
+		if v, ok := conditionData["duration"].(int); ok {
+			condition.Duration = librato.Uint(uint(v))
+		}
+		if v, ok := conditionData["summary_function"].(string); ok && v != "" {
+			condition.SummaryFunction = librato.String(v)
+		}
+		conditions[i] = condition
 		alert.Conditions = conditions
 	}
 	if d.HasChange("attributes") {

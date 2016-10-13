@@ -30,7 +30,7 @@ func resourceAwsIamUser() *schema.Resource {
 				The UniqueID could be used as the Id(), but none of the API
 				calls allow specifying a user by the UniqueID: they require the
 				name. The only way to locate a user by UniqueID is to list them
-				all and that would make this provider unnecessarilly complex
+				all and that would make this provider unnecessarily complex
 				and inefficient. Still, there are other reasons one might want
 				the UniqueID, so we can make it available.
 			*/

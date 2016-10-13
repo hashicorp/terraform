@@ -35,7 +35,7 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 	listeners := make([]*elb.Listener, 0, len(configured))
 
 	// Loop over our configured listeners and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, lRaw := range configured {
 		data := lRaw.(map[string]interface{})
 
@@ -234,7 +234,7 @@ func expandParameters(configured []interface{}) ([]*rds.Parameter, error) {
 	var parameters []*rds.Parameter
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -258,7 +258,7 @@ func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, 
 	var parameters []*redshift.Parameter
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -341,7 +341,7 @@ func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.Param
 	parameters := make([]*elasticache.ParameterNameValue, 0, len(configured))
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -624,10 +624,14 @@ func flattenOptions(list []*rds.Option) []map[string]interface{} {
 			if i.OptionSettings != nil {
 				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
 				for _, j := range i.OptionSettings {
-					settings = append(settings, map[string]interface{}{
-						"name":  *j.Name,
-						"value": *j.Value,
-					})
+					setting := map[string]interface{}{
+						"name": *j.Name,
+					}
+					if j.Value != nil {
+						setting["value"] = *j.Value
+					}
+
+					settings = append(settings, setting)
 				}
 
 				r["option_settings"] = settings
@@ -756,6 +760,26 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentId
 	return att
+}
+
+func flattenElastiCacheSecurityGroupNames(securityGroups []*elasticache.CacheSecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.CacheSecurityGroupName != nil {
+			result = append(result, *sg.CacheSecurityGroupName)
+		}
+	}
+	return result
+}
+
+func flattenElastiCacheSecurityGroupIds(securityGroups []*elasticache.SecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.SecurityGroupId != nil {
+			result = append(result, *sg.SecurityGroupId)
+		}
+	}
+	return result
 }
 
 // Flattens step adjustments into a list of map[string]interface.
@@ -1356,7 +1380,7 @@ func flattenBeanstalkTrigger(list []*elasticbeanstalk.Trigger) []string {
 }
 
 // There are several parts of the AWS API that will sort lists of strings,
-// causing diffs inbetweeen resources that use lists. This avoids a bit of
+// causing diffs inbetween resources that use lists. This avoids a bit of
 // code duplication for pre-sorts that can be used for things like hash
 // functions, etc.
 func sortInterfaceSlice(in []interface{}) []interface{} {
@@ -1566,4 +1590,25 @@ func flattenPolicyAttributes(list []*elb.PolicyAttributeDescription) []interface
 	}
 
 	return attributes
+}
+
+// Takes a value containing JSON string and passes it through
+// the JSON parser to normalize it, returns either a parsing
+// error or normalized JSON string.
+func normalizeJsonString(jsonString interface{}) (string, error) {
+	var j interface{}
+
+	if jsonString == nil || jsonString.(string) == "" {
+		return "", nil
+	}
+
+	s := jsonString.(string)
+
+	err := json.Unmarshal([]byte(s), &j)
+	if err != nil {
+		return s, err
+	}
+
+	bytes, _ := json.Marshal(j)
+	return string(bytes[:]), nil
 }

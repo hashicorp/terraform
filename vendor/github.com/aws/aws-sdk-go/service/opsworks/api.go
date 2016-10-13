@@ -4378,7 +4378,7 @@ type CloneStackInput struct {
 
 	// A string that contains user-defined, custom JSON. It is used to override
 	// the corresponding default stack configuration JSON values. The string should
-	// be in the following format and must escape characters such as '"':
+	// be in the following format:
 	//
 	//  "{\"key1\": \"value1\", \"key2\": \"value2\",...}"
 	//
@@ -4480,8 +4480,8 @@ type CloneStackInput struct {
 	// The cloned stack name.
 	Name *string `type:"string"`
 
-	// The cloned stack AWS region, such as "us-east-1". For more information about
-	// AWS regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
+	// The cloned stack AWS region, such as "ap-northeast-2". For more information
+	// about AWS regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
 	Region *string `type:"string"`
 
 	// The stack AWS Identity and Access Management (IAM) role, which allows AWS
@@ -4806,7 +4806,7 @@ type CreateDeploymentInput struct {
 
 	// A string that contains user-defined, custom JSON. It is used to override
 	// the corresponding default stack configuration JSON values. The string should
-	// be in the following format and must escape characters such as '"':
+	// be in the following format:
 	//
 	//  "{\"key1\": \"value1\", \"key2\": \"value2\",...}"
 	//
@@ -5240,8 +5240,7 @@ type CreateStackInput struct {
 
 	// A string that contains user-defined, custom JSON. It can be used to override
 	// the corresponding default stack configuration attribute values or to pass
-	// data to recipes. The string should be in the following escape characters
-	// such as '"':
+	// data to recipes. The string should be in the following format:
 	//
 	//  "{\"key1\": \"value1\", \"key2\": \"value2\",...}"
 	//
@@ -5343,8 +5342,8 @@ type CreateStackInput struct {
 	// The stack name.
 	Name *string `type:"string" required:"true"`
 
-	// The stack's AWS region, such as "us-east-1". For more information about Amazon
-	// regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
+	// The stack's AWS region, such as "ap-south-1". For more information about
+	// Amazon regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
 	Region *string `type:"string" required:"true"`
 
 	// The stack's AWS Identity and Access Management (IAM) role, which allows AWS
@@ -5464,7 +5463,7 @@ type CreateUserProfileInput struct {
 	// page. For more information, see Setting an IAM User's Public SSH Key (http://docs.aws.amazon.com/opsworks/latest/userguide/security-settingsshkey.html).
 	AllowSelfManagement *bool `type:"boolean"`
 
-	// The user's IAM ARN.
+	// The user's IAM ARN; this can also be a federated user's ARN.
 	IamUserArn *string `type:"string" required:"true"`
 
 	// The user's public SSH key.
@@ -5729,7 +5728,7 @@ func (s DeleteStackOutput) GoString() string {
 type DeleteUserProfileInput struct {
 	_ struct{} `type:"structure"`
 
-	// The user's IAM ARN.
+	// The user's IAM ARN. This can also be a federated user's ARN.
 	IamUserArn *string `type:"string" required:"true"`
 }
 
@@ -5791,8 +5790,7 @@ type Deployment struct {
 
 	// A string that contains user-defined custom JSON. It can be used to override
 	// the corresponding default stack configuration attribute values for stack
-	// or to pass data to recipes. The string should be in the following format
-	// and must escape characters such as '"':
+	// or to pass data to recipes. The string should be in the following format:
 	//
 	//  "{\"key1\": \"value1\", \"key2\": \"value2\",...}"
 	//
@@ -6628,8 +6626,8 @@ func (s DescribeMyUserProfileOutput) GoString() string {
 type DescribePermissionsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The user's IAM ARN. For more information about IAM ARNs, see Using Identifiers
-	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html).
+	// The user's IAM ARN. This can also be a federated user's ARN. For more information
+	// about IAM ARNs, see Using Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html).
 	IamUserArn *string `type:"string"`
 
 	// The stack ID.
@@ -7002,7 +7000,7 @@ func (s DescribeTimeBasedAutoScalingOutput) GoString() string {
 type DescribeUserProfilesInput struct {
 	_ struct{} `type:"structure"`
 
-	// An array of IAM user ARNs that identify the users to be described.
+	// An array of IAM or federated user ARNs that identify the users to be described.
 	IamUserArns []*string `type:"list"`
 }
 
@@ -8568,7 +8566,7 @@ type SetPermissionInput struct {
 	// The user is allowed to use sudo to elevate privileges.
 	AllowSudo *bool `type:"boolean"`
 
-	// The user's IAM ARN.
+	// The user's IAM ARN. This can also be a federated user's ARN.
 	IamUserArn *string `type:"string" required:"true"`
 
 	// The user's permission level, which must be set to one of the following strings.
@@ -8833,8 +8831,7 @@ type Stack struct {
 	// A JSON object that contains user-defined attributes to be added to the stack
 	// configuration and deployment attributes. You can use custom JSON to override
 	// the corresponding default stack configuration attribute values or to pass
-	// data to recipes. The string should be in the following format and must escape
-	// characters such as '"':
+	// data to recipes. The string should be in the following format:
 	//
 	//  "{\"key1\": \"value1\", \"key2\": \"value2\",...}"
 	//
@@ -8872,8 +8869,8 @@ type Stack struct {
 	// The stack name.
 	Name *string `type:"string"`
 
-	// The stack AWS region, such as "us-east-1". For more information about AWS
-	// regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
+	// The stack AWS region, such as "ap-northeast-2". For more information about
+	// AWS regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
 	Region *string `type:"string"`
 
 	// The stack AWS Identity and Access Management (IAM) role.
@@ -9442,11 +9439,10 @@ type UpdateInstanceInput struct {
 	// console. For a list of available agent version numbers, call DescribeAgentVersions.
 	AgentVersion *string `type:"string"`
 
-	// A custom AMI ID to be used to create the instance. The AMI must be based
-	// on one of the supported operating systems. For more information, see Instances
-	// (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-custom-ami.html)
-	//
-	//  If you specify a custom AMI, you must set Os to Custom.
+	// The ID of the AMI that was used to create the instance. The value of this
+	// parameter must be the same AMI ID that the instance is already using. You
+	// cannot apply a new AMI to an instance by running UpdateInstance. UpdateInstance
+	// does not work on instances that are using custom AMIs.
 	AmiId *string `type:"string"`
 
 	// The instance architecture. Instance types do not necessarily support both
@@ -9489,6 +9485,7 @@ type UpdateInstanceInput struct {
 	LayerIds []*string `type:"list"`
 
 	// The instance's operating system, which must be set to one of the following.
+	// You cannot update an instance that is using a custom AMI.
 	//
 	//   A supported Linux operating system: An Amazon Linux version, such as Amazon
 	// Linux 2016.03, Amazon Linux 2015.09, or Amazon Linux 2015.03.
@@ -9504,8 +9501,6 @@ type UpdateInstanceInput struct {
 	// 2012 R2 Base, Microsoft Windows Server 2012 R2 with SQL Server Express, Microsoft
 	// Windows Server 2012 R2 with SQL Server Standard, or Microsoft Windows Server
 	// 2012 R2 with SQL Server Web.
-	//
-	//   A custom AMI: Custom.
 	//
 	//   For more information on the supported operating systems, see AWS OpsWorks
 	// Operating Systems (http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances-os.html).
@@ -9804,8 +9799,7 @@ type UpdateStackInput struct {
 
 	// A string that contains user-defined, custom JSON. It can be used to override
 	// the corresponding default stack configuration JSON values or to pass data
-	// to recipes. The string should be in the following format and escape characters
-	// such as '"':
+	// to recipes. The string should be in the following format:
 	//
 	//  "{\"key1\": \"value1\", \"key2\": \"value2\",...}"
 	//
@@ -9981,7 +9975,7 @@ type UpdateUserProfileInput struct {
 	// page. For more information, see Managing User Permissions (http://docs.aws.amazon.com/opsworks/latest/userguide/security-settingsshkey.html).
 	AllowSelfManagement *bool `type:"boolean"`
 
-	// The user IAM ARN.
+	// The user IAM ARN. This can also be a federated user's ARN.
 	IamUserArn *string `type:"string" required:"true"`
 
 	// The user's new SSH public key.

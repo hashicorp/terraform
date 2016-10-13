@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -22,9 +23,10 @@ func resourceAwsElasticSearchDomain() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"access_policies": &schema.Schema{
-				Type:      schema.TypeString,
-				StateFunc: normalizeJson,
-				Optional:  true,
+				Type:             schema.TypeString,
+				Optional:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"advanced_options": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -269,7 +271,11 @@ func resourceAwsElasticSearchDomainRead(d *schema.ResourceData, meta interface{}
 	ds := out.DomainStatus
 
 	if ds.AccessPolicies != nil && *ds.AccessPolicies != "" {
-		d.Set("access_policies", normalizeJson(*ds.AccessPolicies))
+		policies, err := normalizeJsonString(*ds.AccessPolicies)
+		if err != nil {
+			return errwrap.Wrapf("access policies contain an invalid JSON: {{err}}", err)
+		}
+		d.Set("access_policies", policies)
 	}
 	err = d.Set("advanced_options", pointersMapToStringList(ds.AdvancedOptions))
 	if err != nil {
@@ -381,7 +387,7 @@ func resourceAwsElasticSearchDomainUpdate(d *schema.ResourceData, meta interface
 		return err
 	}
 
-	err = resource.Retry(50*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(60*time.Minute, func() *resource.RetryError {
 		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
 			DomainName: aws.String(d.Get("domain_name").(string)),
 		})
@@ -417,7 +423,7 @@ func resourceAwsElasticSearchDomainDelete(d *schema.ResourceData, meta interface
 	}
 
 	log.Printf("[DEBUG] Waiting for ElasticSearch domain %q to be deleted", d.Get("domain_name").(string))
-	err = resource.Retry(60*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(90*time.Minute, func() *resource.RetryError {
 		out, err := conn.DescribeElasticsearchDomain(&elasticsearch.DescribeElasticsearchDomainInput{
 			DomainName: aws.String(d.Get("domain_name").(string)),
 		})

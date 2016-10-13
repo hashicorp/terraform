@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -23,7 +24,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 		Update: resourceAwsS3BucketUpdate,
 		Delete: resourceAwsS3BucketDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsS3BucketImportState,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -48,7 +49,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 			"policy": &schema.Schema{
 				Type:             schema.TypeString,
 				Optional:         true,
-				Computed:         true,
+				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 
@@ -111,9 +112,13 @@ func resourceAwsS3Bucket() *schema.Resource {
 						},
 
 						"routing_rules": &schema.Schema{
-							Type:      schema.TypeString,
-							Optional:  true,
-							StateFunc: normalizeJson,
+							Type:         schema.TypeString,
+							Optional:     true,
+							ValidateFunc: validateJsonString,
+							StateFunc: func(v interface{}) string {
+								json, _ := normalizeJsonString(v)
+								return json
+							},
 						},
 					},
 				},
@@ -452,21 +457,27 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Read the policy
-	pol, err := s3conn.GetBucketPolicy(&s3.GetBucketPolicyInput{
-		Bucket: aws.String(d.Id()),
-	})
-	log.Printf("[DEBUG] S3 bucket: %s, read policy: %v", d.Id(), pol)
-	if err != nil {
-		if err := d.Set("policy", ""); err != nil {
-			return err
-		}
-	} else {
-		if v := pol.Policy; v == nil {
+	if _, ok := d.GetOk("policy"); ok {
+		pol, err := s3conn.GetBucketPolicy(&s3.GetBucketPolicyInput{
+			Bucket: aws.String(d.Id()),
+		})
+		log.Printf("[DEBUG] S3 bucket: %s, read policy: %v", d.Id(), pol)
+		if err != nil {
 			if err := d.Set("policy", ""); err != nil {
 				return err
 			}
-		} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
-			return err
+		} else {
+			if v := pol.Policy; v == nil {
+				if err := d.Set("policy", ""); err != nil {
+					return err
+				}
+			} else {
+				policy, err := normalizeJsonString(*v)
+				if err != nil {
+					return errwrap.Wrapf("policy contains an invalid JSON: {{err}}", err)
+				}
+				d.Set("policy", policy)
+			}
 		}
 	}
 
@@ -589,7 +600,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() != "UnsupportedArgument" {
 			return err
 		}
-		log.Printf("[WARN] S3 bucket: %s, the S3 Transfer Accelaration is not supported in the region: %s", d.Id(), meta.(*AWSClient).region)
+		log.Printf("[WARN] S3 bucket: %s, the S3 Transfer Acceleration is not supported in the region: %s", d.Id(), meta.(*AWSClient).region)
 	} else {
 		log.Printf("[DEBUG] S3 bucket: %s, read Acceleration: %v", d.Id(), accelerate)
 		d.Set("acceleration_status", accelerate.Status)
@@ -1094,9 +1105,9 @@ func WebsiteEndpoint(bucket string, region string) *S3Website {
 func WebsiteDomainUrl(region string) string {
 	region = normalizeRegion(region)
 
-	// Frankfurt(and probably future) regions uses different syntax for website endpoints
+	// New regions uses different syntax for website endpoints
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteEndpoints.html
-	if region == "eu-central-1" || region == "ap-south-1" {
+	if region == "eu-central-1" || region == "ap-south-1" || region == "ap-northeast-2" {
 		return fmt.Sprintf("s3-website.%s.amazonaws.com", region)
 	}
 
@@ -1229,6 +1240,23 @@ func resourceAwsS3BucketLifecycleUpdate(s3conn *s3.S3, d *schema.ResourceData) e
 	bucket := d.Get("bucket").(string)
 
 	lifecycleRules := d.Get("lifecycle_rule").([]interface{})
+
+	if len(lifecycleRules) == 0 {
+		i := &s3.DeleteBucketLifecycleInput{
+			Bucket: aws.String(bucket),
+		}
+
+		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+			if _, err := s3conn.DeleteBucketLifecycle(i); err != nil {
+				return resource.NonRetryableError(err)
+			}
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("Error putting S3 lifecycle: %s", err)
+		}
+		return nil
+	}
 
 	rules := make([]*s3.LifecycleRule, 0, len(lifecycleRules))
 
@@ -1399,6 +1427,7 @@ func removeNil(data map[string]interface{}) map[string]interface{} {
 	return withoutNil
 }
 
+// DEPRECATED. Please consider using `normalizeJsonString` function instead.
 func normalizeJson(jsonString interface{}) string {
 	if jsonString == nil || jsonString == "" {
 		return ""

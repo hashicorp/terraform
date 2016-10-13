@@ -129,7 +129,9 @@ func resourceAwsCloudWatchMetricAlarmRead(d *schema.ResourceData, meta interface
 	d.Set("alarm_description", a.AlarmDescription)
 	d.Set("alarm_name", a.AlarmName)
 	d.Set("comparison_operator", a.ComparisonOperator)
-	d.Set("dimensions", a.Dimensions)
+	if err := d.Set("dimensions", flattenDimensions(a.Dimensions)); err != nil {
+		return err
+	}
 	d.Set("evaluation_periods", a.EvaluationPeriods)
 
 	if err := d.Set("insufficient_data_actions", _strArrPtrToList(a.InsufficientDataActions)); err != nil {
@@ -281,4 +283,12 @@ func _strArrPtrToList(strArrPtr []*string) []string {
 		result = append(result, *elem)
 	}
 	return result
+}
+
+func flattenDimensions(dims []*cloudwatch.Dimension) map[string]interface{} {
+	flatDims := make(map[string]interface{})
+	for _, d := range dims {
+		flatDims[*d.Name] = *d.Value
+	}
+	return flatDims
 }

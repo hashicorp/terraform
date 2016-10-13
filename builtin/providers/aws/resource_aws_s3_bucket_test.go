@@ -566,6 +566,12 @@ func TestAccAWSS3Bucket_Lifecycle(t *testing.T) {
 						"aws_s3_bucket.bucket", "lifecycle_rule.1.noncurrent_version_expiration.80908210.days", "365"),
 				),
 			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfig(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+				),
+			},
 		},
 	})
 }
@@ -645,13 +651,19 @@ func testAccCheckAWSS3BucketPolicy(n string, policy string) resource.TestCheckFu
 			Bucket: aws.String(rs.Primary.ID),
 		})
 
-		if err != nil {
-			if policy == "" {
+		if policy == "" {
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoSuchBucketPolicy" {
 				// expected
 				return nil
+			}
+			if err == nil {
+				return fmt.Errorf("Expected no policy, got: %#v", *out.Policy)
 			} else {
 				return fmt.Errorf("GetBucketPolicy error: %v, expected %s", err, policy)
 			}
+		}
+		if err != nil {
+			return fmt.Errorf("GetBucketPolicy error: %v, expected %s", err, policy)
 		}
 
 		if v := out.Policy; v == nil {

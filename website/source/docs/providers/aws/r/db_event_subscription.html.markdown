@@ -32,3 +32,12 @@ The following arguments are supported:
 * `event_categories` - (Optional) A list of event categories for a SourceType that you want to subscribe to.
 * `enabled` - (Optional) A boolean flag to enable/disable the subscription. Defaults to true.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
+
+
+## Import
+
+DB Event Subscriptions can be imported using the `name`, e.g.
+
+```
+$ terraform import aws_db_event_subscription.default rds-event-sub
+```

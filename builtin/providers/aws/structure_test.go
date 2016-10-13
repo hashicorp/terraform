@@ -899,7 +899,7 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		},
 
 		// include the owner id, but from a different account. This is reflects
-		// EC2 Classic when refering to groups by name
+		// EC2 Classic when referring to groups by name
 		{
 			ownerId: aws.String("user1234"),
 			pairs: []*ec2.UserIdGroupPair{
@@ -918,7 +918,7 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		},
 
 		// include the owner id, but from a different account. This reflects in
-		// EC2 VPC when refering to groups by id
+		// EC2 VPC when referring to groups by id
 		{
 			ownerId: aws.String("user1234"),
 			pairs: []*ec2.UserIdGroupPair{
@@ -1114,5 +1114,57 @@ func TestFlattenPolicyAttributes(t *testing.T) {
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
+	}
+}
+
+func TestNormalizeJsonString(t *testing.T) {
+	var err error
+	var actual string
+
+	// Well formatted and valid.
+	validJson := `{
+   "abc": {
+      "def": 123,
+      "xyz": [
+         {
+            "a": "ホリネズミ"
+         },
+         {
+            "b": "1\\n2"
+         }
+      ]
+   }
+}`
+	expected := `{"abc":{"def":123,"xyz":[{"a":"ホリネズミ"},{"b":"1\\n2"}]}}`
+
+	actual, err = normalizeJsonString(validJson)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing JSON, but got: %s", err)
+	}
+
+	if actual != expected {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, expected)
+	}
+
+	// Well formatted but not valid,
+	// missing closing squre bracket.
+	invalidJson := `{
+   "abc": {
+      "def": 123,
+      "xyz": [
+         {
+            "a": "1"
+         }
+      }
+   }
+}`
+	actual, err = normalizeJsonString(invalidJson)
+	if err == nil {
+		t.Fatalf("Expected to throw an error while parsing JSON, but got: %s", err)
+	}
+
+	// We expect the invalid JSON to be shown back to us again.
+	if actual != invalidJson {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", expected, invalidJson)
 	}
 }

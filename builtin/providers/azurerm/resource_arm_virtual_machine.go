@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	riviera "github.com/jen20/riviera/azure"
 )
 
 func resourceArmVirtualMachine() *schema.Resource {
@@ -211,6 +212,55 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			"diagnostics_profile": {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				MaxItems:      1,
+				ConflictsWith: []string{"boot_diagnostics"},
+				Deprecated:    "Use field boot_diagnostics instead",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"boot_diagnostics": {
+							Type:     schema.TypeSet,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enabled": {
+										Type:     schema.TypeBool,
+										Required: true,
+									},
+
+									"storage_uri": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
+			"boot_diagnostics": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+
+						"storage_uri": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 
 			"os_profile": {
@@ -425,6 +475,13 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		StorageProfile: &storageProfile,
 	}
 
+	if _, ok := d.GetOk("boot_diagnostics"); ok {
+		diagnosticsProfile := expandAzureRmVirtualMachineDiagnosticsProfile(d)
+		if diagnosticsProfile != nil {
+			properties.DiagnosticsProfile = diagnosticsProfile
+		}
+	}
+
 	osProfile, err := expandAzureRmVirtualMachineOsProfile(d)
 	if err != nil {
 		return err
@@ -487,11 +544,11 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	resp, err := vmClient.Get(resGroup, name, "")
 
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine %s: %s", name, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	if resp.Plan != nil {
@@ -541,6 +598,12 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	if resp.Properties.OsProfile.Secrets != nil {
 		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineOsProfileSecrets(resp.Properties.OsProfile.Secrets)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Secrets: %#v", err)
+		}
+	}
+
+	if resp.Properties.DiagnosticsProfile != nil && resp.Properties.DiagnosticsProfile.BootDiagnostics != nil {
+		if err := d.Set("boot_diagnostics", flattenAzureRmVirtualMachineDiagnosticsProfile(resp.Properties.DiagnosticsProfile.BootDiagnostics)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Diagnostics Profile: %#v", err)
 		}
 	}
 
@@ -708,6 +771,15 @@ func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) [
 	if image.Version != nil {
 		result["version"] = *image.Version
 	}
+
+	return []interface{}{result}
+}
+
+func flattenAzureRmVirtualMachineDiagnosticsProfile(profile *compute.BootDiagnostics) []interface{} {
+	result := make(map[string]interface{})
+
+	result["enabled"] = *profile.Enabled
+	result["storage_uri"] = *profile.StorageURI
 
 	return []interface{}{result}
 }
@@ -1089,6 +1161,26 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 	}
 
 	return data_disks, nil
+}
+
+func expandAzureRmVirtualMachineDiagnosticsProfile(d *schema.ResourceData) *compute.DiagnosticsProfile {
+	bootDiagnostics := d.Get("boot_diagnostics").([]interface{})
+
+	diagnosticsProfile := &compute.DiagnosticsProfile{}
+	if len(bootDiagnostics) > 0 {
+		bootDiagnostic := bootDiagnostics[0].(map[string]interface{})
+
+		diagnostic := &compute.BootDiagnostics{
+			Enabled:    riviera.Bool(bootDiagnostic["enabled"].(bool)),
+			StorageURI: riviera.String(bootDiagnostic["storage_uri"].(string)),
+		}
+
+		diagnosticsProfile.BootDiagnostics = diagnostic
+
+		return diagnosticsProfile
+	}
+
+	return nil
 }
 
 func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute.ImageReference, error) {

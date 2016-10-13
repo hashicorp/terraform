@@ -438,6 +438,10 @@ const (
 	// VirtualNetworkGatewaySkuNameStandard specifies the virtual network
 	// gateway sku name standard state for virtual network gateway sku name.
 	VirtualNetworkGatewaySkuNameStandard VirtualNetworkGatewaySkuName = "Standard"
+	// VirtualNetworkGatewaySkuNameUltraPerformance specifies the virtual
+	// network gateway sku name ultra performance state for virtual network
+	// gateway sku name.
+	VirtualNetworkGatewaySkuNameUltraPerformance VirtualNetworkGatewaySkuName = "UltraPerformance"
 )
 
 // VirtualNetworkGatewaySkuTier enumerates the values for virtual network
@@ -455,6 +459,10 @@ const (
 	// VirtualNetworkGatewaySkuTierStandard specifies the virtual network
 	// gateway sku tier standard state for virtual network gateway sku tier.
 	VirtualNetworkGatewaySkuTierStandard VirtualNetworkGatewaySkuTier = "Standard"
+	// VirtualNetworkGatewaySkuTierUltraPerformance specifies the virtual
+	// network gateway sku tier ultra performance state for virtual network
+	// gateway sku tier.
+	VirtualNetworkGatewaySkuTierUltraPerformance VirtualNetworkGatewaySkuTier = "UltraPerformance"
 )
 
 // VirtualNetworkGatewayType enumerates the values for virtual network gateway
@@ -816,10 +824,10 @@ type AuthorizationPropertiesFormat struct {
 
 // AzureAsyncOperationResult is the response body contains the status of the
 // specified asynchronous operation, indicating whether it has succeeded, is
-// inprogress, or has failed. Note that this status is distinct from the HTTP
-// status code returned for the Get Operation Status operation itself. If the
-// asynchronous operation succeeded, the response body includes the HTTP
-// status code for the successful request. If the asynchronous operation
+// in progress, or has failed. Note that this status is distinct from the
+// HTTP status code returned for the Get Operation Status operation itself.
+// If the asynchronous operation succeeded, the response body includes the
+// HTTP status code for the successful request. If the asynchronous operation
 // failed, the response body includes the HTTP status code for the failed
 // request and error information regarding the failure.
 type AzureAsyncOperationResult struct {
@@ -827,7 +835,7 @@ type AzureAsyncOperationResult struct {
 	Error  *Error          `json:"error,omitempty"`
 }
 
-// BackendAddressPool is pool of backend IP addresseses
+// BackendAddressPool is pool of backend IP addresses
 type BackendAddressPool struct {
 	ID         *string                             `json:"id,omitempty"`
 	Properties *BackendAddressPoolPropertiesFormat `json:"properties,omitempty"`
@@ -856,14 +864,14 @@ type ConnectionResetSharedKey struct {
 	KeyLength         *int64 `json:"keyLength,omitempty"`
 }
 
-// ConnectionSharedKey is response for GetConnectionSharedKey Api servive call
+// ConnectionSharedKey is response for GetConnectionSharedKey Api service call
 type ConnectionSharedKey struct {
 	autorest.Response `json:"-"`
 	Value             *string `json:"value,omitempty"`
 }
 
 // ConnectionSharedKeyResult is response for CheckConnectionSharedKey Api
-// servive call
+// service call
 type ConnectionSharedKeyResult struct {
 	autorest.Response `json:"-"`
 	Value             *string `json:"value,omitempty"`
@@ -877,7 +885,7 @@ type DhcpOptions struct {
 }
 
 // DNSNameAvailabilityResult is response for CheckDnsNameAvailability Api
-// servive call
+// service call
 type DNSNameAvailabilityResult struct {
 	autorest.Response `json:"-"`
 	Available         *bool `json:"available,omitempty"`
@@ -898,7 +906,7 @@ type EffectiveNetworkSecurityGroupAssociation struct {
 }
 
 // EffectiveNetworkSecurityGroupListResult is response for list effective
-// network security groups api servive call
+// network security groups api service call
 type EffectiveNetworkSecurityGroupListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]EffectiveNetworkSecurityGroup `json:"value,omitempty"`
@@ -930,7 +938,7 @@ type EffectiveRoute struct {
 	NextHopType      RouteNextHopType     `json:"nextHopType,omitempty"`
 }
 
-// EffectiveRouteListResult is response for list effective route api servive
+// EffectiveRouteListResult is response for list effective route api service
 // call
 type EffectiveRouteListResult struct {
 	autorest.Response `json:"-"`
@@ -1015,7 +1023,7 @@ type ExpressRouteCircuitPeering struct {
 	Etag              *string                                     `json:"etag,omitempty"`
 }
 
-// ExpressRouteCircuitPeeringConfig is specfies the peering config
+// ExpressRouteCircuitPeeringConfig is specifies the peering config
 type ExpressRouteCircuitPeeringConfig struct {
 	AdvertisedPublicPrefixes      *[]string                                             `json:"advertisedPublicPrefixes,omitempty"`
 	AdvertisedPublicPrefixesState ExpressRouteCircuitPeeringAdvertisedPublicPrefixState `json:"advertisedPublicPrefixesState,omitempty"`
@@ -1211,7 +1219,7 @@ type FrontendIPConfigurationPropertiesFormat struct {
 	ProvisioningState         *string            `json:"provisioningState,omitempty"`
 }
 
-// InboundNatPool is inbound NAT pool of the loadbalancer
+// InboundNatPool is inbound NAT pool of the load balancer
 type InboundNatPool struct {
 	ID         *string                         `json:"id,omitempty"`
 	Properties *InboundNatPoolPropertiesFormat `json:"properties,omitempty"`
@@ -1313,15 +1321,16 @@ func (client InterfaceListResult) InterfaceListResultPreparer() (*http.Request, 
 
 // InterfacePropertiesFormat is networkInterface properties.
 type InterfacePropertiesFormat struct {
-	VirtualMachine       *SubResource                `json:"virtualMachine,omitempty"`
-	NetworkSecurityGroup *SecurityGroup              `json:"networkSecurityGroup,omitempty"`
-	IPConfigurations     *[]InterfaceIPConfiguration `json:"ipConfigurations,omitempty"`
-	DNSSettings          *InterfaceDNSSettings       `json:"dnsSettings,omitempty"`
-	MacAddress           *string                     `json:"macAddress,omitempty"`
-	Primary              *bool                       `json:"primary,omitempty"`
-	EnableIPForwarding   *bool                       `json:"enableIPForwarding,omitempty"`
-	ResourceGUID         *string                     `json:"resourceGuid,omitempty"`
-	ProvisioningState    *string                     `json:"provisioningState,omitempty"`
+	VirtualMachine               *SubResource                `json:"virtualMachine,omitempty"`
+	NetworkSecurityGroup         *SecurityGroup              `json:"networkSecurityGroup,omitempty"`
+	IPConfigurations             *[]InterfaceIPConfiguration `json:"ipConfigurations,omitempty"`
+	DNSSettings                  *InterfaceDNSSettings       `json:"dnsSettings,omitempty"`
+	MacAddress                   *string                     `json:"macAddress,omitempty"`
+	Primary                      *bool                       `json:"primary,omitempty"`
+	AcceleratedNetworkingEnabled *bool                       `json:"acceleratedNetworkingEnabled,omitempty"`
+	EnableIPForwarding           *bool                       `json:"enableIPForwarding,omitempty"`
+	ResourceGUID                 *string                     `json:"resourceGuid,omitempty"`
+	ProvisioningState            *string                     `json:"provisioningState,omitempty"`
 }
 
 // IPAddressAvailabilityResult is response for CheckIPAddressAvailability Api
@@ -1456,7 +1465,7 @@ type LocalNetworkGatewayPropertiesFormat struct {
 	ProvisioningState        *string       `json:"provisioningState,omitempty"`
 }
 
-// OutboundNatRule is outbound NAT pool of the loadbalancer
+// OutboundNatRule is outbound NAT pool of the load balancer
 type OutboundNatRule struct {
 	ID         *string                          `json:"id,omitempty"`
 	Properties *OutboundNatRulePropertiesFormat `json:"properties,omitempty"`
@@ -1464,7 +1473,7 @@ type OutboundNatRule struct {
 	Etag       *string                          `json:"etag,omitempty"`
 }
 
-// OutboundNatRulePropertiesFormat is outbound NAT pool of the loadbalancer
+// OutboundNatRulePropertiesFormat is outbound NAT pool of the load balancer
 type OutboundNatRulePropertiesFormat struct {
 	AllocatedOutboundPorts   *int32         `json:"allocatedOutboundPorts,omitempty"`
 	FrontendIPConfigurations *[]SubResource `json:"frontendIPConfigurations,omitempty"`
@@ -1576,7 +1585,7 @@ type Route struct {
 	Etag              *string                `json:"etag,omitempty"`
 }
 
-// RouteListResult is response for ListRoute Api servive call
+// RouteListResult is response for ListRoute Api service call
 type RouteListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]Route `json:"value,omitempty"`
@@ -1615,7 +1624,7 @@ type RouteTable struct {
 	Etag              *string                     `json:"etag,omitempty"`
 }
 
-// RouteTableListResult is response for ListRouteTable Api servive call
+// RouteTableListResult is response for ListRouteTable Api service call
 type RouteTableListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]RouteTable `json:"value,omitempty"`
@@ -1654,7 +1663,7 @@ type SecurityGroup struct {
 }
 
 // SecurityGroupListResult is response for ListNetworkSecurityGroups Api
-// servive call
+// service call
 type SecurityGroupListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]SecurityGroup `json:"value,omitempty"`
@@ -1867,7 +1876,7 @@ func (client VirtualNetworkGatewayConnectionListResult) VirtualNetworkGatewayCon
 }
 
 // VirtualNetworkGatewayConnectionPropertiesFormat is
-// virtualNeworkGatewayConnection properties
+// virtualNetworkGatewayConnection properties
 type VirtualNetworkGatewayConnectionPropertiesFormat struct {
 	AuthorizationKey        *string                               `json:"authorizationKey,omitempty"`
 	VirtualNetworkGateway1  *VirtualNetworkGateway                `json:"virtualNetworkGateway1,omitempty"`
@@ -1923,12 +1932,13 @@ func (client VirtualNetworkGatewayListResult) VirtualNetworkGatewayListResultPre
 		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
-// VirtualNetworkGatewayPropertiesFormat is virtualNeworkGateay properties
+// VirtualNetworkGatewayPropertiesFormat is virtualNetworkGateway properties
 type VirtualNetworkGatewayPropertiesFormat struct {
 	IPConfigurations       *[]VirtualNetworkGatewayIPConfiguration `json:"ipConfigurations,omitempty"`
 	GatewayType            VirtualNetworkGatewayType               `json:"gatewayType,omitempty"`
 	VpnType                VpnType                                 `json:"vpnType,omitempty"`
 	EnableBgp              *bool                                   `json:"enableBgp,omitempty"`
+	ActiveActive           *bool                                   `json:"activeActive,omitempty"`
 	GatewayDefaultSite     *SubResource                            `json:"gatewayDefaultSite,omitempty"`
 	Sku                    *VirtualNetworkGatewaySku               `json:"sku,omitempty"`
 	VpnClientConfiguration *VpnClientConfiguration                 `json:"vpnClientConfiguration,omitempty"`
@@ -1944,7 +1954,7 @@ type VirtualNetworkGatewaySku struct {
 	Capacity *int32                       `json:"capacity,omitempty"`
 }
 
-// VirtualNetworkListResult is response for ListVirtualNetworks Api servive
+// VirtualNetworkListResult is response for ListVirtualNetworks Api service
 // call
 type VirtualNetworkListResult struct {
 	autorest.Response `json:"-"`

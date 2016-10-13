@@ -85,16 +85,12 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 
 			"kms_key_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"storage_encrypted": &schema.Schema{
 				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-				ForceNew: true,
+				Computed: true,
 			},
 
 			"monitoring_role_arn": &schema.Schema{
@@ -195,7 +191,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	// Retreive DB Cluster information, to determine if this Instance is a writer
+	// Retrieve DB Cluster information, to determine if this Instance is a writer
 	conn := meta.(*AWSClient).rdsconn
 	resp, err := conn.DescribeDBClusters(&rds.DescribeDBClustersInput{
 		DBClusterIdentifier: db.DBClusterIdentifier,
@@ -233,6 +229,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("instance_class", db.DBInstanceClass)
 	d.Set("identifier", db.DBInstanceIdentifier)
 	d.Set("storage_encrypted", db.StorageEncrypted)
+	d.Set("kms_key_id", db.KmsKeyId)
 	d.Set("promotion_tier", db.PromotionTier)
 
 	if db.MonitoringInterval != nil {
@@ -248,7 +245,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	}
 
 	// Fetch and save tags
-	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		log.Printf("[DEBUG] Error building ARN for RDS Cluster Instance (%s), not setting Tags", *db.DBInstanceIdentifier)
 	} else {
@@ -325,7 +322,7 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 
 	}
 
-	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		}

@@ -21,7 +21,7 @@ resource "aws_eip" "lb" {
 }
 ```
 
-Muliple EIPs associated with a single network interface:
+Multiple EIPs associated with a single network interface:
 
 ```
 resource "aws_network_interface" "multi-ip" {
@@ -106,5 +106,20 @@ The following attributes are exported:
 * `public_ip` - Contains the public IP address.
 * `instance` - Contains the ID of the attached instance.
 * `network_interface` - Contains the ID of the attached network interface.
+
+
+## Import
+
+EIPs in a VPC can be imported using their Allocation ID, e.g.
+
+```
+$ terraform import aws_eip.bar eipalloc-00a10e96
+```
+
+EIPs in EC2 Classic can be imported using their Public IP, e.g.
+
+```
+$ terraform import aws_eip.bar 52.0.0.0
+```
 
 [1]: https://docs.aws.amazon.com/fr_fr/AWSEC2/latest/APIReference/API_AssociateAddress.html

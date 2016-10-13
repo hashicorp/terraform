@@ -39,7 +39,6 @@ resource "aws_redshift_subnet_group" "foo" {
 	name = "foo"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 }
-`
 ```
 
 ## Argument Reference

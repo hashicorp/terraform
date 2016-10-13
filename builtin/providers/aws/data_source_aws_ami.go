@@ -236,10 +236,19 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	var filteredImages []*ec2.Image
-	if nameRegexOk == true {
+	if nameRegexOk {
 		r := regexp.MustCompile(nameRegex.(string))
 		for _, image := range resp.Images {
-			if r.MatchString(*image.Name) == true {
+			// Check for a very rare case where the response would include no
+			// image name. No name means nothing to attempt a match against,
+			// therefore we are skipping such image.
+			if image.Name == nil || *image.Name == "" {
+				log.Printf("[WARN] Unable to find AMI name to match against "+
+					"for image ID %q owned by %q, nothing to do.",
+					*image.ImageId, *image.OwnerId)
+				continue
+			}
+			if r.MatchString(*image.Name) {
 				filteredImages = append(filteredImages, image)
 			}
 		}
@@ -249,19 +258,24 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 	var image *ec2.Image
 	if len(filteredImages) < 1 {
-		return fmt.Errorf("Your query returned no results. Please change your filters and try again.")
-	} else if len(filteredImages) > 1 {
-		if (d.Get("most_recent").(bool)) == true {
-			log.Printf("[DEBUG] aws_ami - multiple results found and most_recent is set")
+		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
+	}
+
+	if len(filteredImages) > 1 {
+		recent := d.Get("most_recent").(bool)
+		log.Printf("[DEBUG] aws_ami - multiple results found and `most_recent` is set to: %t", recent)
+		if recent {
 			image = mostRecentAmi(filteredImages)
 		} else {
-			log.Printf("[DEBUG] aws_ami - multiple results found and most_recent not set")
-			return fmt.Errorf("Your query returned more than one result. Please try a more specific search, or set most_recent to true.")
+			return fmt.Errorf("Your query returned more than one result. Please try a more " +
+				"specific search criteria, or set `most_recent` attribute to true.")
 		}
 	} else {
-		log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *filteredImages[0].ImageId)
+		// Query returned single result.
 		image = filteredImages[0]
 	}
+
+	log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *image.ImageId)
 	return amiDescriptionAttributes(d, image)
 }
 

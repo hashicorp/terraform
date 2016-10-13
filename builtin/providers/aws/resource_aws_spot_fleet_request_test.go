@@ -3,7 +3,9 @@ package aws
 import (
 	"encoding/base64"
 	"fmt"
+	"log"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -248,6 +250,20 @@ func TestAccAWSSpotFleetRequest_withWeightedCapacity(t *testing.T) {
 	var sfr ec2.SpotFleetRequestConfig
 	rName := acctest.RandString(10)
 
+	fulfillSleep := func() resource.TestCheckFunc {
+		// sleep so that EC2 can fuflill the request. We do this to guard against a
+		// regression and possible leak where we'll destroy the request and the
+		// associated IAM role before anything is actually provisioned and running,
+		// thus leaking when those newly started instances are attempted to be
+		// destroyed
+		// See https://github.com/hashicorp/terraform/pull/8938
+		return func(s *terraform.State) error {
+			log.Printf("[DEBUG] Test: Sleep to allow EC2 to actually begin fulfilling TestAccAWSSpotFleetRequest_withWeightedCapacity request")
+			time.Sleep(1 * time.Minute)
+			return nil
+		}
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -256,6 +272,7 @@ func TestAccAWSSpotFleetRequest_withWeightedCapacity(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSSpotFleetRequestConfigWithWeightedCapacity(rName),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					fulfillSleep(),
 					testAccCheckAWSSpotFleetRequestExists(
 						"aws_spot_fleet_request.foo", &sfr),
 					resource.TestCheckResourceAttr(

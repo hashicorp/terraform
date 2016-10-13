@@ -29,6 +29,27 @@ func TestAccAzureRMCdnEndpoint_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMCdnEndpoint_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMCdnEndpoint_basic, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMCdnEndpointDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMCdnEndpointExists("azurerm_cdn_endpoint.test"),
+					testCheckAzureRMCdnEndpointDisappears("azurerm_cdn_endpoint.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMCdnEndpoint_withTags(t *testing.T) {
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMCdnEndpoint_withTags, ri, ri, ri)
@@ -96,6 +117,32 @@ func testCheckAzureRMCdnEndpointExists(name string) resource.TestCheckFunc {
 	}
 }
 
+func testCheckAzureRMCdnEndpointDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		profileName := rs.Primary.Attributes["profile_name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for cdn endpoint: %s", name)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).cdnEndpointsClient
+
+		_, err := conn.DeleteIfExists(name, profileName, resourceGroup, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on cdnEndpointsClient: %s", err)
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMCdnEndpointDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).cdnEndpointsClient
 
@@ -124,7 +171,7 @@ func testCheckAzureRMCdnEndpointDestroy(s *terraform.State) error {
 
 var testAccAzureRMCdnEndpoint_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_cdn_profile" "test" {
@@ -151,7 +198,7 @@ resource "azurerm_cdn_endpoint" "test" {
 
 var testAccAzureRMCdnEndpoint_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_cdn_profile" "test" {
@@ -183,7 +230,7 @@ resource "azurerm_cdn_endpoint" "test" {
 
 var testAccAzureRMCdnEndpoint_withTagsUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 resource "azurerm_cdn_profile" "test" {

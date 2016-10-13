@@ -21,12 +21,13 @@ package network
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
 // ApplicationGatewaysClient is the the Microsoft Azure Network management API
 // provides a RESTful set of web services that interact with Microsoft Azure
-// Networks service to manage your network resrources. The API has entities
+// Networks service to manage your network resources. The API has entities
 // that capture the relationship between an end user and the Microsoft Azure
 // Networks service.
 type ApplicationGatewaysClient struct {
@@ -54,6 +55,13 @@ func NewApplicationGatewaysClientWithBaseURI(baseURI string, subscriptionID stri
 // is the name of the ApplicationGateway. parameters is parameters supplied
 // to the create/delete ApplicationGateway operation
 func (client ApplicationGatewaysClient) CreateOrUpdate(resourceGroupName string, applicationGatewayName string, parameters ApplicationGateway, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.OperationalState", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "network.ApplicationGatewaysClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, applicationGatewayName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -115,13 +123,13 @@ func (client ApplicationGatewaysClient) CreateOrUpdateResponder(resp *http.Respo
 	return
 }
 
-// Delete the delete applicationgateway operation deletes the specified
-// applicationgateway. This method may poll for completion. Polling can be
+// Delete the delete ApplicationGateway operation deletes the specified
+// application gateway. This method may poll for completion. Polling can be
 // canceled by passing the cancel channel argument. The channel will be used
 // to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. applicationGatewayName
-// is the name of the applicationgateway.
+// is the name of the application gateway.
 func (client ApplicationGatewaysClient) Delete(resourceGroupName string, applicationGatewayName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, applicationGatewayName, cancel)
 	if err != nil {
@@ -182,11 +190,11 @@ func (client ApplicationGatewaysClient) DeleteResponder(resp *http.Response) (re
 	return
 }
 
-// Get the Get applicationgateway operation retreives information about the
-// specified applicationgateway.
+// Get the Get ApplicationGateway operation retrieves information about the
+// specified application gateway.
 //
 // resourceGroupName is the name of the resource group. applicationGatewayName
-// is the name of the applicationgateway.
+// is the name of the application gateway.
 func (client ApplicationGatewaysClient) Get(resourceGroupName string, applicationGatewayName string) (result ApplicationGateway, err error) {
 	req, err := client.GetPreparer(resourceGroupName, applicationGatewayName)
 	if err != nil {
@@ -246,8 +254,8 @@ func (client ApplicationGatewaysClient) GetResponder(resp *http.Response) (resul
 	return
 }
 
-// List the List ApplicationGateway operation retrieves all the
-// applicationgateways in a resource group.
+// List the List ApplicationGateway operation retrieves all the application
+// gateways in a resource group.
 //
 // resourceGroupName is the name of the resource group.
 func (client ApplicationGatewaysClient) List(resourceGroupName string) (result ApplicationGatewayListResult, err error) {
@@ -312,7 +320,7 @@ func (client ApplicationGatewaysClient) ListResponder(resp *http.Response) (resu
 func (client ApplicationGatewaysClient) ListNextResults(lastResults ApplicationGatewayListResult) (result ApplicationGatewayListResult, err error) {
 	req, err := lastResults.ApplicationGatewayListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -321,19 +329,19 @@ func (client ApplicationGatewaysClient) ListNextResults(lastResults ApplicationG
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
 }
 
-// ListAll the List applicationgateway operation retrieves all the
-// applicationgateways in a subscription.
+// ListAll the List ApplicationGateway operation retrieves all the application
+// gateways in a subscription.
 func (client ApplicationGatewaysClient) ListAll() (result ApplicationGatewayListResult, err error) {
 	req, err := client.ListAllPreparer()
 	if err != nil {
@@ -395,7 +403,7 @@ func (client ApplicationGatewaysClient) ListAllResponder(resp *http.Response) (r
 func (client ApplicationGatewaysClient) ListAllNextResults(lastResults ApplicationGatewayListResult) (result ApplicationGatewayListResult, err error) {
 	req, err := lastResults.ApplicationGatewayListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -404,18 +412,18 @@ func (client ApplicationGatewaysClient) ListAllNextResults(lastResults Applicati
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return
 }
 
-// Start the Start ApplicationGateway operation starts application gatewayin
+// Start the Start ApplicationGateway operation starts application gateway in
 // the specified resource group through Network resource provider. This
 // method may poll for completion. Polling can be canceled by passing the
 // cancel channel argument. The channel will be used to cancel polling and
@@ -483,7 +491,7 @@ func (client ApplicationGatewaysClient) StartResponder(resp *http.Response) (res
 	return
 }
 
-// Stop the STOP ApplicationGateway operation stops application gatewayin the
+// Stop the STOP ApplicationGateway operation stops application gateway in the
 // specified resource group through Network resource provider. This method
 // may poll for completion. Polling can be canceled by passing the cancel
 // channel argument. The channel will be used to cancel polling and any

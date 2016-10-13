@@ -37,20 +37,21 @@ const (
 	Send AccessRights = "Send"
 )
 
-// AvailabilityStatus enumerates the values for availability status.
-type AvailabilityStatus string
+// EntityAvailabilityStatus enumerates the values for entity availability
+// status.
+type EntityAvailabilityStatus string
 
 const (
-	// Available specifies the available state for availability status.
-	Available AvailabilityStatus = "Available"
-	// Limited specifies the limited state for availability status.
-	Limited AvailabilityStatus = "Limited"
-	// Renaming specifies the renaming state for availability status.
-	Renaming AvailabilityStatus = "Renaming"
-	// Restoring specifies the restoring state for availability status.
-	Restoring AvailabilityStatus = "Restoring"
-	// Unknown specifies the unknown state for availability status.
-	Unknown AvailabilityStatus = "Unknown"
+	// Available specifies the available state for entity availability status.
+	Available EntityAvailabilityStatus = "Available"
+	// Limited specifies the limited state for entity availability status.
+	Limited EntityAvailabilityStatus = "Limited"
+	// Renaming specifies the renaming state for entity availability status.
+	Renaming EntityAvailabilityStatus = "Renaming"
+	// Restoring specifies the restoring state for entity availability status.
+	Restoring EntityAvailabilityStatus = "Restoring"
+	// Unknown specifies the unknown state for entity availability status.
+	Unknown EntityAvailabilityStatus = "Unknown"
 )
 
 // EntityStatus enumerates the values for entity status.
@@ -84,14 +85,6 @@ const (
 	// EntityStatusUnknown specifies the entity status unknown state for
 	// entity status.
 	EntityStatusUnknown EntityStatus = "Unknown"
-)
-
-// Kind enumerates the values for kind.
-type Kind string
-
-const (
-	// Messaging specifies the messaging state for kind.
-	Messaging Kind = "Messaging"
 )
 
 // NamespaceState enumerates the values for namespace state.
@@ -145,8 +138,8 @@ type Policykey string
 const (
 	// PrimaryKey specifies the primary key state for policykey.
 	PrimaryKey Policykey = "PrimaryKey"
-	// SecondayKey specifies the seconday key state for policykey.
-	SecondayKey Policykey = "SecondayKey"
+	// SecondaryKey specifies the secondary key state for policykey.
+	SecondaryKey Policykey = "SecondaryKey"
 )
 
 // SkuName enumerates the values for sku name.
@@ -175,11 +168,11 @@ const (
 
 // MessageCountDetails is message Count Details.
 type MessageCountDetails struct {
-	ActiveMessageCount             *int64 `json:"ActiveMessageCount,omitempty"`
-	DeadLetterMessageCount         *int64 `json:"DeadLetterMessageCount,omitempty"`
-	ScheduledMessageCount          *int64 `json:"ScheduledMessageCount,omitempty"`
-	TransferDeadLetterMessageCount *int64 `json:"TransferDeadLetterMessageCount,omitempty"`
-	TransferMessageCount           *int64 `json:"TransferMessageCount,omitempty"`
+	ActiveMessageCount             *int64 `json:"activeMessageCount,omitempty"`
+	DeadLetterMessageCount         *int64 `json:"deadLetterMessageCount,omitempty"`
+	ScheduledMessageCount          *int64 `json:"scheduledMessageCount,omitempty"`
+	TransferDeadLetterMessageCount *int64 `json:"transferDeadLetterMessageCount,omitempty"`
+	TransferMessageCount           *int64 `json:"transferMessageCount,omitempty"`
 }
 
 // NamespaceCreateOrUpdateParameters is parameters supplied to the
@@ -188,7 +181,6 @@ type NamespaceCreateOrUpdateParameters struct {
 	Location   *string              `json:"location,omitempty"`
 	Sku        *Sku                 `json:"sku,omitempty"`
 	Tags       *map[string]*string  `json:"tags,omitempty"`
-	Kind       Kind                 `json:"kind,omitempty"`
 	Properties *NamespaceProperties `json:"properties,omitempty"`
 }
 
@@ -230,7 +222,6 @@ type NamespaceResource struct {
 	Type              *string              `json:"type,omitempty"`
 	Location          *string              `json:"location,omitempty"`
 	Tags              *map[string]*string  `json:"tags,omitempty"`
-	Kind              Kind                 `json:"kind,omitempty"`
 	Sku               *Sku                 `json:"sku,omitempty"`
 	Properties        *NamespaceProperties `json:"properties,omitempty"`
 }
@@ -264,32 +255,28 @@ func (client QueueListResult) QueueListResultPreparer() (*http.Request, error) {
 
 // QueueProperties is
 type QueueProperties struct {
-	AccessedAt                             *date.Time           `json:"AccessedAt,omitempty"`
-	AutoDeleteOnIdle                       *string              `json:"AutoDeleteOnIdle,omitempty"`
-	AvailabilityStatus                     AvailabilityStatus   `json:"AvailabilityStatus ,omitempty"`
-	CreatedAt                              *date.Time           `json:"CreatedAt,omitempty"`
-	DefaultMessageTimeToLive               *string              `json:"DefaultMessageTimeToLive,omitempty"`
-	DuplicateDetectionHistoryTimeWindow    *string              `json:"DuplicateDetectionHistoryTimeWindow ,omitempty"`
-	EnableBatchedOperations                *bool                `json:"EnableBatchedOperations,omitempty"`
-	EnableDeadLetteringOnMessageExpiration *bool                `json:"EnableDeadLetteringOnMessageExpiration,omitempty"`
-	EnableExpress                          *bool                `json:"EnableExpress,omitempty"`
-	EnablePartitioning                     *bool                `json:"EnablePartitioning,omitempty"`
-	ForwardDeadLetteredMessagesTo          *string              `json:"ForwardDeadLetteredMessagesTo,omitempty"`
-	ForwardTo                              *string              `json:"ForwardTo,omitempty"`
-	IsAnonymousAccessible                  *bool                `json:"IsAnonymousAccessible,omitempty"`
-	LockDuration                           *string              `json:"LockDuration ,omitempty"`
-	MaxDeliveryCount                       *int32               `json:"MaxDeliveryCount ,omitempty"`
-	MaxSizeInMegabytes                     *int64               `json:"MaxSizeInMegabytes ,omitempty"`
-	MessageCount                           *int64               `json:"MessageCount ,omitempty"`
-	MessageCountDetails                    *MessageCountDetails `json:"MessageCountDetails,omitempty"`
-	Path                                   *string              `json:"Path,omitempty"`
-	RequiresDuplicateDetection             *bool                `json:"RequiresDuplicateDetection,omitempty"`
-	RequiresSession                        *bool                `json:"RequiresSession,omitempty"`
-	SizeInBytes                            *int64               `json:"SizeInBytes ,omitempty"`
-	Status                                 EntityStatus         `json:"Status,omitempty"`
-	SupportOrdering                        *bool                `json:"SupportOrdering,omitempty"`
-	UpdatedAt                              *date.Time           `json:"UpdatedAt,omitempty"`
-	UserMetadata                           *string              `json:"UserMetadata,omitempty"`
+	LockDuration                        *string                  `json:"lockDuration ,omitempty"`
+	AccessedAt                          *date.Time               `json:"accessedAt,omitempty"`
+	AutoDeleteOnIdle                    *string                  `json:"autoDeleteOnIdle,omitempty"`
+	EntityAvailabilityStatus            EntityAvailabilityStatus `json:"entityAvailabilityStatus ,omitempty"`
+	CreatedAt                           *date.Time               `json:"createdAt,omitempty"`
+	DefaultMessageTimeToLive            *string                  `json:"defaultMessageTimeToLive,omitempty"`
+	DuplicateDetectionHistoryTimeWindow *string                  `json:"duplicateDetectionHistoryTimeWindow ,omitempty"`
+	EnableBatchedOperations             *bool                    `json:"enableBatchedOperations,omitempty"`
+	DeadLetteringOnMessageExpiration    *bool                    `json:"deadLetteringOnMessageExpiration,omitempty"`
+	EnableExpress                       *bool                    `json:"enableExpress,omitempty"`
+	EnablePartitioning                  *bool                    `json:"enablePartitioning,omitempty"`
+	IsAnonymousAccessible               *bool                    `json:"isAnonymousAccessible,omitempty"`
+	MaxDeliveryCount                    *int32                   `json:"maxDeliveryCount ,omitempty"`
+	MaxSizeInMegabytes                  *int64                   `json:"maxSizeInMegabytes,omitempty"`
+	MessageCount                        *int64                   `json:"messageCount ,omitempty"`
+	CountDetails                        *MessageCountDetails     `json:"countDetails,omitempty"`
+	RequiresDuplicateDetection          *bool                    `json:"requiresDuplicateDetection,omitempty"`
+	RequiresSession                     *bool                    `json:"requiresSession,omitempty"`
+	SizeInBytes                         *int64                   `json:"sizeInBytes ,omitempty"`
+	Status                              EntityStatus             `json:"status,omitempty"`
+	SupportOrdering                     *bool                    `json:"supportOrdering,omitempty"`
+	UpdatedAt                           *date.Time               `json:"updatedAt,omitempty"`
 }
 
 // QueueResource is description of queue Resource.
@@ -409,26 +396,22 @@ func (client SubscriptionListResult) SubscriptionListResultPreparer() (*http.Req
 
 // SubscriptionProperties is description of Subscription Resource.
 type SubscriptionProperties struct {
-	AccessedAt                                      *date.Time           `json:"AccessedAt,omitempty"`
-	AutoDeleteOnIdle                                *string              `json:"AutoDeleteOnIdle,omitempty"`
-	AvailabilityStatus                              AvailabilityStatus   `json:"AvailabilityStatus ,omitempty"`
-	CreatedAt                                       *date.Time           `json:"CreatedAt,omitempty"`
-	DefaultMessageTimeToLive                        *string              `json:"DefaultMessageTimeToLive,omitempty"`
-	EnableBatchedOperations                         *bool                `json:"EnableBatchedOperations,omitempty"`
-	EnableDeadLetteringOnFilterEvaluationExceptions *bool                `json:"EnableDeadLetteringOnFilterEvaluationExceptions,omitempty"`
-	EnableDeadLetteringOnMessageExpiration          *bool                `json:"EnableDeadLetteringOnMessageExpiration,omitempty"`
-	ForwardDeadLetteredMessagesTo                   *string              `json:"ForwardDeadLetteredMessagesTo,omitempty"`
-	ForwardTo                                       *string              `json:"ForwardTo,omitempty"`
-	IsReadOnly                                      *bool                `json:"IsReadOnly,omitempty"`
-	LockDuration                                    *string              `json:"LockDuration,omitempty"`
-	MaxDeliveryCount                                *int32               `json:"MaxDeliveryCount,omitempty"`
-	MessageCount                                    *int64               `json:"MessageCount,omitempty"`
-	MessageCountDetails                             *MessageCountDetails `json:"MessageCountDetails,omitempty"`
-	RequiresSession                                 *bool                `json:"RequiresSession,omitempty"`
-	Status                                          EntityStatus         `json:"Status,omitempty"`
-	TopicPath                                       *string              `json:"TopicPath,omitempty"`
-	UpdatedAt                                       *date.Time           `json:"UpdatedAt,omitempty"`
-	UserMetadata                                    *string              `json:"UserMetadata,omitempty"`
+	AccessedAt                                *date.Time               `json:"accessedAt,omitempty"`
+	AutoDeleteOnIdle                          *string                  `json:"autoDeleteOnIdle,omitempty"`
+	CountDetails                              *MessageCountDetails     `json:"countDetails,omitempty"`
+	CreatedAt                                 *date.Time               `json:"createdAt,omitempty"`
+	DefaultMessageTimeToLive                  *string                  `json:"defaultMessageTimeToLive,omitempty"`
+	DeadLetteringOnFilterEvaluationExceptions *bool                    `json:"deadLetteringOnFilterEvaluationExceptions,omitempty"`
+	DeadLetteringOnMessageExpiration          *bool                    `json:"deadLetteringOnMessageExpiration,omitempty"`
+	EnableBatchedOperations                   *bool                    `json:"enableBatchedOperations,omitempty"`
+	EntityAvailabilityStatus                  EntityAvailabilityStatus `json:"entityAvailabilityStatus,omitempty"`
+	IsReadOnly                                *bool                    `json:"isReadOnly,omitempty"`
+	LockDuration                              *string                  `json:"lockDuration,omitempty"`
+	MaxDeliveryCount                          *int32                   `json:"maxDeliveryCount,omitempty"`
+	MessageCount                              *int64                   `json:"messageCount,omitempty"`
+	RequiresSession                           *bool                    `json:"requiresSession,omitempty"`
+	Status                                    EntityStatus             `json:"status,omitempty"`
+	UpdatedAt                                 *date.Time               `json:"updatedAt,omitempty"`
 }
 
 // SubscriptionResource is description of Subscription Resource.
@@ -471,27 +454,27 @@ func (client TopicListResult) TopicListResultPreparer() (*http.Request, error) {
 
 // TopicProperties is
 type TopicProperties struct {
-	AccessedAt                              *date.Time           `json:"AccessedAt,omitempty"`
-	AutoDeleteOnIdle                        *string              `json:"AutoDeleteOnIdle,omitempty"`
-	AvailabilityStatus                      AvailabilityStatus   `json:"AvailabilityStatus ,omitempty"`
-	CreatedAt                               *date.Time           `json:"CreatedAt,omitempty"`
-	DefaultMessageTimeToLive                *string              `json:"DefaultMessageTimeToLive,omitempty"`
-	DuplicateDetectionHistoryTimeWindow     *string              `json:"DuplicateDetectionHistoryTimeWindow ,omitempty"`
-	EnableBatchedOperations                 *bool                `json:"EnableBatchedOperations,omitempty"`
-	EnableExpress                           *bool                `json:"EnableExpress,omitempty"`
-	EnableFilteringMessagesBeforePublishing *bool                `json:"EnableFilteringMessagesBeforePublishing,omitempty"`
-	EnablePartitioning                      *bool                `json:"EnablePartitioning,omitempty"`
-	IsAnonymousAccessible                   *bool                `json:"IsAnonymousAccessible,omitempty"`
-	MaxSizeInMegabytes                      *int64               `json:"MaxSizeInMegabytes ,omitempty"`
-	MessageCountDetails                     *MessageCountDetails `json:"MessageCountDetails,omitempty"`
-	Path                                    *string              `json:"Path,omitempty"`
-	RequiresDuplicateDetection              *bool                `json:"RequiresDuplicateDetection,omitempty"`
-	SizeInBytes                             *int64               `json:"SizeInBytes ,omitempty"`
-	Status                                  EntityStatus         `json:"Status,omitempty"`
-	SubscriptionCount                       *int32               `json:"SubscriptionCount,omitempty"`
-	SupportOrdering                         *bool                `json:"SupportOrdering,omitempty"`
-	UpdatedAt                               *date.Time           `json:"UpdatedAt,omitempty"`
-	UserMetadata                            *string              `json:"UserMetadata,omitempty"`
+	AccessedAt                          *date.Time               `json:"accessedAt,omitempty"`
+	AutoDeleteOnIdle                    *string                  `json:"autoDeleteOnIdle,omitempty"`
+	EntityAvailabilityStatus            EntityAvailabilityStatus `json:"entityAvailabilityStatus ,omitempty"`
+	CreatedAt                           *date.Time               `json:"createdAt,omitempty"`
+	CountDetails                        *MessageCountDetails     `json:"countDetails,omitempty"`
+	DefaultMessageTimeToLive            *string                  `json:"defaultMessageTimeToLive,omitempty"`
+	DuplicateDetectionHistoryTimeWindow *string                  `json:"duplicateDetectionHistoryTimeWindow ,omitempty"`
+	EnableBatchedOperations             *bool                    `json:"enableBatchedOperations,omitempty"`
+	EnableExpress                       *bool                    `json:"enableExpress,omitempty"`
+	EnablePartitioning                  *bool                    `json:"enablePartitioning,omitempty"`
+	EnableSubscriptionPartitioning      *bool                    `json:"enableSubscriptionPartitioning,omitempty"`
+	FilteringMessagesBeforePublishing   *bool                    `json:"filteringMessagesBeforePublishing,omitempty"`
+	IsAnonymousAccessible               *bool                    `json:"isAnonymousAccessible,omitempty"`
+	IsExpress                           *bool                    `json:"isExpress,omitempty"`
+	MaxSizeInMegabytes                  *int64                   `json:"maxSizeInMegabytes,omitempty"`
+	RequiresDuplicateDetection          *bool                    `json:"requiresDuplicateDetection,omitempty"`
+	SizeInBytes                         *int64                   `json:"sizeInBytes,omitempty"`
+	Status                              EntityStatus             `json:"status,omitempty"`
+	SubscriptionCount                   *int32                   `json:"subscriptionCount,omitempty"`
+	SupportOrdering                     *bool                    `json:"supportOrdering,omitempty"`
+	UpdatedAt                           *date.Time               `json:"updatedAt,omitempty"`
 }
 
 // TopicResource is description of topic Resource.

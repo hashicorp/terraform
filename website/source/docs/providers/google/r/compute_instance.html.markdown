@@ -60,7 +60,7 @@ The following arguments are supported:
 * `disk` - (Required) Disks to attach to the instance. This can be specified
     multiple times for multiple disks. Structure is documented below.
 
-* `machine_type` - (Required) The machine type to create.To create a custom
+* `machine_type` - (Required) The machine type to create. To create a custom
     machine type, value should be set as specified
     [here](https://cloud.google.com/compute/docs/reference/latest/instances#machineType)
 
@@ -133,7 +133,7 @@ the type is "local-ssd", in which case scratch must be true).
 
 The `network_interface` block supports:
 
-* `network` - (Optional) The name of the network to attach this interface to.
+* `network` - (Optional) The name or self_link of the network to attach this interface to.
     Either `network` or `subnetwork` must be provided.
 
 *  `subnetwork` - (Optional) the name of the subnetwork to attach this interface

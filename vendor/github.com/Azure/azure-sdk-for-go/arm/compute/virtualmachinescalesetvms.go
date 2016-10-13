@@ -391,7 +391,7 @@ func (client VirtualMachineScaleSetVMsClient) ListResponder(resp *http.Response)
 func (client VirtualMachineScaleSetVMsClient) ListNextResults(lastResults VirtualMachineScaleSetVMListResult) (result VirtualMachineScaleSetVMListResult, err error) {
 	req, err := lastResults.VirtualMachineScaleSetVMListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -400,12 +400,12 @@ func (client VirtualMachineScaleSetVMsClient) ListNextResults(lastResults Virtua
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

@@ -110,13 +110,14 @@ func resourceArmLocalNetworkGatewayRead(d *schema.ResourceData, meta interface{}
 
 	resp, err := lnetClient.Get(resGroup, name)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error reading the state of Azure ARM local network gateway '%s': %s", name, err)
 	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("location", resp.Location)
 	d.Set("gateway_address", resp.Properties.GatewayIPAddress)

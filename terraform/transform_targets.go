@@ -86,6 +86,15 @@ func (t *TargetsTransformer) selectTargetedNodes(
 			var err error
 			if t.Destroy {
 				deps, err = g.Descendents(v)
+
+				// Select any variables that we depend on in case we need them later for
+				// interpolating in the count
+				ancestors, _ := g.Ancestors(v)
+				for _, a := range ancestors.List() {
+					if _, ok := a.(*GraphNodeConfigVariableFlat); ok {
+						deps.Add(a)
+					}
+				}
 			} else {
 				deps, err = g.Ancestors(v)
 			}
