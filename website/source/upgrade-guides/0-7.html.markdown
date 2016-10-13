@@ -134,7 +134,7 @@ resource "aws_instance" "example" {
 }
 ```
 
-References to remote state outputs has also changed, the `.output` keyword is no longer required.
+Referencing remote state outputs has also changed. The `.output` keyword is no longer required.
 
 For example, a config like this:
 
