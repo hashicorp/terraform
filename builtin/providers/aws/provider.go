@@ -525,7 +525,7 @@ func assumeRoleToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["session_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["external_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["mfa_serial"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["token_code"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["token_code"].(string)))
 	return hashcode.String(buf.String())
 }
 
