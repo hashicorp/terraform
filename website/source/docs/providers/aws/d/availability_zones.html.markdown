@@ -12,6 +12,9 @@ The Availability Zones data source allows access to the list of AWS
 Availability Zones which can be accessed by an AWS account within the region
 configured in the provider.
 
+This is different from the `aws_availability_zone` (singular) data source,
+which provides some details about a specific availability zone.
+
 ## Example Usage
 
 ```
