@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/hcl"
@@ -148,15 +149,31 @@ func parseVarFlagAsHCL(input string) (string, interface{}, error) {
 		return "", nil, fmt.Errorf("No '=' value in variable: %s", input)
 	}
 	probablyName := input[0:idx]
+	value := input[idx+1:]
+	trimmed := strings.TrimSpace(value)
+
+	// If the value is a simple number, don't parse it as hcl because the
+	// variable type may actually be a string, and HCL will convert it to the
+	// numberic value. We could check this in the validation later, but the
+	// conversion may alter the string value.
+	if _, err := strconv.ParseInt(trimmed, 10, 64); err == nil {
+		return probablyName, value, nil
+	}
+	if _, err := strconv.ParseFloat(trimmed, 64); err == nil {
+		return probablyName, value, nil
+	}
+	// HCL will also parse hex as a number
+	if strings.HasPrefix(trimmed, "0x") {
+		if _, err := strconv.ParseInt(trimmed[2:], 16, 64); err == nil {
+			return probablyName, value, nil
+		}
+	}
 
 	parsed, err := hcl.Parse(input)
 	if err != nil {
-		value := input[idx+1:]
-
 		// If it didn't parse as HCL, we check if it doesn't match our
 		// whitelist of TF-accepted HCL types for inputs. If not, then
 		// we let it through as a raw string.
-		trimmed := strings.TrimSpace(value)
 		if !varFlagHCLRe.MatchString(trimmed) {
 			return probablyName, value, nil
 		}
