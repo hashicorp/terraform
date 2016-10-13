@@ -283,6 +283,8 @@ func TestStateDeepCopy(t *testing.T) {
 			},
 		},
 		// Deposed
+		// The nil values shouldn't be there if the State was properly init'ed,
+		// but the Copy should still work anyway.
 		{
 			&State{
 				Version: 6,
