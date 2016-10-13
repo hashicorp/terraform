@@ -134,6 +134,34 @@ resource "aws_instance" "example" {
 }
 ```
 
+References to remote state outputs has also changed, the `.output` keyword is no longer required.
+
+For example, a config like this:
+
+```
+resource "terraform_remote_state" "example" {
+  # ...
+}
+
+resource "aws_instance" "example" {
+  ami = "${terraform_remote_state.example.output.ami_id}"
+  # ...
+}
+```
+
+Would now look like this:
+
+```
+data "terraform_remote_state" "example" {
+  # ...
+}
+
+resource "aws_instance" "example" {
+  ami = "${data.terraform_remote_state.example.ami_id}"
+  # ...
+}
+```
+
 <a id="listmap"></a>
 
 ## Migrating to native lists and maps
