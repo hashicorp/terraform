@@ -1783,6 +1783,8 @@ func TestContext2Apply_multiVar(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
+		t.Logf("End state: %s", state.String())
+
 		actual := state.RootModule().Outputs["output"]
 		if actual == nil {
 			t.Fatal("missing output")

@@ -37,6 +37,10 @@ func (n *NodeApplyableOutput) ReferenceableName() []string {
 func (n *NodeApplyableOutput) References() []string {
 	var result []string
 	result = append(result, ReferencesFromConfig(n.Config.RawConfig)...)
+	for _, v := range result {
+		result = append(result, v+".destroy")
+	}
+
 	return result
 }
 
