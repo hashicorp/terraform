@@ -12,6 +12,7 @@ FEATURES:
  * **New Resource:** `azurerm_lb_nat_pool` [GH-9199]
  * **New Resource:** `azurerm_lb_probe` [GH-9199]
  * **New Resource:** `azurerm_lb_rule` [GH-9199]
+ * **New Resource:** `github_repository` [GH-9327]
 
 
 IMPROVEMENTS:
