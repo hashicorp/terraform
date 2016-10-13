@@ -13,9 +13,6 @@ func TestAccArchiveFile_Basic(t *testing.T) {
 	var fileSize string
 	r.Test(t, r.TestCase{
 		Providers: testProviders,
-		CheckDestroy: r.ComposeTestCheckFunc(
-			testAccArchiveFileMissing("zip_file_acc_test.zip"),
-		),
 		Steps: []r.TestStep{
 			r.TestStep{
 				Config: testAccArchiveFileContentConfig,
@@ -57,19 +54,6 @@ func testAccArchiveFileExists(filename string, fileSize *string) r.TestCheckFunc
 		}
 		*fileSize = fmt.Sprintf("%d", fi.Size())
 		return nil
-	}
-}
-
-func testAccArchiveFileMissing(filename string) r.TestCheckFunc {
-	return func(s *terraform.State) error {
-		_, err := os.Stat(filename)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			return err
-		}
-		return fmt.Errorf("found file expected to be deleted: %s", filename)
 	}
 }
 
