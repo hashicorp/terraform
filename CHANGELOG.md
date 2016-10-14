@@ -9,6 +9,7 @@ BUG FIXES:
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
  * `azurerm_virtual_machine` has deprecated the use of `diagnostics_profile` in favour of `boot_diagnostics`. ([#9122](https://github.com/hashicorp/terraform/issues/9122))
+ * The deprecated `key_file` and `bastion_key_file` arguments to Provisioner Connections have been removed [GH-9340]
 
 FEATURES:
  * **New Data Source:** `aws_billing_service_account` ([#8701](https://github.com/hashicorp/terraform/issues/8701))
