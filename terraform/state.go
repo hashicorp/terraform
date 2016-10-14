@@ -262,6 +262,24 @@ func (s *State) Empty() bool {
 	return len(s.Modules) == 0
 }
 
+// HasResources returns true if the state contains any resources.
+//
+// This is similar to !s.Empty, but returns true also in the case where the
+// state has modules but all of them are devoid of resources.
+func (s *State) HasResources() bool {
+	if s.Empty() {
+		return false
+	}
+
+	for _, mod := range s.Modules {
+		if len(mod.Resources) > 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
 // IsRemote returns true if State represents a state that exists and is
 // remote.
 func (s *State) IsRemote() bool {
