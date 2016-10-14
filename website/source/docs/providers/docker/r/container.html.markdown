@@ -102,7 +102,7 @@ the extra host mappings for the container. Each `host` block supports
 the following:
 
 * `host` - (Required, string) Hostname to add.
-* `ip` - (Required, string) IP address this hostname should resolve to..
+* `ip` - (Required, string) IP address this hostname should resolve to.
 
 This is equivalent to using the `--add-host` option when using the `run`
 command of the Docker CLI.
