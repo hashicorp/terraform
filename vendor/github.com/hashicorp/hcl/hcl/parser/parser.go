@@ -337,6 +337,12 @@ func (p *Parser) listType() (*ast.ListType, error) {
 				return nil, err
 			}
 
+			// If there is a lead comment, apply it
+			if p.leadComment != nil {
+				node.LeadComment = p.leadComment
+				p.leadComment = nil
+			}
+
 			l.Add(node)
 			needComma = true
 		case token.COMMA:

@@ -39,7 +39,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 		// we'll import as VPC security groups, which is fine. We verify
 		// VPC security group import in other tests
 		IDRefreshName:   "aws_instance.foo",
-		IDRefreshIgnore: []string{"user_data", "security_groups", "vpc_security_group_ids"},
+		IDRefreshIgnore: []string{"security_groups", "vpc_security_group_ids"},
 
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
@@ -195,7 +195,7 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_instance.foo",
 		IDRefreshIgnore: []string{
-			"ephemeral_block_device", "user_data", "security_groups", "vpc_security_groups"},
+			"ephemeral_block_device", "security_groups", "vpc_security_groups"},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
@@ -346,7 +346,7 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:        func() { testAccPreCheck(t) },
 		IDRefreshName:   "aws_instance.foo",
-		IDRefreshIgnore: []string{"associate_public_ip_address", "user_data"},
+		IDRefreshIgnore: []string{"associate_public_ip_address"},
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
@@ -358,7 +358,7 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo",
 						"user_data",
-						"2fad308761514d9d73c3c7fdc877607e06cf950d"),
+						"562a3e32810edf6ff09994f050f12e799452379d"),
 				),
 			},
 		},

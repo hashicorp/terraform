@@ -50,10 +50,10 @@ func NewDeploymentOperationsClientWithBaseURI(baseURI string, subscriptionID str
 // operation Id.
 func (client DeploymentOperationsClient) Get(resourceGroupName string, deploymentName string, operationID string) (result DeploymentOperation, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentOperationsClient", "Get")
 	}
 
@@ -123,10 +123,10 @@ func (client DeploymentOperationsClient) GetResponder(resp *http.Response) (resu
 // parameters.
 func (client DeploymentOperationsClient) List(resourceGroupName string, deploymentName string, top *int32) (result DeploymentOperationsListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{resourceGroupName,
-			[]validation.Constraint{{"resourceGroupName", validation.MaxLength, 90, nil},
-				{"resourceGroupName", validation.MinLength, 1, nil},
-				{"resourceGroupName", validation.Pattern, `^[-\w\._\(\)]+$`, nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentOperationsClient", "List")
 	}
 

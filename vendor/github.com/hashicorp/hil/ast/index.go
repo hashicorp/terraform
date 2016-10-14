@@ -13,6 +13,11 @@ type Index struct {
 }
 
 func (n *Index) Accept(v Visitor) Node {
+	// the Key may have further interpolations
+	switch n.Key.(type) {
+	case *Call, *VariableAccess:
+		n.Key = n.Key.Accept(v)
+	}
 	return v(n)
 }
 

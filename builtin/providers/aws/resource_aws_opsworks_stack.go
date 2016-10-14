@@ -338,6 +338,9 @@ func resourceAwsOpsworksStackCreate(d *schema.ResourceData, meta interface{}) er
 	if defaultAvailabilityZone, ok := d.GetOk("default_availability_zone"); ok {
 		req.DefaultAvailabilityZone = aws.String(defaultAvailabilityZone.(string))
 	}
+	if defaultRootDeviceType, ok := d.GetOk("default_root_device_type"); ok {
+		req.DefaultRootDeviceType = aws.String(defaultRootDeviceType.(string))
+	}
 
 	log.Printf("[DEBUG] Creating OpsWorks stack: %s", req)
 

@@ -47,8 +47,8 @@ func NewUsageOperationsClientWithBaseURI(baseURI string, subscriptionID string) 
 // location is the location upon which resource usage is queried.
 func (client UsageOperationsClient) List(location string) (result ListUsagesResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{location,
-			[]validation.Constraint{{"location", validation.Pattern, `^[-\w\._]+$`, nil}}}}); err != nil {
+		{TargetValue: location,
+			Constraints: []validation.Constraint{{Target: "location", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "compute.UsageOperationsClient", "List")
 	}
 

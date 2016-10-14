@@ -2,10 +2,14 @@ package aws
 
 import (
 	"log"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -15,6 +19,14 @@ func tagsSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeMap,
 		Optional: true,
+	}
+}
+
+func tagsSchemaComputed() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeMap,
+		Optional: true,
+		Computed: true,
 	}
 }
 
@@ -66,20 +78,40 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 
 		// Set tags
 		if len(remove) > 0 {
-			log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
-			_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
-				Resources: []*string{aws.String(d.Id())},
-				Tags:      remove,
+			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+				log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
+				_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
+					Resources: []*string{aws.String(d.Id())},
+					Tags:      remove,
+				})
+				if err != nil {
+					ec2err, ok := err.(awserr.Error)
+					if ok && strings.Contains(ec2err.Code(), ".NotFound") {
+						return resource.RetryableError(err) // retry
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
 			})
 			if err != nil {
 				return err
 			}
 		}
 		if len(create) > 0 {
-			log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
-			_, err := conn.CreateTags(&ec2.CreateTagsInput{
-				Resources: []*string{aws.String(d.Id())},
-				Tags:      create,
+			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+				log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
+				_, err := conn.CreateTags(&ec2.CreateTagsInput{
+					Resources: []*string{aws.String(d.Id())},
+					Tags:      create,
+				})
+				if err != nil {
+					ec2err, ok := err.(awserr.Error)
+					if ok && strings.Contains(ec2err.Code(), ".NotFound") {
+						return resource.RetryableError(err) // retry
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
 			})
 			if err != nil {
 				return err

@@ -3,20 +3,22 @@ layout: "docs"
 page_title: "Provisioner: chef"
 sidebar_current: "docs-provisioners-chef"
 description: |-
-  The `chef` provisioner invokes a Chef Client run on a remote resource after first installing and configuring Chef Client on the remote resource. The `chef` provisioner supports both `ssh` and `winrm` type connections.
+  The `chef` provisioner installs, configures and runs the Chef client on a resource.
 ---
 
 # Chef Provisioner
 
-The `chef` provisioner invokes a Chef Client run on a remote resource after first installing
-and configuring Chef Client on the remote resource. The `chef` provisioner supports both `ssh`
+The `chef` provisioner installs, configures and runs the Chef Client on a remote resource. The `chef` provisioner supports both `ssh`
 and `winrm` type [connections](/docs/provisioners/connection.html).
 
 ## Requirements
 
-In order for the `chef` provisioner to work properly, you need either `cURL` (when using
-a `ssh` type connection) or `PowerShell 2.0` (when using a `winrm` type connection) to be
-available on the target machine.
+The `chef` provisioner has some prerequisites for specific connection types:
+
+* For `ssh` type connections, `cURL` must be available on the remote host.
+* For `winrm` connections, `PowerShell 2.0` must be available on the remote host.
+
+Without these prerequisites, your provisioning execution will fail.
 
 ## Example usage
 
@@ -44,8 +46,8 @@ resource "aws_instance" "web" {
         secret_key = "${file("../encrypted_data_bag_secret")}"
         server_url = "https://chef.company.com/organizations/org1"
         recreate_client = true
-        user_name = "bob"
-        user_key = "${file("../bob.pem")}"
+        user_name = "bork"
+        user_key = "${file("../bork.pem")}"
         version = "12.4.1"
     }
 }
@@ -60,19 +62,20 @@ The following arguments are supported:
   interpolation function](/docs/configuration/interpolation.html#file_path_).
 
 * `client_options (array)` - (Optional) A list of optional Chef Client configuration
-  options. See the [Chef Client ](https://docs.chef.io/config_rb_client.html) documentation for all available options.
+  options. See the [Chef Client ](https://docs.chef.io/config_rb_client.html) documentation
+  for all available options.
 
-* `disable_reporting (boolean)` - (Optional) If true the Chef Client will not try to send
-  reporting data (used by Chef Reporting) to the Chef Server (defaults false)
+* `disable_reporting (boolean)` - (Optional) If `true` the Chef Client will not try to send
+  reporting data (used by Chef Reporting) to the Chef Server (defaults to `false`).
 
 * `environment (string)` - (Optional) The Chef environment the new node will be joining
-  (defaults `_default`).
+  (defaults to `_default`).
 
-* `fetch_chef_certificates (boolean)` (Optional) If true the SSL certificates configured
-  on your Chef server will be fetched and trusted. See the knife [ssl_fetch](https://docs.chef.io/knife_ssl_fetch.html)
+* `fetch_chef_certificates (boolean)` (Optional) If `true` the SSL certificates configured
+  on your Chef Server will be fetched and trusted. See the knife [ssl_fetch](https://docs.chef.io/knife_ssl_fetch.html)
   documentation for more details.
 
-* `log_to_file (boolean)` - (Optional) If true, the output of the initial Chef Client run
+* `log_to_file (boolean)` - (Optional) If `true`, the output of the initial Chef Client run
   will be logged to a local file instead of the console. The file will be created in a
   subdirectory called `logfiles` created in your current directory. The filename will be
   the `node_name` of the new node.
@@ -89,14 +92,14 @@ The following arguments are supported:
   [Ohai hints](https://docs.chef.io/ohai.html#hints) to upload to the node.
 
 * `os_type (string)` - (Optional) The OS type of the node. Valid options are: `linux` and
-  `windows`. If not supplied the connection type will be used to determine the OS type (`ssh`
+  `windows`. If not supplied, the connection type will be used to determine the OS type (`ssh`
   will assume `linux` and `winrm` will assume `windows`).
 
-* `prevent_sudo (boolean)` - (Optional) Prevent the use of sudo while installing, configuring
+* `prevent_sudo (boolean)` - (Optional) Prevent the use of the `sudo` command while installing, configuring
   and running the initial Chef Client run. This option is only used with `ssh` type
   [connections](/docs/provisioners/connection.html).
 
-* `recreate_client (boolean)` - (Optional) If true, first delete the existing Chef Node and
+* `recreate_client (boolean)` - (Optional) If `true`, first delete any existing Chef Node and
   Client before registering the new Chef Client.
 
 * `run_list (array)` - (Required) A list with recipes that will be invoked during the initial
@@ -104,8 +107,8 @@ The following arguments are supported:
   initial run.
 
 * `secret_key (string)` - (Optional) The contents of the secret key that is used
-  by the client to decrypt data bags on the Chef Server. The key will be uploaded to the remote
-  machine.  This can be loaded from a file on disk using the [`file()` interpolation
+  by the Chef Client to decrypt data bags on the Chef Server. The key will be uploaded to the remote
+  machine. This can also be loaded from a file on disk using the [`file()` interpolation
   function](/docs/configuration/interpolation.html#file_path_).
 
 * `server_url (string)` - (Required) The URL to the Chef server. This includes the path to
@@ -120,24 +123,24 @@ The following arguments are supported:
   is available in the default Chef configuration directory when you run the `chef`
   provisioner.
 
-* `ssl_verify_mode (string)` - (Optional) Use to set the verify mode for Chef Client HTTPS
+* `ssl_verify_mode (string)` - (Optional) Used to set the verify mode for Chef Client HTTPS
   requests.
 
-* `user_name (string)` - (Required) The name of an existing Chef user to use for registering
-  the new Chef Client and (optionally) configure Chef Vaults.
+* `user_name (string)` - (Required) The name of an existing Chef user to register
+  the new Chef Client and optionally configure Chef Vaults.
 
 * `user_key (string)` - (Required) The contents of the user key that will be used to
-  authenticate with the Chef Server. This can be loaded from a file on disk using the [`file()`
+  authenticate with the Chef Server. This can also be loaded from a file on disk using the [`file()`
   interpolation function](/docs/configuration/interpolation.html#file_path_).
 
-* `vault_json (string)` - (Optional) A raw JSON string with Chef Vaults and Items to give
-  the new node access to. These can also be loaded from a file on disk using the [`file()
-  ` interpolation function](/docs/configuration/interpolation.html#file_path_).
+* `vault_json (string)` - (Optional) A raw JSON string with Chef Vaults and Items to which the new node
+  should have access. These can also be loaded from a file on disk using the
+  [`file()` interpolation function](/docs/configuration/interpolation.html#file_path_).
 
 * `version (string)` - (Optional) The Chef Client version to install on the remote machine.
-  If not set the latest available version will be installed.
+  If not set, the latest available version will be installed.
 
-These are supported for backwards compatibility and may be removed in a
+These options are supported for backwards compatibility and may be removed in a
 future version:
 
 * `validation_client_name (string)` - __Deprecated: please use `user_name` instead__.

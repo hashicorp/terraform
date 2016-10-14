@@ -64,8 +64,13 @@ func (s *CacheState) RefreshState() error {
 		// Cache is newer than remote. Not a big deal, user can just
 		// persist to get correct state.
 		s.refreshResult = CacheRefreshLocalNewer
-	case cached == nil && durable != nil:
+	case !cached.HasResources() && durable != nil:
 		// Cache should be updated since the remote is set but cache isn't
+		//
+		// If local is empty then we'll treat it as missing so that
+		// it can be overwritten by an already-existing remote. This
+		// allows the user to activate remote state for the first time
+		// against an already-existing remote state.
 		s.refreshResult = CacheRefreshUpdateLocal
 	case durable.Serial < cached.Serial:
 		// Cache is newer than remote. Not a big deal, user can just

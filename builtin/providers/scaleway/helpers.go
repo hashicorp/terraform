@@ -1,9 +1,7 @@
 package scaleway
 
 import (
-	"fmt"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/scaleway/scaleway-cli/pkg/api"
@@ -17,33 +15,6 @@ func Bool(val bool) *bool {
 // String returns a pointer to of the string value passed in.
 func String(val string) *string {
 	return &val
-}
-
-// DetachIP detaches an IP from a server
-func DetachIP(s *api.ScalewayAPI, ipID string) error {
-	var update struct {
-		Address      string `json:"address"`
-		ID           string `json:"id"`
-		Organization string `json:"organization"`
-	}
-
-	ip, err := s.GetIP(ipID)
-	if err != nil {
-		return err
-	}
-	update.Address = ip.IP.Address
-	update.ID = ip.IP.ID
-	update.Organization = ip.IP.Organization
-
-	resp, err := s.PutResponse(api.ComputeAPI, fmt.Sprintf("ips/%s", ipID), update)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return err
-	}
-	resp.Body.Close()
-	return nil
 }
 
 // NOTE copied from github.com/scaleway/scaleway-cli/pkg/api/helpers.go

@@ -127,27 +127,3 @@ func TestProvisioner_connInfoHostname(t *testing.T) {
 		t.Fatalf("bad %v", conf)
 	}
 }
-
-func TestProvisioner_connInfoLegacy(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":         "ssh",
-				"key_file":     "/my/key/file.pem",
-				"bastion_host": "127.0.1.1",
-			},
-		},
-	}
-
-	conf, err := parseConnectionInfo(r)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if conf.PrivateKey != "/my/key/file.pem" {
-		t.Fatalf("bad: %v", conf)
-	}
-	if conf.BastionPrivateKey != "/my/key/file.pem" {
-		t.Fatalf("bad: %v", conf)
-	}
-}

@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -54,6 +56,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/waf"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform/helper/logging"
@@ -118,6 +121,7 @@ type AWSClient struct {
 	stsconn               *sts.STS
 	redshiftconn          *redshift.Redshift
 	r53conn               *route53.Route53
+	partition             string
 	accountid             string
 	region                string
 	rdsconn               *rds.RDS
@@ -199,6 +203,10 @@ func (c *Config) Client() (interface{}, error) {
 	}
 	sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
 
+	if extraDebug := os.Getenv("TERRAFORM_AWS_AUTHFAILURE_DEBUG"); extraDebug != "" {
+		sess.Handlers.UnmarshalError.PushFrontNamed(debugAuthFailure)
+	}
+
 	// Some services exist only in us-east-1, e.g. because they manage
 	// resources that can span across multiple regions, or because
 	// signature format v4 requires region to be us-east-1 for global
@@ -226,8 +234,9 @@ func (c *Config) Client() (interface{}, error) {
 	}
 
 	if !c.SkipRequestingAccountId {
-		accountId, err := GetAccountId(client.iamconn, client.stsconn, cp.ProviderName)
+		partition, accountId, err := GetAccountInfo(client.iamconn, client.stsconn, cp.ProviderName)
 		if err == nil {
+			client.partition = partition
 			client.accountid = accountId
 		}
 	}
@@ -349,6 +358,17 @@ var addTerraformVersionToUserAgent = request.NamedHandler{
 	Name: "terraform.TerraformVersionUserAgentHandler",
 	Fn: request.MakeAddToUserAgentHandler(
 		"terraform", terraform.VersionString()),
+}
+
+var debugAuthFailure = request.NamedHandler{
+	Name: "terraform.AuthFailureAdditionalDebugHandler",
+	Fn: func(req *request.Request) {
+		if isAWSErr(req.Error, "AuthFailure", "AWS was not able to validate the provided access credentials") {
+			log.Printf("[INFO] Additional AuthFailure Debugging Context")
+			log.Printf("[INFO] Current system UTC time: %s", time.Now().UTC())
+			log.Printf("[INFO] Request object: %s", spew.Sdump(req))
+		}
+	},
 }
 
 type awsLogger struct{}

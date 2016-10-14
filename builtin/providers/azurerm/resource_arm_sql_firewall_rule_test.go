@@ -92,7 +92,7 @@ func testCheckAzureRMSqlFirewallRuleDestroy(s *terraform.State) error {
 
 var testAccAzureRMSqlFirewallRule_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_sql_server" "test" {
@@ -115,7 +115,7 @@ resource "azurerm_sql_firewall_rule" "test" {
 
 var testAccAzureRMSqlFirewallRule_withUpdates = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_sql_server" "test" {

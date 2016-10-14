@@ -142,7 +142,7 @@ func testCheckAzureRMDnsMxRecordDestroy(s *terraform.State) error {
 
 var testAccAzureRMDnsMxRecord_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -170,7 +170,7 @@ resource "azurerm_dns_mx_record" "test" {
 
 var testAccAzureRMDnsMxRecord_updateRecords = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -203,7 +203,7 @@ resource "azurerm_dns_mx_record" "test" {
 
 var testAccAzureRMDnsMxRecord_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -236,7 +236,7 @@ resource "azurerm_dns_mx_record" "test" {
 
 var testAccAzureRMDnsMxRecord_withTagsUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {

@@ -224,11 +224,12 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	var numTargets int
 	var setTarget string
+
 	allowedTargets := []string{
 		"gateway_id",
 		"nat_gateway_id",
-		"instance_id",
 		"network_interface_id",
+		"instance_id",
 		"vpc_peering_connection_id",
 	}
 	replaceOpts := &ec2.ReplaceRouteInput{}
@@ -241,8 +242,18 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if numTargets > 1 {
-		return routeTargetValidationError
+	switch setTarget {
+	//instance_id is a special case due to the fact that AWS will "discover" the network_interace_id
+	//when it creates the route and return that data.  In the case of an update, we should ignore the
+	//existing network_interface_id
+	case "instance_id":
+		if numTargets > 2 || (numTargets == 2 && len(d.Get("network_interface_id").(string)) == 0) {
+			return routeTargetValidationError
+		}
+	default:
+		if numTargets > 1 {
+			return routeTargetValidationError
+		}
 	}
 
 	// Formulate ReplaceRouteInput based on the target type
@@ -264,8 +275,6 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
 			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
 			InstanceId:           aws.String(d.Get("instance_id").(string)),
-			//NOOP: Ensure we don't blow away network interface id that is set after instance is launched
-			NetworkInterfaceId: aws.String(d.Get("network_interface_id").(string)),
 		}
 	case "network_interface_id":
 		replaceOpts = &ec2.ReplaceRouteInput{

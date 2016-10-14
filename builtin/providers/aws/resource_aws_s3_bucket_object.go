@@ -99,8 +99,9 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				// This will conflict with SSE-C and SSE-KMS encryption and multi-part upload
 				// if/when it's actually implemented. The Etag then won't match raw-file MD5.
 				// See http://docs.aws.amazon.com/AmazonS3/latest/API/RESTCommonResponseHeaders.html
-				Optional: true,
-				Computed: true,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"kms_key_id"},
 			},
 
 			"version_id": &schema.Schema{
@@ -133,12 +134,6 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		body = bytes.NewReader([]byte(content))
 	} else {
 		return fmt.Errorf("Must specify \"source\" or \"content\" field")
-	}
-
-	if _, ok := d.GetOk("kms_key_id"); ok {
-		if _, ok := d.GetOk("etag"); ok {
-			return fmt.Errorf("Unable to specify 'kms_key_id' and 'etag' together because 'etag' wouldn't equal the MD5 digest of the raw object data")
-		}
 	}
 
 	bucket := d.Get("bucket").(string)
@@ -198,13 +193,11 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 
 	bucket := d.Get("bucket").(string)
 	key := d.Get("key").(string)
-	etag := d.Get("etag").(string)
 
 	resp, err := s3conn.HeadObject(
 		&s3.HeadObjectInput{
-			Bucket:  aws.String(bucket),
-			Key:     aws.String(key),
-			IfMatch: aws.String(etag),
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
 		})
 
 	if err != nil {
@@ -225,6 +218,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
 	d.Set("kms_key_id", resp.SSEKMSKeyId)
+	d.Set("etag", strings.Trim(*resp.ETag, `"`))
 
 	// The "STANDARD" (which is also the default) storage
 	// class when set would not be included in the results.

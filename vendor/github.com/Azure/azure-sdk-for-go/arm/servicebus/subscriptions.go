@@ -50,8 +50,8 @@ func NewSubscriptionsClientWithBaseURI(baseURI string, subscriptionID string) Su
 // subscription Resource.
 func (client SubscriptionsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, topicName string, subscriptionName string, parameters SubscriptionCreateOrUpdateParameters) (result SubscriptionResource, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{parameters,
-			[]validation.Constraint{{"parameters.Location", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "servicebus.SubscriptionsClient", "CreateOrUpdate")
 	}
 
