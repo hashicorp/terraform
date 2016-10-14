@@ -1,53 +1,53 @@
-## 0.7.6 (UNRELEASED)
+## 0.7.6 (October 14, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
- * `azurerm_virtual_machine` has deprecated the use of `diagnostics_profile` in favour of `boot_diagnostics`. [GH-9122]
+ * `azurerm_virtual_machine` has deprecated the use of `diagnostics_profile` in favour of `boot_diagnostics`. ([#9122](https://github.com/hashicorp/terraform/issues/9122))
 
 FEATURES:
- * **New Data Source:** `aws_billing_service_account` [GH-8701]
- * **New Data Source:** `aws_availability_zone` [GH-6819]
- * **New Data Source:** `aws_region` [GH-6819]
- * **New Data Source:** `aws_subnet` [GH-6819]
- * **New Data Source:** `aws_vpc` [GH-6819]
- * **New Resource:** `azurerm_lb` [GH-9199]
- * **New Resource:** `azurerm_lb_backend_address_pool` [GH-9199]
- * **New Resource:** `azurerm_lb_nat_rule` [GH-9199]
- * **New Resource:** `azurerm_lb_nat_pool` [GH-9199]
- * **New Resource:** `azurerm_lb_probe` [GH-9199]
- * **New Resource:** `azurerm_lb_rule` [GH-9199]
- * **New Resource:** `github_repository` [GH-9327]
+ * **New Data Source:** `aws_billing_service_account` ([#8701](https://github.com/hashicorp/terraform/issues/8701))
+ * **New Data Source:** `aws_availability_zone` ([#6819](https://github.com/hashicorp/terraform/issues/6819))
+ * **New Data Source:** `aws_region` ([#6819](https://github.com/hashicorp/terraform/issues/6819))
+ * **New Data Source:** `aws_subnet` ([#6819](https://github.com/hashicorp/terraform/issues/6819))
+ * **New Data Source:** `aws_vpc` ([#6819](https://github.com/hashicorp/terraform/issues/6819))
+ * **New Resource:** `azurerm_lb` ([#9199](https://github.com/hashicorp/terraform/issues/9199))
+ * **New Resource:** `azurerm_lb_backend_address_pool` ([#9199](https://github.com/hashicorp/terraform/issues/9199))
+ * **New Resource:** `azurerm_lb_nat_rule` ([#9199](https://github.com/hashicorp/terraform/issues/9199))
+ * **New Resource:** `azurerm_lb_nat_pool` ([#9199](https://github.com/hashicorp/terraform/issues/9199))
+ * **New Resource:** `azurerm_lb_probe` ([#9199](https://github.com/hashicorp/terraform/issues/9199))
+ * **New Resource:** `azurerm_lb_rule` ([#9199](https://github.com/hashicorp/terraform/issues/9199))
+ * **New Resource:** `github_repository` ([#9327](https://github.com/hashicorp/terraform/issues/9327))
 
 IMPROVEMENTS:
- * core-validation: create validation package to provide common validation functions [GH-8103]
- * provider/aws: Support Import of OpsWorks Custom Layers [GH-9252]
- * provider/aws: Automatically constructed ARNs now support partitions other than `aws`, allowing operation with `aws-cn` and `aws-us-gov` [GH-9273]
- * provider/aws: Retry setTags operation for EC2 resources [GH-7890]
- * provider/aws: Support refresh of EC2 instance `user_data` [GH-6736]
- * provider/aws: Poll to confirm delete of `resource_aws_customer_gateway` [GH-9346]
- * provider/azurerm: expose default keys for `servicebus_namespace` [GH-9242]
- * provider/azurerm: add `enable_blob_encryption` to `azurerm_storage_account` resource [GH-9233]
- * provider/azurerm: set `resource_group_name` on resource import across the provider [GH-9073]
- * provider/azurerm: `azurerm_cdn_profile` resources can now be imported [GH-9306]
- * provider/datadog: add support for Datadog dashboard "type" and "style" options [GH-9228]
+ * core-validation: create validation package to provide common validation functions ([#8103](https://github.com/hashicorp/terraform/issues/8103))
+ * provider/aws: Support Import of OpsWorks Custom Layers ([#9252](https://github.com/hashicorp/terraform/issues/9252))
+ * provider/aws: Automatically constructed ARNs now support partitions other than `aws`, allowing operation with `aws-cn` and `aws-us-gov` ([#9273](https://github.com/hashicorp/terraform/issues/9273))
+ * provider/aws: Retry setTags operation for EC2 resources ([#7890](https://github.com/hashicorp/terraform/issues/7890))
+ * provider/aws: Support refresh of EC2 instance `user_data` ([#6736](https://github.com/hashicorp/terraform/issues/6736))
+ * provider/aws: Poll to confirm delete of `resource_aws_customer_gateway` ([#9346](https://github.com/hashicorp/terraform/issues/9346))
+ * provider/azurerm: expose default keys for `servicebus_namespace` ([#9242](https://github.com/hashicorp/terraform/issues/9242))
+ * provider/azurerm: add `enable_blob_encryption` to `azurerm_storage_account` resource ([#9233](https://github.com/hashicorp/terraform/issues/9233))
+ * provider/azurerm: set `resource_group_name` on resource import across the provider ([#9073](https://github.com/hashicorp/terraform/issues/9073))
+ * provider/azurerm: `azurerm_cdn_profile` resources can now be imported ([#9306](https://github.com/hashicorp/terraform/issues/9306))
+ * provider/datadog: add support for Datadog dashboard "type" and "style" options ([#9228](https://github.com/hashicorp/terraform/issues/9228))
  * provider/scaleway: `region` is now supported for provider configuration
  
 BUG FIXES:
- * core: Local state can now be refreshed when no resources exist [GH-7320]
- * core: Orphaned nested (depth 2+) modules will inherit provider configs [GH-9318]
- * core: Fix crash when a map key contains an interpolation function [GH-9282]
- * core: Numeric variables values were incorrectly converted to numbers [GH-9263]
- * core: Fix input and output of map variables from HCL [GH-9268]
- * core: Crash when interpolating a map value with a function in the key [GH-9282]
- * core: Crash when copying a nil value in an InstanceState [GH-9356]
+ * core: Local state can now be refreshed when no resources exist ([#7320](https://github.com/hashicorp/terraform/issues/7320))
+ * core: Orphaned nested (depth 2+) modules will inherit provider configs ([#9318](https://github.com/hashicorp/terraform/issues/9318))
+ * core: Fix crash when a map key contains an interpolation function ([#9282](https://github.com/hashicorp/terraform/issues/9282))
+ * core: Numeric variables values were incorrectly converted to numbers ([#9263](https://github.com/hashicorp/terraform/issues/9263))
+ * core: Fix input and output of map variables from HCL ([#9268](https://github.com/hashicorp/terraform/issues/9268))
+ * core: Crash when interpolating a map value with a function in the key ([#9282](https://github.com/hashicorp/terraform/issues/9282))
+ * core: Crash when copying a nil value in an InstanceState ([#9356](https://github.com/hashicorp/terraform/issues/9356))
  * command/fmt: Bare comment groups no longer have superfluous newlines
  * command/fmt: Leading comments on list items are formatted properly 
- * provider/aws: Return correct AMI image when `most_recent` is set to `true`. [GH-9277]
- * provider/aws: Fix issue with diff on import of `aws_eip` in EC2 Classic [GH-9009]
- * provider/aws: Handle EC2 tags related errors in CloudFront Distribution resource. [GH-9298]
- * provider/aws: Fix cause error when using `etag` and `kms_key_id` with `aws_s3_bucket_object` [GH-9168]
- * provider/aws: Fix issue reassigning EIP instances appropriately [GH-7686]
- * provider/azurerm: removing resources from state when the API returns a 404 for them [GH-8859]
- * provider/azurerm: Fixed a panic in `azurerm_virtual_machine` when using `diagnostic_profile` [GH-9122]
+ * provider/aws: Return correct AMI image when `most_recent` is set to `true`. ([#9277](https://github.com/hashicorp/terraform/issues/9277))
+ * provider/aws: Fix issue with diff on import of `aws_eip` in EC2 Classic ([#9009](https://github.com/hashicorp/terraform/issues/9009))
+ * provider/aws: Handle EC2 tags related errors in CloudFront Distribution resource. ([#9298](https://github.com/hashicorp/terraform/issues/9298))
+ * provider/aws: Fix cause error when using `etag` and `kms_key_id` with `aws_s3_bucket_object` ([#9168](https://github.com/hashicorp/terraform/issues/9168))
+ * provider/aws: Fix issue reassigning EIP instances appropriately ([#7686](https://github.com/hashicorp/terraform/issues/7686))
+ * provider/azurerm: removing resources from state when the API returns a 404 for them ([#8859](https://github.com/hashicorp/terraform/issues/8859))
+ * provider/azurerm: Fixed a panic in `azurerm_virtual_machine` when using `diagnostic_profile` ([#9122](https://github.com/hashicorp/terraform/issues/9122))
 
 ## 0.7.5 (October 6, 2016)
 
