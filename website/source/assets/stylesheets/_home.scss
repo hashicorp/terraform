@@ -277,7 +277,7 @@ body.page-home {
 			z-index: 51;
 		}
 
-		#feature-image-create-sm-screen{
+		#feature-image-create {
 			display: block;
 			max-width: 500px;
 			padding-left: 10px;
@@ -541,19 +541,7 @@ body.page-home {
 		}
 
 		#feature-create{
-			// Hide image for small screens
-			#feature-image-create-sm-screen {
-				// display: none;
-			}
-
-			// Image hidden, made visible for larger screens
-			#feature-image-create-lg-screen {
-				// display: block;
-				position: absolute;
-				width: 400px;
-				top: 90px;
-				right: 5%;
-			}
+	
 		}
 	}
 
