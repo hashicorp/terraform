@@ -23,12 +23,12 @@ func TestBuildEC2AttributeFilterList(t *testing.T) {
 			},
 			[]*ec2.Filter{
 				{
-					Name:   aws.String("foo"),
-					Values: []*string{aws.String("bar")},
-				},
-				{
 					Name:   aws.String("baz"),
 					Values: []*string{aws.String("boo")},
+				},
+				{
+					Name:   aws.String("foo"),
+					Values: []*string{aws.String("bar")},
 				},
 			},
 		},
