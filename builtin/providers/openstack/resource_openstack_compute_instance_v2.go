@@ -400,7 +400,11 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if vL, ok := d.GetOk("block_device"); ok {
-		blockDevices := resourceInstanceBlockDevicesV2(d, vL.([]interface{}))
+		blockDevices, err := resourceInstanceBlockDevicesV2(d, vL.([]interface{}))
+		if err != nil {
+			return err
+		}
+
 		createOpts = &bootfromvolume.CreateOptsExt{
 			CreateOptsBuilder: createOpts,
 			BlockDevice:       blockDevices,
@@ -1167,24 +1171,45 @@ func resourceInstanceMetadataV2(d *schema.ResourceData) map[string]string {
 	return m
 }
 
-func resourceInstanceBlockDevicesV2(d *schema.ResourceData, bds []interface{}) []bootfromvolume.BlockDevice {
+func resourceInstanceBlockDevicesV2(d *schema.ResourceData, bds []interface{}) ([]bootfromvolume.BlockDevice, error) {
 	blockDeviceOpts := make([]bootfromvolume.BlockDevice, len(bds))
 	for i, bd := range bds {
 		bdM := bd.(map[string]interface{})
-		sourceType := bootfromvolume.SourceType(bdM["source_type"].(string))
 		blockDeviceOpts[i] = bootfromvolume.BlockDevice{
 			UUID:                bdM["uuid"].(string),
-			SourceType:          sourceType,
 			VolumeSize:          bdM["volume_size"].(int),
-			DestinationType:     bdM["destination_type"].(string),
 			BootIndex:           bdM["boot_index"].(int),
 			DeleteOnTermination: bdM["delete_on_termination"].(bool),
 			GuestFormat:         bdM["guest_format"].(string),
 		}
+
+		sourceType := bdM["source_type"].(string)
+		switch sourceType {
+		case "blank":
+			blockDeviceOpts[i].SourceType = bootfromvolume.SourceBlank
+		case "image":
+			blockDeviceOpts[i].SourceType = bootfromvolume.SourceImage
+		case "snapshot":
+			blockDeviceOpts[i].SourceType = bootfromvolume.SourceSnapshot
+		case "volume":
+			blockDeviceOpts[i].SourceType = bootfromvolume.SourceVolume
+		default:
+			return blockDeviceOpts, fmt.Errorf("unknown block device source type %s", sourceType)
+		}
+
+		destinationType := bdM["destination_type"].(string)
+		switch destinationType {
+		case "local":
+			blockDeviceOpts[i].DestinationType = bootfromvolume.DestinationLocal
+		case "volume":
+			blockDeviceOpts[i].DestinationType = bootfromvolume.DestinationVolume
+		default:
+			return blockDeviceOpts, fmt.Errorf("unknown block device destination type %s", destinationType)
+		}
 	}
 
 	log.Printf("[DEBUG] Block Device Options: %+v", blockDeviceOpts)
-	return blockDeviceOpts
+	return blockDeviceOpts, nil
 }
 
 func resourceInstanceSchedulerHintsV2(d *schema.ResourceData, schedulerHintsRaw map[string]interface{}) schedulerhints.SchedulerHints {
