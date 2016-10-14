@@ -2299,7 +2299,6 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.web: (1 deposed)
   ID = bar
-  provider = aws
   Deposed ID 1 = foo
 	`)
 
@@ -2324,7 +2323,6 @@ aws_instance.web: (1 deposed)
 	checkStateString(t, state, `
 aws_instance.web: (2 deposed)
   ID = baz
-  provider = aws
   Deposed ID 1 = foo
   Deposed ID 2 = bar
 	`)
@@ -2352,7 +2350,6 @@ aws_instance.web: (2 deposed)
 	checkStateString(t, state, `
 aws_instance.web: (1 deposed)
   ID = qux
-  provider = aws
   Deposed ID 1 = bar
 	`)
 
@@ -2374,7 +2371,6 @@ aws_instance.web: (1 deposed)
 	checkStateString(t, state, `
 aws_instance.web:
   ID = quux
-  provider = aws
 	`)
 }
 
