@@ -298,7 +298,6 @@ aws_instance.lb:
     aws_instance.web
 aws_instance.web:
   ID = foo
-  provider = aws
   require_new = ami-new
   type = aws_instance
 `
@@ -306,7 +305,6 @@ aws_instance.web:
 const testTerraformApplyCreateBeforeStr = `
 aws_instance.bar:
   ID = foo
-  provider = aws
   require_new = xyz
   type = aws_instance
 `
@@ -593,7 +591,6 @@ aws_instance.bar:
 const testTerraformApplyErrorDestroyCreateBeforeDestroyStr = `
 aws_instance.bar: (1 deposed)
   ID = foo
-  provider = aws
   Deposed ID 1 = bar
 `
 
