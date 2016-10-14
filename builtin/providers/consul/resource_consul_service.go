@@ -22,9 +22,11 @@ func resourceConsulService() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"id": &schema.Schema{
+			"service_id": &schema.Schema{
 				Type:     schema.TypeString,
+				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 
 			"name": &schema.Schema{
@@ -53,7 +55,13 @@ func resourceConsulServiceCreate(d *schema.ResourceData, meta interface{}) error
 	agent := client.Agent()
 
 	name := d.Get("name").(string)
-	registration := consulapi.AgentServiceRegistration{Name: name}
+	identifier := name
+
+	if serviceId, ok := d.GetOk("service_id"); ok {
+		identifier = serviceId.(string)
+	}
+
+	registration := consulapi.AgentServiceRegistration{Name: name, ID: identifier}
 
 	if address, ok := d.GetOk("address"); ok {
 		registration.Address = address.(string)
@@ -79,12 +87,13 @@ func resourceConsulServiceCreate(d *schema.ResourceData, meta interface{}) error
 	// Update the resource
 	if serviceMap, err := agent.Services(); err != nil {
 		return fmt.Errorf("Failed to read services from Consul agent: %v", err)
-	} else if service, ok := serviceMap[name]; !ok {
-		return fmt.Errorf("Failed to read service '%s' from Consul agent: %v", name, err)
+	} else if service, ok := serviceMap[identifier]; !ok {
+		return fmt.Errorf("Failed to read service '%s' from Consul agent: %v", identifier, err)
 	} else {
-		d.Set("address", service.Address)
-		d.Set("id", service.ID)
 		d.SetId(service.ID)
+
+		d.Set("address", service.Address)
+		d.Set("service_id", service.ID)
 		d.Set("name", service.Service)
 		d.Set("port", service.Port)
 		tags := make([]string, 0, len(service.Tags))
@@ -102,15 +111,21 @@ func resourceConsulServiceRead(d *schema.ResourceData, meta interface{}) error {
 	agent := client.Agent()
 
 	name := d.Get("name").(string)
+	identifier := name
+
+	if serviceId, ok := d.GetOk("service_id"); ok {
+		identifier = serviceId.(string)
+	}
 
 	if services, err := agent.Services(); err != nil {
 		return fmt.Errorf("Failed to get services from Consul agent: %v", err)
-	} else if service, ok := services[name]; !ok {
-		return fmt.Errorf("Failed to get service '%s' from Consul agent", name)
+	} else if service, ok := services[identifier]; !ok {
+		return fmt.Errorf("Failed to get service '%s' from Consul agent", identifier)
 	} else {
-		d.Set("address", service.Address)
-		d.Set("id", service.ID)
 		d.SetId(service.ID)
+
+		d.Set("address", service.Address)
+		d.Set("service_id", service.ID)
 		d.Set("name", service.Service)
 		d.Set("port", service.Port)
 		tags := make([]string, 0, len(service.Tags))
@@ -127,7 +142,7 @@ func resourceConsulServiceDelete(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*consulapi.Client)
 	catalog := client.Agent()
 
-	id := d.Get("id").(string)
+	id := d.Get("service_id").(string)
 
 	if err := catalog.ServiceDeregister(id); err != nil {
 		return fmt.Errorf("Failed to deregister service '%s' from Consul agent: %v", id, err)
