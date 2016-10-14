@@ -1,7 +1,7 @@
 sudo: false
 language: go
 go:
-- 1.7
+- 1.7.1
 install:
 # This script is used by the Travis build to install a cookie for
 # go.googlesource.com so rate limits are higher when using `go get` to fetch
