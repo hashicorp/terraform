@@ -305,30 +305,35 @@ type typeCheckIndex struct {
 }
 
 func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
+	keyType := v.StackPop()
+	targetType := v.StackPop()
+
 	// Ensure we have a VariableAccess as the target
 	varAccessNode, ok := tc.n.Target.(*ast.VariableAccess)
 	if !ok {
-		return nil, fmt.Errorf("target of an index must be a VariableAccess node, was %T", tc.n.Target)
+		return nil, fmt.Errorf(
+			"target of an index must be a VariableAccess node, was %T", tc.n.Target)
 	}
 
 	// Get the variable
 	variable, ok := v.Scope.LookupVar(varAccessNode.Name)
 	if !ok {
-		return nil, fmt.Errorf("unknown variable accessed: %s", varAccessNode.Name)
+		return nil, fmt.Errorf(
+			"unknown variable accessed: %s", varAccessNode.Name)
 	}
 
-	keyType, err := tc.n.Key.Type(v.Scope)
-	if err != nil {
-		return nil, err
-	}
-
-	switch variable.Type {
+	switch targetType {
 	case ast.TypeList:
 		if keyType != ast.TypeInt {
-			return nil, fmt.Errorf("key of an index must be an int, was %s", keyType)
+			tc.n.Key = v.ImplicitConversion(keyType, ast.TypeInt, tc.n.Key)
+			if tc.n.Key == nil {
+				return nil, fmt.Errorf(
+					"key of an index must be an int, was %s", keyType)
+			}
 		}
 
-		valType, err := ast.VariableListElementTypesAreHomogenous(varAccessNode.Name, variable.Value.([]ast.Variable))
+		valType, err := ast.VariableListElementTypesAreHomogenous(
+			varAccessNode.Name, variable.Value.([]ast.Variable))
 		if err != nil {
 			return tc.n, err
 		}
@@ -337,10 +342,15 @@ func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		return tc.n, nil
 	case ast.TypeMap:
 		if keyType != ast.TypeString {
-			return nil, fmt.Errorf("key of an index must be a string, was %s", keyType)
+			tc.n.Key = v.ImplicitConversion(keyType, ast.TypeString, tc.n.Key)
+			if tc.n.Key == nil {
+				return nil, fmt.Errorf(
+					"key of an index must be a string, was %s", keyType)
+			}
 		}
 
-		valType, err := ast.VariableMapValueTypesAreHomogenous(varAccessNode.Name, variable.Value.(map[string]ast.Variable))
+		valType, err := ast.VariableMapValueTypesAreHomogenous(
+			varAccessNode.Name, variable.Value.(map[string]ast.Variable))
 		if err != nil {
 			return tc.n, err
 		}
