@@ -3,7 +3,6 @@
 BACKWARDS INCOMPATIBILITIES / NOTES:
  * `azurerm_virtual_machine` has deprecated the use of `diagnostics_profile` in favour of `boot_diagnostics`. [GH-9122]
 
-
 FEATURES:
  * **New Data Source:** `aws_billing_service_account` [GH-8701]
  * **New Data Source:** `aws_availability_zone` [GH-6819]
@@ -17,7 +16,6 @@ FEATURES:
  * **New Resource:** `azurerm_lb_probe` [GH-9199]
  * **New Resource:** `azurerm_lb_rule` [GH-9199]
  * **New Resource:** `github_repository` [GH-9327]
-
 
 IMPROVEMENTS:
  * core-validation: create validation package to provide common validation functions [GH-8103]
@@ -33,8 +31,8 @@ IMPROVEMENTS:
  * provider/datadog: add support for Datadog dashboard "type" and "style" options [GH-9228]
  * provider/scaleway: `region` is now supported for provider configuration
  
- 
 BUG FIXES:
+ * core: Local state can now be refreshed when no resources exist [GH-7320]
  * core: Orphaned nested (depth 2+) modules will inherit provider configs [GH-9318]
  * core: Fix crash when a map key contains an interpolation function [GH-9282]
  * core: Numeric variables values were incorrectly converted to numbers [GH-9263]
