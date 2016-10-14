@@ -239,12 +239,25 @@ body.page-home {
 
 		>.container {
 			z-index: 61;
-			background: image-url("feature-plan-bg.svg") 0% 45% no-repeat;
+			// background: image-url("feature-plan-bg.svg") 0% 45% no-repeat;
 			background-size: 100%;
 		}
 
-		p.lead {
-			margin-bottom: 400px;
+		// This svg appears twice in the markup and swapped for layout purposes.
+		// Image for small screens. Styles below are for larger screens.
+		#feature-image-plan-sm-screen {
+			display: block;
+			position: relative;
+			margin: 0 auto;
+			width: 100%;
+			max-width: 400px;
+		}
+
+		// Image hidden, made visible for larger screens
+		#feature-image-plan-lg-screen {
+			display: none;
+			position: relative;
+			width: 100%;
 		}
 
 		#feature-plan-bg{
@@ -264,22 +277,22 @@ body.page-home {
 			z-index: 51;
 		}
 
-		p.lead {
-			margin-bottom: 220px;
+		#feature-image-create-sm-screen{
+			display: block;
+			max-width: 500px;
+			padding-left: 10px;
+			margin: 0 auto;
+			margin-bottom: 40px;
+		}
+
+		#feature-image-create-lg-screen{
+			display: none;
 		}
 
 		#feature-create-bg{
 			@include skewY(3deg);
 			z-index: 50;
 			overflow: hidden;
-		}
-
-		#feature-create-img{
-			position: absolute;
-			width: 420px;
-			top: 200px;
-			right: 100px;
-			@include skewY(-3deg);
 		}
 	}
 
@@ -512,6 +525,34 @@ body.page-home {
 			// Image hidden, made visible for larger screens
 			#feature-image-write-lg-screen {
 				display: block;
+			}
+		}
+
+		#feature-plan{
+			// Hide image for small screens
+			#feature-image-plan-sm-screen {
+				display: none;
+			}
+
+			// Image hidden, made visible for larger screens
+			#feature-image-plan-lg-screen {
+				display: block;
+			}
+		}
+
+		#feature-create{
+			// Hide image for small screens
+			#feature-image-create-sm-screen {
+				// display: none;
+			}
+
+			// Image hidden, made visible for larger screens
+			#feature-image-create-lg-screen {
+				// display: block;
+				position: absolute;
+				width: 400px;
+				top: 90px;
+				right: 5%;
 			}
 		}
 	}
