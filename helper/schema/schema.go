@@ -995,8 +995,8 @@ func (m schemaMap) diffString(
 	all bool) error {
 	var originalN interface{}
 	var os, ns string
-	o, n, _, _ := d.diffChange(k)
-	if schema.StateFunc != nil && n != nil {
+	o, n, _, computed := d.diffChange(k)
+	if schema.StateFunc != nil && n != nil && !computed {
 		originalN = n
 		n = schema.StateFunc(n)
 	}
