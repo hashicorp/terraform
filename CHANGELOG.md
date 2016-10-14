@@ -1,5 +1,10 @@
 ## 0.7.7 (Unreleased)
 
+BUG FIXES:
+
+ * core: List and map indexes support arithmetic [GH-9372]
+ * core: List and map indexes are implicitly converted to the correct type if possible [GH-9372]
+
 ## 0.7.6 (October 14, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
