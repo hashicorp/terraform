@@ -15,9 +15,9 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 
 ```
 # Create a new instance of the latest Ubuntu 14.04 on an
-# t1.micro node with an AWS Tag naming it "HelloWorld"
+# t2.micro node with an AWS Tag naming it "HelloWorld"
 provider "aws" {
-    region = "us-east-1"
+    region = "us-west-2"
 }
 
 data "aws_ami" "ubuntu" {
@@ -35,7 +35,7 @@ data "aws_ami" "ubuntu" {
 
 resource "aws_instance" "web" {
     ami = "${data.aws_ami.ubuntu.id}"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
     tags {
         Name = "HelloWorld"
     }
