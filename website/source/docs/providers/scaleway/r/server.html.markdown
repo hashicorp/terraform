@@ -43,3 +43,11 @@ The following attributes are exported:
 * `id` - id of the new resource
 * `private_ip` - private ip of the new resource
 * `public_ip` - public ip of the new resource
+
+## Import
+
+Instances can be imported using the `id`, e.g.
+
+```
+$ terraform import scaleway_server.web 5faef9cd-ea9b-4a63-9171-9e26bec03dbc
+```
