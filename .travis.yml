@@ -10,6 +10,7 @@ install:
 - bash scripts/gogetcookie.sh
 script:
 - make test vet
+- make test TEST=./terraform TESTARGS=-Xnew-apply
 branches:
   only:
   - master
