@@ -17,9 +17,14 @@ import (
 // is called on Context.
 type InputMode byte
 
+// Variables prefixed with X_ are experimental features. They can be enabled
+// by setting them to true. This should be done before any API is called.
+// These should be expected to be removed at some point in the future; each
+// option should mention a schedule.
 var (
-	// NOTE: Internal only to toggle between the new and old apply graph
-	newApplyGraph = true
+	// X_newApply will enable the new apply graph. This will be removed
+	// and be on by default in 0.8.0.
+	X_newApply = false
 )
 
 const (
@@ -363,7 +368,7 @@ func (c *Context) Apply() (*State, error) {
 	// our new graph builder.
 	var graph *Graph
 	var err error
-	if c.destroy || !newApplyGraph {
+	if c.destroy || !X_newApply {
 		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
 	} else {
 		graph, err = (&ApplyGraphBuilder{
