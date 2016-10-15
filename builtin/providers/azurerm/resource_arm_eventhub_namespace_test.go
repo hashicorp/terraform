@@ -189,6 +189,6 @@ resource "azurerm_eventhub_namespace" "test" {
     name = "acctesteventhubnamespace-%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "basic"
+    sku = "Basic"
 }
 `
