@@ -6,7 +6,7 @@ description: |-
   Manages Scaleway servers.
 ---
 
-# scaleway\server
+# scaleway\_server
 
 Provides ARM servers. This allows servers to be created, updated and deleted.
 For additional details please refer to [API documentation](https://developer.scaleway.com/#servers).
