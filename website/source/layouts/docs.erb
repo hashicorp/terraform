@@ -434,7 +434,16 @@
 					<a href="/docs/internals/internal-plugins.html">Internal Plugins</a>
 					</li>
 				</ul>
-				</li>
+        </li>
+
+        <li<%= sidebar_current(/^docs-third-party-tools/) %>>
+        <a href="/docs/third-party-tools/index.html">Third Party Tools</a>
+        <ul class="nav">
+          <li<%= sidebar_current("docs-third-party-import") %>>
+          <a href="/docs/third-party-tools/import.html">Import tools</a>
+          </li>
+        </ul>
+        </li>
 			</ul>
 		</div>
 	<% end %>
