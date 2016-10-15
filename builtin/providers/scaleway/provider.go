@@ -38,6 +38,10 @@ func Provider() terraform.ResourceProvider {
 			"scaleway_volume_attachment":   resourceScalewayVolumeAttachment(),
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"scaleway_bootscript": dataSourceScalewayBootscript(),
+		},
+
 		ConfigureFunc: providerConfigure,
 	}
 }
