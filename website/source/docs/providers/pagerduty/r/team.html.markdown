@@ -33,5 +33,11 @@ The following arguments are supported:
 The following attributes are exported:
 
   * `id` - The ID of the team.
-  * `name` - The name of the team.
-  * `description` - The description of the team.
+
+## Import
+
+Teams can be imported using the `id`, e.g.
+
+```
+$ terraform import pagerduty_team.main PLBP09X
+```

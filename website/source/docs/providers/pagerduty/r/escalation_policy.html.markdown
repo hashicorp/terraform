@@ -20,23 +20,18 @@ resource "pagerduty_user" "example" {
     teams = ["${pagerduty_team.example.id}"]
 }
 
-resource "pagerduty_escalation_policy" "example" {
-  name             = "Engineering"
-  description      = "Engineering Escalation Policy"
-  num_loops        = 2
-  escalation_rules = <<EOF
-  [
-      {
-          "escalation_delay_in_minutes": 10,
-          "targets": [
-              {
-                  "type": "user",
-                  "id": "${pagerduty_user.example.id}"
-              }
-          ]
-      }
-  ]
-EOF
+resource "pagerduty_escalation_policy" "foo" {
+  name      = "Engineering Escalation Policy"
+  num_loops = 2
+
+  escalation_rule {
+    escalation_delay_in_minutes = 10
+
+    target {
+      type = "user"
+      id   = "${pagerduty_user.example.id}"
+    }
+  }
 }
 ```
 
@@ -44,19 +39,32 @@ EOF
 
 The following arguments are supported:
 
-  * `name` - (Required) The name of the escalation policy.
-  * `description` - (Optional) A human-friendly description of the escalation policy.
-    If not set, a placeholder of "Managed by Terraform" will be set.
-  * `num_loops` (Optional) The number of times the escalation policy will repeat after reaching the end of its escalation.
-  * `escalation_rules` (Required) A JSON array containing escalation rules. Each rule must have `escalation_delay_in_minutes` defined as well as an array containing `targets`
-    * `escalation_delay_in_minutes` (Required) The number of minutes before an unacknowledged incident escalates away from this rule.
-    * `targets` (Required) The targets an incident should be assigned to upon reaching this rule.
+* `name` - (Required) The name of the escalation policy.
+* `description` - (Optional) A human-friendly description of the escalation policy.
+  If not set, a placeholder of "Managed by Terraform" will be set.
+* `num_loops` - (Optional) The number of times the escalation policy will repeat after reaching the end of its escalation.
+* `escalation_rule` - (Required) An Escalation rule block. Escalation rules documented below.
+
+
+Escalation rules (`escalation_rule`) supports the following:
+  * `escalation_delay_in_minutes` - (Required) The number of minutes before an unacknowledged incident escalates away from this rule.
+  * `targets` - (Required) A target block. Target blocks documented below.
+
+
+Targets (`target`) supports the following:
+  * `type` - (Optional) Can be `user`, `schedule`, `user_reference` or `schedule_reference`. Defaults to `user_reference`
+  * `id` - (Required) A target ID
 
 ## Attributes Reference
 
 The following attributes are exported:
 
   * `id` - The ID of the escalation policy.
-  * `name` - The name of the escalation policy.
-  * `description` - Escalation policy description.
-  * `num_loops` - The number of times the escalation policy will repeat after reaching the end of its escalation.
+
+## Import
+
+Escalation policies can be imported using the `id`, e.g.
+
+```
+$ terraform import pagerduty_escalation_policy.main PLBP09X
+```
