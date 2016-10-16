@@ -30,26 +30,29 @@ resource "pagerduty_user" "example" {
 
 The following arguments are supported:
 
-  * `name` - (Optional) The name of the user.
-  * `description` - (Optional) A human-friendly description of the user.
-    If not set, a placeholder of "Managed by Terraform" will be set.
+  * `name` - (Required) The name of the user.
+  * `email` - (Required) The user's email address.
   * `color` - (Optional) The schedule color for the user.
-  * `role` - (Optional) The user role. Can be `admin`, `limited_user`, `owner`, `read_only_user` or `user`
+
+  * `role` - (Optional) The user role. Account must have the `read_only_users` ability to set a user as a `read_only_user`. Can be `admin`, `limited_user`, `owner`, `read_only_user` or `user`
   * `job_title` - (Optional) The user's title.
   * `teams` - (Optional) A list of teams the user should belong to.
+  * `description` - (Optional) A human-friendly description of the user.
+    If not set, a placeholder of "Managed by Terraform" will be set.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
   * `id` - The ID of the user.
-  * `name` - The name of the user.
-  * `email` - The user's email address.
-  * `time_zone` - The preferred time zone name.
-  * `role` - The user role.
   * `avatar_url` - The URL of the user's avatar.
-  * `description` - The user's bio.
-  * `invitation_sent` - If true, the user has an outstanding invitation.
-  * `job_title` - The user's title.
   * `html_url` - URL at which the entity is uniquely displayed in the Web app
-  * `teams` - A list of teams the user belongs to
+  * `invitation_sent` - If true, the user has an outstanding invitation.
+
+## Import
+
+Users can be imported using the `id`, e.g.
+
+```
+$ terraform import pagerduty_user.main PLBP09X
+```
