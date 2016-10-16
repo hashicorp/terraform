@@ -16,9 +16,6 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 		// NOTE: It's currently not possible to delete integrations via the API.
 		// Therefore it needs to be manually removed from the Web UI.
 		Delete: resourcePagerDutyServiceIntegrationDelete,
-		Importer: &schema.ResourceImporter{
-			State: resourcePagerDutyServiceIntegrationImport,
-		},
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -26,7 +23,7 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 			},
 			"service": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
@@ -107,7 +104,7 @@ func resourcePagerDutyServiceIntegrationUpdate(d *schema.ResourceData, meta inte
 
 	service := d.Get("service").(string)
 
-	log.Printf("[INFO] Updating PagerDuty service %s", d.Id())
+	log.Printf("[INFO] Updating PagerDuty service integration %s", d.Id())
 
 	s, err := client.UpdateIntegration(service, *s)
 
@@ -124,11 +121,4 @@ func resourcePagerDutyServiceIntegrationDelete(d *schema.ResourceData, meta inte
 	d.SetId("")
 
 	return nil
-}
-
-func resourcePagerDutyServiceIntegrationImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	if err := resourcePagerDutyServiceIntegrationRead(d, meta); err != nil {
-		return nil, err
-	}
-	return []*schema.ResourceData{d}, nil
 }

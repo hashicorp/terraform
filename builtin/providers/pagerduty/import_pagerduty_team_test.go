@@ -7,26 +7,21 @@ import (
 )
 
 func TestAccPagerDutyTeam_import(t *testing.T) {
+	resourceName := "pagerduty_team.foo"
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyTeamDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccPagerDutyTeamConfigImported,
+				Config: testAccCheckPagerDutyTeamConfig,
 			},
+
 			resource.TestStep{
-				ResourceName:      "pagerduty_team.foo",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 		},
 	})
 }
-
-const testAccPagerDutyTeamConfigImported = `
-resource "pagerduty_team" "foo" {
-  name = "foo"
-	description = "foo"
-}
-`

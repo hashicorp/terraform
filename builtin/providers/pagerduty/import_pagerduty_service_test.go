@@ -7,29 +7,22 @@ import (
 )
 
 func TestAccPagerDutyService_import(t *testing.T) {
+	resourceName := "pagerduty_service.foo"
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccPagerDutyServiceConfigImported,
+				Config: testAccCheckPagerDutyServiceConfig,
 			},
+
 			resource.TestStep{
-				ResourceName:      "pagerduty_service.foo",
+				ResourceName:      resourceName,
 				ImportState:       true,
-				ImportStateVerify: false,
+				ImportStateVerify: true,
 			},
 		},
 	})
 }
-
-const testAccPagerDutyServiceConfigImported = `
-resource "pagerduty_service" "foo" {
-  name = "foo"
-  description = "foo"
-	acknowledgement_timeout = "1800"
-	auto_resolve_timeout = "14400"
-  escalation_policy = "PGOMBUU"
-}
-`
