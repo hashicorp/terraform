@@ -22,7 +22,7 @@ resource "azurerm_eventhub_namespace" "test" {
     name = "acceptanceTestEventHubNamespace"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "basic"
+    sku = "Basic"
     capacity = 2
 
     tags {
