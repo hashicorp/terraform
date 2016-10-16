@@ -32,17 +32,4 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("PAGERDUTY_TOKEN"); v == "" {
 		t.Fatal("PAGERDUTY_TOKEN must be set for acceptance tests")
 	}
-
-	if v := os.Getenv("PAGERDUTY_USER_ID"); v == "" {
-		t.Fatal("PAGERDUTY_USER_ID must be set for acceptance tests")
-	}
-
-	if v := os.Getenv("PAGERDUTY_ESCALATION_POLICY_ID"); v == "" {
-		t.Fatal("PAGERDUTY_ESCALATION_POLICY_ID must be set for acceptance tests")
-	}
 }
-
-var importEscalationPolicyID = os.Getenv("PAGERDUTY_ESCALATION_POLICY_ID")
-var importUserID = os.Getenv("PAGERDUTY_USER_ID")
-var userID = os.Getenv("PAGERDUTY_USER_ID")
-var escalationPolicyID = os.Getenv("PAGERDUTY_ESCALATION_POLICY_ID")

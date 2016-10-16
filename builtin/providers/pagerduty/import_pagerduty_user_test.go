@@ -1,35 +1,28 @@
 package pagerduty
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
 func TestAccPagerDutyUser_import(t *testing.T) {
+	resourceName := "pagerduty_user.foo"
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyUserDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccPagerDutyUserConfigImported(importUserID),
+				Config: testAccCheckPagerDutyUserConfig,
 			},
+
 			resource.TestStep{
-				ResourceName:      "pagerduty_user.foo",
+				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 		},
 	})
-}
-
-func testAccPagerDutyUserConfigImported(id string) string {
-	return fmt.Sprintf(`
-		resource "pagerduty_user" "foo" {
-		  name = "foo"
-			email = "foo@bar.com"
-   	}
-	`)
 }

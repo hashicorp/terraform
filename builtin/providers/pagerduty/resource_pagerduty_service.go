@@ -99,7 +99,7 @@ func resourcePagerDutyServiceRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("name", s.Name)
-	d.Set("escalation_policy", s.EscalationPolicy)
+	d.Set("escalation_policy", s.EscalationPolicy.ID)
 	d.Set("description", s.Description)
 	d.Set("auto_resolve_timeout", s.AutoResolveTimeout)
 	d.Set("acknowledgement_timeout", s.AcknowledgementTimeout)

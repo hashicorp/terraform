@@ -35,6 +35,10 @@ func resourcePagerDutyEscalationPolicy() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"escalation_delay_in_minutes": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
@@ -142,7 +146,27 @@ func resourcePagerDutyEscalationPolicyRead(d *schema.ResourceData, meta interfac
 	d.Set("name", e.Name)
 	d.Set("description", e.Description)
 	d.Set("num_loops", e.NumLoops)
-	d.Set("escalation_rules", e.EscalationRules)
+
+	escalationRules := make([]map[string]interface{}, 0, len(e.EscalationRules))
+
+	for _, r := range e.EscalationRules {
+		targets := make([]map[string]interface{}, 0, len(r.Targets))
+
+		for _, t := range r.Targets {
+			targets = append(targets, map[string]interface{}{
+				"id":   t.ID,
+				"type": t.Type,
+			})
+		}
+
+		escalationRules = append(escalationRules, map[string]interface{}{
+			"id":                          r.ID,
+			"target":                      targets,
+			"escalation_delay_in_minutes": r.Delay,
+		})
+	}
+
+	d.Set("escalation_rule", escalationRules)
 
 	return nil
 }

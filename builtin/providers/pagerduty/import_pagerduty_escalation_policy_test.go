@@ -7,32 +7,22 @@ import (
 )
 
 func TestAccPagerDutyEscalationPolicy_import(t *testing.T) {
+	resourceName := "pagerduty_escalation_policy.foo"
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyEscalationPolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccPagerDutyEscalationPolicyConfigImported,
+				Config: testAccCheckPagerDutyEscalationPolicyConfig,
 			},
+
 			resource.TestStep{
-				ResourceName:      "pagerduty_escalation_policy.foo",
+				ResourceName:      resourceName,
 				ImportState:       true,
-				ImportStateVerify: false,
+				ImportStateVerify: true,
 			},
 		},
 	})
 }
-
-const testAccPagerDutyEscalationPolicyConfigImported = `
-resource "pagerduty_escalation_policy" "foo" {
-  name = "foo"
-	escalation_rule {
-	  escalation_delay_in_minutes = 10
-		target {
-		  id = "PLBP04G"
-			type = "user"
-		}
-	}
-}
-`
