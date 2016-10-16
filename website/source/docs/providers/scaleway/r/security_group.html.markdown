@@ -6,7 +6,7 @@ description: |-
   Manages Scaleway security groups.
 ---
 
-# scaleway\security_group
+# scaleway\_security\_group
 
 Provides security groups. This allows security groups to be created, updated and deleted.
 For additional details please refer to [API documentation](https://developer.scaleway.com/#security-groups).
