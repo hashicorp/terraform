@@ -6,6 +6,10 @@ BUG FIXES:
  * core: List and map indexes are implicitly converted to the correct type if possible [GH-9372]
  * provider/google: Fixed a bug causing a crash when migrating `google_compute_target_pool` resources from 0.6.x releases [GH-9370]
 
+IMPROVEMENTS:
+
+ * provider/aws: Expose ARN for aws_lambda_alias [GH-9390]
+
 ## 0.7.6 (October 14, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
