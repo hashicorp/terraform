@@ -6,7 +6,7 @@ description: |-
   Manages Scaleway security group rules.
 ---
 
-# scaleway\security_group_rule
+# scaleway\_security\_group\_rule
 
 Provides security group rules. This allows security group rules to be created, updated and deleted.
 For additional details please refer to [API documentation](https://developer.scaleway.com/#security-groups-manage-rules).
