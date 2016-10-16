@@ -244,8 +244,9 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 
 		// If a floating IP is found we unassign it
 		if len(fips) == 1 {
+			portID := ""
 			updateOpts := floatingips.UpdateOpts{
-				PortID: "",
+				PortID: &portID,
 			}
 			if err = floatingips.Update(networkingClient, fips[0].ID, updateOpts).Err; err != nil {
 				return err
@@ -338,7 +339,7 @@ func lbVipV1AssignFloatingIP(floatingIP, portID string, networkingClient *gopher
 	}
 
 	updateOpts := floatingips.UpdateOpts{
-		PortID: portID,
+		PortID: &portID,
 	}
 	if err = floatingips.Update(networkingClient, fips[0].ID, updateOpts).Err; err != nil {
 		return err
