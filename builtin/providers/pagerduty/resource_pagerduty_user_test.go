@@ -55,6 +55,52 @@ func TestAccPagerDutyUser_Basic(t *testing.T) {
 	})
 }
 
+func TestAccPagerDutyUserWithTeams_Basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPagerDutyUserDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckPagerDutyUserWithTeamsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_user.foo", "name", "foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_user.foo", "email", "foo@bar.com"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_user.foo", "teams.#", "1"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCheckPagerDutyUserWithTeamsConfigUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_user.foo", "name", "foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_user.foo", "email", "foo@bar.com"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_user.foo", "teams.#", "2"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCheckPagerDutyUserWithNoTeamsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPagerDutyUserExists("pagerduty_user.foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_user.foo", "name", "foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_user.foo", "email", "foo@bar.com"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_user.foo", "teams.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckPagerDutyUserDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*pagerduty.Client)
 	for _, r := range s.RootModule().Resources {
@@ -76,13 +122,25 @@ func testAccCheckPagerDutyUserDestroy(s *terraform.State) error {
 
 func testAccCheckPagerDutyUserExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*pagerduty.Client)
-		for _, r := range s.RootModule().Resources {
-			opts := pagerduty.GetUserOptions{}
-			if _, err := client.GetUser(r.Primary.ID, opts); err != nil {
-				return fmt.Errorf("Received an error retrieving user %s ID: %s", err, r.Primary.ID)
-			}
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
 		}
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No user ID is set")
+		}
+
+		client := testAccProvider.Meta().(*pagerduty.Client)
+
+		found, err := client.GetUser(rs.Primary.ID, pagerduty.GetUserOptions{})
+		if err != nil {
+			return err
+		}
+
+		if found.ID != rs.Primary.ID {
+			return fmt.Errorf("User not found: %v - %v", rs.Primary.ID, found)
+		}
+
 		return nil
 	}
 }
@@ -106,5 +164,47 @@ resource "pagerduty_user" "foo" {
   role        = "user"
   job_title   = "bar"
   description = "bar"
+}
+`
+
+const testAccCheckPagerDutyUserWithTeamsConfig = `
+resource "pagerduty_team" "foo" {
+  name = "Foo team"
+}
+
+resource "pagerduty_user" "foo" {
+  name  = "foo"
+  email = "foo@bar.com"
+	teams = ["${pagerduty_team.foo.id}"]
+}
+`
+const testAccCheckPagerDutyUserWithTeamsConfigUpdated = `
+resource "pagerduty_team" "foo" {
+  name = "Foo team"
+}
+
+resource "pagerduty_team" "bar" {
+  name = "Bar team"
+}
+
+resource "pagerduty_user" "foo" {
+  name  = "foo"
+  email = "foo@bar.com"
+	teams = ["${pagerduty_team.foo.id}", "${pagerduty_team.bar.id}"]
+}
+`
+
+const testAccCheckPagerDutyUserWithNoTeamsConfig = `
+resource "pagerduty_team" "foo" {
+  name = "Foo team"
+}
+
+resource "pagerduty_team" "bar" {
+  name = "Bar team"
+}
+
+resource "pagerduty_user" "foo" {
+  name  = "foo"
+  email = "foo@bar.com"
 }
 `
