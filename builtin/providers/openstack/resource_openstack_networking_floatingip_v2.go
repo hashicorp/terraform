@@ -139,7 +139,8 @@ func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{})
 	var updateOpts floatingips.UpdateOpts
 
 	if d.HasChange("port_id") {
-		updateOpts.PortID = d.Get("port_id").(string)
+		portID := d.Get("port_id").(string)
+		updateOpts.PortID = &portID
 	}
 
 	log.Printf("[DEBUG] Update Options: %#v", updateOpts)
