@@ -221,10 +221,6 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 		updateOpts.Description = &v
 	}
 
-	if d.HasChange("persistence") {
-		updateOpts.Persistence = resourceVipPersistenceV1(d)
-	}
-
 	if d.HasChange("conn_limit") {
 		updateOpts.ConnLimit = gophercloud.MaybeInt(d.Get("conn_limit").(int))
 	}
@@ -267,6 +263,9 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 		asu := d.Get("admin_state_up").(bool)
 		updateOpts.AdminStateUp = &asu
 	}
+
+	// Persistence has to be included, even if it hasn't changed.
+	updateOpts.Persistence = resourceVipPersistenceV1(d)
 
 	log.Printf("[DEBUG] Updating OpenStack LB VIP %s with options: %+v", d.Id(), updateOpts)
 
