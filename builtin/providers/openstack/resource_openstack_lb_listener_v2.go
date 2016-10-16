@@ -299,6 +299,14 @@ func waitForListenerDelete(networkingClient *gophercloud.ServiceClient, listener
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 listener %s", listenerID)
 				return listener, "DELETED", nil
 			}
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 listener (%s) is still in use.", listenerID)
+					return listener, "ACTIVE", nil
+				}
+			}
+
 			return listener, "ACTIVE", err
 		}
 

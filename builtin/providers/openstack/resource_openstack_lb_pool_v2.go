@@ -305,6 +305,14 @@ func waitForPoolDelete(networkingClient *gophercloud.ServiceClient, poolID strin
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Pool %s", poolID)
 				return pool, "DELETED", nil
 			}
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 Pool (%s) is still in use.", poolID)
+					return pool, "ACTIVE", nil
+				}
+			}
+
 			return pool, "ACTIVE", err
 		}
 

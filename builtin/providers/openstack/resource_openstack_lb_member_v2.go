@@ -257,6 +257,14 @@ func waitForMemberDelete(networkingClient *gophercloud.ServiceClient, poolID str
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 Member %s", memberID)
 				return member, "DELETED", nil
 			}
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 Member (%s) is still in use.", memberID)
+					return member, "ACTIVE", nil
+				}
+			}
+
 			return member, "ACTIVE", err
 		}
 
