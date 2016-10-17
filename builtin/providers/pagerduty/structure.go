@@ -2,17 +2,6 @@ package pagerduty
 
 import pagerduty "github.com/PagerDuty/go-pagerduty"
 
-// Checks if a slice contains a string
-func contains(slice []string, item string) bool {
-	set := make(map[string]struct{}, len(slice))
-	for _, s := range slice {
-		set[s] = struct{}{}
-	}
-
-	_, ok := set[item]
-	return ok
-}
-
 // Expands an array of escalation rules into []pagerduty.EscalationRules
 func expandRules(list []interface{}) []pagerduty.EscalationRule {
 	result := make([]pagerduty.EscalationRule, 0, len(list))
