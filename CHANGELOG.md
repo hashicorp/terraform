@@ -10,6 +10,7 @@ BUG FIXES:
 IMPROVEMENTS:
 
  * provider/aws: Expose ARN for aws_lambda_alias [GH-9390]
+ * provider/aws: Add support for AWS US East (Ohio) region. [GH-9414]
 
 ## 0.7.6 (October 14, 2016)
 
