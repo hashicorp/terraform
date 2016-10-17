@@ -195,10 +195,15 @@ $ TF_VAR_somemap='{foo = "bar", baz = "qux"}' terraform plan
 <a id="variable-files"></a>
 
 Variables can be collected in files and passed all at once using the
-`-var-file=foo.tfvars` flag. The format for variables in `.tfvars`
-files is [HCL](/docs/configuration/syntax.html#HCL), with top level key/value
-pairs:
+`-var-file=foo.tfvars` flag. 
 
+If a "terraform.tfvars" file is present in the current directory, Terraform 
+automatically loads it to populate variables. If the file is named something 
+else, you can use the -var-file flag directly to specify a file. These files 
+are the same syntax as Terraform configuration files. And like Terraform 
+configuration files, these files can also be JSON.  The format for variables in 
+`.tfvars` files is [HCL](/docs/configuration/syntax.html#HCL), with top level 
+key/value pairs:
 
 ```
 foo = "bar"
