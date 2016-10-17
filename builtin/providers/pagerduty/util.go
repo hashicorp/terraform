@@ -19,7 +19,7 @@ func validateValueFunc(values []string) schema.SchemaValidateFunc {
 		}
 
 		if !valid {
-			errors = append(errors, fmt.Errorf("%s is an invalid value for argument %s", value, k))
+			errors = append(errors, fmt.Errorf("%s is an invalid value for argument %s. Must be one of %v", value, k, values))
 		}
 		return
 	}
