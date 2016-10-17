@@ -119,7 +119,19 @@ func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
 	// Split based on ".". Every resource address should have at least two
 	// elements (type and name).
 	parts := strings.Split(s, ".")
-	if len(parts) < 2 || len(parts) > 3 {
+	if len(parts) < 2 || len(parts) > 4 {
+		return nil, fmt.Errorf("Invalid internal resource address format: %s", s)
+	}
+
+	// Data resource if we have at least 3 parts and the first one is data
+	mode := config.ManagedResourceMode
+	if len(parts) > 2 && parts[0] == "data" {
+		mode = config.DataResourceMode
+		parts = parts[1:]
+	}
+
+	// If we're not a data resource and we have more than 3, then it is an error
+	if len(parts) > 3 && mode != config.DataResourceMode {
 		return nil, fmt.Errorf("Invalid internal resource address format: %s", s)
 	}
 
@@ -129,7 +141,7 @@ func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
 		Name:         parts[1],
 		Index:        -1,
 		InstanceType: TypePrimary,
-		Mode:         config.ManagedResourceMode,
+		Mode:         mode,
 	}
 
 	// If we have more parts, then we have an index. Parse that.

@@ -36,13 +36,46 @@ func TestParseResourceAddressInternal(t *testing.T) {
 			},
 			"aws_instance.foo[1]",
 		},
+
+		"data resource": {
+			"data.aws_ami.foo",
+			&ResourceAddress{
+				Mode:         config.DataResourceMode,
+				Type:         "aws_ami",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			"data.aws_ami.foo",
+		},
+
+		"data resource with count": {
+			"data.aws_ami.foo.1",
+			&ResourceAddress{
+				Mode:         config.DataResourceMode,
+				Type:         "aws_ami",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        1,
+			},
+			"data.aws_ami.foo[1]",
+		},
+
+		"non-data resource with 4 elements": {
+			"aws_instance.foo.bar.1",
+			nil,
+			"",
+		},
 	}
 
 	for tn, tc := range cases {
 		t.Run(tc.Input, func(t *testing.T) {
 			out, err := parseResourceAddressInternal(tc.Input)
-			if err != nil {
+			if (err != nil) != (tc.Expected == nil) {
 				t.Fatalf("%s: unexpected err: %#v", tn, err)
+			}
+			if err != nil {
+				return
 			}
 
 			if !reflect.DeepEqual(out, tc.Expected) {
