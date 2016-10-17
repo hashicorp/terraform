@@ -47,7 +47,7 @@ func testAccCheckIAMUserPolicyDestroy(s *terraform.State) error {
 			continue
 		}
 
-		role, name := resourceAwsIamRolePolicyParseId(rs.Primary.ID)
+		role, name := resourceAwsIamUserPolicyParseId(rs.Primary.ID)
 
 		request := &iam.GetRolePolicyInput{
 			PolicyName: aws.String(name),

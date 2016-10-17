@@ -52,14 +52,16 @@ func testAccCheckIAMRolePolicyDestroy(s *terraform.State) error {
 			continue
 		}
 
-		role, name := resourceAwsIamRolePolicyParseId(rs.Primary.ID)
+		role, name, err := resourceAwsIamRolePolicyParseId(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		request := &iam.GetRolePolicyInput{
 			PolicyName: aws.String(name),
 			RoleName:   aws.String(role),
 		}
 
-		var err error
 		getResp, err := iamconn.GetRolePolicy(request)
 		if err != nil {
 			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
@@ -96,12 +98,15 @@ func testAccCheckIAMRolePolicy(
 		}
 
 		iamconn := testAccProvider.Meta().(*AWSClient).iamconn
-		role, name := resourceAwsIamRolePolicyParseId(policy.Primary.ID)
-		_, err := iamconn.GetRolePolicy(&iam.GetRolePolicyInput{
+		role, name, err := resourceAwsIamRolePolicyParseId(policy.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = iamconn.GetRolePolicy(&iam.GetRolePolicyInput{
 			RoleName:   aws.String(role),
 			PolicyName: aws.String(name),
 		})
-
 		if err != nil {
 			return err
 		}
