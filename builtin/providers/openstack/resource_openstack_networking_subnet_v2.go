@@ -155,10 +155,13 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		createOpts.GatewayIP = &gatewayIP
 	}
 
-	if v, ok := d.GetOk("enable_dhcp"); ok {
-		enableDHCP := v.(bool)
-		createOpts.EnableDHCP = &enableDHCP
+	if noGateway {
+		disableGateway := ""
+		createOpts.GatewayIP = &disableGateway
 	}
+
+	enableDHCP := d.Get("enable_dhcp").(bool)
+	createOpts.EnableDHCP = &enableDHCP
 
 	if v, ok := d.GetOk("ip_version"); ok {
 		ipVersion := resourceNetworkingSubnetV2DetermineIPVersion(v.(int))
