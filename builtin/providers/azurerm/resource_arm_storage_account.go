@@ -12,11 +12,14 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/signalwrapper"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 // The KeySource of storage.Encryption appears to require this value
 // for Encryption services to work
 var storageAccountEncryptionSource = "Microsoft.Storage"
+
+const blobStorageAccountDefaultAccessTier = "Hot"
 
 func resourceArmStorageAccount() *schema.Resource {
 	return &schema.Resource{
@@ -50,10 +53,32 @@ func resourceArmStorageAccount() *schema.Resource {
 				StateFunc: azureRMNormalizeLocation,
 			},
 
+			"account_kind": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(storage.Storage),
+					string(storage.BlobStorage),
+				}, true),
+				Default: string(storage.Storage),
+			},
+
 			"account_type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateArmStorageAccountType,
+			},
+
+			// Only valid for BlobStorage accounts, defaults to "Hot" in create function
+			"access_tier": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					string(storage.Cool),
+					string(storage.Hot),
+				}, true),
 			},
 
 			"enable_blob_encryption": {
@@ -128,7 +153,9 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 
 	resourceGroupName := d.Get("resource_group_name").(string)
 	storageAccountName := d.Get("name").(string)
+	accountKind := d.Get("account_kind").(string)
 	accountType := d.Get("account_type").(string)
+
 	location := d.Get("location").(string)
 	tags := d.Get("tags").(map[string]interface{})
 	enableBlobEncryption := d.Get("enable_blob_encryption").(bool)
@@ -141,6 +168,7 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		Location: &location,
 		Sku:      &sku,
 		Tags:     expandTags(tags),
+		Kind:     storage.Kind(accountKind),
 		Properties: &storage.AccountPropertiesCreateParameters{
 			Encryption: &storage.Encryption{
 				Services: &storage.EncryptionServices{
@@ -151,6 +179,17 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 				KeySource: &storageAccountEncryptionSource,
 			},
 		},
+	}
+
+	// AccessTier is only valid for BlobStorage accounts
+	if accountKind == string(storage.BlobStorage) {
+		accessTier, ok := d.GetOk("access_tier")
+		if !ok {
+			// default to "Hot"
+			accessTier = blobStorageAccountDefaultAccessTier
+		}
+
+		opts.Properties.AccessTier = storage.AccessTier(accessTier.(string))
 	}
 
 	// Create the storage account. We wrap this so that it is cancellable
@@ -247,6 +286,22 @@ func resourceArmStorageAccountUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("account_type")
 	}
 
+	if d.HasChange("access_tier") {
+		accessTier := d.Get("access_tier").(string)
+
+		opts := storage.AccountUpdateParameters{
+			Properties: &storage.AccountPropertiesUpdateParameters{
+				AccessTier: storage.AccessTier(accessTier),
+			},
+		}
+		_, err := client.Update(resourceGroupName, storageAccountName, opts)
+		if err != nil {
+			return fmt.Errorf("Error updating Azure Storage Account access_tier %q: %s", storageAccountName, err)
+		}
+
+		d.SetPartial("access_tier")
+	}
+
 	if d.HasChange("tags") {
 		tags := d.Get("tags").(map[string]interface{})
 
@@ -317,9 +372,14 @@ func resourceArmStorageAccountRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("primary_access_key", accessKeys[0].Value)
 	d.Set("secondary_access_key", accessKeys[1].Value)
 	d.Set("location", resp.Location)
+	d.Set("account_kind", resp.Kind)
 	d.Set("account_type", resp.Sku.Name)
 	d.Set("primary_location", resp.Properties.PrimaryLocation)
 	d.Set("secondary_location", resp.Properties.SecondaryLocation)
+
+	if resp.Properties.AccessTier != "" {
+		d.Set("access_tier", resp.Properties.AccessTier)
+	}
 
 	if resp.Properties.PrimaryEndpoints != nil {
 		d.Set("primary_blob_endpoint", resp.Properties.PrimaryEndpoints.Blob)
