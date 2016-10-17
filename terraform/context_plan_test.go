@@ -1088,6 +1088,10 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 		t.Fatalf("missing diff for data.aws_data_resource.foo")
 	}
 
+	// This is added by the diff but we want to verify that we got
+	// the same diff as above minus the dynamic stuff.
+	delete(iDiff.Attributes, "id")
+
 	if same, _ := p.ReadDataDiffReturn.Same(iDiff); !same {
 		t.Fatalf(
 			"incorrect diff for data.data_resource.foo\ngot:  %#v\nwant: %#v",
