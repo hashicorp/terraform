@@ -2,6 +2,7 @@ package azurerm
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -15,6 +16,12 @@ func TestAccAzureRMLoadBalancerNatRule_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	natRuleName := fmt.Sprintf("NatRule-%d", ri)
 
+	testAccPreCheck(t)
+	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
+	natRule_id := fmt.Sprintf(
+		"/subscriptions/%s/resourceGroups/acctestrg-%d/providers/Microsoft.Network/loadBalancers/arm-test-loadbalancer-%d/inboundNatRules/%s",
+		subscriptionID, ri, ri, natRuleName)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -25,6 +32,8 @@ func TestAccAzureRMLoadBalancerNatRule_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
 					testCheckAzureRMLoadBalancerNatRuleExists(natRuleName, &lb),
+					resource.TestCheckResourceAttr(
+						"azurerm_lb_nat_rule.test", "id", natRule_id),
 				),
 			},
 		},
