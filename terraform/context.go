@@ -21,6 +21,10 @@ var (
 	// X_newApply will enable the new apply graph. This will be removed
 	// and be on by default in 0.8.0.
 	X_newApply = false
+
+	// X_newDestroy will enable the new destroy graph. This will be removed
+	// and be on by default in 0.8.0.
+	X_newDestroy = false
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -371,6 +375,8 @@ func (c *Context) Apply() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
+	newGraphEnabled := (c.destroy && X_newDestroy) || (!c.destroy && X_newApply)
+
 	// Build the original graph. This is before the new graph builders
 	// coming in 0.8. We do this for shadow graphing.
 	oldGraph, err := c.Graph(&ContextGraphOpts{Validate: true})
@@ -386,18 +392,28 @@ func (c *Context) Apply() (*State, error) {
 	}
 
 	// Build the new graph. We do this no matter what so we can shadow it.
-	newGraph, err := (&ApplyGraphBuilder{
-		Module:       c.module,
-		Diff:         c.diff,
-		State:        c.state,
-		Providers:    c.components.ResourceProviders(),
-		Provisioners: c.components.ResourceProvisioners(),
-	}).Build(RootModulePath)
-	if err != nil && !X_newApply {
+	var newGraph *Graph
+	if c.destroy {
+		newGraph, err = (&DestroyApplyGraphBuilder{
+			Module:    c.module,
+			Diff:      c.diff,
+			State:     c.state,
+			Providers: c.providersList(),
+		}).Build(RootModulePath)
+	} else {
+		newGraph, err = (&ApplyGraphBuilder{
+			Module:       c.module,
+			Diff:         c.diff,
+			State:        c.state,
+			Providers:    c.components.ResourceProviders(),
+			Provisioners: c.components.ResourceProvisioners(),
+		}).Build(RootModulePath)
+	}
+	if err != nil && !newGraphEnabled {
 		// If we had an error graphing but we're not using this graph, just
 		// set it to nil and record it as a shadow error.
 		c.shadowErr = multierror.Append(c.shadowErr, fmt.Errorf(
-			"Error building new apply graph: %s", err))
+			"Error building new graph: %s", err))
 
 		newGraph = nil
 		err = nil
@@ -418,16 +434,11 @@ func (c *Context) Apply() (*State, error) {
 	//
 	real := oldGraph
 	shadow := newGraph
-	if c.destroy {
-		log.Printf("[WARN] terraform: real graph is original, shadow is nil")
-		shadow = nil
+	if newGraphEnabled {
+		log.Printf("[WARN] terraform: real graph is experiment, shadow is experiment")
+		real = shadow
 	} else {
-		if X_newApply {
-			log.Printf("[WARN] terraform: real graph is Xnew-apply, shadow is Xnew-apply")
-			real = shadow
-		} else {
-			log.Printf("[WARN] terraform: real graph is original, shadow is Xnew-apply")
-		}
+		log.Printf("[WARN] terraform: real graph is original, shadow is experiment")
 	}
 
 	// For now, always shadow with the real graph for verification. We don't
