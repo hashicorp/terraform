@@ -1,9 +1,12 @@
 package pagerduty
 
 import (
+	"bytes"
+	"fmt"
 	"log"
 
 	"github.com/PagerDuty/go-pagerduty"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -31,7 +34,8 @@ func resourcePagerDutySchedule() *schema.Resource {
 				Default:  "Managed by Terraform",
 			},
 			"schedule_layer": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
+				Set:      resourcePagerDutyEscalationHash,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
@@ -47,12 +51,6 @@ func resourcePagerDutySchedule() *schema.Resource {
 						"start": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								if old == "" {
-									return false
-								}
-								return true
-							},
 						},
 						"end": &schema.Schema{
 							Type:     schema.TypeString,
@@ -100,68 +98,14 @@ func resourcePagerDutySchedule() *schema.Resource {
 	}
 }
 
-func buildScheduleLayers(d *schema.ResourceData, scheduleLayers *[]interface{}) *[]pagerduty.ScheduleLayer {
-
-	pagerdutyLayers := make([]pagerduty.ScheduleLayer, len(*scheduleLayers))
-
-	for i, l := range *scheduleLayers {
-		layer := l.(map[string]interface{})
-
-		scheduleLayer := pagerduty.ScheduleLayer{
-			Name:                      layer["name"].(string),
-			Start:                     layer["start"].(string),
-			End:                       layer["end"].(string),
-			RotationVirtualStart:      layer["rotation_virtual_start"].(string),
-			RotationTurnLengthSeconds: uint(layer["rotation_turn_length_seconds"].(int)),
-		}
-
-		if layer["id"] != nil || layer["id"] != "" {
-			scheduleLayer.ID = layer["id"].(string)
-		}
-
-		for _, u := range layer["users"].([]interface{}) {
-			scheduleLayer.Users = append(
-				scheduleLayer.Users,
-				pagerduty.UserReference{
-					User: pagerduty.APIObject{
-						ID:   u.(string),
-						Type: "user_reference"},
-				},
-			)
-		}
-
-		restrictions := layer["restriction"].([]interface{})
-
-		if len(restrictions) > 0 {
-			for _, r := range restrictions {
-				restriction := r.(map[string]interface{})
-				scheduleLayer.Restrictions = append(
-					scheduleLayer.Restrictions,
-					pagerduty.Restriction{
-						Type:            restriction["type"].(string),
-						StartTimeOfDay:  restriction["start_time_of_day"].(string),
-						DurationSeconds: uint(restriction["duration_seconds"].(int)),
-					},
-				)
-			}
-		}
-
-		pagerdutyLayers[i] = scheduleLayer
-
-	}
-
-	return &pagerdutyLayers
-}
-
 func buildScheduleStruct(d *schema.ResourceData) (*pagerduty.Schedule, error) {
-	pagerdutyLayers := d.Get("schedule_layer").([]interface{})
+	pagerdutyLayers := d.Get("schedule_layer").(*schema.Set).List()
 
 	schedule := pagerduty.Schedule{
-		Name:     d.Get("name").(string),
-		TimeZone: d.Get("time_zone").(string),
+		Name:           d.Get("name").(string),
+		TimeZone:       d.Get("time_zone").(string),
+		ScheduleLayers: expandLayers(pagerdutyLayers),
 	}
-
-	schedule.ScheduleLayers = *buildScheduleLayers(d, &pagerdutyLayers)
 
 	if attr, ok := d.GetOk("description"); ok {
 		schedule.Description = attr.(string)
@@ -185,7 +129,7 @@ func resourcePagerDutyScheduleCreate(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(e.ID)
 
-	return resourcePagerDutyScheduleRead(d, meta)
+	return nil
 }
 
 func resourcePagerDutyScheduleRead(d *schema.ResourceData, meta interface{}) error {
@@ -201,39 +145,7 @@ func resourcePagerDutyScheduleRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("name", s.Name)
 	d.Set("description", s.Description)
-
-	scheduleLayers := make([]map[string]interface{}, 0, len(s.ScheduleLayers))
-
-	for _, layer := range s.ScheduleLayers {
-		restrictions := make([]map[string]interface{}, 0, len(layer.Restrictions))
-
-		for _, r := range layer.Restrictions {
-			restrictions = append(restrictions, map[string]interface{}{
-				"duration_seconds":  r.DurationSeconds,
-				"start_time_of_day": r.StartTimeOfDay,
-				"type":              r.Type,
-			})
-		}
-
-		users := make([]string, 0, len(layer.Users))
-
-		for _, u := range layer.Users {
-			users = append(users, u.User.ID)
-		}
-
-		scheduleLayers = append(scheduleLayers, map[string]interface{}{
-			"id":    layer.ID,
-			"name":  layer.Name,
-			"start": layer.Start,
-			"end":   layer.End,
-			"users": users,
-			"rotation_turn_length_seconds": layer.RotationTurnLengthSeconds,
-			"rotation_virtual_start":       layer.RotationVirtualStart,
-			"restriction":                  restrictions,
-		})
-	}
-
-	d.Set("schedule_layer", scheduleLayers)
+	d.Set("schedule_layer", flattenLayers(s.ScheduleLayers))
 
 	return nil
 }
@@ -242,8 +154,6 @@ func resourcePagerDutyScheduleUpdate(d *schema.ResourceData, meta interface{}) e
 	client := meta.(*pagerduty.Client)
 
 	e, _ := buildScheduleStruct(d)
-
-	d.MarkNewResource()
 
 	log.Printf("[INFO] Updating PagerDuty schedule: %s", d.Id())
 
@@ -277,4 +187,31 @@ func resourcePagerDutyScheduleImport(d *schema.ResourceData, meta interface{}) (
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil
+}
+
+func resourcePagerDutyEscalationHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["rotation_turn_length_seconds"].(int)))
+
+	if _, ok := m["name"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	}
+
+	if _, ok := m["end"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", m["end"].(string)))
+	}
+
+	for _, u := range m["users"].([]interface{}) {
+		buf.WriteString(fmt.Sprintf("%s-", u))
+	}
+
+	for _, r := range m["restriction"].([]interface{}) {
+		restriction := r.(map[string]interface{})
+		buf.WriteString(fmt.Sprintf("%s-", restriction["type"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", restriction["start_time_of_day"].(string)))
+		buf.WriteString(fmt.Sprintf("%d-", restriction["duration_seconds"].(int)))
+	}
+
+	return hashcode.String(buf.String())
 }

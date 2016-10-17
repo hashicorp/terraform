@@ -67,40 +67,12 @@ func resourcePagerDutyEscalationPolicy() *schema.Resource {
 	}
 }
 
-func buildEscalationPolicyRules(escalationRules *[]interface{}) *[]pagerduty.EscalationRule {
-
-	rules := make([]pagerduty.EscalationRule, len(*escalationRules))
-
-	for i, l := range *escalationRules {
-		rule := l.(map[string]interface{})
-
-		escalationPolicyRule := pagerduty.EscalationRule{
-			Delay: uint(rule["escalation_delay_in_minutes"].(int)),
-		}
-
-		for _, t := range rule["target"].([]interface{}) {
-			target := t.(map[string]interface{})
-			escalationPolicyRule.Targets = append(
-				escalationPolicyRule.Targets,
-				pagerduty.APIObject{
-					Type: target["type"].(string),
-					ID:   target["id"].(string),
-				},
-			)
-		}
-
-		rules[i] = escalationPolicyRule
-	}
-
-	return &rules
-}
-
 func buildEscalationPolicyStruct(d *schema.ResourceData) *pagerduty.EscalationPolicy {
 	escalationRules := d.Get("escalation_rule").([]interface{})
 
 	policy := pagerduty.EscalationPolicy{
 		Name:            d.Get("name").(string),
-		EscalationRules: *buildEscalationPolicyRules(&escalationRules),
+		EscalationRules: expandRules(escalationRules),
 	}
 
 	if attr, ok := d.GetOk("description"); ok {
@@ -146,27 +118,7 @@ func resourcePagerDutyEscalationPolicyRead(d *schema.ResourceData, meta interfac
 	d.Set("name", e.Name)
 	d.Set("description", e.Description)
 	d.Set("num_loops", e.NumLoops)
-
-	escalationRules := make([]map[string]interface{}, 0, len(e.EscalationRules))
-
-	for _, r := range e.EscalationRules {
-		targets := make([]map[string]interface{}, 0, len(r.Targets))
-
-		for _, t := range r.Targets {
-			targets = append(targets, map[string]interface{}{
-				"id":   t.ID,
-				"type": t.Type,
-			})
-		}
-
-		escalationRules = append(escalationRules, map[string]interface{}{
-			"id":                          r.ID,
-			"target":                      targets,
-			"escalation_delay_in_minutes": r.Delay,
-		})
-	}
-
-	d.Set("escalation_rule", escalationRules)
+	d.Set("escalation_rule", flattenRules(e.EscalationRules))
 
 	return nil
 }
