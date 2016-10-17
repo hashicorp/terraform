@@ -4,6 +4,7 @@ BUG FIXES:
 
  * core: List and map indexes support arithmetic [GH-9372]
  * core: List and map indexes are implicitly converted to the correct type if possible [GH-9372]
+ * provider/aws: Read back aws_launch_configuration's associate_public_ip_address field, to enable importing. [GH-9399]
  * provider/google: Fixed a bug causing a crash when migrating `google_compute_target_pool` resources from 0.6.x releases [GH-9370]
 
 IMPROVEMENTS:
