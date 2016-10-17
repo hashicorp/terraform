@@ -145,7 +145,10 @@ func resourcePagerDutyScheduleRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("name", s.Name)
 	d.Set("description", s.Description)
-	d.Set("schedule_layer", flattenLayers(s.ScheduleLayers))
+
+	if err := d.Set("schedule_layer", flattenLayers(s.ScheduleLayers)); err != nil {
+		return err
+	}
 
 	return nil
 }
