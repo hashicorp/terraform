@@ -118,7 +118,10 @@ func resourcePagerDutyEscalationPolicyRead(d *schema.ResourceData, meta interfac
 	d.Set("name", e.Name)
 	d.Set("description", e.Description)
 	d.Set("num_loops", e.NumLoops)
-	d.Set("escalation_rule", flattenRules(e.EscalationRules))
+
+	if err := d.Set("escalation_rule", flattenRules(e.EscalationRules)); err != nil {
+		return err
+	}
 
 	return nil
 }
