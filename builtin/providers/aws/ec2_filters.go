@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -31,9 +32,18 @@ import (
 // the EC2 API, to aid in the implementation of Terraform data sources that
 // retrieve data about EC2 objects.
 func buildEC2AttributeFilterList(attrs map[string]string) []*ec2.Filter {
-	filters := make([]*ec2.Filter, 0, len(attrs))
+	var filters []*ec2.Filter
 
-	for filterName, value := range attrs {
+	// sort the filters by name to make the output deterministic
+	var names []string
+	for filterName := range attrs {
+		names = append(names, filterName)
+	}
+
+	sort.Strings(names)
+
+	for _, filterName := range names {
+		value := attrs[filterName]
 		if value == "" {
 			continue
 		}
