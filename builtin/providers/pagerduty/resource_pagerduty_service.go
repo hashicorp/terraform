@@ -61,9 +61,13 @@ func buildServiceStruct(d *schema.ResourceData) *pagerduty.Service {
 		service.AcknowledgementTimeout = &acknowledgementTimeout
 	}
 
-	policy := &pagerduty.EscalationPolicy{}
-	policy.ID = d.Get("escalation_policy").(string)
-	policy.Type = "escalation_policy"
+	policy := &pagerduty.EscalationPolicy{
+		APIObject: pagerduty.APIObject{
+			ID:   d.Get("escalation_policy").(string),
+			Type: "escalation_policy",
+		},
+	}
+
 	service.EscalationPolicy = *policy
 
 	return &service
