@@ -122,7 +122,18 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Cannot read LoadBalancer %s (resource group %s) ID", loadBalancerName, resGroup)
 	}
 
-	d.SetId(*read.ID)
+	var natRule_id string
+	for _, element := range *(*read.Properties).InboundNatRules {
+		if *element.Name == d.Get("name").(string) {
+			natRule_id = *element.ID
+		}
+	}
+
+	if natRule_id != "" {
+		d.SetId(natRule_id)
+	} else {
+		return fmt.Errorf("Error can not find created loadbalancer nat rule id %s", natRule_id)
+	}
 
 	log.Printf("[DEBUG] Waiting for LoadBalancer (%s) to become available", loadBalancerName)
 	stateConf := &resource.StateChangeConf{
@@ -139,7 +150,7 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceArmLoadBalancerNatRuleRead(d *schema.ResourceData, meta interface{}) error {
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
