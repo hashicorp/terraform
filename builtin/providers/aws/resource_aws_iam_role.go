@@ -19,6 +19,9 @@ func resourceAwsIamRole() *schema.Resource {
 		Read:   resourceAwsIamRoleRead,
 		Update: resourceAwsIamRoleUpdate,
 		Delete: resourceAwsIamRoleDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{

@@ -21,6 +21,9 @@ func resourceAwsIamRolePolicy() *schema.Resource {
 
 		Read:   resourceAwsIamRolePolicyRead,
 		Delete: resourceAwsIamRolePolicyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"policy": &schema.Schema{
@@ -74,14 +77,16 @@ func resourceAwsIamRolePolicyPut(d *schema.ResourceData, meta interface{}) error
 func resourceAwsIamRolePolicyRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	role, name := resourceAwsIamRolePolicyParseId(d.Id())
+	role, name, err := resourceAwsIamRolePolicyParseId(d.Id())
+	if err != nil {
+		return err
+	}
 
 	request := &iam.GetRolePolicyInput{
 		PolicyName: aws.String(name),
 		RoleName:   aws.String(role),
 	}
 
-	var err error
 	getResp, err := iamconn.GetRolePolicy(request)
 	if err != nil {
 		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
@@ -99,13 +104,22 @@ func resourceAwsIamRolePolicyRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	return d.Set("policy", policy)
+	if err := d.Set("policy", policy); err != nil {
+		return err
+	}
+	if err := d.Set("name", name); err != nil {
+		return err
+	}
+	return d.Set("role", role)
 }
 
 func resourceAwsIamRolePolicyDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	role, name := resourceAwsIamRolePolicyParseId(d.Id())
+	role, name, err := resourceAwsIamRolePolicyParseId(d.Id())
+	if err != nil {
+		return err
+	}
 
 	request := &iam.DeleteRolePolicyInput{
 		PolicyName: aws.String(name),
@@ -118,8 +132,13 @@ func resourceAwsIamRolePolicyDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsIamRolePolicyParseId(id string) (roleName, policyName string) {
+func resourceAwsIamRolePolicyParseId(id string) (roleName, policyName string, err error) {
 	parts := strings.SplitN(id, ":", 2)
+	if len(parts) != 2 {
+		err = fmt.Errorf("role_policy id must be of the for <role name>:<policy name>")
+		return
+	}
+
 	roleName = parts[0]
 	policyName = parts[1]
 	return

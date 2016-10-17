@@ -16,6 +16,9 @@ func resourceAwsIamPolicy() *schema.Resource {
 		Read:   resourceAwsIamPolicyRead,
 		Update: resourceAwsIamPolicyUpdate,
 		Delete: resourceAwsIamPolicyDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"description": &schema.Schema{

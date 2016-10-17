@@ -18,6 +18,9 @@ func resourceAwsIamInstanceProfile() *schema.Resource {
 		Read:   resourceAwsIamInstanceProfileRead,
 		Update: resourceAwsIamInstanceProfileUpdate,
 		Delete: resourceAwsIamInstanceProfileDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
