@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilJobComplete uses the Amazon Elastic Transcoder API operation
+// ReadJob to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *ElasticTranscoder) WaitUntilJobComplete(input *ReadJobInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "ReadJob",
