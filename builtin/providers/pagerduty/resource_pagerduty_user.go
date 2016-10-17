@@ -1,7 +1,6 @@
 package pagerduty
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/PagerDuty/go-pagerduty"
@@ -35,7 +34,7 @@ func resourcePagerDutyUser() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "user",
-				ValidateFunc: validatePagerDutyUserRole,
+				ValidateFunc: validateValueFunc([]string{"admin", "limited_user", "owner", "read_only_user", "user"}),
 			},
 			"job_title": &schema.Schema{
 				Type:     schema.TypeString,
@@ -222,15 +221,4 @@ func resourcePagerDutyUserImport(d *schema.ResourceData, meta interface{}) ([]*s
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil
-}
-
-func validatePagerDutyUserRole(v interface{}, k string) (ws []string, errors []error) {
-	validRoles := []string{"admin", "limited_user", "owner", "read_only_user", "user"}
-	role := v.(string)
-
-	if !contains(validRoles, role) {
-		errors = append(errors, fmt.Errorf("%q must be one of %v", k, validRoles))
-	}
-
-	return
 }
