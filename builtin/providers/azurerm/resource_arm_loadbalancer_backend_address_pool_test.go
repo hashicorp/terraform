@@ -2,6 +2,7 @@ package azurerm
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -15,6 +16,12 @@ func TestAccAzureRMLoadBalancerBackEndAddressPool_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	addressPoolName := fmt.Sprintf("%d-address-pool", ri)
 
+	testAccPreCheck(t)
+	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
+	backendAddressPool_id := fmt.Sprintf(
+		"/subscriptions/%s/resourceGroups/acctestrg-%d/providers/Microsoft.Network/loadBalancers/arm-test-loadbalancer-%d/backendAddressPools/%s",
+		subscriptionID, ri, ri, addressPoolName)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -25,6 +32,8 @@ func TestAccAzureRMLoadBalancerBackEndAddressPool_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
 					testCheckAzureRMLoadBalancerBackEndAddressPoolExists(addressPoolName, &lb),
+					resource.TestCheckResourceAttr(
+						"azurerm_lb_backend_address_pool.test", "id", backendAddressPool_id),
 				),
 			},
 		},
