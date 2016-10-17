@@ -24,6 +24,7 @@ const fixtureDir = "./test-fixtures"
 func TestMain(m *testing.M) {
 	// Experimental features
 	xNewApply := flag.Bool("Xnew-apply", false, "Experiment: new apply graph")
+	xNewDestroy := flag.Bool("Xnew-destroy", false, "Experiment: new destroy graph")
 
 	// Normal features
 	shadow := flag.Bool("shadow", true, "Enable shadow graph")
@@ -32,6 +33,7 @@ func TestMain(m *testing.M) {
 
 	// Setup experimental features
 	X_newApply = *xNewApply
+	X_newDestroy = *xNewDestroy
 
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
