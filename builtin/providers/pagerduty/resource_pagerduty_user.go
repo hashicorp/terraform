@@ -93,7 +93,12 @@ func buildUserStruct(d *schema.ResourceData) *pagerduty.User {
 	}
 
 	if attr, ok := d.GetOk("role"); ok {
-		user.Role = attr.(string)
+		role := attr.(string)
+		// Skip setting the role if the user is the owner of the account.
+		// Can't change this through the API.
+		if role != "owner" {
+			user.Role = role
+		}
 	}
 
 	if attr, ok := d.GetOk("job_title"); ok {
