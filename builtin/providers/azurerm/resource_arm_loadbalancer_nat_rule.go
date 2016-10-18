@@ -123,9 +123,9 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 	}
 
 	var natRule_id string
-	for _, element := range *(*read.Properties).InboundNatRules {
-		if *element.Name == d.Get("name").(string) {
-			natRule_id = *element.ID
+	for _, InboundNatRule := range *(*read.Properties).InboundNatRules {
+		if *InboundNatRule.Name == d.Get("name").(string) {
+			natRule_id = *InboundNatRule.ID
 		}
 	}
 
