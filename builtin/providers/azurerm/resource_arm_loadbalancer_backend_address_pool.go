@@ -101,9 +101,9 @@ func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 	}
 
 	var pool_id string
-	for _, element := range *(*read.Properties).BackendAddressPools {
-		if *element.Name == d.Get("name").(string) {
-			pool_id = *element.ID
+	for _, BackendAddressPool := range *(*read.Properties).BackendAddressPools {
+		if *BackendAddressPool.Name == d.Get("name").(string) {
+			pool_id = *BackendAddressPool.ID
 		}
 	}
 

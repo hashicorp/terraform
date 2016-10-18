@@ -150,9 +150,9 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	var rule_id string
-	for _, element := range *(*read.Properties).LoadBalancingRules {
-		if *element.Name == d.Get("name").(string) {
-			rule_id = *element.ID
+	for _, LoadBalancingRule := range *(*read.Properties).LoadBalancingRules {
+		if *LoadBalancingRule.Name == d.Get("name").(string) {
+			rule_id = *LoadBalancingRule.ID
 		}
 	}
 

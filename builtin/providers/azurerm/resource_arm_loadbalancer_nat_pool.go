@@ -123,9 +123,9 @@ func resourceArmLoadBalancerNatPoolCreate(d *schema.ResourceData, meta interface
 	}
 
 	var natPool_id string
-	for _, element := range *(*read.Properties).InboundNatPools {
-		if *element.Name == d.Get("name").(string) {
-			natPool_id = *element.ID
+	for _, InboundNatPool := range *(*read.Properties).InboundNatPools {
+		if *InboundNatPool.Name == d.Get("name").(string) {
+			natPool_id = *InboundNatPool.ID
 		}
 	}
 
