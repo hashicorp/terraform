@@ -9,6 +9,7 @@ import (
 // See http://docs.aws.amazon.com/redshift/latest/mgmt/db-auditing.html#db-auditing-enable-logging
 var redshiftServiceAccountPerRegionMap = map[string]string{
 	"us-east-1":      "193672423079",
+	"us-east-2":      "391106570357",
 	"us-west-1":      "262260360010",
 	"us-west-2":      "902366379725",
 	"ap-south-1":     "865932855811",
