@@ -112,7 +112,7 @@ func resourcePagerDutyServiceRead(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[INFO] Reading PagerDuty service %s", d.Id())
 
-	s, err := client.GetService(d.Id(), pagerduty.GetServiceOptions{})
+	s, err := client.GetService(d.Id(), &pagerduty.GetServiceOptions{})
 
 	if err != nil {
 		return err
