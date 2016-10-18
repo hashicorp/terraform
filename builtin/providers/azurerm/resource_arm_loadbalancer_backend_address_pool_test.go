@@ -16,7 +16,6 @@ func TestAccAzureRMLoadBalancerBackEndAddressPool_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	addressPoolName := fmt.Sprintf("%d-address-pool", ri)
 
-	testAccPreCheck(t)
 	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
 	backendAddressPool_id := fmt.Sprintf(
 		"/subscriptions/%s/resourceGroups/acctestrg-%d/providers/Microsoft.Network/loadBalancers/arm-test-loadbalancer-%d/backendAddressPools/%s",

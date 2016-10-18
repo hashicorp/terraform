@@ -16,7 +16,6 @@ func TestAccAzureRMLoadBalancerNatPool_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	natPoolName := fmt.Sprintf("NatPool-%d", ri)
 
-	testAccPreCheck(t)
 	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
 	natPool_id := fmt.Sprintf(
 		"/subscriptions/%s/resourceGroups/acctestrg-%d/providers/Microsoft.Network/loadBalancers/arm-test-loadbalancer-%d/inboundNatPools/%s",

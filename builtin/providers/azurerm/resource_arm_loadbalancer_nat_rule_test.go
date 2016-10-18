@@ -16,7 +16,6 @@ func TestAccAzureRMLoadBalancerNatRule_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	natRuleName := fmt.Sprintf("NatRule-%d", ri)
 
-	testAccPreCheck(t)
 	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
 	natRule_id := fmt.Sprintf(
 		"/subscriptions/%s/resourceGroups/acctestrg-%d/providers/Microsoft.Network/loadBalancers/arm-test-loadbalancer-%d/inboundNatRules/%s",
