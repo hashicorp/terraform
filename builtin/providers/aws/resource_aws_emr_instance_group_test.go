@@ -100,6 +100,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
     subnet_id                         = "${aws_subnet.main.id}"
     emr_managed_master_security_group = "${aws_security_group.allow_all.id}"
     emr_managed_slave_security_group  = "${aws_security_group.allow_all.id}"
+    service_access_security_group     = "${aws_security_group.allow_all.id}"
     instance_profile                  = "${aws_iam_instance_profile.emr_profile.arn}"
   }
 
