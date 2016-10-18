@@ -15,7 +15,7 @@ ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
 # Install Prereq Packages
 sudo apt-get update
 sudo apt-get upgrade -y
-sudo apt-get install -y build-essential curl git-core libpcre3-dev mercurial pkg-config zip
+sudo apt-get install -y build-essential curl git-core libpcre3-dev mercurial pkg-config zip bzr
 
 # Install Go
 cd /tmp
