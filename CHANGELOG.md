@@ -10,7 +10,8 @@ FEATURES:
  * **New Data Source:** `scaleway_image`. [GH9386]
  
 IMPROVEMENTS:
- 
+
+ * core: When the environment variable TF_LOG_PATH is specified, debug logs are now appended to the specified file instead of being truncated. ([#9440](https://github.com/hashicorp/terraform/pull/9440))
  * provider/aws: Expose ARN for `aws_lambda_alias`. ([#9390](https://github.com/hashicorp/terraform/issues/9390))
  * provider/aws: Add support for AWS US East (Ohio) region. ([#9414](https://github.com/hashicorp/terraform/issues/9414))
  * provider/scaleway: `scaleway_ip`, `scaleway_security_group`, `scalway_server` and `scaleway_volume` resources can now be imported. ([#9387](https://github.com/hashicorp/terraform/issues/9387))
