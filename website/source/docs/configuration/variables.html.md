@@ -72,8 +72,8 @@ These are the parameters that can be set:
 
 ------
 
-**Default values** can be strings, lists, or maps. If a default is specified,
-it must match the declared type of the variable.
+**Note**: Default values can be strings, lists, or maps. If a default is
+specified, it must match the declared type of the variable.
 
 String values are simple and represent a basic key to value
 mapping where the key is the variable name. An example is:
@@ -162,7 +162,7 @@ $ TF_VAR_image=foo terraform apply
 Maps and lists can be specified using environment variables as well using
 [HCL](/docs/configuration/syntax.html#HCL) syntax in the value.
 
-Given the variable declarations:
+For a list variable like so:
 
 ```
 variable "somelist" {
@@ -195,9 +195,16 @@ $ TF_VAR_somemap='{foo = "bar", baz = "qux"}' terraform plan
 <a id="variable-files"></a>
 
 Variables can be collected in files and passed all at once using the
-`-var-file=foo.tfvars` flag. The format for variables in `.tfvars`
-files is [HCL](/docs/configuration/syntax.html#HCL), with top level key/value
-pairs:
+`-var-file=foo.tfvars` flag.
+
+If a file named `terraform.tfvars` is present in the current directory,
+Terraform automatically loads it to populate variables. If the file is named
+something else, you can pass the path to the file using the `-var-file`
+flag.
+
+Variables files use HCL or JSON to define variable values. Strings, lists or
+maps may be set in the same manner as the default value in a `variable` block
+in Terraform configuration. For example:
 
 ```
 foo = "bar"
@@ -212,26 +219,28 @@ somemap = {
 }
 ```
 
-The flag can be used multiple times per command invocation:
+The `-var-file` flag can be used multiple times per command invocation:
 
 ```
 terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
 ```
 
-**Note** If a variable is defined in more than one file passed, the last
-variable file (reading left to right) will be the definition used. Put more
-simply, the last time a variable is defined is the one which will be used.
+**Note**: Variable files are evaluated in the order in which they are specified
+on the command line. If a variable is defined in more than one variables file,
+the last value specified is effective.
 
 ### Precedence example:
 
 Both these files have the variable `baz` defined:
 
 _foo.tfvars_
+
 ```
 baz = "foo"
 ```
 
 _bar.tfvars_
+
 ```
 baz = "bar"
 ```

@@ -1,7 +1,30 @@
+## 0.7.7 (October 18, 2016)
+
+FEATURES:
+
+ * **New Data Source:** `scaleway_bootsscript`. ([#9386](https://github.com/hashicorp/terraform/issues/9386))
+ * **New Data Source:** `scaleway_image`. [GH9386]
+ 
+IMPROVEMENTS:
+ 
+ * provider/aws: Expose ARN for `aws_lambda_alias`. ([#9390](https://github.com/hashicorp/terraform/issues/9390))
+ * provider/aws: Add support for AWS US East (Ohio) region. ([#9414](https://github.com/hashicorp/terraform/issues/9414))
+ * provider/scaleway: `scaleway_ip`, `scaleway_security_group`, `scalway_server` and `scaleway_volume` resources can now be imported. ([#9387](https://github.com/hashicorp/terraform/issues/9387))
+
+BUG FIXES:
+
+ * core: List and map indexes support arithmetic. ([#9372](https://github.com/hashicorp/terraform/issues/9372))
+ * core: List and map indexes are implicitly converted to the correct type if possible. ([#9372](https://github.com/hashicorp/terraform/issues/9372))
+ * provider/aws: Read back `aassociate_public_ip_address` in `aws_launch_configuration` resources to enable importing. ([#9399](https://github.com/hashicorp/terraform/issues/9399))
+ * provider/aws: Remove `aws_route` resources from state if their associated `aws_route_table` has been removed. ([#9431](https://github.com/hashicorp/terraform/issues/9431))
+ * provider/azurerm: Load balancer resources now have their `id` attribute set to the resource URI instead of the load balancer URI. ([#9401](https://github.com/hashicorp/terraform/issues/9401))
+ * provider/google: Fix a bug causing a crash when migrating `google_compute_target_pool` resources from 0.6.x releases. ([#9370](https://github.com/hashicorp/terraform/issues/9370))
+
 ## 0.7.6 (October 14, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
  * `azurerm_virtual_machine` has deprecated the use of `diagnostics_profile` in favour of `boot_diagnostics`. ([#9122](https://github.com/hashicorp/terraform/issues/9122))
+ * The deprecated `key_file` and `bastion_key_file` arguments to Provisioner Connections have been removed ([#9340](https://github.com/hashicorp/terraform/issues/9340))
 
 FEATURES:
  * **New Data Source:** `aws_billing_service_account` ([#8701](https://github.com/hashicorp/terraform/issues/8701))

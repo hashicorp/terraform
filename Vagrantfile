@@ -5,7 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
-GOVERSION="1.7"
+GOVERSION="1.7.1"
 SRCROOT="/opt/go"
 SRCPATH="/opt/gopath"
 
@@ -53,6 +53,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", inline: $script, privileged: false
   config.vm.synced_folder '.', '/opt/gopath/src/github.com/hashicorp/terraform'
 
+  config.vm.provider "docker" do |v, override|
+    override.vm.box = "tknerr/baseimage-ubuntu-14.04"
+  end
+
   ["vmware_fusion", "vmware_workstation"].each do |p|
     config.vm.provider p do |v|
       v.vmx["memsize"] = "4096"
@@ -60,10 +64,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
-  config.vm.provider "docker" do
-    config.vm.box = "tknerr/baseimage-ubuntu-14.04"
-  end
-  
   config.vm.provider "virtualbox" do |v|
     v.memory = 4096
     v.cpus = 2

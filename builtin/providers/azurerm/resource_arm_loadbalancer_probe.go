@@ -128,7 +128,18 @@ func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Cannot read LoadBalancer %s (resource group %s) ID", loadBalancerName, resGroup)
 	}
 
-	d.SetId(*read.ID)
+	var createdProbe_id string
+	for _, Probe := range *(*read.Properties).Probes {
+		if *Probe.Name == d.Get("name").(string) {
+			createdProbe_id = *Probe.ID
+		}
+	}
+
+	if createdProbe_id != "" {
+		d.SetId(createdProbe_id)
+	} else {
+		return fmt.Errorf("Cannot find created LoadBalancer Probe ID %q", createdProbe_id)
+	}
 
 	log.Printf("[DEBUG] Waiting for LoadBalancer (%s) to become available", loadBalancerName)
 	stateConf := &resource.StateChangeConf{
@@ -145,7 +156,7 @@ func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceArmLoadBalancerProbeRead(d *schema.ResourceData, meta interface{}) error {
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}

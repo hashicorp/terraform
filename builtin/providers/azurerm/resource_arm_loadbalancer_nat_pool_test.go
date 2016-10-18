@@ -2,6 +2,7 @@ package azurerm
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -15,6 +16,11 @@ func TestAccAzureRMLoadBalancerNatPool_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	natPoolName := fmt.Sprintf("NatPool-%d", ri)
 
+	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
+	natPool_id := fmt.Sprintf(
+		"/subscriptions/%s/resourceGroups/acctestrg-%d/providers/Microsoft.Network/loadBalancers/arm-test-loadbalancer-%d/inboundNatPools/%s",
+		subscriptionID, ri, ri, natPoolName)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -25,6 +31,8 @@ func TestAccAzureRMLoadBalancerNatPool_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
 					testCheckAzureRMLoadBalancerNatPoolExists(natPoolName, &lb),
+					resource.TestCheckResourceAttr(
+						"azurerm_lb_nat_pool.test", "id", natPool_id),
 				),
 			},
 		},
