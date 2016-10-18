@@ -149,7 +149,18 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Cannot read LoadBalancer %s (resource group %s) ID", loadBalancerName, resGroup)
 	}
 
-	d.SetId(*read.ID)
+	var rule_id string
+	for _, LoadBalancingRule := range *(*read.Properties).LoadBalancingRules {
+		if *LoadBalancingRule.Name == d.Get("name").(string) {
+			rule_id = *LoadBalancingRule.ID
+		}
+	}
+
+	if rule_id != "" {
+		d.SetId(rule_id)
+	} else {
+		return fmt.Errorf("Error can not find created loadbalancer rule id %s", rule_id)
+	}
 
 	log.Printf("[DEBUG] Waiting for LoadBalancer (%s) to become available", loadBalancerName)
 	stateConf := &resource.StateChangeConf{
@@ -166,7 +177,7 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceArmLoadBalancerRuleRead(d *schema.ResourceData, meta interface{}) error {
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Id(), meta)
+	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
