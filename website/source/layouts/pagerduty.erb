@@ -10,16 +10,25 @@
             <a href="/docs/providers/pagerduty/index.html">PagerDuty Provider</a>
         </li>
 
+        <li<%= sidebar_current(/^docs-pagerduty-datasource/) %>>
+            <a href="#">Data Sources</a>
+            <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-pagerduty-datasource-on_call") %>>
+                    <a href="/docs/providers/pagerduty/d/on_call.html">pagerduty_on_call</a>
+                </li>
+            </ul>
+        </li>
+
         <li<%= sidebar_current(/^docs-pagerduty-resource/) %>>
             <a href="#">Resources</a>
             <ul class="nav nav-visible">
-                <li<%= sidebar_current("docs-pagerduty-resource-device") %>>
+                <li<%= sidebar_current("docs-pagerduty-resource-user") %>>
                     <a href="/docs/providers/pagerduty/r/user.html">pagerduty_user</a>
                 </li>
-                <li<%= sidebar_current("docs-pagerduty-resource-project") %>>
+                <li<%= sidebar_current("docs-pagerduty-resource-team") %>>
                     <a href="/docs/providers/pagerduty/r/team.html">pagerduty_team</a>
                 </li>
-                <li<%= sidebar_current("docs-pagerduty-resource-escalation-policy") %>>
+                <li<%= sidebar_current("docs-pagerduty-resource-escalation_policy") %>>
                     <a href="/docs/providers/pagerduty/r/escalation_policy.html">pagerduty_escalation_policy</a>
                 </li>
                 <li<%= sidebar_current("docs-pagerduty-resource-schedule") %>>

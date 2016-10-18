@@ -18,6 +18,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"pagerduty_on_call": dataSourcePagerDutyOnCall(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"pagerduty_user":                resourcePagerDutyUser(),
 			"pagerduty_team":                resourcePagerDutyTeam(),
