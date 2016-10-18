@@ -54,7 +54,7 @@ func testAccCheckPagerDutyServiceDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.GetService(r.Primary.ID, pagerduty.GetServiceOptions{})
+		_, err := client.GetService(r.Primary.ID, &pagerduty.GetServiceOptions{})
 
 		if err == nil {
 			return fmt.Errorf("Service still exists")
@@ -76,7 +76,7 @@ func testAccCheckPagerDutyServiceExists(n string) resource.TestCheckFunc {
 
 		client := testAccProvider.Meta().(*pagerduty.Client)
 
-		found, err := client.GetService(rs.Primary.ID, pagerduty.GetServiceOptions{})
+		found, err := client.GetService(rs.Primary.ID, &pagerduty.GetServiceOptions{})
 		if err != nil {
 			return err
 		}
