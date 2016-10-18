@@ -159,7 +159,7 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 	if rule_id != "" {
 		d.SetId(rule_id)
 	} else {
-		return fmt.Errorf("Error can not find created loadbalancer rule id %s", rule_id)
+		return fmt.Errorf("Cannot find created LoadBalancer Rule ID %q", rule_id)
 	}
 
 	log.Printf("[DEBUG] Waiting for LoadBalancer (%s) to become available", loadBalancerName)

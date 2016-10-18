@@ -132,7 +132,7 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 	if natRule_id != "" {
 		d.SetId(natRule_id)
 	} else {
-		return fmt.Errorf("Error can not find created loadbalancer nat rule id %s", natRule_id)
+		return fmt.Errorf("Cannot find created LoadBalancer NAT Rule ID %q", natRule_id)
 	}
 
 	log.Printf("[DEBUG] Waiting for LoadBalancer (%s) to become available", loadBalancerName)
