@@ -763,12 +763,12 @@ func testArchiveStr(t *testing.T, path string) []string {
 
 func pushTFVars() []atlas.TFVar {
 	return []atlas.TFVar{
-		{"bar", "foo", false},
-		{"baz", `{
+		{Key: "bar", Value: "foo", IsHCL: false},
+		{Key: "baz", Value: `{
   A = "a"
-}`, true},
-		{"fob", `["a", "quotes \"in\" quotes"]`, true},
-		{"foo", "bar", false},
+}`, IsHCL: true},
+		{Key: "fob", Value: `["a", "quotes \"in\" quotes"]`, IsHCL: true},
+		{Key: "foo", Value: "bar", IsHCL: false},
 	}
 }
 
