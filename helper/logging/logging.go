@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"syscall"
 
 	"github.com/hashicorp/logutils"
 )
@@ -31,7 +32,7 @@ func LogOutput() (logOutput io.Writer, err error) {
 	logOutput = os.Stderr
 	if logPath := os.Getenv(EnvLogFile); logPath != "" {
 		var err error
-		logOutput, err = os.Create(logPath)
+		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
 		if err != nil {
 			return nil, err
 		}
