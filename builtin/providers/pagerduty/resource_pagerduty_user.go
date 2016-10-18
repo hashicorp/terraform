@@ -83,6 +83,9 @@ func buildUserStruct(d *schema.ResourceData) *pagerduty.User {
 	user := pagerduty.User{
 		Name:  d.Get("name").(string),
 		Email: d.Get("email").(string),
+		APIObject: pagerduty.APIObject{
+			ID: d.Id(),
+		},
 	}
 
 	if attr, ok := d.GetOk("color"); ok {
@@ -150,7 +153,6 @@ func resourcePagerDutyUserUpdate(d *schema.ResourceData, meta interface{}) error
 	client := meta.(*pagerduty.Client)
 
 	u := buildUserStruct(d)
-	u.ID = d.Id()
 
 	log.Printf("[INFO] Updating PagerDuty user %s", d.Id())
 

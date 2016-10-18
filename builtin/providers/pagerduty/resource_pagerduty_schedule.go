@@ -1,12 +1,9 @@
 package pagerduty
 
 import (
-	"bytes"
-	"fmt"
 	"log"
 
 	"github.com/PagerDuty/go-pagerduty"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -34,8 +31,7 @@ func resourcePagerDutySchedule() *schema.Resource {
 				Default:  "Managed by Terraform",
 			},
 			"schedule_layer": &schema.Schema{
-				Type:     schema.TypeSet,
-				Set:      resourcePagerDutyEscalationHash,
+				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
@@ -47,10 +43,18 @@ func resourcePagerDutySchedule() *schema.Resource {
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 						"start": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if old == "" {
+									return false
+								}
+								return true
+							},
 						},
 						"end": &schema.Schema{
 							Type:     schema.TypeString,
@@ -58,7 +62,14 @@ func resourcePagerDutySchedule() *schema.Resource {
 						},
 						"rotation_virtual_start": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if old == "" {
+									return false
+								}
+								return true
+							},
 						},
 						"rotation_turn_length_seconds": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -72,8 +83,8 @@ func resourcePagerDutySchedule() *schema.Resource {
 							},
 						},
 						"restriction": &schema.Schema{
-							Type:     schema.TypeList,
 							Optional: true,
+							Type:     schema.TypeList,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"type": &schema.Schema{
@@ -99,12 +110,12 @@ func resourcePagerDutySchedule() *schema.Resource {
 }
 
 func buildScheduleStruct(d *schema.ResourceData) (*pagerduty.Schedule, error) {
-	pagerdutyLayers := d.Get("schedule_layer").(*schema.Set).List()
+	scheduleLayers := d.Get("schedule_layer").([]interface{})
 
 	schedule := pagerduty.Schedule{
 		Name:           d.Get("name").(string),
 		TimeZone:       d.Get("time_zone").(string),
-		ScheduleLayers: expandLayers(pagerdutyLayers),
+		ScheduleLayers: expandLayers(scheduleLayers),
 	}
 
 	if attr, ok := d.GetOk("description"); ok {
@@ -129,7 +140,7 @@ func resourcePagerDutyScheduleCreate(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(e.ID)
 
-	return nil
+	return resourcePagerDutyScheduleRead(d, meta)
 }
 
 func resourcePagerDutyScheduleRead(d *schema.ResourceData, meta interface{}) error {
@@ -144,6 +155,7 @@ func resourcePagerDutyScheduleRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	d.Set("name", s.Name)
+	d.Set("time_zone", s.TimeZone)
 	d.Set("description", s.Description)
 
 	if err := d.Set("schedule_layer", flattenLayers(s.ScheduleLayers)); err != nil {
@@ -190,31 +202,4 @@ func resourcePagerDutyScheduleImport(d *schema.ResourceData, meta interface{}) (
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil
-}
-
-func resourcePagerDutyEscalationHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["rotation_turn_length_seconds"].(int)))
-
-	if _, ok := m["name"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-	}
-
-	if _, ok := m["end"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", m["end"].(string)))
-	}
-
-	for _, u := range m["users"].([]interface{}) {
-		buf.WriteString(fmt.Sprintf("%s-", u))
-	}
-
-	for _, r := range m["restriction"].([]interface{}) {
-		restriction := r.(map[string]interface{})
-		buf.WriteString(fmt.Sprintf("%s-", restriction["type"].(string)))
-		buf.WriteString(fmt.Sprintf("%s-", restriction["start_time_of_day"].(string)))
-		buf.WriteString(fmt.Sprintf("%d-", restriction["duration_seconds"].(int)))
-	}
-
-	return hashcode.String(buf.String())
 }

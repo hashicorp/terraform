@@ -37,23 +37,21 @@ func flattenRules(list []pagerduty.EscalationRule) []map[string]interface{} {
 
 	for _, i := range list {
 		r := make(map[string]interface{})
-		if i.ID != "" {
-			r["id"] = i.ID
-			r["escalation_delay_in_minutes"] = i.Delay
+		r["id"] = i.ID
+		r["escalation_delay_in_minutes"] = i.Delay
 
-			if len(i.Targets) > 0 {
-				targets := make([]map[string]interface{}, 0, len(i.Targets))
-				for _, t := range i.Targets {
-					targets = append(targets, map[string]interface{}{
-						"id":   t.ID,
-						"type": t.Type,
-					})
-				}
-				r["target"] = targets
+		if len(i.Targets) > 0 {
+			targets := make([]map[string]interface{}, 0, len(i.Targets))
+			for _, t := range i.Targets {
+				targets = append(targets, map[string]interface{}{
+					"id":   t.ID,
+					"type": t.Type,
+				})
 			}
-
-			result = append(result, r)
+			r["target"] = targets
 		}
+
+		result = append(result, r)
 	}
 
 	return result
@@ -72,6 +70,10 @@ func expandLayers(list []interface{}) []pagerduty.ScheduleLayer {
 			End:                       layer["end"].(string),
 			RotationVirtualStart:      layer["rotation_virtual_start"].(string),
 			RotationTurnLengthSeconds: uint(layer["rotation_turn_length_seconds"].(int)),
+		}
+
+		if layer["id"] != "" {
+			scheduleLayer.ID = layer["id"].(string)
 		}
 
 		for _, u := range layer["users"].([]interface{}) {
@@ -110,37 +112,44 @@ func flattenLayers(list []pagerduty.ScheduleLayer) []map[string]interface{} {
 
 	for _, i := range list {
 		r := make(map[string]interface{})
-		if i.ID != "" {
-			r["id"] = i.ID
-			r["name"] = i.Name
-			r["end"] = i.End
-			r["rotation_turn_length_seconds"] = i.RotationTurnLengthSeconds
+		r["id"] = i.ID
+		r["name"] = i.Name
+		r["end"] = i.End
+		r["start"] = i.Start
+		r["rotation_virtual_start"] = i.RotationVirtualStart
+		r["rotation_turn_length_seconds"] = i.RotationTurnLengthSeconds
 
-			if len(i.Users) > 0 {
-				users := make([]string, 0, len(i.Users))
-				for _, u := range i.Users {
-					users = append(users, u.User.ID)
-				}
-				r["users"] = users
+		if len(i.Users) > 0 {
+			users := make([]string, 0, len(i.Users))
+			for _, u := range i.Users {
+				users = append(users, u.User.ID)
 			}
-
-			if len(i.Restrictions) > 0 {
-				restrictions := make([]map[string]interface{}, 0, len(i.Restrictions))
-				for _, r := range i.Restrictions {
-					restrictions = append(restrictions, map[string]interface{}{
-						"duration_seconds":  r.DurationSeconds,
-						"start_time_of_day": r.StartTimeOfDay,
-						"type":              r.Type,
-					})
-				}
-				r["restriction"] = restrictions
-			}
-
-			result = append(result, r)
+			r["users"] = users
 		}
+
+		if len(i.Restrictions) > 0 {
+			restrictions := make([]map[string]interface{}, 0, len(i.Restrictions))
+			for _, r := range i.Restrictions {
+				restrictions = append(restrictions, map[string]interface{}{
+					"duration_seconds":  r.DurationSeconds,
+					"start_time_of_day": r.StartTimeOfDay,
+					"type":              r.Type,
+				})
+			}
+			r["restriction"] = restrictions
+		}
+
+		result = append(result, r)
 	}
 
-	return result
+	// Reverse the final result and return it
+	resultReversed := make([]map[string]interface{}, 0, len(result))
+
+	for i := len(result) - 1; i >= 0; i-- {
+		resultReversed = append(resultReversed, result[i])
+	}
+
+	return resultReversed
 }
 
 // Takes the result of flatmap.Expand for an array of strings

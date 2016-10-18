@@ -175,7 +175,7 @@ resource "pagerduty_team" "foo" {
 resource "pagerduty_user" "foo" {
   name  = "foo"
   email = "foo@bar.com"
-	teams = ["${pagerduty_team.foo.id}"]
+  teams = ["${pagerduty_team.foo.id}"]
 }
 `
 const testAccCheckPagerDutyUserWithTeamsConfigUpdated = `
@@ -190,7 +190,7 @@ resource "pagerduty_team" "bar" {
 resource "pagerduty_user" "foo" {
   name  = "foo"
   email = "foo@bar.com"
-	teams = ["${pagerduty_team.foo.id}", "${pagerduty_team.bar.id}"]
+  teams = ["${pagerduty_team.foo.id}", "${pagerduty_team.bar.id}"]
 }
 `
 

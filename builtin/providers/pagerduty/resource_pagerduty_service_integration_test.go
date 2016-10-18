@@ -102,21 +102,22 @@ resource "pagerduty_escalation_policy" "foo" {
   description = "foo"
   num_loops   = 1
 
-	escalation_rule {
-		escalation_delay_in_minutes = 10
-		target {
-			type = "user_reference"
-			id = "${pagerduty_user.foo.id}"
-		}
-	}
+  escalation_rule {
+    escalation_delay_in_minutes = 10
+
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
 }
 
 resource "pagerduty_service" "foo" {
   name                    = "foo"
   description             = "foo"
-	auto_resolve_timeout    = 1800
-	acknowledgement_timeout = 1800
-	escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+  auto_resolve_timeout    = 1800
+  acknowledgement_timeout = 1800
+  escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
 }
 
 resource "pagerduty_service_integration" "foo" {
@@ -141,21 +142,22 @@ resource "pagerduty_escalation_policy" "foo" {
   description = "bar"
   num_loops   = 2
 
-	escalation_rule {
-		escalation_delay_in_minutes = 10
-		target {
-			type = "user_reference"
-			id = "${pagerduty_user.foo.id}"
-		}
-	}
+  escalation_rule {
+    escalation_delay_in_minutes = 10
+
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
 }
 
 resource "pagerduty_service" "foo" {
   name                    = "bar"
   description             = "bar"
-	auto_resolve_timeout    = 3600
-	acknowledgement_timeout = 3600
-	escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
+  auto_resolve_timeout    = 3600
+  acknowledgement_timeout = 3600
+  escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
 }
 
 resource "pagerduty_service_integration" "foo" {

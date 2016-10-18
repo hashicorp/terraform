@@ -60,6 +60,9 @@ func buildServiceIntegrationStruct(d *schema.ResourceData) *pagerduty.Integratio
 			Type: "service",
 			ID:   d.Get("service").(string),
 		},
+		APIObject: pagerduty.APIObject{
+			ID: d.Id(),
+		},
 	}
 
 	return &service
@@ -111,7 +114,6 @@ func resourcePagerDutyServiceIntegrationUpdate(d *schema.ResourceData, meta inte
 	client := meta.(*pagerduty.Client)
 
 	s := buildServiceIntegrationStruct(d)
-	s.ID = d.Id()
 
 	service := d.Get("service").(string)
 
