@@ -1107,11 +1107,30 @@ func WebsiteDomainUrl(region string) string {
 
 	// New regions uses different syntax for website endpoints
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteEndpoints.html
-	if region == "eu-central-1" || region == "ap-south-1" || region == "ap-northeast-2" {
-		return fmt.Sprintf("s3-website.%s.amazonaws.com", region)
+	if isOldRegion(region) {
+		return fmt.Sprintf("s3-website-%s.amazonaws.com", region)
 	}
+	return fmt.Sprintf("s3-website.%s.amazonaws.com", region)
+}
 
-	return fmt.Sprintf("s3-website-%s.amazonaws.com", region)
+func isOldRegion(region string) bool {
+	oldRegions := []string{
+		"ap-northeast-1",
+		"ap-southeast-1",
+		"ap-southeast-2",
+		"eu-west-1",
+		"sa-east-1",
+		"us-east-1",
+		"us-gov-west-1",
+		"us-west-1",
+		"us-west-2",
+	}
+	for _, r := range oldRegions {
+		if region == r {
+			return true
+		}
+	}
+	return false
 }
 
 func resourceAwsS3BucketAclUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
