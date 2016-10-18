@@ -138,7 +138,7 @@ func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}
 	if createdProbe_id != "" {
 		d.SetId(createdProbe_id)
 	} else {
-		return fmt.Errorf("Error can not find created probe id %s", createdProbe_id)
+		return fmt.Errorf("Cannot find created LoadBalancer Probe ID %q", createdProbe_id)
 	}
 
 	log.Printf("[DEBUG] Waiting for LoadBalancer (%s) to become available", loadBalancerName)

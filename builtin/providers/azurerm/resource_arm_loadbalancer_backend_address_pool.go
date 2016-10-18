@@ -110,7 +110,7 @@ func resourceArmLoadBalancerBackendAddressPoolCreate(d *schema.ResourceData, met
 	if pool_id != "" {
 		d.SetId(pool_id)
 	} else {
-		return fmt.Errorf("Error can not find created loadbalacner backend address pool id %s", pool_id)
+		return fmt.Errorf("Cannot find created LoadBalancer Backend Address Pool ID %q", pool_id)
 	}
 
 	log.Printf("[DEBUG] Waiting for LoadBalancer (%s) to become available", loadBalancerName)
