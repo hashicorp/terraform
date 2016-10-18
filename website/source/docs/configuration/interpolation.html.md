@@ -33,7 +33,7 @@ key within the `amis` map variable.
 
 **To reference user list variables**, the syntax is `["${var.LIST}"]`.  For
 example, `["${var.subnets}"]` would get the value of the `subnets` list, as a
-list.
+list. You can also return list elements by index: `${var.subnets[idx]}`.
 
 **To reference attributes of your own resource**, the syntax is
 `self.ATTRIBUTE`. For example `${self.private_ip_address}` will
