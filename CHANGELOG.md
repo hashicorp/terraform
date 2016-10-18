@@ -19,7 +19,7 @@ BUG FIXES:
 
  * core: List and map indexes support arithmetic. ([#9372](https://github.com/hashicorp/terraform/issues/9372))
  * core: List and map indexes are implicitly converted to the correct type if possible. ([#9372](https://github.com/hashicorp/terraform/issues/9372))
- * provider/aws: Read back `aassociate_public_ip_address` in `aws_launch_configuration` resources to enable importing. ([#9399](https://github.com/hashicorp/terraform/issues/9399))
+ * provider/aws: Read back `associate_public_ip_address` in `aws_launch_configuration` resources to enable importing. ([#9399](https://github.com/hashicorp/terraform/issues/9399))
  * provider/aws: Remove `aws_route` resources from state if their associated `aws_route_table` has been removed. ([#9431](https://github.com/hashicorp/terraform/issues/9431))
  * provider/azurerm: Load balancer resources now have their `id` attribute set to the resource URI instead of the load balancer URI. ([#9401](https://github.com/hashicorp/terraform/issues/9401))
  * provider/google: Fix a bug causing a crash when migrating `google_compute_target_pool` resources from 0.6.x releases. ([#9370](https://github.com/hashicorp/terraform/issues/9370))
