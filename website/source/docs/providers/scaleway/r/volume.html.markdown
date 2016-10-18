@@ -42,3 +42,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - id of the new resource
+
+## Import
+
+Instances can be imported using the `id`, e.g.
+
+```
+$ terraform import scaleway_volume.test 5faef9cd-ea9b-4a63-9171-9e26bec03dbc
+```
