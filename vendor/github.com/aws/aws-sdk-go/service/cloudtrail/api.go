@@ -18,6 +18,8 @@ const opAddTags = "AddTags"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See AddTags for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -52,12 +54,66 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 	return
 }
 
+// AddTags API operation for AWS CloudTrail.
+//
 // Adds one or more tags to a trail, up to a limit of 10. Tags must be unique
 // per trail. Overwrites an existing tag's value when a new value is specified
 // for an existing tag key. If you specify a key without a value, the tag will
 // be created with the specified key and a value of null. You can tag a trail
 // that applies to all regions only from the region in which the trail was created
 // (that is, from its home region).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation AddTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   This exception is thrown when the specified resource is not found.
+//
+//   * ARNInvalidException
+//   This exception is thrown when an operation is called with an invalid trail
+//   ARN. The format of a trail ARN is:
+//
+//    arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+//
+//   * ResourceTypeNotSupportedException
+//   This exception is thrown when the specified resource type is not supported
+//   by CloudTrail.
+//
+//   * TagsLimitExceededException
+//   The number of tags per trail has exceeded the permitted amount. Currently,
+//   the limit is 10.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//   (_), or dashes (-)
+//
+//     Start with a letter or number, and end with a letter or number
+//
+//     Be between 3 and 128 characters
+//
+//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//   and my--namespace are invalid.
+//
+//     Not be in IP address format (for example, 192.168.5.4)
+//
+//   * InvalidTagParameterException
+//   This exception is thrown when the key or value specified for the tag does
+//   not match the regular expression ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$.
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
 func (c *CloudTrail) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 	req, out := c.AddTagsRequest(input)
 	err := req.Send()
@@ -70,6 +126,8 @@ const opCreateTrail = "CreateTrail"
 // client's request for the CreateTrail operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateTrail for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -105,9 +163,100 @@ func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.R
 	return
 }
 
+// CreateTrail API operation for AWS CloudTrail.
+//
 // Creates a trail that specifies the settings for delivery of log data to an
 // Amazon S3 bucket. A maximum of five trails can exist in a region, irrespective
 // of the region in which they were created.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation CreateTrail for usage and error information.
+//
+// Returned Error Codes:
+//   * MaximumNumberOfTrailsExceededException
+//   This exception is thrown when the maximum number of trails is reached.
+//
+//   * TrailAlreadyExistsException
+//   This exception is thrown when the specified trail already exists.
+//
+//   * S3BucketDoesNotExistException
+//   This exception is thrown when the specified S3 bucket does not exist.
+//
+//   * InsufficientS3BucketPolicyException
+//   This exception is thrown when the policy on the S3 bucket is not sufficient.
+//
+//   * InsufficientSnsTopicPolicyException
+//   This exception is thrown when the policy on the SNS topic is not sufficient.
+//
+//   * InsufficientEncryptionPolicyException
+//   This exception is thrown when the policy on the S3 bucket or KMS key is not
+//   sufficient.
+//
+//   * InvalidS3BucketNameException
+//   This exception is thrown when the provided S3 bucket name is not valid.
+//
+//   * InvalidS3PrefixException
+//   This exception is thrown when the provided S3 prefix is not valid.
+//
+//   * InvalidSnsTopicNameException
+//   This exception is thrown when the provided SNS topic name is not valid.
+//
+//   * InvalidKmsKeyIdException
+//   This exception is thrown when the KMS key ARN is invalid.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//   (_), or dashes (-)
+//
+//     Start with a letter or number, and end with a letter or number
+//
+//     Be between 3 and 128 characters
+//
+//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//   and my--namespace are invalid.
+//
+//     Not be in IP address format (for example, 192.168.5.4)
+//
+//   * TrailNotProvidedException
+//   This exception is deprecated.
+//
+//   * InvalidParameterCombinationException
+//   This exception is thrown when the combination of parameters provided is not
+//   valid.
+//
+//   * KmsKeyNotFoundException
+//   This exception is thrown when the KMS key does not exist, or when the S3
+//   bucket and the KMS key are not in the same region.
+//
+//   * KmsKeyDisabledException
+//   This exception is deprecated.
+//
+//   * KmsException
+//   This exception is thrown when there is an issue with the specified KMS key
+//   and the trail can’t be updated.
+//
+//   * InvalidCloudWatchLogsLogGroupArnException
+//   This exception is thrown when the provided CloudWatch log group is not valid.
+//
+//   * InvalidCloudWatchLogsRoleArnException
+//   This exception is thrown when the provided role is not valid.
+//
+//   * CloudWatchLogsDeliveryUnavailableException
+//   Cannot set a CloudWatch Logs delivery for this region.
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
 func (c *CloudTrail) CreateTrail(input *CreateTrailInput) (*CreateTrailOutput, error) {
 	req, out := c.CreateTrailRequest(input)
 	err := req.Send()
@@ -120,6 +269,8 @@ const opDeleteTrail = "DeleteTrail"
 // client's request for the DeleteTrail operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteTrail for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -155,9 +306,43 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 	return
 }
 
+// DeleteTrail API operation for AWS CloudTrail.
+//
 // Deletes a trail. This operation must be called from the region in which the
 // trail was created. DeleteTrail cannot be called on the shadow trails (replicated
 // trails in other regions) of a trail that is enabled in all regions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation DeleteTrail for usage and error information.
+//
+// Returned Error Codes:
+//   * TrailNotFoundException
+//   This exception is thrown when the trail with the given name is not found.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//   (_), or dashes (-)
+//
+//     Start with a letter or number, and end with a letter or number
+//
+//     Be between 3 and 128 characters
+//
+//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//   and my--namespace are invalid.
+//
+//     Not be in IP address format (for example, 192.168.5.4)
+//
+//   * InvalidHomeRegionException
+//   This exception is thrown when an operation is called on a trail from a region
+//   other than the region in which the trail was created.
+//
 func (c *CloudTrail) DeleteTrail(input *DeleteTrailInput) (*DeleteTrailOutput, error) {
 	req, out := c.DeleteTrailRequest(input)
 	err := req.Send()
@@ -170,6 +355,8 @@ const opDescribeTrails = "DescribeTrails"
 // client's request for the DescribeTrails operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeTrails for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -205,8 +392,25 @@ func (c *CloudTrail) DescribeTrailsRequest(input *DescribeTrailsInput) (req *req
 	return
 }
 
+// DescribeTrails API operation for AWS CloudTrail.
+//
 // Retrieves settings for the trail associated with the current region for your
 // account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation DescribeTrails for usage and error information.
+//
+// Returned Error Codes:
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
 func (c *CloudTrail) DescribeTrails(input *DescribeTrailsInput) (*DescribeTrailsOutput, error) {
 	req, out := c.DescribeTrailsRequest(input)
 	err := req.Send()
@@ -219,6 +423,8 @@ const opGetTrailStatus = "GetTrailStatus"
 // client's request for the GetTrailStatus operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetTrailStatus for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -254,11 +460,41 @@ func (c *CloudTrail) GetTrailStatusRequest(input *GetTrailStatusInput) (req *req
 	return
 }
 
+// GetTrailStatus API operation for AWS CloudTrail.
+//
 // Returns a JSON-formatted list of information about the specified trail. Fields
 // include information on delivery errors, Amazon SNS and Amazon S3 errors,
 // and start and stop logging times for each trail. This operation returns trail
 // status from a single region. To return trail status from all regions, you
 // must call the operation on each region.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation GetTrailStatus for usage and error information.
+//
+// Returned Error Codes:
+//   * TrailNotFoundException
+//   This exception is thrown when the trail with the given name is not found.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//   (_), or dashes (-)
+//
+//     Start with a letter or number, and end with a letter or number
+//
+//     Be between 3 and 128 characters
+//
+//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//   and my--namespace are invalid.
+//
+//     Not be in IP address format (for example, 192.168.5.4)
+//
 func (c *CloudTrail) GetTrailStatus(input *GetTrailStatusInput) (*GetTrailStatusOutput, error) {
 	req, out := c.GetTrailStatusRequest(input)
 	err := req.Send()
@@ -271,6 +507,8 @@ const opListPublicKeys = "ListPublicKeys"
 // client's request for the ListPublicKeys operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListPublicKeys for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -306,6 +544,8 @@ func (c *CloudTrail) ListPublicKeysRequest(input *ListPublicKeysInput) (req *req
 	return
 }
 
+// ListPublicKeys API operation for AWS CloudTrail.
+//
 // Returns all public keys whose private keys were used to sign the digest files
 // within the specified time range. The public key is needed to validate digest
 // files that were signed with its corresponding private key.
@@ -314,6 +554,28 @@ func (c *CloudTrail) ListPublicKeysRequest(input *ListPublicKeysInput) (req *req
 // file is signed with a private key unique to its region. Therefore, when you
 // validate a digest file from a particular region, you must look in the same
 // region for its corresponding public key.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation ListPublicKeys for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidTimeRangeException
+//   Occurs if the timestamp values are invalid. Either the start time occurs
+//   after the end time or the time range is outside the range of possible values.
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
+//   * InvalidTokenException
+//   Reserved for future use.
+//
 func (c *CloudTrail) ListPublicKeys(input *ListPublicKeysInput) (*ListPublicKeysOutput, error) {
 	req, out := c.ListPublicKeysRequest(input)
 	err := req.Send()
@@ -326,6 +588,8 @@ const opListTags = "ListTags"
 // client's request for the ListTags operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListTags for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -361,7 +625,56 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 	return
 }
 
+// ListTags API operation for AWS CloudTrail.
+//
 // Lists the tags for the trail in the current region.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation ListTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   This exception is thrown when the specified resource is not found.
+//
+//   * ARNInvalidException
+//   This exception is thrown when an operation is called with an invalid trail
+//   ARN. The format of a trail ARN is:
+//
+//    arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+//
+//   * ResourceTypeNotSupportedException
+//   This exception is thrown when the specified resource type is not supported
+//   by CloudTrail.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//   (_), or dashes (-)
+//
+//     Start with a letter or number, and end with a letter or number
+//
+//     Be between 3 and 128 characters
+//
+//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//   and my--namespace are invalid.
+//
+//     Not be in IP address format (for example, 192.168.5.4)
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
+//   * InvalidTokenException
+//   Reserved for future use.
+//
 func (c *CloudTrail) ListTags(input *ListTagsInput) (*ListTagsOutput, error) {
 	req, out := c.ListTagsRequest(input)
 	err := req.Send()
@@ -374,6 +687,8 @@ const opLookupEvents = "LookupEvents"
 // client's request for the LookupEvents operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See LookupEvents for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -409,6 +724,8 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 	return
 }
 
+// LookupEvents API operation for AWS CloudTrail.
+//
 // Looks up API activity events captured by CloudTrail that create, update,
 // or delete resources in your account. Events for a region can be looked up
 // for the times in which you had CloudTrail turned on in that region during
@@ -425,6 +742,29 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 //
 //   Events that occurred during the selected time range will not be available
 // for lookup if CloudTrail logging was not enabled when the events occurred.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation LookupEvents for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidLookupAttributesException
+//   Occurs when an invalid lookup attribute is specified.
+//
+//   * InvalidTimeRangeException
+//   Occurs if the timestamp values are invalid. Either the start time occurs
+//   after the end time or the time range is outside the range of possible values.
+//
+//   * InvalidMaxResultsException
+//   This exception is thrown if the limit specified is invalid.
+//
+//   * InvalidNextTokenException
+//   Invalid token or token that was previously used in a request with different
+//   parameters. This exception is thrown if the token is invalid.
+//
 func (c *CloudTrail) LookupEvents(input *LookupEventsInput) (*LookupEventsOutput, error) {
 	req, out := c.LookupEventsRequest(input)
 	err := req.Send()
@@ -437,6 +777,8 @@ const opRemoveTags = "RemoveTags"
 // client's request for the RemoveTags operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RemoveTags for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -472,7 +814,57 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 	return
 }
 
+// RemoveTags API operation for AWS CloudTrail.
+//
 // Removes the specified tags from a trail.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation RemoveTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   This exception is thrown when the specified resource is not found.
+//
+//   * ARNInvalidException
+//   This exception is thrown when an operation is called with an invalid trail
+//   ARN. The format of a trail ARN is:
+//
+//    arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+//
+//   * ResourceTypeNotSupportedException
+//   This exception is thrown when the specified resource type is not supported
+//   by CloudTrail.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//   (_), or dashes (-)
+//
+//     Start with a letter or number, and end with a letter or number
+//
+//     Be between 3 and 128 characters
+//
+//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//   and my--namespace are invalid.
+//
+//     Not be in IP address format (for example, 192.168.5.4)
+//
+//   * InvalidTagParameterException
+//   This exception is thrown when the key or value specified for the tag does
+//   not match the regular expression ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$.
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
 func (c *CloudTrail) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOutput, error) {
 	req, out := c.RemoveTagsRequest(input)
 	err := req.Send()
@@ -485,6 +877,8 @@ const opStartLogging = "StartLogging"
 // client's request for the StartLogging operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See StartLogging for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -520,11 +914,45 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 	return
 }
 
+// StartLogging API operation for AWS CloudTrail.
+//
 // Starts the recording of AWS API calls and log file delivery for a trail.
 // For a trail that is enabled in all regions, this operation must be called
 // from the region in which the trail was created. This operation cannot be
 // called on the shadow trails (replicated trails in other regions) of a trail
 // that is enabled in all regions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation StartLogging for usage and error information.
+//
+// Returned Error Codes:
+//   * TrailNotFoundException
+//   This exception is thrown when the trail with the given name is not found.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//   (_), or dashes (-)
+//
+//     Start with a letter or number, and end with a letter or number
+//
+//     Be between 3 and 128 characters
+//
+//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//   and my--namespace are invalid.
+//
+//     Not be in IP address format (for example, 192.168.5.4)
+//
+//   * InvalidHomeRegionException
+//   This exception is thrown when an operation is called on a trail from a region
+//   other than the region in which the trail was created.
+//
 func (c *CloudTrail) StartLogging(input *StartLoggingInput) (*StartLoggingOutput, error) {
 	req, out := c.StartLoggingRequest(input)
 	err := req.Send()
@@ -537,6 +965,8 @@ const opStopLogging = "StopLogging"
 // client's request for the StopLogging operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See StopLogging for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -572,6 +1002,8 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 	return
 }
 
+// StopLogging API operation for AWS CloudTrail.
+//
 // Suspends the recording of AWS API calls and log file delivery for the specified
 // trail. Under most circumstances, there is no need to use this action. You
 // can update a trail without stopping it first. This action is the only way
@@ -579,6 +1011,38 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 // be called from the region in which the trail was created, or an InvalidHomeRegionException
 // will occur. This operation cannot be called on the shadow trails (replicated
 // trails in other regions) of a trail enabled in all regions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation StopLogging for usage and error information.
+//
+// Returned Error Codes:
+//   * TrailNotFoundException
+//   This exception is thrown when the trail with the given name is not found.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//   (_), or dashes (-)
+//
+//     Start with a letter or number, and end with a letter or number
+//
+//     Be between 3 and 128 characters
+//
+//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//   and my--namespace are invalid.
+//
+//     Not be in IP address format (for example, 192.168.5.4)
+//
+//   * InvalidHomeRegionException
+//   This exception is thrown when an operation is called on a trail from a region
+//   other than the region in which the trail was created.
+//
 func (c *CloudTrail) StopLogging(input *StopLoggingInput) (*StopLoggingOutput, error) {
 	req, out := c.StopLoggingRequest(input)
 	err := req.Send()
@@ -591,6 +1055,8 @@ const opUpdateTrail = "UpdateTrail"
 // client's request for the UpdateTrail operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateTrail for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -626,12 +1092,104 @@ func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.R
 	return
 }
 
+// UpdateTrail API operation for AWS CloudTrail.
+//
 // Updates the settings that specify delivery of log files. Changes to a trail
 // do not require stopping the CloudTrail service. Use this action to designate
 // an existing bucket for log delivery. If the existing bucket has previously
 // been a target for CloudTrail log files, an IAM policy exists for the bucket.
 // UpdateTrail must be called from the region in which the trail was created;
 // otherwise, an InvalidHomeRegionException is thrown.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation UpdateTrail for usage and error information.
+//
+// Returned Error Codes:
+//   * S3BucketDoesNotExistException
+//   This exception is thrown when the specified S3 bucket does not exist.
+//
+//   * InsufficientS3BucketPolicyException
+//   This exception is thrown when the policy on the S3 bucket is not sufficient.
+//
+//   * InsufficientSnsTopicPolicyException
+//   This exception is thrown when the policy on the SNS topic is not sufficient.
+//
+//   * InsufficientEncryptionPolicyException
+//   This exception is thrown when the policy on the S3 bucket or KMS key is not
+//   sufficient.
+//
+//   * TrailNotFoundException
+//   This exception is thrown when the trail with the given name is not found.
+//
+//   * InvalidS3BucketNameException
+//   This exception is thrown when the provided S3 bucket name is not valid.
+//
+//   * InvalidS3PrefixException
+//   This exception is thrown when the provided S3 prefix is not valid.
+//
+//   * InvalidSnsTopicNameException
+//   This exception is thrown when the provided SNS topic name is not valid.
+//
+//   * InvalidKmsKeyIdException
+//   This exception is thrown when the KMS key ARN is invalid.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//   (_), or dashes (-)
+//
+//     Start with a letter or number, and end with a letter or number
+//
+//     Be between 3 and 128 characters
+//
+//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//   and my--namespace are invalid.
+//
+//     Not be in IP address format (for example, 192.168.5.4)
+//
+//   * TrailNotProvidedException
+//   This exception is deprecated.
+//
+//   * InvalidParameterCombinationException
+//   This exception is thrown when the combination of parameters provided is not
+//   valid.
+//
+//   * InvalidHomeRegionException
+//   This exception is thrown when an operation is called on a trail from a region
+//   other than the region in which the trail was created.
+//
+//   * KmsKeyNotFoundException
+//   This exception is thrown when the KMS key does not exist, or when the S3
+//   bucket and the KMS key are not in the same region.
+//
+//   * KmsKeyDisabledException
+//   This exception is deprecated.
+//
+//   * KmsException
+//   This exception is thrown when there is an issue with the specified KMS key
+//   and the trail can’t be updated.
+//
+//   * InvalidCloudWatchLogsLogGroupArnException
+//   This exception is thrown when the provided CloudWatch log group is not valid.
+//
+//   * InvalidCloudWatchLogsRoleArnException
+//   This exception is thrown when the provided role is not valid.
+//
+//   * CloudWatchLogsDeliveryUnavailableException
+//   Cannot set a CloudWatch Logs delivery for this region.
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
 func (c *CloudTrail) UpdateTrail(input *UpdateTrailInput) (*UpdateTrailOutput, error) {
 	req, out := c.UpdateTrailRequest(input)
 	err := req.Send()
@@ -646,6 +1204,8 @@ type AddTagsInput struct {
 	// format of a trail ARN is:
 	//
 	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	//
+	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
 
 	// Contains a list of CloudTrail tags, up to a limit of 10.
@@ -763,10 +1323,14 @@ type CreateTrailInput struct {
 	// and my--namespace are invalid.
 	//
 	//   Not be in IP address format (for example, 192.168.5.4)
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
 	// Specifies the name of the Amazon S3 bucket designated for publishing log
 	// files. See Amazon S3 Bucket Naming Requirements (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create_trail_naming_policy.html).
+	//
+	// S3BucketName is a required field
 	S3BucketName *string `type:"string" required:"true"`
 
 	// Specifies the Amazon S3 key prefix that comes after the name of the bucket
@@ -881,6 +1445,8 @@ type DeleteTrailInput struct {
 	// format of a trail ARN is:
 	//
 	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 }
 
@@ -1027,6 +1593,8 @@ type GetTrailStatusInput struct {
 	// another region), you must specify its ARN. The format of a trail ARN is:
 	//
 	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 }
 
@@ -1207,6 +1775,8 @@ type ListTagsInput struct {
 	// limit of 20 ARNs. The format of a trail ARN is:
 	//
 	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	//
+	// ResourceIdList is a required field
 	ResourceIdList []*string `type:"list" required:"true"`
 }
 
@@ -1260,9 +1830,13 @@ type LookupAttribute struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies an attribute on which to filter the events returned.
+	//
+	// AttributeKey is a required field
 	AttributeKey *string `type:"string" required:"true" enum:"LookupAttributeKey"`
 
 	// Specifies a value for the specified AttributeKey.
+	//
+	// AttributeValue is a required field
 	AttributeValue *string `type:"string" required:"true"`
 }
 
@@ -1419,6 +1993,8 @@ type RemoveTagsInput struct {
 	// of a trail ARN is:
 	//
 	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	//
+	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
 
 	// Specifies a list of tags to be removed.
@@ -1531,6 +2107,8 @@ type StartLoggingInput struct {
 	// logs AWS API calls. The format of a trail ARN is:
 	//
 	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 }
 
@@ -1582,6 +2160,8 @@ type StopLoggingInput struct {
 	// will stop logging AWS API calls. The format of a trail ARN is:
 	//
 	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 }
 
@@ -1630,6 +2210,8 @@ type Tag struct {
 
 	// The key in a key-value pair. The key must be must be no longer than 128 Unicode
 	// characters. The key must be unique for the resource to which it applies.
+	//
+	// Key is a required field
 	Key *string `type:"string" required:"true"`
 
 	// The value in a key-value pair of a tag. The value must be no longer than
@@ -1799,6 +2381,8 @@ type UpdateTrailInput struct {
 	//   If Name is a trail ARN, it must be in the format:
 	//
 	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
 	// Specifies the name of the Amazon S3 bucket designated for publishing log
@@ -1907,14 +2491,18 @@ func (s UpdateTrailOutput) GoString() string {
 }
 
 const (
-	// @enum LookupAttributeKey
+	// LookupAttributeKeyEventId is a LookupAttributeKey enum value
 	LookupAttributeKeyEventId = "EventId"
-	// @enum LookupAttributeKey
+
+	// LookupAttributeKeyEventName is a LookupAttributeKey enum value
 	LookupAttributeKeyEventName = "EventName"
-	// @enum LookupAttributeKey
+
+	// LookupAttributeKeyUsername is a LookupAttributeKey enum value
 	LookupAttributeKeyUsername = "Username"
-	// @enum LookupAttributeKey
+
+	// LookupAttributeKeyResourceType is a LookupAttributeKey enum value
 	LookupAttributeKeyResourceType = "ResourceType"
-	// @enum LookupAttributeKey
+
+	// LookupAttributeKeyResourceName is a LookupAttributeKey enum value
 	LookupAttributeKeyResourceName = "ResourceName"
 )

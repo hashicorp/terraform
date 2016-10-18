@@ -19,6 +19,8 @@ const opCancelExportTask = "CancelExportTask"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See CancelExportTask for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -55,7 +57,30 @@ func (c *CloudWatchLogs) CancelExportTaskRequest(input *CancelExportTaskInput) (
 	return
 }
 
+// CancelExportTask API operation for Amazon CloudWatch Logs.
+//
 // Cancels an export task if it is in PENDING or RUNNING state.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation CancelExportTask for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * InvalidOperationException
+//   Returned if the operation is not valid on the specified resource
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) CancelExportTask(input *CancelExportTaskInput) (*CancelExportTaskOutput, error) {
 	req, out := c.CancelExportTaskRequest(input)
 	err := req.Send()
@@ -68,6 +93,8 @@ const opCreateExportTask = "CreateExportTask"
 // client's request for the CreateExportTask operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateExportTask for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -103,6 +130,8 @@ func (c *CloudWatchLogs) CreateExportTaskRequest(input *CreateExportTaskInput) (
 	return
 }
 
+// CreateExportTask API operation for Amazon CloudWatch Logs.
+//
 // Creates an ExportTask which allows you to efficiently export data from a
 // Log Group to your Amazon S3 bucket.
 //
@@ -116,6 +145,34 @@ func (c *CloudWatchLogs) CreateExportTaskRequest(input *CreateExportTaskInput) (
 // the same Amazon S3 bucket. To separate out log data for each export task,
 // you can specify a prefix that will be used as the Amazon S3 key prefix for
 // all exported objects.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation CreateExportTask for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * LimitExceededException
+//   Returned if you have reached the maximum number of resources that can be
+//   created.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * ResourceAlreadyExistsException
+//   Returned if the specified resource already exists.
+//
 func (c *CloudWatchLogs) CreateExportTask(input *CreateExportTaskInput) (*CreateExportTaskOutput, error) {
 	req, out := c.CreateExportTaskRequest(input)
 	err := req.Send()
@@ -128,6 +185,8 @@ const opCreateLogGroup = "CreateLogGroup"
 // client's request for the CreateLogGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateLogGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -165,6 +224,8 @@ func (c *CloudWatchLogs) CreateLogGroupRequest(input *CreateLogGroupInput) (req 
 	return
 }
 
+// CreateLogGroup API operation for Amazon CloudWatch Logs.
+//
 // Creates a new log group with the specified name. The name of the log group
 // must be unique within a region for an AWS account. You can create up to 500
 // log groups per account.
@@ -175,6 +236,31 @@ func (c *CloudWatchLogs) CreateLogGroupRequest(input *CreateLogGroupInput) (req 
 //
 //   Allowed characters are a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen),
 // '/' (forward slash), and '.' (period).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation CreateLogGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceAlreadyExistsException
+//   Returned if the specified resource already exists.
+//
+//   * LimitExceededException
+//   Returned if you have reached the maximum number of resources that can be
+//   created.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) CreateLogGroup(input *CreateLogGroupInput) (*CreateLogGroupOutput, error) {
 	req, out := c.CreateLogGroupRequest(input)
 	err := req.Send()
@@ -187,6 +273,8 @@ const opCreateLogStream = "CreateLogStream"
 // client's request for the CreateLogStream operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateLogStream for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -224,6 +312,8 @@ func (c *CloudWatchLogs) CreateLogStreamRequest(input *CreateLogStreamInput) (re
 	return
 }
 
+// CreateLogStream API operation for Amazon CloudWatch Logs.
+//
 // Creates a new log stream in the specified log group. The name of the log
 // stream must be unique within the log group. There is no limit on the number
 // of log streams that can exist in a log group.
@@ -233,6 +323,27 @@ func (c *CloudWatchLogs) CreateLogStreamRequest(input *CreateLogStreamInput) (re
 //   Log stream names can be between 1 and 512 characters long.
 //
 //   The ':' colon character is not allowed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation CreateLogStream for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceAlreadyExistsException
+//   Returned if the specified resource already exists.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) CreateLogStream(input *CreateLogStreamInput) (*CreateLogStreamOutput, error) {
 	req, out := c.CreateLogStreamRequest(input)
 	err := req.Send()
@@ -245,6 +356,8 @@ const opDeleteDestination = "DeleteDestination"
 // client's request for the DeleteDestination operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteDestination for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -282,9 +395,32 @@ func (c *CloudWatchLogs) DeleteDestinationRequest(input *DeleteDestinationInput)
 	return
 }
 
+// DeleteDestination API operation for Amazon CloudWatch Logs.
+//
 // Deletes the destination with the specified name and eventually disables all
 // the subscription filters that publish to it. This will not delete the physical
 // resource encapsulated by the destination.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteDestination for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DeleteDestination(input *DeleteDestinationInput) (*DeleteDestinationOutput, error) {
 	req, out := c.DeleteDestinationRequest(input)
 	err := req.Send()
@@ -297,6 +433,8 @@ const opDeleteLogGroup = "DeleteLogGroup"
 // client's request for the DeleteLogGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteLogGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -334,8 +472,31 @@ func (c *CloudWatchLogs) DeleteLogGroupRequest(input *DeleteLogGroupInput) (req 
 	return
 }
 
+// DeleteLogGroup API operation for Amazon CloudWatch Logs.
+//
 // Deletes the log group with the specified name and permanently deletes all
 // the archived log events associated with it.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteLogGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DeleteLogGroup(input *DeleteLogGroupInput) (*DeleteLogGroupOutput, error) {
 	req, out := c.DeleteLogGroupRequest(input)
 	err := req.Send()
@@ -348,6 +509,8 @@ const opDeleteLogStream = "DeleteLogStream"
 // client's request for the DeleteLogStream operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteLogStream for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -385,8 +548,31 @@ func (c *CloudWatchLogs) DeleteLogStreamRequest(input *DeleteLogStreamInput) (re
 	return
 }
 
+// DeleteLogStream API operation for Amazon CloudWatch Logs.
+//
 // Deletes a log stream and permanently deletes all the archived log events
 // associated with it.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteLogStream for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DeleteLogStream(input *DeleteLogStreamInput) (*DeleteLogStreamOutput, error) {
 	req, out := c.DeleteLogStreamRequest(input)
 	err := req.Send()
@@ -399,6 +585,8 @@ const opDeleteMetricFilter = "DeleteMetricFilter"
 // client's request for the DeleteMetricFilter operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteMetricFilter for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -436,7 +624,30 @@ func (c *CloudWatchLogs) DeleteMetricFilterRequest(input *DeleteMetricFilterInpu
 	return
 }
 
+// DeleteMetricFilter API operation for Amazon CloudWatch Logs.
+//
 // Deletes a metric filter associated with the specified log group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteMetricFilter for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DeleteMetricFilter(input *DeleteMetricFilterInput) (*DeleteMetricFilterOutput, error) {
 	req, out := c.DeleteMetricFilterRequest(input)
 	err := req.Send()
@@ -449,6 +660,8 @@ const opDeleteRetentionPolicy = "DeleteRetentionPolicy"
 // client's request for the DeleteRetentionPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteRetentionPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -486,8 +699,31 @@ func (c *CloudWatchLogs) DeleteRetentionPolicyRequest(input *DeleteRetentionPoli
 	return
 }
 
+// DeleteRetentionPolicy API operation for Amazon CloudWatch Logs.
+//
 // Deletes the retention policy of the specified log group. Log events would
 // not expire if they belong to log groups without a retention policy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteRetentionPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DeleteRetentionPolicy(input *DeleteRetentionPolicyInput) (*DeleteRetentionPolicyOutput, error) {
 	req, out := c.DeleteRetentionPolicyRequest(input)
 	err := req.Send()
@@ -500,6 +736,8 @@ const opDeleteSubscriptionFilter = "DeleteSubscriptionFilter"
 // client's request for the DeleteSubscriptionFilter operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteSubscriptionFilter for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -537,7 +775,30 @@ func (c *CloudWatchLogs) DeleteSubscriptionFilterRequest(input *DeleteSubscripti
 	return
 }
 
+// DeleteSubscriptionFilter API operation for Amazon CloudWatch Logs.
+//
 // Deletes a subscription filter associated with the specified log group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DeleteSubscriptionFilter for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DeleteSubscriptionFilter(input *DeleteSubscriptionFilterInput) (*DeleteSubscriptionFilterOutput, error) {
 	req, out := c.DeleteSubscriptionFilterRequest(input)
 	err := req.Send()
@@ -550,6 +811,8 @@ const opDescribeDestinations = "DescribeDestinations"
 // client's request for the DescribeDestinations operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeDestinations for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -591,6 +854,8 @@ func (c *CloudWatchLogs) DescribeDestinationsRequest(input *DescribeDestinations
 	return
 }
 
+// DescribeDestinations API operation for Amazon CloudWatch Logs.
+//
 // Returns all the destinations that are associated with the AWS account making
 // the request. The list returned in the response is ASCII-sorted by destination
 // name.
@@ -599,6 +864,21 @@ func (c *CloudWatchLogs) DescribeDestinationsRequest(input *DescribeDestinations
 // destinations to list, the response would contain a nextToken value in the
 // response body. You can also limit the number of destinations returned in
 // the response by specifying the limit parameter in the request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeDestinations for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DescribeDestinations(input *DescribeDestinationsInput) (*DescribeDestinationsOutput, error) {
 	req, out := c.DescribeDestinationsRequest(input)
 	err := req.Send()
@@ -637,6 +917,8 @@ const opDescribeExportTasks = "DescribeExportTasks"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeExportTasks for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -671,6 +953,8 @@ func (c *CloudWatchLogs) DescribeExportTasksRequest(input *DescribeExportTasksIn
 	return
 }
 
+// DescribeExportTasks API operation for Amazon CloudWatch Logs.
+//
 // Returns all the export tasks that are associated with the AWS account making
 // the request. The export tasks can be filtered based on TaskId or TaskStatus.
 //
@@ -679,6 +963,21 @@ func (c *CloudWatchLogs) DescribeExportTasksRequest(input *DescribeExportTasksIn
 // contain a nextToken value in the response body. You can also limit the number
 // of export tasks returned in the response by specifying the limit parameter
 // in the request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeExportTasks for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DescribeExportTasks(input *DescribeExportTasksInput) (*DescribeExportTasksOutput, error) {
 	req, out := c.DescribeExportTasksRequest(input)
 	err := req.Send()
@@ -691,6 +990,8 @@ const opDescribeLogGroups = "DescribeLogGroups"
 // client's request for the DescribeLogGroups operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeLogGroups for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -732,6 +1033,8 @@ func (c *CloudWatchLogs) DescribeLogGroupsRequest(input *DescribeLogGroupsInput)
 	return
 }
 
+// DescribeLogGroups API operation for Amazon CloudWatch Logs.
+//
 // Returns all the log groups that are associated with the AWS account making
 // the request. The list returned in the response is ASCII-sorted by log group
 // name.
@@ -740,6 +1043,21 @@ func (c *CloudWatchLogs) DescribeLogGroupsRequest(input *DescribeLogGroupsInput)
 // log groups to list, the response would contain a nextToken value in the response
 // body. You can also limit the number of log groups returned in the response
 // by specifying the limit parameter in the request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeLogGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DescribeLogGroups(input *DescribeLogGroupsInput) (*DescribeLogGroupsOutput, error) {
 	req, out := c.DescribeLogGroupsRequest(input)
 	err := req.Send()
@@ -777,6 +1095,8 @@ const opDescribeLogStreams = "DescribeLogStreams"
 // client's request for the DescribeLogStreams operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeLogStreams for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -818,6 +1138,8 @@ func (c *CloudWatchLogs) DescribeLogStreamsRequest(input *DescribeLogStreamsInpu
 	return
 }
 
+// DescribeLogStreams API operation for Amazon CloudWatch Logs.
+//
 // Returns all the log streams that are associated with the specified log group.
 // The list returned in the response is ASCII-sorted by log stream name.
 //
@@ -827,6 +1149,24 @@ func (c *CloudWatchLogs) DescribeLogStreamsRequest(input *DescribeLogStreamsInpu
 // response by specifying the limit parameter in the request. This operation
 // has a limit of five transactions per second, after which transactions are
 // throttled.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeLogStreams for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DescribeLogStreams(input *DescribeLogStreamsInput) (*DescribeLogStreamsOutput, error) {
 	req, out := c.DescribeLogStreamsRequest(input)
 	err := req.Send()
@@ -864,6 +1204,8 @@ const opDescribeMetricFilters = "DescribeMetricFilters"
 // client's request for the DescribeMetricFilters operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeMetricFilters for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -905,6 +1247,8 @@ func (c *CloudWatchLogs) DescribeMetricFiltersRequest(input *DescribeMetricFilte
 	return
 }
 
+// DescribeMetricFilters API operation for Amazon CloudWatch Logs.
+//
 // Returns all the metrics filters associated with the specified log group.
 // The list returned in the response is ASCII-sorted by filter name.
 //
@@ -912,6 +1256,24 @@ func (c *CloudWatchLogs) DescribeMetricFiltersRequest(input *DescribeMetricFilte
 // more metric filters to list, the response would contain a nextToken value
 // in the response body. You can also limit the number of metric filters returned
 // in the response by specifying the limit parameter in the request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeMetricFilters for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DescribeMetricFilters(input *DescribeMetricFiltersInput) (*DescribeMetricFiltersOutput, error) {
 	req, out := c.DescribeMetricFiltersRequest(input)
 	err := req.Send()
@@ -949,6 +1311,8 @@ const opDescribeSubscriptionFilters = "DescribeSubscriptionFilters"
 // client's request for the DescribeSubscriptionFilters operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSubscriptionFilters for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -990,6 +1354,8 @@ func (c *CloudWatchLogs) DescribeSubscriptionFiltersRequest(input *DescribeSubsc
 	return
 }
 
+// DescribeSubscriptionFilters API operation for Amazon CloudWatch Logs.
+//
 // Returns all the subscription filters associated with the specified log group.
 // The list returned in the response is ASCII-sorted by filter name.
 //
@@ -998,6 +1364,24 @@ func (c *CloudWatchLogs) DescribeSubscriptionFiltersRequest(input *DescribeSubsc
 // value in the response body. You can also limit the number of subscription
 // filters returned in the response by specifying the limit parameter in the
 // request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation DescribeSubscriptionFilters for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) DescribeSubscriptionFilters(input *DescribeSubscriptionFiltersInput) (*DescribeSubscriptionFiltersOutput, error) {
 	req, out := c.DescribeSubscriptionFiltersRequest(input)
 	err := req.Send()
@@ -1035,6 +1419,8 @@ const opFilterLogEvents = "FilterLogEvents"
 // client's request for the FilterLogEvents operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See FilterLogEvents for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1076,6 +1462,8 @@ func (c *CloudWatchLogs) FilterLogEventsRequest(input *FilterLogEventsInput) (re
 	return
 }
 
+// FilterLogEvents API operation for Amazon CloudWatch Logs.
+//
 // Retrieves log events, optionally filtered by a filter pattern from the specified
 // log group. You can provide an optional time range to filter the results on
 // the event timestamp. You can limit the streams searched to an explicit list
@@ -1090,6 +1478,24 @@ func (c *CloudWatchLogs) FilterLogEventsRequest(input *FilterLogEventsInput) (re
 // and whether they have been searched completely or require further pagination.
 // The limit parameter in the request can be used to specify the maximum number
 // of events to return in a page.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation FilterLogEvents for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) FilterLogEvents(input *FilterLogEventsInput) (*FilterLogEventsOutput, error) {
 	req, out := c.FilterLogEventsRequest(input)
 	err := req.Send()
@@ -1127,6 +1533,8 @@ const opGetLogEvents = "GetLogEvents"
 // client's request for the GetLogEvents operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetLogEvents for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1168,6 +1576,8 @@ func (c *CloudWatchLogs) GetLogEventsRequest(input *GetLogEventsInput) (req *req
 	return
 }
 
+// GetLogEvents API operation for Amazon CloudWatch Logs.
+//
 // Retrieves log events from the specified log stream. You can provide an optional
 // time range to filter the results on the event timestamp.
 //
@@ -1178,6 +1588,24 @@ func (c *CloudWatchLogs) GetLogEventsRequest(input *GetLogEventsInput) (req *req
 // events in either forward or backward direction. You can also limit the number
 // of log events returned in the response by specifying the limit parameter
 // in the request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation GetLogEvents for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) GetLogEvents(input *GetLogEventsInput) (*GetLogEventsOutput, error) {
 	req, out := c.GetLogEventsRequest(input)
 	err := req.Send()
@@ -1216,6 +1644,8 @@ const opPutDestination = "PutDestination"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See PutDestination for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -1250,6 +1680,8 @@ func (c *CloudWatchLogs) PutDestinationRequest(input *PutDestinationInput) (req 
 	return
 }
 
+// PutDestination API operation for Amazon CloudWatch Logs.
+//
 // Creates or updates a Destination. A destination encapsulates a physical resource
 // (such as a Kinesis stream) and allows you to subscribe to a real-time stream
 // of log events of a different account, ingested through PutLogEvents requests.
@@ -1261,6 +1693,24 @@ func (c *CloudWatchLogs) PutDestinationRequest(input *PutDestinationInput) (req 
 // with the destination, which means a cross-account user will not be able to
 // call PutSubscriptionFilter against this destination. To enable that, the
 // destination owner must call PutDestinationPolicy after PutDestination.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutDestination for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) PutDestination(input *PutDestinationInput) (*PutDestinationOutput, error) {
 	req, out := c.PutDestinationRequest(input)
 	err := req.Send()
@@ -1273,6 +1723,8 @@ const opPutDestinationPolicy = "PutDestinationPolicy"
 // client's request for the PutDestinationPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PutDestinationPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1310,10 +1762,30 @@ func (c *CloudWatchLogs) PutDestinationPolicyRequest(input *PutDestinationPolicy
 	return
 }
 
+// PutDestinationPolicy API operation for Amazon CloudWatch Logs.
+//
 // Creates or updates an access policy associated with an existing Destination.
 // An access policy is an IAM policy document (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies_overview.html)
 // that is used to authorize claims to register a subscription filter against
 // a given destination.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutDestinationPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) PutDestinationPolicy(input *PutDestinationPolicyInput) (*PutDestinationPolicyOutput, error) {
 	req, out := c.PutDestinationPolicyRequest(input)
 	err := req.Send()
@@ -1326,6 +1798,8 @@ const opPutLogEvents = "PutLogEvents"
 // client's request for the PutLogEvents operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PutLogEvents for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1361,6 +1835,8 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 	return
 }
 
+// PutLogEvents API operation for Amazon CloudWatch Logs.
+//
 // Uploads a batch of log events to the specified log stream.
 //
 // Every PutLogEvents request must include the sequenceToken obtained from
@@ -1385,6 +1861,30 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 //
 //   A batch of log events in a single PutLogEvents request cannot span more
 // than 24 hours. Otherwise, the PutLogEvents operation will fail.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutLogEvents for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * InvalidSequenceTokenException
+
+//
+//   * DataAlreadyAcceptedException
+
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) PutLogEvents(input *PutLogEventsInput) (*PutLogEventsOutput, error) {
 	req, out := c.PutLogEventsRequest(input)
 	err := req.Send()
@@ -1397,6 +1897,8 @@ const opPutMetricFilter = "PutMetricFilter"
 // client's request for the PutMetricFilter operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PutMetricFilter for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1434,12 +1936,39 @@ func (c *CloudWatchLogs) PutMetricFilterRequest(input *PutMetricFilterInput) (re
 	return
 }
 
+// PutMetricFilter API operation for Amazon CloudWatch Logs.
+//
 // Creates or updates a metric filter and associates it with the specified log
 // group. Metric filters allow you to configure rules to extract metric data
 // from log events ingested through PutLogEvents requests.
 //
 // The maximum number of metric filters that can be associated with a log group
 // is 100.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutMetricFilter for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * LimitExceededException
+//   Returned if you have reached the maximum number of resources that can be
+//   created.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) PutMetricFilter(input *PutMetricFilterInput) (*PutMetricFilterOutput, error) {
 	req, out := c.PutMetricFilterRequest(input)
 	err := req.Send()
@@ -1452,6 +1981,8 @@ const opPutRetentionPolicy = "PutRetentionPolicy"
 // client's request for the PutRetentionPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PutRetentionPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1489,9 +2020,32 @@ func (c *CloudWatchLogs) PutRetentionPolicyRequest(input *PutRetentionPolicyInpu
 	return
 }
 
+// PutRetentionPolicy API operation for Amazon CloudWatch Logs.
+//
 // Sets the retention of the specified log group. A retention policy allows
 // you to configure the number of days you want to retain log events in the
 // specified log group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutRetentionPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) PutRetentionPolicy(input *PutRetentionPolicyInput) (*PutRetentionPolicyOutput, error) {
 	req, out := c.PutRetentionPolicyRequest(input)
 	err := req.Send()
@@ -1504,6 +2058,8 @@ const opPutSubscriptionFilter = "PutSubscriptionFilter"
 // client's request for the PutSubscriptionFilter operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PutSubscriptionFilter for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1541,6 +2097,8 @@ func (c *CloudWatchLogs) PutSubscriptionFilterRequest(input *PutSubscriptionFilt
 	return
 }
 
+// PutSubscriptionFilter API operation for Amazon CloudWatch Logs.
+//
 // Creates or updates a subscription filter and associates it with the specified
 // log group. Subscription filters allow you to subscribe to a real-time stream
 // of log events ingested through PutLogEvents requests and have them delivered
@@ -1560,6 +2118,31 @@ func (c *CloudWatchLogs) PutSubscriptionFilterRequest(input *PutSubscriptionFilt
 //
 //   Currently there can only be one subscription filter associated with a
 // log group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation PutSubscriptionFilter for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource does not exist.
+//
+//   * OperationAbortedException
+//   Returned if multiple requests to update the same resource were in conflict.
+//
+//   * LimitExceededException
+//   Returned if you have reached the maximum number of resources that can be
+//   created.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) PutSubscriptionFilter(input *PutSubscriptionFilterInput) (*PutSubscriptionFilterOutput, error) {
 	req, out := c.PutSubscriptionFilterRequest(input)
 	err := req.Send()
@@ -1572,6 +2155,8 @@ const opTestMetricFilter = "TestMetricFilter"
 // client's request for the TestMetricFilter operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See TestMetricFilter for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1607,9 +2192,26 @@ func (c *CloudWatchLogs) TestMetricFilterRequest(input *TestMetricFilterInput) (
 	return
 }
 
+// TestMetricFilter API operation for Amazon CloudWatch Logs.
+//
 // Tests the filter pattern of a metric filter against a sample of log event
 // messages. You can use this operation to validate the correctness of a metric
 // filter pattern.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation TestMetricFilter for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *CloudWatchLogs) TestMetricFilter(input *TestMetricFilterInput) (*TestMetricFilterOutput, error) {
 	req, out := c.TestMetricFilterRequest(input)
 	err := req.Send()
@@ -1620,6 +2222,8 @@ type CancelExportTaskInput struct {
 	_ struct{} `type:"structure"`
 
 	// Id of the export task to cancel.
+	//
+	// TaskId is a required field
 	TaskId *string `locationName:"taskId" min:"1" type:"string" required:"true"`
 }
 
@@ -1669,6 +2273,8 @@ type CreateExportTaskInput struct {
 	// Name of Amazon S3 bucket to which the log data will be exported.
 	//
 	//  Note: Only buckets in the same AWS region are supported.
+	//
+	// Destination is a required field
 	Destination *string `locationName:"destination" min:"1" type:"string" required:"true"`
 
 	// Prefix that will be used as the start of Amazon S3 key for every object exported.
@@ -1678,9 +2284,13 @@ type CreateExportTaskInput struct {
 	// A point in time expressed as the number of milliseconds since Jan 1, 1970
 	// 00:00:00 UTC. It indicates the start time of the range for the request. Events
 	// with a timestamp prior to this time will not be exported.
+	//
+	// From is a required field
 	From *int64 `locationName:"from" type:"long" required:"true"`
 
 	// The name of the log group to export.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// Will only export log streams that match the provided logStreamNamePrefix.
@@ -1693,6 +2303,8 @@ type CreateExportTaskInput struct {
 	// A point in time expressed as the number of milliseconds since Jan 1, 1970
 	// 00:00:00 UTC. It indicates the end time of the range for the request. Events
 	// with a timestamp later than this time will not be exported.
+	//
+	// To is a required field
 	To *int64 `locationName:"to" type:"long" required:"true"`
 }
 
@@ -1761,6 +2373,8 @@ type CreateLogGroupInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the log group to create.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
@@ -1808,9 +2422,13 @@ type CreateLogStreamInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the log group under which the log stream is to be created.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// The name of the log stream to create.
+	//
+	// LogStreamName is a required field
 	LogStreamName *string `locationName:"logStreamName" min:"1" type:"string" required:"true"`
 }
 
@@ -1864,6 +2482,8 @@ type DeleteDestinationInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of destination to delete.
+	//
+	// DestinationName is a required field
 	DestinationName *string `locationName:"destinationName" min:"1" type:"string" required:"true"`
 }
 
@@ -1911,6 +2531,8 @@ type DeleteLogGroupInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the log group to delete.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
@@ -1958,9 +2580,13 @@ type DeleteLogStreamInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the log group under which the log stream to delete belongs.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// The name of the log stream to delete.
+	//
+	// LogStreamName is a required field
 	LogStreamName *string `locationName:"logStreamName" min:"1" type:"string" required:"true"`
 }
 
@@ -2014,9 +2640,13 @@ type DeleteMetricFilterInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the metric filter to delete.
+	//
+	// FilterName is a required field
 	FilterName *string `locationName:"filterName" min:"1" type:"string" required:"true"`
 
 	// The name of the log group that is associated with the metric filter to delete.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
@@ -2071,6 +2701,8 @@ type DeleteRetentionPolicyInput struct {
 
 	// The name of the log group that is associated with the retention policy to
 	// delete.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
@@ -2118,10 +2750,14 @@ type DeleteSubscriptionFilterInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the subscription filter to delete.
+	//
+	// FilterName is a required field
 	FilterName *string `locationName:"filterName" min:"1" type:"string" required:"true"`
 
 	// The name of the log group that is associated with the subscription filter
 	// to delete.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 }
 
@@ -2389,6 +3025,8 @@ type DescribeLogStreamsInput struct {
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
 	// The log group name for which log streams are to be listed.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// Will only return log streams that match the provided logStreamNamePrefix.
@@ -2476,6 +3114,8 @@ type DescribeMetricFiltersInput struct {
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
 	// The log group name for which metric filters are to be listed.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// A string token used for pagination that points to the next page of results.
@@ -2551,6 +3191,8 @@ type DescribeSubscriptionFiltersInput struct {
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
 	// The log group name for which subscription filters are to be listed.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// A string token used for pagination that points to the next page of results.
@@ -2760,6 +3402,8 @@ type FilterLogEventsInput struct {
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
 	// The name of the log group to query.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// Optional list of log stream names within the specified log group to search.
@@ -2885,9 +3529,13 @@ type GetLogEventsInput struct {
 	Limit *int64 `locationName:"limit" min:"1" type:"integer"`
 
 	// The name of the log group to query.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// The name of the log stream to query.
+	//
+	// LogStreamName is a required field
 	LogStreamName *string `locationName:"logStreamName" min:"1" type:"string" required:"true"`
 
 	// A string token used for pagination that points to the next page of results.
@@ -2975,10 +3623,13 @@ func (s GetLogEventsOutput) GoString() string {
 type InputLogEvent struct {
 	_ struct{} `type:"structure"`
 
+	// Message is a required field
 	Message *string `locationName:"message" min:"1" type:"string" required:"true"`
 
 	// A point in time expressed as the number of milliseconds since Jan 1, 1970
 	// 00:00:00 UTC.
+	//
+	// Timestamp is a required field
 	Timestamp *int64 `locationName:"timestamp" type:"long" required:"true"`
 }
 
@@ -3145,13 +3796,19 @@ type MetricTransformation struct {
 	DefaultValue *float64 `locationName:"defaultValue" type:"double"`
 
 	// Name of the metric.
+	//
+	// MetricName is a required field
 	MetricName *string `locationName:"metricName" type:"string" required:"true"`
 
 	// Namespace to which the metric belongs.
+	//
+	// MetricNamespace is a required field
 	MetricNamespace *string `locationName:"metricNamespace" type:"string" required:"true"`
 
 	// A string representing a value to publish to this metric when a filter pattern
 	// matches a log event.
+	//
+	// MetricValue is a required field
 	MetricValue *string `locationName:"metricValue" type:"string" required:"true"`
 }
 
@@ -3212,13 +3869,19 @@ type PutDestinationInput struct {
 	_ struct{} `type:"structure"`
 
 	// A name for the destination.
+	//
+	// DestinationName is a required field
 	DestinationName *string `locationName:"destinationName" min:"1" type:"string" required:"true"`
 
 	// The ARN of an IAM role that grants CloudWatch Logs permissions to do Amazon
 	// Kinesis PutRecord requests on the destination stream.
+	//
+	// RoleArn is a required field
 	RoleArn *string `locationName:"roleArn" min:"1" type:"string" required:"true"`
 
 	// The ARN of an Amazon Kinesis stream to deliver matching log events to.
+	//
+	// TargetArn is a required field
 	TargetArn *string `locationName:"targetArn" min:"1" type:"string" required:"true"`
 }
 
@@ -3282,9 +3945,13 @@ type PutDestinationPolicyInput struct {
 
 	// An IAM policy document that authorizes cross-account users to deliver their
 	// log events to associated destination.
+	//
+	// AccessPolicy is a required field
 	AccessPolicy *string `locationName:"accessPolicy" min:"1" type:"string" required:"true"`
 
 	// A name for an existing destination.
+	//
+	// DestinationName is a required field
 	DestinationName *string `locationName:"destinationName" min:"1" type:"string" required:"true"`
 }
 
@@ -3338,12 +4005,18 @@ type PutLogEventsInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of log events belonging to a log stream.
+	//
+	// LogEvents is a required field
 	LogEvents []*InputLogEvent `locationName:"logEvents" min:"1" type:"list" required:"true"`
 
 	// The name of the log group to put log events to.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// The name of the log stream to put log events to.
+	//
+	// LogStreamName is a required field
 	LogStreamName *string `locationName:"logStreamName" min:"1" type:"string" required:"true"`
 
 	// A string token that must be obtained from the response of the previous PutLogEvents
@@ -3427,16 +4100,24 @@ type PutMetricFilterInput struct {
 	_ struct{} `type:"structure"`
 
 	// A name for the metric filter.
+	//
+	// FilterName is a required field
 	FilterName *string `locationName:"filterName" min:"1" type:"string" required:"true"`
 
 	// A valid CloudWatch Logs filter pattern for extracting metric data out of
 	// ingested log events.
+	//
+	// FilterPattern is a required field
 	FilterPattern *string `locationName:"filterPattern" type:"string" required:"true"`
 
 	// The name of the log group to associate the metric filter with.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// A collection of information needed to define how metric data gets emitted.
+	//
+	// MetricTransformations is a required field
 	MetricTransformations []*MetricTransformation `locationName:"metricTransformations" min:"1" type:"list" required:"true"`
 }
 
@@ -3509,11 +4190,15 @@ type PutRetentionPolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the log group to associate the retention policy with.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// Specifies the number of days you want to retain log events in the specified
 	// log group. Possible values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180,
 	// 365, 400, 545, 731, 1827, 3653.
+	//
+	// RetentionInDays is a required field
 	RetentionInDays *int64 `locationName:"retentionInDays" type:"integer" required:"true"`
 }
 
@@ -3577,16 +4262,24 @@ type PutSubscriptionFilterInput struct {
 	//
 	//   An AWS Lambda function belonging to the same account as the subscription
 	// filter, for same-account delivery.
+	//
+	// DestinationArn is a required field
 	DestinationArn *string `locationName:"destinationArn" min:"1" type:"string" required:"true"`
 
 	// A name for the subscription filter.
+	//
+	// FilterName is a required field
 	FilterName *string `locationName:"filterName" min:"1" type:"string" required:"true"`
 
 	// A valid CloudWatch Logs filter pattern for subscribing to a filtered stream
 	// of log events.
+	//
+	// FilterPattern is a required field
 	FilterPattern *string `locationName:"filterPattern" type:"string" required:"true"`
 
 	// The name of the log group to associate the subscription filter with.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
 
 	// The ARN of an IAM role that grants CloudWatch Logs permissions to deliver
@@ -3737,9 +4430,13 @@ type TestMetricFilterInput struct {
 	// each log event. For example, a log event may contain timestamps, IP addresses,
 	// strings, and so on. You use the filter pattern to specify what to look for
 	// in the log event message.
+	//
+	// FilterPattern is a required field
 	FilterPattern *string `locationName:"filterPattern" type:"string" required:"true"`
 
 	// A list of log event messages to test.
+	//
+	// LogEventMessages is a required field
 	LogEventMessages []*string `locationName:"logEventMessages" min:"1" type:"list" required:"true"`
 }
 
@@ -3789,23 +4486,29 @@ func (s TestMetricFilterOutput) GoString() string {
 }
 
 const (
-	// @enum ExportTaskStatusCode
+	// ExportTaskStatusCodeCancelled is a ExportTaskStatusCode enum value
 	ExportTaskStatusCodeCancelled = "CANCELLED"
-	// @enum ExportTaskStatusCode
+
+	// ExportTaskStatusCodeCompleted is a ExportTaskStatusCode enum value
 	ExportTaskStatusCodeCompleted = "COMPLETED"
-	// @enum ExportTaskStatusCode
+
+	// ExportTaskStatusCodeFailed is a ExportTaskStatusCode enum value
 	ExportTaskStatusCodeFailed = "FAILED"
-	// @enum ExportTaskStatusCode
+
+	// ExportTaskStatusCodePending is a ExportTaskStatusCode enum value
 	ExportTaskStatusCodePending = "PENDING"
-	// @enum ExportTaskStatusCode
+
+	// ExportTaskStatusCodePendingCancel is a ExportTaskStatusCode enum value
 	ExportTaskStatusCodePendingCancel = "PENDING_CANCEL"
-	// @enum ExportTaskStatusCode
+
+	// ExportTaskStatusCodeRunning is a ExportTaskStatusCode enum value
 	ExportTaskStatusCodeRunning = "RUNNING"
 )
 
 const (
-	// @enum OrderBy
+	// OrderByLogStreamName is a OrderBy enum value
 	OrderByLogStreamName = "LogStreamName"
-	// @enum OrderBy
+
+	// OrderByLastEventTime is a OrderBy enum value
 	OrderByLastEventTime = "LastEventTime"
 )

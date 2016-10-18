@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilStackCreateComplete uses the AWS CloudFormation API operation
+// DescribeStacks to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *CloudFormation) WaitUntilStackCreateComplete(input *DescribeStacksInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeStacks",
@@ -77,6 +81,10 @@ func (c *CloudFormation) WaitUntilStackCreateComplete(input *DescribeStacksInput
 	return w.Wait()
 }
 
+// WaitUntilStackDeleteComplete uses the AWS CloudFormation API operation
+// DescribeStacks to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *CloudFormation) WaitUntilStackDeleteComplete(input *DescribeStacksInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeStacks",
@@ -190,6 +198,10 @@ func (c *CloudFormation) WaitUntilStackDeleteComplete(input *DescribeStacksInput
 	return w.Wait()
 }
 
+// WaitUntilStackExists uses the AWS CloudFormation API operation
+// DescribeStacks to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *CloudFormation) WaitUntilStackExists(input *DescribeStacksInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeStacks",
@@ -219,6 +231,10 @@ func (c *CloudFormation) WaitUntilStackExists(input *DescribeStacksInput) error 
 	return w.Wait()
 }
 
+// WaitUntilStackUpdateComplete uses the AWS CloudFormation API operation
+// DescribeStacks to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *CloudFormation) WaitUntilStackUpdateComplete(input *DescribeStacksInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeStacks",

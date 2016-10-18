@@ -18,6 +18,8 @@ const opDeleteScalingPolicy = "DeleteScalingPolicy"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DeleteScalingPolicy for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -52,6 +54,8 @@ func (c *ApplicationAutoScaling) DeleteScalingPolicyRequest(input *DeleteScaling
 	return
 }
 
+// DeleteScalingPolicy API operation for Application Auto Scaling.
+//
 // Deletes an Application Auto Scaling scaling policy that was previously created.
 // If you are no longer using a scaling policy, you can delete it with this
 // operation.
@@ -61,6 +65,34 @@ func (c *ApplicationAutoScaling) DeleteScalingPolicyRequest(input *DeleteScaling
 // has an associated action.
 //
 // To create a new scaling policy or update an existing one, see PutScalingPolicy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation DeleteScalingPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ValidationException
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * ObjectNotFoundException
+//   The specified object could not be found. For any Put or Register API operation,
+//   which depends on the existence of a scalable target, this exception is thrown
+//   if the scalable target with the specified service namespace, resource ID,
+//   and scalable dimension does not exist. For any Delete or Deregister API operation,
+//   this exception is thrown if the resource that is to be deleted or deregistered
+//   cannot be found.
+//
+//   * ConcurrentUpdateException
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * InternalServiceException
+//   The service encountered an internal error.
+//
 func (c *ApplicationAutoScaling) DeleteScalingPolicy(input *DeleteScalingPolicyInput) (*DeleteScalingPolicyOutput, error) {
 	req, out := c.DeleteScalingPolicyRequest(input)
 	err := req.Send()
@@ -73,6 +105,8 @@ const opDeregisterScalableTarget = "DeregisterScalableTarget"
 // client's request for the DeregisterScalableTarget operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeregisterScalableTarget for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -108,12 +142,42 @@ func (c *ApplicationAutoScaling) DeregisterScalableTargetRequest(input *Deregist
 	return
 }
 
+// DeregisterScalableTarget API operation for Application Auto Scaling.
+//
 // Deregisters a scalable target that was previously registered. If you are
 // no longer using a scalable target, you can delete it with this operation.
 // When you deregister a scalable target, all of the scaling policies that are
 // associated with that scalable target are deleted.
 //
 // To create a new scalable target or update an existing one, see RegisterScalableTarget.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation DeregisterScalableTarget for usage and error information.
+//
+// Returned Error Codes:
+//   * ValidationException
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * ObjectNotFoundException
+//   The specified object could not be found. For any Put or Register API operation,
+//   which depends on the existence of a scalable target, this exception is thrown
+//   if the scalable target with the specified service namespace, resource ID,
+//   and scalable dimension does not exist. For any Delete or Deregister API operation,
+//   this exception is thrown if the resource that is to be deleted or deregistered
+//   cannot be found.
+//
+//   * ConcurrentUpdateException
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * InternalServiceException
+//   The service encountered an internal error.
+//
 func (c *ApplicationAutoScaling) DeregisterScalableTarget(input *DeregisterScalableTargetInput) (*DeregisterScalableTargetOutput, error) {
 	req, out := c.DeregisterScalableTargetRequest(input)
 	err := req.Send()
@@ -126,6 +190,8 @@ const opDescribeScalableTargets = "DescribeScalableTargets"
 // client's request for the DescribeScalableTargets operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeScalableTargets for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -167,6 +233,8 @@ func (c *ApplicationAutoScaling) DescribeScalableTargetsRequest(input *DescribeS
 	return
 }
 
+// DescribeScalableTargets API operation for Application Auto Scaling.
+//
 // Provides descriptive information for scalable targets with a specified service
 // namespace.
 //
@@ -176,6 +244,29 @@ func (c *ApplicationAutoScaling) DescribeScalableTargetsRequest(input *DescribeS
 // To create a new scalable target or update an existing one, see RegisterScalableTarget.
 // If you are no longer using a scalable target, you can deregister it with
 // DeregisterScalableTarget.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation DescribeScalableTargets for usage and error information.
+//
+// Returned Error Codes:
+//   * ValidationException
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * InvalidNextTokenException
+//   The next token supplied was invalid.
+//
+//   * ConcurrentUpdateException
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * InternalServiceException
+//   The service encountered an internal error.
+//
 func (c *ApplicationAutoScaling) DescribeScalableTargets(input *DescribeScalableTargetsInput) (*DescribeScalableTargetsOutput, error) {
 	req, out := c.DescribeScalableTargetsRequest(input)
 	err := req.Send()
@@ -213,6 +304,8 @@ const opDescribeScalingActivities = "DescribeScalingActivities"
 // client's request for the DescribeScalingActivities operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeScalingActivities for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -254,6 +347,8 @@ func (c *ApplicationAutoScaling) DescribeScalingActivitiesRequest(input *Describ
 	return
 }
 
+// DescribeScalingActivities API operation for Application Auto Scaling.
+//
 // Provides descriptive information for scaling activities with a specified
 // service namespace for the previous six weeks.
 //
@@ -264,6 +359,29 @@ func (c *ApplicationAutoScaling) DescribeScalingActivitiesRequest(input *Describ
 // with scaling policies. To view the existing scaling policies for a service
 // namespace, see DescribeScalingPolicies. To create a new scaling policy or
 // update an existing one, see PutScalingPolicy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation DescribeScalingActivities for usage and error information.
+//
+// Returned Error Codes:
+//   * ValidationException
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * InvalidNextTokenException
+//   The next token supplied was invalid.
+//
+//   * ConcurrentUpdateException
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * InternalServiceException
+//   The service encountered an internal error.
+//
 func (c *ApplicationAutoScaling) DescribeScalingActivities(input *DescribeScalingActivitiesInput) (*DescribeScalingActivitiesOutput, error) {
 	req, out := c.DescribeScalingActivitiesRequest(input)
 	err := req.Send()
@@ -301,6 +419,8 @@ const opDescribeScalingPolicies = "DescribeScalingPolicies"
 // client's request for the DescribeScalingPolicies operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeScalingPolicies for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -342,6 +462,8 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 	return
 }
 
+// DescribeScalingPolicies API operation for Application Auto Scaling.
+//
 // Provides descriptive information for scaling policies with a specified service
 // namespace.
 //
@@ -350,6 +472,38 @@ func (c *ApplicationAutoScaling) DescribeScalingPoliciesRequest(input *DescribeS
 //
 // To create a new scaling policy or update an existing one, see PutScalingPolicy.
 // If you are no longer using a scaling policy, you can delete it with DeleteScalingPolicy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation DescribeScalingPolicies for usage and error information.
+//
+// Returned Error Codes:
+//   * ValidationException
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * FailedResourceAccessException
+//   Failed access to resources caused an exception. This exception currently
+//   only applies to DescribeScalingPolicies. It is thrown when Application Auto
+//   Scaling is unable to retrieve the alarms associated with a scaling policy
+//   due to a client error, for example, if the role ARN specified for a scalable
+//   target does not have the proper permissions to call the CloudWatch DescribeAlarms
+//   (http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarms.html)
+//   API operation on behalf of your account.
+//
+//   * InvalidNextTokenException
+//   The next token supplied was invalid.
+//
+//   * ConcurrentUpdateException
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * InternalServiceException
+//   The service encountered an internal error.
+//
 func (c *ApplicationAutoScaling) DescribeScalingPolicies(input *DescribeScalingPoliciesInput) (*DescribeScalingPoliciesOutput, error) {
 	req, out := c.DescribeScalingPoliciesRequest(input)
 	err := req.Send()
@@ -388,6 +542,8 @@ const opPutScalingPolicy = "PutScalingPolicy"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See PutScalingPolicy for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -422,6 +578,8 @@ func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicy
 	return
 }
 
+// PutScalingPolicy API operation for Application Auto Scaling.
+//
 // Creates or updates a policy for an existing Application Auto Scaling scalable
 // target. Each scalable target is identified by service namespace, a resource
 // ID, and a scalable dimension, and a scaling policy applies to a scalable
@@ -435,6 +593,39 @@ func (c *ApplicationAutoScaling) PutScalingPolicyRequest(input *PutScalingPolicy
 // You can view the existing scaling policies for a service namespace with
 // DescribeScalingPolicies. If you are no longer using a scaling policy, you
 // can delete it with DeleteScalingPolicy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation PutScalingPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ValidationException
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * LimitExceededException
+//   Your account exceeded a limit. This exception is thrown when a per-account
+//   resource limit is exceeded. For more information, see Application Auto Scaling
+//   Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_as-app).
+//
+//   * ObjectNotFoundException
+//   The specified object could not be found. For any Put or Register API operation,
+//   which depends on the existence of a scalable target, this exception is thrown
+//   if the scalable target with the specified service namespace, resource ID,
+//   and scalable dimension does not exist. For any Delete or Deregister API operation,
+//   this exception is thrown if the resource that is to be deleted or deregistered
+//   cannot be found.
+//
+//   * ConcurrentUpdateException
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * InternalServiceException
+//   The service encountered an internal error.
+//
 func (c *ApplicationAutoScaling) PutScalingPolicy(input *PutScalingPolicyInput) (*PutScalingPolicyOutput, error) {
 	req, out := c.PutScalingPolicyRequest(input)
 	err := req.Send()
@@ -447,6 +638,8 @@ const opRegisterScalableTarget = "RegisterScalableTarget"
 // client's request for the RegisterScalableTarget operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RegisterScalableTarget for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -482,6 +675,8 @@ func (c *ApplicationAutoScaling) RegisterScalableTargetRequest(input *RegisterSc
 	return
 }
 
+// RegisterScalableTarget API operation for Application Auto Scaling.
+//
 // Registers or updates a scalable target. A scalable target is a resource that
 // can be scaled out or in with Application Auto Scaling. After you have registered
 // a scalable target, you can use this operation to update the minimum and maximum
@@ -492,6 +687,31 @@ func (c *ApplicationAutoScaling) RegisterScalableTargetRequest(input *RegisterSc
 // view the existing scaling policies for a service namespace with DescribeScalableTargets.
 // If you are no longer using a scalable target, you can deregister it with
 // DeregisterScalableTarget.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Application Auto Scaling's
+// API operation RegisterScalableTarget for usage and error information.
+//
+// Returned Error Codes:
+//   * ValidationException
+//   An exception was thrown for a validation issue. Review the available parameters
+//   for the API request.
+//
+//   * LimitExceededException
+//   Your account exceeded a limit. This exception is thrown when a per-account
+//   resource limit is exceeded. For more information, see Application Auto Scaling
+//   Limits (http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html#limits_as-app).
+//
+//   * ConcurrentUpdateException
+//   Concurrent updates caused an exception, for example, if you request an update
+//   to an Application Auto Scaling resource that already has a pending update.
+//
+//   * InternalServiceException
+//   The service encountered an internal error.
+//
 func (c *ApplicationAutoScaling) RegisterScalableTarget(input *RegisterScalableTargetInput) (*RegisterScalableTargetOutput, error) {
 	req, out := c.RegisterScalableTargetRequest(input)
 	err := req.Send()
@@ -503,9 +723,13 @@ type Alarm struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the alarm.
+	//
+	// AlarmARN is a required field
 	AlarmARN *string `type:"string" required:"true"`
 
 	// The name of the alarm.
+	//
+	// AlarmName is a required field
 	AlarmName *string `type:"string" required:"true"`
 }
 
@@ -523,6 +747,8 @@ type DeleteScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the scaling policy to delete.
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The resource type and unique identifier string for the resource associated
@@ -530,6 +756,8 @@ type DeleteScalingPolicyInput struct {
 	// and the identifier is the cluster name and service name; for example, service/default/sample-webapp.
 	// For Amazon EC2 Spot fleet requests, the resource type is spot-fleet-request,
 	// and the identifier is the Spot fleet request ID; for example, spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
 	// The scalable dimension associated with the scaling policy. The scalable dimension
@@ -537,11 +765,15 @@ type DeleteScalingPolicyInput struct {
 	// as ecs:service:DesiredCount for the desired task count of an Amazon ECS service,
 	// or ec2:spot-fleet-request:TargetCapacity for the target capacity of an Amazon
 	// EC2 Spot fleet request.
+	//
+	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
 
 	// The namespace for the AWS service that the scaling policy is associated with.
 	// For more information, see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 }
 
@@ -605,6 +837,8 @@ type DeregisterScalableTargetInput struct {
 	// and the identifier is the cluster name and service name; for example, service/default/sample-webapp.
 	// For Amazon EC2 Spot fleet requests, the resource type is spot-fleet-request,
 	// and the identifier is the Spot fleet request ID; for example, spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
 	// The scalable dimension associated with the scalable target. The scalable
@@ -612,11 +846,15 @@ type DeregisterScalableTargetInput struct {
 	// such as ecs:service:DesiredCount for the desired task count of an Amazon
 	// ECS service, or ec2:spot-fleet-request:TargetCapacity for the target capacity
 	// of an Amazon EC2 Spot fleet request.
+	//
+	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
 
 	// The namespace for the AWS service that the scalable target is associated
 	// with. For more information, see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 }
 
@@ -704,6 +942,8 @@ type DescribeScalableTargetsInput struct {
 	// The namespace for the AWS service that the scalable target is associated
 	// with. For more information, see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 }
 
@@ -792,6 +1032,8 @@ type DescribeScalingActivitiesInput struct {
 	// The namespace for the AWS service that the scaling activity is associated
 	// with. For more information, see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 }
 
@@ -886,6 +1128,8 @@ type DescribeScalingPoliciesInput struct {
 	// The AWS service namespace of the scalable target that the scaling policy
 	// is associated with. For more information, see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 }
 
@@ -942,6 +1186,8 @@ type PutScalingPolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the scaling policy.
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The policy type. If you are creating a new policy, this parameter is required.
@@ -953,6 +1199,8 @@ type PutScalingPolicyInput struct {
 	// and the identifier is the cluster name and service name; for example, service/default/sample-webapp.
 	// For Amazon EC2 Spot fleet requests, the resource type is spot-fleet-request,
 	// and the identifier is the Spot fleet request ID; for example, spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
 	// The scalable dimension of the scalable target that this scaling policy applies
@@ -960,11 +1208,15 @@ type PutScalingPolicyInput struct {
 	// and scaling property, such as ecs:service:DesiredCount for the desired task
 	// count of an Amazon ECS service, or ec2:spot-fleet-request:TargetCapacity
 	// for the target capacity of an Amazon EC2 Spot fleet request.
+	//
+	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
 
 	// The AWS service namespace of the scalable target that this scaling policy
 	// applies to. For more information, see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 
 	// The configuration for the step scaling policy. If you are creating a new
@@ -1021,6 +1273,8 @@ type PutScalingPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the resulting scaling policy.
+	//
+	// PolicyARN is a required field
 	PolicyARN *string `min:"1" type:"string" required:"true"`
 }
 
@@ -1052,6 +1306,8 @@ type RegisterScalableTargetInput struct {
 	// and the identifier is the cluster name and service name; for example, service/default/sample-webapp.
 	// For Amazon EC2 Spot fleet requests, the resource type is spot-fleet-request,
 	// and the identifier is the Spot fleet request ID; for example, spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
 	// The ARN of the IAM role that allows Application Auto Scaling to modify your
@@ -1065,12 +1321,16 @@ type RegisterScalableTargetInput struct {
 	// such as ecs:service:DesiredCount for the desired task count of an Amazon
 	// ECS service, or ec2:spot-fleet-request:TargetCapacity for the target capacity
 	// of an Amazon EC2 Spot fleet request.
+	//
+	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
 
 	// The namespace for the AWS service that the scalable target is associated
 	// with. For Amazon ECS services, the namespace value is ecs. For more information,
 	// see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 }
 
@@ -1128,14 +1388,20 @@ type ScalableTarget struct {
 	_ struct{} `type:"structure"`
 
 	// The Unix timestamp for when the scalable target was created.
+	//
+	// CreationTime is a required field
 	CreationTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// The maximum value for this scalable target to scale out to in response to
 	// scaling activities.
+	//
+	// MaxCapacity is a required field
 	MaxCapacity *int64 `type:"integer" required:"true"`
 
 	// The minimum value for this scalable target to scale in to in response to
 	// scaling activities.
+	//
+	// MinCapacity is a required field
 	MinCapacity *int64 `type:"integer" required:"true"`
 
 	// The resource type and unique identifier string for the resource associated
@@ -1143,10 +1409,14 @@ type ScalableTarget struct {
 	// and the identifier is the cluster name and service name; for example, service/default/sample-webapp.
 	// For Amazon EC2 Spot fleet requests, the resource type is spot-fleet-request,
 	// and the identifier is the Spot fleet request ID; for example, spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
 	// The ARN of the IAM role that allows Application Auto Scaling to modify your
 	// scalable target on your behalf.
+	//
+	// RoleARN is a required field
 	RoleARN *string `min:"1" type:"string" required:"true"`
 
 	// The scalable dimension associated with the scalable target. The scalable
@@ -1154,11 +1424,15 @@ type ScalableTarget struct {
 	// such as ecs:service:DesiredCount for the desired task count of an Amazon
 	// ECS service, or ec2:spot-fleet-request:TargetCapacity for the target capacity
 	// of an Amazon EC2 Spot fleet request.
+	//
+	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
 
 	// The namespace for the AWS service that the scalable target is associated
 	// with. For more information, see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 }
 
@@ -1177,12 +1451,18 @@ type ScalingActivity struct {
 	_ struct{} `type:"structure"`
 
 	// The unique identifier string for the scaling activity.
+	//
+	// ActivityId is a required field
 	ActivityId *string `type:"string" required:"true"`
 
 	// A simple description of what caused the scaling activity to happen.
+	//
+	// Cause is a required field
 	Cause *string `type:"string" required:"true"`
 
 	// A simple description of what action the scaling activity intends to accomplish.
+	//
+	// Description is a required field
 	Description *string `type:"string" required:"true"`
 
 	// The details about the scaling activity.
@@ -1197,6 +1477,8 @@ type ScalingActivity struct {
 	// service/default/sample-webapp. For Amazon EC2 Spot fleet requests, the resource
 	// type is spot-fleet-request, and the identifier is the Spot fleet request
 	// ID; for example, spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
 	// The scalable dimension associated with the scaling activity. The scalable
@@ -1204,17 +1486,25 @@ type ScalingActivity struct {
 	// such as ecs:service:DesiredCount for the desired task count of an Amazon
 	// ECS service, or ec2:spot-fleet-request:TargetCapacity for the target capacity
 	// of an Amazon EC2 Spot fleet request.
+	//
+	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
 
 	// The namespace for the AWS service that the scaling activity is associated
 	// with. For more information, see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 
 	// The Unix timestamp for when the scaling activity began.
+	//
+	// StartTime is a required field
 	StartTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// Indicates the status of the scaling activity.
+	//
+	// StatusCode is a required field
 	StatusCode *string `type:"string" required:"true" enum:"ScalingActivityStatusCode"`
 
 	// A simple message about the current status of the scaling activity.
@@ -1239,15 +1529,23 @@ type ScalingPolicy struct {
 	Alarms []*Alarm `type:"list"`
 
 	// The Unix timestamp for when the scaling policy was created.
+	//
+	// CreationTime is a required field
 	CreationTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the scaling policy.
+	//
+	// PolicyARN is a required field
 	PolicyARN *string `min:"1" type:"string" required:"true"`
 
 	// The name of the scaling policy.
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The scaling policy type.
+	//
+	// PolicyType is a required field
 	PolicyType *string `type:"string" required:"true" enum:"PolicyType"`
 
 	// The resource type and unique identifier string for the resource associated
@@ -1255,6 +1553,8 @@ type ScalingPolicy struct {
 	// and the identifier is the cluster name and service name; for example, service/default/sample-webapp.
 	// For Amazon EC2 Spot fleet requests, the resource type is spot-fleet-request,
 	// and the identifier is the Spot fleet request ID; for example, spot-fleet-request/sfr-73fbd2ce-aa30-494c-8788-1cee4EXAMPLE.
+	//
+	// ResourceId is a required field
 	ResourceId *string `min:"1" type:"string" required:"true"`
 
 	// The scalable dimension associated with the scaling policy. The scalable dimension
@@ -1262,11 +1562,15 @@ type ScalingPolicy struct {
 	// as ecs:service:DesiredCount for the desired task count of an Amazon ECS service,
 	// or ec2:spot-fleet-request:TargetCapacity for the target capacity of an Amazon
 	// EC2 Spot fleet request.
+	//
+	// ScalableDimension is a required field
 	ScalableDimension *string `type:"string" required:"true" enum:"ScalableDimension"`
 
 	// The namespace for the AWS service that the scaling policy is associated with.
 	// For more information, see AWS Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the Amazon Web Services General Reference.
+	//
+	// ServiceNamespace is a required field
 	ServiceNamespace *string `type:"string" required:"true" enum:"ServiceNamespace"`
 
 	// The configuration for the step scaling policy.
@@ -1335,6 +1639,8 @@ type StepAdjustment struct {
 	// The amount by which to scale, based on the specified adjustment type. A positive
 	// value adds to the current scalable dimension while a negative number removes
 	// from the current scalable dimension.
+	//
+	// ScalingAdjustment is a required field
 	ScalingAdjustment *int64 `type:"integer" required:"true"`
 }
 
@@ -1437,53 +1743,64 @@ func (s *StepScalingPolicyConfiguration) Validate() error {
 }
 
 const (
-	// @enum AdjustmentType
+	// AdjustmentTypeChangeInCapacity is a AdjustmentType enum value
 	AdjustmentTypeChangeInCapacity = "ChangeInCapacity"
-	// @enum AdjustmentType
+
+	// AdjustmentTypePercentChangeInCapacity is a AdjustmentType enum value
 	AdjustmentTypePercentChangeInCapacity = "PercentChangeInCapacity"
-	// @enum AdjustmentType
+
+	// AdjustmentTypeExactCapacity is a AdjustmentType enum value
 	AdjustmentTypeExactCapacity = "ExactCapacity"
 )
 
 const (
-	// @enum MetricAggregationType
+	// MetricAggregationTypeAverage is a MetricAggregationType enum value
 	MetricAggregationTypeAverage = "Average"
-	// @enum MetricAggregationType
+
+	// MetricAggregationTypeMinimum is a MetricAggregationType enum value
 	MetricAggregationTypeMinimum = "Minimum"
-	// @enum MetricAggregationType
+
+	// MetricAggregationTypeMaximum is a MetricAggregationType enum value
 	MetricAggregationTypeMaximum = "Maximum"
 )
 
 const (
-	// @enum PolicyType
+	// PolicyTypeStepScaling is a PolicyType enum value
 	PolicyTypeStepScaling = "StepScaling"
 )
 
 const (
-	// @enum ScalableDimension
+	// ScalableDimensionEcsServiceDesiredCount is a ScalableDimension enum value
 	ScalableDimensionEcsServiceDesiredCount = "ecs:service:DesiredCount"
-	// @enum ScalableDimension
+
+	// ScalableDimensionEc2SpotFleetRequestTargetCapacity is a ScalableDimension enum value
 	ScalableDimensionEc2SpotFleetRequestTargetCapacity = "ec2:spot-fleet-request:TargetCapacity"
 )
 
 const (
-	// @enum ScalingActivityStatusCode
+	// ScalingActivityStatusCodePending is a ScalingActivityStatusCode enum value
 	ScalingActivityStatusCodePending = "Pending"
-	// @enum ScalingActivityStatusCode
+
+	// ScalingActivityStatusCodeInProgress is a ScalingActivityStatusCode enum value
 	ScalingActivityStatusCodeInProgress = "InProgress"
-	// @enum ScalingActivityStatusCode
+
+	// ScalingActivityStatusCodeSuccessful is a ScalingActivityStatusCode enum value
 	ScalingActivityStatusCodeSuccessful = "Successful"
-	// @enum ScalingActivityStatusCode
+
+	// ScalingActivityStatusCodeOverridden is a ScalingActivityStatusCode enum value
 	ScalingActivityStatusCodeOverridden = "Overridden"
-	// @enum ScalingActivityStatusCode
+
+	// ScalingActivityStatusCodeUnfulfilled is a ScalingActivityStatusCode enum value
 	ScalingActivityStatusCodeUnfulfilled = "Unfulfilled"
-	// @enum ScalingActivityStatusCode
+
+	// ScalingActivityStatusCodeFailed is a ScalingActivityStatusCode enum value
 	ScalingActivityStatusCodeFailed = "Failed"
 )
 
 const (
-	// @enum ServiceNamespace
+	// ServiceNamespaceEcs is a ServiceNamespace enum value
 	ServiceNamespaceEcs = "ecs"
-	// @enum ServiceNamespace
+
+	// ServiceNamespaceEc2 is a ServiceNamespace enum value
 	ServiceNamespaceEc2 = "ec2"
 )
