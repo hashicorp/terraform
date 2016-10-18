@@ -45,6 +45,9 @@ func resourcePagerDutyService() *schema.Resource {
 func buildServiceStruct(d *schema.ResourceData) *pagerduty.Service {
 	service := pagerduty.Service{
 		Name: d.Get("name").(string),
+		APIObject: pagerduty.APIObject{
+			ID: d.Id(),
+		},
 	}
 
 	if attr, ok := d.GetOk("description"); ok {
@@ -115,7 +118,6 @@ func resourcePagerDutyServiceUpdate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*pagerduty.Client)
 
 	s := buildServiceStruct(d)
-	s.ID = d.Id()
 
 	log.Printf("[INFO] Updating PagerDuty service %s", d.Id())
 

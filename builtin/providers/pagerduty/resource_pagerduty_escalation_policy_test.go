@@ -100,13 +100,14 @@ resource "pagerduty_escalation_policy" "foo" {
   description = "foo"
   num_loops   = 1
 
-	escalation_rule {
-		escalation_delay_in_minutes = 10
-		target {
-			type = "user_reference"
-			id = "${pagerduty_user.foo.id}"
-		}
-	}
+  escalation_rule {
+    escalation_delay_in_minutes = 10
+
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
 }
 `
 
@@ -125,20 +126,22 @@ resource "pagerduty_escalation_policy" "foo" {
   description = "bar"
   num_loops   = 2
 
-	escalation_rule {
-		escalation_delay_in_minutes = 10
-		target {
-			type = "user_reference"
-			id = "${pagerduty_user.foo.id}"
-		}
-	}
+  escalation_rule {
+    escalation_delay_in_minutes = 10
 
-	escalation_rule {
-		escalation_delay_in_minutes = 20
-		target {
-			type = "user_reference"
-			id = "${pagerduty_user.foo.id}"
-		}
-	}
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
+
+  escalation_rule {
+    escalation_delay_in_minutes = 20
+
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
 }
 `

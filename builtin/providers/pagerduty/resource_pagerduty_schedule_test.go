@@ -22,11 +22,59 @@ func TestAccPagerDutySchedule_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "name", "foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "description", "Managed by Terraform"),
+						"pagerduty_schedule.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "time_zone", "Europe/Berlin"),
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "schedule_layer.#", "1"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "schedule_layer.0.name", "foo"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCheckPagerDutyScheduleConfigUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "name", "bar"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "description", "Managed by Terraform"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "time_zone", "America/New_York"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "schedule_layer.#", "1"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "schedule_layer.0.name", "foo"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccPagerDutySchedule_Multi(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPagerDutyScheduleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckPagerDutyScheduleConfigMulti,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPagerDutyScheduleExists("pagerduty_schedule.foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "name", "foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "description", "foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "time_zone", "America/New_York"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "schedule_layer.#", "3"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "schedule_layer.0.name", "foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "schedule_layer.1.name", "bar"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_schedule.foo", "schedule_layer.2.name", "foobar"),
 				),
 			},
 		},
@@ -77,23 +125,104 @@ func testAccCheckPagerDutyScheduleExists(n string) resource.TestCheckFunc {
 
 const testAccCheckPagerDutyScheduleConfig = `
 resource "pagerduty_user" "foo" {
-  name        = "foo"
-  email       = "foo@bar.com"
-  color       = "green"
-  role        = "user"
-  job_title   = "foo"
-  description = "foo"
+  name  = "foo"
+  email = "foo@bar.com"
 }
 
 resource "pagerduty_schedule" "foo" {
-  name      = "foo"
-  time_zone = "Europe/Berlin"
+  name = "foo"
+
+  time_zone   = "Europe/Berlin"
+  description = "foo"
 
   schedule_layer {
     name                         = "foo"
     start                        = "2015-11-06T20:00:00-05:00"
     rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
-    rotation_turn_length_seconds = 86401
+    rotation_turn_length_seconds = 86400
+    users                        = ["${pagerduty_user.foo.id}"]
+
+    restriction {
+      type              = "daily_restriction"
+      start_time_of_day = "08:00:00"
+      duration_seconds  = 32101
+    }
+  }
+}
+`
+
+const testAccCheckPagerDutyScheduleConfigUpdated = `
+resource "pagerduty_user" "foo" {
+  name        = "foo"
+  email       = "foo@bar.com"
+}
+
+resource "pagerduty_schedule" "foo" {
+  name = "bar"
+
+  time_zone = "America/New_York"
+
+  schedule_layer {
+    name                         = "foo"
+    start                        = "2015-11-06T20:00:00-05:00"
+    rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
+    rotation_turn_length_seconds = 86400
+    users                        = ["${pagerduty_user.foo.id}"]
+
+    restriction {
+      type              = "daily_restriction"
+      start_time_of_day = "08:00:00"
+      duration_seconds  = 32101
+    }
+  }
+}
+`
+
+const testAccCheckPagerDutyScheduleConfigMulti = `
+resource "pagerduty_user" "foo" {
+  name        = "foo"
+  email       = "foo@bar.com"
+}
+
+resource "pagerduty_schedule" "foo" {
+  name = "foo"
+
+  time_zone   = "America/New_York"
+  description = "foo"
+
+  schedule_layer {
+    name                         = "foo"
+    start                        = "2015-11-06T20:00:00-05:00"
+    rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
+    rotation_turn_length_seconds = 86400
+    users                        = ["${pagerduty_user.foo.id}"]
+
+    restriction {
+      type              = "daily_restriction"
+      start_time_of_day = "08:00:00"
+      duration_seconds  = 32101
+    }
+  }
+
+  schedule_layer {
+    name                         = "bar"
+    start                        = "2015-11-06T20:00:00-05:00"
+    rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
+    rotation_turn_length_seconds = 86400
+    users                        = ["${pagerduty_user.foo.id}"]
+
+    restriction {
+      type              = "daily_restriction"
+      start_time_of_day = "08:00:00"
+      duration_seconds  = 32101
+    }
+  }
+
+  schedule_layer {
+    name                         = "foobar"
+    start                        = "2015-11-06T20:00:00-05:00"
+    rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
+    rotation_turn_length_seconds = 86400
     users                        = ["${pagerduty_user.foo.id}"]
 
     restriction {
