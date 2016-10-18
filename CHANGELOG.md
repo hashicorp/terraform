@@ -1,16 +1,17 @@
 ## 0.7.7 (Unreleased)
 
+IMPROVEMENTS:
+
+ * provider/aws: Expose ARN for `aws_lambda_alias` [GH-9390]
+ * provider/aws: Add support for AWS US East (Ohio) region. [GH-9414]
+
 BUG FIXES:
 
  * core: List and map indexes support arithmetic [GH-9372]
  * core: List and map indexes are implicitly converted to the correct type if possible [GH-9372]
- * provider/aws: Read back aws_launch_configuration's associate_public_ip_address field, to enable importing. [GH-9399]
- * provider/google: Fixed a bug causing a crash when migrating `google_compute_target_pool` resources from 0.6.x releases [GH-9370]
-
-IMPROVEMENTS:
-
- * provider/aws: Expose ARN for aws_lambda_alias [GH-9390]
- * provider/aws: Add support for AWS US East (Ohio) region. [GH-9414]
+ * provider/aws: Read back `aassociate_public_ip_address` in `aws_launch_configuration` resources to enable importing. [GH-9399]
+ * provider/aws: Remove `aws_route` resources from state if their associated `aws_route_table` has been removed. [GH-9431]
+ * provider/google: Fix a bug causing a crash when migrating `google_compute_target_pool` resources from 0.6.x releases [GH-9370]
 
 ## 0.7.6 (October 14, 2016)
 
