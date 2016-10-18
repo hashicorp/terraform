@@ -92,8 +92,7 @@ func TestState(t *testing.T, s interface{}) {
 		}
 
 		// Change the serial
-		currentCopy := *current
-		current = &currentCopy
+		current = current.DeepCopy()
 		current.Modules = []*terraform.ModuleState{
 			&terraform.ModuleState{
 				Path: []string{"root", "somewhere"},

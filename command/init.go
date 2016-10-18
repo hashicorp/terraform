@@ -131,7 +131,7 @@ func (c *InitCommand) Run(args []string) int {
 		// Initialize a blank state file with remote enabled
 		remoteCmd := &RemoteConfigCommand{
 			Meta:       c.Meta,
-			remoteConf: remoteConf,
+			remoteConf: &remoteConf,
 		}
 		return remoteCmd.initBlankState()
 	}
