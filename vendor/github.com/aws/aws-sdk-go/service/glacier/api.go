@@ -19,6 +19,8 @@ const opAbortMultipartUpload = "AbortMultipartUpload"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See AbortMultipartUpload for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -55,6 +57,8 @@ func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) 
 	return
 }
 
+// AbortMultipartUpload API operation for Amazon Glacier.
+//
 // This operation aborts a multipart upload identified by the upload ID.
 //
 // After the Abort Multipart Upload request succeeds, you cannot upload any
@@ -75,6 +79,28 @@ func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) 
 // Archives in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-archives.html)
 // and Abort Multipart Upload (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-multipart-abort-upload.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation AbortMultipartUpload for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) AbortMultipartUpload(input *AbortMultipartUploadInput) (*AbortMultipartUploadOutput, error) {
 	req, out := c.AbortMultipartUploadRequest(input)
 	err := req.Send()
@@ -87,6 +113,8 @@ const opAbortVaultLock = "AbortVaultLock"
 // client's request for the AbortVaultLock operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AbortVaultLock for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -124,6 +152,8 @@ func (c *Glacier) AbortVaultLockRequest(input *AbortVaultLockInput) (req *reques
 	return
 }
 
+// AbortVaultLock API operation for Amazon Glacier.
+//
 // This operation aborts the vault locking process if the vault lock is not
 // in the Locked state. If the vault lock is in the Locked state when this operation
 // is requested, the operation returns an AccessDeniedException error. Aborting
@@ -140,6 +170,28 @@ func (c *Glacier) AbortVaultLockRequest(input *AbortVaultLockInput) (req *reques
 // This operation is idempotent. You can successfully invoke this operation
 // multiple times, if the vault lock is in the InProgress state or if there
 // is no policy associated with the vault.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation AbortVaultLock for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) AbortVaultLock(input *AbortVaultLockInput) (*AbortVaultLockOutput, error) {
 	req, out := c.AbortVaultLockRequest(input)
 	err := req.Send()
@@ -152,6 +204,8 @@ const opAddTagsToVault = "AddTagsToVault"
 // client's request for the AddTagsToVault operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AddTagsToVault for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -189,12 +243,39 @@ func (c *Glacier) AddTagsToVaultRequest(input *AddTagsToVaultInput) (req *reques
 	return
 }
 
+// AddTagsToVault API operation for Amazon Glacier.
+//
 // This operation adds the specified tags to a vault. Each tag is composed of
 // a key and a value. Each vault can have up to 10 tags. If your request would
 // cause the tag limit for the vault to be exceeded, the operation throws the
 // LimitExceededException error. If a tag already exists on the vault under
 // a specified key, the existing key value will be overwritten. For more information
 // about tags, see Tagging Amazon Glacier Resources (http://docs.aws.amazon.com/amazonglacier/latest/dev/tagging.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation AddTagsToVault for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * LimitExceededException
+//   Returned if the request results in a vault or account limit being exceeded.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) AddTagsToVault(input *AddTagsToVaultInput) (*AddTagsToVaultOutput, error) {
 	req, out := c.AddTagsToVaultRequest(input)
 	err := req.Send()
@@ -207,6 +288,8 @@ const opCompleteMultipartUpload = "CompleteMultipartUpload"
 // client's request for the CompleteMultipartUpload operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CompleteMultipartUpload for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -242,6 +325,8 @@ func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadI
 	return
 }
 
+// CompleteMultipartUpload API operation for Amazon Glacier.
+//
 // You call this operation to inform Amazon Glacier that all the archive parts
 // have been uploaded and that Amazon Glacier can now assemble the archive from
 // the uploaded parts. After assembling and saving the archive to the vault,
@@ -286,6 +371,28 @@ func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadI
 // Archives in Parts (Multipart Upload) (http://docs.aws.amazon.com/amazonglacier/latest/dev/uploading-archive-mpu.html)
 // and Complete Multipart Upload (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-multipart-complete-upload.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation CompleteMultipartUpload for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) CompleteMultipartUpload(input *CompleteMultipartUploadInput) (*ArchiveCreationOutput, error) {
 	req, out := c.CompleteMultipartUploadRequest(input)
 	err := req.Send()
@@ -298,6 +405,8 @@ const opCompleteVaultLock = "CompleteVaultLock"
 // client's request for the CompleteVaultLock operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CompleteVaultLock for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -335,6 +444,8 @@ func (c *Glacier) CompleteVaultLockRequest(input *CompleteVaultLockInput) (req *
 	return
 }
 
+// CompleteVaultLock API operation for Amazon Glacier.
+//
 // This operation completes the vault locking process by transitioning the vault
 // lock from the InProgress state to the Locked state, which causes the vault
 // lock policy to become unchangeable. A vault lock is put into the InProgress
@@ -350,6 +461,28 @@ func (c *Glacier) CompleteVaultLockRequest(input *CompleteVaultLockInput) (req *
 // the Locked state, the operation returns an AccessDeniedException error. If
 // an invalid lock ID is passed in the request when the vault lock is in the
 // InProgress state, the operation throws an InvalidParameter error.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation CompleteVaultLock for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) CompleteVaultLock(input *CompleteVaultLockInput) (*CompleteVaultLockOutput, error) {
 	req, out := c.CompleteVaultLockRequest(input)
 	err := req.Send()
@@ -362,6 +495,8 @@ const opCreateVault = "CreateVault"
 // client's request for the CreateVault operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateVault for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -397,6 +532,8 @@ func (c *Glacier) CreateVaultRequest(input *CreateVaultInput) (req *request.Requ
 	return
 }
 
+// CreateVault API operation for Amazon Glacier.
+//
 // This operation creates a new vault with the specified name. The name of the
 // vault must be unique within a region for an AWS account. You can create up
 // to 1,000 vaults per account. If you need to create more vaults, contact Amazon
@@ -421,6 +558,27 @@ func (c *Glacier) CreateVaultRequest(input *CreateVaultInput) (req *request.Requ
 // in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/creating-vaults.html)
 // and Create Vault  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vault-put.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation CreateVault for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
+//   * LimitExceededException
+//   Returned if the request results in a vault or account limit being exceeded.
+//
 func (c *Glacier) CreateVault(input *CreateVaultInput) (*CreateVaultOutput, error) {
 	req, out := c.CreateVaultRequest(input)
 	err := req.Send()
@@ -433,6 +591,8 @@ const opDeleteArchive = "DeleteArchive"
 // client's request for the DeleteArchive operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteArchive for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -470,6 +630,8 @@ func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.
 	return
 }
 
+// DeleteArchive API operation for Amazon Glacier.
+//
 // This operation deletes an archive from a vault. Subsequent requests to initiate
 // a retrieval of this archive will fail. Archive retrievals that are in progress
 // for this archive ID may or may not succeed according to the following scenarios:
@@ -491,6 +653,28 @@ func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.
 // in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/deleting-an-archive.html)
 // and Delete Archive (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-archive-delete.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation DeleteArchive for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) DeleteArchive(input *DeleteArchiveInput) (*DeleteArchiveOutput, error) {
 	req, out := c.DeleteArchiveRequest(input)
 	err := req.Send()
@@ -503,6 +687,8 @@ const opDeleteVault = "DeleteVault"
 // client's request for the DeleteVault operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVault for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -540,6 +726,8 @@ func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Requ
 	return
 }
 
+// DeleteVault API operation for Amazon Glacier.
+//
 // This operation deletes a vault. Amazon Glacier will delete a vault only if
 // there are no archives in the vault as of the last inventory and there have
 // been no writes to the vault since the last inventory. If either of these
@@ -563,6 +751,28 @@ func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Requ
 // in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/deleting-vaults.html)
 // and Delete Vault  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vault-delete.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation DeleteVault for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) DeleteVault(input *DeleteVaultInput) (*DeleteVaultOutput, error) {
 	req, out := c.DeleteVaultRequest(input)
 	err := req.Send()
@@ -575,6 +785,8 @@ const opDeleteVaultAccessPolicy = "DeleteVaultAccessPolicy"
 // client's request for the DeleteVaultAccessPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVaultAccessPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -612,6 +824,8 @@ func (c *Glacier) DeleteVaultAccessPolicyRequest(input *DeleteVaultAccessPolicyI
 	return
 }
 
+// DeleteVaultAccessPolicy API operation for Amazon Glacier.
+//
 // This operation deletes the access policy associated with the specified vault.
 // The operation is eventually consistent; that is, it might take some time
 // for Amazon Glacier to completely remove the access policy, and you might
@@ -622,6 +836,28 @@ func (c *Glacier) DeleteVaultAccessPolicyRequest(input *DeleteVaultAccessPolicyI
 // if there is no policy associated with the vault. For more information about
 // vault access policies, see Amazon Glacier Access Control with Vault Access
 // Policies (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-access-policy.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation DeleteVaultAccessPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) DeleteVaultAccessPolicy(input *DeleteVaultAccessPolicyInput) (*DeleteVaultAccessPolicyOutput, error) {
 	req, out := c.DeleteVaultAccessPolicyRequest(input)
 	err := req.Send()
@@ -634,6 +870,8 @@ const opDeleteVaultNotifications = "DeleteVaultNotifications"
 // client's request for the DeleteVaultNotifications operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVaultNotifications for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -671,6 +909,8 @@ func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotification
 	return
 }
 
+// DeleteVaultNotifications API operation for Amazon Glacier.
+//
 // This operation deletes the notification configuration set for a vault. The
 // operation is eventually consistent; that is, it might take some time for
 // Amazon Glacier to completely disable the notifications and you might still
@@ -686,6 +926,28 @@ func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotification
 // Notifications in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/configuring-notifications.html)
 // and Delete Vault Notification Configuration  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vault-notifications-delete.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation DeleteVaultNotifications for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) DeleteVaultNotifications(input *DeleteVaultNotificationsInput) (*DeleteVaultNotificationsOutput, error) {
 	req, out := c.DeleteVaultNotificationsRequest(input)
 	err := req.Send()
@@ -698,6 +960,8 @@ const opDescribeJob = "DescribeJob"
 // client's request for the DescribeJob operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeJob for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -733,6 +997,8 @@ func (c *Glacier) DescribeJobRequest(input *DescribeJobInput) (req *request.Requ
 	return
 }
 
+// DescribeJob API operation for Amazon Glacier.
+//
 // This operation returns information about a job you previously initiated,
 // including the job initiation date, the user who initiated the job, the job
 // status code/message and the Amazon SNS topic to notify after Amazon Glacier
@@ -755,6 +1021,28 @@ func (c *Glacier) DescribeJobRequest(input *DescribeJobInput) (req *request.Requ
 //  For information about the underlying REST API, go to Working with Archives
 // in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-describe-job-get.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation DescribeJob for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) DescribeJob(input *DescribeJobInput) (*JobDescription, error) {
 	req, out := c.DescribeJobRequest(input)
 	err := req.Send()
@@ -767,6 +1055,8 @@ const opDescribeVault = "DescribeVault"
 // client's request for the DescribeVault operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVault for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -802,6 +1092,8 @@ func (c *Glacier) DescribeVaultRequest(input *DescribeVaultInput) (req *request.
 	return
 }
 
+// DescribeVault API operation for Amazon Glacier.
+//
 // This operation returns information about a vault, including the vault's Amazon
 // Resource Name (ARN), the date the vault was created, the number of archives
 // it contains, and the total size of all the archives in the vault. The number
@@ -822,6 +1114,28 @@ func (c *Glacier) DescribeVaultRequest(input *DescribeVaultInput) (req *request.
 // Metadata in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/retrieving-vault-info.html)
 // and Describe Vault  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vault-get.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation DescribeVault for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) DescribeVault(input *DescribeVaultInput) (*DescribeVaultOutput, error) {
 	req, out := c.DescribeVaultRequest(input)
 	err := req.Send()
@@ -834,6 +1148,8 @@ const opGetDataRetrievalPolicy = "GetDataRetrievalPolicy"
 // client's request for the GetDataRetrievalPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetDataRetrievalPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -869,9 +1185,29 @@ func (c *Glacier) GetDataRetrievalPolicyRequest(input *GetDataRetrievalPolicyInp
 	return
 }
 
+// GetDataRetrievalPolicy API operation for Amazon Glacier.
+//
 // This operation returns the current data retrieval policy for the account
 // and region specified in the GET request. For more information about data
 // retrieval policies, see Amazon Glacier Data Retrieval Policies (http://docs.aws.amazon.com/amazonglacier/latest/dev/data-retrieval-policy.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation GetDataRetrievalPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) GetDataRetrievalPolicy(input *GetDataRetrievalPolicyInput) (*GetDataRetrievalPolicyOutput, error) {
 	req, out := c.GetDataRetrievalPolicyRequest(input)
 	err := req.Send()
@@ -884,6 +1220,8 @@ const opGetJobOutput = "GetJobOutput"
 // client's request for the GetJobOutput operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetJobOutput for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -919,6 +1257,8 @@ func (c *Glacier) GetJobOutputRequest(input *GetJobOutputInput) (req *request.Re
 	return
 }
 
+// GetJobOutput API operation for Amazon Glacier.
+//
 // This operation downloads the output of the job you initiated using InitiateJob.
 // Depending on the job type you specified when you initiated the job, the output
 // will be either the content of an archive or a vault inventory.
@@ -963,6 +1303,28 @@ func (c *Glacier) GetJobOutputRequest(input *GetJobOutputInput) (req *request.Re
 // a Vault Inventory (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-inventory.html),
 // Downloading an Archive (http://docs.aws.amazon.com/amazonglacier/latest/dev/downloading-an-archive.html),
 // and Get Job Output  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-job-output-get.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation GetJobOutput for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) GetJobOutput(input *GetJobOutputInput) (*GetJobOutputOutput, error) {
 	req, out := c.GetJobOutputRequest(input)
 	err := req.Send()
@@ -975,6 +1337,8 @@ const opGetVaultAccessPolicy = "GetVaultAccessPolicy"
 // client's request for the GetVaultAccessPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetVaultAccessPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1010,12 +1374,36 @@ func (c *Glacier) GetVaultAccessPolicyRequest(input *GetVaultAccessPolicyInput) 
 	return
 }
 
+// GetVaultAccessPolicy API operation for Amazon Glacier.
+//
 // This operation retrieves the access-policy subresource set on the vault;
 // for more information on setting this subresource, see Set Vault Access Policy
 // (PUT access-policy) (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-SetVaultAccessPolicy.html).
 // If there is no access policy set on the vault, the operation returns a 404
 // Not found error. For more information about vault access policies, see Amazon
 // Glacier Access Control with Vault Access Policies (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-access-policy.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation GetVaultAccessPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) GetVaultAccessPolicy(input *GetVaultAccessPolicyInput) (*GetVaultAccessPolicyOutput, error) {
 	req, out := c.GetVaultAccessPolicyRequest(input)
 	err := req.Send()
@@ -1028,6 +1416,8 @@ const opGetVaultLock = "GetVaultLock"
 // client's request for the GetVaultLock operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetVaultLock for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1063,6 +1453,8 @@ func (c *Glacier) GetVaultLockRequest(input *GetVaultLockInput) (req *request.Re
 	return
 }
 
+// GetVaultLock API operation for Amazon Glacier.
+//
 // This operation retrieves the following attributes from the lock-policy subresource
 // set on the specified vault:   The vault lock policy set on the vault.
 //
@@ -1081,6 +1473,28 @@ func (c *Glacier) GetVaultLockRequest(input *GetVaultLockInput) (req *request.Re
 // If there is no vault lock policy set on the vault, the operation returns
 // a 404 Not found error. For more information about vault lock policies, Amazon
 // Glacier Access Control with Vault Lock Policies (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-lock-policy.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation GetVaultLock for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) GetVaultLock(input *GetVaultLockInput) (*GetVaultLockOutput, error) {
 	req, out := c.GetVaultLockRequest(input)
 	err := req.Send()
@@ -1093,6 +1507,8 @@ const opGetVaultNotifications = "GetVaultNotifications"
 // client's request for the GetVaultNotifications operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetVaultNotifications for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1128,6 +1544,8 @@ func (c *Glacier) GetVaultNotificationsRequest(input *GetVaultNotificationsInput
 	return
 }
 
+// GetVaultNotifications API operation for Amazon Glacier.
+//
 // This operation retrieves the notification-configuration subresource of the
 // specified vault.
 //
@@ -1147,6 +1565,28 @@ func (c *Glacier) GetVaultNotificationsRequest(input *GetVaultNotificationsInput
 // Notifications in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/configuring-notifications.html)
 // and Get Vault Notification Configuration  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vault-notifications-get.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation GetVaultNotifications for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) GetVaultNotifications(input *GetVaultNotificationsInput) (*GetVaultNotificationsOutput, error) {
 	req, out := c.GetVaultNotificationsRequest(input)
 	err := req.Send()
@@ -1159,6 +1599,8 @@ const opInitiateJob = "InitiateJob"
 // client's request for the InitiateJob operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See InitiateJob for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1194,6 +1636,8 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 	return
 }
 
+// InitiateJob API operation for Amazon Glacier.
+//
 // This operation initiates a job of the specified type. In this release, you
 // can initiate a job to retrieve either an archive or a vault inventory (a
 // list of archives in a vault).
@@ -1310,6 +1754,32 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 // For conceptual information and the underlying REST API, go to Initiate a
 // Job (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-initiate-job-post.html)
 // and Downloading a Vault Inventory (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-inventory.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation InitiateJob for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * PolicyEnforcedException
+//   Returned if a retrieval job would exceed the current data policy's retrieval
+//   rate limit. For more information about data retrieval policies,
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) InitiateJob(input *InitiateJobInput) (*InitiateJobOutput, error) {
 	req, out := c.InitiateJobRequest(input)
 	err := req.Send()
@@ -1322,6 +1792,8 @@ const opInitiateMultipartUpload = "InitiateMultipartUpload"
 // client's request for the InitiateMultipartUpload operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See InitiateMultipartUpload for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1357,6 +1829,8 @@ func (c *Glacier) InitiateMultipartUploadRequest(input *InitiateMultipartUploadI
 	return
 }
 
+// InitiateMultipartUpload API operation for Amazon Glacier.
+//
 // This operation initiates a multipart upload. Amazon Glacier creates a multipart
 // upload resource and returns its ID in the response. The multipart upload
 // ID is used in subsequent requests to upload parts of an archive (see UploadMultipartPart).
@@ -1392,6 +1866,28 @@ func (c *Glacier) InitiateMultipartUploadRequest(input *InitiateMultipartUploadI
 // Archives in Parts (Multipart Upload) (http://docs.aws.amazon.com/amazonglacier/latest/dev/uploading-archive-mpu.html)
 // and Initiate Multipart Upload (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-multipart-initiate-upload.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation InitiateMultipartUpload for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) InitiateMultipartUpload(input *InitiateMultipartUploadInput) (*InitiateMultipartUploadOutput, error) {
 	req, out := c.InitiateMultipartUploadRequest(input)
 	err := req.Send()
@@ -1404,6 +1900,8 @@ const opInitiateVaultLock = "InitiateVaultLock"
 // client's request for the InitiateVaultLock operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See InitiateVaultLock for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1439,6 +1937,8 @@ func (c *Glacier) InitiateVaultLockRequest(input *InitiateVaultLockInput) (req *
 	return
 }
 
+// InitiateVaultLock API operation for Amazon Glacier.
+//
 // This operation initiates the vault locking process by doing the following:
 //   Installing a vault lock policy on the specified vault.
 //
@@ -1467,6 +1967,28 @@ func (c *Glacier) InitiateVaultLockRequest(input *InitiateVaultLockInput) (req *
 // the operation returns an AccessDeniedException error. When the vault lock
 // is in the InProgress state you must call AbortVaultLock before you can initiate
 // a new vault lock policy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation InitiateVaultLock for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) InitiateVaultLock(input *InitiateVaultLockInput) (*InitiateVaultLockOutput, error) {
 	req, out := c.InitiateVaultLockRequest(input)
 	err := req.Send()
@@ -1479,6 +2001,8 @@ const opListJobs = "ListJobs"
 // client's request for the ListJobs operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListJobs for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1520,6 +2044,8 @@ func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, o
 	return
 }
 
+// ListJobs API operation for Amazon Glacier.
+//
 // This operation lists jobs for a vault, including jobs that are in-progress
 // and jobs that have recently finished.
 //
@@ -1560,6 +2086,28 @@ func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, o
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
 // For the underlying REST API, go to List Jobs  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-jobs-get.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation ListJobs for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) ListJobs(input *ListJobsInput) (*ListJobsOutput, error) {
 	req, out := c.ListJobsRequest(input)
 	err := req.Send()
@@ -1597,6 +2145,8 @@ const opListMultipartUploads = "ListMultipartUploads"
 // client's request for the ListMultipartUploads operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListMultipartUploads for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1638,6 +2188,8 @@ func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) 
 	return
 }
 
+// ListMultipartUploads API operation for Amazon Glacier.
+//
 // This operation lists in-progress multipart uploads for the specified vault.
 // An in-progress multipart upload is a multipart upload that has been initiated
 // by an InitiateMultipartUpload request, but has not yet been completed or
@@ -1668,6 +2220,28 @@ func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) 
 // Archives in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-archives.html)
 // and List Multipart Uploads  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-multipart-list-uploads.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation ListMultipartUploads for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) ListMultipartUploads(input *ListMultipartUploadsInput) (*ListMultipartUploadsOutput, error) {
 	req, out := c.ListMultipartUploadsRequest(input)
 	err := req.Send()
@@ -1705,6 +2279,8 @@ const opListParts = "ListParts"
 // client's request for the ListParts operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListParts for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1746,6 +2322,8 @@ func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request,
 	return
 }
 
+// ListParts API operation for Amazon Glacier.
+//
 // This operation lists the parts of an archive that have been uploaded in a
 // specific multipart upload. You can make this request at any time during an
 // in-progress multipart upload before you complete the upload (see CompleteMultipartUpload.
@@ -1770,6 +2348,28 @@ func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request,
 // Archives in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-archives.html)
 // and List Parts (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-multipart-list-parts.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation ListParts for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) ListParts(input *ListPartsInput) (*ListPartsOutput, error) {
 	req, out := c.ListPartsRequest(input)
 	err := req.Send()
@@ -1808,6 +2408,8 @@ const opListTagsForVault = "ListTagsForVault"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See ListTagsForVault for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -1842,9 +2444,33 @@ func (c *Glacier) ListTagsForVaultRequest(input *ListTagsForVaultInput) (req *re
 	return
 }
 
+// ListTagsForVault API operation for Amazon Glacier.
+//
 // This operation lists all the tags attached to a vault. The operation returns
 // an empty map if there are no tags. For more information about tags, see Tagging
 // Amazon Glacier Resources (http://docs.aws.amazon.com/amazonglacier/latest/dev/tagging.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation ListTagsForVault for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) ListTagsForVault(input *ListTagsForVaultInput) (*ListTagsForVaultOutput, error) {
 	req, out := c.ListTagsForVaultRequest(input)
 	err := req.Send()
@@ -1857,6 +2483,8 @@ const opListVaults = "ListVaults"
 // client's request for the ListVaults operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListVaults for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1898,6 +2526,8 @@ func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Reques
 	return
 }
 
+// ListVaults API operation for Amazon Glacier.
+//
 // This operation lists all vaults owned by the calling user's account. The
 // list returned in the response is ASCII-sorted by vault name.
 //
@@ -1920,6 +2550,28 @@ func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Reques
 // Metadata in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/retrieving-vault-info.html)
 // and List Vaults  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vaults-get.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation ListVaults for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) ListVaults(input *ListVaultsInput) (*ListVaultsOutput, error) {
 	req, out := c.ListVaultsRequest(input)
 	err := req.Send()
@@ -1958,6 +2610,8 @@ const opRemoveTagsFromVault = "RemoveTagsFromVault"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See RemoveTagsFromVault for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -1994,11 +2648,35 @@ func (c *Glacier) RemoveTagsFromVaultRequest(input *RemoveTagsFromVaultInput) (r
 	return
 }
 
+// RemoveTagsFromVault API operation for Amazon Glacier.
+//
 // This operation removes one or more tags from the set of tags attached to
 // a vault. For more information about tags, see Tagging Amazon Glacier Resources
 // (http://docs.aws.amazon.com/amazonglacier/latest/dev/tagging.html). This
 // operation is idempotent. The operation will be successful, even if there
 // are no tags attached to the vault.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation RemoveTagsFromVault for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) RemoveTagsFromVault(input *RemoveTagsFromVaultInput) (*RemoveTagsFromVaultOutput, error) {
 	req, out := c.RemoveTagsFromVaultRequest(input)
 	err := req.Send()
@@ -2011,6 +2689,8 @@ const opSetDataRetrievalPolicy = "SetDataRetrievalPolicy"
 // client's request for the SetDataRetrievalPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetDataRetrievalPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2048,6 +2728,8 @@ func (c *Glacier) SetDataRetrievalPolicyRequest(input *SetDataRetrievalPolicyInp
 	return
 }
 
+// SetDataRetrievalPolicy API operation for Amazon Glacier.
+//
 // This operation sets and then enacts a data retrieval policy in the region
 // specified in the PUT request. You can set one policy per region for an AWS
 // account. The policy is enacted within a few minutes of a successful PUT operation.
@@ -2055,6 +2737,24 @@ func (c *Glacier) SetDataRetrievalPolicyRequest(input *SetDataRetrievalPolicyInp
 // The set policy operation does not affect retrieval jobs that were in progress
 // before the policy was enacted. For more information about data retrieval
 // policies, see Amazon Glacier Data Retrieval Policies (http://docs.aws.amazon.com/amazonglacier/latest/dev/data-retrieval-policy.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation SetDataRetrievalPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) SetDataRetrievalPolicy(input *SetDataRetrievalPolicyInput) (*SetDataRetrievalPolicyOutput, error) {
 	req, out := c.SetDataRetrievalPolicyRequest(input)
 	err := req.Send()
@@ -2067,6 +2767,8 @@ const opSetVaultAccessPolicy = "SetVaultAccessPolicy"
 // client's request for the SetVaultAccessPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetVaultAccessPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2104,6 +2806,8 @@ func (c *Glacier) SetVaultAccessPolicyRequest(input *SetVaultAccessPolicyInput) 
 	return
 }
 
+// SetVaultAccessPolicy API operation for Amazon Glacier.
+//
 // This operation configures an access policy for a vault and will overwrite
 // an existing policy. To configure a vault access policy, send a PUT request
 // to the access-policy subresource of the vault. An access policy is specific
@@ -2111,6 +2815,28 @@ func (c *Glacier) SetVaultAccessPolicyRequest(input *SetVaultAccessPolicyInput) 
 // policy per vault and the policy can be up to 20 KB in size. For more information
 // about vault access policies, see Amazon Glacier Access Control with Vault
 // Access Policies (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-access-policy.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation SetVaultAccessPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) SetVaultAccessPolicy(input *SetVaultAccessPolicyInput) (*SetVaultAccessPolicyOutput, error) {
 	req, out := c.SetVaultAccessPolicyRequest(input)
 	err := req.Send()
@@ -2123,6 +2849,8 @@ const opSetVaultNotifications = "SetVaultNotifications"
 // client's request for the SetVaultNotifications operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetVaultNotifications for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2160,6 +2888,8 @@ func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput
 	return
 }
 
+// SetVaultNotifications API operation for Amazon Glacier.
+//
 // This operation configures notifications that will be sent when specific events
 // happen to a vault. By default, you don't get any notifications.
 //
@@ -2189,6 +2919,28 @@ func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput
 // Notifications in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/configuring-notifications.html)
 // and Set Vault Notification Configuration  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vault-notifications-put.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation SetVaultNotifications for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) SetVaultNotifications(input *SetVaultNotificationsInput) (*SetVaultNotificationsOutput, error) {
 	req, out := c.SetVaultNotificationsRequest(input)
 	err := req.Send()
@@ -2201,6 +2953,8 @@ const opUploadArchive = "UploadArchive"
 // client's request for the UploadArchive operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UploadArchive for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2236,6 +2990,8 @@ func (c *Glacier) UploadArchiveRequest(input *UploadArchiveInput) (req *request.
 	return
 }
 
+// UploadArchive API operation for Amazon Glacier.
+//
 // This operation adds an archive to a vault. This is a synchronous operation,
 // and for a successful upload, your data is durably persisted. Amazon Glacier
 // returns the archive ID in the x-amz-archive-id header of the response.
@@ -2272,6 +3028,32 @@ func (c *Glacier) UploadArchiveRequest(input *UploadArchiveInput) (req *request.
 // Archive in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/uploading-an-archive.html)
 // and Upload Archive (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-archive-post.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation UploadArchive for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * RequestTimeoutException
+//   Returned if, when uploading an archive, Amazon Glacier times out while receiving
+//   the upload.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) UploadArchive(input *UploadArchiveInput) (*ArchiveCreationOutput, error) {
 	req, out := c.UploadArchiveRequest(input)
 	err := req.Send()
@@ -2284,6 +3066,8 @@ const opUploadMultipartPart = "UploadMultipartPart"
 // client's request for the UploadMultipartPart operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UploadMultipartPart for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2319,6 +3103,8 @@ func (c *Glacier) UploadMultipartPartRequest(input *UploadMultipartPartInput) (r
 	return
 }
 
+// UploadMultipartPart API operation for Amazon Glacier.
+//
 // This operation uploads a part of an archive. You can upload archive parts
 // in any order. You can also upload them in parallel. You can upload up to
 // 10,000 parts for a multipart upload.
@@ -2362,6 +3148,32 @@ func (c *Glacier) UploadMultipartPartRequest(input *UploadMultipartPartInput) (r
 // Archives in Parts (Multipart Upload) (http://docs.aws.amazon.com/amazonglacier/latest/dev/uploading-archive-mpu.html)
 // and Upload Part  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-upload-part.html)
 // in the Amazon Glacier Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Glacier's
+// API operation UploadMultipartPart for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   Returned if the specified resource, such as a vault, upload ID, or job ID,
+//   does not exist.
+//
+//   * InvalidParameterValueException
+//   Returned if a parameter of the request is incorrectly specified.
+//
+//   * MissingParameterValueException
+//   Returned if a required header or parameter is missing from the request.
+//
+//   * RequestTimeoutException
+//   Returned if, when uploading an archive, Amazon Glacier times out while receiving
+//   the upload.
+//
+//   * ServiceUnavailableException
+//   Returned if the service cannot complete the request.
+//
 func (c *Glacier) UploadMultipartPart(input *UploadMultipartPartInput) (*UploadMultipartPartOutput, error) {
 	req, out := c.UploadMultipartPartRequest(input)
 	err := req.Send()
@@ -2382,12 +3194,18 @@ type AbortMultipartUploadInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The upload ID of the multipart upload to delete.
+	//
+	// UploadId is a required field
 	UploadId *string `location:"uri" locationName:"uploadId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -2444,9 +3262,13 @@ type AbortVaultLockInput struct {
 	// in which case Amazon Glacier uses the AWS account ID associated with the
 	// credentials used to sign the request. If you specify your account ID, do
 	// not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -2499,6 +3321,8 @@ type AddTagsToVaultInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The tags to add to the vault. Each tag is composed of a key and a value.
@@ -2506,6 +3330,8 @@ type AddTagsToVaultInput struct {
 	Tags map[string]*string `type:"map"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -2590,6 +3416,8 @@ type CompleteMultipartUploadInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The total size, in bytes, of the entire archive. This value should be the
@@ -2603,9 +3431,13 @@ type CompleteMultipartUploadInput struct {
 	Checksum *string `location:"header" locationName:"x-amz-sha256-tree-hash" type:"string"`
 
 	// The upload ID of the multipart upload.
+	//
+	// UploadId is a required field
 	UploadId *string `location:"uri" locationName:"uploadId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -2648,12 +3480,18 @@ type CompleteVaultLockInput struct {
 	// in which case Amazon Glacier uses the AWS account ID associated with the
 	// credentials used to sign the request. If you specify your account ID, do
 	// not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The lockId value is the lock ID obtained from a InitiateVaultLock request.
+	//
+	// LockId is a required field
 	LockId *string `location:"uri" locationName:"lockId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -2710,9 +3548,13 @@ type CreateVaultInput struct {
 	// in which case Amazon Glacier uses the AWS account ID associated with the
 	// credentials used to sign the request. If you specify your account ID, do
 	// not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -2815,12 +3657,18 @@ type DeleteArchiveInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The ID of the archive to delete.
+	//
+	// ArchiveId is a required field
 	ArchiveId *string `location:"uri" locationName:"archiveId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -2876,9 +3724,13 @@ type DeleteVaultAccessPolicyInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -2931,9 +3783,13 @@ type DeleteVaultInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -2973,9 +3829,13 @@ type DeleteVaultNotificationsInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3042,12 +3902,18 @@ type DescribeJobInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The ID of the job to describe.
+	//
+	// JobId is a required field
 	JobId *string `location:"uri" locationName:"jobId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3089,9 +3955,13 @@ type DescribeVaultInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3170,6 +4040,8 @@ type GetDataRetrievalPolicyInput struct {
 	// in which case Amazon Glacier uses the AWS account ID associated with the
 	// credentials used to sign the request. If you specify your account ID, do
 	// not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 }
 
@@ -3223,9 +4095,13 @@ type GetJobOutputInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The job ID whose data is downloaded.
+	//
+	// JobId is a required field
 	JobId *string `location:"uri" locationName:"jobId" type:"string" required:"true"`
 
 	// The range of bytes to retrieve from the output. For example, if you want
@@ -3234,6 +4110,8 @@ type GetJobOutputInput struct {
 	Range *string `location:"header" locationName:"Range" type:"string"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3328,9 +4206,13 @@ type GetVaultAccessPolicyInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3387,9 +4269,13 @@ type GetVaultLockInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3458,9 +4344,13 @@ type GetVaultNotificationsInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3517,12 +4407,16 @@ type InitiateJobInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// Provides options for specifying job information.
 	JobParameters *JobParameters `locationName:"jobParameters" type:"structure"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3582,6 +4476,8 @@ type InitiateMultipartUploadInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The archive description that you are uploading in parts.
@@ -3597,6 +4493,8 @@ type InitiateMultipartUploadInput struct {
 	PartSize *string `location:"header" locationName:"x-amz-part-size" type:"string"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3658,12 +4556,16 @@ type InitiateVaultLockInput struct {
 	// in which case Amazon Glacier uses the AWS account ID associated with the
 	// credentials used to sign the request. If you specify your account ID, do
 	// not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The vault lock policy as a JSON string, which uses "\" as an escape character.
 	Policy *VaultLockPolicy `locationName:"policy" type:"structure"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -3945,6 +4847,8 @@ type ListJobsInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// Specifies the state of the jobs to return. You can specify true or false.
@@ -3965,6 +4869,8 @@ type ListJobsInput struct {
 	Statuscode *string `location:"querystring" locationName:"statuscode" type:"string"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -4027,6 +4933,8 @@ type ListMultipartUploadsInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// Specifies the maximum number of uploads returned in the response body. If
@@ -4041,6 +4949,8 @@ type ListMultipartUploadsInput struct {
 	Marker *string `location:"querystring" locationName:"marker" type:"string"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -4103,6 +5013,8 @@ type ListPartsInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// Specifies the maximum number of parts returned in the response body. If this
@@ -4117,9 +5029,13 @@ type ListPartsInput struct {
 	Marker *string `location:"querystring" locationName:"marker" type:"string"`
 
 	// The upload ID of the multipart upload.
+	//
+	// UploadId is a required field
 	UploadId *string `location:"uri" locationName:"uploadId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -4201,9 +5117,13 @@ type ListTagsForVaultInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -4262,6 +5182,8 @@ type ListVaultsInput struct {
 	// in which case Amazon Glacier uses the AWS account ID associated with the
 	// credentials used to sign the request. If you specify your account ID, do
 	// not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The maximum number of items returned in the response. If you don't specify
@@ -4349,12 +5271,16 @@ type RemoveTagsFromVaultInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// A list of tag keys. Each corresponding tag is removed from the vault.
 	TagKeys []*string `type:"list"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -4408,6 +5334,8 @@ type SetDataRetrievalPolicyInput struct {
 	// in which case Amazon Glacier uses the AWS account ID associated with the
 	// credentials used to sign the request. If you specify your account ID, do
 	// not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The data retrieval policy in JSON format.
@@ -4460,12 +5388,16 @@ type SetVaultAccessPolicyInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The vault access policy as a JSON string.
 	Policy *VaultAccessPolicy `locationName:"policy" type:"structure"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -4519,9 +5451,13 @@ type SetVaultNotificationsInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 
 	// Provides options for specifying notification configuration.
@@ -4577,6 +5513,8 @@ type UploadArchiveInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The optional description of the archive you are uploading.
@@ -4589,6 +5527,8 @@ type UploadArchiveInput struct {
 	Checksum *string `location:"header" locationName:"x-amz-sha256-tree-hash" type:"string"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -4660,6 +5600,8 @@ type UploadMultipartPartInput struct {
 	// (hyphen), in which case Amazon Glacier uses the AWS account ID associated
 	// with the credentials used to sign the request. If you use an account ID,
 	// do not include any hyphens (apos-apos) in the ID.
+	//
+	// AccountId is a required field
 	AccountId *string `location:"uri" locationName:"accountId" type:"string" required:"true"`
 
 	// The data to upload.
@@ -4675,9 +5617,13 @@ type UploadMultipartPartInput struct {
 	Range *string `location:"header" locationName:"Content-Range" type:"string"`
 
 	// The upload ID of the multipart upload.
+	//
+	// UploadId is a required field
 	UploadId *string `location:"uri" locationName:"uploadId" type:"string" required:"true"`
 
 	// The name of the vault.
+	//
+	// VaultName is a required field
 	VaultName *string `location:"uri" locationName:"vaultName" type:"string" required:"true"`
 }
 
@@ -4788,17 +5734,20 @@ func (s VaultNotificationConfig) GoString() string {
 }
 
 const (
-	// @enum ActionCode
+	// ActionCodeArchiveRetrieval is a ActionCode enum value
 	ActionCodeArchiveRetrieval = "ArchiveRetrieval"
-	// @enum ActionCode
+
+	// ActionCodeInventoryRetrieval is a ActionCode enum value
 	ActionCodeInventoryRetrieval = "InventoryRetrieval"
 )
 
 const (
-	// @enum StatusCode
+	// StatusCodeInProgress is a StatusCode enum value
 	StatusCodeInProgress = "InProgress"
-	// @enum StatusCode
+
+	// StatusCodeSucceeded is a StatusCode enum value
 	StatusCodeSucceeded = "Succeeded"
-	// @enum StatusCode
+
+	// StatusCodeFailed is a StatusCode enum value
 	StatusCodeFailed = "Failed"
 )

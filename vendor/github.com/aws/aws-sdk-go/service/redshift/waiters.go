@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilClusterAvailable uses the Amazon Redshift API operation
+// DescribeClusters to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *Redshift) WaitUntilClusterAvailable(input *DescribeClustersInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeClusters",
@@ -41,6 +45,10 @@ func (c *Redshift) WaitUntilClusterAvailable(input *DescribeClustersInput) error
 	return w.Wait()
 }
 
+// WaitUntilClusterDeleted uses the Amazon Redshift API operation
+// DescribeClusters to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *Redshift) WaitUntilClusterDeleted(input *DescribeClustersInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeClusters",
@@ -76,6 +84,10 @@ func (c *Redshift) WaitUntilClusterDeleted(input *DescribeClustersInput) error {
 	return w.Wait()
 }
 
+// WaitUntilClusterRestored uses the Amazon Redshift API operation
+// DescribeClusters to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *Redshift) WaitUntilClusterRestored(input *DescribeClustersInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeClusters",
@@ -105,6 +117,10 @@ func (c *Redshift) WaitUntilClusterRestored(input *DescribeClustersInput) error 
 	return w.Wait()
 }
 
+// WaitUntilSnapshotAvailable uses the Amazon Redshift API operation
+// DescribeClusterSnapshots to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *Redshift) WaitUntilSnapshotAvailable(input *DescribeClusterSnapshotsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeClusterSnapshots",
