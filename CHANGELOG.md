@@ -1,5 +1,10 @@
 ## 0.7.7 (Unreleased)
 
+FEATURES:
+
+ * **New Data Source:** `scaleway_bootsscript`. [GH-9386]
+ * **New Data Source:** `scaleway_image`. [GH9386]
+ 
 IMPROVEMENTS:
 
  * provider/aws: Expose ARN for `aws_lambda_alias`. [GH-9390]
