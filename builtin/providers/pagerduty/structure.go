@@ -152,6 +152,42 @@ func flattenLayers(list []pagerduty.ScheduleLayer) []map[string]interface{} {
 	return resultReversed
 }
 
+// Flattens an array of []pagerduty.User into a map[string]interface{}
+func flattenOnCalls(list []pagerduty.OnCall) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+
+	for _, i := range list {
+		r := make(map[string]interface{})
+		r["escalation_level"] = i.EscalationLevel
+		r["start"] = i.Start
+		r["end"] = i.End
+
+		user := make(map[string]interface{}, 1)
+		user["id"] = i.User.ID
+		user["type"] = i.User.Type
+		user["name"] = i.User.Summary
+		user["summary"] = i.User.Summary
+
+		schedule := make(map[string]interface{}, 1)
+		schedule["id"] = i.Schedule.ID
+		schedule["type"] = i.Schedule.Type
+		schedule["summary"] = i.Schedule.Summary
+
+		policy := make(map[string]interface{}, 1)
+		policy["id"] = i.EscalationPolicy.ID
+		policy["type"] = i.EscalationPolicy.Type
+		policy["summary"] = i.EscalationPolicy.Summary
+
+		r["user"] = user
+		r["schedule"] = schedule
+		r["escalation_policy"] = policy
+
+		result = append(result, r)
+	}
+
+	return result
+}
+
 // Takes the result of flatmap.Expand for an array of strings
 // and returns a []string
 func expandStringList(configured []interface{}) []string {
