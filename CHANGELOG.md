@@ -6,9 +6,10 @@ FEATURES:
  * **New Data Source:** `scaleway_image`. [GH9386]
  
 IMPROVEMENTS:
-
+ 
  * provider/aws: Expose ARN for `aws_lambda_alias`. [GH-9390]
  * provider/aws: Add support for AWS US East (Ohio) region. [GH-9414]
+ * provider/scaleway: `scaleway_ip`, `scaleway_security_group`, `scalway_server` and `scaleway_volume` resources can now be imported. [GH-9387]
 
 BUG FIXES:
 
