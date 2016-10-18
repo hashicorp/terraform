@@ -2,16 +2,17 @@
 
 IMPROVEMENTS:
 
- * provider/aws: Expose ARN for `aws_lambda_alias` [GH-9390]
+ * provider/aws: Expose ARN for `aws_lambda_alias`. [GH-9390]
  * provider/aws: Add support for AWS US East (Ohio) region. [GH-9414]
 
 BUG FIXES:
 
- * core: List and map indexes support arithmetic [GH-9372]
- * core: List and map indexes are implicitly converted to the correct type if possible [GH-9372]
+ * core: List and map indexes support arithmetic. [GH-9372]
+ * core: List and map indexes are implicitly converted to the correct type if possible. [GH-9372]
  * provider/aws: Read back `aassociate_public_ip_address` in `aws_launch_configuration` resources to enable importing. [GH-9399]
  * provider/aws: Remove `aws_route` resources from state if their associated `aws_route_table` has been removed. [GH-9431]
- * provider/google: Fix a bug causing a crash when migrating `google_compute_target_pool` resources from 0.6.x releases [GH-9370]
+ * provider/azurerm: Load balancer resources now have their `id` attribute set to the resource URI instead of the load balancer URI. [GH-9401]
+ * provider/google: Fix a bug causing a crash when migrating `google_compute_target_pool` resources from 0.6.x releases. [GH-9370]
 
 ## 0.7.6 (October 14, 2016)
 
