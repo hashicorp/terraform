@@ -30,6 +30,18 @@ func resourcePagerDutyService() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
+			"last_incident_timestamp": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"created_at": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"status": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"acknowledgement_timeout": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -44,7 +56,8 @@ func resourcePagerDutyService() *schema.Resource {
 
 func buildServiceStruct(d *schema.ResourceData) *pagerduty.Service {
 	service := pagerduty.Service{
-		Name: d.Get("name").(string),
+		Name:   d.Get("name").(string),
+		Status: d.Get("status").(string),
 		APIObject: pagerduty.APIObject{
 			ID: d.Id(),
 		},
@@ -106,9 +119,12 @@ func resourcePagerDutyServiceRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("name", s.Name)
+	d.Set("status", s.Status)
+	d.Set("created_at", s.CreateAt)
 	d.Set("escalation_policy", s.EscalationPolicy.ID)
 	d.Set("description", s.Description)
 	d.Set("auto_resolve_timeout", s.AutoResolveTimeout)
+	d.Set("last_incident_timestamp", s.LastIncidentTimestamp)
 	d.Set("acknowledgement_timeout", s.AcknowledgementTimeout)
 
 	return nil
