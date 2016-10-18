@@ -13,7 +13,7 @@ import (
 func TestAccAzureRMSubnet_basic(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -147,10 +147,24 @@ resource "azurerm_virtual_network" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
+resource "azurerm_network_security_group" "test" {
+    name = "acctestNSG%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_route_table" "test" {
+    name = "acctestRT%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
 resource "azurerm_subnet" "test" {
     name = "acctestsubnet%d"
     resource_group_name = "${azurerm_resource_group.test.name}"
     virtual_network_name = "${azurerm_virtual_network.test.name}"
     address_prefix = "10.0.2.0/24"
+    network_security_group_id  = "${azurerm_network_security_group.test.id}"
+    route_table_id = "${azurerm_route_table.test.id}"
 }
 `
