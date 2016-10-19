@@ -1915,6 +1915,43 @@ func TestContext2Apply_providerComputedVar(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_providerConfigureDisabled(t *testing.T) {
+	m := testModule(t, "apply-provider-configure-disabled")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	called := false
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		called = true
+
+		if _, ok := c.Get("value"); !ok {
+			return fmt.Errorf("value is not found")
+		}
+
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !called {
+		t.Fatal("configure never called")
+	}
+}
+
 func TestContext2Apply_Provisioner_compute(t *testing.T) {
 	m := testModule(t, "apply-provisioner-compute")
 	p := testProvider("aws")
