@@ -81,8 +81,9 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 
 	// Build the instance info. More of this will be populated during eval
 	info := &InstanceInfo{
-		Id:   stateId,
-		Type: n.Addr.Type,
+		Id:          stateId,
+		Type:        n.Addr.Type,
+		uniqueExtra: "destroy",
 	}
 
 	// Get our state
