@@ -46,7 +46,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
-		&DisableProviderTransformer{},
+		&DisableProviderTransformerOld{},
 		&PruneProviderTransformer{},
 
 		// Single root

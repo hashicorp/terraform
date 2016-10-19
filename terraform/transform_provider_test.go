@@ -367,7 +367,7 @@ func TestDisableProviderTransformer(t *testing.T) {
 		&ConfigTransformer{Module: mod},
 		&MissingProviderTransformer{Providers: []string{"aws"}},
 		&ProviderTransformer{},
-		&DisableProviderTransformer{},
+		&DisableProviderTransformerOld{},
 		&CloseProviderTransformer{},
 		&PruneProviderTransformer{},
 	}
@@ -393,7 +393,7 @@ func TestDisableProviderTransformer_keep(t *testing.T) {
 		&ConfigTransformer{Module: mod},
 		&MissingProviderTransformer{Providers: []string{"aws"}},
 		&ProviderTransformer{},
-		&DisableProviderTransformer{},
+		&DisableProviderTransformerOld{},
 		&CloseProviderTransformer{},
 		&PruneProviderTransformer{},
 	}
