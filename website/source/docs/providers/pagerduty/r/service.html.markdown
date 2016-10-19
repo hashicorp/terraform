@@ -24,7 +24,7 @@ resource "pagerduty_escalation_policy" "foo" {
   name      = "Engineering Escalation Policy"
   num_loops = 2
 
-  escalation_rule {
+  rule {
     escalation_delay_in_minutes = 10
 
     target {
@@ -45,6 +45,7 @@ resource "pagerduty_service" "example" {
 ## Argument Reference
 
 The following arguments are supported:
+
   * `name` - (Required) The name of the service.
   * `description` - (Optional) A human-friendly description of the escalation policy.
     If not set, a placeholder of "Managed by Terraform" will be set.

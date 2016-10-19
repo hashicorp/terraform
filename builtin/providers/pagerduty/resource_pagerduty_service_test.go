@@ -104,7 +104,7 @@ resource "pagerduty_escalation_policy" "foo" {
   description = "bar"
   num_loops   = 2
 
-  escalation_rule {
+  rule {
     escalation_delay_in_minutes = 10
 
     target {
@@ -138,7 +138,7 @@ resource "pagerduty_escalation_policy" "foo" {
   description = "bar"
   num_loops   = 2
 
-  escalation_rule {
+  rule {
     escalation_delay_in_minutes = 10
 
     target {
