@@ -29,9 +29,16 @@ func TestAccAWSOpsworksUserProfile(t *testing.T) {
 	})
 }
 
-var testAccAwsOpsworksUserProfileCreate = testAccAWSUserConfig + testAccAwsOpsworksStackConfigNoVpcCreate("tf-ops-acc-user-profile") + `
+var testAccAwsOpsworksUserProfileCreate = testAccAWSOpsUserConfig + testAccAwsOpsworksStackConfigNoVpcCreate("tf-ops-acc-user-profile") + `
 resource "aws_opsworks_user_profile" "user" {
   user_arn = "${aws_iam_user.user.arn}"
   ssh_username = "${aws_iam_user.user.name}"
+}
+`
+
+var testAccAWSOpsUserConfig = `
+resource "aws_iam_user" "user" {
+	name = "test-user"
+	path = "/"
 }
 `
