@@ -208,6 +208,10 @@ func (f *shadowComponentFactoryShared) ResourceProvider(
 			real, shadow := newShadowResourceProvider(p)
 			entry.Real = real
 			entry.Shadow = shadow
+
+			if f.closed {
+				shadow.CloseShadow()
+			}
 		}
 
 		// Store the value
@@ -246,6 +250,10 @@ func (f *shadowComponentFactoryShared) ResourceProvisioner(
 			real, shadow := newShadowResourceProvisioner(p)
 			entry.Real = real
 			entry.Shadow = shadow
+
+			if f.closed {
+				shadow.CloseShadow()
+			}
 		}
 
 		// Store the value
