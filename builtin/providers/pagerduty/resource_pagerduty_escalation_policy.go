@@ -30,7 +30,7 @@ func resourcePagerDutyEscalationPolicy() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"escalation_rule": &schema.Schema{
+			"rule": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
@@ -68,7 +68,7 @@ func resourcePagerDutyEscalationPolicy() *schema.Resource {
 }
 
 func buildEscalationPolicyStruct(d *schema.ResourceData) *pagerduty.EscalationPolicy {
-	escalationRules := d.Get("escalation_rule").([]interface{})
+	escalationRules := d.Get("rule").([]interface{})
 
 	policy := pagerduty.EscalationPolicy{
 		Name:            d.Get("name").(string),
@@ -119,7 +119,7 @@ func resourcePagerDutyEscalationPolicyRead(d *schema.ResourceData, meta interfac
 	d.Set("description", e.Description)
 	d.Set("num_loops", e.NumLoops)
 
-	if err := d.Set("escalation_rule", flattenRules(e.EscalationRules)); err != nil {
+	if err := d.Set("rule", flattenRules(e.EscalationRules)); err != nil {
 		return err
 	}
 

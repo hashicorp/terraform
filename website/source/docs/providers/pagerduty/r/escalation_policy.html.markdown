@@ -24,7 +24,7 @@ resource "pagerduty_escalation_policy" "foo" {
   name      = "Engineering Escalation Policy"
   num_loops = 2
 
-  escalation_rule {
+  rule {
     escalation_delay_in_minutes = 10
 
     target {
@@ -43,15 +43,17 @@ The following arguments are supported:
 * `description` - (Optional) A human-friendly description of the escalation policy.
   If not set, a placeholder of "Managed by Terraform" will be set.
 * `num_loops` - (Optional) The number of times the escalation policy will repeat after reaching the end of its escalation.
-* `escalation_rule` - (Required) An Escalation rule block. Escalation rules documented below.
+* `rule` - (Required) An Escalation rule block. Escalation rules documented below.
 
 
-Escalation rules (`escalation_rule`) supports the following:
+Escalation rules (`rule`) supports the following:
+
   * `escalation_delay_in_minutes` - (Required) The number of minutes before an unacknowledged incident escalates away from this rule.
   * `targets` - (Required) A target block. Target blocks documented below.
 
 
 Targets (`target`) supports the following:
+
   * `type` - (Optional) Can be `user`, `schedule`, `user_reference` or `schedule_reference`. Defaults to `user_reference`
   * `id` - (Required) A target ID
 
