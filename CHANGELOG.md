@@ -1,5 +1,9 @@
 ## 0.7.8 (Unreleased)
 
+BUG FIXES:
+
+ * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value [GH-9453]
+
 
 
 ## 0.7.7 (October 18, 2016)
