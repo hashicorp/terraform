@@ -516,8 +516,19 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diff.init()
 	c.diffLock.Unlock()
 
-	// Build the graph
-	graph, err := c.Graph(&ContextGraphOpts{Validate: true})
+	// Build the graph. We have a branch here since for the pure-destroy
+	// plan (c.destroy) we use a much simpler graph builder that simply
+	// walks the state and reverses edges.
+	var graph *Graph
+	var err error
+	if c.destroy && X_newDestroy {
+		graph, err = (&DestroyPlanGraphBuilder{
+			Module: c.module,
+			State:  c.state,
+		}).Build(RootModulePath)
+	} else {
+		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -540,11 +551,16 @@ func (c *Context) Plan() (*Plan, error) {
 		p.Diff.DeepCopy()
 	}
 
-	// Now that we have a diff, we can build the exact graph that Apply will use
-	// and catch any possible cycles during the Plan phase.
-	if _, err := c.Graph(&ContextGraphOpts{Validate: true}); err != nil {
-		return nil, err
+	// We don't do the reverification during the new destroy plan because
+	// it will use a different apply process.
+	if !(c.destroy && X_newDestroy) {
+		// Now that we have a diff, we can build the exact graph that Apply will use
+		// and catch any possible cycles during the Plan phase.
+		if _, err := c.Graph(&ContextGraphOpts{Validate: true}); err != nil {
+			return nil, err
+		}
 	}
+
 	var errs error
 	if len(walker.ValidationErrors) > 0 {
 		errs = multierror.Append(errs, walker.ValidationErrors...)
