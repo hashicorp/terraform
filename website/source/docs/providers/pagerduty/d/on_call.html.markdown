@@ -17,7 +17,7 @@ resource "pagerduty_schedule" "foo" {
   name      = "Daily Engineering Rotation"
   time_zone = "America/New_York"
 
-  schedule_layer {
+  layer {
     name                         = "Night Shift"
     start                        = "2015-11-06T20:00:00-05:00"
     rotation_virtual_start       = "2015-11-06T20:00:00-05:00"

@@ -30,7 +30,7 @@ func resourcePagerDutySchedule() *schema.Resource {
 				Optional: true,
 				Default:  "Managed by Terraform",
 			},
-			"schedule_layer": &schema.Schema{
+			"layer": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
@@ -110,7 +110,7 @@ func resourcePagerDutySchedule() *schema.Resource {
 }
 
 func buildScheduleStruct(d *schema.ResourceData) (*pagerduty.Schedule, error) {
-	scheduleLayers := d.Get("schedule_layer").([]interface{})
+	scheduleLayers := d.Get("layer").([]interface{})
 
 	schedule := pagerduty.Schedule{
 		Name:           d.Get("name").(string),
@@ -158,7 +158,7 @@ func resourcePagerDutyScheduleRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("time_zone", s.TimeZone)
 	d.Set("description", s.Description)
 
-	if err := d.Set("schedule_layer", flattenLayers(s.ScheduleLayers)); err != nil {
+	if err := d.Set("layer", flattenLayers(s.ScheduleLayers)); err != nil {
 		return err
 	}
 

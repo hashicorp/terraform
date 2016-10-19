@@ -26,9 +26,9 @@ func TestAccPagerDutySchedule_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "time_zone", "Europe/Berlin"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "schedule_layer.#", "1"),
+						"pagerduty_schedule.foo", "layer.#", "1"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "schedule_layer.0.name", "foo"),
+						"pagerduty_schedule.foo", "layer.0.name", "foo"),
 				),
 			},
 			resource.TestStep{
@@ -42,9 +42,9 @@ func TestAccPagerDutySchedule_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "time_zone", "America/New_York"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "schedule_layer.#", "1"),
+						"pagerduty_schedule.foo", "layer.#", "1"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "schedule_layer.0.name", "foo"),
+						"pagerduty_schedule.foo", "layer.0.name", "foo"),
 				),
 			},
 		},
@@ -68,13 +68,13 @@ func TestAccPagerDutySchedule_Multi(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"pagerduty_schedule.foo", "time_zone", "America/New_York"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "schedule_layer.#", "3"),
+						"pagerduty_schedule.foo", "layer.#", "3"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "schedule_layer.0.name", "foo"),
+						"pagerduty_schedule.foo", "layer.0.name", "foo"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "schedule_layer.1.name", "bar"),
+						"pagerduty_schedule.foo", "layer.1.name", "bar"),
 					resource.TestCheckResourceAttr(
-						"pagerduty_schedule.foo", "schedule_layer.2.name", "foobar"),
+						"pagerduty_schedule.foo", "layer.2.name", "foobar"),
 				),
 			},
 		},
@@ -135,7 +135,7 @@ resource "pagerduty_schedule" "foo" {
   time_zone   = "Europe/Berlin"
   description = "foo"
 
-  schedule_layer {
+  layer {
     name                         = "foo"
     start                        = "2015-11-06T20:00:00-05:00"
     rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
@@ -162,7 +162,7 @@ resource "pagerduty_schedule" "foo" {
 
   time_zone = "America/New_York"
 
-  schedule_layer {
+  layer {
     name                         = "foo"
     start                        = "2015-11-06T20:00:00-05:00"
     rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
@@ -190,7 +190,7 @@ resource "pagerduty_schedule" "foo" {
   time_zone   = "America/New_York"
   description = "foo"
 
-  schedule_layer {
+  layer {
     name                         = "foo"
     start                        = "2015-11-06T20:00:00-05:00"
     rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
@@ -204,7 +204,7 @@ resource "pagerduty_schedule" "foo" {
     }
   }
 
-  schedule_layer {
+  layer {
     name                         = "bar"
     start                        = "2015-11-06T20:00:00-05:00"
     rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
@@ -218,7 +218,7 @@ resource "pagerduty_schedule" "foo" {
     }
   }
 
-  schedule_layer {
+  layer {
     name                         = "foobar"
     start                        = "2015-11-06T20:00:00-05:00"
     rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
