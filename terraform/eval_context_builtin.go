@@ -36,6 +36,8 @@ type BuiltinEvalContext struct {
 	Provisioners        map[string]ResourceProvisionerFactory
 	ProvisionerCache    map[string]ResourceProvisioner
 	ProvisionerLock     *sync.Mutex
+	DeferralsValue      *Deferrals
+	DeferralsLock       *sync.RWMutex
 	DiffValue           *Diff
 	DiffLock            *sync.RWMutex
 	StateValue          *State
@@ -330,6 +332,10 @@ func (ctx *BuiltinEvalContext) SetVariables(n string, vs map[string]interface{})
 	for k, v := range vs {
 		vars[k] = v
 	}
+}
+
+func (ctx *BuiltinEvalContext) Deferrals() (*Deferrals, *sync.RWMutex) {
+	return ctx.DeferralsValue, ctx.DeferralsLock
 }
 
 func (ctx *BuiltinEvalContext) Diff() (*Diff, *sync.RWMutex) {

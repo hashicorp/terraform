@@ -57,6 +57,9 @@ type BuiltinGraphBuilder struct {
 	// Root is the root module of the graph to build.
 	Root *module.Tree
 
+	// Deferrals is the set of nodes that are to be deferred.
+	Deferrals *Deferrals
+
 	// Diff is the diff. The proper module diffs will be looked up.
 	Diff *Diff
 
@@ -145,6 +148,9 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 			// Optionally reduces the graph to a user-specified list of targets and
 			// their dependencies.
 			&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
+
+			// Supresses any nodes that are in the deferrals set.
+			&DeferralsTransformer{Deferrals: b.Deferrals, Destroy: b.Destroy},
 
 			// Prune the providers. This must happen only once because flattened
 			// modules might depend on empty providers.
