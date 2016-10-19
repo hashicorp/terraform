@@ -435,7 +435,7 @@ func (c *Context) Apply() (*State, error) {
 	}
 
 	// Walk the graph
-	walker, err := c.walk(real, shadow, operation)
+	walker, err := c.walk(real, real, operation)
 	if len(walker.ValidationErrors) > 0 {
 		err = multierror.Append(err, walker.ValidationErrors...)
 	}
