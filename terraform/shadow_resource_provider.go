@@ -510,7 +510,7 @@ func (p *shadowResourceProviderShadow) Apply(
 		p.ErrorLock.Lock()
 		defer p.ErrorLock.Unlock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Unknown 'apply' shadow value: %#v", raw))
+			"Unknown 'apply' shadow value for %q: %#v", key, raw))
 		return nil, nil
 	}
 

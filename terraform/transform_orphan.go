@@ -209,6 +209,8 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 
 	// Build instance info
 	info := &InstanceInfo{Id: n.ResourceKey.String(), Type: n.ResourceKey.Type}
+	info.uniqueExtra = "destroy"
+
 	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
 
 	// Each resource mode has its own lifecycle
