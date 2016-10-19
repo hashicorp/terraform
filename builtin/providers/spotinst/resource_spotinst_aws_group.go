@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -678,7 +679,11 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 			"user_data":                 g.Compute.LaunchSpecification.UserData,
 		}
 		if g.Compute.LaunchSpecification.IamInstanceProfile != nil {
-			l["iam_instance_profile"] = g.Compute.LaunchSpecification.IamInstanceProfile.Arn
+			if g.Compute.LaunchSpecification.IamInstanceProfile.Arn != nil {
+				l["iam_instance_profile"] = g.Compute.LaunchSpecification.IamInstanceProfile.Arn
+			} else {
+				l["iam_instance_profile"] = g.Compute.LaunchSpecification.IamInstanceProfile.Name
+			}
 		}
 		lspec = append(lspec, l)
 		d.Set("launch_specification", lspec)
@@ -1856,6 +1861,9 @@ func expandAwsGroupEBSBlockDevices(data interface{}) ([]*spotinst.AwsGroupComput
 	return devices, nil
 }
 
+// iprofArnRE is a regular expression for matching IAM instance profile ARNs.
+var iprofArnRE = regexp.MustCompile(`arn:aws:iam::\d{12}:instance-profile/?[a-zA-Z_0-9+=,.@\-_/]+`)
+
 // expandAwsGroupLaunchSpecification expands the launch Specification block.
 func expandAwsGroupLaunchSpecification(data interface{}) (*spotinst.AwsGroupComputeLaunchSpecification, error) {
 	if list := data.(*schema.Set).List(); len(list) != 1 {
@@ -1885,7 +1893,13 @@ func expandAwsGroupLaunchSpecification(data interface{}) (*spotinst.AwsGroupComp
 		}
 
 		if v, ok := m["iam_instance_profile"].(string); ok && v != "" {
-			lc.IamInstanceProfile = &spotinst.AwsGroupComputeIamInstanceProfile{Arn: spotinst.String(v)}
+			iprof := &spotinst.AwsGroupComputeIamInstanceProfile{}
+			if iprofArnRE.MatchString(v) {
+				iprof.Arn = spotinst.String(v)
+			} else {
+				iprof.Name = spotinst.String(v)
+			}
+			lc.IamInstanceProfile = iprof
 		}
 
 		if v, ok := m["user_data"].(string); ok && v != "" {
