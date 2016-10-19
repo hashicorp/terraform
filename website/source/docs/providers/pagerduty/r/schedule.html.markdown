@@ -24,7 +24,7 @@ resource "pagerduty_schedule" "foo" {
   name      = "Daily Engineering Rotation"
   time_zone = "America/New_York"
 
-  schedule_layer {
+  layer {
     name                         = "Night Shift"
     start                        = "2015-11-06T20:00:00-05:00"
     rotation_virtual_start       = "2015-11-06T20:00:00-05:00"
@@ -47,10 +47,10 @@ The following arguments are supported:
 * `name` - (Optional) The name of the escalation policy.
 * `time_zone` - (Required) The time zone of the schedule (e.g Europe/Berlin).
 * `description` - (Optional) The description of the schedule
-* `schedule_layer` - (Required) A schedule layer block. Schedule layers documented below.
+* `layer` - (Required) A schedule layer block. Schedule layers documented below.
 
 
-Schedule layers (`schedule_layer`) supports the following:
+Schedule layers (`layer`) supports the following:
 
 * `name` - (Optional) The name of the schedule layer.
 * `start` - (Required) The start time of the schedule layer.
