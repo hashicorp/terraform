@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
-func TestContext2Apply(t *testing.T) {
+func TestContext2Apply_basic(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
@@ -318,10 +318,10 @@ func TestContext2Apply_computedAttrRefTypeMismatch(t *testing.T) {
 	}
 
 	_, err := ctx.Apply()
-
 	if err == nil {
 		t.Fatalf("Expected err, got none!")
 	}
+
 	expected := "Expected ami to be string"
 	if !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected:\n\n%s\n\nto contain:\n\n%s", err, expected)

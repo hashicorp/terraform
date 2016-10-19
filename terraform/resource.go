@@ -62,6 +62,12 @@ type InstanceInfo struct {
 
 	// Type is the resource type of this instance
 	Type string
+
+	// uniqueExtra is an internal field that can be populated to supply
+	// extra metadata that is used to identify a unique instance in
+	// the graph walk. This will be appended to HumanID when uniqueId
+	// is called.
+	uniqueExtra string
 }
 
 // HumanId is a unique Id that is human-friendly and useful for UI elements.
@@ -74,6 +80,15 @@ func (i *InstanceInfo) HumanId() string {
 		"module.%s.%s",
 		strings.Join(i.ModulePath[1:], "."),
 		i.Id)
+}
+
+func (i *InstanceInfo) uniqueId() string {
+	prefix := i.HumanId()
+	if v := i.uniqueExtra; v != "" {
+		prefix += " " + v
+	}
+
+	return prefix
 }
 
 // ResourceConfig holds the configuration given for a resource. This is
@@ -98,6 +113,11 @@ func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 // to modify any of the structures that are part of the resource config without
 // affecting the original configuration.
 func (c *ResourceConfig) DeepCopy() *ResourceConfig {
+	// DeepCopying a nil should return a nil to avoid panics
+	if c == nil {
+		return nil
+	}
+
 	// Copy, this will copy all the exported attributes
 	copy, err := copystructure.Config{Lock: true}.Copy(c)
 	if err != nil {
@@ -115,6 +135,11 @@ func (c *ResourceConfig) DeepCopy() *ResourceConfig {
 
 // Equal checks the equality of two resource configs.
 func (c *ResourceConfig) Equal(c2 *ResourceConfig) bool {
+	// If either are nil, then they're only equal if they're both nil
+	if c == nil || c2 == nil {
+		return c == c2
+	}
+
 	// Two resource configs if their exported properties are equal.
 	// We don't compare "raw" because it is never used again after
 	// initialization and for all intents and purposes they are equal

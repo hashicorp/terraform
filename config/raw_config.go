@@ -62,6 +62,10 @@ func (r *RawConfig) RawMap() map[string]interface{} {
 
 // Copy returns a copy of this RawConfig, uninterpolated.
 func (r *RawConfig) Copy() *RawConfig {
+	if r == nil {
+		return nil
+	}
+
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
