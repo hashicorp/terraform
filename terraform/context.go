@@ -13,10 +13,6 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
-// InputMode defines what sort of input will be asked for when Input
-// is called on Context.
-type InputMode byte
-
 // Variables prefixed with X_ are experimental features. They can be enabled
 // by setting them to true. This should be done before any API is called.
 // These should be expected to be removed at some point in the future; each
@@ -26,6 +22,10 @@ var (
 	// and be on by default in 0.8.0.
 	X_newApply = false
 )
+
+// InputMode defines what sort of input will be asked for when Input
+// is called on Context.
+type InputMode byte
 
 const (
 	// InputModeVar asks for all variables
@@ -372,11 +372,9 @@ func (c *Context) Apply() (*State, error) {
 		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
 	} else {
 		graph, err = (&ApplyGraphBuilder{
-			Module:       c.module,
 			Diff:         c.diff,
-			State:        c.state,
-			Providers:    c.providersList(),
-			Provisioners: c.provisionersList(),
+			Providers:    c.components.ResourceProviders(),
+			Provisioners: c.components.ResourceProvisioners(),
 		}).Build(RootModulePath)
 	}
 	if err != nil {
@@ -731,24 +729,6 @@ func (c *Context) walk(
 	}
 
 	return walker, realErr
-}
-
-func (c *Context) providersList() []string {
-	providers := make([]string, 0, len(c.providers))
-	for k, _ := range c.providers {
-		providers = append(providers, k)
-	}
-
-	return providers
-}
-
-func (c *Context) provisionersList() []string {
-	provisioners := make([]string, 0, len(c.provisioners))
-	for k, _ := range c.provisioners {
-		provisioners = append(provisioners, k)
-	}
-
-	return provisioners
 }
 
 // parseVariableAsHCL parses the value of a single variable as would have been specified
