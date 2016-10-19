@@ -89,9 +89,12 @@ func resourceComputeTargetPool() *schema.Resource {
 }
 
 func convertStringArr(ifaceArr []interface{}) []string {
-	arr := make([]string, len(ifaceArr))
-	for i, v := range ifaceArr {
-		arr[i], _ = v.(string)
+	var arr []string
+	for _, v := range ifaceArr {
+		if v == nil {
+			continue
+		}
+		arr = append(arr, v.(string))
 	}
 	return arr
 }
