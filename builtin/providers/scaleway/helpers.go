@@ -17,35 +17,23 @@ func String(val string) *string {
 	return &val
 }
 
-// NOTE copied from github.com/scaleway/scaleway-cli/pkg/api/helpers.go
-// the helpers.go file pulls in quite a lot dependencies, and they're just convenience wrappers anyway
-
-func deleteServerSafe(s *api.ScalewayAPI, serverID string) error {
-	server, err := s.GetServer(serverID)
-	if err != nil {
+// deleteStoppedServer needs to cleanup attached root volumes. this is not done
+// automatically by Scaleway
+func deleteStoppedServer(scaleway *api.ScalewayAPI, server *api.ScalewayServer) error {
+	if err := scaleway.DeleteServer(server.Identifier); err != nil {
 		return err
 	}
 
-	if server.State != "stopped" {
-		if err := s.PostServerAction(serverID, "poweroff"); err != nil {
-			return err
-		}
-		if err := waitForServerState(s, serverID, "stopped"); err != nil {
-			return err
-		}
-	}
-
-	if err := s.DeleteServer(serverID); err != nil {
-		return err
-	}
 	if rootVolume, ok := server.Volumes["0"]; ok {
-		if err := s.DeleteVolume(rootVolume.Identifier); err != nil {
+		if err := scaleway.DeleteVolume(rootVolume.Identifier); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
+
+// NOTE copied from github.com/scaleway/scaleway-cli/pkg/api/helpers.go
+// the helpers.go file pulls in quite a lot dependencies, and they're just convenience wrappers anyway
 
 func waitForServerState(s *api.ScalewayAPI, serverID string, targetState string) error {
 	var server *api.ScalewayServer

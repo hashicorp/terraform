@@ -3,7 +3,9 @@ package scaleway
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/scaleway/scaleway-cli/pkg/api"
 )
@@ -205,7 +207,16 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceScalewayServerDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
-	def, err := scaleway.GetServer(d.Id())
+	s, err := scaleway.GetServer(d.Id())
+	if err != nil {
+		return err
+	}
+
+	if s.State == "stopped" {
+		return deleteStoppedServer(scaleway, s)
+	}
+
+	err = scaleway.PostServerAction(d.Id(), "terminate")
 	if err != nil {
 		if serr, ok := err.(api.ScalewayAPIError); ok {
 			if serr.StatusCode == 404 {
@@ -216,11 +227,25 @@ func resourceScalewayServerDelete(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
-	err = deleteServerSafe(scaleway, def.Identifier)
-	if err != nil {
-		return err
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := scaleway.GetServer(d.Id())
+
+		if err == nil {
+			return resource.RetryableError(fmt.Errorf("Waiting for server %q to be deleted", d.Id()))
+		}
+
+		if serr, ok := err.(api.ScalewayAPIError); ok {
+			if serr.StatusCode == 404 {
+				return nil
+			}
+		}
+
+		return resource.RetryableError(err)
+	})
+
+	if err == nil {
+		d.SetId("")
 	}
 
-	d.SetId("")
-	return nil
+	return err
 }
