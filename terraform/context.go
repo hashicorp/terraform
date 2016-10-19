@@ -372,7 +372,9 @@ func (c *Context) Apply() (*State, error) {
 		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
 	} else {
 		graph, err = (&ApplyGraphBuilder{
+			Module:       c.module,
 			Diff:         c.diff,
+			State:        c.state,
 			Providers:    c.components.ResourceProviders(),
 			Provisioners: c.components.ResourceProvisioners(),
 		}).Build(RootModulePath)
