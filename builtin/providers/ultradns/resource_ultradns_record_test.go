@@ -25,7 +25,7 @@ func TestAccUltradnsRecord(t *testing.T) {
 					testAccCheckUltradnsRecordExists("ultradns_record.it", &record),
 					resource.TestCheckResourceAttr("ultradns_record.it", "zone", domain),
 					resource.TestCheckResourceAttr("ultradns_record.it", "name", "test-record"),
-					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.0", "10.5.0.1"),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.3994963683", "10.5.0.1"),
 				),
 			},
 			resource.TestStep{
@@ -34,7 +34,7 @@ func TestAccUltradnsRecord(t *testing.T) {
 					testAccCheckUltradnsRecordExists("ultradns_record.it", &record),
 					resource.TestCheckResourceAttr("ultradns_record.it", "zone", domain),
 					resource.TestCheckResourceAttr("ultradns_record.it", "name", "test-record"),
-					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.0", "10.5.0.1"),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.3994963683", "10.5.0.1"),
 				),
 			},
 			resource.TestStep{
@@ -43,7 +43,7 @@ func TestAccUltradnsRecord(t *testing.T) {
 					testAccCheckUltradnsRecordExists("ultradns_record.it", &record),
 					resource.TestCheckResourceAttr("ultradns_record.it", "zone", domain),
 					resource.TestCheckResourceAttr("ultradns_record.it", "name", "test-record"),
-					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.0", "10.5.0.2"),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.1998004057", "10.5.0.2"),
 				),
 			},
 		},

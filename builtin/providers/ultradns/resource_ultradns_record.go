@@ -28,7 +28,7 @@ func newRRSetResource(d *schema.ResourceData) (rRSetResource, error) {
 	}
 
 	if attr, ok := d.GetOk("rdata"); ok {
-		rdata := attr.([]interface{})
+		rdata := attr.(*schema.Set).List()
 		r.RData = make([]string, len(rdata))
 		for i, j := range rdata {
 			r.RData[i] = j.(string)
@@ -47,7 +47,7 @@ func populateResourceDataFromRRSet(r udnssdk.RRSet, d *schema.ResourceData) erro
 	// ttl
 	d.Set("ttl", r.TTL)
 	// rdata
-	err := d.Set("rdata", r.RData)
+	err := d.Set("rdata", makeSetFromStrings(r.RData))
 	if err != nil {
 		return fmt.Errorf("ultradns_record.rdata set failed: %#v", err)
 	}
@@ -89,7 +89,8 @@ func resourceUltradnsRecord() *schema.Resource {
 				ForceNew: true,
 			},
 			"rdata": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
+				Set:      schema.HashString,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
