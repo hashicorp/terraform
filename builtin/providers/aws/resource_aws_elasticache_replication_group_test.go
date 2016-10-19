@@ -317,7 +317,7 @@ resource "aws_elasticache_replication_group" "bar" {
     node_type = "cache.m1.small"
     number_cache_clusters = 2
     port = 6379
-    parameter_group_name = "default.redis2.8"
+    parameter_group_name = "default.redis3.2"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     apply_immediately = true
 }`, rName, rName, rName)
