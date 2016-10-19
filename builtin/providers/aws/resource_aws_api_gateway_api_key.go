@@ -68,6 +68,15 @@ func resourceAwsApiGatewayApiKey() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"value": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				Sensitive:    true,
+				ValidateFunc: validateApiGatewayApiKeyValue,
+			},
 		},
 	}
 }
@@ -80,6 +89,7 @@ func resourceAwsApiGatewayApiKeyCreate(d *schema.ResourceData, meta interface{})
 		Name:        aws.String(d.Get("name").(string)),
 		Description: aws.String(d.Get("description").(string)),
 		Enabled:     aws.Bool(d.Get("enabled").(bool)),
+		Value:       aws.String(d.Get("value").(string)),
 		StageKeys:   expandApiGatewayStageKeys(d),
 	})
 	if err != nil {
@@ -96,7 +106,8 @@ func resourceAwsApiGatewayApiKeyRead(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Reading API Gateway API Key: %s", d.Id())
 
 	apiKey, err := conn.GetApiKey(&apigateway.GetApiKeyInput{
-		ApiKey: aws.String(d.Id()),
+		ApiKey:       aws.String(d.Id()),
+		IncludeValue: aws.Bool(true),
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NotFoundException" {
@@ -111,6 +122,7 @@ func resourceAwsApiGatewayApiKeyRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("description", apiKey.Description)
 	d.Set("enabled", apiKey.Enabled)
 	d.Set("stage_key", flattenApiGatewayStageKeys(apiKey.StageKeys))
+	d.Set("value", apiKey.Value)
 
 	if err := d.Set("created_date", apiKey.CreatedDate.Format(time.RFC3339)); err != nil {
 		log.Printf("[DEBUG] Error setting created_date: %s", err)

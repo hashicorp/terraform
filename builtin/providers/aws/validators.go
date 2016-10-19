@@ -946,6 +946,18 @@ func validateAccountAlias(v interface{}, k string) (ws []string, es []error) {
 	if strings.HasSuffix(val, "-") {
 		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
 	}
+	return
+}
 
+func validateApiGatewayApiKeyValue(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 30 {
+		errors = append(errors, fmt.Errorf(
+			"%q must be at least 30 characters long", k))
+	}
+	if len(value) > 128 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 128 characters", k))
+	}
 	return
 }
