@@ -32,6 +32,17 @@ const (
 	InputModeStd = InputModeVar | InputModeProvider
 )
 
+var (
+	// contextFailOnShadowError will cause Context operations to return
+	// errors when shadow operations fail. This is only used for testing.
+	contextFailOnShadowError = false
+
+	// contextTestDeepCopyOnPlan will perform a Diff DeepCopy on every
+	// Plan operation, effectively testing the Diff DeepCopy whenever
+	// a Plan occurs. This is enabled for tests.
+	contextTestDeepCopyOnPlan = false
+)
+
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
@@ -56,24 +67,28 @@ type ContextOpts struct {
 //
 // Extra functions on Context can be found in context_*.go files.
 type Context struct {
-	destroy      bool
-	diff         *Diff
-	diffLock     sync.RWMutex
-	hooks        []Hook
-	module       *module.Tree
-	providers    map[string]ResourceProviderFactory
-	provisioners map[string]ResourceProvisionerFactory
-	sh           *stopHook
-	state        *State
-	stateLock    sync.RWMutex
-	targets      []string
-	uiInput      UIInput
-	variables    map[string]interface{}
+	// Maintainer note: Anytime this struct is changed, please verify
+	// that newShadowContext still does the right thing. Tests should
+	// fail regardless but putting this note here as well.
+
+	components contextComponentFactory
+	destroy    bool
+	diff       *Diff
+	diffLock   sync.RWMutex
+	hooks      []Hook
+	module     *module.Tree
+	sh         *stopHook
+	state      *State
+	stateLock  sync.RWMutex
+	targets    []string
+	uiInput    UIInput
+	variables  map[string]interface{}
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
 	runCh               <-chan struct{}
+	shadowErr           error
 }
 
 // NewContext creates a new Context structure.
@@ -136,16 +151,18 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 	}
 
 	return &Context{
-		destroy:      opts.Destroy,
-		diff:         opts.Diff,
-		hooks:        hooks,
-		module:       opts.Module,
-		providers:    opts.Providers,
-		provisioners: opts.Provisioners,
-		state:        state,
-		targets:      opts.Targets,
-		uiInput:      opts.UIInput,
-		variables:    variables,
+		components: &basicComponentFactory{
+			providers:    opts.Providers,
+			provisioners: opts.Provisioners,
+		},
+		destroy:   opts.Destroy,
+		diff:      opts.Diff,
+		hooks:     hooks,
+		module:    opts.Module,
+		state:     state,
+		targets:   opts.Targets,
+		uiInput:   opts.UIInput,
+		variables: variables,
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
@@ -166,28 +183,44 @@ func (c *Context) Graph(g *ContextGraphOpts) (*Graph, error) {
 // GraphBuilder returns the GraphBuilder that will be used to create
 // the graphs for this context.
 func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
-	// TODO test
-	providers := make([]string, 0, len(c.providers))
-	for k, _ := range c.providers {
-		providers = append(providers, k)
-	}
-
-	provisioners := make([]string, 0, len(c.provisioners))
-	for k, _ := range c.provisioners {
-		provisioners = append(provisioners, k)
-	}
-
 	return &BuiltinGraphBuilder{
 		Root:         c.module,
 		Diff:         c.diff,
-		Providers:    providers,
-		Provisioners: provisioners,
+		Providers:    c.components.ResourceProviders(),
+		Provisioners: c.components.ResourceProvisioners(),
 		State:        c.state,
 		Targets:      c.targets,
 		Destroy:      c.destroy,
 		Validate:     g.Validate,
 		Verbose:      g.Verbose,
 	}
+}
+
+// ShadowError returns any errors caught during a shadow operation.
+//
+// A shadow operation is an operation run in parallel to a real operation
+// that performs the same tasks using new logic on copied state. The results
+// are compared to ensure that the new logic works the same as the old logic.
+// The shadow never affects the real operation or return values.
+//
+// The result of the shadow operation are only available through this function
+// call after a real operation is complete.
+//
+// For API consumers of Context, you can safely ignore this function
+// completely if you have no interest in helping report experimental feature
+// errors to Terraform maintainers. Otherwise, please call this function
+// after every operation and report this to the user.
+//
+// IMPORTANT: Shadow errors are _never_ critical: they _never_ affect
+// the real state or result of a real operation. They are purely informational
+// to assist in future Terraform versions being more stable. Please message
+// this effectively to the end user.
+//
+// This must be called only when no other operation is running (refresh,
+// plan, etc.). The result can be used in parallel to any other operation
+// running.
+func (c *Context) ShadowError() error {
+	return c.shadowErr
 }
 
 // Input asks for input to fill variables and provider configurations.
@@ -300,7 +333,7 @@ func (c *Context) Input(mode InputMode) error {
 		}
 
 		// Do the walk
-		if _, err := c.walk(graph, walkInput); err != nil {
+		if _, err := c.walk(graph, nil, walkInput); err != nil {
 			return err
 		}
 	}
@@ -329,9 +362,10 @@ func (c *Context) Apply() (*State, error) {
 	// Do the walk
 	var walker *ContextGraphWalker
 	if c.destroy {
-		walker, err = c.walk(graph, walkDestroy)
+		walker, err = c.walk(graph, graph, walkDestroy)
 	} else {
-		walker, err = c.walk(graph, walkApply)
+		//walker, err = c.walk(graph, nil, walkApply)
+		walker, err = c.walk(graph, graph, walkApply)
 	}
 
 	if len(walker.ValidationErrors) > 0 {
@@ -396,11 +430,22 @@ func (c *Context) Plan() (*Plan, error) {
 	}
 
 	// Do the walk
-	walker, err := c.walk(graph, operation)
+	walker, err := c.walk(graph, graph, operation)
 	if err != nil {
 		return nil, err
 	}
 	p.Diff = c.diff
+
+	// If this is true, it means we're running unit tests. In this case,
+	// we perform a deep copy just to ensure that all context tests also
+	// test that a diff is copy-able. This will panic if it fails. This
+	// is enabled during unit tests.
+	//
+	// This should never be true during production usage, but even if it is,
+	// it can't do any real harm.
+	if contextTestDeepCopyOnPlan {
+		p.Diff.DeepCopy()
+	}
 
 	// Now that we have a diff, we can build the exact graph that Apply will use
 	// and catch any possible cycles during the Plan phase.
@@ -434,7 +479,7 @@ func (c *Context) Refresh() (*State, error) {
 	}
 
 	// Do the walk
-	if _, err := c.walk(graph, walkRefresh); err != nil {
+	if _, err := c.walk(graph, graph, walkRefresh); err != nil {
 		return nil, err
 	}
 
@@ -502,7 +547,7 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	// Walk
-	walker, err := c.walk(graph, walkValidate)
+	walker, err := c.walk(graph, graph, walkValidate)
 	if err != nil {
 		return nil, multierror.Append(errs, err).Errors
 	}
@@ -541,8 +586,16 @@ func (c *Context) acquireRun() chan<- struct{} {
 		c.l.Lock()
 	}
 
+	// Create the new channel
 	ch := make(chan struct{})
 	c.runCh = ch
+
+	// Reset the stop hook so we're not stopped
+	c.sh.Reset()
+
+	// Reset the shadow errors
+	c.shadowErr = nil
+
 	return ch
 }
 
@@ -552,15 +605,108 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 
 	close(ch)
 	c.runCh = nil
-	c.sh.Reset()
 }
 
 func (c *Context) walk(
-	graph *Graph, operation walkOperation) (*ContextGraphWalker, error) {
-	// Walk the graph
+	graph, shadow *Graph, operation walkOperation) (*ContextGraphWalker, error) {
+	// Keep track of the "real" context which is the context that does
+	// the real work: talking to real providers, modifying real state, etc.
+	realCtx := c
+
+	// If we have a shadow graph, walk that as well
+	var shadowCtx *Context
+	var shadowCloser Shadow
+	if shadow != nil {
+		// Build the shadow context. In the process, override the real context
+		// with the one that is wrapped so that the shadow context can verify
+		// the results of the real.
+		realCtx, shadowCtx, shadowCloser = newShadowContext(c)
+	}
+
+	// Build the real graph walker
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
-	walker := &ContextGraphWalker{Context: c, Operation: operation}
-	return walker, graph.Walk(walker)
+	walker := &ContextGraphWalker{Context: realCtx, Operation: operation}
+
+	// Walk the real graph, this will block until it completes
+	realErr := graph.Walk(walker)
+
+	// If we have a shadow graph and we interrupted the real graph, then
+	// we just close the shadow and never verify it. It is non-trivial to
+	// recreate the exact execution state up until an interruption so this
+	// isn't supported with shadows at the moment.
+	if shadowCloser != nil && c.sh.Stopped() {
+		// Ignore the error result, there is nothing we could care about
+		shadowCloser.CloseShadow()
+
+		// Set it to nil so we don't do anything
+		shadowCloser = nil
+	}
+
+	// If we have a shadow graph, wait for that to complete.
+	if shadowCloser != nil {
+		// Build the graph walker for the shadow.
+		shadowWalker := &ContextGraphWalker{
+			Context:   shadowCtx,
+			Operation: operation,
+		}
+
+		// Kick off the shadow walk. This will block on any operations
+		// on the real walk so it is fine to start first.
+		shadowCh := make(chan error)
+		go func() {
+			log.Printf("[INFO] Starting shadow graph walk: %s", operation.String())
+			shadowCh <- shadow.Walk(shadowWalker)
+		}()
+
+		// Notify the shadow that we're done
+		if err := shadowCloser.CloseShadow(); err != nil {
+			c.shadowErr = multierror.Append(c.shadowErr, err)
+		}
+
+		// Wait for the walk to end
+		log.Printf("[DEBUG] Waiting for shadow graph to complete...")
+		shadowWalkErr := <-shadowCh
+
+		// Get any shadow errors
+		if err := shadowCloser.ShadowError(); err != nil {
+			c.shadowErr = multierror.Append(c.shadowErr, err)
+		}
+
+		// Verify the contexts (compare)
+		if err := shadowContextVerify(realCtx, shadowCtx); err != nil {
+			c.shadowErr = multierror.Append(c.shadowErr, err)
+		}
+
+		// At this point, if we're supposed to fail on error, then
+		// we PANIC. Some tests just verify that there is an error,
+		// so simply appending it to realErr and returning could hide
+		// shadow problems.
+		//
+		// This must be done BEFORE appending shadowWalkErr since the
+		// shadowWalkErr may include expected errors.
+		if c.shadowErr != nil && contextFailOnShadowError {
+			panic(multierror.Prefix(c.shadowErr, "shadow graph:"))
+		}
+
+		// Now, if we have a walk error, we append that through
+		if shadowWalkErr != nil {
+			c.shadowErr = multierror.Append(c.shadowErr, shadowWalkErr)
+		}
+
+		if c.shadowErr == nil {
+			log.Printf("[INFO] Shadow graph success!")
+		} else {
+			log.Printf("[ERROR] Shadow graph error: %s", c.shadowErr)
+
+			// If we're supposed to fail on shadow errors, then report it
+			if contextFailOnShadowError {
+				realErr = multierror.Append(realErr, multierror.Prefix(
+					c.shadowErr, "shadow graph:"))
+			}
+		}
+	}
+
+	return walker, realErr
 }
 
 // parseVariableAsHCL parses the value of a single variable as would have been specified

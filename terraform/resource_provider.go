@@ -3,6 +3,12 @@ package terraform
 // ResourceProvider is an interface that must be implemented by any
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.
+//
+// Important implementation note: All returned pointers, such as
+// *ResourceConfig, *InstanceState, *InstanceDiff, etc. must not point to
+// shared data. Terraform is highly parallel and assumes that this data is safe
+// to read/write in parallel so it must be unique references. Note that it is
+// safe to return arguments as results, however.
 type ResourceProvider interface {
 	/*********************************************************************
 	* Functions related to the provider

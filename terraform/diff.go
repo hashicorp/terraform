@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/mitchellh/copystructure"
 )
 
 // DiffChangeType is an enum with the kind of changes a diff has planned.
@@ -77,6 +79,36 @@ func (d *Diff) Empty() bool {
 	}
 
 	return true
+}
+
+// Equal compares two diffs for exact equality.
+//
+// This is different from the Same comparison that is supported which
+// checks for operation equality taking into account computed values. Equal
+// instead checks for exact equality.
+func (d *Diff) Equal(d2 *Diff) bool {
+	// If one is nil, they must both be nil
+	if d == nil || d2 == nil {
+		return d == d2
+	}
+
+	// Sort the modules
+	sort.Sort(moduleDiffSort(d.Modules))
+	sort.Sort(moduleDiffSort(d2.Modules))
+
+	// Use DeepEqual
+	return reflect.DeepEqual(d, d2)
+}
+
+// DeepCopy performs a deep copy of all parts of the Diff, making the
+// resulting Diff safe to use without modifying this one.
+func (d *Diff) DeepCopy() *Diff {
+	copy, err := copystructure.Config{Lock: true}.Copy(d)
+	if err != nil {
+		panic(err)
+	}
+
+	return copy.(*Diff)
 }
 
 func (d *Diff) String() string {
@@ -364,6 +396,31 @@ func (d *InstanceDiff) Empty() bool {
 	return !d.Destroy && !d.DestroyTainted && len(d.Attributes) == 0
 }
 
+// Equal compares two diffs for exact equality.
+//
+// This is different from the Same comparison that is supported which
+// checks for operation equality taking into account computed values. Equal
+// instead checks for exact equality.
+func (d *InstanceDiff) Equal(d2 *InstanceDiff) bool {
+	// If one is nil, they must both be nil
+	if d == nil || d2 == nil {
+		return d == d2
+	}
+
+	// Use DeepEqual
+	return reflect.DeepEqual(d, d2)
+}
+
+// DeepCopy performs a deep copy of all parts of the InstanceDiff
+func (d *InstanceDiff) DeepCopy() *InstanceDiff {
+	copy, err := copystructure.Config{Lock: true}.Copy(d)
+	if err != nil {
+		panic(err)
+	}
+
+	return copy.(*InstanceDiff)
+}
+
 func (d *InstanceDiff) GoString() string {
 	return fmt.Sprintf("*%#v", InstanceDiff{
 		Attributes:     d.Attributes,
@@ -631,4 +688,22 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 	}
 
 	return true, ""
+}
+
+// moduleDiffSort implements sort.Interface to sort module diffs by path.
+type moduleDiffSort []*ModuleDiff
+
+func (s moduleDiffSort) Len() int      { return len(s) }
+func (s moduleDiffSort) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s moduleDiffSort) Less(i, j int) bool {
+	a := s[i]
+	b := s[j]
+
+	// If the lengths are different, then the shorter one always wins
+	if len(a.Path) != len(b.Path) {
+		return len(a.Path) < len(b.Path)
+	}
+
+	// Otherwise, compare lexically
+	return strings.Join(a.Path, ".") < strings.Join(b.Path, ".")
 }
