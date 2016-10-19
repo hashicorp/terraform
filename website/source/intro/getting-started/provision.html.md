@@ -87,7 +87,7 @@ Terraform will error and mark the resource as "tainted." A
 resource that is tainted has been physically created, but can't
 be considered safe to use since provisioning failed.
 
-When you generate your next execution plan, Terraform not attempt to restart
+When you generate your next execution plan, Terraform will not attempt to restart
 provisioning on the same resource because it isn't guaranteed to be safe. Instead,
 Terraform will remove any tainted resources and create new resources, attempting to
 provision them again after creation.
