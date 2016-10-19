@@ -31,6 +31,7 @@ import (
 	externalprovider "github.com/hashicorp/terraform/builtin/providers/external"
 	fastlyprovider "github.com/hashicorp/terraform/builtin/providers/fastly"
 	githubprovider "github.com/hashicorp/terraform/builtin/providers/github"
+	gitlabprovider "github.com/hashicorp/terraform/builtin/providers/gitlab"
 	googleprovider "github.com/hashicorp/terraform/builtin/providers/google"
 	grafanaprovider "github.com/hashicorp/terraform/builtin/providers/grafana"
 	herokuprovider "github.com/hashicorp/terraform/builtin/providers/heroku"
@@ -107,6 +108,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"external":     externalprovider.Provider,
 	"fastly":       fastlyprovider.Provider,
 	"github":       githubprovider.Provider,
+	"gitlab":       gitlabprovider.Provider,
 	"google":       googleprovider.Provider,
 	"grafana":      grafanaprovider.Provider,
 	"heroku":       herokuprovider.Provider,
