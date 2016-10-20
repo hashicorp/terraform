@@ -25,7 +25,7 @@ func TestResourceAzureRMLoadBalancerRuleNameLabel_validation(t *testing.T) {
 			ErrCount: 1,
 		},
 		{
-			Value:    "test123test",
+			Value:    "test#test",
 			ErrCount: 1,
 		},
 		{
@@ -42,6 +42,14 @@ func TestResourceAzureRMLoadBalancerRuleNameLabel_validation(t *testing.T) {
 		},
 		{
 			Value:    "test-rule",
+			ErrCount: 0,
+		},
+		{
+			Value:    "TestRule",
+			ErrCount: 0,
+		},
+		{
+			Value:    "Test123Rule",
 			ErrCount: 0,
 		},
 		{
