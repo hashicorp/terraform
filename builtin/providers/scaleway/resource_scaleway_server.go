@@ -3,9 +3,7 @@ package scaleway
 import (
 	"fmt"
 	"log"
-	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/scaleway/scaleway-cli/pkg/api"
 )
@@ -216,32 +214,7 @@ func resourceScalewayServerDelete(d *schema.ResourceData, m interface{}) error {
 		return deleteStoppedServer(scaleway, s)
 	}
 
-	err = scaleway.PostServerAction(d.Id(), "terminate")
-	if err != nil {
-		if serr, ok := err.(api.ScalewayAPIError); ok {
-			if serr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
-	}
-
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
-		_, err := scaleway.GetServer(d.Id())
-
-		if err == nil {
-			return resource.RetryableError(fmt.Errorf("Waiting for server %q to be deleted", d.Id()))
-		}
-
-		if serr, ok := err.(api.ScalewayAPIError); ok {
-			if serr.StatusCode == 404 {
-				return nil
-			}
-		}
-
-		return resource.RetryableError(err)
-	})
+	err = deleteRunningServer(scaleway, s)
 
 	if err == nil {
 		d.SetId("")
