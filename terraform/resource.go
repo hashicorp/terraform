@@ -72,6 +72,10 @@ type InstanceInfo struct {
 
 // HumanId is a unique Id that is human-friendly and useful for UI elements.
 func (i *InstanceInfo) HumanId() string {
+	if i == nil {
+		return "<nil>"
+	}
+
 	if len(i.ModulePath) <= 1 {
 		return i.Id
 	}

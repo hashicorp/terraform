@@ -124,6 +124,52 @@ func TestGraphHasEdge(t *testing.T) {
 	}
 }
 
+func TestGraphEdgesFrom(t *testing.T) {
+	var g Graph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(2, 3))
+
+	edges := g.EdgesFrom(1)
+
+	var expected Set
+	expected.Add(BasicEdge(1, 3))
+
+	var s Set
+	for _, e := range edges {
+		s.Add(e)
+	}
+
+	if s.Intersection(&expected).Len() != expected.Len() {
+		t.Fatalf("bad: %#v", edges)
+	}
+}
+
+func TestGraphEdgesTo(t *testing.T) {
+	var g Graph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(1, 2))
+
+	edges := g.EdgesTo(3)
+
+	var expected Set
+	expected.Add(BasicEdge(1, 3))
+
+	var s Set
+	for _, e := range edges {
+		s.Add(e)
+	}
+
+	if s.Intersection(&expected).Len() != expected.Len() {
+		t.Fatalf("bad: %#v", edges)
+	}
+}
+
 type hashVertex struct {
 	code interface{}
 }

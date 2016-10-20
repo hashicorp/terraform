@@ -13,6 +13,16 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
+// Variables prefixed with X_ are experimental features. They can be enabled
+// by setting them to true. This should be done before any API is called.
+// These should be expected to be removed at some point in the future; each
+// option should mention a schedule.
+var (
+	// X_newApply will enable the new apply graph. This will be removed
+	// and be on by default in 0.8.0.
+	X_newApply = false
+)
+
 // InputMode defines what sort of input will be asked for when Input
 // is called on Context.
 type InputMode byte
@@ -353,21 +363,79 @@ func (c *Context) Apply() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Build the graph
-	graph, err := c.Graph(&ContextGraphOpts{Validate: true})
+	// Build the original graph. This is before the new graph builders
+	// coming in 0.8. We do this for shadow graphing.
+	oldGraph, err := c.Graph(&ContextGraphOpts{Validate: true})
+	if err != nil && X_newApply {
+		// If we had an error graphing but we're using the new graph,
+		// just set it to nil and let it go. There are some features that
+		// may work with the new graph that don't with the old.
+		oldGraph = nil
+		err = nil
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	// Do the walk
-	var walker *ContextGraphWalker
-	if c.destroy {
-		walker, err = c.walk(graph, graph, walkDestroy)
-	} else {
-		//walker, err = c.walk(graph, nil, walkApply)
-		walker, err = c.walk(graph, graph, walkApply)
+	// Build the new graph. We do this no matter what so we can shadow it.
+	newGraph, err := (&ApplyGraphBuilder{
+		Module:       c.module,
+		Diff:         c.diff,
+		State:        c.state,
+		Providers:    c.components.ResourceProviders(),
+		Provisioners: c.components.ResourceProvisioners(),
+	}).Build(RootModulePath)
+	if err != nil && !X_newApply {
+		// If we had an error graphing but we're not using this graph, just
+		// set it to nil and record it as a shadow error.
+		c.shadowErr = multierror.Append(c.shadowErr, fmt.Errorf(
+			"Error building new apply graph: %s", err))
+
+		newGraph = nil
+		err = nil
+	}
+	if err != nil {
+		return nil, err
 	}
 
+	// Determine what is the real and what is the shadow. The logic here
+	// is straightforward though the if statements are not:
+	//
+	//   * Destroy mode - always use original, shadow with nothing because
+	//     we're only testing the new APPLY graph.
+	//   * Apply with new apply - use new graph, shadow is new graph. We can't
+	//     shadow with the old graph because the old graph does a lot more
+	//     that it shouldn't.
+	//   * Apply with old apply - use old graph, shadow with new graph.
+	//
+	real := oldGraph
+	shadow := newGraph
+	if c.destroy {
+		log.Printf("[WARN] terraform: real graph is original, shadow is nil")
+		shadow = nil
+	} else {
+		if X_newApply {
+			log.Printf("[WARN] terraform: real graph is Xnew-apply, shadow is Xnew-apply")
+			real = shadow
+		} else {
+			log.Printf("[WARN] terraform: real graph is original, shadow is Xnew-apply")
+		}
+	}
+
+	// Determine the operation
+	operation := walkApply
+	if c.destroy {
+		operation = walkDestroy
+	}
+
+	// This shouldn't happen, so assert it. This is before any state changes
+	// so it is safe to crash here.
+	if real == nil {
+		panic("nil real graph")
+	}
+
+	// Walk the graph
+	walker, err := c.walk(real, shadow, operation)
 	if len(walker.ValidationErrors) > 0 {
 		err = multierror.Append(err, walker.ValidationErrors...)
 	}

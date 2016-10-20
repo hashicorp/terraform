@@ -22,7 +22,16 @@ import (
 const fixtureDir = "./test-fixtures"
 
 func TestMain(m *testing.M) {
+	// Experimental features
+	xNewApply := flag.Bool("Xnew-apply", false, "Experiment: new apply graph")
+
 	flag.Parse()
+
+	// Setup experimental features
+	X_newApply = *xNewApply
+	if X_newApply {
+		println("Xnew-apply enabled")
+	}
 
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG

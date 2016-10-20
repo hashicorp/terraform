@@ -510,7 +510,7 @@ func (p *shadowResourceProviderShadow) Apply(
 		p.ErrorLock.Lock()
 		defer p.ErrorLock.Unlock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Unknown 'apply' shadow value: %#v", raw))
+			"Unknown 'apply' shadow value for %q: %#v", key, raw))
 		return nil, nil
 	}
 
@@ -518,16 +518,16 @@ func (p *shadowResourceProviderShadow) Apply(
 	if !state.Equal(result.State) {
 		p.ErrorLock.Lock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Apply: state had unequal states (real, then shadow):\n\n%#v\n\n%#v",
-			result.State, state))
+			"Apply %q: state had unequal states (real, then shadow):\n\n%#v\n\n%#v",
+			key, result.State, state))
 		p.ErrorLock.Unlock()
 	}
 
 	if !diff.Equal(result.Diff) {
 		p.ErrorLock.Lock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Apply: unequal diffs (real, then shadow):\n\n%#v\n\n%#v",
-			result.Diff, diff))
+			"Apply %q: unequal diffs (real, then shadow):\n\n%#v\n\n%#v",
+			key, result.Diff, diff))
 		p.ErrorLock.Unlock()
 	}
 
