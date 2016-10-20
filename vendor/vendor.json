@@ -2048,6 +2048,12 @@
 			"revisionTime": "2016-08-31T14:38:59Z"
 		},
 		{
+			"checksumSHA1": "tSuNhdqa7EFNG4vuqL2uze/rhfw=",
+			"path": "github.com/xanzy/go-gitlab",
+			"revision": "10146017d23b3c11b16e3e18ebf6c9f346d6f48a",
+			"revisionTime": "2016-10-18T22:25:10Z"
+		},
+		{
 			"path": "github.com/xanzy/ssh-agent",
 			"revision": "ba9c9e33906f58169366275e3450db66139a31a9"
 		},
