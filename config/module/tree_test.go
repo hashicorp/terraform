@@ -12,6 +12,11 @@ import (
 )
 
 func TestTreeChild(t *testing.T) {
+	var nilTree *Tree
+	if nilTree.Child(nil) != nil {
+		t.Fatal("child should be nil")
+	}
+
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "child"))
 	if err := tree.Load(storage, GetModeGet); err != nil {

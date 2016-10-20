@@ -101,6 +101,10 @@ func newShadowContext(c *Context) (*Context, *Context, Shadow) {
 func shadowContextVerify(real, shadow *Context) error {
 	var result error
 
+	// The states compared must be pruned so they're minimal/clean
+	real.state.prune()
+	shadow.state.prune()
+
 	// Compare the states
 	if !real.state.Equal(shadow.state) {
 		result = multierror.Append(result, fmt.Errorf(

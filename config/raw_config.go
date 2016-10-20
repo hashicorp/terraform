@@ -191,17 +191,19 @@ func (r *RawConfig) Merge(other *RawConfig) *RawConfig {
 	}
 
 	// Build the unknown keys
-	unknownKeys := make(map[string]struct{})
-	for _, k := range r.unknownKeys {
-		unknownKeys[k] = struct{}{}
-	}
-	for _, k := range other.unknownKeys {
-		unknownKeys[k] = struct{}{}
-	}
+	if len(r.unknownKeys) > 0 || len(other.unknownKeys) > 0 {
+		unknownKeys := make(map[string]struct{})
+		for _, k := range r.unknownKeys {
+			unknownKeys[k] = struct{}{}
+		}
+		for _, k := range other.unknownKeys {
+			unknownKeys[k] = struct{}{}
+		}
 
-	result.unknownKeys = make([]string, 0, len(unknownKeys))
-	for k, _ := range unknownKeys {
-		result.unknownKeys = append(result.unknownKeys, k)
+		result.unknownKeys = make([]string, 0, len(unknownKeys))
+		for k, _ := range unknownKeys {
+			result.unknownKeys = append(result.unknownKeys, k)
+		}
 	}
 
 	return result

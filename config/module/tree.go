@@ -66,6 +66,10 @@ func (t *Tree) Config() *config.Config {
 
 // Child returns the child with the given path (by name).
 func (t *Tree) Child(path []string) *Tree {
+	if t == nil {
+		return nil
+	}
+
 	if len(path) == 0 {
 		return t
 	}
