@@ -5,6 +5,10 @@ BUG FIXES:
  * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value [GH-9453]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
 
+IMPROVEMENTS:
+
+ * provider/aws: No longer require `route_table_ids` list in `aws_vpc_endpoint` resources [GH-9357]
+
 
 ## 0.7.7 (October 18, 2016)
 
