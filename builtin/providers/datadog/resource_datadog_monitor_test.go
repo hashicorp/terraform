@@ -177,6 +177,37 @@ func TestAccDatadogMonitor_TrimWhitespace(t *testing.T) {
 	})
 }
 
+func TestAccDatadogMonitor_Basic_float_int(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatadogMonitorDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDatadogMonitorConfig_ints,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.warning", "1"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.critical", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckDatadogMonitorConfig_ints_mixed,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.warning", "1.0"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "thresholds.critical", "3.0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDatadogMonitorDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*datadog.Client)
 
@@ -221,6 +252,66 @@ resource "datadog_monitor" "foo" {
   tags {
 	"foo" = "bar"
 	"bar" = "baz"
+  }
+}
+`
+
+const testAccCheckDatadogMonitorConfig_ints = `
+resource "datadog_monitor" "foo" {
+  name               = "name for monitor foo"
+  type               = "metric alert"
+  message            = "some message Notify: @hipchat-channel"
+  escalation_message = "the situation has escalated @pagerduty"
+
+  query = "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2"
+
+  thresholds {
+    warning  = 1
+    critical = 2
+  }
+
+  notify_no_data    = false
+  renotify_interval = 60
+
+  notify_audit        = false
+  timeout_h           = 60
+  include_tags        = true
+  require_full_window = true
+  locked              = false
+
+  tags {
+    "foo" = "bar"
+    "bar" = "baz"
+  }
+}
+`
+
+const testAccCheckDatadogMonitorConfig_ints_mixed = `
+resource "datadog_monitor" "foo" {
+  name               = "name for monitor foo"
+  type               = "metric alert"
+  message            = "some message Notify: @hipchat-channel"
+  escalation_message = "the situation has escalated @pagerduty"
+
+  query = "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 3"
+
+  thresholds {
+    warning  = 1
+    critical = 3.0 
+  }
+
+  notify_no_data    = false
+  renotify_interval = 60
+
+  notify_audit        = false
+  timeout_h           = 60
+  include_tags        = true
+  require_full_window = true
+  locked              = false
+
+  tags {
+    "foo" = "bar"
+    "bar" = "baz"
   }
 }
 `
