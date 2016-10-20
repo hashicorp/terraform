@@ -21,6 +21,12 @@
 			"versionExact": "v5.0.0-beta"
 		},
 		{
+			"checksumSHA1": "twJBMkI9NiMeQbPFmw4ehZQAPaE=",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/keyvault",
+			"revision": "91f3d4a4d024e3c0d4d9412916d05cf84504a616",
+			"revisionTime": "2016-10-05T01:22:46Z"
+		},
+		{
 			"checksumSHA1": "33Eny6aOVU6MjMYlfzufuo9OdCk=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/network",
@@ -1687,6 +1693,12 @@
 		{
 			"path": "github.com/satori/go.uuid",
 			"revision": "d41af8bb6a7704f00bc3b7cba9355ae6a5a80048"
+		},
+		{
+			"checksumSHA1": "iqUXcP3VA+G1/gVLRpQpBUt/BuA=",
+			"path": "github.com/satori/uuid",
+			"revision": "b061729afc07e77a8aa4fad0a2fd840958f1942a",
+			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
 			"checksumSHA1": "DWJoWDXcRi4HUCyxU6dLVVjR4pI=",
