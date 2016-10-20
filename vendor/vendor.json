@@ -3037,6 +3037,12 @@
 			"revisionTime": "2016-10-26T18:16:49Z"
 		},
 		{
+			"checksumSHA1": "1mR4/KWIQEL8rzyDlCR4CRrTqGQ=",
+			"path": "github.com/xanzy/go-gitlab",
+			"revision": "5b756e2fdc9f21fd4791fa1453b8fe01af0f82e2",
+			"revisionTime": "2017-03-22T12:21:15Z"
+		},
+		{
 			"checksumSHA1": "iHiMTBffQvWYlOLu3130JXuQpgQ=",
 			"path": "github.com/xanzy/ssh-agent",
 			"revision": "ba9c9e33906f58169366275e3450db66139a31a9",
