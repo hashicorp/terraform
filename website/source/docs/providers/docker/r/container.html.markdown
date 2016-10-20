@@ -80,7 +80,7 @@ The following arguments are supported:
 * `networks` - (Optional, set of strings) Id of the networks in which the
   container is.
 * `destroy_grace_seconds` - (Optional, int) If defined will attempt to stop the container before destroying. Container will be destroyed after `n` seconds or on successful stop.
-* `uploads` - (Optional) See [Uploads](#uploads) below for details.
+* `upload` - (Optional, block) See [File Upload](#upload) below for details.
 
 <a id="ports"></a>
 ### Ports
@@ -128,16 +128,15 @@ the following:
 
 One of `from_container`, `host_path` or `volume_name` must be set.
 
-<a id="uploads"></a>
-### Uploads
+<a id="upload"></a>
+### File Upload
 
-`uploads` is a block within the configuration that can be repeated to specify
-files and directories to upload to the container before starting it.
-Each `uploads` supports the following
+`upload` is a block within the configuration that can be repeated to specify
+files to upload to the container before starting it.
+Each `upload` supports the following
 
-* `local_path` - (Required, string) local path to a file or directory to upload.
-* `remote_path` - (Required, string) path to a file or directory in the
-  container.
+* `content` - (Required, string) A content of a file to upload.
+* `file` - (Required, string) path to a file in the container.
 
 ## Attributes Reference
 

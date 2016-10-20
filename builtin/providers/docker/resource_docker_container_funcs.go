@@ -1,13 +1,14 @@
 package docker
 
 import (
+	"archive/tar"
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
 	dc "github.com/fsouza/go-dockerclient"
-	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -188,15 +189,35 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	if v, ok := d.GetOk("uploads"); ok {
+	if v, ok := d.GetOk("upload"); ok {
 		for _, upload := range v.(*schema.Set).List() {
-			uploadOpts, err := uploadFile(upload.(map[string]interface{}))
-			if err != nil {
-				return err
+			content := upload.(map[string]interface{})["content"].(string)
+			file := upload.(map[string]interface{})["file"].(string)
+
+			buf := new(bytes.Buffer)
+			tw := tar.NewWriter(buf)
+			hdr := &tar.Header{
+				Name: file,
+				Mode: 0644,
+				Size: int64(len(content)),
+			}
+			if err := tw.WriteHeader(hdr); err != nil {
+				return fmt.Errorf("Error creating tar archive: %s", err)
+			}
+			if _, err := tw.Write([]byte(content)); err != nil {
+				return fmt.Errorf("Error creating tar archive: %s", err)
+			}
+			if err := tw.Close(); err != nil {
+				return fmt.Errorf("Error creating tar archive: %s", err)
 			}
 
-			if err := client.UploadToContainer(retContainer.ID, *uploadOpts); err != nil {
-				return fmt.Errorf("Unable to upload to container: %s", err)
+			uploadOpts := dc.UploadToContainerOptions{
+				InputStream: bytes.NewReader(buf.Bytes()),
+				Path:        "/",
+			}
+
+			if err := client.UploadToContainer(retContainer.ID, uploadOpts); err != nil {
+				return fmt.Errorf("Unable to upload volume content: %s", err)
 			}
 		}
 	}
@@ -425,21 +446,4 @@ func volumeSetToDockerVolumes(volumes *schema.Set) (map[string]struct{}, []strin
 	}
 
 	return retVolumeMap, retHostConfigBinds, retVolumeFromContainers, nil
-}
-
-func uploadFile(upload map[string]interface{}) (*dc.UploadToContainerOptions, error) {
-	localPath := upload["local_path"].(string)
-	remotePath := upload["remote_path"].(string)
-
-	stream, err := archive.Tar(localPath, archive.Uncompressed)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to send %s to container: %s", localPath, err)
-	}
-
-	uploadOpts := &dc.UploadToContainerOptions{
-		InputStream:          stream,
-		Path:                 remotePath,
-		NoOverwriteDirNonDir: false,
-	}
-	return uploadOpts, nil
 }
