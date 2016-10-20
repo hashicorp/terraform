@@ -61,6 +61,26 @@ func TestAccAWSVpcEndpoint_withRouteTableAndPolicy(t *testing.T) {
 	})
 }
 
+func TestAccAWSVpcEndpoint_WithoutRouteTableOrPolicyConfig(t *testing.T) {
+	var endpoint ec2.VpcEndpoint
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_vpc_endpoint.second-private-s3",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpcEndpointDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVpcEndpointWithoutRouteTableOrPolicyConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcEndpointExists("aws_vpc_endpoint.second-private-s3", &endpoint),
+					testAccCheckVpcEndpointPrefixListAvailable("aws_vpc_endpoint.second-private-s3"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVpcEndpointDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -137,26 +157,6 @@ func testAccCheckVpcEndpointPrefixListAvailable(n string) resource.TestCheckFunc
 
 		return nil
 	}
-}
-
-func TestAccAWSVpcEndpointWithoutRouteTableOrPolicyConfig(t *testing.T) {
-	var endpoint ec2.VpcEndpoint
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:      func() { testAccPreCheck(t) },
-		IDRefreshName: "aws_vpc_endpoint.second-private-s3",
-		Providers:     testAccProviders,
-		CheckDestroy:  testAccCheckVpcEndpointDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccVpcEndpointWithoutRouteTableOrPolicyConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVpcEndpointExists("aws_vpc_endpoint.second-private-s3", &endpoint),
-					testAccCheckVpcEndpointPrefixListAvailable("aws_vpc_endpoint.second-private-s3"),
-				),
-			},
-		},
-	})
 }
 
 const testAccVpcEndpointWithRouteTableAndPolicyConfig = `
