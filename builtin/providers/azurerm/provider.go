@@ -44,6 +44,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"azurerm_client_config": dataSourceArmClientConfig(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
 			"azurerm_availability_set": resourceArmAvailabilitySet(),
