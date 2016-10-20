@@ -51,6 +51,11 @@ var (
 	// Plan operation, effectively testing the Diff DeepCopy whenever
 	// a Plan occurs. This is enabled for tests.
 	contextTestDeepCopyOnPlan = false
+
+	// contextTestShadow will enable the shadow graph for the new graphs.
+	// This is enabled for tests. This will be removed very shortly and
+	// be enabled by default.
+	contextTestShadow = false
 )
 
 // ContextOpts are the user-configurable options to create a context with
@@ -420,6 +425,12 @@ func (c *Context) Apply() (*State, error) {
 		} else {
 			log.Printf("[WARN] terraform: real graph is original, shadow is Xnew-apply")
 		}
+	}
+
+	// For now, always shadow with the real graph for verification. We don't
+	// want to shadow yet with the new graphs.
+	if !contextTestShadow {
+		shadow = real
 	}
 
 	// Determine the operation
