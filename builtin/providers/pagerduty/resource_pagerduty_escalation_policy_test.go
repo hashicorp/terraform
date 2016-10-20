@@ -25,6 +25,10 @@ func TestAccPagerDutyEscalationPolicy_Basic(t *testing.T) {
 						"pagerduty_escalation_policy.foo", "description", "foo"),
 					resource.TestCheckResourceAttr(
 						"pagerduty_escalation_policy.foo", "num_loops", "1"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.#", "1"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.0.escalation_delay_in_minutes", "10"),
 				),
 			},
 			resource.TestStep{
@@ -37,6 +41,60 @@ func TestAccPagerDutyEscalationPolicy_Basic(t *testing.T) {
 						"pagerduty_escalation_policy.foo", "description", "bar"),
 					resource.TestCheckResourceAttr(
 						"pagerduty_escalation_policy.foo", "num_loops", "2"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.#", "2"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.0.escalation_delay_in_minutes", "10"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.1.escalation_delay_in_minutes", "20"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccPagerDutyEscalationPolicyWithTeams_Basic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPagerDutyEscalationPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckPagerDutyEscalationPolicyWithTeamsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "name", "foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "description", "foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "num_loops", "1"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.#", "1"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.0.escalation_delay_in_minutes", "10"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "teams.#", "1"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCheckPagerDutyEscalationPolicyWithTeamsConfigUpdated,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPagerDutyEscalationPolicyExists("pagerduty_escalation_policy.foo"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "name", "bar"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "description", "bar"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "num_loops", "2"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.#", "2"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.0.escalation_delay_in_minutes", "10"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "rule.1.escalation_delay_in_minutes", "20"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_escalation_policy.foo", "teams.#", "0"),
 				),
 			},
 		},
@@ -118,6 +176,78 @@ resource "pagerduty_user" "foo" {
   color       = "green"
   role        = "user"
   job_title   = "foo"
+  description = "foo"
+}
+
+resource "pagerduty_escalation_policy" "foo" {
+  name        = "bar"
+  description = "bar"
+  num_loops   = 2
+
+  rule {
+    escalation_delay_in_minutes = 10
+
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
+
+  rule {
+    escalation_delay_in_minutes = 20
+
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
+}
+`
+
+const testAccCheckPagerDutyEscalationPolicyWithTeamsConfig = `
+resource "pagerduty_user" "foo" {
+  name        = "foo"
+  email       = "foo@bar.com"
+  color       = "green"
+  role        = "user"
+  job_title   = "foo"
+  description = "foo"
+}
+
+resource "pagerduty_team" "foo" {
+  name        = "foo"
+  description = "foo"
+}
+
+resource "pagerduty_escalation_policy" "foo" {
+  name        = "foo"
+  description = "foo"
+  num_loops   = 1
+	teams       = ["${pagerduty_team.foo.id}"]
+
+  rule {
+    escalation_delay_in_minutes = 10
+
+    target {
+      type = "user_reference"
+      id   = "${pagerduty_user.foo.id}"
+    }
+  }
+}
+`
+
+const testAccCheckPagerDutyEscalationPolicyWithTeamsConfigUpdated = `
+resource "pagerduty_user" "foo" {
+  name        = "foo"
+  email       = "foo@bar.com"
+  color       = "green"
+  role        = "user"
+  job_title   = "foo"
+  description = "foo"
+}
+
+resource "pagerduty_team" "foo" {
+  name        = "foo"
   description = "foo"
 }
 

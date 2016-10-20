@@ -19,7 +19,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"pagerduty_on_call": dataSourcePagerDutyOnCall(),
+			"pagerduty_vendor": dataSourcePagerDutyVendor(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -36,10 +36,7 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(data *schema.ResourceData) (interface{}, error) {
-	config := Config{
-		Token: data.Get("token").(string),
-	}
-
+	config := Config{Token: data.Get("token").(string)}
 	log.Println("[INFO] Initializing PagerDuty client")
 	return config.Client()
 }

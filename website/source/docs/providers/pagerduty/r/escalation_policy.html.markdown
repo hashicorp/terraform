@@ -14,15 +14,21 @@ An [escalation policy](https://v2.developer.pagerduty.com/v2/page/api-reference#
 ## Example Usage
 
 ```
+resource "pagerduty_team" "example" {
+  name        = "Engineering"
+  description = "All engineering"
+}
+
 resource "pagerduty_user" "example" {
     name  = "Earline Greenholt"
     email = "125.greenholt.earline@graham.name"
     teams = ["${pagerduty_team.example.id}"]
 }
 
-resource "pagerduty_escalation_policy" "foo" {
+resource "pagerduty_escalation_policy" "example" {
   name      = "Engineering Escalation Policy"
   num_loops = 2
+  teams     = ["${pagerduty_team.example.id}"]
 
   rule {
     escalation_delay_in_minutes = 10
@@ -40,6 +46,7 @@ resource "pagerduty_escalation_policy" "foo" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the escalation policy.
+* `teams` - (Optional) Teams associated with the policy. Account must have the `teams` ability to use this parameter.
 * `description` - (Optional) A human-friendly description of the escalation policy.
   If not set, a placeholder of "Managed by Terraform" will be set.
 * `num_loops` - (Optional) The number of times the escalation policy will repeat after reaching the end of its escalation.

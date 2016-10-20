@@ -3,7 +3,7 @@ package pagerduty
 import (
 	"log"
 
-	"github.com/PagerDuty/go-pagerduty"
+	pagerduty "github.com/PagerDuty/go-pagerduty"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -77,14 +77,14 @@ func buildServiceStruct(d *schema.ResourceData) *pagerduty.Service {
 		service.AcknowledgementTimeout = &acknowledgementTimeout
 	}
 
-	policy := &pagerduty.EscalationPolicy{
+	escalationPolicy := &pagerduty.EscalationPolicy{
 		APIObject: pagerduty.APIObject{
 			ID:   d.Get("escalation_policy").(string),
-			Type: "escalation_policy",
+			Type: "escalation_policy_reference",
 		},
 	}
 
-	service.EscalationPolicy = *policy
+	service.EscalationPolicy = *escalationPolicy
 
 	return &service
 }
@@ -92,17 +92,17 @@ func buildServiceStruct(d *schema.ResourceData) *pagerduty.Service {
 func resourcePagerDutyServiceCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	s := buildServiceStruct(d)
+	service := buildServiceStruct(d)
 
-	log.Printf("[INFO] Creating PagerDuty service %s", s.Name)
+	log.Printf("[INFO] Creating PagerDuty service %s", service.Name)
 
-	s, err := client.CreateService(*s)
+	service, err := client.CreateService(*service)
 
 	if err != nil {
 		return err
 	}
 
-	d.SetId(s.ID)
+	d.SetId(service.ID)
 
 	return nil
 }
@@ -112,20 +112,22 @@ func resourcePagerDutyServiceRead(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[INFO] Reading PagerDuty service %s", d.Id())
 
-	s, err := client.GetService(d.Id(), &pagerduty.GetServiceOptions{})
+	o := &pagerduty.GetServiceOptions{}
+
+	service, err := client.GetService(d.Id(), o)
 
 	if err != nil {
 		return err
 	}
 
-	d.Set("name", s.Name)
-	d.Set("status", s.Status)
-	d.Set("created_at", s.CreateAt)
-	d.Set("escalation_policy", s.EscalationPolicy.ID)
-	d.Set("description", s.Description)
-	d.Set("auto_resolve_timeout", s.AutoResolveTimeout)
-	d.Set("last_incident_timestamp", s.LastIncidentTimestamp)
-	d.Set("acknowledgement_timeout", s.AcknowledgementTimeout)
+	d.Set("name", service.Name)
+	d.Set("status", service.Status)
+	d.Set("created_at", service.CreateAt)
+	d.Set("escalation_policy", service.EscalationPolicy.ID)
+	d.Set("description", service.Description)
+	d.Set("auto_resolve_timeout", service.AutoResolveTimeout)
+	d.Set("last_incident_timestamp", service.LastIncidentTimestamp)
+	d.Set("acknowledgement_timeout", service.AcknowledgementTimeout)
 
 	return nil
 }
@@ -133,13 +135,11 @@ func resourcePagerDutyServiceRead(d *schema.ResourceData, meta interface{}) erro
 func resourcePagerDutyServiceUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	s := buildServiceStruct(d)
+	service := buildServiceStruct(d)
 
 	log.Printf("[INFO] Updating PagerDuty service %s", d.Id())
 
-	s, err := client.UpdateService(*s)
-
-	if err != nil {
+	if _, err := client.UpdateService(*service); err != nil {
 		return err
 	}
 
@@ -151,9 +151,7 @@ func resourcePagerDutyServiceDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[INFO] Deleting PagerDuty service %s", d.Id())
 
-	err := client.DeleteService(d.Id())
-
-	if err != nil {
+	if err := client.DeleteService(d.Id()); err != nil {
 		return err
 	}
 

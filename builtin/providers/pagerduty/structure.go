@@ -3,7 +3,7 @@ package pagerduty
 import pagerduty "github.com/PagerDuty/go-pagerduty"
 
 // Expands an array of escalation rules into []pagerduty.EscalationRules
-func expandRules(list []interface{}) []pagerduty.EscalationRule {
+func expandEscalationRules(list []interface{}) []pagerduty.EscalationRule {
 	result := make([]pagerduty.EscalationRule, 0, len(list))
 
 	for _, r := range list {
@@ -32,7 +32,7 @@ func expandRules(list []interface{}) []pagerduty.EscalationRule {
 }
 
 // Flattens an array of []pagerduty.EscalationRule into a map[string]interface{}
-func flattenRules(list []pagerduty.EscalationRule) []map[string]interface{} {
+func flattenEscalationRules(list []pagerduty.EscalationRule) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 
 	for _, i := range list {
@@ -58,7 +58,7 @@ func flattenRules(list []pagerduty.EscalationRule) []map[string]interface{} {
 }
 
 // Expands an array of schedules into []pagerduty.Schedule
-func expandLayers(list []interface{}) []pagerduty.ScheduleLayer {
+func expandScheduleLayers(list []interface{}) []pagerduty.ScheduleLayer {
 	result := make([]pagerduty.ScheduleLayer, 0, len(list))
 
 	for _, l := range list {
@@ -106,8 +106,24 @@ func expandLayers(list []interface{}) []pagerduty.ScheduleLayer {
 	return result
 }
 
+// Expands an array of teams into []pagerduty.APIReference
+func expandTeams(list []interface{}) []pagerduty.APIReference {
+	result := make([]pagerduty.APIReference, 0, len(list))
+
+	for _, l := range list {
+		team := &pagerduty.APIReference{
+			ID:   l.(string),
+			Type: "team_reference",
+		}
+
+		result = append(result, *team)
+	}
+
+	return result
+}
+
 // Flattens an array of []pagerduty.ScheduleLayer into a map[string]interface{}
-func flattenLayers(list []pagerduty.ScheduleLayer) []map[string]interface{} {
+func flattenScheduleLayers(list []pagerduty.ScheduleLayer) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 
 	for _, i := range list {
@@ -150,42 +166,6 @@ func flattenLayers(list []pagerduty.ScheduleLayer) []map[string]interface{} {
 	}
 
 	return resultReversed
-}
-
-// Flattens an array of []pagerduty.User into a map[string]interface{}
-func flattenOnCalls(list []pagerduty.OnCall) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(list))
-
-	for _, i := range list {
-		r := make(map[string]interface{})
-		r["escalation_level"] = i.EscalationLevel
-		r["start"] = i.Start
-		r["end"] = i.End
-
-		user := make(map[string]interface{}, 1)
-		user["id"] = i.User.ID
-		user["type"] = i.User.Type
-		user["name"] = i.User.Summary
-		user["summary"] = i.User.Summary
-
-		schedule := make(map[string]interface{}, 1)
-		schedule["id"] = i.Schedule.ID
-		schedule["type"] = i.Schedule.Type
-		schedule["summary"] = i.Schedule.Summary
-
-		policy := make(map[string]interface{}, 1)
-		policy["id"] = i.EscalationPolicy.ID
-		policy["type"] = i.EscalationPolicy.Type
-		policy["summary"] = i.EscalationPolicy.Summary
-
-		r["user"] = user
-		r["schedule"] = schedule
-		r["escalation_policy"] = policy
-
-		result = append(result, r)
-	}
-
-	return result
 }
 
 // Takes the result of flatmap.Expand for an array of strings

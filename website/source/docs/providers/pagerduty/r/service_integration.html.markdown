@@ -10,6 +10,8 @@ description: |-
 
 A [service integration](https://v2.developer.pagerduty.com/v2/page/api-reference#!/Services/post_services_id_integrations) is an integration that belongs to a service.
 
+`Note`: A service integration `cannot` be deleted via Terraform nor the PagerDuty API so if you remove a service integration, be sure to remove it from the PagerDuty Web UI afterwards. However, if you delete the `service` attached to the `integration`, the integration will be removed.
+
 
 ## Example Usage
 
@@ -46,6 +48,28 @@ resource "pagerduty_service_integration" "example" {
   type    = "generic_events_api_inbound_integration"
   service = "${pagerduty_service.example.id}"
 }
+
+data "pagerduty_vendor" "datadog" {
+  name = "Datadog"
+}
+
+data "pagerduty_vendor" "cloudwatch" {
+  name_regex = "Amazon CloudWatch"
+}
+
+resource "pagerduty_service_integration" "datadog" {
+  name    = "${data.pagerduty_vendor.datadog.name}"
+  type    = "generic_events_api_inbound_integration"
+  service = "${pagerduty_service.example.id}"
+  vendor  = "${data.pagerduty_vendor.datadog.id}"
+}
+
+resource "pagerduty_service_integration" "datadog" {
+  name    = "${data.pagerduty_vendor.datadog.name}"
+  type    = "generic_events_api_inbound_integration"
+  service = "${pagerduty_service.example.id}"
+  vendor  = "${data.pagerduty_vendor.datadog.id}"
+}
 ```
 
 ## Argument Reference
@@ -60,8 +84,12 @@ The following arguments are supported:
   `keynote_inbound_integration`,
   `nagios_inbound_integration`,
   `pingdom_inbound_integration`,
-  `sql_monitor_inbound_integration`
+  `sql_monitor_inbound_integration`.
+
+    When integrating with a `vendor` this can usually be set to: `${data.pagerduty_vendor.datadog.type}`
+
   * `service` - (Optional) The PagerDuty service that the integration belongs to.
+  * `vendor` - (Optional) The vendor that this integration integrates with, if applicable. (e.g Datadog)
 
 ## Attributes Reference
 
