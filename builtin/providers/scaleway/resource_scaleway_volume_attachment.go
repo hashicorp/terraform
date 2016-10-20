@@ -3,6 +3,7 @@ package scaleway
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/scaleway/scaleway-cli/pkg/api"
@@ -28,10 +29,17 @@ func resourceScalewayVolumeAttachment() *schema.Resource {
 	}
 }
 
+var mu = sync.Mutex{}
+
 func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
 	var startServerAgain = false
+
+	// guard against server shutdown/ startup race conditiond
+	mu.Lock()
+	defer mu.Unlock()
+
 	server, err := scaleway.GetServer(d.Get("server").(string))
 	if err != nil {
 		fmt.Printf("Failed getting server: %q", err)
@@ -45,10 +53,9 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 		if err := scaleway.PostServerAction(server.Identifier, "poweroff"); err != nil {
 			return err
 		}
-
-		if err := waitForServerState(scaleway, server.Identifier, "stopped"); err != nil {
-			return err
-		}
+	}
+	if err := waitForServerState(scaleway, server.Identifier, "stopped"); err != nil {
+		return err
 	}
 
 	volumes := make(map[string]api.ScalewayVolume)
@@ -86,7 +93,6 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 		if err := scaleway.PostServerAction(d.Get("server").(string), "poweron"); err != nil {
 			return err
 		}
-
 		if err := waitForServerState(scaleway, d.Get("server").(string), "running"); err != nil {
 			return err
 		}
@@ -140,6 +146,10 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 	scaleway := m.(*Client).scaleway
 	var startServerAgain = false
 
+	// guard against server shutdown/ startup race conditiond
+	mu.Lock()
+	defer mu.Unlock()
+
 	server, err := scaleway.GetServer(d.Get("server").(string))
 	if err != nil {
 		return err
@@ -148,14 +158,12 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 	// volumes can only be modified when the server is powered off
 	if server.State != "stopped" {
 		startServerAgain = true
-
 		if err := scaleway.PostServerAction(server.Identifier, "poweroff"); err != nil {
 			return err
 		}
-
-		if err := waitForServerState(scaleway, server.Identifier, "stopped"); err != nil {
-			return err
-		}
+	}
+	if err := waitForServerState(scaleway, server.Identifier, "stopped"); err != nil {
+		return err
 	}
 
 	volumes := make(map[string]api.ScalewayVolume)
@@ -189,7 +197,6 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 		if err := scaleway.PostServerAction(d.Get("server").(string), "poweron"); err != nil {
 			return err
 		}
-
 		if err := waitForServerState(scaleway, d.Get("server").(string), "running"); err != nil {
 			return err
 		}
