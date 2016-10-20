@@ -47,6 +47,9 @@ func TestMain(m *testing.M) {
 	// Always DeepCopy the Diff on every Plan during a test
 	contextTestDeepCopyOnPlan = true
 
+	// Shadow the new graphs
+	contextTestShadow = true
+
 	os.Exit(m.Run())
 }
 
