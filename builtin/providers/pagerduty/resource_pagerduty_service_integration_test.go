@@ -23,6 +23,8 @@ func TestAccPagerDutyServiceIntegration_Basic(t *testing.T) {
 						"pagerduty_service_integration.foo", "name", "foo"),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service_integration.foo", "type", "generic_events_api_inbound_integration"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_service_integration.foo", "vendor", "PAM4FGS"),
 				),
 			},
 			resource.TestStep{
@@ -33,6 +35,8 @@ func TestAccPagerDutyServiceIntegration_Basic(t *testing.T) {
 						"pagerduty_service_integration.foo", "name", "bar"),
 					resource.TestCheckResourceAttr(
 						"pagerduty_service_integration.foo", "type", "generic_events_api_inbound_integration"),
+					resource.TestCheckResourceAttr(
+						"pagerduty_service_integration.foo", "vendor", "PAM4FGS"),
 				),
 			},
 		},
@@ -76,7 +80,6 @@ func testAccCheckPagerDutyServiceIntegrationExists(n string) resource.TestCheckF
 		found, err := client.GetIntegration(service.Primary.ID, rs.Primary.ID, pagerduty.GetIntegrationOptions{})
 		if err != nil {
 			return fmt.Errorf("Service integration not found: %v", rs.Primary.ID)
-			// return err
 		}
 
 		if found.ID != rs.Primary.ID {
@@ -91,10 +94,6 @@ const testAccCheckPagerDutyServiceIntegrationConfig = `
 resource "pagerduty_user" "foo" {
   name        = "foo"
   email       = "foo@bar.com"
-  color       = "green"
-  role        = "user"
-  job_title   = "foo"
-  description = "foo"
 }
 
 resource "pagerduty_escalation_policy" "foo" {
@@ -120,10 +119,15 @@ resource "pagerduty_service" "foo" {
   escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
 }
 
+data "pagerduty_vendor" "datadog" {
+  name_regex = "datadog"
+}
+
 resource "pagerduty_service_integration" "foo" {
   name    = "foo"
   type    = "generic_events_api_inbound_integration"
   service = "${pagerduty_service.foo.id}"
+  vendor  = "${data.pagerduty_vendor.datadog.id}"
 }
 `
 
@@ -160,9 +164,14 @@ resource "pagerduty_service" "foo" {
   escalation_policy       = "${pagerduty_escalation_policy.foo.id}"
 }
 
+data "pagerduty_vendor" "datadog" {
+  name_regex = "datadog"
+}
+
 resource "pagerduty_service_integration" "foo" {
   name    = "bar"
   type    = "generic_events_api_inbound_integration"
   service = "${pagerduty_service.foo.id}"
+  vendor  = "${data.pagerduty_vendor.datadog.id}"
 }
 `

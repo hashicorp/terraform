@@ -109,36 +109,36 @@ func resourcePagerDutySchedule() *schema.Resource {
 	}
 }
 
-func buildScheduleStruct(d *schema.ResourceData) (*pagerduty.Schedule, error) {
+func buildScheduleStruct(d *schema.ResourceData) *pagerduty.Schedule {
 	scheduleLayers := d.Get("layer").([]interface{})
 
 	schedule := pagerduty.Schedule{
 		Name:           d.Get("name").(string),
 		TimeZone:       d.Get("time_zone").(string),
-		ScheduleLayers: expandLayers(scheduleLayers),
+		ScheduleLayers: expandScheduleLayers(scheduleLayers),
 	}
 
 	if attr, ok := d.GetOk("description"); ok {
 		schedule.Description = attr.(string)
 	}
 
-	return &schedule, nil
+	return &schedule
 }
 
 func resourcePagerDutyScheduleCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	s, _ := buildScheduleStruct(d)
+	schedule := buildScheduleStruct(d)
 
-	log.Printf("[INFO] Creating PagerDuty schedule: %s", s.Name)
+	log.Printf("[INFO] Creating PagerDuty schedule: %s", schedule.Name)
 
-	e, err := client.CreateSchedule(*s)
+	schedule, err := client.CreateSchedule(*schedule)
 
 	if err != nil {
 		return err
 	}
 
-	d.SetId(e.ID)
+	d.SetId(schedule.ID)
 
 	return resourcePagerDutyScheduleRead(d, meta)
 }
@@ -148,17 +148,17 @@ func resourcePagerDutyScheduleRead(d *schema.ResourceData, meta interface{}) err
 
 	log.Printf("[INFO] Reading PagerDuty schedule: %s", d.Id())
 
-	s, err := client.GetSchedule(d.Id(), pagerduty.GetScheduleOptions{})
+	schedule, err := client.GetSchedule(d.Id(), pagerduty.GetScheduleOptions{})
 
 	if err != nil {
 		return err
 	}
 
-	d.Set("name", s.Name)
-	d.Set("time_zone", s.TimeZone)
-	d.Set("description", s.Description)
+	d.Set("name", schedule.Name)
+	d.Set("time_zone", schedule.TimeZone)
+	d.Set("description", schedule.Description)
 
-	if err := d.Set("layer", flattenLayers(s.ScheduleLayers)); err != nil {
+	if err := d.Set("layer", flattenScheduleLayers(schedule.ScheduleLayers)); err != nil {
 		return err
 	}
 
@@ -168,13 +168,11 @@ func resourcePagerDutyScheduleRead(d *schema.ResourceData, meta interface{}) err
 func resourcePagerDutyScheduleUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	e, _ := buildScheduleStruct(d)
+	schedule := buildScheduleStruct(d)
 
 	log.Printf("[INFO] Updating PagerDuty schedule: %s", d.Id())
 
-	e, err := client.UpdateSchedule(d.Id(), *e)
-
-	if err != nil {
+	if _, err := client.UpdateSchedule(d.Id(), *schedule); err != nil {
 		return err
 	}
 
@@ -186,9 +184,7 @@ func resourcePagerDutyScheduleDelete(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[INFO] Deleting PagerDuty schedule: %s", d.Id())
 
-	err := client.DeleteSchedule(d.Id())
-
-	if err != nil {
+	if err := client.DeleteSchedule(d.Id()); err != nil {
 		return err
 	}
 

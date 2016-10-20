@@ -115,17 +115,17 @@ func buildUserStruct(d *schema.ResourceData) *pagerduty.User {
 func resourcePagerDutyUserCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	u := buildUserStruct(d)
+	user := buildUserStruct(d)
 
-	log.Printf("[INFO] Creating PagerDuty user %s", u.Name)
+	log.Printf("[INFO] Creating PagerDuty user %s", user.Name)
 
-	u, err := client.CreateUser(*u)
+	user, err := client.CreateUser(*user)
 
 	if err != nil {
 		return err
 	}
 
-	d.SetId(u.ID)
+	d.SetId(user.ID)
 
 	return resourcePagerDutyUserUpdate(d, meta)
 }
@@ -135,21 +135,23 @@ func resourcePagerDutyUserRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[INFO] Reading PagerDuty user %s", d.Id())
 
-	u, err := client.GetUser(d.Id(), pagerduty.GetUserOptions{})
+	o := &pagerduty.GetUserOptions{}
+
+	user, err := client.GetUser(d.Id(), *o)
 
 	if err != nil {
 		return err
 	}
 
-	d.Set("name", u.Name)
-	d.Set("email", u.Email)
-	d.Set("time_zone", u.Timezone)
-	d.Set("color", u.Color)
-	d.Set("role", u.Role)
-	d.Set("avatar_url", u.AvatarURL)
-	d.Set("description", u.Description)
-	d.Set("job_title", u.JobTitle)
-	d.Set("teams", u.Teams)
+	d.Set("name", user.Name)
+	d.Set("email", user.Email)
+	d.Set("time_zone", user.Timezone)
+	d.Set("color", user.Color)
+	d.Set("role", user.Role)
+	d.Set("avatar_url", user.AvatarURL)
+	d.Set("description", user.Description)
+	d.Set("job_title", user.JobTitle)
+	d.Set("teams", user.Teams)
 
 	return nil
 }
@@ -157,13 +159,11 @@ func resourcePagerDutyUserRead(d *schema.ResourceData, meta interface{}) error {
 func resourcePagerDutyUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	u := buildUserStruct(d)
+	user := buildUserStruct(d)
 
 	log.Printf("[INFO] Updating PagerDuty user %s", d.Id())
 
-	u, err := client.UpdateUser(*u)
-
-	if err != nil {
+	if _, err := client.UpdateUser(*user); err != nil {
 		return err
 	}
 
@@ -218,9 +218,7 @@ func resourcePagerDutyUserDelete(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[INFO] Deleting PagerDuty user %s", d.Id())
 
-	err := client.DeleteUser(d.Id())
-
-	if err != nil {
+	if err := client.DeleteUser(d.Id()); err != nil {
 		return err
 	}
 

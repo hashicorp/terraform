@@ -8,6 +8,7 @@ import (
 
 func TestAccPagerDutyTeam_import(t *testing.T) {
 	resourceName := "pagerduty_team.foo"
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

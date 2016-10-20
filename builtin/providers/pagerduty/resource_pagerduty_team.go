@@ -45,17 +45,17 @@ func buildTeamStruct(d *schema.ResourceData) *pagerduty.Team {
 func resourcePagerDutyTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	t := buildTeamStruct(d)
+	team := buildTeamStruct(d)
 
-	log.Printf("[INFO] Creating PagerDuty team %s", t.Name)
+	log.Printf("[INFO] Creating PagerDuty team %s", team.Name)
 
-	t, err := client.CreateTeam(t)
+	team, err := client.CreateTeam(team)
 
 	if err != nil {
 		return err
 	}
 
-	d.SetId(t.ID)
+	d.SetId(team.ID)
 
 	return nil
 
@@ -66,14 +66,14 @@ func resourcePagerDutyTeamRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[INFO] Reading PagerDuty team %s", d.Id())
 
-	t, err := client.GetTeam(d.Id())
+	team, err := client.GetTeam(d.Id())
 
 	if err != nil {
 		return err
 	}
 
-	d.Set("name", t.Name)
-	d.Set("description", t.Description)
+	d.Set("name", team.Name)
+	d.Set("description", team.Description)
 
 	return nil
 }
@@ -81,13 +81,11 @@ func resourcePagerDutyTeamRead(d *schema.ResourceData, meta interface{}) error {
 func resourcePagerDutyTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*pagerduty.Client)
 
-	t := buildTeamStruct(d)
+	team := buildTeamStruct(d)
 
 	log.Printf("[INFO] Updating PagerDuty team %s", d.Id())
 
-	t, err := client.UpdateTeam(d.Id(), t)
-
-	if err != nil {
+	if _, err := client.UpdateTeam(d.Id(), team); err != nil {
 		return err
 	}
 
@@ -99,9 +97,7 @@ func resourcePagerDutyTeamDelete(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[INFO] Deleting PagerDuty team %s", d.Id())
 
-	err := client.DeleteTeam(d.Id())
-
-	if err != nil {
+	if err := client.DeleteTeam(d.Id()); err != nil {
 		return err
 	}
 
