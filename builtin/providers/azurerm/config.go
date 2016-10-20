@@ -8,6 +8,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
+	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
@@ -75,6 +76,8 @@ type ArmClient struct {
 	serviceBusNamespacesClient    servicebus.NamespacesClient
 	serviceBusTopicsClient        servicebus.TopicsClient
 	serviceBusSubscriptionsClient servicebus.SubscriptionsClient
+
+	keyVaultClient keyvault.VaultsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -373,6 +376,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	sbsc.Authorizer = spt
 	sbsc.Sender = autorest.CreateSender(withRequestLogging())
 	client.serviceBusSubscriptionsClient = sbsc
+
+	kvc := keyvault.NewVaultsClient(c.SubscriptionID)
+	setUserAgent(&kvc.Client)
+	kvc.Authorizer = spt
+	kvc.Sender = autorest.CreateSender(withRequestLogging())
+	client.keyVaultClient = kvc
 
 	return &client, nil
 }
