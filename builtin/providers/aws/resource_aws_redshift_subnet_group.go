@@ -175,9 +175,9 @@ func subnetIdsToSlice(subnetIds []*redshift.Subnet) []string {
 
 func validateRedshiftSubnetGroupName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z-_]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters, hyphens, underscores, and periods allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
 	}
 	if len(value) > 255 {
 		errors = append(errors, fmt.Errorf(
