@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // NodeDestroyResource represents a resource that is to be destroyed.
@@ -147,11 +149,9 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 				// Make sure we handle data sources properly.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						/* TODO: data source
-						if n.Resource.Mode == config.DataResourceMode {
+						if n.Config.Mode == config.DataResourceMode {
 							return true, nil
 						}
-						*/
 
 						return false, nil
 					},
