@@ -8,7 +8,7 @@ import (
 
 // NodeDestroyResource represents a resource that is to be destroyed.
 type NodeDestroyResource struct {
-	NodeAbstractResource
+	*NodeAbstractResource
 }
 
 func (n *NodeDestroyResource) Name() string {
@@ -149,7 +149,11 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 				// Make sure we handle data sources properly.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if n.Config.Mode == config.DataResourceMode {
+						if n.Addr == nil {
+							return false, fmt.Errorf("nil address")
+						}
+
+						if n.Addr.Mode == config.DataResourceMode {
 							return true, nil
 						}
 

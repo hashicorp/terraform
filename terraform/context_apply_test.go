@@ -739,7 +739,7 @@ func getContextForApply_destroyCrossProviders(
 				},
 			},
 			&ModuleState{
-				Path: []string{"root", "example"},
+				Path: []string{"root", "child"},
 				Resources: map[string]*ResourceState{
 					"aws_vpc.bar": &ResourceState{
 						Type: "aws_vpc",
