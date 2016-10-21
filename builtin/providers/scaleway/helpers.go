@@ -69,7 +69,7 @@ func deleteStoppedServer(scaleway *api.ScalewayAPI, server *api.ScalewayServer) 
 // NOTE copied from github.com/scaleway/scaleway-cli/pkg/api/helpers.go
 // the helpers.go file pulls in quite a lot dependencies, and they're just convenience wrappers anyway
 
-func waitForServerState(scaleway *api.ScalewayAPI, serverID string, targetState string) error {
+func waitForServerState(scaleway *api.ScalewayAPI, serverID, targetState string) error {
 	return resource.Retry(10*time.Minute, func() *resource.RetryError {
 		s, err := scaleway.GetServer(serverID)
 
