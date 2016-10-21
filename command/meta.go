@@ -63,10 +63,13 @@ type Meta struct {
 	//
 	// parallelism is used to control the number of concurrent operations
 	// allowed when walking the graph
+	//
+	// shadow is used to enable/disable the shadow graph
 	statePath    string
 	stateOutPath string
 	backupPath   string
 	parallelism  int
+	shadow       bool
 }
 
 // initStatePaths is used to initialize the default values for
@@ -312,6 +315,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.Variables = vs
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
+	opts.Shadow = m.shadow
 
 	return &opts
 }
@@ -327,6 +331,9 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	if m.autoKey != "" {
 		f.Var((*FlagKVFile)(&m.autoVariables), m.autoKey, "variable file")
 	}
+
+	// Advanced (don't need documentation, or unlikely to be set)
+	f.BoolVar(&m.shadow, "shadow", true, "shadow graph")
 
 	// Experimental features
 	f.BoolVar(&terraform.X_newApply, "Xnew-apply", false, "experiment: new apply")
