@@ -1139,7 +1139,6 @@ DIFF:
 DESTROY: aws_instance.foo
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo
 
 STATE:
@@ -1156,10 +1155,8 @@ const testTerraformPlanModuleDestroyCycleStr = `
 DIFF:
 
 module.a_module:
-  DESTROY MODULE
   DESTROY: aws_instance.a
 module.b_module:
-  DESTROY MODULE
   DESTROY: aws_instance.b
 
 STATE:
@@ -1176,7 +1173,6 @@ const testTerraformPlanModuleDestroyMultivarStr = `
 DIFF:
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo.0
   DESTROY: aws_instance.foo.1
 
