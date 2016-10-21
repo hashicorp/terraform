@@ -447,11 +447,6 @@ func (c *Context) Apply() (*State, error) {
 		shadow = real
 	}
 
-	// TODO: remove before branch is done, we're just not ready for this yet
-	if c.destroy {
-		shadow = nil
-	}
-
 	// Determine the operation
 	operation := walkApply
 	if c.destroy {
