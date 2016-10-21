@@ -3,7 +3,6 @@ package scaleway
 import (
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/scaleway/scaleway-cli/pkg/api"
@@ -29,16 +28,14 @@ func resourceScalewayVolumeAttachment() *schema.Resource {
 	}
 }
 
-var mu = sync.Mutex{}
-
 func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
 	var startServerAgain = false
 
 	// guard against server shutdown/ startup race conditiond
-	mu.Lock()
-	defer mu.Unlock()
+	scalewayMutexKV.Lock(d.Get("server").(string))
+	defer scalewayMutexKV.Unlock(d.Get("server").(string))
 
 	server, err := scaleway.GetServer(d.Get("server").(string))
 	if err != nil {
@@ -147,8 +144,8 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 	var startServerAgain = false
 
 	// guard against server shutdown/ startup race conditiond
-	mu.Lock()
-	defer mu.Unlock()
+	scalewayMutexKV.Lock(d.Get("server").(string))
+	defer scalewayMutexKV.Unlock(d.Get("server").(string))
 
 	server, err := scaleway.GetServer(d.Get("server").(string))
 	if err != nil {
