@@ -77,6 +77,20 @@ func TestDiffEqual(t *testing.T) {
 			},
 			true,
 		},
+
+		"different module diff destroys": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: false},
+				},
+			},
+			true,
+		},
 	}
 
 	for name, tc := range cases {
