@@ -68,6 +68,7 @@ cwd. `module` will interpolate the path to the current module. `root`
 will interpolate the path of the root module. In general, you probably
 want the `path.module` variable.
 
+<a id="functions"></a>
 ## Built-in Functions
 
 Terraform ships with built-in functions. Functions are called with
