@@ -739,9 +739,9 @@ func (c *Context) walk(
 
 		// Kick off the shadow walk. This will block on any operations
 		// on the real walk so it is fine to start first.
+		log.Printf("[INFO] Starting shadow graph walk: %s", operation.String())
 		shadowCh := make(chan error)
 		go func() {
-			log.Printf("[INFO] Starting shadow graph walk: %s", operation.String())
 			shadowCh <- shadow.Walk(shadowWalker)
 		}()
 
