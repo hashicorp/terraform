@@ -508,6 +508,38 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_dataBasic(t *testing.T) {
+	m := testModule(t, "apply-data-basic")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	p.ReadDataApplyReturn = &InstanceState{ID: "yo"}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyDataBasicStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_destroyData(t *testing.T) {
 	m := testModule(t, "apply-destroy-data-resource")
 	p := testProvider("null")
