@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // NodeApplyableResource represents a resource that is "applyable":
@@ -49,6 +51,106 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 		stateDeps = oldN.StateDependencies()
 	}
 
+	// Eval info is different depending on what kind of resource this is
+	switch n.Config.Mode {
+	case config.ManagedResourceMode:
+		return n.evalTreeManagedResource(
+			stateId, info, resource, stateDeps,
+		)
+	case config.DataResourceMode:
+		return n.evalTreeDataResource(
+			stateId, info, resource, stateDeps)
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
+	}
+}
+
+func (n *NodeApplyableResource) evalTreeDataResource(
+	stateId string, info *InstanceInfo,
+	resource *Resource, stateDeps []string) EvalNode {
+	var provider ResourceProvider
+	var config *ResourceConfig
+	var diff *InstanceDiff
+	var state *InstanceState
+
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			// Get the saved diff for apply
+			&EvalReadDiff{
+				Name: stateId,
+				Diff: &diff,
+			},
+
+			// Stop here if we don't actually have a diff
+			&EvalIf{
+				If: func(ctx EvalContext) (bool, error) {
+					if diff == nil {
+						return true, EvalEarlyExitError{}
+					}
+
+					if diff.GetAttributesLen() == 0 {
+						return true, EvalEarlyExitError{}
+					}
+
+					return true, nil
+				},
+				Then: EvalNoop{},
+			},
+
+			// We need to re-interpolate the config here, rather than
+			// just using the diff's values directly, because we've
+			// potentially learned more variable values during the
+			// apply pass that weren't known when the diff was produced.
+			&EvalInterpolate{
+				Config:   n.Config.RawConfig.Copy(),
+				Resource: resource,
+				Output:   &config,
+			},
+
+			&EvalGetProvider{
+				Name:   n.ProvidedBy()[0],
+				Output: &provider,
+			},
+
+			// Make a new diff with our newly-interpolated config.
+			&EvalReadDataDiff{
+				Info:     info,
+				Config:   &config,
+				Previous: &diff,
+				Provider: &provider,
+				Output:   &diff,
+			},
+
+			&EvalReadDataApply{
+				Info:     info,
+				Diff:     &diff,
+				Provider: &provider,
+				Output:   &state,
+			},
+
+			&EvalWriteState{
+				Name:         stateId,
+				ResourceType: n.Config.Type,
+				Provider:     n.Config.Provider,
+				Dependencies: stateDeps,
+				State:        &state,
+			},
+
+			// Clear the diff now that we've applied it, so
+			// later nodes won't see a diff that's now a no-op.
+			&EvalWriteDiff{
+				Name: stateId,
+				Diff: nil,
+			},
+
+			&EvalUpdateStateHook{},
+		},
+	}
+}
+
+func (n *NodeApplyableResource) evalTreeManagedResource(
+	stateId string, info *InstanceInfo,
+	resource *Resource, stateDeps []string) EvalNode {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var provider ResourceProvider
