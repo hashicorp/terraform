@@ -103,7 +103,7 @@ func resourceAwsRedshiftSubnetGroupRead(d *schema.ResourceData, meta interface{}
 
 func resourceAwsRedshiftSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).redshiftconn
-	if d.HasChange("subnet_ids") {
+	if d.HasChange("subnet_ids") || d.HasChange("description") {
 		_, n := d.GetChange("subnet_ids")
 		if n == nil {
 			n = new(schema.Set)
@@ -117,6 +117,7 @@ func resourceAwsRedshiftSubnetGroupUpdate(d *schema.ResourceData, meta interface
 
 		_, err := conn.ModifyClusterSubnetGroup(&redshift.ModifyClusterSubnetGroupInput{
 			ClusterSubnetGroupName: aws.String(d.Id()),
+			Description:            aws.String(d.Get("description").(string)),
 			SubnetIds:              sIds,
 		})
 
