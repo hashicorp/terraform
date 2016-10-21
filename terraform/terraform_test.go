@@ -25,13 +25,13 @@ func TestMain(m *testing.M) {
 	// Experimental features
 	xNewApply := flag.Bool("Xnew-apply", false, "Experiment: new apply graph")
 
+	// Normal features
+	shadow := flag.Bool("shadow", true, "Enable shadow graph")
+
 	flag.Parse()
 
 	// Setup experimental features
 	X_newApply = *xNewApply
-	if X_newApply {
-		println("Xnew-apply enabled")
-	}
 
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 	contextTestDeepCopyOnPlan = true
 
 	// Shadow the new graphs
-	contextTestShadow = true
+	contextTestShadow = *shadow
 
 	os.Exit(m.Run())
 }
@@ -255,6 +255,11 @@ aws_instance.foo:
   ID = foo
   num = 2
   type = aws_instance
+`
+
+const testTerraformApplyDataBasicStr = `
+data.null_data_source.testing:
+  ID = yo
 `
 
 const testTerraformApplyRefCountStr = `
