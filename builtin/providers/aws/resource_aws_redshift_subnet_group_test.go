@@ -80,6 +80,14 @@ func TestResourceAWSRedshiftSubnetGroupNameValidation(t *testing.T) {
 			ErrCount: 1,
 		},
 		{
+			Value:    "testing_123",
+			ErrCount: 1,
+		},
+		{
+			Value:    "testing.123",
+			ErrCount: 1,
+		},
+		{
 			Value:    randomString(256),
 			ErrCount: 1,
 		},
