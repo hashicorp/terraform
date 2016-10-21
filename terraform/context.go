@@ -70,6 +70,7 @@ type ContextOpts struct {
 	StateFutureAllowed bool
 	Providers          map[string]ResourceProviderFactory
 	Provisioners       map[string]ResourceProvisionerFactory
+	Shadow             bool
 	Targets            []string
 	Variables          map[string]interface{}
 
@@ -93,6 +94,7 @@ type Context struct {
 	hooks      []Hook
 	module     *module.Tree
 	sh         *stopHook
+	shadow     bool
 	state      *State
 	stateLock  sync.RWMutex
 	targets    []string
@@ -174,6 +176,7 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		diff:      opts.Diff,
 		hooks:     hooks,
 		module:    opts.Module,
+		shadow:    opts.Shadow,
 		state:     state,
 		targets:   opts.Targets,
 		uiInput:   opts.UIInput,
@@ -695,11 +698,16 @@ func (c *Context) walk(
 	// If we have a shadow graph, walk that as well
 	var shadowCtx *Context
 	var shadowCloser Shadow
-	if shadow != nil {
+	if c.shadow && shadow != nil {
 		// Build the shadow context. In the process, override the real context
 		// with the one that is wrapped so that the shadow context can verify
 		// the results of the real.
 		realCtx, shadowCtx, shadowCloser = newShadowContext(c)
+	}
+
+	// Just log this so we can see it in a debug log
+	if !c.shadow {
+		log.Printf("[WARN] terraform: shadow graph disabled")
 	}
 
 	// Build the real graph walker
