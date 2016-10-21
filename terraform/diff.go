@@ -100,8 +100,20 @@ func (d *Diff) Equal(d2 *Diff) bool {
 	sort.Sort(moduleDiffSort(d.Modules))
 	sort.Sort(moduleDiffSort(d2.Modules))
 
+	// Copy since we have to modify the module destroy flag to false so
+	// we don't compare that. TODO: delete this when we get rid of the
+	// destroy flag on modules.
+	dCopy := d.DeepCopy()
+	d2Copy := d2.DeepCopy()
+	for _, m := range dCopy.Modules {
+		m.Destroy = false
+	}
+	for _, m := range d2Copy.Modules {
+		m.Destroy = false
+	}
+
 	// Use DeepEqual
-	return reflect.DeepEqual(d, d2)
+	return reflect.DeepEqual(dCopy, d2Copy)
 }
 
 // DeepCopy performs a deep copy of all parts of the Diff, making the
