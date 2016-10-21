@@ -392,23 +392,14 @@ func (c *Context) Apply() (*State, error) {
 	}
 
 	// Build the new graph. We do this no matter what so we can shadow it.
-	var newGraph *Graph
-	if c.destroy {
-		newGraph, err = (&DestroyApplyGraphBuilder{
-			Module:    c.module,
-			Diff:      c.diff,
-			State:     c.state,
-			Providers: c.components.ResourceProviders(),
-		}).Build(RootModulePath)
-	} else {
-		newGraph, err = (&ApplyGraphBuilder{
-			Module:       c.module,
-			Diff:         c.diff,
-			State:        c.state,
-			Providers:    c.components.ResourceProviders(),
-			Provisioners: c.components.ResourceProvisioners(),
-		}).Build(RootModulePath)
-	}
+	newGraph, err := (&ApplyGraphBuilder{
+		Module:       c.module,
+		Diff:         c.diff,
+		State:        c.state,
+		Providers:    c.components.ResourceProviders(),
+		Provisioners: c.components.ResourceProvisioners(),
+		Destroy:      c.destroy,
+	}).Build(RootModulePath)
 	if err != nil && !newGraphEnabled {
 		// If we had an error graphing but we're not using this graph, just
 		// set it to nil and record it as a shadow error.
