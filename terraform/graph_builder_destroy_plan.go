@@ -16,6 +16,9 @@ type DestroyPlanGraphBuilder struct {
 
 	// State is the current state
 	State *State
+
+	// Targets are resources to target
+	Targets []string
 }
 
 // See GraphBuilder
@@ -40,6 +43,9 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 			Concrete: concreteResource,
 			State:    b.State,
 		},
+
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
 
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Module: b.Module},
