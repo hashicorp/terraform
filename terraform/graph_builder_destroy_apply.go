@@ -77,6 +77,7 @@ func (b *DestroyApplyGraphBuilder) Steps() []GraphTransformer {
 		// Create all the providers
 		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},
 		&ProviderTransformer{},
+		&DisableProviderTransformer{},
 		&ParentProviderTransformer{},
 		&AttachProviderConfigTransformer{Module: b.Module},
 
