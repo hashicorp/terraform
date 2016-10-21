@@ -10,6 +10,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: No longer require `route_table_ids` list in `aws_vpc_endpoint` resources [GH-9357]
+ * provider/aws: Allow `description` in `aws_redshift_subnet_group` to be modified [GH-9515]
 
 BUG FIXES:
 
