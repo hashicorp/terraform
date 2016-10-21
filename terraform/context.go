@@ -528,8 +528,9 @@ func (c *Context) Plan() (*Plan, error) {
 	var err error
 	if c.destroy && X_newDestroy {
 		graph, err = (&DestroyPlanGraphBuilder{
-			Module: c.module,
-			State:  c.state,
+			Module:  c.module,
+			State:   c.state,
+			Targets: c.targets,
 		}).Build(RootModulePath)
 	} else {
 		graph, err = c.Graph(&ContextGraphOpts{Validate: true})

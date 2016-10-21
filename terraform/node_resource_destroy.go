@@ -63,6 +63,11 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		View:  n.Config.Id(),
 	})
 
+	// Target
+	steps = append(steps, &TargetsTransformer{
+		ParsedTargets: n.Targets,
+	})
+
 	// Always end with the root being added
 	steps = append(steps, &RootTransformer{})
 
