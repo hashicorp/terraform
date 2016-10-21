@@ -33,6 +33,35 @@ func TestAccAWSRedshiftSubnetGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSRedshiftSubnetGroup_updateDescription(t *testing.T) {
+	var v redshift.ClusterSubnetGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRedshiftSubnetGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRedshiftSubnetGroupConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_subnet_group.foo", "description", "foo description"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccRedshiftSubnetGroup_updateDescription,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRedshiftSubnetGroupExists("aws_redshift_subnet_group.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_subnet_group.foo", "description", "foo description updated"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSRedshiftSubnetGroup_updateSubnetIds(t *testing.T) {
 	var v redshift.ClusterSubnetGroup
 
@@ -177,6 +206,37 @@ resource "aws_subnet" "bar" {
 
 resource "aws_redshift_subnet_group" "foo" {
 	name = "foo"
+	description = "foo description"
+	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+}
+`
+
+const testAccRedshiftSubnetGroup_updateDescription = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-1"
+	}
+}
+
+resource "aws_subnet" "bar" {
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-2"
+	}
+}
+
+resource "aws_redshift_subnet_group" "foo" {
+	name = "foo"
+	description = "foo description updated"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 }
 `
