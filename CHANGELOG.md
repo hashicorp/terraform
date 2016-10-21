@@ -14,6 +14,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value [GH-9453]
+ * provider/aws: Fix issue with updating ElasticBeanstalk environment variables [GH-9259]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
 
 ## 0.7.7 (October 18, 2016)
@@ -2733,4 +2734,3 @@ BUG FIXES:
 ## 0.1.0 (July 28, 2014)
 
   * Initial release
-
