@@ -47,7 +47,7 @@ Terraform will autogenerate a name beginning with `tf-lb`.
 * `subnets` - (Required) A list of subnet IDs to attach to the ELB.
 * `idle_timeout` - (Optional) The time in seconds that the connection is allowed to be idle. Default: 60.
 * `enable_deletion_protection` - (Optional) If true, deletion of the load balancer will be disabled via
-   the AWS API. This will prevent Terraform from deleting the load balancer.
+   the AWS API. This will prevent Terraform from deleting the load balancer. Defaults to `false`.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 Access Logs (`access_logs`) support the following:
