@@ -140,6 +140,9 @@ func (p *shadowResourceProviderReal) ValidateResource(
 		Errors: errs,
 	})
 
+	// With it locked, call SetValue again so that it triggers WaitForChange
+	p.Shared.ValidateResource.SetValue(key, wrapper)
+
 	// Return the result
 	return warns, errs
 }
