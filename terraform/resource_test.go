@@ -268,6 +268,20 @@ func TestResourceConfigEqual_nil(t *testing.T) {
 	}
 }
 
+func TestResourceConfigEqual_computedKeyOrder(t *testing.T) {
+	c := map[string]interface{}{"foo": "${a.b.c}"}
+	rc := NewResourceConfig(config.TestRawConfig(t, c))
+	rc2 := NewResourceConfig(config.TestRawConfig(t, c))
+
+	// Set the computed keys manual
+	rc.ComputedKeys = []string{"foo", "bar"}
+	rc2.ComputedKeys = []string{"bar", "foo"}
+
+	if !rc.Equal(rc2) {
+		t.Fatal("should be equal")
+	}
+}
+
 func testResourceConfig(
 	t *testing.T, c map[string]interface{}) *ResourceConfig {
 	raw, err := config.NewRawConfig(c)
