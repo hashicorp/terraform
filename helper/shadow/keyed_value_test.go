@@ -312,3 +312,25 @@ func TestKeyedValueWaitForChange_closed(t *testing.T) {
 		t.Fatalf("bad: %#v", val)
 	}
 }
+
+func TestKeyedValueWaitForChange_closedFirst(t *testing.T) {
+	var v KeyedValue
+
+	// Close
+	v.Close()
+
+	// Verify
+	val := v.WaitForChange("foo")
+	if val != ErrClosed {
+		t.Fatalf("bad: %#v", val)
+	}
+
+	// Set a value
+	v.SetValue("foo", 42)
+
+	// Try again
+	val = v.WaitForChange("foo")
+	if val != ErrClosed {
+		t.Fatalf("bad: %#v", val)
+	}
+}
