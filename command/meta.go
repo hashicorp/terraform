@@ -337,6 +337,7 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 
 	// Experimental features
 	f.BoolVar(&terraform.X_newApply, "Xnew-apply", false, "experiment: new apply")
+	f.BoolVar(&terraform.X_newDestroy, "Xnew-destroy", false, "experiment: new destroy")
 
 	// Create an io.Writer that writes to our Ui properly for errors.
 	// This is kind of a hack, but it does the job. Basically: create
