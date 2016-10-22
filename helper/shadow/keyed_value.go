@@ -58,6 +58,7 @@ func (w *KeyedValue) WaitForChange(k string) interface{} {
 
 	// If we're closed, we're closed
 	if w.closed {
+		w.lock.Unlock()
 		return ErrClosed
 	}
 
