@@ -255,7 +255,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 		// If the node is dynamically expanded, then expand it
 		if ev, ok := v.(GraphNodeDynamicExpandable); ok {
 			log.Printf(
-				"[DEBUG] vertex %s.%s: expanding/walking dynamic subgraph",
+				"[DEBUG] vertex '%s.%s': expanding/walking dynamic subgraph",
 				path,
 				dag.VertexName(v))
 			g, err := ev.DynamicExpand(vertexCtx)
@@ -274,7 +274,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 		// If the node has a subgraph, then walk the subgraph
 		if sn, ok := v.(GraphNodeSubgraph); ok {
 			log.Printf(
-				"[DEBUG] vertex %s.%s: walking subgraph",
+				"[DEBUG] vertex '%s.%s': walking subgraph",
 				path,
 				dag.VertexName(v))
 
