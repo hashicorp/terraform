@@ -2,12 +2,11 @@ package openstack
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
 )
 
 func TestAccLBV2Member_basic(t *testing.T) {
@@ -42,14 +41,11 @@ func testAccCheckLBV2MemberDestroy(s *terraform.State) error {
 	}
 
 	for _, rs := range s.RootModule().Resources {
-		log.Printf("[FINDME] rs TYPE is: %T", rs)
-
 		if rs.Type != "openstack_lb_member_v2" {
 			continue
 		}
 
-		log.Printf("[FINDME] rs.Primary.Attributes:  %#v", rs.Primary.Attributes)
-		_, err := pools.GetAssociateMember(networkingClient, rs.Primary.Attributes["pool_id"], rs.Primary.ID).ExtractMember()
+		_, err := pools.GetMember(networkingClient, rs.Primary.Attributes["pool_id"], rs.Primary.ID).Extract()
 		if err == nil {
 			return fmt.Errorf("Member still exists: %s", rs.Primary.ID)
 		}
@@ -75,7 +71,7 @@ func testAccCheckLBV2MemberExists(t *testing.T, n string, member *pools.Member) 
 			return fmt.Errorf("(testAccCheckLBV2MemberExists) Error creating OpenStack networking client: %s", err)
 		}
 
-		found, err := pools.GetAssociateMember(networkingClient, rs.Primary.Attributes["pool_id"], rs.Primary.ID).ExtractMember()
+		found, err := pools.GetMember(networkingClient, rs.Primary.Attributes["pool_id"], rs.Primary.ID).Extract()
 		if err != nil {
 			return err
 		}

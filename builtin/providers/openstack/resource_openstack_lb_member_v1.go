@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/members"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/members"
 )
 
 func resourceLBMemberV1() *schema.Resource {
@@ -104,8 +104,9 @@ func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(m.ID)
 
 	// Due to the way Gophercloud is currently set up, AdminStateUp must be set post-create
+	asu := d.Get("admin_state_up").(bool)
 	updateOpts := members.UpdateOpts{
-		AdminStateUp: d.Get("admin_state_up").(bool),
+		AdminStateUp: &asu,
 	}
 
 	log.Printf("[DEBUG] OpenStack LB Member Update Options: %#v", createOpts)
@@ -129,7 +130,7 @@ func resourceLBMemberV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB member")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LB member %s: %+v", d.Id(), m)
+	log.Printf("[DEBUG] Retrieved OpenStack LB member %s: %+v", d.Id(), m)
 
 	d.Set("address", m.Address)
 	d.Set("pool_id", m.PoolID)
@@ -150,7 +151,7 @@ func resourceLBMemberV1Update(d *schema.ResourceData, meta interface{}) error {
 	var updateOpts members.UpdateOpts
 	if d.HasChange("admin_state_up") {
 		asu := d.Get("admin_state_up").(bool)
-		updateOpts.AdminStateUp = asu
+		updateOpts.AdminStateUp = &asu
 	}
 
 	log.Printf("[DEBUG] Updating LB member %s with options: %+v", d.Id(), updateOpts)
@@ -215,14 +216,11 @@ func waitForLBMemberDelete(networkingClient *gophercloud.ServiceClient, memberId
 
 		m, err := members.Get(networkingClient, memberId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return m, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LB member %s", memberId)
 				return m, "DELETED", nil
 			}
+			return m, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LB member %s still active.", memberId)
