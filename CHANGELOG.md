@@ -1,5 +1,11 @@
 ## 0.7.8 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * provider/openstack: The OpenStack provider has switched to the new Gophercloud SDK.
+   No front-facing changes were made, but please be aware that there might be bugs.
+   Please report any if found.
+
 FEATURES:
 
  * **Experimental new apply graph:** `terraform apply` is getting a new graph
