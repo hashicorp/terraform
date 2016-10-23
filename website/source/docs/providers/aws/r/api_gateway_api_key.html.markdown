@@ -51,6 +51,8 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the API key
+* `created_date` - The creation date of the API key
+* `last_updated_date` - The last update date of the API key
 
 
 ## Import
