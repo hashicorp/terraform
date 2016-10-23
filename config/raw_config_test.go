@@ -27,7 +27,7 @@ func TestNewRawConfig(t *testing.T) {
 	}
 }
 
-func TestRawConfig(t *testing.T) {
+func TestRawConfig_basic(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var.bar}",
 	}

@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 )
 
 func resourceNetworkingNetworkV2() *schema.Resource {
@@ -62,41 +62,6 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 	}
 }
 
-// NetworkCreateOpts contains all teh values needed to create a new network.
-type NetworkCreateOpts struct {
-	AdminStateUp *bool
-	Name         string
-	Shared       *bool
-	TenantID     string
-	ValueSpecs   map[string]string
-}
-
-// ToNetworkCreateMpa casts a networkCreateOpts struct to a map.
-func (opts NetworkCreateOpts) ToNetworkCreateMap() (map[string]interface{}, error) {
-	n := make(map[string]interface{})
-
-	if opts.AdminStateUp != nil {
-		n["admin_state_up"] = &opts.AdminStateUp
-	}
-	if opts.Name != "" {
-		n["name"] = opts.Name
-	}
-	if opts.Shared != nil {
-		n["shared"] = &opts.Shared
-	}
-	if opts.TenantID != "" {
-		n["tenant_id"] = opts.TenantID
-	}
-
-	if opts.ValueSpecs != nil {
-		for k, v := range opts.ValueSpecs {
-			n[k] = v
-		}
-	}
-
-	return map[string]interface{}{"network": n}, nil
-}
-
 func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
@@ -105,9 +70,11 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 	}
 
 	createOpts := NetworkCreateOpts{
-		Name:       d.Get("name").(string),
-		TenantID:   d.Get("tenant_id").(string),
-		ValueSpecs: networkValueSpecs(d),
+		networks.CreateOpts{
+			Name:     d.Get("name").(string),
+			TenantID: d.Get("tenant_id").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	asuRaw := d.Get("admin_state_up").(string)
@@ -165,7 +132,7 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 		return CheckDeleted(d, err, "network")
 	}
 
-	log.Printf("[DEBUG] Retreived Network %s: %+v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved Network %s: %+v", d.Id(), n)
 
 	d.Set("name", n.Name)
 	d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
@@ -264,37 +231,28 @@ func waitForNetworkDelete(networkingClient *gophercloud.ServiceClient, networkId
 
 		n, err := networks.Get(networkingClient, networkId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return n, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
 				return n, "DELETED", nil
 			}
+			return n, "ACTIVE", err
 		}
 
 		err = networks.Delete(networkingClient, networkId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return n, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
 				return n, "DELETED", nil
 			}
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					return n, "ACTIVE", nil
+				}
+			}
+			return n, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Network %s still active.\n", networkId)
 		return n, "ACTIVE", nil
 	}
-}
-
-func networkValueSpecs(d *schema.ResourceData) map[string]string {
-	m := make(map[string]string)
-	for key, val := range d.Get("value_specs").(map[string]interface{}) {
-		m[key] = val.(string)
-	}
-	return m
 }

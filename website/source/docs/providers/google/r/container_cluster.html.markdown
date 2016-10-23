@@ -112,13 +112,14 @@ resource "google_container_cluster" "primary" {
 * `horizontal_pod_autoscaling` - (Optional) The status of the Horizontal Pod Autoscaling addon. It is enabled by default; set `disabled = true` to disable.
 
 This example `addons_config` disables both addons:
+
 ```
 addons_config {
   http_load_balancing { 
-    disabled = false
+    disabled = true
   }
   horizontal_pod_autoscaling {
-    disabled = false
+    disabled = true
   }
 }
 ```

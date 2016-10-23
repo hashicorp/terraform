@@ -147,7 +147,7 @@ The following arguments are supported in the `provider` block:
 * `profile` - (Optional) This is the AWS profile name as set in the shared credentials
   file.
 
-* `assume_role` - (Optional) An `assume_role` block (documented below).`Only one
+* `assume_role` - (Optional) An `assume_role` block (documented below). Only one
   `assume_role` block may be in the configuration.
 
 * `shared_credentials_file` = (Optional) This is the path to the shared credentials file.

@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 )
 
 func resourceLoadBalancerV2() *schema.Resource {
@@ -138,7 +138,7 @@ func resourceLoadBalancerV2Read(d *schema.ResourceData, meta interface{}) error 
 		return CheckDeleted(d, err, "LoadBalancerV2")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LoadBalancerV2 %s: %+v", d.Id(), lb)
+	log.Printf("[DEBUG] Retrieved OpenStack LBaaSV2 LoadBalancer %s: %+v", d.Id(), lb)
 
 	d.Set("name", lb.Name)
 	d.Set("description", lb.Description)
@@ -199,7 +199,7 @@ func resourceLoadBalancerV2Delete(d *schema.ResourceData, meta interface{}) erro
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Error deleting OpenStack LB Pool: %s", err)
+		return fmt.Errorf("Error deleting OpenStack LBaaSV2 LoadBalancer: %s", err)
 	}
 
 	d.SetId("")
@@ -213,7 +213,7 @@ func waitForLoadBalancerActive(networkingClient *gophercloud.ServiceClient, lbID
 			return nil, "", err
 		}
 
-		log.Printf("[DEBUG] OpenStack LoadBalancer: %+v", lb)
+		log.Printf("[DEBUG] OpenStack LBaaSV2 LoadBalancer: %+v", lb)
 		if lb.ProvisioningStatus == "ACTIVE" {
 			return lb, "ACTIVE", nil
 		}
@@ -224,34 +224,36 @@ func waitForLoadBalancerActive(networkingClient *gophercloud.ServiceClient, lbID
 
 func waitForLoadBalancerDelete(networkingClient *gophercloud.ServiceClient, lbID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		log.Printf("[DEBUG] Attempting to delete OpenStack LoadBalancerV2 %s", lbID)
+		log.Printf("[DEBUG] Attempting to delete OpenStack LBaaSV2 LoadBalancer %s", lbID)
 
 		lb, err := loadbalancers.Get(networkingClient, lbID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return lb, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
-				log.Printf("[DEBUG] Successfully deleted OpenStack LoadBalancerV2 %s", lbID)
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
+				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 LoadBalancer %s", lbID)
 				return lb, "DELETED", nil
 			}
+			return lb, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] Openstack LoadBalancerV2: %+v", lb)
 		err = loadbalancers.Delete(networkingClient, lbID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return lb, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
-				log.Printf("[DEBUG] Successfully deleted OpenStack LoadBalancerV2 %s", lbID)
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
+				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 LoadBalancer %s", lbID)
 				return lb, "DELETED", nil
 			}
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 LoadBalancer (%s) is still in use.", lbID)
+					return lb, "ACTIVE", nil
+				}
+			}
+
+			return lb, "ACTIVE", err
 		}
 
-		log.Printf("[DEBUG] OpenStack LoadBalancerV2 %s still active.", lbID)
+		log.Printf("[DEBUG] OpenStack LBaaSV2 LoadBalancer (%s) still active.", lbID)
 		return lb, "ACTIVE", nil
 	}
 }

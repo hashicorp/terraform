@@ -2,12 +2,11 @@ package openstack
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 )
 
 func TestAccLBV2LoadBalancer_basic(t *testing.T) {
@@ -42,8 +41,6 @@ func testAccCheckLBV2LoadBalancerDestroy(s *terraform.State) error {
 	}
 
 	for _, rs := range s.RootModule().Resources {
-		log.Printf("[FINDME] rs TYPE is: %#v", rs.Type)
-
 		if rs.Type != "openstack_lb_loadbalancer_v2" {
 			continue
 		}

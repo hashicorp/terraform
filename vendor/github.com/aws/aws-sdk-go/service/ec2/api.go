@@ -20,6 +20,8 @@ const opAcceptReservedInstancesExchangeQuote = "AcceptReservedInstancesExchangeQ
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See AcceptReservedInstancesExchangeQuote for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -54,8 +56,17 @@ func (c *EC2) AcceptReservedInstancesExchangeQuoteRequest(input *AcceptReservedI
 	return
 }
 
+// AcceptReservedInstancesExchangeQuote API operation for Amazon Elastic Compute Cloud.
+//
 // Purchases Convertible Reserved Instance offerings described in the GetReservedInstancesExchangeQuote
 // call.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AcceptReservedInstancesExchangeQuote for usage and error information.
 func (c *EC2) AcceptReservedInstancesExchangeQuote(input *AcceptReservedInstancesExchangeQuoteInput) (*AcceptReservedInstancesExchangeQuoteOutput, error) {
 	req, out := c.AcceptReservedInstancesExchangeQuoteRequest(input)
 	err := req.Send()
@@ -68,6 +79,8 @@ const opAcceptVpcPeeringConnection = "AcceptVpcPeeringConnection"
 // client's request for the AcceptVpcPeeringConnection operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AcceptVpcPeeringConnection for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -103,10 +116,19 @@ func (c *EC2) AcceptVpcPeeringConnectionRequest(input *AcceptVpcPeeringConnectio
 	return
 }
 
+// AcceptVpcPeeringConnection API operation for Amazon Elastic Compute Cloud.
+//
 // Accept a VPC peering connection request. To accept a request, the VPC peering
 // connection must be in the pending-acceptance state, and you must be the owner
 // of the peer VPC. Use the DescribeVpcPeeringConnections request to view your
 // outstanding VPC peering connection requests.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AcceptVpcPeeringConnection for usage and error information.
 func (c *EC2) AcceptVpcPeeringConnection(input *AcceptVpcPeeringConnectionInput) (*AcceptVpcPeeringConnectionOutput, error) {
 	req, out := c.AcceptVpcPeeringConnectionRequest(input)
 	err := req.Send()
@@ -119,6 +141,8 @@ const opAllocateAddress = "AllocateAddress"
 // client's request for the AllocateAddress operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AllocateAddress for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -154,11 +178,20 @@ func (c *EC2) AllocateAddressRequest(input *AllocateAddressInput) (req *request.
 	return
 }
 
+// AllocateAddress API operation for Amazon Elastic Compute Cloud.
+//
 // Acquires an Elastic IP address.
 //
 // An Elastic IP address is for use either in the EC2-Classic platform or in
 // a VPC. For more information, see Elastic IP Addresses (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AllocateAddress for usage and error information.
 func (c *EC2) AllocateAddress(input *AllocateAddressInput) (*AllocateAddressOutput, error) {
 	req, out := c.AllocateAddressRequest(input)
 	err := req.Send()
@@ -171,6 +204,8 @@ const opAllocateHosts = "AllocateHosts"
 // client's request for the AllocateHosts operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AllocateHosts for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -206,9 +241,18 @@ func (c *EC2) AllocateHostsRequest(input *AllocateHostsInput) (req *request.Requ
 	return
 }
 
+// AllocateHosts API operation for Amazon Elastic Compute Cloud.
+//
 // Allocates a Dedicated Host to your account. At minimum you need to specify
 // the instance size type, Availability Zone, and quantity of hosts you want
 // to allocate.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AllocateHosts for usage and error information.
 func (c *EC2) AllocateHosts(input *AllocateHostsInput) (*AllocateHostsOutput, error) {
 	req, out := c.AllocateHostsRequest(input)
 	err := req.Send()
@@ -221,6 +265,8 @@ const opAssignPrivateIpAddresses = "AssignPrivateIpAddresses"
 // client's request for the AssignPrivateIpAddresses operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AssignPrivateIpAddresses for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -258,6 +304,8 @@ func (c *EC2) AssignPrivateIpAddressesRequest(input *AssignPrivateIpAddressesInp
 	return
 }
 
+// AssignPrivateIpAddresses API operation for Amazon Elastic Compute Cloud.
+//
 // Assigns one or more secondary private IP addresses to the specified network
 // interface. You can specify one or more specific secondary IP addresses, or
 // you can specify the number of secondary IP addresses to be automatically
@@ -269,6 +317,13 @@ func (c *EC2) AssignPrivateIpAddressesRequest(input *AssignPrivateIpAddressesInp
 // in the Amazon Elastic Compute Cloud User Guide.
 //
 // AssignPrivateIpAddresses is available only in EC2-VPC.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssignPrivateIpAddresses for usage and error information.
 func (c *EC2) AssignPrivateIpAddresses(input *AssignPrivateIpAddressesInput) (*AssignPrivateIpAddressesOutput, error) {
 	req, out := c.AssignPrivateIpAddressesRequest(input)
 	err := req.Send()
@@ -281,6 +336,8 @@ const opAssociateAddress = "AssociateAddress"
 // client's request for the AssociateAddress operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AssociateAddress for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -316,6 +373,8 @@ func (c *EC2) AssociateAddressRequest(input *AssociateAddressInput) (req *reques
 	return
 }
 
+// AssociateAddress API operation for Amazon Elastic Compute Cloud.
+//
 // Associates an Elastic IP address with an instance or a network interface.
 //
 // An Elastic IP address is for use in either the EC2-Classic platform or in
@@ -335,6 +394,13 @@ func (c *EC2) AssociateAddressRequest(input *AssociateAddressInput) (req *reques
 // once, Amazon EC2 doesn't return an error, and you may be charged for each
 // time the Elastic IP address is remapped to the same instance. For more information,
 // see the Elastic IP Addresses section of Amazon EC2 Pricing (http://aws.amazon.com/ec2/pricing/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateAddress for usage and error information.
 func (c *EC2) AssociateAddress(input *AssociateAddressInput) (*AssociateAddressOutput, error) {
 	req, out := c.AssociateAddressRequest(input)
 	err := req.Send()
@@ -347,6 +413,8 @@ const opAssociateDhcpOptions = "AssociateDhcpOptions"
 // client's request for the AssociateDhcpOptions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AssociateDhcpOptions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -384,6 +452,8 @@ func (c *EC2) AssociateDhcpOptionsRequest(input *AssociateDhcpOptionsInput) (req
 	return
 }
 
+// AssociateDhcpOptions API operation for Amazon Elastic Compute Cloud.
+//
 // Associates a set of DHCP options (that you've previously created) with the
 // specified VPC, or associates no DHCP options with the VPC.
 //
@@ -396,6 +466,13 @@ func (c *EC2) AssociateDhcpOptionsRequest(input *AssociateDhcpOptionsInput) (req
 //
 // For more information, see DHCP Options Sets (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateDhcpOptions for usage and error information.
 func (c *EC2) AssociateDhcpOptions(input *AssociateDhcpOptionsInput) (*AssociateDhcpOptionsOutput, error) {
 	req, out := c.AssociateDhcpOptionsRequest(input)
 	err := req.Send()
@@ -408,6 +485,8 @@ const opAssociateRouteTable = "AssociateRouteTable"
 // client's request for the AssociateRouteTable operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AssociateRouteTable for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -443,6 +522,8 @@ func (c *EC2) AssociateRouteTableRequest(input *AssociateRouteTableInput) (req *
 	return
 }
 
+// AssociateRouteTable API operation for Amazon Elastic Compute Cloud.
+//
 // Associates a subnet with a route table. The subnet and route table must be
 // in the same VPC. This association causes traffic originating from the subnet
 // to be routed according to the routes in the route table. The action returns
@@ -451,6 +532,13 @@ func (c *EC2) AssociateRouteTableRequest(input *AssociateRouteTableInput) (req *
 //
 // For more information about route tables, see Route Tables (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Route_Tables.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateRouteTable for usage and error information.
 func (c *EC2) AssociateRouteTable(input *AssociateRouteTableInput) (*AssociateRouteTableOutput, error) {
 	req, out := c.AssociateRouteTableRequest(input)
 	err := req.Send()
@@ -463,6 +551,8 @@ const opAttachClassicLinkVpc = "AttachClassicLinkVpc"
 // client's request for the AttachClassicLinkVpc operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AttachClassicLinkVpc for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -498,6 +588,8 @@ func (c *EC2) AttachClassicLinkVpcRequest(input *AttachClassicLinkVpcInput) (req
 	return
 }
 
+// AttachClassicLinkVpc API operation for Amazon Elastic Compute Cloud.
+//
 // Links an EC2-Classic instance to a ClassicLink-enabled VPC through one or
 // more of the VPC's security groups. You cannot link an EC2-Classic instance
 // to more than one VPC at a time. You can only link an instance that's in the
@@ -510,6 +602,13 @@ func (c *EC2) AttachClassicLinkVpcRequest(input *AttachClassicLinkVpcInput) (req
 //
 // Linking your instance to a VPC is sometimes referred to as attaching your
 // instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AttachClassicLinkVpc for usage and error information.
 func (c *EC2) AttachClassicLinkVpc(input *AttachClassicLinkVpcInput) (*AttachClassicLinkVpcOutput, error) {
 	req, out := c.AttachClassicLinkVpcRequest(input)
 	err := req.Send()
@@ -522,6 +621,8 @@ const opAttachInternetGateway = "AttachInternetGateway"
 // client's request for the AttachInternetGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AttachInternetGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -559,9 +660,18 @@ func (c *EC2) AttachInternetGatewayRequest(input *AttachInternetGatewayInput) (r
 	return
 }
 
+// AttachInternetGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Attaches an Internet gateway to a VPC, enabling connectivity between the
 // Internet and the VPC. For more information about your VPC and Internet gateway,
 // see the Amazon Virtual Private Cloud User Guide (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AttachInternetGateway for usage and error information.
 func (c *EC2) AttachInternetGateway(input *AttachInternetGatewayInput) (*AttachInternetGatewayOutput, error) {
 	req, out := c.AttachInternetGatewayRequest(input)
 	err := req.Send()
@@ -574,6 +684,8 @@ const opAttachNetworkInterface = "AttachNetworkInterface"
 // client's request for the AttachNetworkInterface operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AttachNetworkInterface for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -609,7 +721,16 @@ func (c *EC2) AttachNetworkInterfaceRequest(input *AttachNetworkInterfaceInput) 
 	return
 }
 
+// AttachNetworkInterface API operation for Amazon Elastic Compute Cloud.
+//
 // Attaches a network interface to an instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AttachNetworkInterface for usage and error information.
 func (c *EC2) AttachNetworkInterface(input *AttachNetworkInterfaceInput) (*AttachNetworkInterfaceOutput, error) {
 	req, out := c.AttachNetworkInterfaceRequest(input)
 	err := req.Send()
@@ -622,6 +743,8 @@ const opAttachVolume = "AttachVolume"
 // client's request for the AttachVolume operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AttachVolume for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -657,6 +780,8 @@ func (c *EC2) AttachVolumeRequest(input *AttachVolumeInput) (req *request.Reques
 	return
 }
 
+// AttachVolume API operation for Amazon Elastic Compute Cloud.
+//
 // Attaches an EBS volume to a running or stopped instance and exposes it to
 // the instance with the specified device name.
 //
@@ -688,6 +813,13 @@ func (c *EC2) AttachVolumeRequest(input *AttachVolumeInput) (req *request.Reques
 // For more information about EBS volumes, see Attaching Amazon EBS Volumes
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-attaching-volume.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AttachVolume for usage and error information.
 func (c *EC2) AttachVolume(input *AttachVolumeInput) (*VolumeAttachment, error) {
 	req, out := c.AttachVolumeRequest(input)
 	err := req.Send()
@@ -700,6 +832,8 @@ const opAttachVpnGateway = "AttachVpnGateway"
 // client's request for the AttachVpnGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AttachVpnGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -735,9 +869,18 @@ func (c *EC2) AttachVpnGatewayRequest(input *AttachVpnGatewayInput) (req *reques
 	return
 }
 
+// AttachVpnGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Attaches a virtual private gateway to a VPC. For more information, see Adding
 // a Hardware Virtual Private Gateway to Your VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_VPN.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AttachVpnGateway for usage and error information.
 func (c *EC2) AttachVpnGateway(input *AttachVpnGatewayInput) (*AttachVpnGatewayOutput, error) {
 	req, out := c.AttachVpnGatewayRequest(input)
 	err := req.Send()
@@ -750,6 +893,8 @@ const opAuthorizeSecurityGroupEgress = "AuthorizeSecurityGroupEgress"
 // client's request for the AuthorizeSecurityGroupEgress operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AuthorizeSecurityGroupEgress for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -787,6 +932,8 @@ func (c *EC2) AuthorizeSecurityGroupEgressRequest(input *AuthorizeSecurityGroupE
 	return
 }
 
+// AuthorizeSecurityGroupEgress API operation for Amazon Elastic Compute Cloud.
+//
 // [EC2-VPC only] Adds one or more egress rules to a security group for use
 // with a VPC. Specifically, this action permits instances to send traffic to
 // one or more destination CIDR IP address ranges, or to one or more destination
@@ -806,6 +953,13 @@ func (c *EC2) AuthorizeSecurityGroupEgressRequest(input *AuthorizeSecurityGroupE
 //
 // Rule changes are propagated to affected instances as quickly as possible.
 // However, a small delay might occur.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AuthorizeSecurityGroupEgress for usage and error information.
 func (c *EC2) AuthorizeSecurityGroupEgress(input *AuthorizeSecurityGroupEgressInput) (*AuthorizeSecurityGroupEgressOutput, error) {
 	req, out := c.AuthorizeSecurityGroupEgressRequest(input)
 	err := req.Send()
@@ -818,6 +972,8 @@ const opAuthorizeSecurityGroupIngress = "AuthorizeSecurityGroupIngress"
 // client's request for the AuthorizeSecurityGroupIngress operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AuthorizeSecurityGroupIngress for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -855,6 +1011,8 @@ func (c *EC2) AuthorizeSecurityGroupIngressRequest(input *AuthorizeSecurityGroup
 	return
 }
 
+// AuthorizeSecurityGroupIngress API operation for Amazon Elastic Compute Cloud.
+//
 // Adds one or more ingress rules to a security group.
 //
 //  EC2-Classic: You can have up to 100 rules per group.
@@ -874,6 +1032,13 @@ func (c *EC2) AuthorizeSecurityGroupIngressRequest(input *AuthorizeSecurityGroup
 // to access a security group in your VPC, or gives one or more other security
 // groups (called the source groups) permission to access a security group for
 // your VPC. The security groups must all be for the same VPC.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AuthorizeSecurityGroupIngress for usage and error information.
 func (c *EC2) AuthorizeSecurityGroupIngress(input *AuthorizeSecurityGroupIngressInput) (*AuthorizeSecurityGroupIngressOutput, error) {
 	req, out := c.AuthorizeSecurityGroupIngressRequest(input)
 	err := req.Send()
@@ -886,6 +1051,8 @@ const opBundleInstance = "BundleInstance"
 // client's request for the BundleInstance operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See BundleInstance for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -921,6 +1088,8 @@ func (c *EC2) BundleInstanceRequest(input *BundleInstanceInput) (req *request.Re
 	return
 }
 
+// BundleInstance API operation for Amazon Elastic Compute Cloud.
+//
 // Bundles an Amazon instance store-backed Windows instance.
 //
 // During bundling, only the root device volume (C:\) is bundled. Data on other
@@ -931,6 +1100,13 @@ func (c *EC2) BundleInstanceRequest(input *BundleInstanceInput) (req *request.Re
 //
 //  For more information, see Creating an Instance Store-Backed Windows AMI
 // (http://docs.aws.amazon.com/AWSEC2/latest/WindowsGuide/Creating_InstanceStoreBacked_WinAMI.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation BundleInstance for usage and error information.
 func (c *EC2) BundleInstance(input *BundleInstanceInput) (*BundleInstanceOutput, error) {
 	req, out := c.BundleInstanceRequest(input)
 	err := req.Send()
@@ -943,6 +1119,8 @@ const opCancelBundleTask = "CancelBundleTask"
 // client's request for the CancelBundleTask operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CancelBundleTask for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -978,7 +1156,16 @@ func (c *EC2) CancelBundleTaskRequest(input *CancelBundleTaskInput) (req *reques
 	return
 }
 
+// CancelBundleTask API operation for Amazon Elastic Compute Cloud.
+//
 // Cancels a bundling operation for an instance store-backed Windows instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CancelBundleTask for usage and error information.
 func (c *EC2) CancelBundleTask(input *CancelBundleTaskInput) (*CancelBundleTaskOutput, error) {
 	req, out := c.CancelBundleTaskRequest(input)
 	err := req.Send()
@@ -991,6 +1178,8 @@ const opCancelConversionTask = "CancelConversionTask"
 // client's request for the CancelConversionTask operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CancelConversionTask for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1028,6 +1217,8 @@ func (c *EC2) CancelConversionTaskRequest(input *CancelConversionTaskInput) (req
 	return
 }
 
+// CancelConversionTask API operation for Amazon Elastic Compute Cloud.
+//
 // Cancels an active conversion task. The task can be the import of an instance
 // or volume. The action removes all artifacts of the conversion, including
 // a partially uploaded volume or instance. If the conversion is complete or
@@ -1036,6 +1227,13 @@ func (c *EC2) CancelConversionTaskRequest(input *CancelConversionTaskInput) (req
 //
 // For more information, see Importing a Virtual Machine Using the Amazon EC2
 // CLI (http://docs.aws.amazon.com/AWSEC2/latest/CommandLineReference/ec2-cli-vmimport-export.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CancelConversionTask for usage and error information.
 func (c *EC2) CancelConversionTask(input *CancelConversionTaskInput) (*CancelConversionTaskOutput, error) {
 	req, out := c.CancelConversionTaskRequest(input)
 	err := req.Send()
@@ -1048,6 +1246,8 @@ const opCancelExportTask = "CancelExportTask"
 // client's request for the CancelExportTask operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CancelExportTask for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1085,10 +1285,19 @@ func (c *EC2) CancelExportTaskRequest(input *CancelExportTaskInput) (req *reques
 	return
 }
 
+// CancelExportTask API operation for Amazon Elastic Compute Cloud.
+//
 // Cancels an active export task. The request removes all artifacts of the export,
 // including any partially-created Amazon S3 objects. If the export task is
 // complete or is in the process of transferring the final disk image, the command
 // fails and returns an error.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CancelExportTask for usage and error information.
 func (c *EC2) CancelExportTask(input *CancelExportTaskInput) (*CancelExportTaskOutput, error) {
 	req, out := c.CancelExportTaskRequest(input)
 	err := req.Send()
@@ -1101,6 +1310,8 @@ const opCancelImportTask = "CancelImportTask"
 // client's request for the CancelImportTask operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CancelImportTask for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1136,7 +1347,16 @@ func (c *EC2) CancelImportTaskRequest(input *CancelImportTaskInput) (req *reques
 	return
 }
 
+// CancelImportTask API operation for Amazon Elastic Compute Cloud.
+//
 // Cancels an in-process import virtual machine or import snapshot task.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CancelImportTask for usage and error information.
 func (c *EC2) CancelImportTask(input *CancelImportTaskInput) (*CancelImportTaskOutput, error) {
 	req, out := c.CancelImportTaskRequest(input)
 	err := req.Send()
@@ -1149,6 +1369,8 @@ const opCancelReservedInstancesListing = "CancelReservedInstancesListing"
 // client's request for the CancelReservedInstancesListing operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CancelReservedInstancesListing for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1184,11 +1406,20 @@ func (c *EC2) CancelReservedInstancesListingRequest(input *CancelReservedInstanc
 	return
 }
 
+// CancelReservedInstancesListing API operation for Amazon Elastic Compute Cloud.
+//
 // Cancels the specified Reserved Instance listing in the Reserved Instance
 // Marketplace.
 //
 // For more information, see Reserved Instance Marketplace (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-market-general.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CancelReservedInstancesListing for usage and error information.
 func (c *EC2) CancelReservedInstancesListing(input *CancelReservedInstancesListingInput) (*CancelReservedInstancesListingOutput, error) {
 	req, out := c.CancelReservedInstancesListingRequest(input)
 	err := req.Send()
@@ -1201,6 +1432,8 @@ const opCancelSpotFleetRequests = "CancelSpotFleetRequests"
 // client's request for the CancelSpotFleetRequests operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CancelSpotFleetRequests for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1236,6 +1469,8 @@ func (c *EC2) CancelSpotFleetRequestsRequest(input *CancelSpotFleetRequestsInput
 	return
 }
 
+// CancelSpotFleetRequests API operation for Amazon Elastic Compute Cloud.
+//
 // Cancels the specified Spot fleet requests.
 //
 // After you cancel a Spot fleet request, the Spot fleet launches no new Spot
@@ -1244,6 +1479,13 @@ func (c *EC2) CancelSpotFleetRequestsRequest(input *CancelSpotFleetRequestsInput
 // enters the cancelled_terminating state. Otherwise, the Spot fleet request
 // enters the cancelled_running state and the instances continue to run until
 // they are interrupted or you terminate them manually.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CancelSpotFleetRequests for usage and error information.
 func (c *EC2) CancelSpotFleetRequests(input *CancelSpotFleetRequestsInput) (*CancelSpotFleetRequestsOutput, error) {
 	req, out := c.CancelSpotFleetRequestsRequest(input)
 	err := req.Send()
@@ -1256,6 +1498,8 @@ const opCancelSpotInstanceRequests = "CancelSpotInstanceRequests"
 // client's request for the CancelSpotInstanceRequests operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CancelSpotInstanceRequests for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1291,6 +1535,8 @@ func (c *EC2) CancelSpotInstanceRequestsRequest(input *CancelSpotInstanceRequest
 	return
 }
 
+// CancelSpotInstanceRequests API operation for Amazon Elastic Compute Cloud.
+//
 // Cancels one or more Spot instance requests. Spot instances are instances
 // that Amazon EC2 starts on your behalf when the bid price that you specify
 // exceeds the current Spot price. Amazon EC2 periodically sets the Spot price
@@ -1300,6 +1546,13 @@ func (c *EC2) CancelSpotInstanceRequestsRequest(input *CancelSpotInstanceRequest
 //
 //  Canceling a Spot instance request does not terminate running Spot instances
 // associated with the request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CancelSpotInstanceRequests for usage and error information.
 func (c *EC2) CancelSpotInstanceRequests(input *CancelSpotInstanceRequestsInput) (*CancelSpotInstanceRequestsOutput, error) {
 	req, out := c.CancelSpotInstanceRequestsRequest(input)
 	err := req.Send()
@@ -1312,6 +1565,8 @@ const opConfirmProductInstance = "ConfirmProductInstance"
 // client's request for the ConfirmProductInstance operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ConfirmProductInstance for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1347,10 +1602,19 @@ func (c *EC2) ConfirmProductInstanceRequest(input *ConfirmProductInstanceInput) 
 	return
 }
 
+// ConfirmProductInstance API operation for Amazon Elastic Compute Cloud.
+//
 // Determines whether a product code is associated with an instance. This action
 // can only be used by the owner of the product code. It is useful when a product
 // code owner needs to verify whether another user's instance is eligible for
 // support.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ConfirmProductInstance for usage and error information.
 func (c *EC2) ConfirmProductInstance(input *ConfirmProductInstanceInput) (*ConfirmProductInstanceOutput, error) {
 	req, out := c.ConfirmProductInstanceRequest(input)
 	err := req.Send()
@@ -1363,6 +1627,8 @@ const opCopyImage = "CopyImage"
 // client's request for the CopyImage operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CopyImage for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1398,12 +1664,21 @@ func (c *EC2) CopyImageRequest(input *CopyImageInput) (req *request.Request, out
 	return
 }
 
+// CopyImage API operation for Amazon Elastic Compute Cloud.
+//
 // Initiates the copy of an AMI from the specified source region to the current
 // region. You specify the destination region by using its endpoint when making
 // the request.
 //
 // For more information, see Copying AMIs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/CopyingAMIs.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CopyImage for usage and error information.
 func (c *EC2) CopyImage(input *CopyImageInput) (*CopyImageOutput, error) {
 	req, out := c.CopyImageRequest(input)
 	err := req.Send()
@@ -1416,6 +1691,8 @@ const opCopySnapshot = "CopySnapshot"
 // client's request for the CopySnapshot operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CopySnapshot for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1451,6 +1728,8 @@ func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Reques
 	return
 }
 
+// CopySnapshot API operation for Amazon Elastic Compute Cloud.
+//
 // Copies a point-in-time snapshot of an EBS volume and stores it in Amazon
 // S3. You can copy the snapshot within the same region or from one region to
 // another. You can use the snapshot to create EBS volumes or Amazon Machine
@@ -1471,6 +1750,13 @@ func (c *EC2) CopySnapshotRequest(input *CopySnapshotInput) (req *request.Reques
 //
 //  For more information, see Copying an Amazon EBS Snapshot (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-copy-snapshot.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CopySnapshot for usage and error information.
 func (c *EC2) CopySnapshot(input *CopySnapshotInput) (*CopySnapshotOutput, error) {
 	req, out := c.CopySnapshotRequest(input)
 	err := req.Send()
@@ -1483,6 +1769,8 @@ const opCreateCustomerGateway = "CreateCustomerGateway"
 // client's request for the CreateCustomerGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateCustomerGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1518,6 +1806,8 @@ func (c *EC2) CreateCustomerGatewayRequest(input *CreateCustomerGatewayInput) (r
 	return
 }
 
+// CreateCustomerGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Provides information to AWS about your VPN customer gateway device. The customer
 // gateway is the appliance at your end of the VPN connection. (The device on
 // the AWS side of the VPN connection is the virtual private gateway.) You must
@@ -1543,6 +1833,13 @@ func (c *EC2) CreateCustomerGatewayRequest(input *CreateCustomerGatewayInput) (r
 // more than one time, the first request creates the customer gateway, and subsequent
 // requests return information about the existing customer gateway. The subsequent
 // requests do not create new customer gateway resources.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateCustomerGateway for usage and error information.
 func (c *EC2) CreateCustomerGateway(input *CreateCustomerGatewayInput) (*CreateCustomerGatewayOutput, error) {
 	req, out := c.CreateCustomerGatewayRequest(input)
 	err := req.Send()
@@ -1555,6 +1852,8 @@ const opCreateDhcpOptions = "CreateDhcpOptions"
 // client's request for the CreateDhcpOptions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateDhcpOptions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1590,6 +1889,8 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 	return
 }
 
+// CreateDhcpOptions API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a set of DHCP options for your VPC. After creating the set, you must
 // associate it with the VPC, causing all existing and new instances that you
 // launch in the VPC to use this set of DHCP options. The following are the
@@ -1630,6 +1931,13 @@ func (c *EC2) CreateDhcpOptionsRequest(input *CreateDhcpOptionsInput) (req *requ
 // server of your choice. For more information about DHCP options, see DHCP
 // Options Sets (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateDhcpOptions for usage and error information.
 func (c *EC2) CreateDhcpOptions(input *CreateDhcpOptionsInput) (*CreateDhcpOptionsOutput, error) {
 	req, out := c.CreateDhcpOptionsRequest(input)
 	err := req.Send()
@@ -1642,6 +1950,8 @@ const opCreateFlowLogs = "CreateFlowLogs"
 // client's request for the CreateFlowLogs operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateFlowLogs for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1677,6 +1987,8 @@ func (c *EC2) CreateFlowLogsRequest(input *CreateFlowLogsInput) (req *request.Re
 	return
 }
 
+// CreateFlowLogs API operation for Amazon Elastic Compute Cloud.
+//
 // Creates one or more flow logs to capture IP traffic for a specific network
 // interface, subnet, or VPC. Flow logs are delivered to a specified log group
 // in Amazon CloudWatch Logs. If you specify a VPC or subnet in the request,
@@ -1687,6 +1999,13 @@ func (c *EC2) CreateFlowLogsRequest(input *CreateFlowLogsInput) (req *request.Re
 //
 // In your request, you must also specify an IAM role that has permission to
 // publish logs to CloudWatch Logs.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateFlowLogs for usage and error information.
 func (c *EC2) CreateFlowLogs(input *CreateFlowLogsInput) (*CreateFlowLogsOutput, error) {
 	req, out := c.CreateFlowLogsRequest(input)
 	err := req.Send()
@@ -1699,6 +2018,8 @@ const opCreateImage = "CreateImage"
 // client's request for the CreateImage operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateImage for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1734,6 +2055,8 @@ func (c *EC2) CreateImageRequest(input *CreateImageInput) (req *request.Request,
 	return
 }
 
+// CreateImage API operation for Amazon Elastic Compute Cloud.
+//
 // Creates an Amazon EBS-backed AMI from an Amazon EBS-backed instance that
 // is either running or stopped.
 //
@@ -1744,6 +2067,13 @@ func (c *EC2) CreateImageRequest(input *CreateImageInput) (req *request.Request,
 //
 // For more information, see Creating Amazon EBS-Backed Linux AMIs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-ebs.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateImage for usage and error information.
 func (c *EC2) CreateImage(input *CreateImageInput) (*CreateImageOutput, error) {
 	req, out := c.CreateImageRequest(input)
 	err := req.Send()
@@ -1756,6 +2086,8 @@ const opCreateInstanceExportTask = "CreateInstanceExportTask"
 // client's request for the CreateInstanceExportTask operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateInstanceExportTask for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1791,12 +2123,21 @@ func (c *EC2) CreateInstanceExportTaskRequest(input *CreateInstanceExportTaskInp
 	return
 }
 
+// CreateInstanceExportTask API operation for Amazon Elastic Compute Cloud.
+//
 // Exports a running or stopped instance to an S3 bucket.
 //
 // For information about the supported operating systems, image formats, and
 // known limitations for the types of instances you can export, see Exporting
 // an Instance as a VM Using VM Import/Export (http://docs.aws.amazon.com/vm-import/latest/userguide/vmexport.html)
 // in the VM Import/Export User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateInstanceExportTask for usage and error information.
 func (c *EC2) CreateInstanceExportTask(input *CreateInstanceExportTaskInput) (*CreateInstanceExportTaskOutput, error) {
 	req, out := c.CreateInstanceExportTaskRequest(input)
 	err := req.Send()
@@ -1809,6 +2150,8 @@ const opCreateInternetGateway = "CreateInternetGateway"
 // client's request for the CreateInternetGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateInternetGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1844,11 +2187,20 @@ func (c *EC2) CreateInternetGatewayRequest(input *CreateInternetGatewayInput) (r
 	return
 }
 
+// CreateInternetGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Creates an Internet gateway for use with a VPC. After creating the Internet
 // gateway, you attach it to a VPC using AttachInternetGateway.
 //
 // For more information about your VPC and Internet gateway, see the Amazon
 // Virtual Private Cloud User Guide (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateInternetGateway for usage and error information.
 func (c *EC2) CreateInternetGateway(input *CreateInternetGatewayInput) (*CreateInternetGatewayOutput, error) {
 	req, out := c.CreateInternetGatewayRequest(input)
 	err := req.Send()
@@ -1861,6 +2213,8 @@ const opCreateKeyPair = "CreateKeyPair"
 // client's request for the CreateKeyPair operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateKeyPair for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1896,6 +2250,8 @@ func (c *EC2) CreateKeyPairRequest(input *CreateKeyPairInput) (req *request.Requ
 	return
 }
 
+// CreateKeyPair API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a 2048-bit RSA key pair with the specified name. Amazon EC2 stores
 // the public key and displays the private key for you to save to a file. The
 // private key is returned as an unencrypted PEM encoded PKCS#8 private key.
@@ -1908,6 +2264,13 @@ func (c *EC2) CreateKeyPairRequest(input *CreateKeyPairInput) (req *request.Requ
 //
 // For more information about key pairs, see Key Pairs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateKeyPair for usage and error information.
 func (c *EC2) CreateKeyPair(input *CreateKeyPairInput) (*CreateKeyPairOutput, error) {
 	req, out := c.CreateKeyPairRequest(input)
 	err := req.Send()
@@ -1920,6 +2283,8 @@ const opCreateNatGateway = "CreateNatGateway"
 // client's request for the CreateNatGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateNatGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1955,12 +2320,21 @@ func (c *EC2) CreateNatGatewayRequest(input *CreateNatGatewayInput) (req *reques
 	return
 }
 
+// CreateNatGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a NAT gateway in the specified subnet. A NAT gateway can be used
 // to enable instances in a private subnet to connect to the Internet. This
 // action creates a network interface in the specified subnet with a private
 // IP address from the IP address range of the subnet. For more information,
 // see NAT Gateways (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-nat-gateway.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateNatGateway for usage and error information.
 func (c *EC2) CreateNatGateway(input *CreateNatGatewayInput) (*CreateNatGatewayOutput, error) {
 	req, out := c.CreateNatGatewayRequest(input)
 	err := req.Send()
@@ -1973,6 +2347,8 @@ const opCreateNetworkAcl = "CreateNetworkAcl"
 // client's request for the CreateNetworkAcl operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateNetworkAcl for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2008,11 +2384,20 @@ func (c *EC2) CreateNetworkAclRequest(input *CreateNetworkAclInput) (req *reques
 	return
 }
 
+// CreateNetworkAcl API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a network ACL in a VPC. Network ACLs provide an optional layer of
 // security (in addition to security groups) for the instances in your VPC.
 //
 // For more information about network ACLs, see Network ACLs (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateNetworkAcl for usage and error information.
 func (c *EC2) CreateNetworkAcl(input *CreateNetworkAclInput) (*CreateNetworkAclOutput, error) {
 	req, out := c.CreateNetworkAclRequest(input)
 	err := req.Send()
@@ -2025,6 +2410,8 @@ const opCreateNetworkAclEntry = "CreateNetworkAclEntry"
 // client's request for the CreateNetworkAclEntry operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateNetworkAclEntry for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2062,6 +2449,8 @@ func (c *EC2) CreateNetworkAclEntryRequest(input *CreateNetworkAclEntryInput) (r
 	return
 }
 
+// CreateNetworkAclEntry API operation for Amazon Elastic Compute Cloud.
+//
 // Creates an entry (a rule) in a network ACL with the specified rule number.
 // Each network ACL has a set of numbered ingress rules and a separate set of
 // numbered egress rules. When determining whether a packet should be allowed
@@ -2079,6 +2468,13 @@ func (c *EC2) CreateNetworkAclEntryRequest(input *CreateNetworkAclEntryInput) (r
 //
 // For more information about network ACLs, see Network ACLs (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateNetworkAclEntry for usage and error information.
 func (c *EC2) CreateNetworkAclEntry(input *CreateNetworkAclEntryInput) (*CreateNetworkAclEntryOutput, error) {
 	req, out := c.CreateNetworkAclEntryRequest(input)
 	err := req.Send()
@@ -2091,6 +2487,8 @@ const opCreateNetworkInterface = "CreateNetworkInterface"
 // client's request for the CreateNetworkInterface operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateNetworkInterface for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2126,11 +2524,20 @@ func (c *EC2) CreateNetworkInterfaceRequest(input *CreateNetworkInterfaceInput) 
 	return
 }
 
+// CreateNetworkInterface API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a network interface in the specified subnet.
 //
 // For more information about network interfaces, see Elastic Network Interfaces
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html) in the
 // Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateNetworkInterface for usage and error information.
 func (c *EC2) CreateNetworkInterface(input *CreateNetworkInterfaceInput) (*CreateNetworkInterfaceOutput, error) {
 	req, out := c.CreateNetworkInterfaceRequest(input)
 	err := req.Send()
@@ -2143,6 +2550,8 @@ const opCreatePlacementGroup = "CreatePlacementGroup"
 // client's request for the CreatePlacementGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreatePlacementGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2180,12 +2589,21 @@ func (c *EC2) CreatePlacementGroupRequest(input *CreatePlacementGroupInput) (req
 	return
 }
 
+// CreatePlacementGroup API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a placement group that you launch cluster instances into. You must
 // give the group a name that's unique within the scope of your account.
 //
 // For more information about placement groups and cluster instances, see Cluster
 // Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using_cluster_computing.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreatePlacementGroup for usage and error information.
 func (c *EC2) CreatePlacementGroup(input *CreatePlacementGroupInput) (*CreatePlacementGroupOutput, error) {
 	req, out := c.CreatePlacementGroupRequest(input)
 	err := req.Send()
@@ -2198,6 +2616,8 @@ const opCreateReservedInstancesListing = "CreateReservedInstancesListing"
 // client's request for the CreateReservedInstancesListing operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateReservedInstancesListing for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2233,6 +2653,8 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 	return
 }
 
+// CreateReservedInstancesListing API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a listing for Amazon EC2 Standard Reserved Instances to be sold in
 // the Reserved Instance Marketplace. You can submit one Standard Reserved Instance
 // listing at a time. To get a list of your Standard Reserved Instances, you
@@ -2253,6 +2675,13 @@ func (c *EC2) CreateReservedInstancesListingRequest(input *CreateReservedInstanc
 //
 // For more information, see Reserved Instance Marketplace (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-market-general.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateReservedInstancesListing for usage and error information.
 func (c *EC2) CreateReservedInstancesListing(input *CreateReservedInstancesListingInput) (*CreateReservedInstancesListingOutput, error) {
 	req, out := c.CreateReservedInstancesListingRequest(input)
 	err := req.Send()
@@ -2265,6 +2694,8 @@ const opCreateRoute = "CreateRoute"
 // client's request for the CreateRoute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateRoute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2300,6 +2731,8 @@ func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request,
 	return
 }
 
+// CreateRoute API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a route in a route table within a VPC.
 //
 // You must specify one of the following targets: Internet gateway or virtual
@@ -2320,6 +2753,13 @@ func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request,
 //
 // For more information about route tables, see Route Tables (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Route_Tables.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateRoute for usage and error information.
 func (c *EC2) CreateRoute(input *CreateRouteInput) (*CreateRouteOutput, error) {
 	req, out := c.CreateRouteRequest(input)
 	err := req.Send()
@@ -2332,6 +2772,8 @@ const opCreateRouteTable = "CreateRouteTable"
 // client's request for the CreateRouteTable operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateRouteTable for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2367,11 +2809,20 @@ func (c *EC2) CreateRouteTableRequest(input *CreateRouteTableInput) (req *reques
 	return
 }
 
+// CreateRouteTable API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a route table for the specified VPC. After you create a route table,
 // you can add routes and associate the table with a subnet.
 //
 // For more information about route tables, see Route Tables (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Route_Tables.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateRouteTable for usage and error information.
 func (c *EC2) CreateRouteTable(input *CreateRouteTableInput) (*CreateRouteTableOutput, error) {
 	req, out := c.CreateRouteTableRequest(input)
 	err := req.Send()
@@ -2384,6 +2835,8 @@ const opCreateSecurityGroup = "CreateSecurityGroup"
 // client's request for the CreateSecurityGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateSecurityGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2419,6 +2872,8 @@ func (c *EC2) CreateSecurityGroupRequest(input *CreateSecurityGroupInput) (req *
 	return
 }
 
+// CreateSecurityGroup API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a security group.
 //
 // A security group is for use with instances either in the EC2-Classic platform
@@ -2446,6 +2901,13 @@ func (c *EC2) CreateSecurityGroupRequest(input *CreateSecurityGroupInput) (req *
 //
 // You can add or remove rules from your security groups using AuthorizeSecurityGroupIngress,
 // AuthorizeSecurityGroupEgress, RevokeSecurityGroupIngress, and RevokeSecurityGroupEgress.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateSecurityGroup for usage and error information.
 func (c *EC2) CreateSecurityGroup(input *CreateSecurityGroupInput) (*CreateSecurityGroupOutput, error) {
 	req, out := c.CreateSecurityGroupRequest(input)
 	err := req.Send()
@@ -2458,6 +2920,8 @@ const opCreateSnapshot = "CreateSnapshot"
 // client's request for the CreateSnapshot operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateSnapshot for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2493,6 +2957,8 @@ func (c *EC2) CreateSnapshotRequest(input *CreateSnapshotInput) (req *request.Re
 	return
 }
 
+// CreateSnapshot API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a snapshot of an EBS volume and stores it in Amazon S3. You can use
 // snapshots for backups, to make copies of EBS volumes, and to save data before
 // shutting down an instance.
@@ -2521,6 +2987,13 @@ func (c *EC2) CreateSnapshotRequest(input *CreateSnapshotInput) (req *request.Re
 // For more information, see Amazon Elastic Block Store (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html)
 // and Amazon EBS Encryption (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateSnapshot for usage and error information.
 func (c *EC2) CreateSnapshot(input *CreateSnapshotInput) (*Snapshot, error) {
 	req, out := c.CreateSnapshotRequest(input)
 	err := req.Send()
@@ -2533,6 +3006,8 @@ const opCreateSpotDatafeedSubscription = "CreateSpotDatafeedSubscription"
 // client's request for the CreateSpotDatafeedSubscription operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateSpotDatafeedSubscription for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2568,10 +3043,19 @@ func (c *EC2) CreateSpotDatafeedSubscriptionRequest(input *CreateSpotDatafeedSub
 	return
 }
 
+// CreateSpotDatafeedSubscription API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a data feed for Spot instances, enabling you to view Spot instance
 // usage logs. You can create one data feed per AWS account. For more information,
 // see Spot Instance Data Feed (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-data-feeds.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateSpotDatafeedSubscription for usage and error information.
 func (c *EC2) CreateSpotDatafeedSubscription(input *CreateSpotDatafeedSubscriptionInput) (*CreateSpotDatafeedSubscriptionOutput, error) {
 	req, out := c.CreateSpotDatafeedSubscriptionRequest(input)
 	err := req.Send()
@@ -2584,6 +3068,8 @@ const opCreateSubnet = "CreateSubnet"
 // client's request for the CreateSubnet operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateSubnet for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2619,6 +3105,8 @@ func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Reques
 	return
 }
 
+// CreateSubnet API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a subnet in an existing VPC.
 //
 // When you create each subnet, you provide the VPC ID and the CIDR block you
@@ -2644,6 +3132,13 @@ func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Reques
 //
 // For more information about subnets, see Your VPC and Subnets (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateSubnet for usage and error information.
 func (c *EC2) CreateSubnet(input *CreateSubnetInput) (*CreateSubnetOutput, error) {
 	req, out := c.CreateSubnetRequest(input)
 	err := req.Send()
@@ -2656,6 +3151,8 @@ const opCreateTags = "CreateTags"
 // client's request for the CreateTags operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateTags for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2693,6 +3190,8 @@ func (c *EC2) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 	return
 }
 
+// CreateTags API operation for Amazon Elastic Compute Cloud.
+//
 // Adds or overwrites one or more tags for the specified Amazon EC2 resource
 // or resources. Each resource can have a maximum of 50 tags. Each tag consists
 // of a key and optional value. Tag keys must be unique per resource.
@@ -2702,6 +3201,13 @@ func (c *EC2) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 // creating IAM policies that control users' access to resources based on tags,
 // see Supported Resource-Level Permissions for Amazon EC2 API Actions (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-iam-actions-resources.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateTags for usage and error information.
 func (c *EC2) CreateTags(input *CreateTagsInput) (*CreateTagsOutput, error) {
 	req, out := c.CreateTagsRequest(input)
 	err := req.Send()
@@ -2714,6 +3220,8 @@ const opCreateVolume = "CreateVolume"
 // client's request for the CreateVolume operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateVolume for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2749,6 +3257,8 @@ func (c *EC2) CreateVolumeRequest(input *CreateVolumeInput) (req *request.Reques
 	return
 }
 
+// CreateVolume API operation for Amazon Elastic Compute Cloud.
+//
 // Creates an EBS volume that can be attached to an instance in the same Availability
 // Zone. The volume is created in the regional endpoint that you send the HTTP
 // request to. For more information see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html).
@@ -2765,6 +3275,13 @@ func (c *EC2) CreateVolumeRequest(input *CreateVolumeInput) (req *request.Reques
 //
 // For more information, see Creating or Restoring an Amazon EBS Volume (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-creating-volume.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateVolume for usage and error information.
 func (c *EC2) CreateVolume(input *CreateVolumeInput) (*Volume, error) {
 	req, out := c.CreateVolumeRequest(input)
 	err := req.Send()
@@ -2777,6 +3294,8 @@ const opCreateVpc = "CreateVpc"
 // client's request for the CreateVpc operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateVpc for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2812,6 +3331,8 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 	return
 }
 
+// CreateVpc API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a VPC with the specified CIDR block.
 //
 // The smallest VPC you can create uses a /28 netmask (16 IP addresses), and
@@ -2828,6 +3349,13 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 // You can't change this value for the VPC after you create it. For more information,
 // see Dedicated Instances (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/dedicated-instance.html.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateVpc for usage and error information.
 func (c *EC2) CreateVpc(input *CreateVpcInput) (*CreateVpcOutput, error) {
 	req, out := c.CreateVpcRequest(input)
 	err := req.Send()
@@ -2840,6 +3368,8 @@ const opCreateVpcEndpoint = "CreateVpcEndpoint"
 // client's request for the CreateVpcEndpoint operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateVpcEndpoint for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2875,6 +3405,8 @@ func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *requ
 	return
 }
 
+// CreateVpcEndpoint API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a VPC endpoint for a specified AWS service. An endpoint enables you
 // to create a private connection between your VPC and another AWS service in
 // your account. You can specify an endpoint policy to attach to the endpoint
@@ -2882,6 +3414,13 @@ func (c *EC2) CreateVpcEndpointRequest(input *CreateVpcEndpointInput) (req *requ
 // the VPC route tables that use the endpoint.
 //
 // Currently, only endpoints to Amazon S3 are supported.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateVpcEndpoint for usage and error information.
 func (c *EC2) CreateVpcEndpoint(input *CreateVpcEndpointInput) (*CreateVpcEndpointOutput, error) {
 	req, out := c.CreateVpcEndpointRequest(input)
 	err := req.Send()
@@ -2894,6 +3433,8 @@ const opCreateVpcPeeringConnection = "CreateVpcPeeringConnection"
 // client's request for the CreateVpcPeeringConnection operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateVpcPeeringConnection for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2929,6 +3470,8 @@ func (c *EC2) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConnectio
 	return
 }
 
+// CreateVpcPeeringConnection API operation for Amazon Elastic Compute Cloud.
+//
 // Requests a VPC peering connection between two VPCs: a requester VPC that
 // you own and a peer VPC with which to create the connection. The peer VPC
 // can belong to another AWS account. The requester VPC and peer VPC cannot
@@ -2940,6 +3483,13 @@ func (c *EC2) CreateVpcPeeringConnectionRequest(input *CreateVpcPeeringConnectio
 //
 // A CreateVpcPeeringConnection request between VPCs with overlapping CIDR
 // blocks results in the VPC peering connection having a status of failed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateVpcPeeringConnection for usage and error information.
 func (c *EC2) CreateVpcPeeringConnection(input *CreateVpcPeeringConnectionInput) (*CreateVpcPeeringConnectionOutput, error) {
 	req, out := c.CreateVpcPeeringConnectionRequest(input)
 	err := req.Send()
@@ -2952,6 +3502,8 @@ const opCreateVpnConnection = "CreateVpnConnection"
 // client's request for the CreateVpnConnection operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateVpnConnection for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2987,6 +3539,8 @@ func (c *EC2) CreateVpnConnectionRequest(input *CreateVpnConnectionInput) (req *
 	return
 }
 
+// CreateVpnConnection API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a VPN connection between an existing virtual private gateway and
 // a VPN customer gateway. The only supported connection type is ipsec.1.
 //
@@ -3007,6 +3561,13 @@ func (c *EC2) CreateVpnConnectionRequest(input *CreateVpnConnectionInput) (req *
 // For more information about VPN connections, see Adding a Hardware Virtual
 // Private Gateway to Your VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_VPN.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateVpnConnection for usage and error information.
 func (c *EC2) CreateVpnConnection(input *CreateVpnConnectionInput) (*CreateVpnConnectionOutput, error) {
 	req, out := c.CreateVpnConnectionRequest(input)
 	err := req.Send()
@@ -3019,6 +3580,8 @@ const opCreateVpnConnectionRoute = "CreateVpnConnectionRoute"
 // client's request for the CreateVpnConnectionRoute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateVpnConnectionRoute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3056,6 +3619,8 @@ func (c *EC2) CreateVpnConnectionRouteRequest(input *CreateVpnConnectionRouteInp
 	return
 }
 
+// CreateVpnConnectionRoute API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a static route associated with a VPN connection between an existing
 // virtual private gateway and a VPN customer gateway. The static route allows
 // traffic to be routed from the virtual private gateway to the VPN customer
@@ -3064,6 +3629,13 @@ func (c *EC2) CreateVpnConnectionRouteRequest(input *CreateVpnConnectionRouteInp
 // For more information about VPN connections, see Adding a Hardware Virtual
 // Private Gateway to Your VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_VPN.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateVpnConnectionRoute for usage and error information.
 func (c *EC2) CreateVpnConnectionRoute(input *CreateVpnConnectionRouteInput) (*CreateVpnConnectionRouteOutput, error) {
 	req, out := c.CreateVpnConnectionRouteRequest(input)
 	err := req.Send()
@@ -3076,6 +3648,8 @@ const opCreateVpnGateway = "CreateVpnGateway"
 // client's request for the CreateVpnGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateVpnGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3111,6 +3685,8 @@ func (c *EC2) CreateVpnGatewayRequest(input *CreateVpnGatewayInput) (req *reques
 	return
 }
 
+// CreateVpnGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a virtual private gateway. A virtual private gateway is the endpoint
 // on the VPC side of your VPN connection. You can create a virtual private
 // gateway before creating the VPC itself.
@@ -3118,6 +3694,13 @@ func (c *EC2) CreateVpnGatewayRequest(input *CreateVpnGatewayInput) (req *reques
 // For more information about virtual private gateways, see Adding a Hardware
 // Virtual Private Gateway to Your VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_VPN.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateVpnGateway for usage and error information.
 func (c *EC2) CreateVpnGateway(input *CreateVpnGatewayInput) (*CreateVpnGatewayOutput, error) {
 	req, out := c.CreateVpnGatewayRequest(input)
 	err := req.Send()
@@ -3130,6 +3713,8 @@ const opDeleteCustomerGateway = "DeleteCustomerGateway"
 // client's request for the DeleteCustomerGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteCustomerGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3167,8 +3752,17 @@ func (c *EC2) DeleteCustomerGatewayRequest(input *DeleteCustomerGatewayInput) (r
 	return
 }
 
+// DeleteCustomerGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified customer gateway. You must delete the VPN connection
 // before you can delete the customer gateway.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteCustomerGateway for usage and error information.
 func (c *EC2) DeleteCustomerGateway(input *DeleteCustomerGatewayInput) (*DeleteCustomerGatewayOutput, error) {
 	req, out := c.DeleteCustomerGatewayRequest(input)
 	err := req.Send()
@@ -3181,6 +3775,8 @@ const opDeleteDhcpOptions = "DeleteDhcpOptions"
 // client's request for the DeleteDhcpOptions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteDhcpOptions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3218,10 +3814,19 @@ func (c *EC2) DeleteDhcpOptionsRequest(input *DeleteDhcpOptionsInput) (req *requ
 	return
 }
 
+// DeleteDhcpOptions API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified set of DHCP options. You must disassociate the set
 // of DHCP options before you can delete it. You can disassociate the set of
 // DHCP options by associating either a new set of options or the default set
 // of options with the VPC.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteDhcpOptions for usage and error information.
 func (c *EC2) DeleteDhcpOptions(input *DeleteDhcpOptionsInput) (*DeleteDhcpOptionsOutput, error) {
 	req, out := c.DeleteDhcpOptionsRequest(input)
 	err := req.Send()
@@ -3234,6 +3839,8 @@ const opDeleteFlowLogs = "DeleteFlowLogs"
 // client's request for the DeleteFlowLogs operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteFlowLogs for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3269,7 +3876,16 @@ func (c *EC2) DeleteFlowLogsRequest(input *DeleteFlowLogsInput) (req *request.Re
 	return
 }
 
+// DeleteFlowLogs API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes one or more flow logs.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteFlowLogs for usage and error information.
 func (c *EC2) DeleteFlowLogs(input *DeleteFlowLogsInput) (*DeleteFlowLogsOutput, error) {
 	req, out := c.DeleteFlowLogsRequest(input)
 	err := req.Send()
@@ -3282,6 +3898,8 @@ const opDeleteInternetGateway = "DeleteInternetGateway"
 // client's request for the DeleteInternetGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteInternetGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3319,8 +3937,17 @@ func (c *EC2) DeleteInternetGatewayRequest(input *DeleteInternetGatewayInput) (r
 	return
 }
 
+// DeleteInternetGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified Internet gateway. You must detach the Internet gateway
 // from the VPC before you can delete it.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteInternetGateway for usage and error information.
 func (c *EC2) DeleteInternetGateway(input *DeleteInternetGatewayInput) (*DeleteInternetGatewayOutput, error) {
 	req, out := c.DeleteInternetGatewayRequest(input)
 	err := req.Send()
@@ -3333,6 +3960,8 @@ const opDeleteKeyPair = "DeleteKeyPair"
 // client's request for the DeleteKeyPair operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteKeyPair for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3370,7 +3999,16 @@ func (c *EC2) DeleteKeyPairRequest(input *DeleteKeyPairInput) (req *request.Requ
 	return
 }
 
+// DeleteKeyPair API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified key pair, by removing the public key from Amazon EC2.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteKeyPair for usage and error information.
 func (c *EC2) DeleteKeyPair(input *DeleteKeyPairInput) (*DeleteKeyPairOutput, error) {
 	req, out := c.DeleteKeyPairRequest(input)
 	err := req.Send()
@@ -3383,6 +4021,8 @@ const opDeleteNatGateway = "DeleteNatGateway"
 // client's request for the DeleteNatGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteNatGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3418,9 +4058,18 @@ func (c *EC2) DeleteNatGatewayRequest(input *DeleteNatGatewayInput) (req *reques
 	return
 }
 
+// DeleteNatGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified NAT gateway. Deleting a NAT gateway disassociates its
 // Elastic IP address, but does not release the address from your account. Deleting
 // a NAT gateway does not delete any NAT gateway routes in your route tables.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteNatGateway for usage and error information.
 func (c *EC2) DeleteNatGateway(input *DeleteNatGatewayInput) (*DeleteNatGatewayOutput, error) {
 	req, out := c.DeleteNatGatewayRequest(input)
 	err := req.Send()
@@ -3433,6 +4082,8 @@ const opDeleteNetworkAcl = "DeleteNetworkAcl"
 // client's request for the DeleteNetworkAcl operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteNetworkAcl for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3470,8 +4121,17 @@ func (c *EC2) DeleteNetworkAclRequest(input *DeleteNetworkAclInput) (req *reques
 	return
 }
 
+// DeleteNetworkAcl API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified network ACL. You can't delete the ACL if it's associated
 // with any subnets. You can't delete the default network ACL.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteNetworkAcl for usage and error information.
 func (c *EC2) DeleteNetworkAcl(input *DeleteNetworkAclInput) (*DeleteNetworkAclOutput, error) {
 	req, out := c.DeleteNetworkAclRequest(input)
 	err := req.Send()
@@ -3484,6 +4144,8 @@ const opDeleteNetworkAclEntry = "DeleteNetworkAclEntry"
 // client's request for the DeleteNetworkAclEntry operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteNetworkAclEntry for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3521,8 +4183,17 @@ func (c *EC2) DeleteNetworkAclEntryRequest(input *DeleteNetworkAclEntryInput) (r
 	return
 }
 
+// DeleteNetworkAclEntry API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified ingress or egress entry (rule) from the specified network
 // ACL.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteNetworkAclEntry for usage and error information.
 func (c *EC2) DeleteNetworkAclEntry(input *DeleteNetworkAclEntryInput) (*DeleteNetworkAclEntryOutput, error) {
 	req, out := c.DeleteNetworkAclEntryRequest(input)
 	err := req.Send()
@@ -3535,6 +4206,8 @@ const opDeleteNetworkInterface = "DeleteNetworkInterface"
 // client's request for the DeleteNetworkInterface operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteNetworkInterface for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3572,8 +4245,17 @@ func (c *EC2) DeleteNetworkInterfaceRequest(input *DeleteNetworkInterfaceInput) 
 	return
 }
 
+// DeleteNetworkInterface API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified network interface. You must detach the network interface
 // before you can delete it.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteNetworkInterface for usage and error information.
 func (c *EC2) DeleteNetworkInterface(input *DeleteNetworkInterfaceInput) (*DeleteNetworkInterfaceOutput, error) {
 	req, out := c.DeleteNetworkInterfaceRequest(input)
 	err := req.Send()
@@ -3586,6 +4268,8 @@ const opDeletePlacementGroup = "DeletePlacementGroup"
 // client's request for the DeletePlacementGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeletePlacementGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3623,10 +4307,19 @@ func (c *EC2) DeletePlacementGroupRequest(input *DeletePlacementGroupInput) (req
 	return
 }
 
+// DeletePlacementGroup API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified placement group. You must terminate all instances in
 // the placement group before you can delete the placement group. For more information
 // about placement groups and cluster instances, see Cluster Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using_cluster_computing.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeletePlacementGroup for usage and error information.
 func (c *EC2) DeletePlacementGroup(input *DeletePlacementGroupInput) (*DeletePlacementGroupOutput, error) {
 	req, out := c.DeletePlacementGroupRequest(input)
 	err := req.Send()
@@ -3639,6 +4332,8 @@ const opDeleteRoute = "DeleteRoute"
 // client's request for the DeleteRoute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteRoute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3676,7 +4371,16 @@ func (c *EC2) DeleteRouteRequest(input *DeleteRouteInput) (req *request.Request,
 	return
 }
 
+// DeleteRoute API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified route from the specified route table.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteRoute for usage and error information.
 func (c *EC2) DeleteRoute(input *DeleteRouteInput) (*DeleteRouteOutput, error) {
 	req, out := c.DeleteRouteRequest(input)
 	err := req.Send()
@@ -3689,6 +4393,8 @@ const opDeleteRouteTable = "DeleteRouteTable"
 // client's request for the DeleteRouteTable operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteRouteTable for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3726,9 +4432,18 @@ func (c *EC2) DeleteRouteTableRequest(input *DeleteRouteTableInput) (req *reques
 	return
 }
 
+// DeleteRouteTable API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified route table. You must disassociate the route table
 // from any subnets before you can delete it. You can't delete the main route
 // table.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteRouteTable for usage and error information.
 func (c *EC2) DeleteRouteTable(input *DeleteRouteTableInput) (*DeleteRouteTableOutput, error) {
 	req, out := c.DeleteRouteTableRequest(input)
 	err := req.Send()
@@ -3741,6 +4456,8 @@ const opDeleteSecurityGroup = "DeleteSecurityGroup"
 // client's request for the DeleteSecurityGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteSecurityGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3778,11 +4495,20 @@ func (c *EC2) DeleteSecurityGroupRequest(input *DeleteSecurityGroupInput) (req *
 	return
 }
 
+// DeleteSecurityGroup API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes a security group.
 //
 // If you attempt to delete a security group that is associated with an instance,
 // or is referenced by another security group, the operation fails with InvalidGroup.InUse
 // in EC2-Classic or DependencyViolation in EC2-VPC.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteSecurityGroup for usage and error information.
 func (c *EC2) DeleteSecurityGroup(input *DeleteSecurityGroupInput) (*DeleteSecurityGroupOutput, error) {
 	req, out := c.DeleteSecurityGroupRequest(input)
 	err := req.Send()
@@ -3795,6 +4521,8 @@ const opDeleteSnapshot = "DeleteSnapshot"
 // client's request for the DeleteSnapshot operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteSnapshot for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3832,6 +4560,8 @@ func (c *EC2) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *request.Re
 	return
 }
 
+// DeleteSnapshot API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified snapshot.
 //
 // When you make periodic snapshots of a volume, the snapshots are incremental,
@@ -3847,6 +4577,13 @@ func (c *EC2) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *request.Re
 //
 // For more information, see Deleting an Amazon EBS Snapshot (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-deleting-snapshot.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteSnapshot for usage and error information.
 func (c *EC2) DeleteSnapshot(input *DeleteSnapshotInput) (*DeleteSnapshotOutput, error) {
 	req, out := c.DeleteSnapshotRequest(input)
 	err := req.Send()
@@ -3859,6 +4596,8 @@ const opDeleteSpotDatafeedSubscription = "DeleteSpotDatafeedSubscription"
 // client's request for the DeleteSpotDatafeedSubscription operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteSpotDatafeedSubscription for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3896,7 +4635,16 @@ func (c *EC2) DeleteSpotDatafeedSubscriptionRequest(input *DeleteSpotDatafeedSub
 	return
 }
 
+// DeleteSpotDatafeedSubscription API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the data feed for Spot instances.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteSpotDatafeedSubscription for usage and error information.
 func (c *EC2) DeleteSpotDatafeedSubscription(input *DeleteSpotDatafeedSubscriptionInput) (*DeleteSpotDatafeedSubscriptionOutput, error) {
 	req, out := c.DeleteSpotDatafeedSubscriptionRequest(input)
 	err := req.Send()
@@ -3909,6 +4657,8 @@ const opDeleteSubnet = "DeleteSubnet"
 // client's request for the DeleteSubnet operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteSubnet for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3946,8 +4696,17 @@ func (c *EC2) DeleteSubnetRequest(input *DeleteSubnetInput) (req *request.Reques
 	return
 }
 
+// DeleteSubnet API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified subnet. You must terminate all running instances in
 // the subnet before you can delete the subnet.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteSubnet for usage and error information.
 func (c *EC2) DeleteSubnet(input *DeleteSubnetInput) (*DeleteSubnetOutput, error) {
 	req, out := c.DeleteSubnetRequest(input)
 	err := req.Send()
@@ -3960,6 +4719,8 @@ const opDeleteTags = "DeleteTags"
 // client's request for the DeleteTags operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteTags for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3997,11 +4758,20 @@ func (c *EC2) DeleteTagsRequest(input *DeleteTagsInput) (req *request.Request, o
 	return
 }
 
+// DeleteTags API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified set of tags from the specified set of resources. This
 // call is designed to follow a DescribeTags request.
 //
 // For more information about tags, see Tagging Your Resources (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteTags for usage and error information.
 func (c *EC2) DeleteTags(input *DeleteTagsInput) (*DeleteTagsOutput, error) {
 	req, out := c.DeleteTagsRequest(input)
 	err := req.Send()
@@ -4014,6 +4784,8 @@ const opDeleteVolume = "DeleteVolume"
 // client's request for the DeleteVolume operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVolume for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4051,6 +4823,8 @@ func (c *EC2) DeleteVolumeRequest(input *DeleteVolumeInput) (req *request.Reques
 	return
 }
 
+// DeleteVolume API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified EBS volume. The volume must be in the available state
 // (not attached to an instance).
 //
@@ -4058,6 +4832,13 @@ func (c *EC2) DeleteVolumeRequest(input *DeleteVolumeInput) (req *request.Reques
 //
 //  For more information, see Deleting an Amazon EBS Volume (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-deleting-volume.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteVolume for usage and error information.
 func (c *EC2) DeleteVolume(input *DeleteVolumeInput) (*DeleteVolumeOutput, error) {
 	req, out := c.DeleteVolumeRequest(input)
 	err := req.Send()
@@ -4070,6 +4851,8 @@ const opDeleteVpc = "DeleteVpc"
 // client's request for the DeleteVpc operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVpc for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4107,11 +4890,20 @@ func (c *EC2) DeleteVpcRequest(input *DeleteVpcInput) (req *request.Request, out
 	return
 }
 
+// DeleteVpc API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified VPC. You must detach or delete all gateways and resources
 // that are associated with the VPC before you can delete it. For example, you
 // must terminate all instances running in the VPC, delete all security groups
 // associated with the VPC (except the default one), delete all route tables
 // associated with the VPC (except the default one), and so on.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteVpc for usage and error information.
 func (c *EC2) DeleteVpc(input *DeleteVpcInput) (*DeleteVpcOutput, error) {
 	req, out := c.DeleteVpcRequest(input)
 	err := req.Send()
@@ -4124,6 +4916,8 @@ const opDeleteVpcEndpoints = "DeleteVpcEndpoints"
 // client's request for the DeleteVpcEndpoints operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVpcEndpoints for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4159,8 +4953,17 @@ func (c *EC2) DeleteVpcEndpointsRequest(input *DeleteVpcEndpointsInput) (req *re
 	return
 }
 
+// DeleteVpcEndpoints API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes one or more specified VPC endpoints. Deleting the endpoint also deletes
 // the endpoint routes in the route tables that were associated with the endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteVpcEndpoints for usage and error information.
 func (c *EC2) DeleteVpcEndpoints(input *DeleteVpcEndpointsInput) (*DeleteVpcEndpointsOutput, error) {
 	req, out := c.DeleteVpcEndpointsRequest(input)
 	err := req.Send()
@@ -4173,6 +4976,8 @@ const opDeleteVpcPeeringConnection = "DeleteVpcPeeringConnection"
 // client's request for the DeleteVpcPeeringConnection operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVpcPeeringConnection for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4208,10 +5013,19 @@ func (c *EC2) DeleteVpcPeeringConnectionRequest(input *DeleteVpcPeeringConnectio
 	return
 }
 
+// DeleteVpcPeeringConnection API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes a VPC peering connection. Either the owner of the requester VPC or
 // the owner of the peer VPC can delete the VPC peering connection if it's in
 // the active state. The owner of the requester VPC can delete a VPC peering
 // connection in the pending-acceptance state.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteVpcPeeringConnection for usage and error information.
 func (c *EC2) DeleteVpcPeeringConnection(input *DeleteVpcPeeringConnectionInput) (*DeleteVpcPeeringConnectionOutput, error) {
 	req, out := c.DeleteVpcPeeringConnectionRequest(input)
 	err := req.Send()
@@ -4224,6 +5038,8 @@ const opDeleteVpnConnection = "DeleteVpnConnection"
 // client's request for the DeleteVpnConnection operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVpnConnection for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4261,6 +5077,8 @@ func (c *EC2) DeleteVpnConnectionRequest(input *DeleteVpnConnectionInput) (req *
 	return
 }
 
+// DeleteVpnConnection API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified VPN connection.
 //
 // If you're deleting the VPC and its associated components, we recommend that
@@ -4271,6 +5089,13 @@ func (c *EC2) DeleteVpnConnectionRequest(input *DeleteVpnConnectionInput) (req *
 // or virtual private gateway. If you create a new VPN connection, you must
 // reconfigure the customer gateway using the new configuration information
 // returned with the new VPN connection ID.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteVpnConnection for usage and error information.
 func (c *EC2) DeleteVpnConnection(input *DeleteVpnConnectionInput) (*DeleteVpnConnectionOutput, error) {
 	req, out := c.DeleteVpnConnectionRequest(input)
 	err := req.Send()
@@ -4283,6 +5108,8 @@ const opDeleteVpnConnectionRoute = "DeleteVpnConnectionRoute"
 // client's request for the DeleteVpnConnectionRoute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVpnConnectionRoute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4320,10 +5147,19 @@ func (c *EC2) DeleteVpnConnectionRouteRequest(input *DeleteVpnConnectionRouteInp
 	return
 }
 
+// DeleteVpnConnectionRoute API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified static route associated with a VPN connection between
 // an existing virtual private gateway and a VPN customer gateway. The static
 // route allows traffic to be routed from the virtual private gateway to the
 // VPN customer gateway.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteVpnConnectionRoute for usage and error information.
 func (c *EC2) DeleteVpnConnectionRoute(input *DeleteVpnConnectionRouteInput) (*DeleteVpnConnectionRouteOutput, error) {
 	req, out := c.DeleteVpnConnectionRouteRequest(input)
 	err := req.Send()
@@ -4336,6 +5172,8 @@ const opDeleteVpnGateway = "DeleteVpnGateway"
 // client's request for the DeleteVpnGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVpnGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4373,11 +5211,20 @@ func (c *EC2) DeleteVpnGatewayRequest(input *DeleteVpnGatewayInput) (req *reques
 	return
 }
 
+// DeleteVpnGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Deletes the specified virtual private gateway. We recommend that before you
 // delete a virtual private gateway, you detach it from the VPC and delete the
 // VPN connection. Note that you don't need to delete the virtual private gateway
 // if you plan to delete and recreate the VPN connection between your VPC and
 // your network.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteVpnGateway for usage and error information.
 func (c *EC2) DeleteVpnGateway(input *DeleteVpnGatewayInput) (*DeleteVpnGatewayOutput, error) {
 	req, out := c.DeleteVpnGatewayRequest(input)
 	err := req.Send()
@@ -4390,6 +5237,8 @@ const opDeregisterImage = "DeregisterImage"
 // client's request for the DeregisterImage operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeregisterImage for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4427,10 +5276,19 @@ func (c *EC2) DeregisterImageRequest(input *DeregisterImageInput) (req *request.
 	return
 }
 
+// DeregisterImage API operation for Amazon Elastic Compute Cloud.
+//
 // Deregisters the specified AMI. After you deregister an AMI, it can't be used
 // to launch new instances.
 //
 // This command does not delete the AMI.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeregisterImage for usage and error information.
 func (c *EC2) DeregisterImage(input *DeregisterImageInput) (*DeregisterImageOutput, error) {
 	req, out := c.DeregisterImageRequest(input)
 	err := req.Send()
@@ -4443,6 +5301,8 @@ const opDescribeAccountAttributes = "DescribeAccountAttributes"
 // client's request for the DescribeAccountAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeAccountAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4478,6 +5338,8 @@ func (c *EC2) DescribeAccountAttributesRequest(input *DescribeAccountAttributesI
 	return
 }
 
+// DescribeAccountAttributes API operation for Amazon Elastic Compute Cloud.
+//
 // Describes attributes of your AWS account. The following are the supported
 // account attributes:
 //
@@ -4497,6 +5359,13 @@ func (c *EC2) DescribeAccountAttributesRequest(input *DescribeAccountAttributesI
 //
 //    vpc-max-elastic-ips: The maximum number of Elastic IP addresses that
 // you can allocate for use with EC2-VPC.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeAccountAttributes for usage and error information.
 func (c *EC2) DescribeAccountAttributes(input *DescribeAccountAttributesInput) (*DescribeAccountAttributesOutput, error) {
 	req, out := c.DescribeAccountAttributesRequest(input)
 	err := req.Send()
@@ -4509,6 +5378,8 @@ const opDescribeAddresses = "DescribeAddresses"
 // client's request for the DescribeAddresses operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeAddresses for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4544,11 +5415,20 @@ func (c *EC2) DescribeAddressesRequest(input *DescribeAddressesInput) (req *requ
 	return
 }
 
+// DescribeAddresses API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your Elastic IP addresses.
 //
 // An Elastic IP address is for use in either the EC2-Classic platform or in
 // a VPC. For more information, see Elastic IP Addresses (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeAddresses for usage and error information.
 func (c *EC2) DescribeAddresses(input *DescribeAddressesInput) (*DescribeAddressesOutput, error) {
 	req, out := c.DescribeAddressesRequest(input)
 	err := req.Send()
@@ -4561,6 +5441,8 @@ const opDescribeAvailabilityZones = "DescribeAvailabilityZones"
 // client's request for the DescribeAvailabilityZones operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeAvailabilityZones for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4596,6 +5478,8 @@ func (c *EC2) DescribeAvailabilityZonesRequest(input *DescribeAvailabilityZonesI
 	return
 }
 
+// DescribeAvailabilityZones API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of the Availability Zones that are available to you.
 // The results include zones only for the region you're currently using. If
 // there is an event impacting an Availability Zone, you can use this request
@@ -4603,6 +5487,13 @@ func (c *EC2) DescribeAvailabilityZonesRequest(input *DescribeAvailabilityZonesI
 //
 // For more information, see Regions and Availability Zones (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeAvailabilityZones for usage and error information.
 func (c *EC2) DescribeAvailabilityZones(input *DescribeAvailabilityZonesInput) (*DescribeAvailabilityZonesOutput, error) {
 	req, out := c.DescribeAvailabilityZonesRequest(input)
 	err := req.Send()
@@ -4615,6 +5506,8 @@ const opDescribeBundleTasks = "DescribeBundleTasks"
 // client's request for the DescribeBundleTasks operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeBundleTasks for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4650,12 +5543,21 @@ func (c *EC2) DescribeBundleTasksRequest(input *DescribeBundleTasksInput) (req *
 	return
 }
 
+// DescribeBundleTasks API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your bundling tasks.
 //
 //  Completed bundle tasks are listed for only a limited time. If your bundle
 // task is no longer in the list, you can still register an AMI from it. Just
 // use RegisterImage with the Amazon S3 bucket name and image manifest name
 // you provided to the bundle task.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeBundleTasks for usage and error information.
 func (c *EC2) DescribeBundleTasks(input *DescribeBundleTasksInput) (*DescribeBundleTasksOutput, error) {
 	req, out := c.DescribeBundleTasksRequest(input)
 	err := req.Send()
@@ -4668,6 +5570,8 @@ const opDescribeClassicLinkInstances = "DescribeClassicLinkInstances"
 // client's request for the DescribeClassicLinkInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeClassicLinkInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4703,10 +5607,19 @@ func (c *EC2) DescribeClassicLinkInstancesRequest(input *DescribeClassicLinkInst
 	return
 }
 
+// DescribeClassicLinkInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your linked EC2-Classic instances. This request
 // only returns information about EC2-Classic instances linked to a VPC through
 // ClassicLink; you cannot use this request to return information about other
 // instances.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeClassicLinkInstances for usage and error information.
 func (c *EC2) DescribeClassicLinkInstances(input *DescribeClassicLinkInstancesInput) (*DescribeClassicLinkInstancesOutput, error) {
 	req, out := c.DescribeClassicLinkInstancesRequest(input)
 	err := req.Send()
@@ -4719,6 +5632,8 @@ const opDescribeConversionTasks = "DescribeConversionTasks"
 // client's request for the DescribeConversionTasks operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeConversionTasks for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4754,11 +5669,20 @@ func (c *EC2) DescribeConversionTasksRequest(input *DescribeConversionTasksInput
 	return
 }
 
+// DescribeConversionTasks API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your conversion tasks. For more information, see
 // the VM Import/Export User Guide (http://docs.aws.amazon.com/vm-import/latest/userguide/).
 //
 // For information about the import manifest referenced by this API action,
 // see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeConversionTasks for usage and error information.
 func (c *EC2) DescribeConversionTasks(input *DescribeConversionTasksInput) (*DescribeConversionTasksOutput, error) {
 	req, out := c.DescribeConversionTasksRequest(input)
 	err := req.Send()
@@ -4771,6 +5695,8 @@ const opDescribeCustomerGateways = "DescribeCustomerGateways"
 // client's request for the DescribeCustomerGateways operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeCustomerGateways for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4806,11 +5732,20 @@ func (c *EC2) DescribeCustomerGatewaysRequest(input *DescribeCustomerGatewaysInp
 	return
 }
 
+// DescribeCustomerGateways API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your VPN customer gateways.
 //
 // For more information about VPN customer gateways, see Adding a Hardware
 // Virtual Private Gateway to Your VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_VPN.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeCustomerGateways for usage and error information.
 func (c *EC2) DescribeCustomerGateways(input *DescribeCustomerGatewaysInput) (*DescribeCustomerGatewaysOutput, error) {
 	req, out := c.DescribeCustomerGatewaysRequest(input)
 	err := req.Send()
@@ -4823,6 +5758,8 @@ const opDescribeDhcpOptions = "DescribeDhcpOptions"
 // client's request for the DescribeDhcpOptions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeDhcpOptions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4858,10 +5795,19 @@ func (c *EC2) DescribeDhcpOptionsRequest(input *DescribeDhcpOptionsInput) (req *
 	return
 }
 
+// DescribeDhcpOptions API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your DHCP options sets.
 //
 // For more information about DHCP options sets, see DHCP Options Sets (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeDhcpOptions for usage and error information.
 func (c *EC2) DescribeDhcpOptions(input *DescribeDhcpOptionsInput) (*DescribeDhcpOptionsOutput, error) {
 	req, out := c.DescribeDhcpOptionsRequest(input)
 	err := req.Send()
@@ -4874,6 +5820,8 @@ const opDescribeExportTasks = "DescribeExportTasks"
 // client's request for the DescribeExportTasks operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeExportTasks for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4909,7 +5857,16 @@ func (c *EC2) DescribeExportTasksRequest(input *DescribeExportTasksInput) (req *
 	return
 }
 
+// DescribeExportTasks API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your export tasks.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeExportTasks for usage and error information.
 func (c *EC2) DescribeExportTasks(input *DescribeExportTasksInput) (*DescribeExportTasksOutput, error) {
 	req, out := c.DescribeExportTasksRequest(input)
 	err := req.Send()
@@ -4922,6 +5879,8 @@ const opDescribeFlowLogs = "DescribeFlowLogs"
 // client's request for the DescribeFlowLogs operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeFlowLogs for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4957,9 +5916,18 @@ func (c *EC2) DescribeFlowLogsRequest(input *DescribeFlowLogsInput) (req *reques
 	return
 }
 
+// DescribeFlowLogs API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more flow logs. To view the information in your flow logs
 // (the log streams for the network interfaces), you must use the CloudWatch
 // Logs console or the CloudWatch Logs API.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeFlowLogs for usage and error information.
 func (c *EC2) DescribeFlowLogs(input *DescribeFlowLogsInput) (*DescribeFlowLogsOutput, error) {
 	req, out := c.DescribeFlowLogsRequest(input)
 	err := req.Send()
@@ -4972,6 +5940,8 @@ const opDescribeHostReservationOfferings = "DescribeHostReservationOfferings"
 // client's request for the DescribeHostReservationOfferings operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeHostReservationOfferings for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5007,6 +5977,8 @@ func (c *EC2) DescribeHostReservationOfferingsRequest(input *DescribeHostReserva
 	return
 }
 
+// DescribeHostReservationOfferings API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the Dedicated Host Reservations that are available to purchase.
 //
 // The results describe all the Dedicated Host Reservation offerings, including
@@ -5016,6 +5988,13 @@ func (c *EC2) DescribeHostReservationOfferingsRequest(input *DescribeHostReserva
 // with. For an overview of supported instance types, see Dedicated Hosts Overview
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/dedicated-hosts-overview.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeHostReservationOfferings for usage and error information.
 func (c *EC2) DescribeHostReservationOfferings(input *DescribeHostReservationOfferingsInput) (*DescribeHostReservationOfferingsOutput, error) {
 	req, out := c.DescribeHostReservationOfferingsRequest(input)
 	err := req.Send()
@@ -5028,6 +6007,8 @@ const opDescribeHostReservations = "DescribeHostReservations"
 // client's request for the DescribeHostReservations operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeHostReservations for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5063,8 +6044,17 @@ func (c *EC2) DescribeHostReservationsRequest(input *DescribeHostReservationsInp
 	return
 }
 
+// DescribeHostReservations API operation for Amazon Elastic Compute Cloud.
+//
 // Describes Dedicated Host Reservations which are associated with Dedicated
 // Hosts in your account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeHostReservations for usage and error information.
 func (c *EC2) DescribeHostReservations(input *DescribeHostReservationsInput) (*DescribeHostReservationsOutput, error) {
 	req, out := c.DescribeHostReservationsRequest(input)
 	err := req.Send()
@@ -5077,6 +6067,8 @@ const opDescribeHosts = "DescribeHosts"
 // client's request for the DescribeHosts operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeHosts for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5112,11 +6104,20 @@ func (c *EC2) DescribeHostsRequest(input *DescribeHostsInput) (req *request.Requ
 	return
 }
 
+// DescribeHosts API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your Dedicated Hosts.
 //
 // The results describe only the Dedicated Hosts in the region you're currently
 // using. All listed instances consume capacity on your Dedicated Host. Dedicated
 // Hosts that have recently been released will be listed with the state released.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeHosts for usage and error information.
 func (c *EC2) DescribeHosts(input *DescribeHostsInput) (*DescribeHostsOutput, error) {
 	req, out := c.DescribeHostsRequest(input)
 	err := req.Send()
@@ -5129,6 +6130,8 @@ const opDescribeIdFormat = "DescribeIdFormat"
 // client's request for the DescribeIdFormat operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeIdFormat for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5164,6 +6167,8 @@ func (c *EC2) DescribeIdFormatRequest(input *DescribeIdFormatInput) (req *reques
 	return
 }
 
+// DescribeIdFormat API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the ID format settings for your resources on a per-region basis,
 // for example, to view which resource types are enabled for longer IDs. This
 // request only returns information about resource types whose ID formats can
@@ -5179,6 +6184,13 @@ func (c *EC2) DescribeIdFormatRequest(input *DescribeIdFormatInput) (req *reques
 // are visible to all IAM users, regardless of these settings and provided that
 // they have permission to use the relevant Describe command for the resource
 // type.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeIdFormat for usage and error information.
 func (c *EC2) DescribeIdFormat(input *DescribeIdFormatInput) (*DescribeIdFormatOutput, error) {
 	req, out := c.DescribeIdFormatRequest(input)
 	err := req.Send()
@@ -5191,6 +6203,8 @@ const opDescribeIdentityIdFormat = "DescribeIdentityIdFormat"
 // client's request for the DescribeIdentityIdFormat operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeIdentityIdFormat for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5226,6 +6240,8 @@ func (c *EC2) DescribeIdentityIdFormatRequest(input *DescribeIdentityIdFormatInp
 	return
 }
 
+// DescribeIdentityIdFormat API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the ID format settings for resources for the specified IAM user,
 // IAM role, or root user. For example, you can view the resource types that
 // are enabled for longer IDs. This request only returns information about resource
@@ -5238,6 +6254,13 @@ func (c *EC2) DescribeIdentityIdFormatRequest(input *DescribeIdentityIdFormatInp
 //
 // These settings apply to the principal specified in the request. They do
 // not apply to the principal that makes the request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeIdentityIdFormat for usage and error information.
 func (c *EC2) DescribeIdentityIdFormat(input *DescribeIdentityIdFormatInput) (*DescribeIdentityIdFormatOutput, error) {
 	req, out := c.DescribeIdentityIdFormatRequest(input)
 	err := req.Send()
@@ -5250,6 +6273,8 @@ const opDescribeImageAttribute = "DescribeImageAttribute"
 // client's request for the DescribeImageAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeImageAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5285,8 +6310,17 @@ func (c *EC2) DescribeImageAttributeRequest(input *DescribeImageAttributeInput) 
 	return
 }
 
+// DescribeImageAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the specified attribute of the specified AMI. You can specify only
 // one attribute at a time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeImageAttribute for usage and error information.
 func (c *EC2) DescribeImageAttribute(input *DescribeImageAttributeInput) (*DescribeImageAttributeOutput, error) {
 	req, out := c.DescribeImageAttributeRequest(input)
 	err := req.Send()
@@ -5299,6 +6333,8 @@ const opDescribeImages = "DescribeImages"
 // client's request for the DescribeImages operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeImages for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5334,6 +6370,8 @@ func (c *EC2) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 	return
 }
 
+// DescribeImages API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of the images (AMIs, AKIs, and ARIs) available to you.
 // Images available to you include public images, private images that you own,
 // and private images owned by other AWS accounts but for which you have explicit
@@ -5341,6 +6379,13 @@ func (c *EC2) DescribeImagesRequest(input *DescribeImagesInput) (req *request.Re
 //
 //  Deregistered images are included in the returned results for an unspecified
 // interval after deregistration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeImages for usage and error information.
 func (c *EC2) DescribeImages(input *DescribeImagesInput) (*DescribeImagesOutput, error) {
 	req, out := c.DescribeImagesRequest(input)
 	err := req.Send()
@@ -5353,6 +6398,8 @@ const opDescribeImportImageTasks = "DescribeImportImageTasks"
 // client's request for the DescribeImportImageTasks operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeImportImageTasks for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5388,8 +6435,17 @@ func (c *EC2) DescribeImportImageTasksRequest(input *DescribeImportImageTasksInp
 	return
 }
 
+// DescribeImportImageTasks API operation for Amazon Elastic Compute Cloud.
+//
 // Displays details about an import virtual machine or import snapshot tasks
 // that are already created.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeImportImageTasks for usage and error information.
 func (c *EC2) DescribeImportImageTasks(input *DescribeImportImageTasksInput) (*DescribeImportImageTasksOutput, error) {
 	req, out := c.DescribeImportImageTasksRequest(input)
 	err := req.Send()
@@ -5402,6 +6458,8 @@ const opDescribeImportSnapshotTasks = "DescribeImportSnapshotTasks"
 // client's request for the DescribeImportSnapshotTasks operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeImportSnapshotTasks for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5437,7 +6495,16 @@ func (c *EC2) DescribeImportSnapshotTasksRequest(input *DescribeImportSnapshotTa
 	return
 }
 
+// DescribeImportSnapshotTasks API operation for Amazon Elastic Compute Cloud.
+//
 // Describes your import snapshot tasks.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeImportSnapshotTasks for usage and error information.
 func (c *EC2) DescribeImportSnapshotTasks(input *DescribeImportSnapshotTasksInput) (*DescribeImportSnapshotTasksOutput, error) {
 	req, out := c.DescribeImportSnapshotTasksRequest(input)
 	err := req.Send()
@@ -5450,6 +6517,8 @@ const opDescribeInstanceAttribute = "DescribeInstanceAttribute"
 // client's request for the DescribeInstanceAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeInstanceAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5485,11 +6554,20 @@ func (c *EC2) DescribeInstanceAttributeRequest(input *DescribeInstanceAttributeI
 	return
 }
 
+// DescribeInstanceAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the specified attribute of the specified instance. You can specify
 // only one attribute at a time. Valid attribute values are: instanceType |
 // kernel | ramdisk | userData | disableApiTermination | instanceInitiatedShutdownBehavior
 // | rootDeviceName | blockDeviceMapping | productCodes | sourceDestCheck |
 // groupSet | ebsOptimized | sriovNetSupport
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeInstanceAttribute for usage and error information.
 func (c *EC2) DescribeInstanceAttribute(input *DescribeInstanceAttributeInput) (*DescribeInstanceAttributeOutput, error) {
 	req, out := c.DescribeInstanceAttributeRequest(input)
 	err := req.Send()
@@ -5502,6 +6580,8 @@ const opDescribeInstanceStatus = "DescribeInstanceStatus"
 // client's request for the DescribeInstanceStatus operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeInstanceStatus for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5543,6 +6623,8 @@ func (c *EC2) DescribeInstanceStatusRequest(input *DescribeInstanceStatusInput) 
 	return
 }
 
+// DescribeInstanceStatus API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the status of one or more instances. By default, only running instances
 // are described, unless specified otherwise.
 //
@@ -5564,6 +6646,13 @@ func (c *EC2) DescribeInstanceStatusRequest(input *DescribeInstanceStatusInput) 
 // them through their termination. For more information, see Instance Lifecycle
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeInstanceStatus for usage and error information.
 func (c *EC2) DescribeInstanceStatus(input *DescribeInstanceStatusInput) (*DescribeInstanceStatusOutput, error) {
 	req, out := c.DescribeInstanceStatusRequest(input)
 	err := req.Send()
@@ -5601,6 +6690,8 @@ const opDescribeInstances = "DescribeInstances"
 // client's request for the DescribeInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5642,6 +6733,8 @@ func (c *EC2) DescribeInstancesRequest(input *DescribeInstancesInput) (req *requ
 	return
 }
 
+// DescribeInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your instances.
 //
 // If you specify one or more instance IDs, Amazon EC2 returns information
@@ -5658,6 +6751,13 @@ func (c *EC2) DescribeInstancesRequest(input *DescribeInstancesInput) (req *requ
 // the affected zone, or do not specify any instance IDs at all, the call fails.
 // If you describe instances and specify only instance IDs that are in an unaffected
 // zone, the call works normally.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeInstances for usage and error information.
 func (c *EC2) DescribeInstances(input *DescribeInstancesInput) (*DescribeInstancesOutput, error) {
 	req, out := c.DescribeInstancesRequest(input)
 	err := req.Send()
@@ -5696,6 +6796,8 @@ const opDescribeInternetGateways = "DescribeInternetGateways"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeInternetGateways for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -5730,7 +6832,16 @@ func (c *EC2) DescribeInternetGatewaysRequest(input *DescribeInternetGatewaysInp
 	return
 }
 
+// DescribeInternetGateways API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your Internet gateways.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeInternetGateways for usage and error information.
 func (c *EC2) DescribeInternetGateways(input *DescribeInternetGatewaysInput) (*DescribeInternetGatewaysOutput, error) {
 	req, out := c.DescribeInternetGatewaysRequest(input)
 	err := req.Send()
@@ -5743,6 +6854,8 @@ const opDescribeKeyPairs = "DescribeKeyPairs"
 // client's request for the DescribeKeyPairs operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeKeyPairs for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5778,10 +6891,19 @@ func (c *EC2) DescribeKeyPairsRequest(input *DescribeKeyPairsInput) (req *reques
 	return
 }
 
+// DescribeKeyPairs API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your key pairs.
 //
 // For more information about key pairs, see Key Pairs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeKeyPairs for usage and error information.
 func (c *EC2) DescribeKeyPairs(input *DescribeKeyPairsInput) (*DescribeKeyPairsOutput, error) {
 	req, out := c.DescribeKeyPairsRequest(input)
 	err := req.Send()
@@ -5794,6 +6916,8 @@ const opDescribeMovingAddresses = "DescribeMovingAddresses"
 // client's request for the DescribeMovingAddresses operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeMovingAddresses for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5829,9 +6953,18 @@ func (c *EC2) DescribeMovingAddressesRequest(input *DescribeMovingAddressesInput
 	return
 }
 
+// DescribeMovingAddresses API operation for Amazon Elastic Compute Cloud.
+//
 // Describes your Elastic IP addresses that are being moved to the EC2-VPC platform,
 // or that are being restored to the EC2-Classic platform. This request does
 // not return information about any other Elastic IP addresses in your account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeMovingAddresses for usage and error information.
 func (c *EC2) DescribeMovingAddresses(input *DescribeMovingAddressesInput) (*DescribeMovingAddressesOutput, error) {
 	req, out := c.DescribeMovingAddressesRequest(input)
 	err := req.Send()
@@ -5844,6 +6977,8 @@ const opDescribeNatGateways = "DescribeNatGateways"
 // client's request for the DescribeNatGateways operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeNatGateways for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5879,7 +7014,16 @@ func (c *EC2) DescribeNatGatewaysRequest(input *DescribeNatGatewaysInput) (req *
 	return
 }
 
+// DescribeNatGateways API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of the your NAT gateways.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeNatGateways for usage and error information.
 func (c *EC2) DescribeNatGateways(input *DescribeNatGatewaysInput) (*DescribeNatGatewaysOutput, error) {
 	req, out := c.DescribeNatGatewaysRequest(input)
 	err := req.Send()
@@ -5892,6 +7036,8 @@ const opDescribeNetworkAcls = "DescribeNetworkAcls"
 // client's request for the DescribeNetworkAcls operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeNetworkAcls for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5927,10 +7073,19 @@ func (c *EC2) DescribeNetworkAclsRequest(input *DescribeNetworkAclsInput) (req *
 	return
 }
 
+// DescribeNetworkAcls API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your network ACLs.
 //
 // For more information about network ACLs, see Network ACLs (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeNetworkAcls for usage and error information.
 func (c *EC2) DescribeNetworkAcls(input *DescribeNetworkAclsInput) (*DescribeNetworkAclsOutput, error) {
 	req, out := c.DescribeNetworkAclsRequest(input)
 	err := req.Send()
@@ -5943,6 +7098,8 @@ const opDescribeNetworkInterfaceAttribute = "DescribeNetworkInterfaceAttribute"
 // client's request for the DescribeNetworkInterfaceAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeNetworkInterfaceAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5978,8 +7135,17 @@ func (c *EC2) DescribeNetworkInterfaceAttributeRequest(input *DescribeNetworkInt
 	return
 }
 
+// DescribeNetworkInterfaceAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Describes a network interface attribute. You can specify only one attribute
 // at a time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeNetworkInterfaceAttribute for usage and error information.
 func (c *EC2) DescribeNetworkInterfaceAttribute(input *DescribeNetworkInterfaceAttributeInput) (*DescribeNetworkInterfaceAttributeOutput, error) {
 	req, out := c.DescribeNetworkInterfaceAttributeRequest(input)
 	err := req.Send()
@@ -5992,6 +7158,8 @@ const opDescribeNetworkInterfaces = "DescribeNetworkInterfaces"
 // client's request for the DescribeNetworkInterfaces operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeNetworkInterfaces for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6027,7 +7195,16 @@ func (c *EC2) DescribeNetworkInterfacesRequest(input *DescribeNetworkInterfacesI
 	return
 }
 
+// DescribeNetworkInterfaces API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your network interfaces.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeNetworkInterfaces for usage and error information.
 func (c *EC2) DescribeNetworkInterfaces(input *DescribeNetworkInterfacesInput) (*DescribeNetworkInterfacesOutput, error) {
 	req, out := c.DescribeNetworkInterfacesRequest(input)
 	err := req.Send()
@@ -6040,6 +7217,8 @@ const opDescribePlacementGroups = "DescribePlacementGroups"
 // client's request for the DescribePlacementGroups operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribePlacementGroups for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6075,9 +7254,18 @@ func (c *EC2) DescribePlacementGroupsRequest(input *DescribePlacementGroupsInput
 	return
 }
 
+// DescribePlacementGroups API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your placement groups. For more information about
 // placement groups and cluster instances, see Cluster Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using_cluster_computing.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribePlacementGroups for usage and error information.
 func (c *EC2) DescribePlacementGroups(input *DescribePlacementGroupsInput) (*DescribePlacementGroupsOutput, error) {
 	req, out := c.DescribePlacementGroupsRequest(input)
 	err := req.Send()
@@ -6090,6 +7278,8 @@ const opDescribePrefixLists = "DescribePrefixLists"
 // client's request for the DescribePrefixLists operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribePrefixLists for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6125,11 +7315,20 @@ func (c *EC2) DescribePrefixListsRequest(input *DescribePrefixListsInput) (req *
 	return
 }
 
+// DescribePrefixLists API operation for Amazon Elastic Compute Cloud.
+//
 // Describes available AWS services in a prefix list format, which includes
 // the prefix list name and prefix list ID of the service and the IP address
 // range for the service. A prefix list ID is required for creating an outbound
 // security group rule that allows traffic from a VPC to access an AWS service
 // through a VPC endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribePrefixLists for usage and error information.
 func (c *EC2) DescribePrefixLists(input *DescribePrefixListsInput) (*DescribePrefixListsOutput, error) {
 	req, out := c.DescribePrefixListsRequest(input)
 	err := req.Send()
@@ -6142,6 +7341,8 @@ const opDescribeRegions = "DescribeRegions"
 // client's request for the DescribeRegions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeRegions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6177,10 +7378,19 @@ func (c *EC2) DescribeRegionsRequest(input *DescribeRegionsInput) (req *request.
 	return
 }
 
+// DescribeRegions API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more regions that are currently available to you.
 //
 // For a list of the regions supported by Amazon EC2, see Regions and Endpoints
 // (http://docs.aws.amazon.com/general/latest/gr/rande.html#ec2_region).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeRegions for usage and error information.
 func (c *EC2) DescribeRegions(input *DescribeRegionsInput) (*DescribeRegionsOutput, error) {
 	req, out := c.DescribeRegionsRequest(input)
 	err := req.Send()
@@ -6193,6 +7403,8 @@ const opDescribeReservedInstances = "DescribeReservedInstances"
 // client's request for the DescribeReservedInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeReservedInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6228,10 +7440,19 @@ func (c *EC2) DescribeReservedInstancesRequest(input *DescribeReservedInstancesI
 	return
 }
 
+// DescribeReservedInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of the Reserved Instances that you purchased.
 //
 // For more information about Reserved Instances, see Reserved Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts-on-demand-reserved-instances.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeReservedInstances for usage and error information.
 func (c *EC2) DescribeReservedInstances(input *DescribeReservedInstancesInput) (*DescribeReservedInstancesOutput, error) {
 	req, out := c.DescribeReservedInstancesRequest(input)
 	err := req.Send()
@@ -6244,6 +7465,8 @@ const opDescribeReservedInstancesListings = "DescribeReservedInstancesListings"
 // client's request for the DescribeReservedInstancesListings operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeReservedInstancesListings for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6279,6 +7502,8 @@ func (c *EC2) DescribeReservedInstancesListingsRequest(input *DescribeReservedIn
 	return
 }
 
+// DescribeReservedInstancesListings API operation for Amazon Elastic Compute Cloud.
+//
 // Describes your account's Reserved Instance listings in the Reserved Instance
 // Marketplace.
 //
@@ -6301,6 +7526,13 @@ func (c *EC2) DescribeReservedInstancesListingsRequest(input *DescribeReservedIn
 //
 // For more information, see Reserved Instance Marketplace (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-market-general.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeReservedInstancesListings for usage and error information.
 func (c *EC2) DescribeReservedInstancesListings(input *DescribeReservedInstancesListingsInput) (*DescribeReservedInstancesListingsOutput, error) {
 	req, out := c.DescribeReservedInstancesListingsRequest(input)
 	err := req.Send()
@@ -6313,6 +7545,8 @@ const opDescribeReservedInstancesModifications = "DescribeReservedInstancesModif
 // client's request for the DescribeReservedInstancesModifications operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeReservedInstancesModifications for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6354,6 +7588,8 @@ func (c *EC2) DescribeReservedInstancesModificationsRequest(input *DescribeReser
 	return
 }
 
+// DescribeReservedInstancesModifications API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the modifications made to your Reserved Instances. If no parameter
 // is specified, information about all your Reserved Instances modification
 // requests is returned. If a modification ID is specified, only information
@@ -6361,6 +7597,13 @@ func (c *EC2) DescribeReservedInstancesModificationsRequest(input *DescribeReser
 //
 // For more information, see Modifying Reserved Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-modifying.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeReservedInstancesModifications for usage and error information.
 func (c *EC2) DescribeReservedInstancesModifications(input *DescribeReservedInstancesModificationsInput) (*DescribeReservedInstancesModificationsOutput, error) {
 	req, out := c.DescribeReservedInstancesModificationsRequest(input)
 	err := req.Send()
@@ -6398,6 +7641,8 @@ const opDescribeReservedInstancesOfferings = "DescribeReservedInstancesOfferings
 // client's request for the DescribeReservedInstancesOfferings operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeReservedInstancesOfferings for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6439,6 +7684,8 @@ func (c *EC2) DescribeReservedInstancesOfferingsRequest(input *DescribeReservedI
 	return
 }
 
+// DescribeReservedInstancesOfferings API operation for Amazon Elastic Compute Cloud.
+//
 // Describes Reserved Instance offerings that are available for purchase. With
 // Reserved Instances, you purchase the right to launch instances for a period
 // of time. During that time period, you do not receive insufficient capacity
@@ -6451,6 +7698,13 @@ func (c *EC2) DescribeReservedInstancesOfferingsRequest(input *DescribeReservedI
 //
 // For more information, see Reserved Instance Marketplace (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-market-general.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeReservedInstancesOfferings for usage and error information.
 func (c *EC2) DescribeReservedInstancesOfferings(input *DescribeReservedInstancesOfferingsInput) (*DescribeReservedInstancesOfferingsOutput, error) {
 	req, out := c.DescribeReservedInstancesOfferingsRequest(input)
 	err := req.Send()
@@ -6489,6 +7743,8 @@ const opDescribeRouteTables = "DescribeRouteTables"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeRouteTables for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -6523,6 +7779,8 @@ func (c *EC2) DescribeRouteTablesRequest(input *DescribeRouteTablesInput) (req *
 	return
 }
 
+// DescribeRouteTables API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your route tables.
 //
 // Each subnet in your VPC must be associated with a route table. If a subnet
@@ -6532,6 +7790,13 @@ func (c *EC2) DescribeRouteTablesRequest(input *DescribeRouteTablesInput) (req *
 //
 // For more information about route tables, see Route Tables (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Route_Tables.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeRouteTables for usage and error information.
 func (c *EC2) DescribeRouteTables(input *DescribeRouteTablesInput) (*DescribeRouteTablesOutput, error) {
 	req, out := c.DescribeRouteTablesRequest(input)
 	err := req.Send()
@@ -6544,6 +7809,8 @@ const opDescribeScheduledInstanceAvailability = "DescribeScheduledInstanceAvaila
 // client's request for the DescribeScheduledInstanceAvailability operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeScheduledInstanceAvailability for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6579,6 +7846,8 @@ func (c *EC2) DescribeScheduledInstanceAvailabilityRequest(input *DescribeSchedu
 	return
 }
 
+// DescribeScheduledInstanceAvailability API operation for Amazon Elastic Compute Cloud.
+//
 // Finds available schedules that meet the specified criteria.
 //
 // You can search for an available schedule no more than 3 months in advance.
@@ -6588,6 +7857,13 @@ func (c *EC2) DescribeScheduledInstanceAvailabilityRequest(input *DescribeSchedu
 //
 // After you find a schedule that meets your needs, call PurchaseScheduledInstances
 // to purchase Scheduled Instances with that schedule.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeScheduledInstanceAvailability for usage and error information.
 func (c *EC2) DescribeScheduledInstanceAvailability(input *DescribeScheduledInstanceAvailabilityInput) (*DescribeScheduledInstanceAvailabilityOutput, error) {
 	req, out := c.DescribeScheduledInstanceAvailabilityRequest(input)
 	err := req.Send()
@@ -6600,6 +7876,8 @@ const opDescribeScheduledInstances = "DescribeScheduledInstances"
 // client's request for the DescribeScheduledInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeScheduledInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6635,7 +7913,16 @@ func (c *EC2) DescribeScheduledInstancesRequest(input *DescribeScheduledInstance
 	return
 }
 
+// DescribeScheduledInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your Scheduled Instances.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeScheduledInstances for usage and error information.
 func (c *EC2) DescribeScheduledInstances(input *DescribeScheduledInstancesInput) (*DescribeScheduledInstancesOutput, error) {
 	req, out := c.DescribeScheduledInstancesRequest(input)
 	err := req.Send()
@@ -6648,6 +7935,8 @@ const opDescribeSecurityGroupReferences = "DescribeSecurityGroupReferences"
 // client's request for the DescribeSecurityGroupReferences operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSecurityGroupReferences for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6683,8 +7972,17 @@ func (c *EC2) DescribeSecurityGroupReferencesRequest(input *DescribeSecurityGrou
 	return
 }
 
+// DescribeSecurityGroupReferences API operation for Amazon Elastic Compute Cloud.
+//
 // [EC2-VPC only] Describes the VPCs on the other side of a VPC peering connection
 // that are referencing the security groups you've specified in this request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSecurityGroupReferences for usage and error information.
 func (c *EC2) DescribeSecurityGroupReferences(input *DescribeSecurityGroupReferencesInput) (*DescribeSecurityGroupReferencesOutput, error) {
 	req, out := c.DescribeSecurityGroupReferencesRequest(input)
 	err := req.Send()
@@ -6697,6 +7995,8 @@ const opDescribeSecurityGroups = "DescribeSecurityGroups"
 // client's request for the DescribeSecurityGroups operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSecurityGroups for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6732,6 +8032,8 @@ func (c *EC2) DescribeSecurityGroupsRequest(input *DescribeSecurityGroupsInput) 
 	return
 }
 
+// DescribeSecurityGroups API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your security groups.
 //
 // A security group is for use with instances either in the EC2-Classic platform
@@ -6740,6 +8042,13 @@ func (c *EC2) DescribeSecurityGroupsRequest(input *DescribeSecurityGroupsInput) 
 // in the Amazon Elastic Compute Cloud User Guide and Security Groups for Your
 // VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_SecurityGroups.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSecurityGroups for usage and error information.
 func (c *EC2) DescribeSecurityGroups(input *DescribeSecurityGroupsInput) (*DescribeSecurityGroupsOutput, error) {
 	req, out := c.DescribeSecurityGroupsRequest(input)
 	err := req.Send()
@@ -6752,6 +8061,8 @@ const opDescribeSnapshotAttribute = "DescribeSnapshotAttribute"
 // client's request for the DescribeSnapshotAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSnapshotAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6787,11 +8098,20 @@ func (c *EC2) DescribeSnapshotAttributeRequest(input *DescribeSnapshotAttributeI
 	return
 }
 
+// DescribeSnapshotAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the specified attribute of the specified snapshot. You can specify
 // only one attribute at a time.
 //
 // For more information about EBS snapshots, see Amazon EBS Snapshots (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSnapshotAttribute for usage and error information.
 func (c *EC2) DescribeSnapshotAttribute(input *DescribeSnapshotAttributeInput) (*DescribeSnapshotAttributeOutput, error) {
 	req, out := c.DescribeSnapshotAttributeRequest(input)
 	err := req.Send()
@@ -6804,6 +8124,8 @@ const opDescribeSnapshots = "DescribeSnapshots"
 // client's request for the DescribeSnapshots operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSnapshots for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6845,6 +8167,8 @@ func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *requ
 	return
 }
 
+// DescribeSnapshots API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of the EBS snapshots available to you. Available snapshots
 // include public snapshots available for any AWS account to launch, private
 // snapshots that you own, and private snapshots owned by another AWS account
@@ -6891,6 +8215,13 @@ func (c *EC2) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (req *requ
 //
 // For more information about EBS snapshots, see Amazon EBS Snapshots (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSSnapshots.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSnapshots for usage and error information.
 func (c *EC2) DescribeSnapshots(input *DescribeSnapshotsInput) (*DescribeSnapshotsOutput, error) {
 	req, out := c.DescribeSnapshotsRequest(input)
 	err := req.Send()
@@ -6929,6 +8260,8 @@ const opDescribeSpotDatafeedSubscription = "DescribeSpotDatafeedSubscription"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeSpotDatafeedSubscription for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -6963,9 +8296,18 @@ func (c *EC2) DescribeSpotDatafeedSubscriptionRequest(input *DescribeSpotDatafee
 	return
 }
 
+// DescribeSpotDatafeedSubscription API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the data feed for Spot instances. For more information, see Spot
 // Instance Data Feed (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-data-feeds.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSpotDatafeedSubscription for usage and error information.
 func (c *EC2) DescribeSpotDatafeedSubscription(input *DescribeSpotDatafeedSubscriptionInput) (*DescribeSpotDatafeedSubscriptionOutput, error) {
 	req, out := c.DescribeSpotDatafeedSubscriptionRequest(input)
 	err := req.Send()
@@ -6978,6 +8320,8 @@ const opDescribeSpotFleetInstances = "DescribeSpotFleetInstances"
 // client's request for the DescribeSpotFleetInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSpotFleetInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7013,7 +8357,16 @@ func (c *EC2) DescribeSpotFleetInstancesRequest(input *DescribeSpotFleetInstance
 	return
 }
 
+// DescribeSpotFleetInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the running instances for the specified Spot fleet.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSpotFleetInstances for usage and error information.
 func (c *EC2) DescribeSpotFleetInstances(input *DescribeSpotFleetInstancesInput) (*DescribeSpotFleetInstancesOutput, error) {
 	req, out := c.DescribeSpotFleetInstancesRequest(input)
 	err := req.Send()
@@ -7026,6 +8379,8 @@ const opDescribeSpotFleetRequestHistory = "DescribeSpotFleetRequestHistory"
 // client's request for the DescribeSpotFleetRequestHistory operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSpotFleetRequestHistory for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7061,12 +8416,21 @@ func (c *EC2) DescribeSpotFleetRequestHistoryRequest(input *DescribeSpotFleetReq
 	return
 }
 
+// DescribeSpotFleetRequestHistory API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the events for the specified Spot fleet request during the specified
 // time.
 //
 // Spot fleet events are delayed by up to 30 seconds before they can be described.
 // This ensures that you can query by the last evaluated time and not miss a
 // recorded event.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSpotFleetRequestHistory for usage and error information.
 func (c *EC2) DescribeSpotFleetRequestHistory(input *DescribeSpotFleetRequestHistoryInput) (*DescribeSpotFleetRequestHistoryOutput, error) {
 	req, out := c.DescribeSpotFleetRequestHistoryRequest(input)
 	err := req.Send()
@@ -7079,6 +8443,8 @@ const opDescribeSpotFleetRequests = "DescribeSpotFleetRequests"
 // client's request for the DescribeSpotFleetRequests operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSpotFleetRequests for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7120,10 +8486,19 @@ func (c *EC2) DescribeSpotFleetRequestsRequest(input *DescribeSpotFleetRequestsI
 	return
 }
 
+// DescribeSpotFleetRequests API operation for Amazon Elastic Compute Cloud.
+//
 // Describes your Spot fleet requests.
 //
 // Spot fleet requests are deleted 48 hours after they are canceled and their
 // instances are terminated.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSpotFleetRequests for usage and error information.
 func (c *EC2) DescribeSpotFleetRequests(input *DescribeSpotFleetRequestsInput) (*DescribeSpotFleetRequestsOutput, error) {
 	req, out := c.DescribeSpotFleetRequestsRequest(input)
 	err := req.Send()
@@ -7162,6 +8537,8 @@ const opDescribeSpotInstanceRequests = "DescribeSpotInstanceRequests"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeSpotInstanceRequests for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -7196,6 +8573,8 @@ func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceReq
 	return
 }
 
+// DescribeSpotInstanceRequests API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the Spot instance requests that belong to your account. Spot instances
 // are instances that Amazon EC2 launches when the bid price that you specify
 // exceeds the current Spot price. Amazon EC2 periodically sets the Spot price
@@ -7211,6 +8590,13 @@ func (c *EC2) DescribeSpotInstanceRequestsRequest(input *DescribeSpotInstanceReq
 //
 // Spot instance requests are deleted 4 hours after they are canceled and their
 // instances are terminated.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSpotInstanceRequests for usage and error information.
 func (c *EC2) DescribeSpotInstanceRequests(input *DescribeSpotInstanceRequestsInput) (*DescribeSpotInstanceRequestsOutput, error) {
 	req, out := c.DescribeSpotInstanceRequestsRequest(input)
 	err := req.Send()
@@ -7223,6 +8609,8 @@ const opDescribeSpotPriceHistory = "DescribeSpotPriceHistory"
 // client's request for the DescribeSpotPriceHistory operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSpotPriceHistory for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7264,6 +8652,8 @@ func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInp
 	return
 }
 
+// DescribeSpotPriceHistory API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the Spot price history. The prices returned are listed in chronological
 // order, from the oldest to the most recent, for up to the past 90 days. For
 // more information, see Spot Instance Pricing History (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances-history.html)
@@ -7273,6 +8663,13 @@ func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInp
 // of the instance types within the time range that you specified and the time
 // when the price changed. The price is valid within the time period that you
 // specified; the response merely indicates the last time that the price changed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSpotPriceHistory for usage and error information.
 func (c *EC2) DescribeSpotPriceHistory(input *DescribeSpotPriceHistoryInput) (*DescribeSpotPriceHistoryOutput, error) {
 	req, out := c.DescribeSpotPriceHistoryRequest(input)
 	err := req.Send()
@@ -7311,6 +8708,8 @@ const opDescribeStaleSecurityGroups = "DescribeStaleSecurityGroups"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeStaleSecurityGroups for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -7345,10 +8744,19 @@ func (c *EC2) DescribeStaleSecurityGroupsRequest(input *DescribeStaleSecurityGro
 	return
 }
 
+// DescribeStaleSecurityGroups API operation for Amazon Elastic Compute Cloud.
+//
 // [EC2-VPC only] Describes the stale security group rules for security groups
 // in a specified VPC. Rules are stale when they reference a deleted security
 // group in a peer VPC, or a security group in a peer VPC for which the VPC
 // peering connection has been deleted.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeStaleSecurityGroups for usage and error information.
 func (c *EC2) DescribeStaleSecurityGroups(input *DescribeStaleSecurityGroupsInput) (*DescribeStaleSecurityGroupsOutput, error) {
 	req, out := c.DescribeStaleSecurityGroupsRequest(input)
 	err := req.Send()
@@ -7361,6 +8769,8 @@ const opDescribeSubnets = "DescribeSubnets"
 // client's request for the DescribeSubnets operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeSubnets for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7396,10 +8806,19 @@ func (c *EC2) DescribeSubnetsRequest(input *DescribeSubnetsInput) (req *request.
 	return
 }
 
+// DescribeSubnets API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your subnets.
 //
 // For more information about subnets, see Your VPC and Subnets (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeSubnets for usage and error information.
 func (c *EC2) DescribeSubnets(input *DescribeSubnetsInput) (*DescribeSubnetsOutput, error) {
 	req, out := c.DescribeSubnetsRequest(input)
 	err := req.Send()
@@ -7412,6 +8831,8 @@ const opDescribeTags = "DescribeTags"
 // client's request for the DescribeTags operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeTags for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7453,10 +8874,19 @@ func (c *EC2) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 	return
 }
 
+// DescribeTags API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of the tags for your EC2 resources.
 //
 // For more information about tags, see Tagging Your Resources (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeTags for usage and error information.
 func (c *EC2) DescribeTags(input *DescribeTagsInput) (*DescribeTagsOutput, error) {
 	req, out := c.DescribeTagsRequest(input)
 	err := req.Send()
@@ -7495,6 +8925,8 @@ const opDescribeVolumeAttribute = "DescribeVolumeAttribute"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeVolumeAttribute for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -7529,11 +8961,20 @@ func (c *EC2) DescribeVolumeAttributeRequest(input *DescribeVolumeAttributeInput
 	return
 }
 
+// DescribeVolumeAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the specified attribute of the specified volume. You can specify
 // only one attribute at a time.
 //
 // For more information about EBS volumes, see Amazon EBS Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumes.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVolumeAttribute for usage and error information.
 func (c *EC2) DescribeVolumeAttribute(input *DescribeVolumeAttributeInput) (*DescribeVolumeAttributeOutput, error) {
 	req, out := c.DescribeVolumeAttributeRequest(input)
 	err := req.Send()
@@ -7546,6 +8987,8 @@ const opDescribeVolumeStatus = "DescribeVolumeStatus"
 // client's request for the DescribeVolumeStatus operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVolumeStatus for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7587,6 +9030,8 @@ func (c *EC2) DescribeVolumeStatusRequest(input *DescribeVolumeStatusInput) (req
 	return
 }
 
+// DescribeVolumeStatus API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the status of the specified volumes. Volume status provides the
 // result of the checks performed on your volumes to determine events that can
 // impair the performance of your volumes. The performance of a volume can be
@@ -7622,6 +9067,13 @@ func (c *EC2) DescribeVolumeStatusRequest(input *DescribeVolumeStatusInput) (req
 //  Volume status is based on the volume status checks, and does not reflect
 // the volume state. Therefore, volume status does not indicate volumes in the
 // error state (for example, when a volume is incapable of accepting I/O.)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVolumeStatus for usage and error information.
 func (c *EC2) DescribeVolumeStatus(input *DescribeVolumeStatusInput) (*DescribeVolumeStatusOutput, error) {
 	req, out := c.DescribeVolumeStatusRequest(input)
 	err := req.Send()
@@ -7659,6 +9111,8 @@ const opDescribeVolumes = "DescribeVolumes"
 // client's request for the DescribeVolumes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVolumes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7700,6 +9154,8 @@ func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.
 	return
 }
 
+// DescribeVolumes API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the specified EBS volumes.
 //
 // If you are describing a long list of volumes, you can paginate the output
@@ -7711,6 +9167,13 @@ func (c *EC2) DescribeVolumesRequest(input *DescribeVolumesInput) (req *request.
 //
 // For more information about EBS volumes, see Amazon EBS Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumes.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVolumes for usage and error information.
 func (c *EC2) DescribeVolumes(input *DescribeVolumesInput) (*DescribeVolumesOutput, error) {
 	req, out := c.DescribeVolumesRequest(input)
 	err := req.Send()
@@ -7749,6 +9212,8 @@ const opDescribeVpcAttribute = "DescribeVpcAttribute"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See DescribeVpcAttribute for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -7783,8 +9248,17 @@ func (c *EC2) DescribeVpcAttributeRequest(input *DescribeVpcAttributeInput) (req
 	return
 }
 
+// DescribeVpcAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the specified attribute of the specified VPC. You can specify only
 // one attribute at a time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVpcAttribute for usage and error information.
 func (c *EC2) DescribeVpcAttribute(input *DescribeVpcAttributeInput) (*DescribeVpcAttributeOutput, error) {
 	req, out := c.DescribeVpcAttributeRequest(input)
 	err := req.Send()
@@ -7797,6 +9271,8 @@ const opDescribeVpcClassicLink = "DescribeVpcClassicLink"
 // client's request for the DescribeVpcClassicLink operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVpcClassicLink for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7832,7 +9308,16 @@ func (c *EC2) DescribeVpcClassicLinkRequest(input *DescribeVpcClassicLinkInput) 
 	return
 }
 
+// DescribeVpcClassicLink API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the ClassicLink status of one or more VPCs.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVpcClassicLink for usage and error information.
 func (c *EC2) DescribeVpcClassicLink(input *DescribeVpcClassicLinkInput) (*DescribeVpcClassicLinkOutput, error) {
 	req, out := c.DescribeVpcClassicLinkRequest(input)
 	err := req.Send()
@@ -7845,6 +9330,8 @@ const opDescribeVpcClassicLinkDnsSupport = "DescribeVpcClassicLinkDnsSupport"
 // client's request for the DescribeVpcClassicLinkDnsSupport operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVpcClassicLinkDnsSupport for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7880,6 +9367,8 @@ func (c *EC2) DescribeVpcClassicLinkDnsSupportRequest(input *DescribeVpcClassicL
 	return
 }
 
+// DescribeVpcClassicLinkDnsSupport API operation for Amazon Elastic Compute Cloud.
+//
 // Describes the ClassicLink DNS support status of one or more VPCs. If enabled,
 // the DNS hostname of a linked EC2-Classic instance resolves to its private
 // IP address when addressed from an instance in the VPC to which it's linked.
@@ -7887,6 +9376,13 @@ func (c *EC2) DescribeVpcClassicLinkDnsSupportRequest(input *DescribeVpcClassicL
 // IP address when addressed from a linked EC2-Classic instance. For more information
 // about ClassicLink, see ClassicLink (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVpcClassicLinkDnsSupport for usage and error information.
 func (c *EC2) DescribeVpcClassicLinkDnsSupport(input *DescribeVpcClassicLinkDnsSupportInput) (*DescribeVpcClassicLinkDnsSupportOutput, error) {
 	req, out := c.DescribeVpcClassicLinkDnsSupportRequest(input)
 	err := req.Send()
@@ -7899,6 +9395,8 @@ const opDescribeVpcEndpointServices = "DescribeVpcEndpointServices"
 // client's request for the DescribeVpcEndpointServices operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVpcEndpointServices for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7934,8 +9432,17 @@ func (c *EC2) DescribeVpcEndpointServicesRequest(input *DescribeVpcEndpointServi
 	return
 }
 
+// DescribeVpcEndpointServices API operation for Amazon Elastic Compute Cloud.
+//
 // Describes all supported AWS services that can be specified when creating
 // a VPC endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVpcEndpointServices for usage and error information.
 func (c *EC2) DescribeVpcEndpointServices(input *DescribeVpcEndpointServicesInput) (*DescribeVpcEndpointServicesOutput, error) {
 	req, out := c.DescribeVpcEndpointServicesRequest(input)
 	err := req.Send()
@@ -7948,6 +9455,8 @@ const opDescribeVpcEndpoints = "DescribeVpcEndpoints"
 // client's request for the DescribeVpcEndpoints operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVpcEndpoints for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7983,7 +9492,16 @@ func (c *EC2) DescribeVpcEndpointsRequest(input *DescribeVpcEndpointsInput) (req
 	return
 }
 
+// DescribeVpcEndpoints API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your VPC endpoints.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVpcEndpoints for usage and error information.
 func (c *EC2) DescribeVpcEndpoints(input *DescribeVpcEndpointsInput) (*DescribeVpcEndpointsOutput, error) {
 	req, out := c.DescribeVpcEndpointsRequest(input)
 	err := req.Send()
@@ -7996,6 +9514,8 @@ const opDescribeVpcPeeringConnections = "DescribeVpcPeeringConnections"
 // client's request for the DescribeVpcPeeringConnections operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVpcPeeringConnections for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8031,7 +9551,16 @@ func (c *EC2) DescribeVpcPeeringConnectionsRequest(input *DescribeVpcPeeringConn
 	return
 }
 
+// DescribeVpcPeeringConnections API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your VPC peering connections.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVpcPeeringConnections for usage and error information.
 func (c *EC2) DescribeVpcPeeringConnections(input *DescribeVpcPeeringConnectionsInput) (*DescribeVpcPeeringConnectionsOutput, error) {
 	req, out := c.DescribeVpcPeeringConnectionsRequest(input)
 	err := req.Send()
@@ -8044,6 +9573,8 @@ const opDescribeVpcs = "DescribeVpcs"
 // client's request for the DescribeVpcs operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVpcs for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8079,7 +9610,16 @@ func (c *EC2) DescribeVpcsRequest(input *DescribeVpcsInput) (req *request.Reques
 	return
 }
 
+// DescribeVpcs API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your VPCs.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVpcs for usage and error information.
 func (c *EC2) DescribeVpcs(input *DescribeVpcsInput) (*DescribeVpcsOutput, error) {
 	req, out := c.DescribeVpcsRequest(input)
 	err := req.Send()
@@ -8092,6 +9632,8 @@ const opDescribeVpnConnections = "DescribeVpnConnections"
 // client's request for the DescribeVpnConnections operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVpnConnections for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8127,11 +9669,20 @@ func (c *EC2) DescribeVpnConnectionsRequest(input *DescribeVpnConnectionsInput) 
 	return
 }
 
+// DescribeVpnConnections API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your VPN connections.
 //
 // For more information about VPN connections, see Adding a Hardware Virtual
 // Private Gateway to Your VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_VPN.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVpnConnections for usage and error information.
 func (c *EC2) DescribeVpnConnections(input *DescribeVpnConnectionsInput) (*DescribeVpnConnectionsOutput, error) {
 	req, out := c.DescribeVpnConnectionsRequest(input)
 	err := req.Send()
@@ -8144,6 +9695,8 @@ const opDescribeVpnGateways = "DescribeVpnGateways"
 // client's request for the DescribeVpnGateways operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeVpnGateways for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8179,11 +9732,20 @@ func (c *EC2) DescribeVpnGatewaysRequest(input *DescribeVpnGatewaysInput) (req *
 	return
 }
 
+// DescribeVpnGateways API operation for Amazon Elastic Compute Cloud.
+//
 // Describes one or more of your virtual private gateways.
 //
 // For more information about virtual private gateways, see Adding an IPsec
 // Hardware VPN to Your VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_VPN.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeVpnGateways for usage and error information.
 func (c *EC2) DescribeVpnGateways(input *DescribeVpnGatewaysInput) (*DescribeVpnGatewaysOutput, error) {
 	req, out := c.DescribeVpnGatewaysRequest(input)
 	err := req.Send()
@@ -8196,6 +9758,8 @@ const opDetachClassicLinkVpc = "DetachClassicLinkVpc"
 // client's request for the DetachClassicLinkVpc operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DetachClassicLinkVpc for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8231,9 +9795,18 @@ func (c *EC2) DetachClassicLinkVpcRequest(input *DetachClassicLinkVpcInput) (req
 	return
 }
 
+// DetachClassicLinkVpc API operation for Amazon Elastic Compute Cloud.
+//
 // Unlinks (detaches) a linked EC2-Classic instance from a VPC. After the instance
 // has been unlinked, the VPC security groups are no longer associated with
 // it. An instance is automatically unlinked from a VPC when it's stopped.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DetachClassicLinkVpc for usage and error information.
 func (c *EC2) DetachClassicLinkVpc(input *DetachClassicLinkVpcInput) (*DetachClassicLinkVpcOutput, error) {
 	req, out := c.DetachClassicLinkVpcRequest(input)
 	err := req.Send()
@@ -8246,6 +9819,8 @@ const opDetachInternetGateway = "DetachInternetGateway"
 // client's request for the DetachInternetGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DetachInternetGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8283,9 +9858,18 @@ func (c *EC2) DetachInternetGatewayRequest(input *DetachInternetGatewayInput) (r
 	return
 }
 
+// DetachInternetGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Detaches an Internet gateway from a VPC, disabling connectivity between the
 // Internet and the VPC. The VPC must not contain any running instances with
 // Elastic IP addresses.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DetachInternetGateway for usage and error information.
 func (c *EC2) DetachInternetGateway(input *DetachInternetGatewayInput) (*DetachInternetGatewayOutput, error) {
 	req, out := c.DetachInternetGatewayRequest(input)
 	err := req.Send()
@@ -8298,6 +9882,8 @@ const opDetachNetworkInterface = "DetachNetworkInterface"
 // client's request for the DetachNetworkInterface operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DetachNetworkInterface for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8335,7 +9921,16 @@ func (c *EC2) DetachNetworkInterfaceRequest(input *DetachNetworkInterfaceInput) 
 	return
 }
 
+// DetachNetworkInterface API operation for Amazon Elastic Compute Cloud.
+//
 // Detaches a network interface from an instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DetachNetworkInterface for usage and error information.
 func (c *EC2) DetachNetworkInterface(input *DetachNetworkInterfaceInput) (*DetachNetworkInterfaceOutput, error) {
 	req, out := c.DetachNetworkInterfaceRequest(input)
 	err := req.Send()
@@ -8348,6 +9943,8 @@ const opDetachVolume = "DetachVolume"
 // client's request for the DetachVolume operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DetachVolume for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8383,6 +9980,8 @@ func (c *EC2) DetachVolumeRequest(input *DetachVolumeInput) (req *request.Reques
 	return
 }
 
+// DetachVolume API operation for Amazon Elastic Compute Cloud.
+//
 // Detaches an EBS volume from an instance. Make sure to unmount any file systems
 // on the device within your operating system before detaching the volume. Failure
 // to do so can result in the volume becoming stuck in the busy state while
@@ -8397,6 +9996,13 @@ func (c *EC2) DetachVolumeRequest(input *DetachVolumeInput) (req *request.Reques
 //
 // For more information, see Detaching an Amazon EBS Volume (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-detaching-volume.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DetachVolume for usage and error information.
 func (c *EC2) DetachVolume(input *DetachVolumeInput) (*VolumeAttachment, error) {
 	req, out := c.DetachVolumeRequest(input)
 	err := req.Send()
@@ -8409,6 +10015,8 @@ const opDetachVpnGateway = "DetachVpnGateway"
 // client's request for the DetachVpnGateway operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DetachVpnGateway for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8446,6 +10054,8 @@ func (c *EC2) DetachVpnGatewayRequest(input *DetachVpnGatewayInput) (req *reques
 	return
 }
 
+// DetachVpnGateway API operation for Amazon Elastic Compute Cloud.
+//
 // Detaches a virtual private gateway from a VPC. You do this if you're planning
 // to turn off the VPC and not use it anymore. You can confirm a virtual private
 // gateway has been completely detached from a VPC by describing the virtual
@@ -8454,6 +10064,13 @@ func (c *EC2) DetachVpnGatewayRequest(input *DetachVpnGatewayInput) (req *reques
 //
 // You must wait for the attachment's state to switch to detached before you
 // can delete the VPC or attach a different VPC to the virtual private gateway.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DetachVpnGateway for usage and error information.
 func (c *EC2) DetachVpnGateway(input *DetachVpnGatewayInput) (*DetachVpnGatewayOutput, error) {
 	req, out := c.DetachVpnGatewayRequest(input)
 	err := req.Send()
@@ -8466,6 +10083,8 @@ const opDisableVgwRoutePropagation = "DisableVgwRoutePropagation"
 // client's request for the DisableVgwRoutePropagation operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DisableVgwRoutePropagation for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8503,8 +10122,17 @@ func (c *EC2) DisableVgwRoutePropagationRequest(input *DisableVgwRoutePropagatio
 	return
 }
 
+// DisableVgwRoutePropagation API operation for Amazon Elastic Compute Cloud.
+//
 // Disables a virtual private gateway (VGW) from propagating routes to a specified
 // route table of a VPC.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisableVgwRoutePropagation for usage and error information.
 func (c *EC2) DisableVgwRoutePropagation(input *DisableVgwRoutePropagationInput) (*DisableVgwRoutePropagationOutput, error) {
 	req, out := c.DisableVgwRoutePropagationRequest(input)
 	err := req.Send()
@@ -8517,6 +10145,8 @@ const opDisableVpcClassicLink = "DisableVpcClassicLink"
 // client's request for the DisableVpcClassicLink operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DisableVpcClassicLink for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8552,8 +10182,17 @@ func (c *EC2) DisableVpcClassicLinkRequest(input *DisableVpcClassicLinkInput) (r
 	return
 }
 
+// DisableVpcClassicLink API operation for Amazon Elastic Compute Cloud.
+//
 // Disables ClassicLink for a VPC. You cannot disable ClassicLink for a VPC
 // that has EC2-Classic instances linked to it.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisableVpcClassicLink for usage and error information.
 func (c *EC2) DisableVpcClassicLink(input *DisableVpcClassicLinkInput) (*DisableVpcClassicLinkOutput, error) {
 	req, out := c.DisableVpcClassicLinkRequest(input)
 	err := req.Send()
@@ -8566,6 +10205,8 @@ const opDisableVpcClassicLinkDnsSupport = "DisableVpcClassicLinkDnsSupport"
 // client's request for the DisableVpcClassicLinkDnsSupport operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DisableVpcClassicLinkDnsSupport for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8601,11 +10242,20 @@ func (c *EC2) DisableVpcClassicLinkDnsSupportRequest(input *DisableVpcClassicLin
 	return
 }
 
+// DisableVpcClassicLinkDnsSupport API operation for Amazon Elastic Compute Cloud.
+//
 // Disables ClassicLink DNS support for a VPC. If disabled, DNS hostnames resolve
 // to public IP addresses when addressed between a linked EC2-Classic instance
 // and instances in the VPC to which it's linked. For more information about
 // ClassicLink, see ClassicLink (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisableVpcClassicLinkDnsSupport for usage and error information.
 func (c *EC2) DisableVpcClassicLinkDnsSupport(input *DisableVpcClassicLinkDnsSupportInput) (*DisableVpcClassicLinkDnsSupportOutput, error) {
 	req, out := c.DisableVpcClassicLinkDnsSupportRequest(input)
 	err := req.Send()
@@ -8618,6 +10268,8 @@ const opDisassociateAddress = "DisassociateAddress"
 // client's request for the DisassociateAddress operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DisassociateAddress for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8655,6 +10307,8 @@ func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *
 	return
 }
 
+// DisassociateAddress API operation for Amazon Elastic Compute Cloud.
+//
 // Disassociates an Elastic IP address from the instance or network interface
 // it's associated with.
 //
@@ -8664,6 +10318,13 @@ func (c *EC2) DisassociateAddressRequest(input *DisassociateAddressInput) (req *
 //
 // This is an idempotent operation. If you perform the operation more than
 // once, Amazon EC2 doesn't return an error.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisassociateAddress for usage and error information.
 func (c *EC2) DisassociateAddress(input *DisassociateAddressInput) (*DisassociateAddressOutput, error) {
 	req, out := c.DisassociateAddressRequest(input)
 	err := req.Send()
@@ -8676,6 +10337,8 @@ const opDisassociateRouteTable = "DisassociateRouteTable"
 // client's request for the DisassociateRouteTable operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DisassociateRouteTable for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8713,12 +10376,21 @@ func (c *EC2) DisassociateRouteTableRequest(input *DisassociateRouteTableInput) 
 	return
 }
 
+// DisassociateRouteTable API operation for Amazon Elastic Compute Cloud.
+//
 // Disassociates a subnet from a route table.
 //
 // After you perform this action, the subnet no longer uses the routes in the
 // route table. Instead, it uses the routes in the VPC's main route table. For
 // more information about route tables, see Route Tables (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Route_Tables.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisassociateRouteTable for usage and error information.
 func (c *EC2) DisassociateRouteTable(input *DisassociateRouteTableInput) (*DisassociateRouteTableOutput, error) {
 	req, out := c.DisassociateRouteTableRequest(input)
 	err := req.Send()
@@ -8731,6 +10403,8 @@ const opEnableVgwRoutePropagation = "EnableVgwRoutePropagation"
 // client's request for the EnableVgwRoutePropagation operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See EnableVgwRoutePropagation for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8768,8 +10442,17 @@ func (c *EC2) EnableVgwRoutePropagationRequest(input *EnableVgwRoutePropagationI
 	return
 }
 
+// EnableVgwRoutePropagation API operation for Amazon Elastic Compute Cloud.
+//
 // Enables a virtual private gateway (VGW) to propagate routes to the specified
 // route table of a VPC.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation EnableVgwRoutePropagation for usage and error information.
 func (c *EC2) EnableVgwRoutePropagation(input *EnableVgwRoutePropagationInput) (*EnableVgwRoutePropagationOutput, error) {
 	req, out := c.EnableVgwRoutePropagationRequest(input)
 	err := req.Send()
@@ -8782,6 +10465,8 @@ const opEnableVolumeIO = "EnableVolumeIO"
 // client's request for the EnableVolumeIO operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See EnableVolumeIO for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8819,8 +10504,17 @@ func (c *EC2) EnableVolumeIORequest(input *EnableVolumeIOInput) (req *request.Re
 	return
 }
 
+// EnableVolumeIO API operation for Amazon Elastic Compute Cloud.
+//
 // Enables I/O operations for a volume that had I/O operations disabled because
 // the data on the volume was potentially inconsistent.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation EnableVolumeIO for usage and error information.
 func (c *EC2) EnableVolumeIO(input *EnableVolumeIOInput) (*EnableVolumeIOOutput, error) {
 	req, out := c.EnableVolumeIORequest(input)
 	err := req.Send()
@@ -8833,6 +10527,8 @@ const opEnableVpcClassicLink = "EnableVpcClassicLink"
 // client's request for the EnableVpcClassicLink operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See EnableVpcClassicLink for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8868,6 +10564,8 @@ func (c *EC2) EnableVpcClassicLinkRequest(input *EnableVpcClassicLinkInput) (req
 	return
 }
 
+// EnableVpcClassicLink API operation for Amazon Elastic Compute Cloud.
+//
 // Enables a VPC for ClassicLink. You can then link EC2-Classic instances to
 // your ClassicLink-enabled VPC to allow communication over private IP addresses.
 // You cannot enable your VPC for ClassicLink if any of your VPC's route tables
@@ -8875,6 +10573,13 @@ func (c *EC2) EnableVpcClassicLinkRequest(input *EnableVpcClassicLinkInput) (req
 // range, excluding local routes for VPCs in the 10.0.0.0/16 and 10.1.0.0/16
 // IP address ranges. For more information, see ClassicLink (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation EnableVpcClassicLink for usage and error information.
 func (c *EC2) EnableVpcClassicLink(input *EnableVpcClassicLinkInput) (*EnableVpcClassicLinkOutput, error) {
 	req, out := c.EnableVpcClassicLinkRequest(input)
 	err := req.Send()
@@ -8887,6 +10592,8 @@ const opEnableVpcClassicLinkDnsSupport = "EnableVpcClassicLinkDnsSupport"
 // client's request for the EnableVpcClassicLinkDnsSupport operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See EnableVpcClassicLinkDnsSupport for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8922,6 +10629,8 @@ func (c *EC2) EnableVpcClassicLinkDnsSupportRequest(input *EnableVpcClassicLinkD
 	return
 }
 
+// EnableVpcClassicLinkDnsSupport API operation for Amazon Elastic Compute Cloud.
+//
 // Enables a VPC to support DNS hostname resolution for ClassicLink. If enabled,
 // the DNS hostname of a linked EC2-Classic instance resolves to its private
 // IP address when addressed from an instance in the VPC to which it's linked.
@@ -8929,6 +10638,13 @@ func (c *EC2) EnableVpcClassicLinkDnsSupportRequest(input *EnableVpcClassicLinkD
 // IP address when addressed from a linked EC2-Classic instance. For more information
 // about ClassicLink, see ClassicLink (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation EnableVpcClassicLinkDnsSupport for usage and error information.
 func (c *EC2) EnableVpcClassicLinkDnsSupport(input *EnableVpcClassicLinkDnsSupportInput) (*EnableVpcClassicLinkDnsSupportOutput, error) {
 	req, out := c.EnableVpcClassicLinkDnsSupportRequest(input)
 	err := req.Send()
@@ -8941,6 +10657,8 @@ const opGetConsoleOutput = "GetConsoleOutput"
 // client's request for the GetConsoleOutput operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetConsoleOutput for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -8976,6 +10694,8 @@ func (c *EC2) GetConsoleOutputRequest(input *GetConsoleOutputInput) (req *reques
 	return
 }
 
+// GetConsoleOutput API operation for Amazon Elastic Compute Cloud.
+//
 // Gets the console output for the specified instance.
 //
 // Instances do not have a physical monitor through which you can view their
@@ -8994,6 +10714,13 @@ func (c *EC2) GetConsoleOutputRequest(input *GetConsoleOutputInput) (req *reques
 //
 // For Windows instances, the instance console output includes output from
 // the EC2Config service.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation GetConsoleOutput for usage and error information.
 func (c *EC2) GetConsoleOutput(input *GetConsoleOutputInput) (*GetConsoleOutputOutput, error) {
 	req, out := c.GetConsoleOutputRequest(input)
 	err := req.Send()
@@ -9006,6 +10733,8 @@ const opGetConsoleScreenshot = "GetConsoleScreenshot"
 // client's request for the GetConsoleScreenshot operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetConsoleScreenshot for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9041,9 +10770,18 @@ func (c *EC2) GetConsoleScreenshotRequest(input *GetConsoleScreenshotInput) (req
 	return
 }
 
+// GetConsoleScreenshot API operation for Amazon Elastic Compute Cloud.
+//
 // Retrieve a JPG-format screenshot of a running instance to help with troubleshooting.
 //
 // The returned content is Base64-encoded.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation GetConsoleScreenshot for usage and error information.
 func (c *EC2) GetConsoleScreenshot(input *GetConsoleScreenshotInput) (*GetConsoleScreenshotOutput, error) {
 	req, out := c.GetConsoleScreenshotRequest(input)
 	err := req.Send()
@@ -9056,6 +10794,8 @@ const opGetHostReservationPurchasePreview = "GetHostReservationPurchasePreview"
 // client's request for the GetHostReservationPurchasePreview operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetHostReservationPurchasePreview for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9091,12 +10831,21 @@ func (c *EC2) GetHostReservationPurchasePreviewRequest(input *GetHostReservation
 	return
 }
 
+// GetHostReservationPurchasePreview API operation for Amazon Elastic Compute Cloud.
+//
 // Preview a reservation purchase with configurations that match those of your
 // Dedicated Host. You must have active Dedicated Hosts in your account before
 // you purchase a reservation.
 //
 // This is a preview of the PurchaseHostReservation action and does not result
 // in the offering being purchased.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation GetHostReservationPurchasePreview for usage and error information.
 func (c *EC2) GetHostReservationPurchasePreview(input *GetHostReservationPurchasePreviewInput) (*GetHostReservationPurchasePreviewOutput, error) {
 	req, out := c.GetHostReservationPurchasePreviewRequest(input)
 	err := req.Send()
@@ -9109,6 +10858,8 @@ const opGetPasswordData = "GetPasswordData"
 // client's request for the GetPasswordData operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetPasswordData for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9144,6 +10895,8 @@ func (c *EC2) GetPasswordDataRequest(input *GetPasswordDataInput) (req *request.
 	return
 }
 
+// GetPasswordData API operation for Amazon Elastic Compute Cloud.
+//
 // Retrieves the encrypted administrator password for an instance running Windows.
 //
 // The Windows password is generated at boot if the EC2Config service plugin,
@@ -9158,6 +10911,13 @@ func (c *EC2) GetPasswordDataRequest(input *GetPasswordDataInput) (req *request.
 // Password generation and encryption takes a few moments. We recommend that
 // you wait up to 15 minutes after launching an instance before trying to retrieve
 // the generated password.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation GetPasswordData for usage and error information.
 func (c *EC2) GetPasswordData(input *GetPasswordDataInput) (*GetPasswordDataOutput, error) {
 	req, out := c.GetPasswordDataRequest(input)
 	err := req.Send()
@@ -9170,6 +10930,8 @@ const opGetReservedInstancesExchangeQuote = "GetReservedInstancesExchangeQuote"
 // client's request for the GetReservedInstancesExchangeQuote operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetReservedInstancesExchangeQuote for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9205,9 +10967,18 @@ func (c *EC2) GetReservedInstancesExchangeQuoteRequest(input *GetReservedInstanc
 	return
 }
 
+// GetReservedInstancesExchangeQuote API operation for Amazon Elastic Compute Cloud.
+//
 // Returns details about the values and term of your specified Convertible Reserved
 // Instances. When an offering ID is specified it returns information about
 // whether the exchange is valid and can be performed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation GetReservedInstancesExchangeQuote for usage and error information.
 func (c *EC2) GetReservedInstancesExchangeQuote(input *GetReservedInstancesExchangeQuoteInput) (*GetReservedInstancesExchangeQuoteOutput, error) {
 	req, out := c.GetReservedInstancesExchangeQuoteRequest(input)
 	err := req.Send()
@@ -9220,6 +10991,8 @@ const opImportImage = "ImportImage"
 // client's request for the ImportImage operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ImportImage for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9255,10 +11028,19 @@ func (c *EC2) ImportImageRequest(input *ImportImageInput) (req *request.Request,
 	return
 }
 
+// ImportImage API operation for Amazon Elastic Compute Cloud.
+//
 // Import single or multi-volume disk images or EBS snapshots into an Amazon
 // Machine Image (AMI). For more information, see Importing a VM as an Image
 // Using VM Import/Export (http://docs.aws.amazon.com/vm-import/latest/userguide/vmimport-image-import.html)
 // in the VM Import/Export User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ImportImage for usage and error information.
 func (c *EC2) ImportImage(input *ImportImageInput) (*ImportImageOutput, error) {
 	req, out := c.ImportImageRequest(input)
 	err := req.Send()
@@ -9271,6 +11053,8 @@ const opImportInstance = "ImportInstance"
 // client's request for the ImportInstance operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ImportInstance for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9306,6 +11090,8 @@ func (c *EC2) ImportInstanceRequest(input *ImportInstanceInput) (req *request.Re
 	return
 }
 
+// ImportInstance API operation for Amazon Elastic Compute Cloud.
+//
 // Creates an import instance task using metadata from the specified disk image.
 // ImportInstance only supports single-volume VMs. To import multi-volume VMs,
 // use ImportImage. For more information, see Importing a Virtual Machine Using
@@ -9313,6 +11099,13 @@ func (c *EC2) ImportInstanceRequest(input *ImportInstanceInput) (req *request.Re
 //
 // For information about the import manifest referenced by this API action,
 // see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ImportInstance for usage and error information.
 func (c *EC2) ImportInstance(input *ImportInstanceInput) (*ImportInstanceOutput, error) {
 	req, out := c.ImportInstanceRequest(input)
 	err := req.Send()
@@ -9325,6 +11118,8 @@ const opImportKeyPair = "ImportKeyPair"
 // client's request for the ImportKeyPair operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ImportKeyPair for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9360,6 +11155,8 @@ func (c *EC2) ImportKeyPairRequest(input *ImportKeyPairInput) (req *request.Requ
 	return
 }
 
+// ImportKeyPair API operation for Amazon Elastic Compute Cloud.
+//
 // Imports the public key from an RSA key pair that you created with a third-party
 // tool. Compare this with CreateKeyPair, in which AWS creates the key pair
 // and gives the keys to you (AWS keeps a copy of the public key). With ImportKeyPair,
@@ -9368,6 +11165,13 @@ func (c *EC2) ImportKeyPairRequest(input *ImportKeyPairInput) (req *request.Requ
 //
 // For more information about key pairs, see Key Pairs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ImportKeyPair for usage and error information.
 func (c *EC2) ImportKeyPair(input *ImportKeyPairInput) (*ImportKeyPairOutput, error) {
 	req, out := c.ImportKeyPairRequest(input)
 	err := req.Send()
@@ -9380,6 +11184,8 @@ const opImportSnapshot = "ImportSnapshot"
 // client's request for the ImportSnapshot operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ImportSnapshot for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9415,7 +11221,16 @@ func (c *EC2) ImportSnapshotRequest(input *ImportSnapshotInput) (req *request.Re
 	return
 }
 
+// ImportSnapshot API operation for Amazon Elastic Compute Cloud.
+//
 // Imports a disk into an EBS snapshot.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ImportSnapshot for usage and error information.
 func (c *EC2) ImportSnapshot(input *ImportSnapshotInput) (*ImportSnapshotOutput, error) {
 	req, out := c.ImportSnapshotRequest(input)
 	err := req.Send()
@@ -9428,6 +11243,8 @@ const opImportVolume = "ImportVolume"
 // client's request for the ImportVolume operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ImportVolume for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9463,11 +11280,20 @@ func (c *EC2) ImportVolumeRequest(input *ImportVolumeInput) (req *request.Reques
 	return
 }
 
+// ImportVolume API operation for Amazon Elastic Compute Cloud.
+//
 // Creates an import volume task using metadata from the specified disk image.For
 // more information, see Importing Disks to Amazon EBS (http://docs.aws.amazon.com/AWSEC2/latest/CommandLineReference/importing-your-volumes-into-amazon-ebs.html).
 //
 // For information about the import manifest referenced by this API action,
 // see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ImportVolume for usage and error information.
 func (c *EC2) ImportVolume(input *ImportVolumeInput) (*ImportVolumeOutput, error) {
 	req, out := c.ImportVolumeRequest(input)
 	err := req.Send()
@@ -9480,6 +11306,8 @@ const opModifyHosts = "ModifyHosts"
 // client's request for the ModifyHosts operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyHosts for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9515,6 +11343,8 @@ func (c *EC2) ModifyHostsRequest(input *ModifyHostsInput) (req *request.Request,
 	return
 }
 
+// ModifyHosts API operation for Amazon Elastic Compute Cloud.
+//
 // Modify the auto-placement setting of a Dedicated Host. When auto-placement
 // is enabled, AWS will place instances that you launch with a tenancy of host,
 // but without targeting a specific host ID, onto any available Dedicated Host
@@ -9522,6 +11352,13 @@ func (c *EC2) ModifyHostsRequest(input *ModifyHostsInput) (req *request.Request,
 // disabled, you need to provide a host ID if you want the instance to launch
 // onto a specific host. If no host ID is provided, the instance will be launched
 // onto a suitable host which has auto-placement enabled.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyHosts for usage and error information.
 func (c *EC2) ModifyHosts(input *ModifyHostsInput) (*ModifyHostsOutput, error) {
 	req, out := c.ModifyHostsRequest(input)
 	err := req.Send()
@@ -9534,6 +11371,8 @@ const opModifyIdFormat = "ModifyIdFormat"
 // client's request for the ModifyIdFormat operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyIdFormat for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9571,6 +11410,8 @@ func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Re
 	return
 }
 
+// ModifyIdFormat API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies the ID format for the specified resource on a per-region basis.
 // You can specify that resources should receive longer IDs (17-character IDs)
 // when they are created. The following resource types support longer IDs: instance
@@ -9587,6 +11428,13 @@ func (c *EC2) ModifyIdFormatRequest(input *ModifyIdFormatInput) (req *request.Re
 // Resources created with longer IDs are visible to all IAM roles and users,
 // regardless of these settings and provided that they have permission to use
 // the relevant Describe command for the resource type.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyIdFormat for usage and error information.
 func (c *EC2) ModifyIdFormat(input *ModifyIdFormatInput) (*ModifyIdFormatOutput, error) {
 	req, out := c.ModifyIdFormatRequest(input)
 	err := req.Send()
@@ -9599,6 +11447,8 @@ const opModifyIdentityIdFormat = "ModifyIdentityIdFormat"
 // client's request for the ModifyIdentityIdFormat operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyIdentityIdFormat for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9636,6 +11486,8 @@ func (c *EC2) ModifyIdentityIdFormatRequest(input *ModifyIdentityIdFormatInput) 
 	return
 }
 
+// ModifyIdentityIdFormat API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies the ID format of a resource for a specified IAM user, IAM role,
 // or the root user for an account; or all IAM users, IAM roles, and the root
 // user for an account. You can specify that resources should receive longer
@@ -9651,6 +11503,13 @@ func (c *EC2) ModifyIdentityIdFormatRequest(input *ModifyIdentityIdFormatInput) 
 // Resources created with longer IDs are visible to all IAM roles and users,
 // regardless of these settings and provided that they have permission to use
 // the relevant Describe command for the resource type.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyIdentityIdFormat for usage and error information.
 func (c *EC2) ModifyIdentityIdFormat(input *ModifyIdentityIdFormatInput) (*ModifyIdentityIdFormatOutput, error) {
 	req, out := c.ModifyIdentityIdFormatRequest(input)
 	err := req.Send()
@@ -9663,6 +11522,8 @@ const opModifyImageAttribute = "ModifyImageAttribute"
 // client's request for the ModifyImageAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyImageAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9700,6 +11561,8 @@ func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req
 	return
 }
 
+// ModifyImageAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies the specified attribute of the specified AMI. You can specify only
 // one attribute at a time.
 //
@@ -9710,6 +11573,13 @@ func (c *EC2) ModifyImageAttributeRequest(input *ModifyImageAttributeInput) (req
 // this command. Instead, enable SriovNetSupport on an instance and create an
 // AMI from the instance. This will result in an image with SriovNetSupport
 // enabled.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyImageAttribute for usage and error information.
 func (c *EC2) ModifyImageAttribute(input *ModifyImageAttributeInput) (*ModifyImageAttributeOutput, error) {
 	req, out := c.ModifyImageAttributeRequest(input)
 	err := req.Send()
@@ -9722,6 +11592,8 @@ const opModifyInstanceAttribute = "ModifyInstanceAttribute"
 // client's request for the ModifyInstanceAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyInstanceAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9759,12 +11631,21 @@ func (c *EC2) ModifyInstanceAttributeRequest(input *ModifyInstanceAttributeInput
 	return
 }
 
+// ModifyInstanceAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies the specified attribute of the specified instance. You can specify
 // only one attribute at a time.
 //
 // To modify some attributes, the instance must be stopped. For more information,
 // see Modifying Attributes of a Stopped Instance (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_ChangingAttributesWhileInstanceStopped.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyInstanceAttribute for usage and error information.
 func (c *EC2) ModifyInstanceAttribute(input *ModifyInstanceAttributeInput) (*ModifyInstanceAttributeOutput, error) {
 	req, out := c.ModifyInstanceAttributeRequest(input)
 	err := req.Send()
@@ -9777,6 +11658,8 @@ const opModifyInstancePlacement = "ModifyInstancePlacement"
 // client's request for the ModifyInstancePlacement operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyInstancePlacement for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9812,6 +11695,8 @@ func (c *EC2) ModifyInstancePlacementRequest(input *ModifyInstancePlacementInput
 	return
 }
 
+// ModifyInstancePlacement API operation for Amazon Elastic Compute Cloud.
+//
 // Set the instance affinity value for a specific stopped instance and modify
 // the instance tenancy setting.
 //
@@ -9831,6 +11716,13 @@ func (c *EC2) ModifyInstancePlacementRequest(input *ModifyInstancePlacementInput
 // one of them must be specified in the request. Affinity and tenancy can be
 // modified in the same request, but tenancy can only be modified on instances
 // that are stopped.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyInstancePlacement for usage and error information.
 func (c *EC2) ModifyInstancePlacement(input *ModifyInstancePlacementInput) (*ModifyInstancePlacementOutput, error) {
 	req, out := c.ModifyInstancePlacementRequest(input)
 	err := req.Send()
@@ -9843,6 +11735,8 @@ const opModifyNetworkInterfaceAttribute = "ModifyNetworkInterfaceAttribute"
 // client's request for the ModifyNetworkInterfaceAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyNetworkInterfaceAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9880,8 +11774,17 @@ func (c *EC2) ModifyNetworkInterfaceAttributeRequest(input *ModifyNetworkInterfa
 	return
 }
 
+// ModifyNetworkInterfaceAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies the specified network interface attribute. You can specify only
 // one attribute at a time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyNetworkInterfaceAttribute for usage and error information.
 func (c *EC2) ModifyNetworkInterfaceAttribute(input *ModifyNetworkInterfaceAttributeInput) (*ModifyNetworkInterfaceAttributeOutput, error) {
 	req, out := c.ModifyNetworkInterfaceAttributeRequest(input)
 	err := req.Send()
@@ -9894,6 +11797,8 @@ const opModifyReservedInstances = "ModifyReservedInstances"
 // client's request for the ModifyReservedInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyReservedInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9929,6 +11834,8 @@ func (c *EC2) ModifyReservedInstancesRequest(input *ModifyReservedInstancesInput
 	return
 }
 
+// ModifyReservedInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies the Availability Zone, instance count, instance type, or network
 // platform (EC2-Classic or EC2-VPC) of your Standard Reserved Instances. The
 // Reserved Instances to be modified must be identical, except for Availability
@@ -9936,6 +11843,13 @@ func (c *EC2) ModifyReservedInstancesRequest(input *ModifyReservedInstancesInput
 //
 // For more information, see Modifying Reserved Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-modifying.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyReservedInstances for usage and error information.
 func (c *EC2) ModifyReservedInstances(input *ModifyReservedInstancesInput) (*ModifyReservedInstancesOutput, error) {
 	req, out := c.ModifyReservedInstancesRequest(input)
 	err := req.Send()
@@ -9948,6 +11862,8 @@ const opModifySnapshotAttribute = "ModifySnapshotAttribute"
 // client's request for the ModifySnapshotAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifySnapshotAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -9985,6 +11901,8 @@ func (c *EC2) ModifySnapshotAttributeRequest(input *ModifySnapshotAttributeInput
 	return
 }
 
+// ModifySnapshotAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Adds or removes permission settings for the specified snapshot. You may add
 // or remove specified AWS account IDs from a snapshot's list of create volume
 // permissions, but you cannot do both in a single API call. If you need to
@@ -9998,6 +11916,13 @@ func (c *EC2) ModifySnapshotAttributeRequest(input *ModifySnapshotAttributeInput
 //  For more information on modifying snapshot permissions, see Sharing Snapshots
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modifying-snapshot-permissions.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifySnapshotAttribute for usage and error information.
 func (c *EC2) ModifySnapshotAttribute(input *ModifySnapshotAttributeInput) (*ModifySnapshotAttributeOutput, error) {
 	req, out := c.ModifySnapshotAttributeRequest(input)
 	err := req.Send()
@@ -10010,6 +11935,8 @@ const opModifySpotFleetRequest = "ModifySpotFleetRequest"
 // client's request for the ModifySpotFleetRequest operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifySpotFleetRequest for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10045,6 +11972,8 @@ func (c *EC2) ModifySpotFleetRequestRequest(input *ModifySpotFleetRequestInput) 
 	return
 }
 
+// ModifySpotFleetRequest API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies the specified Spot fleet request.
 //
 // While the Spot fleet request is being modified, it is in the modifying state.
@@ -10065,6 +11994,13 @@ func (c *EC2) ModifySpotFleetRequestRequest(input *ModifySpotFleetRequestInput) 
 // terminates instances across the Spot pools. Alternatively, you can request
 // that the Spot fleet keep the fleet at its current size, but not replace any
 // Spot instances that are interrupted or that you terminate manually.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifySpotFleetRequest for usage and error information.
 func (c *EC2) ModifySpotFleetRequest(input *ModifySpotFleetRequestInput) (*ModifySpotFleetRequestOutput, error) {
 	req, out := c.ModifySpotFleetRequestRequest(input)
 	err := req.Send()
@@ -10077,6 +12013,8 @@ const opModifySubnetAttribute = "ModifySubnetAttribute"
 // client's request for the ModifySubnetAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifySubnetAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10114,7 +12052,16 @@ func (c *EC2) ModifySubnetAttributeRequest(input *ModifySubnetAttributeInput) (r
 	return
 }
 
+// ModifySubnetAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies a subnet attribute.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifySubnetAttribute for usage and error information.
 func (c *EC2) ModifySubnetAttribute(input *ModifySubnetAttributeInput) (*ModifySubnetAttributeOutput, error) {
 	req, out := c.ModifySubnetAttributeRequest(input)
 	err := req.Send()
@@ -10127,6 +12074,8 @@ const opModifyVolumeAttribute = "ModifyVolumeAttribute"
 // client's request for the ModifyVolumeAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyVolumeAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10164,6 +12113,8 @@ func (c *EC2) ModifyVolumeAttributeRequest(input *ModifyVolumeAttributeInput) (r
 	return
 }
 
+// ModifyVolumeAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies a volume attribute.
 //
 // By default, all I/O operations for the volume are suspended when the data
@@ -10174,6 +12125,13 @@ func (c *EC2) ModifyVolumeAttributeRequest(input *ModifyVolumeAttributeInput) (r
 // You can change the default behavior to resume I/O operations. We recommend
 // that you change this only for boot volumes or for volumes that are stateless
 // or disposable.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyVolumeAttribute for usage and error information.
 func (c *EC2) ModifyVolumeAttribute(input *ModifyVolumeAttributeInput) (*ModifyVolumeAttributeOutput, error) {
 	req, out := c.ModifyVolumeAttributeRequest(input)
 	err := req.Send()
@@ -10186,6 +12144,8 @@ const opModifyVpcAttribute = "ModifyVpcAttribute"
 // client's request for the ModifyVpcAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyVpcAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10223,7 +12183,16 @@ func (c *EC2) ModifyVpcAttributeRequest(input *ModifyVpcAttributeInput) (req *re
 	return
 }
 
+// ModifyVpcAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies the specified attribute of the specified VPC.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyVpcAttribute for usage and error information.
 func (c *EC2) ModifyVpcAttribute(input *ModifyVpcAttributeInput) (*ModifyVpcAttributeOutput, error) {
 	req, out := c.ModifyVpcAttributeRequest(input)
 	err := req.Send()
@@ -10236,6 +12205,8 @@ const opModifyVpcEndpoint = "ModifyVpcEndpoint"
 // client's request for the ModifyVpcEndpoint operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyVpcEndpoint for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10271,9 +12242,18 @@ func (c *EC2) ModifyVpcEndpointRequest(input *ModifyVpcEndpointInput) (req *requ
 	return
 }
 
+// ModifyVpcEndpoint API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies attributes of a specified VPC endpoint. You can modify the policy
 // associated with the endpoint, and you can add and remove route tables associated
 // with the endpoint.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyVpcEndpoint for usage and error information.
 func (c *EC2) ModifyVpcEndpoint(input *ModifyVpcEndpointInput) (*ModifyVpcEndpointOutput, error) {
 	req, out := c.ModifyVpcEndpointRequest(input)
 	err := req.Send()
@@ -10286,6 +12266,8 @@ const opModifyVpcPeeringConnectionOptions = "ModifyVpcPeeringConnectionOptions"
 // client's request for the ModifyVpcPeeringConnectionOptions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ModifyVpcPeeringConnectionOptions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10321,6 +12303,8 @@ func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringCo
 	return
 }
 
+// ModifyVpcPeeringConnectionOptions API operation for Amazon Elastic Compute Cloud.
+//
 // Modifies the VPC peering connection options on one side of a VPC peering
 // connection. You can do the following:
 //
@@ -10341,6 +12325,13 @@ func (c *EC2) ModifyVpcPeeringConnectionOptionsRequest(input *ModifyVpcPeeringCo
 // and accepter options in the same request. To confirm which VPC is the accepter
 // and requester for a VPC peering connection, use the DescribeVpcPeeringConnections
 // command.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ModifyVpcPeeringConnectionOptions for usage and error information.
 func (c *EC2) ModifyVpcPeeringConnectionOptions(input *ModifyVpcPeeringConnectionOptionsInput) (*ModifyVpcPeeringConnectionOptionsOutput, error) {
 	req, out := c.ModifyVpcPeeringConnectionOptionsRequest(input)
 	err := req.Send()
@@ -10353,6 +12344,8 @@ const opMonitorInstances = "MonitorInstances"
 // client's request for the MonitorInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See MonitorInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10388,9 +12381,18 @@ func (c *EC2) MonitorInstancesRequest(input *MonitorInstancesInput) (req *reques
 	return
 }
 
+// MonitorInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Enables monitoring for a running instance. For more information about monitoring
 // instances, see Monitoring Your Instances and Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-cloudwatch.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation MonitorInstances for usage and error information.
 func (c *EC2) MonitorInstances(input *MonitorInstancesInput) (*MonitorInstancesOutput, error) {
 	req, out := c.MonitorInstancesRequest(input)
 	err := req.Send()
@@ -10403,6 +12405,8 @@ const opMoveAddressToVpc = "MoveAddressToVpc"
 // client's request for the MoveAddressToVpc operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See MoveAddressToVpc for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10438,6 +12442,8 @@ func (c *EC2) MoveAddressToVpcRequest(input *MoveAddressToVpcInput) (req *reques
 	return
 }
 
+// MoveAddressToVpc API operation for Amazon Elastic Compute Cloud.
+//
 // Moves an Elastic IP address from the EC2-Classic platform to the EC2-VPC
 // platform. The Elastic IP address must be allocated to your account for more
 // than 24 hours, and it must not be associated with an instance. After the
@@ -10445,6 +12451,13 @@ func (c *EC2) MoveAddressToVpcRequest(input *MoveAddressToVpcInput) (req *reques
 // platform, unless you move it back using the RestoreAddressToClassic request.
 // You cannot move an Elastic IP address that was originally allocated for use
 // in the EC2-VPC platform to the EC2-Classic platform.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation MoveAddressToVpc for usage and error information.
 func (c *EC2) MoveAddressToVpc(input *MoveAddressToVpcInput) (*MoveAddressToVpcOutput, error) {
 	req, out := c.MoveAddressToVpcRequest(input)
 	err := req.Send()
@@ -10457,6 +12470,8 @@ const opPurchaseHostReservation = "PurchaseHostReservation"
 // client's request for the PurchaseHostReservation operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PurchaseHostReservation for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10492,10 +12507,19 @@ func (c *EC2) PurchaseHostReservationRequest(input *PurchaseHostReservationInput
 	return
 }
 
+// PurchaseHostReservation API operation for Amazon Elastic Compute Cloud.
+//
 // Purchase a reservation with configurations that match those of your Dedicated
 // Host. You must have active Dedicated Hosts in your account before you purchase
 // a reservation. This action results in the specified reservation being purchased
 // and charged to your account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation PurchaseHostReservation for usage and error information.
 func (c *EC2) PurchaseHostReservation(input *PurchaseHostReservationInput) (*PurchaseHostReservationOutput, error) {
 	req, out := c.PurchaseHostReservationRequest(input)
 	err := req.Send()
@@ -10508,6 +12532,8 @@ const opPurchaseReservedInstancesOffering = "PurchaseReservedInstancesOffering"
 // client's request for the PurchaseReservedInstancesOffering operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PurchaseReservedInstancesOffering for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10543,6 +12569,8 @@ func (c *EC2) PurchaseReservedInstancesOfferingRequest(input *PurchaseReservedIn
 	return
 }
 
+// PurchaseReservedInstancesOffering API operation for Amazon Elastic Compute Cloud.
+//
 // Purchases a Reserved Instance for use with your account. With Reserved Instances,
 // you pay a lower hourly rate compared to On-Demand instance pricing.
 //
@@ -10553,6 +12581,13 @@ func (c *EC2) PurchaseReservedInstancesOfferingRequest(input *PurchaseReservedIn
 // For more information, see Reserved Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts-on-demand-reserved-instances.html)
 // and Reserved Instance Marketplace (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ri-market-general.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation PurchaseReservedInstancesOffering for usage and error information.
 func (c *EC2) PurchaseReservedInstancesOffering(input *PurchaseReservedInstancesOfferingInput) (*PurchaseReservedInstancesOfferingOutput, error) {
 	req, out := c.PurchaseReservedInstancesOfferingRequest(input)
 	err := req.Send()
@@ -10565,6 +12600,8 @@ const opPurchaseScheduledInstances = "PurchaseScheduledInstances"
 // client's request for the PurchaseScheduledInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PurchaseScheduledInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10600,6 +12637,8 @@ func (c *EC2) PurchaseScheduledInstancesRequest(input *PurchaseScheduledInstance
 	return
 }
 
+// PurchaseScheduledInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Purchases one or more Scheduled Instances with the specified schedule.
 //
 // Scheduled Instances enable you to purchase Amazon EC2 compute capacity by
@@ -10610,6 +12649,13 @@ func (c *EC2) PurchaseScheduledInstancesRequest(input *PurchaseScheduledInstance
 //
 // After you purchase a Scheduled Instance, you can't cancel, modify, or resell
 // your purchase.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation PurchaseScheduledInstances for usage and error information.
 func (c *EC2) PurchaseScheduledInstances(input *PurchaseScheduledInstancesInput) (*PurchaseScheduledInstancesOutput, error) {
 	req, out := c.PurchaseScheduledInstancesRequest(input)
 	err := req.Send()
@@ -10622,6 +12668,8 @@ const opRebootInstances = "RebootInstances"
 // client's request for the RebootInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RebootInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10659,6 +12707,8 @@ func (c *EC2) RebootInstancesRequest(input *RebootInstancesInput) (req *request.
 	return
 }
 
+// RebootInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Requests a reboot of one or more instances. This operation is asynchronous;
 // it only queues a request to reboot the specified instances. The operation
 // succeeds if the instances are valid and belong to you. Requests to reboot
@@ -10670,6 +12720,13 @@ func (c *EC2) RebootInstancesRequest(input *RebootInstancesInput) (req *request.
 // For more information about troubleshooting, see Getting Console Output and
 // Rebooting Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-console.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RebootInstances for usage and error information.
 func (c *EC2) RebootInstances(input *RebootInstancesInput) (*RebootInstancesOutput, error) {
 	req, out := c.RebootInstancesRequest(input)
 	err := req.Send()
@@ -10682,6 +12739,8 @@ const opRegisterImage = "RegisterImage"
 // client's request for the RegisterImage operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RegisterImage for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10717,6 +12776,8 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 	return
 }
 
+// RegisterImage API operation for Amazon Elastic Compute Cloud.
+//
 // Registers an AMI. When you're creating an AMI, this is the final step you
 // must complete before you can launch an instance from the AMI. For more information
 // about creating AMIs, see Creating Your Own AMIs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami.html)
@@ -10750,6 +12811,13 @@ func (c *EC2) RegisterImageRequest(input *RegisterImageInput) (req *request.Requ
 //
 //  You can't register an image where a secondary (non-root) snapshot has AWS
 // Marketplace product codes.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RegisterImage for usage and error information.
 func (c *EC2) RegisterImage(input *RegisterImageInput) (*RegisterImageOutput, error) {
 	req, out := c.RegisterImageRequest(input)
 	err := req.Send()
@@ -10762,6 +12830,8 @@ const opRejectVpcPeeringConnection = "RejectVpcPeeringConnection"
 // client's request for the RejectVpcPeeringConnection operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RejectVpcPeeringConnection for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10797,11 +12867,20 @@ func (c *EC2) RejectVpcPeeringConnectionRequest(input *RejectVpcPeeringConnectio
 	return
 }
 
+// RejectVpcPeeringConnection API operation for Amazon Elastic Compute Cloud.
+//
 // Rejects a VPC peering connection request. The VPC peering connection must
 // be in the pending-acceptance state. Use the DescribeVpcPeeringConnections
 // request to view your outstanding VPC peering connection requests. To delete
 // an active VPC peering connection, or to delete a VPC peering connection request
 // that you initiated, use DeleteVpcPeeringConnection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RejectVpcPeeringConnection for usage and error information.
 func (c *EC2) RejectVpcPeeringConnection(input *RejectVpcPeeringConnectionInput) (*RejectVpcPeeringConnectionOutput, error) {
 	req, out := c.RejectVpcPeeringConnectionRequest(input)
 	err := req.Send()
@@ -10814,6 +12893,8 @@ const opReleaseAddress = "ReleaseAddress"
 // client's request for the ReleaseAddress operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ReleaseAddress for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10851,6 +12932,8 @@ func (c *EC2) ReleaseAddressRequest(input *ReleaseAddressInput) (req *request.Re
 	return
 }
 
+// ReleaseAddress API operation for Amazon Elastic Compute Cloud.
+//
 // Releases the specified Elastic IP address.
 //
 // After releasing an Elastic IP address, it is released to the IP address
@@ -10866,6 +12949,13 @@ func (c *EC2) ReleaseAddressRequest(input *ReleaseAddressInput) (req *request.Re
 // [Nondefault VPC] You must use DisassociateAddress to disassociate the Elastic
 // IP address before you try to release it. Otherwise, Amazon EC2 returns an
 // error (InvalidIPAddress.InUse).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReleaseAddress for usage and error information.
 func (c *EC2) ReleaseAddress(input *ReleaseAddressInput) (*ReleaseAddressOutput, error) {
 	req, out := c.ReleaseAddressRequest(input)
 	err := req.Send()
@@ -10878,6 +12968,8 @@ const opReleaseHosts = "ReleaseHosts"
 // client's request for the ReleaseHosts operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ReleaseHosts for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10913,6 +13005,8 @@ func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Reques
 	return
 }
 
+// ReleaseHosts API operation for Amazon Elastic Compute Cloud.
+//
 // When you no longer want to use an On-Demand Dedicated Host it can be released.
 // On-Demand billing is stopped and the host goes into released state. The host
 // ID of Dedicated Hosts that have been released can no longer be specified
@@ -10925,6 +13019,13 @@ func (c *EC2) ReleaseHostsRequest(input *ReleaseHostsInput) (req *request.Reques
 // again.
 //
 // Released hosts will still appear in a DescribeHosts response.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReleaseHosts for usage and error information.
 func (c *EC2) ReleaseHosts(input *ReleaseHostsInput) (*ReleaseHostsOutput, error) {
 	req, out := c.ReleaseHostsRequest(input)
 	err := req.Send()
@@ -10937,6 +13038,8 @@ const opReplaceNetworkAclAssociation = "ReplaceNetworkAclAssociation"
 // client's request for the ReplaceNetworkAclAssociation operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ReplaceNetworkAclAssociation for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -10972,10 +13075,19 @@ func (c *EC2) ReplaceNetworkAclAssociationRequest(input *ReplaceNetworkAclAssoci
 	return
 }
 
+// ReplaceNetworkAclAssociation API operation for Amazon Elastic Compute Cloud.
+//
 // Changes which network ACL a subnet is associated with. By default when you
 // create a subnet, it's automatically associated with the default network ACL.
 // For more information about network ACLs, see Network ACLs (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReplaceNetworkAclAssociation for usage and error information.
 func (c *EC2) ReplaceNetworkAclAssociation(input *ReplaceNetworkAclAssociationInput) (*ReplaceNetworkAclAssociationOutput, error) {
 	req, out := c.ReplaceNetworkAclAssociationRequest(input)
 	err := req.Send()
@@ -10988,6 +13100,8 @@ const opReplaceNetworkAclEntry = "ReplaceNetworkAclEntry"
 // client's request for the ReplaceNetworkAclEntry operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ReplaceNetworkAclEntry for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11025,9 +13139,18 @@ func (c *EC2) ReplaceNetworkAclEntryRequest(input *ReplaceNetworkAclEntryInput) 
 	return
 }
 
+// ReplaceNetworkAclEntry API operation for Amazon Elastic Compute Cloud.
+//
 // Replaces an entry (rule) in a network ACL. For more information about network
 // ACLs, see Network ACLs (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_ACLs.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReplaceNetworkAclEntry for usage and error information.
 func (c *EC2) ReplaceNetworkAclEntry(input *ReplaceNetworkAclEntryInput) (*ReplaceNetworkAclEntryOutput, error) {
 	req, out := c.ReplaceNetworkAclEntryRequest(input)
 	err := req.Send()
@@ -11040,6 +13163,8 @@ const opReplaceRoute = "ReplaceRoute"
 // client's request for the ReplaceRoute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ReplaceRoute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11077,12 +13202,21 @@ func (c *EC2) ReplaceRouteRequest(input *ReplaceRouteInput) (req *request.Reques
 	return
 }
 
+// ReplaceRoute API operation for Amazon Elastic Compute Cloud.
+//
 // Replaces an existing route within a route table in a VPC. You must provide
 // only one of the following: Internet gateway or virtual private gateway, NAT
 // instance, NAT gateway, VPC peering connection, or network interface.
 //
 // For more information about route tables, see Route Tables (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Route_Tables.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReplaceRoute for usage and error information.
 func (c *EC2) ReplaceRoute(input *ReplaceRouteInput) (*ReplaceRouteOutput, error) {
 	req, out := c.ReplaceRouteRequest(input)
 	err := req.Send()
@@ -11095,6 +13229,8 @@ const opReplaceRouteTableAssociation = "ReplaceRouteTableAssociation"
 // client's request for the ReplaceRouteTableAssociation operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ReplaceRouteTableAssociation for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11130,6 +13266,8 @@ func (c *EC2) ReplaceRouteTableAssociationRequest(input *ReplaceRouteTableAssoci
 	return
 }
 
+// ReplaceRouteTableAssociation API operation for Amazon Elastic Compute Cloud.
+//
 // Changes the route table associated with a given subnet in a VPC. After the
 // operation completes, the subnet uses the routes in the new route table it's
 // associated with. For more information about route tables, see Route Tables
@@ -11139,6 +13277,13 @@ func (c *EC2) ReplaceRouteTableAssociationRequest(input *ReplaceRouteTableAssoci
 // You can also use ReplaceRouteTableAssociation to change which table is the
 // main route table in the VPC. You just specify the main route table's association
 // ID and the route table to be the new main route table.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReplaceRouteTableAssociation for usage and error information.
 func (c *EC2) ReplaceRouteTableAssociation(input *ReplaceRouteTableAssociationInput) (*ReplaceRouteTableAssociationOutput, error) {
 	req, out := c.ReplaceRouteTableAssociationRequest(input)
 	err := req.Send()
@@ -11151,6 +13296,8 @@ const opReportInstanceStatus = "ReportInstanceStatus"
 // client's request for the ReportInstanceStatus operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ReportInstanceStatus for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11188,6 +13335,8 @@ func (c *EC2) ReportInstanceStatusRequest(input *ReportInstanceStatusInput) (req
 	return
 }
 
+// ReportInstanceStatus API operation for Amazon Elastic Compute Cloud.
+//
 // Submits feedback about the status of an instance. The instance must be in
 // the running state. If your experience with the instance differs from the
 // instance status returned by DescribeInstanceStatus, use ReportInstanceStatus
@@ -11195,6 +13344,13 @@ func (c *EC2) ReportInstanceStatusRequest(input *ReportInstanceStatusInput) (req
 // to improve the accuracy of status checks.
 //
 // Use of this action does not change the value returned by DescribeInstanceStatus.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ReportInstanceStatus for usage and error information.
 func (c *EC2) ReportInstanceStatus(input *ReportInstanceStatusInput) (*ReportInstanceStatusOutput, error) {
 	req, out := c.ReportInstanceStatusRequest(input)
 	err := req.Send()
@@ -11207,6 +13363,8 @@ const opRequestSpotFleet = "RequestSpotFleet"
 // client's request for the RequestSpotFleet operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RequestSpotFleet for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11242,6 +13400,8 @@ func (c *EC2) RequestSpotFleetRequest(input *RequestSpotFleetInput) (req *reques
 	return
 }
 
+// RequestSpotFleet API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a Spot fleet request.
 //
 // You can submit a single request that includes multiple launch specifications
@@ -11259,6 +13419,13 @@ func (c *EC2) RequestSpotFleetRequest(input *RequestSpotFleetInput) (req *reques
 //
 // For more information, see Spot Fleet Requests (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet-requests.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RequestSpotFleet for usage and error information.
 func (c *EC2) RequestSpotFleet(input *RequestSpotFleetInput) (*RequestSpotFleetOutput, error) {
 	req, out := c.RequestSpotFleetRequest(input)
 	err := req.Send()
@@ -11271,6 +13438,8 @@ const opRequestSpotInstances = "RequestSpotInstances"
 // client's request for the RequestSpotInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RequestSpotInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11306,12 +13475,21 @@ func (c *EC2) RequestSpotInstancesRequest(input *RequestSpotInstancesInput) (req
 	return
 }
 
+// RequestSpotInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Creates a Spot instance request. Spot instances are instances that Amazon
 // EC2 launches when the bid price that you specify exceeds the current Spot
 // price. Amazon EC2 periodically sets the Spot price based on available Spot
 // Instance capacity and current Spot instance requests. For more information,
 // see Spot Instance Requests (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-requests.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RequestSpotInstances for usage and error information.
 func (c *EC2) RequestSpotInstances(input *RequestSpotInstancesInput) (*RequestSpotInstancesOutput, error) {
 	req, out := c.RequestSpotInstancesRequest(input)
 	err := req.Send()
@@ -11324,6 +13502,8 @@ const opResetImageAttribute = "ResetImageAttribute"
 // client's request for the ResetImageAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ResetImageAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11361,9 +13541,18 @@ func (c *EC2) ResetImageAttributeRequest(input *ResetImageAttributeInput) (req *
 	return
 }
 
+// ResetImageAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Resets an attribute of an AMI to its default value.
 //
 //  The productCodes attribute can't be reset.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ResetImageAttribute for usage and error information.
 func (c *EC2) ResetImageAttribute(input *ResetImageAttributeInput) (*ResetImageAttributeOutput, error) {
 	req, out := c.ResetImageAttributeRequest(input)
 	err := req.Send()
@@ -11376,6 +13565,8 @@ const opResetInstanceAttribute = "ResetInstanceAttribute"
 // client's request for the ResetInstanceAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ResetInstanceAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11413,6 +13604,8 @@ func (c *EC2) ResetInstanceAttributeRequest(input *ResetInstanceAttributeInput) 
 	return
 }
 
+// ResetInstanceAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Resets an attribute of an instance to its default value. To reset the kernel
 // or ramdisk, the instance must be in a stopped state. To reset the sourceDestCheck,
 // the instance can be either running or stopped.
@@ -11422,6 +13615,13 @@ func (c *EC2) ResetInstanceAttributeRequest(input *ResetInstanceAttributeInput) 
 // value must be false for a NAT instance to perform NAT. For more information,
 // see NAT Instances (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_NAT_Instance.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ResetInstanceAttribute for usage and error information.
 func (c *EC2) ResetInstanceAttribute(input *ResetInstanceAttributeInput) (*ResetInstanceAttributeOutput, error) {
 	req, out := c.ResetInstanceAttributeRequest(input)
 	err := req.Send()
@@ -11434,6 +13634,8 @@ const opResetNetworkInterfaceAttribute = "ResetNetworkInterfaceAttribute"
 // client's request for the ResetNetworkInterfaceAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ResetNetworkInterfaceAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11471,8 +13673,17 @@ func (c *EC2) ResetNetworkInterfaceAttributeRequest(input *ResetNetworkInterface
 	return
 }
 
+// ResetNetworkInterfaceAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Resets a network interface attribute. You can specify only one attribute
 // at a time.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ResetNetworkInterfaceAttribute for usage and error information.
 func (c *EC2) ResetNetworkInterfaceAttribute(input *ResetNetworkInterfaceAttributeInput) (*ResetNetworkInterfaceAttributeOutput, error) {
 	req, out := c.ResetNetworkInterfaceAttributeRequest(input)
 	err := req.Send()
@@ -11485,6 +13696,8 @@ const opResetSnapshotAttribute = "ResetSnapshotAttribute"
 // client's request for the ResetSnapshotAttribute operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ResetSnapshotAttribute for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11522,11 +13735,20 @@ func (c *EC2) ResetSnapshotAttributeRequest(input *ResetSnapshotAttributeInput) 
 	return
 }
 
+// ResetSnapshotAttribute API operation for Amazon Elastic Compute Cloud.
+//
 // Resets permission settings for the specified snapshot.
 //
 // For more information on modifying snapshot permissions, see Sharing Snapshots
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-modifying-snapshot-permissions.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation ResetSnapshotAttribute for usage and error information.
 func (c *EC2) ResetSnapshotAttribute(input *ResetSnapshotAttributeInput) (*ResetSnapshotAttributeOutput, error) {
 	req, out := c.ResetSnapshotAttributeRequest(input)
 	err := req.Send()
@@ -11539,6 +13761,8 @@ const opRestoreAddressToClassic = "RestoreAddressToClassic"
 // client's request for the RestoreAddressToClassic operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RestoreAddressToClassic for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11574,10 +13798,19 @@ func (c *EC2) RestoreAddressToClassicRequest(input *RestoreAddressToClassicInput
 	return
 }
 
+// RestoreAddressToClassic API operation for Amazon Elastic Compute Cloud.
+//
 // Restores an Elastic IP address that was previously moved to the EC2-VPC platform
 // back to the EC2-Classic platform. You cannot move an Elastic IP address that
 // was originally allocated for use in EC2-VPC. The Elastic IP address must
 // not be associated with an instance or network interface.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RestoreAddressToClassic for usage and error information.
 func (c *EC2) RestoreAddressToClassic(input *RestoreAddressToClassicInput) (*RestoreAddressToClassicOutput, error) {
 	req, out := c.RestoreAddressToClassicRequest(input)
 	err := req.Send()
@@ -11590,6 +13823,8 @@ const opRevokeSecurityGroupEgress = "RevokeSecurityGroupEgress"
 // client's request for the RevokeSecurityGroupEgress operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RevokeSecurityGroupEgress for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11627,6 +13862,8 @@ func (c *EC2) RevokeSecurityGroupEgressRequest(input *RevokeSecurityGroupEgressI
 	return
 }
 
+// RevokeSecurityGroupEgress API operation for Amazon Elastic Compute Cloud.
+//
 // [EC2-VPC only] Removes one or more egress rules from a security group for
 // EC2-VPC. This action doesn't apply to security groups for use in EC2-Classic.
 // The values that you specify in the revoke request (for example, ports) must
@@ -11639,6 +13876,13 @@ func (c *EC2) RevokeSecurityGroupEgressRequest(input *RevokeSecurityGroupEgressI
 //
 // Rule changes are propagated to instances within the security group as quickly
 // as possible. However, a small delay might occur.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RevokeSecurityGroupEgress for usage and error information.
 func (c *EC2) RevokeSecurityGroupEgress(input *RevokeSecurityGroupEgressInput) (*RevokeSecurityGroupEgressOutput, error) {
 	req, out := c.RevokeSecurityGroupEgressRequest(input)
 	err := req.Send()
@@ -11651,6 +13895,8 @@ const opRevokeSecurityGroupIngress = "RevokeSecurityGroupIngress"
 // client's request for the RevokeSecurityGroupIngress operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RevokeSecurityGroupIngress for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11688,6 +13934,8 @@ func (c *EC2) RevokeSecurityGroupIngressRequest(input *RevokeSecurityGroupIngres
 	return
 }
 
+// RevokeSecurityGroupIngress API operation for Amazon Elastic Compute Cloud.
+//
 // Removes one or more ingress rules from a security group. The values that
 // you specify in the revoke request (for example, ports) must match the existing
 // rule's values for the rule to be removed.
@@ -11699,6 +13947,13 @@ func (c *EC2) RevokeSecurityGroupIngressRequest(input *RevokeSecurityGroupIngres
 //
 // Rule changes are propagated to instances within the security group as quickly
 // as possible. However, a small delay might occur.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RevokeSecurityGroupIngress for usage and error information.
 func (c *EC2) RevokeSecurityGroupIngress(input *RevokeSecurityGroupIngressInput) (*RevokeSecurityGroupIngressOutput, error) {
 	req, out := c.RevokeSecurityGroupIngressRequest(input)
 	err := req.Send()
@@ -11711,6 +13966,8 @@ const opRunInstances = "RunInstances"
 // client's request for the RunInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RunInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11746,6 +14003,8 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 	return
 }
 
+// RunInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Launches the specified number of instances using an AMI for which you have
 // permissions.
 //
@@ -11793,6 +14052,13 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 // Immediately Terminates (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_InstanceStraightToTerminated.html),
 // and Troubleshooting Connecting to Your Instance (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/TroubleshootingInstancesConnecting.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RunInstances for usage and error information.
 func (c *EC2) RunInstances(input *RunInstancesInput) (*Reservation, error) {
 	req, out := c.RunInstancesRequest(input)
 	err := req.Send()
@@ -11805,6 +14071,8 @@ const opRunScheduledInstances = "RunScheduledInstances"
 // client's request for the RunScheduledInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RunScheduledInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11840,6 +14108,8 @@ func (c *EC2) RunScheduledInstancesRequest(input *RunScheduledInstancesInput) (r
 	return
 }
 
+// RunScheduledInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Launches the specified Scheduled Instances.
 //
 // Before you can launch a Scheduled Instance, you must purchase it and obtain
@@ -11851,6 +14121,13 @@ func (c *EC2) RunScheduledInstancesRequest(input *RunScheduledInstancesInput) (r
 // ends, you can launch it again after a few minutes. For more information,
 // see Scheduled Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-scheduled-instances.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation RunScheduledInstances for usage and error information.
 func (c *EC2) RunScheduledInstances(input *RunScheduledInstancesInput) (*RunScheduledInstancesOutput, error) {
 	req, out := c.RunScheduledInstancesRequest(input)
 	err := req.Send()
@@ -11863,6 +14140,8 @@ const opStartInstances = "StartInstances"
 // client's request for the StartInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See StartInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11898,6 +14177,8 @@ func (c *EC2) StartInstancesRequest(input *StartInstancesInput) (req *request.Re
 	return
 }
 
+// StartInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Starts an Amazon EBS-backed AMI that you've previously stopped.
 //
 // Instances that use Amazon EBS volumes as their root devices can be quickly
@@ -11917,6 +14198,13 @@ func (c *EC2) StartInstancesRequest(input *StartInstancesInput) (req *request.Re
 //
 // For more information, see Stopping Instances (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Stop_Start.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation StartInstances for usage and error information.
 func (c *EC2) StartInstances(input *StartInstancesInput) (*StartInstancesOutput, error) {
 	req, out := c.StartInstancesRequest(input)
 	err := req.Send()
@@ -11929,6 +14217,8 @@ const opStopInstances = "StopInstances"
 // client's request for the StopInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See StopInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -11964,6 +14254,8 @@ func (c *EC2) StopInstancesRequest(input *StopInstancesInput) (req *request.Requ
 	return
 }
 
+// StopInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Stops an Amazon EBS-backed instance.
 //
 // We don't charge hourly usage for a stopped instance, or data transfer fees;
@@ -11994,6 +14286,13 @@ func (c *EC2) StopInstancesRequest(input *StopInstancesInput) (req *request.Requ
 // of time, there may be an issue with the underlying host computer. For more
 // information, see Troubleshooting Stopping Your Instance (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/TroubleshootingInstancesStopping.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation StopInstances for usage and error information.
 func (c *EC2) StopInstances(input *StopInstancesInput) (*StopInstancesOutput, error) {
 	req, out := c.StopInstancesRequest(input)
 	err := req.Send()
@@ -12006,6 +14305,8 @@ const opTerminateInstances = "TerminateInstances"
 // client's request for the TerminateInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See TerminateInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -12041,6 +14342,8 @@ func (c *EC2) TerminateInstancesRequest(input *TerminateInstancesInput) (req *re
 	return
 }
 
+// TerminateInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Shuts down one or more instances. This operation is idempotent; if you terminate
 // an instance more than once, each call succeeds.
 //
@@ -12066,6 +14369,13 @@ func (c *EC2) TerminateInstancesRequest(input *TerminateInstancesInput) (req *re
 // For more information about troubleshooting, see Troubleshooting Terminating
 // Your Instance (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/TroubleshootingInstancesShuttingDown.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation TerminateInstances for usage and error information.
 func (c *EC2) TerminateInstances(input *TerminateInstancesInput) (*TerminateInstancesOutput, error) {
 	req, out := c.TerminateInstancesRequest(input)
 	err := req.Send()
@@ -12078,6 +14388,8 @@ const opUnassignPrivateIpAddresses = "UnassignPrivateIpAddresses"
 // client's request for the UnassignPrivateIpAddresses operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UnassignPrivateIpAddresses for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -12115,7 +14427,16 @@ func (c *EC2) UnassignPrivateIpAddressesRequest(input *UnassignPrivateIpAddresse
 	return
 }
 
+// UnassignPrivateIpAddresses API operation for Amazon Elastic Compute Cloud.
+//
 // Unassigns one or more secondary private IP addresses from a network interface.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation UnassignPrivateIpAddresses for usage and error information.
 func (c *EC2) UnassignPrivateIpAddresses(input *UnassignPrivateIpAddressesInput) (*UnassignPrivateIpAddressesOutput, error) {
 	req, out := c.UnassignPrivateIpAddressesRequest(input)
 	err := req.Send()
@@ -12128,6 +14449,8 @@ const opUnmonitorInstances = "UnmonitorInstances"
 // client's request for the UnmonitorInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UnmonitorInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -12163,9 +14486,18 @@ func (c *EC2) UnmonitorInstancesRequest(input *UnmonitorInstancesInput) (req *re
 	return
 }
 
+// UnmonitorInstances API operation for Amazon Elastic Compute Cloud.
+//
 // Disables monitoring for a running instance. For more information about monitoring
 // instances, see Monitoring Your Instances and Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-cloudwatch.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation UnmonitorInstances for usage and error information.
 func (c *EC2) UnmonitorInstances(input *UnmonitorInstancesInput) (*UnmonitorInstancesOutput, error) {
 	req, out := c.UnmonitorInstancesRequest(input)
 	err := req.Send()
@@ -12184,6 +14516,8 @@ type AcceptReservedInstancesExchangeQuoteInput struct {
 
 	// The IDs of the Convertible Reserved Instances that you want to exchange for
 	// other Convertible Reserved Instances of the same or higher value.
+	//
+	// ReservedInstanceIds is a required field
 	ReservedInstanceIds []*string `locationName:"ReservedInstanceId" locationNameList:"ReservedInstanceId" type:"list" required:"true"`
 
 	// The configurations of the Convertible Reserved Instance offerings you are
@@ -12452,6 +14786,8 @@ type AllocateHostsInput struct {
 	AutoPlacement *string `locationName:"autoPlacement" type:"string" enum:"AutoPlacement"`
 
 	// The Availability Zone for the Dedicated Hosts.
+	//
+	// AvailabilityZone is a required field
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string" required:"true"`
 
 	// Unique, case-sensitive identifier you provide to ensure idempotency of the
@@ -12462,10 +14798,14 @@ type AllocateHostsInput struct {
 	// Specify the instance type that you want your Dedicated Hosts to be configured
 	// for. When you specify the instance type, that is the only instance type that
 	// you can launch onto that host.
+	//
+	// InstanceType is a required field
 	InstanceType *string `locationName:"instanceType" type:"string" required:"true"`
 
 	// The number of Dedicated Hosts you want to allocate to your account with these
 	// parameters.
+	//
+	// Quantity is a required field
 	Quantity *int64 `locationName:"quantity" type:"integer" required:"true"`
 }
 
@@ -12526,6 +14866,8 @@ type AssignPrivateIpAddressesInput struct {
 	AllowReassignment *bool `locationName:"allowReassignment" type:"boolean"`
 
 	// The ID of the network interface.
+	//
+	// NetworkInterfaceId is a required field
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string" required:"true"`
 
 	// One or more IP addresses to be assigned as a secondary private IP address
@@ -12653,6 +14995,8 @@ type AssociateDhcpOptionsInput struct {
 
 	// The ID of the DHCP options set, or default to associate no DHCP options with
 	// the VPC.
+	//
+	// DhcpOptionsId is a required field
 	DhcpOptionsId *string `type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -12662,6 +15006,8 @@ type AssociateDhcpOptionsInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `type:"string" required:"true"`
 }
 
@@ -12716,9 +15062,13 @@ type AssociateRouteTableInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the route table.
+	//
+	// RouteTableId is a required field
 	RouteTableId *string `locationName:"routeTableId" type:"string" required:"true"`
 
 	// The ID of the subnet.
+	//
+	// SubnetId is a required field
 	SubnetId *string `locationName:"subnetId" type:"string" required:"true"`
 }
 
@@ -12778,12 +15128,18 @@ type AttachClassicLinkVpcInput struct {
 
 	// The ID of one or more of the VPC's security groups. You cannot specify security
 	// groups from a different VPC.
+	//
+	// Groups is a required field
 	Groups []*string `locationName:"SecurityGroupId" locationNameList:"groupId" type:"list" required:"true"`
 
 	// The ID of an EC2-Classic instance to link to the ClassicLink-enabled VPC.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 
 	// The ID of a ClassicLink-enabled VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
 }
 
@@ -12845,9 +15201,13 @@ type AttachInternetGatewayInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the Internet gateway.
+	//
+	// InternetGatewayId is a required field
 	InternetGatewayId *string `locationName:"internetGatewayId" type:"string" required:"true"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
 }
 
@@ -12896,6 +15256,8 @@ type AttachNetworkInterfaceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The index of the device for the network interface attachment.
+	//
+	// DeviceIndex is a required field
 	DeviceIndex *int64 `locationName:"deviceIndex" type:"integer" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -12905,9 +15267,13 @@ type AttachNetworkInterfaceInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 
 	// The ID of the network interface.
+	//
+	// NetworkInterfaceId is a required field
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string" required:"true"`
 }
 
@@ -12963,6 +15329,8 @@ type AttachVolumeInput struct {
 	_ struct{} `type:"structure"`
 
 	// The device name to expose to the instance (for example, /dev/sdh or xvdh).
+	//
+	// Device is a required field
 	Device *string `type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -12972,10 +15340,14 @@ type AttachVolumeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `type:"string" required:"true"`
 
 	// The ID of the EBS volume. The volume and instance must be within the same
 	// Availability Zone.
+	//
+	// VolumeId is a required field
 	VolumeId *string `type:"string" required:"true"`
 }
 
@@ -13019,9 +15391,13 @@ type AttachVpnGatewayInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `type:"string" required:"true"`
 
 	// The ID of the virtual private gateway.
+	//
+	// VpnGatewayId is a required field
 	VpnGatewayId *string `type:"string" required:"true"`
 }
 
@@ -13124,6 +15500,8 @@ type AuthorizeSecurityGroupEgressInput struct {
 	FromPort *int64 `locationName:"fromPort" type:"integer"`
 
 	// The ID of the security group.
+	//
+	// GroupId is a required field
 	GroupId *string `locationName:"groupId" type:"string" required:"true"`
 
 	// A set of IP permissions. You can't specify a destination security group and
@@ -13403,11 +15781,15 @@ type BundleInstanceInput struct {
 	// Default: None
 	//
 	// Required: Yes
+	//
+	// InstanceId is a required field
 	InstanceId *string `type:"string" required:"true"`
 
 	// The bucket in which to store the AMI. You can specify a bucket that you already
 	// own or a new bucket that Amazon EC2 creates on your behalf. If you specify
 	// a bucket that belongs to someone else, Amazon EC2 returns an error.
+	//
+	// Storage is a required field
 	Storage *Storage `type:"structure" required:"true"`
 }
 
@@ -13520,6 +15902,8 @@ type CancelBundleTaskInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the bundle task.
+	//
+	// BundleId is a required field
 	BundleId *string `type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -13575,6 +15959,8 @@ type CancelConversionTaskInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the conversion task.
+	//
+	// ConversionTaskId is a required field
 	ConversionTaskId *string `locationName:"conversionTaskId" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -13629,6 +16015,8 @@ type CancelExportTaskInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the export task. This is the ID returned by CreateInstanceExportTask.
+	//
+	// ExportTaskId is a required field
 	ExportTaskId *string `locationName:"exportTaskId" type:"string" required:"true"`
 }
 
@@ -13725,6 +16113,8 @@ type CancelReservedInstancesListingInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the Reserved Instance listing.
+	//
+	// ReservedInstancesListingId is a required field
 	ReservedInstancesListingId *string `locationName:"reservedInstancesListingId" type:"string" required:"true"`
 }
 
@@ -13774,9 +16164,13 @@ type CancelSpotFleetRequestsError struct {
 	_ struct{} `type:"structure"`
 
 	// The error code.
+	//
+	// Code is a required field
 	Code *string `locationName:"code" type:"string" required:"true" enum:"CancelBatchErrorCode"`
 
 	// The description for the error code.
+	//
+	// Message is a required field
 	Message *string `locationName:"message" type:"string" required:"true"`
 }
 
@@ -13795,9 +16189,13 @@ type CancelSpotFleetRequestsErrorItem struct {
 	_ struct{} `type:"structure"`
 
 	// The error.
+	//
+	// Error is a required field
 	Error *CancelSpotFleetRequestsError `locationName:"error" type:"structure" required:"true"`
 
 	// The ID of the Spot fleet request.
+	//
+	// SpotFleetRequestId is a required field
 	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
 }
 
@@ -13822,10 +16220,14 @@ type CancelSpotFleetRequestsInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The IDs of the Spot fleet requests.
+	//
+	// SpotFleetRequestIds is a required field
 	SpotFleetRequestIds []*string `locationName:"spotFleetRequestId" locationNameList:"item" type:"list" required:"true"`
 
 	// Indicates whether to terminate instances for a Spot fleet request if it is
 	// canceled successfully.
+	//
+	// TerminateInstances is a required field
 	TerminateInstances *bool `locationName:"terminateInstances" type:"boolean" required:"true"`
 }
 
@@ -13881,12 +16283,18 @@ type CancelSpotFleetRequestsSuccessItem struct {
 	_ struct{} `type:"structure"`
 
 	// The current state of the Spot fleet request.
+	//
+	// CurrentSpotFleetRequestState is a required field
 	CurrentSpotFleetRequestState *string `locationName:"currentSpotFleetRequestState" type:"string" required:"true" enum:"BatchState"`
 
 	// The previous state of the Spot fleet request.
+	//
+	// PreviousSpotFleetRequestState is a required field
 	PreviousSpotFleetRequestState *string `locationName:"previousSpotFleetRequestState" type:"string" required:"true" enum:"BatchState"`
 
 	// The ID of the Spot fleet request.
+	//
+	// SpotFleetRequestId is a required field
 	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
 }
 
@@ -13911,6 +16319,8 @@ type CancelSpotInstanceRequestsInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// One or more Spot instance request IDs.
+	//
+	// SpotInstanceRequestIds is a required field
 	SpotInstanceRequestIds []*string `locationName:"SpotInstanceRequestId" locationNameList:"SpotInstanceRequestId" type:"list" required:"true"`
 }
 
@@ -14062,9 +16472,13 @@ type ConfirmProductInstanceInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `type:"string" required:"true"`
 
 	// The product code. This must be a product code that you own.
+	//
+	// ProductCode is a required field
 	ProductCode *string `type:"string" required:"true"`
 }
 
@@ -14122,6 +16536,8 @@ type ConversionTask struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the conversion task.
+	//
+	// ConversionTaskId is a required field
 	ConversionTaskId *string `locationName:"conversionTaskId" type:"string" required:"true"`
 
 	// The time when the task expires. If the upload isn't complete before the expiration
@@ -14137,6 +16553,8 @@ type ConversionTask struct {
 	ImportVolume *ImportVolumeTaskDetails `locationName:"importVolume" type:"structure"`
 
 	// The state of the conversion task.
+	//
+	// State is a required field
 	State *string `locationName:"state" type:"string" required:"true" enum:"ConversionTaskState"`
 
 	// The status message related to the conversion task.
@@ -14192,12 +16610,18 @@ type CopyImageInput struct {
 	KmsKeyId *string `locationName:"kmsKeyId" type:"string"`
 
 	// The name of the new AMI in the destination region.
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
 	// The ID of the AMI to copy.
+	//
+	// SourceImageId is a required field
 	SourceImageId *string `type:"string" required:"true"`
 
 	// The name of the region that contains the AMI to copy.
+	//
+	// SourceRegion is a required field
 	SourceRegion *string `type:"string" required:"true"`
 }
 
@@ -14305,9 +16729,13 @@ type CopySnapshotInput struct {
 	PresignedUrl *string `locationName:"presignedUrl" type:"string"`
 
 	// The ID of the region that contains the snapshot to be copied.
+	//
+	// SourceRegion is a required field
 	SourceRegion *string `type:"string" required:"true"`
 
 	// The ID of the EBS snapshot to copy.
+	//
+	// SourceSnapshotId is a required field
 	SourceSnapshotId *string `type:"string" required:"true"`
 }
 
@@ -14362,6 +16790,8 @@ type CreateCustomerGatewayInput struct {
 	// For devices that support BGP, the customer gateway's BGP ASN.
 	//
 	// Default: 65000
+	//
+	// BgpAsn is a required field
 	BgpAsn *int64 `type:"integer" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -14372,9 +16802,13 @@ type CreateCustomerGatewayInput struct {
 
 	// The Internet-routable IP address for the customer gateway's outside interface.
 	// The address must be static.
+	//
+	// PublicIp is a required field
 	PublicIp *string `locationName:"IpAddress" type:"string" required:"true"`
 
 	// The type of VPN connection that this customer gateway supports (ipsec.1).
+	//
+	// Type is a required field
 	Type *string `type:"string" required:"true" enum:"GatewayType"`
 }
 
@@ -14430,6 +16864,8 @@ type CreateDhcpOptionsInput struct {
 	_ struct{} `type:"structure"`
 
 	// A DHCP configuration option.
+	//
+	// DhcpConfigurations is a required field
 	DhcpConfigurations []*NewDhcpConfiguration `locationName:"dhcpConfiguration" locationNameList:"item" type:"list" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -14490,20 +16926,30 @@ type CreateFlowLogsInput struct {
 
 	// The ARN for the IAM role that's used to post flow logs to a CloudWatch Logs
 	// log group.
+	//
+	// DeliverLogsPermissionArn is a required field
 	DeliverLogsPermissionArn *string `type:"string" required:"true"`
 
 	// The name of the CloudWatch log group.
+	//
+	// LogGroupName is a required field
 	LogGroupName *string `type:"string" required:"true"`
 
 	// One or more subnet, network interface, or VPC IDs.
 	//
 	// Constraints: Maximum of 1000 resources
+	//
+	// ResourceIds is a required field
 	ResourceIds []*string `locationName:"ResourceId" locationNameList:"item" type:"list" required:"true"`
 
 	// The type of resource on which to create the flow log.
+	//
+	// ResourceType is a required field
 	ResourceType *string `type:"string" required:"true" enum:"FlowLogsResourceType"`
 
 	// The type of traffic to log.
+	//
+	// TrafficType is a required field
 	TrafficType *string `type:"string" required:"true" enum:"TrafficType"`
 }
 
@@ -14584,6 +17030,8 @@ type CreateImageInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 
 	// A name for the new image.
@@ -14591,6 +17039,8 @@ type CreateImageInput struct {
 	// Constraints: 3-128 alphanumeric characters, parentheses (()), square brackets
 	// ([]), spaces ( ), periods (.), slashes (/), dashes (-), single quotes ('),
 	// at-signs (@), or underscores(_)
+	//
+	// Name is a required field
 	Name *string `locationName:"name" type:"string" required:"true"`
 
 	// By default, Amazon EC2 attempts to shut down and reboot the instance before
@@ -14656,6 +17106,8 @@ type CreateInstanceExportTaskInput struct {
 	ExportToS3Task *ExportToS3TaskSpecification `locationName:"exportToS3" type:"structure"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 
 	// The target virtualization environment.
@@ -14755,6 +17207,8 @@ type CreateKeyPairInput struct {
 	// A unique name for the key pair.
 	//
 	// Constraints: Up to 255 ASCII characters
+	//
+	// KeyName is a required field
 	KeyName *string `type:"string" required:"true"`
 }
 
@@ -14812,6 +17266,8 @@ type CreateNatGatewayInput struct {
 	// The allocation ID of an Elastic IP address to associate with the NAT gateway.
 	// If the Elastic IP address is associated with another resource, you must first
 	// disassociate it.
+	//
+	// AllocationId is a required field
 	AllocationId *string `type:"string" required:"true"`
 
 	// Unique, case-sensitive identifier you provide to ensure the idempotency of
@@ -14821,6 +17277,8 @@ type CreateNatGatewayInput struct {
 	ClientToken *string `type:"string"`
 
 	// The subnet in which to create the NAT gateway.
+	//
+	// SubnetId is a required field
 	SubnetId *string `type:"string" required:"true"`
 }
 
@@ -14877,6 +17335,8 @@ type CreateNetworkAclEntryInput struct {
 	_ struct{} `type:"structure"`
 
 	// The network range to allow or deny, in CIDR notation (for example 172.16.0.0/24).
+	//
+	// CidrBlock is a required field
 	CidrBlock *string `locationName:"cidrBlock" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -14887,6 +17347,8 @@ type CreateNetworkAclEntryInput struct {
 
 	// Indicates whether this is an egress rule (rule is applied to traffic leaving
 	// the subnet).
+	//
+	// Egress is a required field
 	Egress *bool `locationName:"egress" type:"boolean" required:"true"`
 
 	// ICMP protocol: The ICMP type and code. Required if specifying ICMP for the
@@ -14894,15 +17356,21 @@ type CreateNetworkAclEntryInput struct {
 	IcmpTypeCode *IcmpTypeCode `locationName:"Icmp" type:"structure"`
 
 	// The ID of the network ACL.
+	//
+	// NetworkAclId is a required field
 	NetworkAclId *string `locationName:"networkAclId" type:"string" required:"true"`
 
 	// TCP or UDP protocols: The range of ports the rule applies to.
 	PortRange *PortRange `locationName:"portRange" type:"structure"`
 
 	// The protocol. A value of -1 means all protocols.
+	//
+	// Protocol is a required field
 	Protocol *string `locationName:"protocol" type:"string" required:"true"`
 
 	// Indicates whether to allow or deny the traffic that matches the rule.
+	//
+	// RuleAction is a required field
 	RuleAction *string `locationName:"ruleAction" type:"string" required:"true" enum:"RuleAction"`
 
 	// The rule number for the entry (for example, 100). ACL entries are processed
@@ -14910,6 +17378,8 @@ type CreateNetworkAclEntryInput struct {
 	//
 	// Constraints: Positive integer from 1 to 32766. The range 32767 to 65535
 	// is reserved for internal use.
+	//
+	// RuleNumber is a required field
 	RuleNumber *int64 `locationName:"ruleNumber" type:"integer" required:"true"`
 }
 
@@ -14976,6 +17446,8 @@ type CreateNetworkAclInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
 }
 
@@ -15057,6 +17529,8 @@ type CreateNetworkInterfaceInput struct {
 	SecondaryPrivateIpAddressCount *int64 `locationName:"secondaryPrivateIpAddressCount" type:"integer"`
 
 	// The ID of the subnet to associate with the network interface.
+	//
+	// SubnetId is a required field
 	SubnetId *string `locationName:"subnetId" type:"string" required:"true"`
 }
 
@@ -15124,9 +17598,13 @@ type CreatePlacementGroupInput struct {
 	// A name for the placement group.
 	//
 	// Constraints: Up to 255 ASCII characters
+	//
+	// GroupName is a required field
 	GroupName *string `locationName:"groupName" type:"string" required:"true"`
 
 	// The placement strategy.
+	//
+	// Strategy is a required field
 	Strategy *string `locationName:"strategy" type:"string" required:"true" enum:"PlacementStrategy"`
 }
 
@@ -15177,19 +17655,27 @@ type CreateReservedInstancesListingInput struct {
 	// Unique, case-sensitive identifier you provide to ensure idempotency of your
 	// listings. This helps avoid duplicate listings. For more information, see
 	// Ensuring Idempotency (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/Run_Instance_Idempotency.html).
+	//
+	// ClientToken is a required field
 	ClientToken *string `locationName:"clientToken" type:"string" required:"true"`
 
 	// The number of instances that are a part of a Reserved Instance account to
 	// be listed in the Reserved Instance Marketplace. This number should be less
 	// than or equal to the instance count associated with the Reserved Instance
 	// ID specified in this call.
+	//
+	// InstanceCount is a required field
 	InstanceCount *int64 `locationName:"instanceCount" type:"integer" required:"true"`
 
 	// A list specifying the price of the Standard Reserved Instance for each month
 	// remaining in the Reserved Instance term.
+	//
+	// PriceSchedules is a required field
 	PriceSchedules []*PriceScheduleSpecification `locationName:"priceSchedules" locationNameList:"item" type:"list" required:"true"`
 
 	// The ID of the active Standard Reserved Instance.
+	//
+	// ReservedInstancesId is a required field
 	ReservedInstancesId *string `locationName:"reservedInstancesId" type:"string" required:"true"`
 }
 
@@ -15249,6 +17735,8 @@ type CreateRouteInput struct {
 
 	// The CIDR address block used for the destination match. Routing decisions
 	// are based on the most specific match.
+	//
+	// DestinationCidrBlock is a required field
 	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -15272,6 +17760,8 @@ type CreateRouteInput struct {
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string"`
 
 	// The ID of the route table for the route.
+	//
+	// RouteTableId is a required field
 	RouteTableId *string `locationName:"routeTableId" type:"string" required:"true"`
 
 	// The ID of a VPC peering connection.
@@ -15333,6 +17823,8 @@ type CreateRouteTableInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
 }
 
@@ -15388,6 +17880,8 @@ type CreateSecurityGroupInput struct {
 	// Constraints for EC2-Classic: ASCII characters
 	//
 	// Constraints for EC2-VPC: a-z, A-Z, 0-9, spaces, and ._-:/()#,@[]+=&;{}!$*
+	//
+	// Description is a required field
 	Description *string `locationName:"GroupDescription" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -15403,6 +17897,8 @@ type CreateSecurityGroupInput struct {
 	// Constraints for EC2-Classic: ASCII characters
 	//
 	// Constraints for EC2-VPC: a-z, A-Z, 0-9, spaces, and ._-:/()#,@[]+=&;{}!$*
+	//
+	// GroupName is a required field
 	GroupName *string `type:"string" required:"true"`
 
 	// [EC2-VPC] The ID of the VPC. Required for EC2-VPC.
@@ -15467,6 +17963,8 @@ type CreateSnapshotInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the EBS volume.
+	//
+	// VolumeId is a required field
 	VolumeId *string `type:"string" required:"true"`
 }
 
@@ -15498,6 +17996,8 @@ type CreateSpotDatafeedSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon S3 bucket in which to store the Spot instance data feed.
+	//
+	// Bucket is a required field
 	Bucket *string `locationName:"bucket" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -15562,6 +18062,8 @@ type CreateSubnetInput struct {
 	AvailabilityZone *string `type:"string"`
 
 	// The network range for the subnet, in CIDR notation. For example, 10.0.0.0/24.
+	//
+	// CidrBlock is a required field
 	CidrBlock *string `type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -15571,6 +18073,8 @@ type CreateSubnetInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `type:"string" required:"true"`
 }
 
@@ -15629,11 +18133,15 @@ type CreateTagsInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The IDs of one or more resources to tag. For example, ami-1a2b3c4d.
+	//
+	// Resources is a required field
 	Resources []*string `locationName:"ResourceId" type:"list" required:"true"`
 
 	// One or more tags. The value parameter is required, but if you don't want
 	// the tag to have a value, specify the parameter with no value, and we set
 	// the value to an empty string.
+	//
+	// Tags is a required field
 	Tags []*Tag `locationName:"Tag" locationNameList:"item" type:"list" required:"true"`
 }
 
@@ -15683,6 +18191,8 @@ type CreateVolumeInput struct {
 
 	// The Availability Zone in which to create the volume. Use DescribeAvailabilityZones
 	// to list the Availability Zones that are currently available to you.
+	//
+	// AvailabilityZone is a required field
 	AvailabilityZone *string `type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -15831,9 +18341,13 @@ type CreateVpcEndpointInput struct {
 
 	// The AWS service name, in the form com.amazonaws.region.service . To get a
 	// list of available services, use the DescribeVpcEndpointServices request.
+	//
+	// ServiceName is a required field
 	ServiceName *string `type:"string" required:"true"`
 
 	// The ID of the VPC in which the endpoint will be used.
+	//
+	// VpcId is a required field
 	VpcId *string `type:"string" required:"true"`
 }
 
@@ -15890,6 +18404,8 @@ type CreateVpcInput struct {
 	_ struct{} `type:"structure"`
 
 	// The network range for the VPC, in CIDR notation. For example, 10.0.0.0/16.
+	//
+	// CidrBlock is a required field
 	CidrBlock *string `type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -16007,6 +18523,8 @@ type CreateVpnConnectionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the customer gateway.
+	//
+	// CustomerGatewayId is a required field
 	CustomerGatewayId *string `type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -16023,9 +18541,13 @@ type CreateVpnConnectionInput struct {
 	Options *VpnConnectionOptionsSpecification `locationName:"options" type:"structure"`
 
 	// The type of VPN connection (ipsec.1).
+	//
+	// Type is a required field
 	Type *string `type:"string" required:"true"`
 
 	// The ID of the virtual private gateway.
+	//
+	// VpnGatewayId is a required field
 	VpnGatewayId *string `type:"string" required:"true"`
 }
 
@@ -16081,9 +18603,13 @@ type CreateVpnConnectionRouteInput struct {
 	_ struct{} `type:"structure"`
 
 	// The CIDR block associated with the local subnet of the customer network.
+	//
+	// DestinationCidrBlock is a required field
 	DestinationCidrBlock *string `type:"string" required:"true"`
 
 	// The ID of the VPN connection.
+	//
+	// VpnConnectionId is a required field
 	VpnConnectionId *string `type:"string" required:"true"`
 }
 
@@ -16141,6 +18667,8 @@ type CreateVpnGatewayInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The type of VPN connection this virtual private gateway supports.
+	//
+	// Type is a required field
 	Type *string `type:"string" required:"true" enum:"GatewayType"`
 }
 
@@ -16225,6 +18753,8 @@ type DeleteCustomerGatewayInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the customer gateway.
+	//
+	// CustomerGatewayId is a required field
 	CustomerGatewayId *string `type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -16276,6 +18806,8 @@ type DeleteDhcpOptionsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the DHCP options set.
+	//
+	// DhcpOptionsId is a required field
 	DhcpOptionsId *string `type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -16327,6 +18859,8 @@ type DeleteFlowLogsInput struct {
 	_ struct{} `type:"structure"`
 
 	// One or more flow log IDs.
+	//
+	// FlowLogIds is a required field
 	FlowLogIds []*string `locationName:"FlowLogId" locationNameList:"item" type:"list" required:"true"`
 }
 
@@ -16382,6 +18916,8 @@ type DeleteInternetGatewayInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the Internet gateway.
+	//
+	// InternetGatewayId is a required field
 	InternetGatewayId *string `locationName:"internetGatewayId" type:"string" required:"true"`
 }
 
@@ -16433,6 +18969,8 @@ type DeleteKeyPairInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The name of the key pair.
+	//
+	// KeyName is a required field
 	KeyName *string `type:"string" required:"true"`
 }
 
@@ -16478,6 +19016,8 @@ type DeleteNatGatewayInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the NAT gateway.
+	//
+	// NatGatewayId is a required field
 	NatGatewayId *string `type:"string" required:"true"`
 }
 
@@ -16533,12 +19073,18 @@ type DeleteNetworkAclEntryInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// Indicates whether the rule is an egress rule.
+	//
+	// Egress is a required field
 	Egress *bool `locationName:"egress" type:"boolean" required:"true"`
 
 	// The ID of the network ACL.
+	//
+	// NetworkAclId is a required field
 	NetworkAclId *string `locationName:"networkAclId" type:"string" required:"true"`
 
 	// The rule number of the entry to delete.
+	//
+	// RuleNumber is a required field
 	RuleNumber *int64 `locationName:"ruleNumber" type:"integer" required:"true"`
 }
 
@@ -16596,6 +19142,8 @@ type DeleteNetworkAclInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the network ACL.
+	//
+	// NetworkAclId is a required field
 	NetworkAclId *string `locationName:"networkAclId" type:"string" required:"true"`
 }
 
@@ -16647,6 +19195,8 @@ type DeleteNetworkInterfaceInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the network interface.
+	//
+	// NetworkInterfaceId is a required field
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string" required:"true"`
 }
 
@@ -16698,6 +19248,8 @@ type DeletePlacementGroupInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The name of the placement group.
+	//
+	// GroupName is a required field
 	GroupName *string `locationName:"groupName" type:"string" required:"true"`
 }
 
@@ -16744,6 +19296,8 @@ type DeleteRouteInput struct {
 
 	// The CIDR range for the route. The value you specify must match the CIDR for
 	// the route exactly.
+	//
+	// DestinationCidrBlock is a required field
 	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -16753,6 +19307,8 @@ type DeleteRouteInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the route table.
+	//
+	// RouteTableId is a required field
 	RouteTableId *string `locationName:"routeTableId" type:"string" required:"true"`
 }
 
@@ -16807,6 +19363,8 @@ type DeleteRouteTableInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the route table.
+	//
+	// RouteTableId is a required field
 	RouteTableId *string `locationName:"routeTableId" type:"string" required:"true"`
 }
 
@@ -16900,6 +19458,8 @@ type DeleteSnapshotInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the EBS snapshot.
+	//
+	// SnapshotId is a required field
 	SnapshotId *string `type:"string" required:"true"`
 }
 
@@ -16986,6 +19546,8 @@ type DeleteSubnetInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the subnet.
+	//
+	// SubnetId is a required field
 	SubnetId *string `type:"string" required:"true"`
 }
 
@@ -17038,6 +19600,8 @@ type DeleteTagsInput struct {
 
 	// The ID of the resource. For example, ami-1a2b3c4d. You can specify more than
 	// one resource ID.
+	//
+	// Resources is a required field
 	Resources []*string `locationName:"resourceId" type:"list" required:"true"`
 
 	// One or more tags to delete. If you omit the value parameter, we delete the
@@ -17094,6 +19658,8 @@ type DeleteVolumeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the volume.
+	//
+	// VolumeId is a required field
 	VolumeId *string `type:"string" required:"true"`
 }
 
@@ -17145,6 +19711,8 @@ type DeleteVpcEndpointsInput struct {
 	DryRun *bool `type:"boolean"`
 
 	// One or more endpoint IDs.
+	//
+	// VpcEndpointIds is a required field
 	VpcEndpointIds []*string `locationName:"VpcEndpointId" locationNameList:"item" type:"list" required:"true"`
 }
 
@@ -17200,6 +19768,8 @@ type DeleteVpcInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `type:"string" required:"true"`
 }
 
@@ -17251,6 +19821,8 @@ type DeleteVpcPeeringConnectionInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC peering connection.
+	//
+	// VpcPeeringConnectionId is a required field
 	VpcPeeringConnectionId *string `locationName:"vpcPeeringConnectionId" type:"string" required:"true"`
 }
 
@@ -17306,6 +19878,8 @@ type DeleteVpnConnectionInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPN connection.
+	//
+	// VpnConnectionId is a required field
 	VpnConnectionId *string `type:"string" required:"true"`
 }
 
@@ -17351,9 +19925,13 @@ type DeleteVpnConnectionRouteInput struct {
 	_ struct{} `type:"structure"`
 
 	// The CIDR block associated with the local subnet of the customer network.
+	//
+	// DestinationCidrBlock is a required field
 	DestinationCidrBlock *string `type:"string" required:"true"`
 
 	// The ID of the VPN connection.
+	//
+	// VpnConnectionId is a required field
 	VpnConnectionId *string `type:"string" required:"true"`
 }
 
@@ -17408,6 +19986,8 @@ type DeleteVpnGatewayInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the virtual private gateway.
+	//
+	// VpnGatewayId is a required field
 	VpnGatewayId *string `type:"string" required:"true"`
 }
 
@@ -17459,6 +20039,8 @@ type DeregisterImageInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the AMI.
+	//
+	// ImageId is a required field
 	ImageId *string `type:"string" required:"true"`
 }
 
@@ -18335,6 +20917,8 @@ type DescribeIdentityIdFormatInput struct {
 
 	// The ARN of the principal, which can be an IAM role, IAM user, or the root
 	// user.
+	//
+	// PrincipalArn is a required field
 	PrincipalArn *string `locationName:"principalArn" type:"string" required:"true"`
 
 	// The type of resource: instance | reservation | snapshot | volume
@@ -18391,6 +20975,8 @@ type DescribeImageAttributeInput struct {
 	//  Note: Depending on your account privileges, the blockDeviceMapping attribute
 	// may return a Client.AuthFailure error. If this happens, use DescribeImages
 	// to get information about the block device mapping for the AMI.
+	//
+	// Attribute is a required field
 	Attribute *string `type:"string" required:"true" enum:"ImageAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -18400,6 +20986,8 @@ type DescribeImageAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the AMI.
+	//
+	// ImageId is a required field
 	ImageId *string `type:"string" required:"true"`
 }
 
@@ -18719,6 +21307,8 @@ type DescribeInstanceAttributeInput struct {
 	// The instance attribute.
 	//
 	// Note: The enaSupport attribute is not supported at this time.
+	//
+	// Attribute is a required field
 	Attribute *string `locationName:"attribute" type:"string" required:"true" enum:"InstanceAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -18728,6 +21318,8 @@ type DescribeInstanceAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 }
 
@@ -19564,6 +22156,8 @@ type DescribeNetworkInterfaceAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the network interface.
+	//
+	// NetworkInterfaceId is a required field
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string" required:"true"`
 }
 
@@ -20429,6 +23023,8 @@ type DescribeScheduledInstanceAvailabilityInput struct {
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// The time period for the first schedule to start.
+	//
+	// FirstSlotStartTimeRange is a required field
 	FirstSlotStartTimeRange *SlotDateTimeRangeRequest `type:"structure" required:"true"`
 
 	// The maximum number of results to return in a single call. This value can
@@ -20450,6 +23046,8 @@ type DescribeScheduledInstanceAvailabilityInput struct {
 	NextToken *string `type:"string"`
 
 	// The schedule recurrence.
+	//
+	// Recurrence is a required field
 	Recurrence *ScheduledInstanceRecurrenceRequest `type:"structure" required:"true"`
 }
 
@@ -20584,6 +23182,8 @@ type DescribeSecurityGroupReferencesInput struct {
 	DryRun *bool `type:"boolean"`
 
 	// One or more security group IDs in your account.
+	//
+	// GroupId is a required field
 	GroupId []*string `locationNameList:"item" type:"list" required:"true"`
 }
 
@@ -20727,6 +23327,8 @@ type DescribeSnapshotAttributeInput struct {
 	_ struct{} `type:"structure"`
 
 	// The snapshot attribute you would like to view.
+	//
+	// Attribute is a required field
 	Attribute *string `type:"string" required:"true" enum:"SnapshotAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -20736,6 +23338,8 @@ type DescribeSnapshotAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the EBS snapshot.
+	//
+	// SnapshotId is a required field
 	SnapshotId *string `type:"string" required:"true"`
 }
 
@@ -20958,6 +23562,8 @@ type DescribeSpotFleetInstancesInput struct {
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The ID of the Spot fleet request.
+	//
+	// SpotFleetRequestId is a required field
 	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
 }
 
@@ -20990,6 +23596,8 @@ type DescribeSpotFleetInstancesOutput struct {
 
 	// The running instances. Note that this list is refreshed periodically and
 	// might be out of date.
+	//
+	// ActiveInstances is a required field
 	ActiveInstances []*ActiveInstance `locationName:"activeInstanceSet" locationNameList:"item" type:"list" required:"true"`
 
 	// The token required to retrieve the next set of results. This value is null
@@ -20997,6 +23605,8 @@ type DescribeSpotFleetInstancesOutput struct {
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The ID of the Spot fleet request.
+	//
+	// SpotFleetRequestId is a required field
 	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
 }
 
@@ -21032,9 +23642,13 @@ type DescribeSpotFleetRequestHistoryInput struct {
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The ID of the Spot fleet request.
+	//
+	// SpotFleetRequestId is a required field
 	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
 
 	// The starting date and time for the events, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
+	//
+	// StartTime is a required field
 	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"iso8601" required:"true"`
 }
 
@@ -21069,12 +23683,16 @@ type DescribeSpotFleetRequestHistoryOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Information about the events in the history of the Spot fleet request.
+	//
+	// HistoryRecords is a required field
 	HistoryRecords []*HistoryRecord `locationName:"historyRecordSet" locationNameList:"item" type:"list" required:"true"`
 
 	// The last date and time for the events, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
 	// All records up to this time were retrieved.
 	//
 	// If nextToken indicates that there are more results, this value is not present.
+	//
+	// LastEvaluatedTime is a required field
 	LastEvaluatedTime *time.Time `locationName:"lastEvaluatedTime" type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The token required to retrieve the next set of results. This value is null
@@ -21082,9 +23700,13 @@ type DescribeSpotFleetRequestHistoryOutput struct {
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// The ID of the Spot fleet request.
+	//
+	// SpotFleetRequestId is a required field
 	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
 
 	// The starting date and time for the events, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
+	//
+	// StartTime is a required field
 	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"iso8601" required:"true"`
 }
 
@@ -21139,6 +23761,8 @@ type DescribeSpotFleetRequestsOutput struct {
 	NextToken *string `locationName:"nextToken" type:"string"`
 
 	// Information about the configuration of your Spot fleet.
+	//
+	// SpotFleetRequestConfigs is a required field
 	SpotFleetRequestConfigs []*SpotFleetRequestConfig `locationName:"spotFleetRequestConfigSet" locationNameList:"item" type:"list" required:"true"`
 }
 
@@ -21411,6 +24035,8 @@ type DescribeStaleSecurityGroupsInput struct {
 	NextToken *string `min:"1" type:"string"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `type:"string" required:"true"`
 }
 
@@ -21621,6 +24247,8 @@ type DescribeVolumeAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the volume.
+	//
+	// VolumeId is a required field
 	VolumeId *string `type:"string" required:"true"`
 }
 
@@ -21886,6 +24514,8 @@ type DescribeVpcAttributeInput struct {
 	_ struct{} `type:"structure"`
 
 	// The VPC attribute.
+	//
+	// Attribute is a required field
 	Attribute *string `type:"string" required:"true" enum:"VpcAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -21895,6 +24525,8 @@ type DescribeVpcAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `type:"string" required:"true"`
 }
 
@@ -22525,9 +25157,13 @@ type DetachClassicLinkVpcInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the instance to unlink from the VPC.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 
 	// The ID of the VPC to which the instance is linked.
+	//
+	// VpcId is a required field
 	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
 }
 
@@ -22586,9 +25222,13 @@ type DetachInternetGatewayInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the Internet gateway.
+	//
+	// InternetGatewayId is a required field
 	InternetGatewayId *string `locationName:"internetGatewayId" type:"string" required:"true"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
 }
 
@@ -22637,6 +25277,8 @@ type DetachNetworkInterfaceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the attachment.
+	//
+	// AttachmentId is a required field
 	AttachmentId *string `locationName:"attachmentId" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -22712,6 +25354,8 @@ type DetachVolumeInput struct {
 	InstanceId *string `type:"string"`
 
 	// The ID of the volume.
+	//
+	// VolumeId is a required field
 	VolumeId *string `type:"string" required:"true"`
 }
 
@@ -22749,9 +25393,13 @@ type DetachVpnGatewayInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `type:"string" required:"true"`
 
 	// The ID of the virtual private gateway.
+	//
+	// VpnGatewayId is a required field
 	VpnGatewayId *string `type:"string" required:"true"`
 }
 
@@ -22845,9 +25493,13 @@ type DisableVgwRoutePropagationInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the virtual private gateway.
+	//
+	// GatewayId is a required field
 	GatewayId *string `type:"string" required:"true"`
 
 	// The ID of the route table.
+	//
+	// RouteTableId is a required field
 	RouteTableId *string `type:"string" required:"true"`
 }
 
@@ -22938,6 +25590,8 @@ type DisableVpcClassicLinkInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
 }
 
@@ -23029,6 +25683,8 @@ type DisassociateRouteTableInput struct {
 
 	// The association ID representing the current association between the route
 	// table and subnet.
+	//
+	// AssociationId is a required field
 	AssociationId *string `locationName:"associationId" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -23127,6 +25783,8 @@ type DiskImageDescription struct {
 	Checksum *string `locationName:"checksum" type:"string"`
 
 	// The disk image format.
+	//
+	// Format is a required field
 	Format *string `locationName:"format" type:"string" required:"true" enum:"DiskImageFormat"`
 
 	// A presigned URL for the import manifest stored in Amazon S3. For information
@@ -23137,9 +25795,13 @@ type DiskImageDescription struct {
 	//
 	// For information about the import manifest referenced by this API action,
 	// see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
+	//
+	// ImportManifestUrl is a required field
 	ImportManifestUrl *string `locationName:"importManifestUrl" type:"string" required:"true"`
 
 	// The size of the disk image, in GiB.
+	//
+	// Size is a required field
 	Size *int64 `locationName:"size" type:"long" required:"true"`
 }
 
@@ -23158,9 +25820,13 @@ type DiskImageDetail struct {
 	_ struct{} `type:"structure"`
 
 	// The size of the disk image, in GiB.
+	//
+	// Bytes is a required field
 	Bytes *int64 `locationName:"bytes" type:"long" required:"true"`
 
 	// The disk image format.
+	//
+	// Format is a required field
 	Format *string `locationName:"format" type:"string" required:"true" enum:"DiskImageFormat"`
 
 	// A presigned URL for the import manifest stored in Amazon S3 and presented
@@ -23171,6 +25837,8 @@ type DiskImageDetail struct {
 	//
 	// For information about the import manifest referenced by this API action,
 	// see VM Import Manifest (http://docs.aws.amazon.com/AWSEC2/latest/APIReference/manifest.html).
+	//
+	// ImportManifestUrl is a required field
 	ImportManifestUrl *string `locationName:"importManifestUrl" type:"string" required:"true"`
 }
 
@@ -23208,6 +25876,8 @@ type DiskImageVolumeDescription struct {
 	_ struct{} `type:"structure"`
 
 	// The volume identifier.
+	//
+	// Id is a required field
 	Id *string `locationName:"id" type:"string" required:"true"`
 
 	// The size of the volume, in GiB.
@@ -23335,9 +26005,13 @@ type EnableVgwRoutePropagationInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the virtual private gateway.
+	//
+	// GatewayId is a required field
 	GatewayId *string `type:"string" required:"true"`
 
 	// The ID of the route table.
+	//
+	// RouteTableId is a required field
 	RouteTableId *string `type:"string" required:"true"`
 }
 
@@ -23392,6 +26066,8 @@ type EnableVolumeIOInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the volume.
+	//
+	// VolumeId is a required field
 	VolumeId *string `locationName:"volumeId" type:"string" required:"true"`
 }
 
@@ -23479,6 +26155,8 @@ type EnableVpcClassicLinkInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
 }
 
@@ -23772,6 +26450,8 @@ type GetConsoleOutputInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `type:"string" required:"true"`
 }
 
@@ -23834,6 +26514,8 @@ type GetConsoleScreenshotInput struct {
 	DryRun *bool `type:"boolean"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `type:"string" required:"true"`
 
 	// When set to true, acts as keystroke input and wakes up an instance that's
@@ -23890,9 +26572,13 @@ type GetHostReservationPurchasePreviewInput struct {
 
 	// The ID/s of the Dedicated Host/s that the reservation will be associated
 	// with.
+	//
+	// HostIdSet is a required field
 	HostIdSet []*string `locationNameList:"item" type:"list" required:"true"`
 
 	// The offering ID of the reservation.
+	//
+	// OfferingId is a required field
 	OfferingId *string `type:"string" required:"true"`
 }
 
@@ -23961,6 +26647,8 @@ type GetPasswordDataInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the Windows instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `type:"string" required:"true"`
 }
 
@@ -24022,6 +26710,8 @@ type GetReservedInstancesExchangeQuoteInput struct {
 	DryRun *bool `type:"boolean"`
 
 	// The ID/s of the Convertible Reserved Instances you want to exchange.
+	//
+	// ReservedInstanceIds is a required field
 	ReservedInstanceIds []*string `locationName:"ReservedInstanceId" locationNameList:"ReservedInstanceId" type:"list" required:"true"`
 
 	// The configuration requirements of the Convertible Reserved Instances you
@@ -24130,6 +26820,8 @@ type HistoryRecord struct {
 	_ struct{} `type:"structure"`
 
 	// Information about the event.
+	//
+	// EventInformation is a required field
 	EventInformation *EventInformation `locationName:"eventInformation" type:"structure" required:"true"`
 
 	// The event type.
@@ -24140,9 +26832,13 @@ type HistoryRecord struct {
 	// of the Spot fleet request.
 	//
 	//    instanceChange - Indicates that an instance was launched or terminated.
+	//
+	// EventType is a required field
 	EventType *string `locationName:"eventType" type:"string" required:"true" enum:"EventType"`
 
 	// The date and time of the event, in UTC format (for example, YYYY-MM-DDTHH:MM:SSZ).
+	//
+	// Timestamp is a required field
 	Timestamp *time.Time `locationName:"timestamp" type:"timestamp" timestampFormat:"iso8601" required:"true"`
 }
 
@@ -24745,6 +27441,8 @@ type ImportInstanceInput struct {
 	LaunchSpecification *ImportInstanceLaunchSpecification `locationName:"launchSpecification" type:"structure"`
 
 	// The instance operating system.
+	//
+	// Platform is a required field
 	Platform *string `locationName:"platform" type:"string" required:"true" enum:"PlatformValues"`
 }
 
@@ -24866,6 +27564,8 @@ type ImportInstanceTaskDetails struct {
 	Platform *string `locationName:"platform" type:"string" enum:"PlatformValues"`
 
 	// One or more volumes.
+	//
+	// Volumes is a required field
 	Volumes []*ImportInstanceVolumeDetailItem `locationName:"volumes" locationNameList:"item" type:"list" required:"true"`
 }
 
@@ -24884,24 +27584,34 @@ type ImportInstanceVolumeDetailItem struct {
 	_ struct{} `type:"structure"`
 
 	// The Availability Zone where the resulting instance will reside.
+	//
+	// AvailabilityZone is a required field
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string" required:"true"`
 
 	// The number of bytes converted so far.
+	//
+	// BytesConverted is a required field
 	BytesConverted *int64 `locationName:"bytesConverted" type:"long" required:"true"`
 
 	// A description of the task.
 	Description *string `locationName:"description" type:"string"`
 
 	// The image.
+	//
+	// Image is a required field
 	Image *DiskImageDescription `locationName:"image" type:"structure" required:"true"`
 
 	// The status of the import of this particular disk image.
+	//
+	// Status is a required field
 	Status *string `locationName:"status" type:"string" required:"true"`
 
 	// The status information or errors related to the disk image.
 	StatusMessage *string `locationName:"statusMessage" type:"string"`
 
 	// The volume.
+	//
+	// Volume is a required field
 	Volume *DiskImageVolumeDescription `locationName:"volume" type:"structure" required:"true"`
 }
 
@@ -24926,12 +27636,16 @@ type ImportKeyPairInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// A unique name for the key pair.
+	//
+	// KeyName is a required field
 	KeyName *string `locationName:"keyName" type:"string" required:"true"`
 
 	// The public key. For API calls, the text must be base64-encoded. For command
 	// line tools, base64 encoding is performed for you.
 	//
 	// PublicKeyMaterial is automatically base64 encoded/decoded by the SDK.
+	//
+	// PublicKeyMaterial is a required field
 	PublicKeyMaterial []byte `locationName:"publicKeyMaterial" type:"blob" required:"true"`
 }
 
@@ -25071,6 +27785,8 @@ type ImportVolumeInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Availability Zone for the resulting EBS volume.
+	//
+	// AvailabilityZone is a required field
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string" required:"true"`
 
 	// A description of the volume.
@@ -25083,9 +27799,13 @@ type ImportVolumeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The disk image.
+	//
+	// Image is a required field
 	Image *DiskImageDetail `locationName:"image" type:"structure" required:"true"`
 
 	// The volume size.
+	//
+	// Volume is a required field
 	Volume *VolumeDetail `locationName:"volume" type:"structure" required:"true"`
 }
 
@@ -25151,18 +27871,26 @@ type ImportVolumeTaskDetails struct {
 	_ struct{} `type:"structure"`
 
 	// The Availability Zone where the resulting volume will reside.
+	//
+	// AvailabilityZone is a required field
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string" required:"true"`
 
 	// The number of bytes converted so far.
+	//
+	// BytesConverted is a required field
 	BytesConverted *int64 `locationName:"bytesConverted" type:"long" required:"true"`
 
 	// The description you provided when starting the import volume task.
 	Description *string `locationName:"description" type:"string"`
 
 	// The image.
+	//
+	// Image is a required field
 	Image *DiskImageDescription `locationName:"image" type:"structure" required:"true"`
 
 	// The volume.
+	//
+	// Volume is a required field
 	Volume *DiskImageVolumeDescription `locationName:"volume" type:"structure" required:"true"`
 }
 
@@ -26106,9 +28834,13 @@ type ModifyHostsInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specify whether to enable or disable auto-placement.
+	//
+	// AutoPlacement is a required field
 	AutoPlacement *string `locationName:"autoPlacement" type:"string" required:"true" enum:"AutoPlacement"`
 
 	// The host IDs of the Dedicated Hosts you want to modify.
+	//
+	// HostIds is a required field
 	HostIds []*string `locationName:"hostId" locationNameList:"item" type:"list" required:"true"`
 }
 
@@ -26165,9 +28897,13 @@ type ModifyIdFormatInput struct {
 	_ struct{} `type:"structure"`
 
 	// The type of resource: instance | reservation | snapshot | volume
+	//
+	// Resource is a required field
 	Resource *string `type:"string" required:"true"`
 
 	// Indicate whether the resource should use longer IDs (17-character IDs).
+	//
+	// UseLongIds is a required field
 	UseLongIds *bool `type:"boolean" required:"true"`
 }
 
@@ -26218,12 +28954,18 @@ type ModifyIdentityIdFormatInput struct {
 	// The ARN of the principal, which can be an IAM user, IAM role, or the root
 	// user. Specify all to modify the ID format for all IAM users, IAM roles, and
 	// the root user of the account.
+	//
+	// PrincipalArn is a required field
 	PrincipalArn *string `locationName:"principalArn" type:"string" required:"true"`
 
 	// The type of resource: instance | reservation | snapshot | volume
+	//
+	// Resource is a required field
 	Resource *string `locationName:"resource" type:"string" required:"true"`
 
 	// Indicates whether the resource should use longer IDs (17-character IDs)
+	//
+	// UseLongIds is a required field
 	UseLongIds *bool `locationName:"useLongIds" type:"boolean" required:"true"`
 }
 
@@ -26287,6 +29029,8 @@ type ModifyImageAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the AMI.
+	//
+	// ImageId is a required field
 	ImageId *string `type:"string" required:"true"`
 
 	// A launch permission modification.
@@ -26397,6 +29141,8 @@ type ModifyInstanceAttributeInput struct {
 	Groups []*string `locationName:"GroupId" locationNameList:"groupId" type:"list"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 
 	// Specifies whether an instance stops or terminates when you initiate shutdown
@@ -26492,6 +29238,8 @@ type ModifyInstancePlacementInput struct {
 	HostId *string `locationName:"hostId" type:"string"`
 
 	// The ID of the instance that you are modifying.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 
 	// The tenancy of the instance that you are modifying.
@@ -26563,6 +29311,8 @@ type ModifyNetworkInterfaceAttributeInput struct {
 	Groups []*string `locationName:"SecurityGroupId" locationNameList:"SecurityGroupId" type:"list"`
 
 	// The ID of the network interface.
+	//
+	// NetworkInterfaceId is a required field
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string" required:"true"`
 
 	// Indicates whether source/destination checking is enabled. A value of true
@@ -26619,9 +29369,13 @@ type ModifyReservedInstancesInput struct {
 	ClientToken *string `locationName:"clientToken" type:"string"`
 
 	// The IDs of the Reserved Instances to modify.
+	//
+	// ReservedInstancesIds is a required field
 	ReservedInstancesIds []*string `locationName:"ReservedInstancesId" locationNameList:"ReservedInstancesId" type:"list" required:"true"`
 
 	// The configuration settings for the Reserved Instances to modify.
+	//
+	// TargetConfigurations is a required field
 	TargetConfigurations []*ReservedInstancesConfiguration `locationName:"ReservedInstancesConfigurationSetItemType" locationNameList:"item" type:"list" required:"true"`
 }
 
@@ -26694,6 +29448,8 @@ type ModifySnapshotAttributeInput struct {
 	OperationType *string `type:"string" enum:"OperationType"`
 
 	// The ID of the snapshot.
+	//
+	// SnapshotId is a required field
 	SnapshotId *string `type:"string" required:"true"`
 
 	// The account ID to modify for the snapshot.
@@ -26747,6 +29503,8 @@ type ModifySpotFleetRequestInput struct {
 	ExcessCapacityTerminationPolicy *string `locationName:"excessCapacityTerminationPolicy" type:"string" enum:"ExcessCapacityTerminationPolicy"`
 
 	// The ID of the Spot fleet request.
+	//
+	// SpotFleetRequestId is a required field
 	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
 
 	// The size of the fleet.
@@ -26803,6 +29561,8 @@ type ModifySubnetAttributeInput struct {
 	MapPublicIpOnLaunch *AttributeBooleanValue `type:"structure"`
 
 	// The ID of the subnet.
+	//
+	// SubnetId is a required field
 	SubnetId *string `locationName:"subnetId" type:"string" required:"true"`
 }
 
@@ -26857,6 +29617,8 @@ type ModifyVolumeAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the volume.
+	//
+	// VolumeId is a required field
 	VolumeId *string `type:"string" required:"true"`
 }
 
@@ -26920,6 +29682,8 @@ type ModifyVpcAttributeInput struct {
 	EnableDnsSupport *AttributeBooleanValue `type:"structure"`
 
 	// The ID of the VPC.
+	//
+	// VpcId is a required field
 	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
 }
 
@@ -26985,6 +29749,8 @@ type ModifyVpcEndpointInput struct {
 	ResetPolicy *bool `type:"boolean"`
 
 	// The ID of the endpoint.
+	//
+	// VpcEndpointId is a required field
 	VpcEndpointId *string `type:"string" required:"true"`
 }
 
@@ -27045,6 +29811,8 @@ type ModifyVpcPeeringConnectionOptionsInput struct {
 	RequesterPeeringConnectionOptions *PeeringConnectionOptionsRequest `type:"structure"`
 
 	// The ID of the VPC peering connection.
+	//
+	// VpcPeeringConnectionId is a required field
 	VpcPeeringConnectionId *string `type:"string" required:"true"`
 }
 
@@ -27102,6 +29870,8 @@ type MonitorInstancesInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// One or more instance IDs.
+	//
+	// InstanceIds is a required field
 	InstanceIds []*string `locationName:"InstanceId" locationNameList:"InstanceId" type:"list" required:"true"`
 }
 
@@ -27175,6 +29945,8 @@ type MoveAddressToVpcInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The Elastic IP address.
+	//
+	// PublicIp is a required field
 	PublicIp *string `locationName:"publicIp" type:"string" required:"true"`
 }
 
@@ -27929,6 +30701,8 @@ type PrivateIpAddressSpecification struct {
 	Primary *bool `locationName:"primary" type:"boolean"`
 
 	// The private IP addresses.
+	//
+	// PrivateIpAddress is a required field
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string" required:"true"`
 }
 
@@ -28091,6 +30865,8 @@ type PurchaseHostReservationInput struct {
 
 	// The ID/s of the Dedicated Host/s that the reservation will be associated
 	// with.
+	//
+	// HostIdSet is a required field
 	HostIdSet []*string `locationNameList:"item" type:"list" required:"true"`
 
 	// The specified limit is checked against the total upfront cost of the reservation
@@ -28103,6 +30879,8 @@ type PurchaseHostReservationInput struct {
 	LimitPrice *string `type:"string"`
 
 	// The ID of the offering.
+	//
+	// OfferingId is a required field
 	OfferingId *string `type:"string" required:"true"`
 }
 
@@ -28170,9 +30948,13 @@ type PurchaseRequest struct {
 	_ struct{} `type:"structure"`
 
 	// The number of instances.
+	//
+	// InstanceCount is a required field
 	InstanceCount *int64 `type:"integer" required:"true"`
 
 	// The purchase token.
+	//
+	// PurchaseToken is a required field
 	PurchaseToken *string `type:"string" required:"true"`
 }
 
@@ -28213,6 +30995,8 @@ type PurchaseReservedInstancesOfferingInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The number of Reserved Instances to purchase.
+	//
+	// InstanceCount is a required field
 	InstanceCount *int64 `type:"integer" required:"true"`
 
 	// Specified for Reserved Instance Marketplace offerings to limit the total
@@ -28221,6 +31005,8 @@ type PurchaseReservedInstancesOfferingInput struct {
 	LimitPrice *ReservedInstanceLimitPrice `locationName:"limitPrice" type:"structure"`
 
 	// The ID of the Reserved Instance offering to purchase.
+	//
+	// ReservedInstancesOfferingId is a required field
 	ReservedInstancesOfferingId *string `type:"string" required:"true"`
 }
 
@@ -28283,6 +31069,8 @@ type PurchaseScheduledInstancesInput struct {
 	DryRun *bool `type:"boolean"`
 
 	// One or more purchase requests.
+	//
+	// PurchaseRequests is a required field
 	PurchaseRequests []*PurchaseRequest `locationName:"PurchaseRequest" locationNameList:"PurchaseRequest" min:"1" type:"list" required:"true"`
 }
 
@@ -28351,6 +31139,8 @@ type RebootInstancesInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// One or more instance IDs.
+	//
+	// InstanceIds is a required field
 	InstanceIds []*string `locationName:"InstanceId" locationNameList:"InstanceId" type:"list" required:"true"`
 }
 
@@ -28473,6 +31263,8 @@ type RegisterImageInput struct {
 	// Constraints: 3-128 alphanumeric characters, parentheses (()), square brackets
 	// ([]), spaces ( ), periods (.), slashes (/), dashes (-), single quotes ('),
 	// at-signs (@), or underscores(_)
+	//
+	// Name is a required field
 	Name *string `locationName:"name" type:"string" required:"true"`
 
 	// The ID of the RAM disk.
@@ -28549,6 +31341,8 @@ type RejectVpcPeeringConnectionInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the VPC peering connection.
+	//
+	// VpcPeeringConnectionId is a required field
 	VpcPeeringConnectionId *string `locationName:"vpcPeeringConnectionId" type:"string" required:"true"`
 }
 
@@ -28639,6 +31433,8 @@ type ReleaseHostsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The IDs of the Dedicated Hosts you want to release.
+	//
+	// HostIds is a required field
 	HostIds []*string `locationName:"hostId" locationNameList:"item" type:"list" required:"true"`
 }
 
@@ -28693,6 +31489,8 @@ type ReplaceNetworkAclAssociationInput struct {
 
 	// The ID of the current association between the original network ACL and the
 	// subnet.
+	//
+	// AssociationId is a required field
 	AssociationId *string `locationName:"associationId" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -28702,6 +31500,8 @@ type ReplaceNetworkAclAssociationInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the new network ACL to associate with the subnet.
+	//
+	// NetworkAclId is a required field
 	NetworkAclId *string `locationName:"networkAclId" type:"string" required:"true"`
 }
 
@@ -28754,6 +31554,8 @@ type ReplaceNetworkAclEntryInput struct {
 	_ struct{} `type:"structure"`
 
 	// The network range to allow or deny, in CIDR notation.
+	//
+	// CidrBlock is a required field
 	CidrBlock *string `locationName:"cidrBlock" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -28765,6 +31567,8 @@ type ReplaceNetworkAclEntryInput struct {
 	// Indicates whether to replace the egress rule.
 	//
 	// Default: If no value is specified, we replace the ingress rule.
+	//
+	// Egress is a required field
 	Egress *bool `locationName:"egress" type:"boolean" required:"true"`
 
 	// ICMP protocol: The ICMP type and code. Required if specifying 1 (ICMP) for
@@ -28772,6 +31576,8 @@ type ReplaceNetworkAclEntryInput struct {
 	IcmpTypeCode *IcmpTypeCode `locationName:"Icmp" type:"structure"`
 
 	// The ID of the ACL.
+	//
+	// NetworkAclId is a required field
 	NetworkAclId *string `locationName:"networkAclId" type:"string" required:"true"`
 
 	// TCP or UDP protocols: The range of ports the rule applies to. Required if
@@ -28779,12 +31585,18 @@ type ReplaceNetworkAclEntryInput struct {
 	PortRange *PortRange `locationName:"portRange" type:"structure"`
 
 	// The IP protocol. You can specify all or -1 to mean all protocols.
+	//
+	// Protocol is a required field
 	Protocol *string `locationName:"protocol" type:"string" required:"true"`
 
 	// Indicates whether to allow or deny the traffic that matches the rule.
+	//
+	// RuleAction is a required field
 	RuleAction *string `locationName:"ruleAction" type:"string" required:"true" enum:"RuleAction"`
 
 	// The rule number of the entry to replace.
+	//
+	// RuleNumber is a required field
 	RuleNumber *int64 `locationName:"ruleNumber" type:"integer" required:"true"`
 }
 
@@ -28846,6 +31658,8 @@ type ReplaceRouteInput struct {
 
 	// The CIDR address block used for the destination match. The value you provide
 	// must match the CIDR of an existing route in the table.
+	//
+	// DestinationCidrBlock is a required field
 	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -28867,6 +31681,8 @@ type ReplaceRouteInput struct {
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string"`
 
 	// The ID of the route table.
+	//
+	// RouteTableId is a required field
 	RouteTableId *string `locationName:"routeTableId" type:"string" required:"true"`
 
 	// The ID of a VPC peering connection.
@@ -28918,6 +31734,8 @@ type ReplaceRouteTableAssociationInput struct {
 	_ struct{} `type:"structure"`
 
 	// The association ID.
+	//
+	// AssociationId is a required field
 	AssociationId *string `locationName:"associationId" type:"string" required:"true"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -28927,6 +31745,8 @@ type ReplaceRouteTableAssociationInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the new route table to associate with the subnet.
+	//
+	// RouteTableId is a required field
 	RouteTableId *string `locationName:"routeTableId" type:"string" required:"true"`
 }
 
@@ -28991,6 +31811,8 @@ type ReportInstanceStatusInput struct {
 	EndTime *time.Time `locationName:"endTime" type:"timestamp" timestampFormat:"iso8601"`
 
 	// One or more instances.
+	//
+	// Instances is a required field
 	Instances []*string `locationName:"instanceId" locationNameList:"InstanceId" type:"list" required:"true"`
 
 	// One or more reason codes that describes the health state of your instance.
@@ -29015,12 +31837,16 @@ type ReportInstanceStatusInput struct {
 	//    performance-other: My instance is experiencing performance problems.
 	//
 	//    other: [explain using the description parameter]
+	//
+	// ReasonCodes is a required field
 	ReasonCodes []*string `locationName:"reasonCode" locationNameList:"item" type:"list" required:"true"`
 
 	// The time at which the reported instance health state began.
 	StartTime *time.Time `locationName:"startTime" type:"timestamp" timestampFormat:"iso8601"`
 
 	// The status of all instances listed.
+	//
+	// Status is a required field
 	Status *string `locationName:"status" type:"string" required:"true" enum:"ReportStatusType"`
 }
 
@@ -29078,6 +31904,8 @@ type RequestSpotFleetInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The configuration for the Spot fleet request.
+	//
+	// SpotFleetRequestConfig is a required field
 	SpotFleetRequestConfig *SpotFleetRequestConfigData `locationName:"spotFleetRequestConfig" type:"structure" required:"true"`
 }
 
@@ -29114,6 +31942,8 @@ type RequestSpotFleetOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the Spot fleet request.
+	//
+	// SpotFleetRequestId is a required field
 	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
 }
 
@@ -29192,6 +32022,8 @@ type RequestSpotInstancesInput struct {
 
 	// The maximum hourly price (bid) for any Spot instance launched to fulfill
 	// the request.
+	//
+	// SpotPrice is a required field
 	SpotPrice *string `locationName:"spotPrice" type:"string" required:"true"`
 
 	// The Spot instance request type.
@@ -29767,6 +32599,8 @@ type ResetImageAttributeInput struct {
 
 	// The attribute to reset (currently you can only reset the launch permission
 	// attribute).
+	//
+	// Attribute is a required field
 	Attribute *string `type:"string" required:"true" enum:"ResetImageAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -29776,6 +32610,8 @@ type ResetImageAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the AMI.
+	//
+	// ImageId is a required field
 	ImageId *string `type:"string" required:"true"`
 }
 
@@ -29827,6 +32663,8 @@ type ResetInstanceAttributeInput struct {
 	//
 	//  You can only reset the following attributes: kernel | ramdisk | sourceDestCheck.
 	// To change an instance attribute, use ModifyInstanceAttribute.
+	//
+	// Attribute is a required field
 	Attribute *string `locationName:"attribute" type:"string" required:"true" enum:"InstanceAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -29836,6 +32674,8 @@ type ResetInstanceAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the instance.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 }
 
@@ -29890,6 +32730,8 @@ type ResetNetworkInterfaceAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the network interface.
+	//
+	// NetworkInterfaceId is a required field
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string" required:"true"`
 
 	// The source/destination checking attribute. Resets the value to true.
@@ -29939,6 +32781,8 @@ type ResetSnapshotAttributeInput struct {
 
 	// The attribute to reset. Currently, only the attribute for permission to create
 	// volumes can be reset.
+	//
+	// Attribute is a required field
 	Attribute *string `type:"string" required:"true" enum:"SnapshotAttributeName"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -29948,6 +32792,8 @@ type ResetSnapshotAttributeInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The ID of the snapshot.
+	//
+	// SnapshotId is a required field
 	SnapshotId *string `type:"string" required:"true"`
 }
 
@@ -30002,6 +32848,8 @@ type RestoreAddressToClassicInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// The Elastic IP address.
+	//
+	// PublicIp is a required field
 	PublicIp *string `locationName:"publicIp" type:"string" required:"true"`
 }
 
@@ -30068,6 +32916,8 @@ type RevokeSecurityGroupEgressInput struct {
 	FromPort *int64 `locationName:"fromPort" type:"integer"`
 
 	// The ID of the security group.
+	//
+	// GroupId is a required field
 	GroupId *string `locationName:"groupId" type:"string" required:"true"`
 
 	// A set of IP permissions. You can't specify a destination security group and
@@ -30374,6 +33224,8 @@ type RunInstancesInput struct {
 	IamInstanceProfile *IamInstanceProfileSpecification `locationName:"iamInstanceProfile" type:"structure"`
 
 	// The ID of the AMI, which you can get by calling DescribeImages.
+	//
+	// ImageId is a required field
 	ImageId *string `type:"string" required:"true"`
 
 	// Indicates whether an instance stops or terminates when you initiate shutdown
@@ -30410,6 +33262,8 @@ type RunInstancesInput struct {
 	// instance type. For more information about the default limits, and how to
 	// request an increase, see How many instances can I run in Amazon EC2 (http://aws.amazon.com/ec2/faqs/#How_many_instances_can_I_run_in_Amazon_EC2)
 	// in the Amazon EC2 FAQ.
+	//
+	// MaxCount is a required field
 	MaxCount *int64 `type:"integer" required:"true"`
 
 	// The minimum number of instances to launch. If you specify a minimum that
@@ -30420,6 +33274,8 @@ type RunInstancesInput struct {
 	// instance type. For more information about the default limits, and how to
 	// request an increase, see How many instances can I run in Amazon EC2 (http://aws.amazon.com/ec2/faqs/#How_many_instances_can_I_run_in_Amazon_EC2)
 	// in the Amazon EC2 General FAQ.
+	//
+	// MinCount is a required field
 	MinCount *int64 `type:"integer" required:"true"`
 
 	// The monitoring for the instance.
@@ -30523,6 +33379,8 @@ type RunInstancesMonitoringEnabled struct {
 	_ struct{} `type:"structure"`
 
 	// Indicates whether monitoring is enabled for the instance.
+	//
+	// Enabled is a required field
 	Enabled *bool `locationName:"enabled" type:"boolean" required:"true"`
 }
 
@@ -30570,9 +33428,13 @@ type RunScheduledInstancesInput struct {
 
 	// The launch specification. You must match the instance type, Availability
 	// Zone, network, and platform of the schedule that you purchased.
+	//
+	// LaunchSpecification is a required field
 	LaunchSpecification *ScheduledInstancesLaunchSpecification `type:"structure" required:"true"`
 
 	// The Scheduled Instance ID.
+	//
+	// ScheduledInstanceId is a required field
 	ScheduledInstanceId *string `type:"string" required:"true"`
 }
 
@@ -30984,6 +33846,8 @@ type ScheduledInstancesLaunchSpecification struct {
 	IamInstanceProfile *ScheduledInstancesIamInstanceProfile `type:"structure"`
 
 	// The ID of the Amazon Machine Image (AMI).
+	//
+	// ImageId is a required field
 	ImageId *string `type:"string" required:"true"`
 
 	// The instance type.
@@ -31194,9 +34058,13 @@ type SecurityGroupReference struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of your security group.
+	//
+	// GroupId is a required field
 	GroupId *string `locationName:"groupId" type:"string" required:"true"`
 
 	// The ID of the VPC with the referencing security group.
+	//
+	// ReferencingVpcId is a required field
 	ReferencingVpcId *string `locationName:"referencingVpcId" type:"string" required:"true"`
 
 	// The ID of the VPC peering connection.
@@ -31219,11 +34087,15 @@ type SlotDateTimeRangeRequest struct {
 	_ struct{} `type:"structure"`
 
 	// The earliest date and time, in UTC, for the Scheduled Instance to start.
+	//
+	// EarliestTime is a required field
 	EarliestTime *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The latest date and time, in UTC, for the Scheduled Instance to start. This
 	// value must be later than or equal to the earliest date and at most three
 	// months in the future.
+	//
+	// LatestTime is a required field
 	LatestTime *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 }
 
@@ -31632,15 +34504,23 @@ type SpotFleetRequestConfig struct {
 	ActivityStatus *string `locationName:"activityStatus" type:"string" enum:"ActivityStatus"`
 
 	// The creation date and time of the request.
+	//
+	// CreateTime is a required field
 	CreateTime *time.Time `locationName:"createTime" type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// Information about the configuration of the Spot fleet request.
+	//
+	// SpotFleetRequestConfig is a required field
 	SpotFleetRequestConfig *SpotFleetRequestConfigData `locationName:"spotFleetRequestConfig" type:"structure" required:"true"`
 
 	// The ID of the Spot fleet request.
+	//
+	// SpotFleetRequestId is a required field
 	SpotFleetRequestId *string `locationName:"spotFleetRequestId" type:"string" required:"true"`
 
 	// The state of the Spot fleet request.
+	//
+	// SpotFleetRequestState is a required field
 	SpotFleetRequestState *string `locationName:"spotFleetRequestState" type:"string" required:"true" enum:"BatchState"`
 }
 
@@ -31679,17 +34559,25 @@ type SpotFleetRequestConfigData struct {
 	// Grants the Spot fleet permission to terminate Spot instances on your behalf
 	// when you cancel its Spot fleet request using CancelSpotFleetRequests or when
 	// the Spot fleet request expires, if you set terminateInstancesWithExpiration.
+	//
+	// IamFleetRole is a required field
 	IamFleetRole *string `locationName:"iamFleetRole" type:"string" required:"true"`
 
 	// Information about the launch specifications for the Spot fleet request.
+	//
+	// LaunchSpecifications is a required field
 	LaunchSpecifications []*SpotFleetLaunchSpecification `locationName:"launchSpecifications" locationNameList:"item" min:"1" type:"list" required:"true"`
 
 	// The bid price per unit hour.
+	//
+	// SpotPrice is a required field
 	SpotPrice *string `locationName:"spotPrice" type:"string" required:"true"`
 
 	// The number of units to request. You can choose to set the target capacity
 	// in terms of instances or a performance characteristic that is important to
 	// your application workload, such as vCPUs, memory, or I/O.
+	//
+	// TargetCapacity is a required field
 	TargetCapacity *int64 `locationName:"targetCapacity" type:"integer" required:"true"`
 
 	// Indicates whether running Spot instances should be terminated when the Spot
@@ -31992,6 +34880,8 @@ type StaleSecurityGroup struct {
 	Description *string `locationName:"description" type:"string"`
 
 	// The ID of the security group.
+	//
+	// GroupId is a required field
 	GroupId *string `locationName:"groupId" type:"string" required:"true"`
 
 	// The name of the security group.
@@ -32031,6 +34921,8 @@ type StartInstancesInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// One or more instance IDs.
+	//
+	// InstanceIds is a required field
 	InstanceIds []*string `locationName:"InstanceId" locationNameList:"InstanceId" type:"list" required:"true"`
 }
 
@@ -32139,6 +35031,8 @@ type StopInstancesInput struct {
 	Force *bool `locationName:"force" type:"boolean"`
 
 	// One or more instance IDs.
+	//
+	// InstanceIds is a required field
 	InstanceIds []*string `locationName:"InstanceId" locationNameList:"InstanceId" type:"list" required:"true"`
 }
 
@@ -32331,6 +35225,8 @@ type TargetConfigurationRequest struct {
 	// The Convertible Reserved Instance offering ID. If this isn't included in
 	// the request, the response lists your current Convertible Reserved Instance/s
 	// and their value/s.
+	//
+	// OfferingId is a required field
 	OfferingId *string `type:"string" required:"true"`
 }
 
@@ -32395,6 +35291,8 @@ type TerminateInstancesInput struct {
 	//
 	// Constraints: Up to 1000 instance IDs. We recommend breaking up this request
 	// into smaller batches.
+	//
+	// InstanceIds is a required field
 	InstanceIds []*string `locationName:"InstanceId" locationNameList:"InstanceId" type:"list" required:"true"`
 }
 
@@ -32444,10 +35342,14 @@ type UnassignPrivateIpAddressesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the network interface.
+	//
+	// NetworkInterfaceId is a required field
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string" required:"true"`
 
 	// The secondary private IP addresses to unassign from the network interface.
 	// You can specify this option multiple times to unassign more than one IP address.
+	//
+	// PrivateIpAddresses is a required field
 	PrivateIpAddresses []*string `locationName:"privateIpAddress" locationNameList:"PrivateIpAddress" type:"list" required:"true"`
 }
 
@@ -32502,6 +35404,8 @@ type UnmonitorInstancesInput struct {
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
 	// One or more instance IDs.
+	//
+	// InstanceIds is a required field
 	InstanceIds []*string `locationName:"InstanceId" locationNameList:"InstanceId" type:"list" required:"true"`
 }
 
@@ -32551,6 +35455,8 @@ type UnsuccessfulItem struct {
 	_ struct{} `type:"structure"`
 
 	// Information about the error.
+	//
+	// Error is a required field
 	Error *UnsuccessfulItemError `locationName:"error" type:"structure" required:"true"`
 
 	// The ID of the resource.
@@ -32573,9 +35479,13 @@ type UnsuccessfulItemError struct {
 	_ struct{} `type:"structure"`
 
 	// The error code.
+	//
+	// Code is a required field
 	Code *string `locationName:"code" type:"string" required:"true"`
 
 	// The error message accompanying the error code.
+	//
+	// Message is a required field
 	Message *string `locationName:"message" type:"string" required:"true"`
 }
 
@@ -32825,6 +35735,8 @@ type VolumeDetail struct {
 	_ struct{} `type:"structure"`
 
 	// The size of the volume, in GiB.
+	//
+	// Size is a required field
 	Size *int64 `locationName:"size" type:"long" required:"true"`
 }
 
@@ -33354,1031 +36266,1316 @@ func (s VpnStaticRoute) GoString() string {
 }
 
 const (
-	// @enum AccountAttributeName
+	// AccountAttributeNameSupportedPlatforms is a AccountAttributeName enum value
 	AccountAttributeNameSupportedPlatforms = "supported-platforms"
-	// @enum AccountAttributeName
+
+	// AccountAttributeNameDefaultVpc is a AccountAttributeName enum value
 	AccountAttributeNameDefaultVpc = "default-vpc"
 )
 
 const (
-	// @enum ActivityStatus
+	// ActivityStatusError is a ActivityStatus enum value
 	ActivityStatusError = "error"
-	// @enum ActivityStatus
+
+	// ActivityStatusPendingFulfillment is a ActivityStatus enum value
 	ActivityStatusPendingFulfillment = "pending_fulfillment"
-	// @enum ActivityStatus
+
+	// ActivityStatusPendingTermination is a ActivityStatus enum value
 	ActivityStatusPendingTermination = "pending_termination"
-	// @enum ActivityStatus
+
+	// ActivityStatusFulfilled is a ActivityStatus enum value
 	ActivityStatusFulfilled = "fulfilled"
 )
 
 const (
-	// @enum Affinity
+	// AffinityDefault is a Affinity enum value
 	AffinityDefault = "default"
-	// @enum Affinity
+
+	// AffinityHost is a Affinity enum value
 	AffinityHost = "host"
 )
 
 const (
-	// @enum AllocationState
+	// AllocationStateAvailable is a AllocationState enum value
 	AllocationStateAvailable = "available"
-	// @enum AllocationState
+
+	// AllocationStateUnderAssessment is a AllocationState enum value
 	AllocationStateUnderAssessment = "under-assessment"
-	// @enum AllocationState
+
+	// AllocationStatePermanentFailure is a AllocationState enum value
 	AllocationStatePermanentFailure = "permanent-failure"
-	// @enum AllocationState
+
+	// AllocationStateReleased is a AllocationState enum value
 	AllocationStateReleased = "released"
-	// @enum AllocationState
+
+	// AllocationStateReleasedPermanentFailure is a AllocationState enum value
 	AllocationStateReleasedPermanentFailure = "released-permanent-failure"
 )
 
 const (
-	// @enum AllocationStrategy
+	// AllocationStrategyLowestPrice is a AllocationStrategy enum value
 	AllocationStrategyLowestPrice = "lowestPrice"
-	// @enum AllocationStrategy
+
+	// AllocationStrategyDiversified is a AllocationStrategy enum value
 	AllocationStrategyDiversified = "diversified"
 )
 
 const (
-	// @enum ArchitectureValues
+	// ArchitectureValuesI386 is a ArchitectureValues enum value
 	ArchitectureValuesI386 = "i386"
-	// @enum ArchitectureValues
+
+	// ArchitectureValuesX8664 is a ArchitectureValues enum value
 	ArchitectureValuesX8664 = "x86_64"
 )
 
 const (
-	// @enum AttachmentStatus
+	// AttachmentStatusAttaching is a AttachmentStatus enum value
 	AttachmentStatusAttaching = "attaching"
-	// @enum AttachmentStatus
+
+	// AttachmentStatusAttached is a AttachmentStatus enum value
 	AttachmentStatusAttached = "attached"
-	// @enum AttachmentStatus
+
+	// AttachmentStatusDetaching is a AttachmentStatus enum value
 	AttachmentStatusDetaching = "detaching"
-	// @enum AttachmentStatus
+
+	// AttachmentStatusDetached is a AttachmentStatus enum value
 	AttachmentStatusDetached = "detached"
 )
 
 const (
-	// @enum AutoPlacement
+	// AutoPlacementOn is a AutoPlacement enum value
 	AutoPlacementOn = "on"
-	// @enum AutoPlacement
+
+	// AutoPlacementOff is a AutoPlacement enum value
 	AutoPlacementOff = "off"
 )
 
 const (
-	// @enum AvailabilityZoneState
+	// AvailabilityZoneStateAvailable is a AvailabilityZoneState enum value
 	AvailabilityZoneStateAvailable = "available"
-	// @enum AvailabilityZoneState
+
+	// AvailabilityZoneStateInformation is a AvailabilityZoneState enum value
 	AvailabilityZoneStateInformation = "information"
-	// @enum AvailabilityZoneState
+
+	// AvailabilityZoneStateImpaired is a AvailabilityZoneState enum value
 	AvailabilityZoneStateImpaired = "impaired"
-	// @enum AvailabilityZoneState
+
+	// AvailabilityZoneStateUnavailable is a AvailabilityZoneState enum value
 	AvailabilityZoneStateUnavailable = "unavailable"
 )
 
 const (
-	// @enum BatchState
+	// BatchStateSubmitted is a BatchState enum value
 	BatchStateSubmitted = "submitted"
-	// @enum BatchState
+
+	// BatchStateActive is a BatchState enum value
 	BatchStateActive = "active"
-	// @enum BatchState
+
+	// BatchStateCancelled is a BatchState enum value
 	BatchStateCancelled = "cancelled"
-	// @enum BatchState
+
+	// BatchStateFailed is a BatchState enum value
 	BatchStateFailed = "failed"
-	// @enum BatchState
+
+	// BatchStateCancelledRunning is a BatchState enum value
 	BatchStateCancelledRunning = "cancelled_running"
-	// @enum BatchState
+
+	// BatchStateCancelledTerminating is a BatchState enum value
 	BatchStateCancelledTerminating = "cancelled_terminating"
-	// @enum BatchState
+
+	// BatchStateModifying is a BatchState enum value
 	BatchStateModifying = "modifying"
 )
 
 const (
-	// @enum BundleTaskState
+	// BundleTaskStatePending is a BundleTaskState enum value
 	BundleTaskStatePending = "pending"
-	// @enum BundleTaskState
+
+	// BundleTaskStateWaitingForShutdown is a BundleTaskState enum value
 	BundleTaskStateWaitingForShutdown = "waiting-for-shutdown"
-	// @enum BundleTaskState
+
+	// BundleTaskStateBundling is a BundleTaskState enum value
 	BundleTaskStateBundling = "bundling"
-	// @enum BundleTaskState
+
+	// BundleTaskStateStoring is a BundleTaskState enum value
 	BundleTaskStateStoring = "storing"
-	// @enum BundleTaskState
+
+	// BundleTaskStateCancelling is a BundleTaskState enum value
 	BundleTaskStateCancelling = "cancelling"
-	// @enum BundleTaskState
+
+	// BundleTaskStateComplete is a BundleTaskState enum value
 	BundleTaskStateComplete = "complete"
-	// @enum BundleTaskState
+
+	// BundleTaskStateFailed is a BundleTaskState enum value
 	BundleTaskStateFailed = "failed"
 )
 
 const (
-	// @enum CancelBatchErrorCode
+	// CancelBatchErrorCodeFleetRequestIdDoesNotExist is a CancelBatchErrorCode enum value
 	CancelBatchErrorCodeFleetRequestIdDoesNotExist = "fleetRequestIdDoesNotExist"
-	// @enum CancelBatchErrorCode
+
+	// CancelBatchErrorCodeFleetRequestIdMalformed is a CancelBatchErrorCode enum value
 	CancelBatchErrorCodeFleetRequestIdMalformed = "fleetRequestIdMalformed"
-	// @enum CancelBatchErrorCode
+
+	// CancelBatchErrorCodeFleetRequestNotInCancellableState is a CancelBatchErrorCode enum value
 	CancelBatchErrorCodeFleetRequestNotInCancellableState = "fleetRequestNotInCancellableState"
-	// @enum CancelBatchErrorCode
+
+	// CancelBatchErrorCodeUnexpectedError is a CancelBatchErrorCode enum value
 	CancelBatchErrorCodeUnexpectedError = "unexpectedError"
 )
 
 const (
-	// @enum CancelSpotInstanceRequestState
+	// CancelSpotInstanceRequestStateActive is a CancelSpotInstanceRequestState enum value
 	CancelSpotInstanceRequestStateActive = "active"
-	// @enum CancelSpotInstanceRequestState
+
+	// CancelSpotInstanceRequestStateOpen is a CancelSpotInstanceRequestState enum value
 	CancelSpotInstanceRequestStateOpen = "open"
-	// @enum CancelSpotInstanceRequestState
+
+	// CancelSpotInstanceRequestStateClosed is a CancelSpotInstanceRequestState enum value
 	CancelSpotInstanceRequestStateClosed = "closed"
-	// @enum CancelSpotInstanceRequestState
+
+	// CancelSpotInstanceRequestStateCancelled is a CancelSpotInstanceRequestState enum value
 	CancelSpotInstanceRequestStateCancelled = "cancelled"
-	// @enum CancelSpotInstanceRequestState
+
+	// CancelSpotInstanceRequestStateCompleted is a CancelSpotInstanceRequestState enum value
 	CancelSpotInstanceRequestStateCompleted = "completed"
 )
 
 const (
-	// @enum ContainerFormat
+	// ContainerFormatOva is a ContainerFormat enum value
 	ContainerFormatOva = "ova"
 )
 
 const (
-	// @enum ConversionTaskState
+	// ConversionTaskStateActive is a ConversionTaskState enum value
 	ConversionTaskStateActive = "active"
-	// @enum ConversionTaskState
+
+	// ConversionTaskStateCancelling is a ConversionTaskState enum value
 	ConversionTaskStateCancelling = "cancelling"
-	// @enum ConversionTaskState
+
+	// ConversionTaskStateCancelled is a ConversionTaskState enum value
 	ConversionTaskStateCancelled = "cancelled"
-	// @enum ConversionTaskState
+
+	// ConversionTaskStateCompleted is a ConversionTaskState enum value
 	ConversionTaskStateCompleted = "completed"
 )
 
 const (
-	// @enum CurrencyCodeValues
+	// CurrencyCodeValuesUsd is a CurrencyCodeValues enum value
 	CurrencyCodeValuesUsd = "USD"
 )
 
 const (
-	// @enum DatafeedSubscriptionState
+	// DatafeedSubscriptionStateActive is a DatafeedSubscriptionState enum value
 	DatafeedSubscriptionStateActive = "Active"
-	// @enum DatafeedSubscriptionState
+
+	// DatafeedSubscriptionStateInactive is a DatafeedSubscriptionState enum value
 	DatafeedSubscriptionStateInactive = "Inactive"
 )
 
 const (
-	// @enum DeviceType
+	// DeviceTypeEbs is a DeviceType enum value
 	DeviceTypeEbs = "ebs"
-	// @enum DeviceType
+
+	// DeviceTypeInstanceStore is a DeviceType enum value
 	DeviceTypeInstanceStore = "instance-store"
 )
 
 const (
-	// @enum DiskImageFormat
+	// DiskImageFormatVmdk is a DiskImageFormat enum value
 	DiskImageFormatVmdk = "VMDK"
-	// @enum DiskImageFormat
+
+	// DiskImageFormatRaw is a DiskImageFormat enum value
 	DiskImageFormatRaw = "RAW"
-	// @enum DiskImageFormat
+
+	// DiskImageFormatVhd is a DiskImageFormat enum value
 	DiskImageFormatVhd = "VHD"
 )
 
 const (
-	// @enum DomainType
+	// DomainTypeVpc is a DomainType enum value
 	DomainTypeVpc = "vpc"
-	// @enum DomainType
+
+	// DomainTypeStandard is a DomainType enum value
 	DomainTypeStandard = "standard"
 )
 
 const (
-	// @enum EventCode
+	// EventCodeInstanceReboot is a EventCode enum value
 	EventCodeInstanceReboot = "instance-reboot"
-	// @enum EventCode
+
+	// EventCodeSystemReboot is a EventCode enum value
 	EventCodeSystemReboot = "system-reboot"
-	// @enum EventCode
+
+	// EventCodeSystemMaintenance is a EventCode enum value
 	EventCodeSystemMaintenance = "system-maintenance"
-	// @enum EventCode
+
+	// EventCodeInstanceRetirement is a EventCode enum value
 	EventCodeInstanceRetirement = "instance-retirement"
-	// @enum EventCode
+
+	// EventCodeInstanceStop is a EventCode enum value
 	EventCodeInstanceStop = "instance-stop"
 )
 
 const (
-	// @enum EventType
+	// EventTypeInstanceChange is a EventType enum value
 	EventTypeInstanceChange = "instanceChange"
-	// @enum EventType
+
+	// EventTypeFleetRequestChange is a EventType enum value
 	EventTypeFleetRequestChange = "fleetRequestChange"
-	// @enum EventType
+
+	// EventTypeError is a EventType enum value
 	EventTypeError = "error"
 )
 
 const (
-	// @enum ExcessCapacityTerminationPolicy
+	// ExcessCapacityTerminationPolicyNoTermination is a ExcessCapacityTerminationPolicy enum value
 	ExcessCapacityTerminationPolicyNoTermination = "noTermination"
-	// @enum ExcessCapacityTerminationPolicy
+
+	// ExcessCapacityTerminationPolicyDefault is a ExcessCapacityTerminationPolicy enum value
 	ExcessCapacityTerminationPolicyDefault = "default"
 )
 
 const (
-	// @enum ExportEnvironment
+	// ExportEnvironmentCitrix is a ExportEnvironment enum value
 	ExportEnvironmentCitrix = "citrix"
-	// @enum ExportEnvironment
+
+	// ExportEnvironmentVmware is a ExportEnvironment enum value
 	ExportEnvironmentVmware = "vmware"
-	// @enum ExportEnvironment
+
+	// ExportEnvironmentMicrosoft is a ExportEnvironment enum value
 	ExportEnvironmentMicrosoft = "microsoft"
 )
 
 const (
-	// @enum ExportTaskState
+	// ExportTaskStateActive is a ExportTaskState enum value
 	ExportTaskStateActive = "active"
-	// @enum ExportTaskState
+
+	// ExportTaskStateCancelling is a ExportTaskState enum value
 	ExportTaskStateCancelling = "cancelling"
-	// @enum ExportTaskState
+
+	// ExportTaskStateCancelled is a ExportTaskState enum value
 	ExportTaskStateCancelled = "cancelled"
-	// @enum ExportTaskState
+
+	// ExportTaskStateCompleted is a ExportTaskState enum value
 	ExportTaskStateCompleted = "completed"
 )
 
 const (
-	// @enum FleetType
+	// FleetTypeRequest is a FleetType enum value
 	FleetTypeRequest = "request"
-	// @enum FleetType
+
+	// FleetTypeMaintain is a FleetType enum value
 	FleetTypeMaintain = "maintain"
 )
 
 const (
-	// @enum FlowLogsResourceType
+	// FlowLogsResourceTypeVpc is a FlowLogsResourceType enum value
 	FlowLogsResourceTypeVpc = "VPC"
-	// @enum FlowLogsResourceType
+
+	// FlowLogsResourceTypeSubnet is a FlowLogsResourceType enum value
 	FlowLogsResourceTypeSubnet = "Subnet"
-	// @enum FlowLogsResourceType
+
+	// FlowLogsResourceTypeNetworkInterface is a FlowLogsResourceType enum value
 	FlowLogsResourceTypeNetworkInterface = "NetworkInterface"
 )
 
 const (
-	// @enum GatewayType
+	// GatewayTypeIpsec1 is a GatewayType enum value
 	GatewayTypeIpsec1 = "ipsec.1"
 )
 
 const (
-	// @enum HostTenancy
+	// HostTenancyDedicated is a HostTenancy enum value
 	HostTenancyDedicated = "dedicated"
-	// @enum HostTenancy
+
+	// HostTenancyHost is a HostTenancy enum value
 	HostTenancyHost = "host"
 )
 
 const (
-	// @enum HypervisorType
+	// HypervisorTypeOvm is a HypervisorType enum value
 	HypervisorTypeOvm = "ovm"
-	// @enum HypervisorType
+
+	// HypervisorTypeXen is a HypervisorType enum value
 	HypervisorTypeXen = "xen"
 )
 
 const (
-	// @enum ImageAttributeName
+	// ImageAttributeNameDescription is a ImageAttributeName enum value
 	ImageAttributeNameDescription = "description"
-	// @enum ImageAttributeName
+
+	// ImageAttributeNameKernel is a ImageAttributeName enum value
 	ImageAttributeNameKernel = "kernel"
-	// @enum ImageAttributeName
+
+	// ImageAttributeNameRamdisk is a ImageAttributeName enum value
 	ImageAttributeNameRamdisk = "ramdisk"
-	// @enum ImageAttributeName
+
+	// ImageAttributeNameLaunchPermission is a ImageAttributeName enum value
 	ImageAttributeNameLaunchPermission = "launchPermission"
-	// @enum ImageAttributeName
+
+	// ImageAttributeNameProductCodes is a ImageAttributeName enum value
 	ImageAttributeNameProductCodes = "productCodes"
-	// @enum ImageAttributeName
+
+	// ImageAttributeNameBlockDeviceMapping is a ImageAttributeName enum value
 	ImageAttributeNameBlockDeviceMapping = "blockDeviceMapping"
-	// @enum ImageAttributeName
+
+	// ImageAttributeNameSriovNetSupport is a ImageAttributeName enum value
 	ImageAttributeNameSriovNetSupport = "sriovNetSupport"
 )
 
 const (
-	// @enum ImageState
+	// ImageStatePending is a ImageState enum value
 	ImageStatePending = "pending"
-	// @enum ImageState
+
+	// ImageStateAvailable is a ImageState enum value
 	ImageStateAvailable = "available"
-	// @enum ImageState
+
+	// ImageStateInvalid is a ImageState enum value
 	ImageStateInvalid = "invalid"
-	// @enum ImageState
+
+	// ImageStateDeregistered is a ImageState enum value
 	ImageStateDeregistered = "deregistered"
-	// @enum ImageState
+
+	// ImageStateTransient is a ImageState enum value
 	ImageStateTransient = "transient"
-	// @enum ImageState
+
+	// ImageStateFailed is a ImageState enum value
 	ImageStateFailed = "failed"
-	// @enum ImageState
+
+	// ImageStateError is a ImageState enum value
 	ImageStateError = "error"
 )
 
 const (
-	// @enum ImageTypeValues
+	// ImageTypeValuesMachine is a ImageTypeValues enum value
 	ImageTypeValuesMachine = "machine"
-	// @enum ImageTypeValues
+
+	// ImageTypeValuesKernel is a ImageTypeValues enum value
 	ImageTypeValuesKernel = "kernel"
-	// @enum ImageTypeValues
+
+	// ImageTypeValuesRamdisk is a ImageTypeValues enum value
 	ImageTypeValuesRamdisk = "ramdisk"
 )
 
 const (
-	// @enum InstanceAttributeName
+	// InstanceAttributeNameInstanceType is a InstanceAttributeName enum value
 	InstanceAttributeNameInstanceType = "instanceType"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameKernel is a InstanceAttributeName enum value
 	InstanceAttributeNameKernel = "kernel"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameRamdisk is a InstanceAttributeName enum value
 	InstanceAttributeNameRamdisk = "ramdisk"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameUserData is a InstanceAttributeName enum value
 	InstanceAttributeNameUserData = "userData"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameDisableApiTermination is a InstanceAttributeName enum value
 	InstanceAttributeNameDisableApiTermination = "disableApiTermination"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameInstanceInitiatedShutdownBehavior is a InstanceAttributeName enum value
 	InstanceAttributeNameInstanceInitiatedShutdownBehavior = "instanceInitiatedShutdownBehavior"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameRootDeviceName is a InstanceAttributeName enum value
 	InstanceAttributeNameRootDeviceName = "rootDeviceName"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameBlockDeviceMapping is a InstanceAttributeName enum value
 	InstanceAttributeNameBlockDeviceMapping = "blockDeviceMapping"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameProductCodes is a InstanceAttributeName enum value
 	InstanceAttributeNameProductCodes = "productCodes"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameSourceDestCheck is a InstanceAttributeName enum value
 	InstanceAttributeNameSourceDestCheck = "sourceDestCheck"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameGroupSet is a InstanceAttributeName enum value
 	InstanceAttributeNameGroupSet = "groupSet"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameEbsOptimized is a InstanceAttributeName enum value
 	InstanceAttributeNameEbsOptimized = "ebsOptimized"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameSriovNetSupport is a InstanceAttributeName enum value
 	InstanceAttributeNameSriovNetSupport = "sriovNetSupport"
-	// @enum InstanceAttributeName
+
+	// InstanceAttributeNameEnaSupport is a InstanceAttributeName enum value
 	InstanceAttributeNameEnaSupport = "enaSupport"
 )
 
 const (
-	// @enum InstanceLifecycleType
+	// InstanceLifecycleTypeSpot is a InstanceLifecycleType enum value
 	InstanceLifecycleTypeSpot = "spot"
-	// @enum InstanceLifecycleType
+
+	// InstanceLifecycleTypeScheduled is a InstanceLifecycleType enum value
 	InstanceLifecycleTypeScheduled = "scheduled"
 )
 
 const (
-	// @enum InstanceStateName
+	// InstanceStateNamePending is a InstanceStateName enum value
 	InstanceStateNamePending = "pending"
-	// @enum InstanceStateName
+
+	// InstanceStateNameRunning is a InstanceStateName enum value
 	InstanceStateNameRunning = "running"
-	// @enum InstanceStateName
+
+	// InstanceStateNameShuttingDown is a InstanceStateName enum value
 	InstanceStateNameShuttingDown = "shutting-down"
-	// @enum InstanceStateName
+
+	// InstanceStateNameTerminated is a InstanceStateName enum value
 	InstanceStateNameTerminated = "terminated"
-	// @enum InstanceStateName
+
+	// InstanceStateNameStopping is a InstanceStateName enum value
 	InstanceStateNameStopping = "stopping"
-	// @enum InstanceStateName
+
+	// InstanceStateNameStopped is a InstanceStateName enum value
 	InstanceStateNameStopped = "stopped"
 )
 
 const (
-	// @enum InstanceType
+	// InstanceTypeT1Micro is a InstanceType enum value
 	InstanceTypeT1Micro = "t1.micro"
-	// @enum InstanceType
+
+	// InstanceTypeT2Nano is a InstanceType enum value
 	InstanceTypeT2Nano = "t2.nano"
-	// @enum InstanceType
+
+	// InstanceTypeT2Micro is a InstanceType enum value
 	InstanceTypeT2Micro = "t2.micro"
-	// @enum InstanceType
+
+	// InstanceTypeT2Small is a InstanceType enum value
 	InstanceTypeT2Small = "t2.small"
-	// @enum InstanceType
+
+	// InstanceTypeT2Medium is a InstanceType enum value
 	InstanceTypeT2Medium = "t2.medium"
-	// @enum InstanceType
+
+	// InstanceTypeT2Large is a InstanceType enum value
 	InstanceTypeT2Large = "t2.large"
-	// @enum InstanceType
+
+	// InstanceTypeM1Small is a InstanceType enum value
 	InstanceTypeM1Small = "m1.small"
-	// @enum InstanceType
+
+	// InstanceTypeM1Medium is a InstanceType enum value
 	InstanceTypeM1Medium = "m1.medium"
-	// @enum InstanceType
+
+	// InstanceTypeM1Large is a InstanceType enum value
 	InstanceTypeM1Large = "m1.large"
-	// @enum InstanceType
+
+	// InstanceTypeM1Xlarge is a InstanceType enum value
 	InstanceTypeM1Xlarge = "m1.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM3Medium is a InstanceType enum value
 	InstanceTypeM3Medium = "m3.medium"
-	// @enum InstanceType
+
+	// InstanceTypeM3Large is a InstanceType enum value
 	InstanceTypeM3Large = "m3.large"
-	// @enum InstanceType
+
+	// InstanceTypeM3Xlarge is a InstanceType enum value
 	InstanceTypeM3Xlarge = "m3.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM32xlarge is a InstanceType enum value
 	InstanceTypeM32xlarge = "m3.2xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM4Large is a InstanceType enum value
 	InstanceTypeM4Large = "m4.large"
-	// @enum InstanceType
+
+	// InstanceTypeM4Xlarge is a InstanceType enum value
 	InstanceTypeM4Xlarge = "m4.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM42xlarge is a InstanceType enum value
 	InstanceTypeM42xlarge = "m4.2xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM44xlarge is a InstanceType enum value
 	InstanceTypeM44xlarge = "m4.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM410xlarge is a InstanceType enum value
 	InstanceTypeM410xlarge = "m4.10xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM416xlarge is a InstanceType enum value
 	InstanceTypeM416xlarge = "m4.16xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM2Xlarge is a InstanceType enum value
 	InstanceTypeM2Xlarge = "m2.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM22xlarge is a InstanceType enum value
 	InstanceTypeM22xlarge = "m2.2xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeM24xlarge is a InstanceType enum value
 	InstanceTypeM24xlarge = "m2.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeCr18xlarge is a InstanceType enum value
 	InstanceTypeCr18xlarge = "cr1.8xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeR3Large is a InstanceType enum value
 	InstanceTypeR3Large = "r3.large"
-	// @enum InstanceType
+
+	// InstanceTypeR3Xlarge is a InstanceType enum value
 	InstanceTypeR3Xlarge = "r3.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeR32xlarge is a InstanceType enum value
 	InstanceTypeR32xlarge = "r3.2xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeR34xlarge is a InstanceType enum value
 	InstanceTypeR34xlarge = "r3.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeR38xlarge is a InstanceType enum value
 	InstanceTypeR38xlarge = "r3.8xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeX116xlarge is a InstanceType enum value
 	InstanceTypeX116xlarge = "x1.16xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeX132xlarge is a InstanceType enum value
 	InstanceTypeX132xlarge = "x1.32xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeI2Xlarge is a InstanceType enum value
 	InstanceTypeI2Xlarge = "i2.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeI22xlarge is a InstanceType enum value
 	InstanceTypeI22xlarge = "i2.2xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeI24xlarge is a InstanceType enum value
 	InstanceTypeI24xlarge = "i2.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeI28xlarge is a InstanceType enum value
 	InstanceTypeI28xlarge = "i2.8xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeHi14xlarge is a InstanceType enum value
 	InstanceTypeHi14xlarge = "hi1.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeHs18xlarge is a InstanceType enum value
 	InstanceTypeHs18xlarge = "hs1.8xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeC1Medium is a InstanceType enum value
 	InstanceTypeC1Medium = "c1.medium"
-	// @enum InstanceType
+
+	// InstanceTypeC1Xlarge is a InstanceType enum value
 	InstanceTypeC1Xlarge = "c1.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeC3Large is a InstanceType enum value
 	InstanceTypeC3Large = "c3.large"
-	// @enum InstanceType
+
+	// InstanceTypeC3Xlarge is a InstanceType enum value
 	InstanceTypeC3Xlarge = "c3.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeC32xlarge is a InstanceType enum value
 	InstanceTypeC32xlarge = "c3.2xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeC34xlarge is a InstanceType enum value
 	InstanceTypeC34xlarge = "c3.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeC38xlarge is a InstanceType enum value
 	InstanceTypeC38xlarge = "c3.8xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeC4Large is a InstanceType enum value
 	InstanceTypeC4Large = "c4.large"
-	// @enum InstanceType
+
+	// InstanceTypeC4Xlarge is a InstanceType enum value
 	InstanceTypeC4Xlarge = "c4.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeC42xlarge is a InstanceType enum value
 	InstanceTypeC42xlarge = "c4.2xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeC44xlarge is a InstanceType enum value
 	InstanceTypeC44xlarge = "c4.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeC48xlarge is a InstanceType enum value
 	InstanceTypeC48xlarge = "c4.8xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeCc14xlarge is a InstanceType enum value
 	InstanceTypeCc14xlarge = "cc1.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeCc28xlarge is a InstanceType enum value
 	InstanceTypeCc28xlarge = "cc2.8xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeG22xlarge is a InstanceType enum value
 	InstanceTypeG22xlarge = "g2.2xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeG28xlarge is a InstanceType enum value
 	InstanceTypeG28xlarge = "g2.8xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeCg14xlarge is a InstanceType enum value
 	InstanceTypeCg14xlarge = "cg1.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeP2Xlarge is a InstanceType enum value
 	InstanceTypeP2Xlarge = "p2.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeP28xlarge is a InstanceType enum value
 	InstanceTypeP28xlarge = "p2.8xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeP216xlarge is a InstanceType enum value
 	InstanceTypeP216xlarge = "p2.16xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeD2Xlarge is a InstanceType enum value
 	InstanceTypeD2Xlarge = "d2.xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeD22xlarge is a InstanceType enum value
 	InstanceTypeD22xlarge = "d2.2xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeD24xlarge is a InstanceType enum value
 	InstanceTypeD24xlarge = "d2.4xlarge"
-	// @enum InstanceType
+
+	// InstanceTypeD28xlarge is a InstanceType enum value
 	InstanceTypeD28xlarge = "d2.8xlarge"
 )
 
 const (
-	// @enum ListingState
+	// ListingStateAvailable is a ListingState enum value
 	ListingStateAvailable = "available"
-	// @enum ListingState
+
+	// ListingStateSold is a ListingState enum value
 	ListingStateSold = "sold"
-	// @enum ListingState
+
+	// ListingStateCancelled is a ListingState enum value
 	ListingStateCancelled = "cancelled"
-	// @enum ListingState
+
+	// ListingStatePending is a ListingState enum value
 	ListingStatePending = "pending"
 )
 
 const (
-	// @enum ListingStatus
+	// ListingStatusActive is a ListingStatus enum value
 	ListingStatusActive = "active"
-	// @enum ListingStatus
+
+	// ListingStatusPending is a ListingStatus enum value
 	ListingStatusPending = "pending"
-	// @enum ListingStatus
+
+	// ListingStatusCancelled is a ListingStatus enum value
 	ListingStatusCancelled = "cancelled"
-	// @enum ListingStatus
+
+	// ListingStatusClosed is a ListingStatus enum value
 	ListingStatusClosed = "closed"
 )
 
 const (
-	// @enum MonitoringState
+	// MonitoringStateDisabled is a MonitoringState enum value
 	MonitoringStateDisabled = "disabled"
-	// @enum MonitoringState
+
+	// MonitoringStateDisabling is a MonitoringState enum value
 	MonitoringStateDisabling = "disabling"
-	// @enum MonitoringState
+
+	// MonitoringStateEnabled is a MonitoringState enum value
 	MonitoringStateEnabled = "enabled"
-	// @enum MonitoringState
+
+	// MonitoringStatePending is a MonitoringState enum value
 	MonitoringStatePending = "pending"
 )
 
 const (
-	// @enum MoveStatus
+	// MoveStatusMovingToVpc is a MoveStatus enum value
 	MoveStatusMovingToVpc = "movingToVpc"
-	// @enum MoveStatus
+
+	// MoveStatusRestoringToClassic is a MoveStatus enum value
 	MoveStatusRestoringToClassic = "restoringToClassic"
 )
 
 const (
-	// @enum NatGatewayState
+	// NatGatewayStatePending is a NatGatewayState enum value
 	NatGatewayStatePending = "pending"
-	// @enum NatGatewayState
+
+	// NatGatewayStateFailed is a NatGatewayState enum value
 	NatGatewayStateFailed = "failed"
-	// @enum NatGatewayState
+
+	// NatGatewayStateAvailable is a NatGatewayState enum value
 	NatGatewayStateAvailable = "available"
-	// @enum NatGatewayState
+
+	// NatGatewayStateDeleting is a NatGatewayState enum value
 	NatGatewayStateDeleting = "deleting"
-	// @enum NatGatewayState
+
+	// NatGatewayStateDeleted is a NatGatewayState enum value
 	NatGatewayStateDeleted = "deleted"
 )
 
 const (
-	// @enum NetworkInterfaceAttribute
+	// NetworkInterfaceAttributeDescription is a NetworkInterfaceAttribute enum value
 	NetworkInterfaceAttributeDescription = "description"
-	// @enum NetworkInterfaceAttribute
+
+	// NetworkInterfaceAttributeGroupSet is a NetworkInterfaceAttribute enum value
 	NetworkInterfaceAttributeGroupSet = "groupSet"
-	// @enum NetworkInterfaceAttribute
+
+	// NetworkInterfaceAttributeSourceDestCheck is a NetworkInterfaceAttribute enum value
 	NetworkInterfaceAttributeSourceDestCheck = "sourceDestCheck"
-	// @enum NetworkInterfaceAttribute
+
+	// NetworkInterfaceAttributeAttachment is a NetworkInterfaceAttribute enum value
 	NetworkInterfaceAttributeAttachment = "attachment"
 )
 
 const (
-	// @enum NetworkInterfaceStatus
+	// NetworkInterfaceStatusAvailable is a NetworkInterfaceStatus enum value
 	NetworkInterfaceStatusAvailable = "available"
-	// @enum NetworkInterfaceStatus
+
+	// NetworkInterfaceStatusAttaching is a NetworkInterfaceStatus enum value
 	NetworkInterfaceStatusAttaching = "attaching"
-	// @enum NetworkInterfaceStatus
+
+	// NetworkInterfaceStatusInUse is a NetworkInterfaceStatus enum value
 	NetworkInterfaceStatusInUse = "in-use"
-	// @enum NetworkInterfaceStatus
+
+	// NetworkInterfaceStatusDetaching is a NetworkInterfaceStatus enum value
 	NetworkInterfaceStatusDetaching = "detaching"
 )
 
 const (
-	// @enum NetworkInterfaceType
+	// NetworkInterfaceTypeInterface is a NetworkInterfaceType enum value
 	NetworkInterfaceTypeInterface = "interface"
-	// @enum NetworkInterfaceType
+
+	// NetworkInterfaceTypeNatGateway is a NetworkInterfaceType enum value
 	NetworkInterfaceTypeNatGateway = "natGateway"
 )
 
 const (
-	// @enum OfferingClassType
+	// OfferingClassTypeStandard is a OfferingClassType enum value
 	OfferingClassTypeStandard = "standard"
-	// @enum OfferingClassType
+
+	// OfferingClassTypeConvertible is a OfferingClassType enum value
 	OfferingClassTypeConvertible = "convertible"
 )
 
 const (
-	// @enum OfferingTypeValues
+	// OfferingTypeValuesHeavyUtilization is a OfferingTypeValues enum value
 	OfferingTypeValuesHeavyUtilization = "Heavy Utilization"
-	// @enum OfferingTypeValues
+
+	// OfferingTypeValuesMediumUtilization is a OfferingTypeValues enum value
 	OfferingTypeValuesMediumUtilization = "Medium Utilization"
-	// @enum OfferingTypeValues
+
+	// OfferingTypeValuesLightUtilization is a OfferingTypeValues enum value
 	OfferingTypeValuesLightUtilization = "Light Utilization"
-	// @enum OfferingTypeValues
+
+	// OfferingTypeValuesNoUpfront is a OfferingTypeValues enum value
 	OfferingTypeValuesNoUpfront = "No Upfront"
-	// @enum OfferingTypeValues
+
+	// OfferingTypeValuesPartialUpfront is a OfferingTypeValues enum value
 	OfferingTypeValuesPartialUpfront = "Partial Upfront"
-	// @enum OfferingTypeValues
+
+	// OfferingTypeValuesAllUpfront is a OfferingTypeValues enum value
 	OfferingTypeValuesAllUpfront = "All Upfront"
 )
 
 const (
-	// @enum OperationType
+	// OperationTypeAdd is a OperationType enum value
 	OperationTypeAdd = "add"
-	// @enum OperationType
+
+	// OperationTypeRemove is a OperationType enum value
 	OperationTypeRemove = "remove"
 )
 
 const (
-	// @enum PaymentOption
+	// PaymentOptionAllUpfront is a PaymentOption enum value
 	PaymentOptionAllUpfront = "AllUpfront"
-	// @enum PaymentOption
+
+	// PaymentOptionPartialUpfront is a PaymentOption enum value
 	PaymentOptionPartialUpfront = "PartialUpfront"
-	// @enum PaymentOption
+
+	// PaymentOptionNoUpfront is a PaymentOption enum value
 	PaymentOptionNoUpfront = "NoUpfront"
 )
 
 const (
-	// @enum PermissionGroup
+	// PermissionGroupAll is a PermissionGroup enum value
 	PermissionGroupAll = "all"
 )
 
 const (
-	// @enum PlacementGroupState
+	// PlacementGroupStatePending is a PlacementGroupState enum value
 	PlacementGroupStatePending = "pending"
-	// @enum PlacementGroupState
+
+	// PlacementGroupStateAvailable is a PlacementGroupState enum value
 	PlacementGroupStateAvailable = "available"
-	// @enum PlacementGroupState
+
+	// PlacementGroupStateDeleting is a PlacementGroupState enum value
 	PlacementGroupStateDeleting = "deleting"
-	// @enum PlacementGroupState
+
+	// PlacementGroupStateDeleted is a PlacementGroupState enum value
 	PlacementGroupStateDeleted = "deleted"
 )
 
 const (
-	// @enum PlacementStrategy
+	// PlacementStrategyCluster is a PlacementStrategy enum value
 	PlacementStrategyCluster = "cluster"
 )
 
 const (
-	// @enum PlatformValues
+	// PlatformValuesWindows is a PlatformValues enum value
 	PlatformValuesWindows = "Windows"
 )
 
 const (
-	// @enum ProductCodeValues
+	// ProductCodeValuesDevpay is a ProductCodeValues enum value
 	ProductCodeValuesDevpay = "devpay"
-	// @enum ProductCodeValues
+
+	// ProductCodeValuesMarketplace is a ProductCodeValues enum value
 	ProductCodeValuesMarketplace = "marketplace"
 )
 
 const (
-	// @enum RIProductDescription
+	// RIProductDescriptionLinuxUnix is a RIProductDescription enum value
 	RIProductDescriptionLinuxUnix = "Linux/UNIX"
-	// @enum RIProductDescription
+
+	// RIProductDescriptionLinuxUnixamazonVpc is a RIProductDescription enum value
 	RIProductDescriptionLinuxUnixamazonVpc = "Linux/UNIX (Amazon VPC)"
-	// @enum RIProductDescription
+
+	// RIProductDescriptionWindows is a RIProductDescription enum value
 	RIProductDescriptionWindows = "Windows"
-	// @enum RIProductDescription
+
+	// RIProductDescriptionWindowsAmazonVpc is a RIProductDescription enum value
 	RIProductDescriptionWindowsAmazonVpc = "Windows (Amazon VPC)"
 )
 
 const (
-	// @enum RecurringChargeFrequency
+	// RecurringChargeFrequencyHourly is a RecurringChargeFrequency enum value
 	RecurringChargeFrequencyHourly = "Hourly"
 )
 
 const (
-	// @enum ReportInstanceReasonCodes
+	// ReportInstanceReasonCodesInstanceStuckInState is a ReportInstanceReasonCodes enum value
 	ReportInstanceReasonCodesInstanceStuckInState = "instance-stuck-in-state"
-	// @enum ReportInstanceReasonCodes
+
+	// ReportInstanceReasonCodesUnresponsive is a ReportInstanceReasonCodes enum value
 	ReportInstanceReasonCodesUnresponsive = "unresponsive"
-	// @enum ReportInstanceReasonCodes
+
+	// ReportInstanceReasonCodesNotAcceptingCredentials is a ReportInstanceReasonCodes enum value
 	ReportInstanceReasonCodesNotAcceptingCredentials = "not-accepting-credentials"
-	// @enum ReportInstanceReasonCodes
+
+	// ReportInstanceReasonCodesPasswordNotAvailable is a ReportInstanceReasonCodes enum value
 	ReportInstanceReasonCodesPasswordNotAvailable = "password-not-available"
-	// @enum ReportInstanceReasonCodes
+
+	// ReportInstanceReasonCodesPerformanceNetwork is a ReportInstanceReasonCodes enum value
 	ReportInstanceReasonCodesPerformanceNetwork = "performance-network"
-	// @enum ReportInstanceReasonCodes
+
+	// ReportInstanceReasonCodesPerformanceInstanceStore is a ReportInstanceReasonCodes enum value
 	ReportInstanceReasonCodesPerformanceInstanceStore = "performance-instance-store"
-	// @enum ReportInstanceReasonCodes
+
+	// ReportInstanceReasonCodesPerformanceEbsVolume is a ReportInstanceReasonCodes enum value
 	ReportInstanceReasonCodesPerformanceEbsVolume = "performance-ebs-volume"
-	// @enum ReportInstanceReasonCodes
+
+	// ReportInstanceReasonCodesPerformanceOther is a ReportInstanceReasonCodes enum value
 	ReportInstanceReasonCodesPerformanceOther = "performance-other"
-	// @enum ReportInstanceReasonCodes
+
+	// ReportInstanceReasonCodesOther is a ReportInstanceReasonCodes enum value
 	ReportInstanceReasonCodesOther = "other"
 )
 
 const (
-	// @enum ReportStatusType
+	// ReportStatusTypeOk is a ReportStatusType enum value
 	ReportStatusTypeOk = "ok"
-	// @enum ReportStatusType
+
+	// ReportStatusTypeImpaired is a ReportStatusType enum value
 	ReportStatusTypeImpaired = "impaired"
 )
 
 const (
-	// @enum ReservationState
+	// ReservationStatePaymentPending is a ReservationState enum value
 	ReservationStatePaymentPending = "payment-pending"
-	// @enum ReservationState
+
+	// ReservationStatePaymentFailed is a ReservationState enum value
 	ReservationStatePaymentFailed = "payment-failed"
-	// @enum ReservationState
+
+	// ReservationStateActive is a ReservationState enum value
 	ReservationStateActive = "active"
-	// @enum ReservationState
+
+	// ReservationStateRetired is a ReservationState enum value
 	ReservationStateRetired = "retired"
 )
 
 const (
-	// @enum ReservedInstanceState
+	// ReservedInstanceStatePaymentPending is a ReservedInstanceState enum value
 	ReservedInstanceStatePaymentPending = "payment-pending"
-	// @enum ReservedInstanceState
+
+	// ReservedInstanceStateActive is a ReservedInstanceState enum value
 	ReservedInstanceStateActive = "active"
-	// @enum ReservedInstanceState
+
+	// ReservedInstanceStatePaymentFailed is a ReservedInstanceState enum value
 	ReservedInstanceStatePaymentFailed = "payment-failed"
-	// @enum ReservedInstanceState
+
+	// ReservedInstanceStateRetired is a ReservedInstanceState enum value
 	ReservedInstanceStateRetired = "retired"
 )
 
 const (
-	// @enum ResetImageAttributeName
+	// ResetImageAttributeNameLaunchPermission is a ResetImageAttributeName enum value
 	ResetImageAttributeNameLaunchPermission = "launchPermission"
 )
 
 const (
-	// @enum ResourceType
+	// ResourceTypeCustomerGateway is a ResourceType enum value
 	ResourceTypeCustomerGateway = "customer-gateway"
-	// @enum ResourceType
+
+	// ResourceTypeDhcpOptions is a ResourceType enum value
 	ResourceTypeDhcpOptions = "dhcp-options"
-	// @enum ResourceType
+
+	// ResourceTypeImage is a ResourceType enum value
 	ResourceTypeImage = "image"
-	// @enum ResourceType
+
+	// ResourceTypeInstance is a ResourceType enum value
 	ResourceTypeInstance = "instance"
-	// @enum ResourceType
+
+	// ResourceTypeInternetGateway is a ResourceType enum value
 	ResourceTypeInternetGateway = "internet-gateway"
-	// @enum ResourceType
+
+	// ResourceTypeNetworkAcl is a ResourceType enum value
 	ResourceTypeNetworkAcl = "network-acl"
-	// @enum ResourceType
+
+	// ResourceTypeNetworkInterface is a ResourceType enum value
 	ResourceTypeNetworkInterface = "network-interface"
-	// @enum ResourceType
+
+	// ResourceTypeReservedInstances is a ResourceType enum value
 	ResourceTypeReservedInstances = "reserved-instances"
-	// @enum ResourceType
+
+	// ResourceTypeRouteTable is a ResourceType enum value
 	ResourceTypeRouteTable = "route-table"
-	// @enum ResourceType
+
+	// ResourceTypeSnapshot is a ResourceType enum value
 	ResourceTypeSnapshot = "snapshot"
-	// @enum ResourceType
+
+	// ResourceTypeSpotInstancesRequest is a ResourceType enum value
 	ResourceTypeSpotInstancesRequest = "spot-instances-request"
-	// @enum ResourceType
+
+	// ResourceTypeSubnet is a ResourceType enum value
 	ResourceTypeSubnet = "subnet"
-	// @enum ResourceType
+
+	// ResourceTypeSecurityGroup is a ResourceType enum value
 	ResourceTypeSecurityGroup = "security-group"
-	// @enum ResourceType
+
+	// ResourceTypeVolume is a ResourceType enum value
 	ResourceTypeVolume = "volume"
-	// @enum ResourceType
+
+	// ResourceTypeVpc is a ResourceType enum value
 	ResourceTypeVpc = "vpc"
-	// @enum ResourceType
+
+	// ResourceTypeVpnConnection is a ResourceType enum value
 	ResourceTypeVpnConnection = "vpn-connection"
-	// @enum ResourceType
+
+	// ResourceTypeVpnGateway is a ResourceType enum value
 	ResourceTypeVpnGateway = "vpn-gateway"
 )
 
 const (
-	// @enum RouteOrigin
+	// RouteOriginCreateRouteTable is a RouteOrigin enum value
 	RouteOriginCreateRouteTable = "CreateRouteTable"
-	// @enum RouteOrigin
+
+	// RouteOriginCreateRoute is a RouteOrigin enum value
 	RouteOriginCreateRoute = "CreateRoute"
-	// @enum RouteOrigin
+
+	// RouteOriginEnableVgwRoutePropagation is a RouteOrigin enum value
 	RouteOriginEnableVgwRoutePropagation = "EnableVgwRoutePropagation"
 )
 
 const (
-	// @enum RouteState
+	// RouteStateActive is a RouteState enum value
 	RouteStateActive = "active"
-	// @enum RouteState
+
+	// RouteStateBlackhole is a RouteState enum value
 	RouteStateBlackhole = "blackhole"
 )
 
 const (
-	// @enum RuleAction
+	// RuleActionAllow is a RuleAction enum value
 	RuleActionAllow = "allow"
-	// @enum RuleAction
+
+	// RuleActionDeny is a RuleAction enum value
 	RuleActionDeny = "deny"
 )
 
 const (
-	// @enum ShutdownBehavior
+	// ShutdownBehaviorStop is a ShutdownBehavior enum value
 	ShutdownBehaviorStop = "stop"
-	// @enum ShutdownBehavior
+
+	// ShutdownBehaviorTerminate is a ShutdownBehavior enum value
 	ShutdownBehaviorTerminate = "terminate"
 )
 
 const (
-	// @enum SnapshotAttributeName
+	// SnapshotAttributeNameProductCodes is a SnapshotAttributeName enum value
 	SnapshotAttributeNameProductCodes = "productCodes"
-	// @enum SnapshotAttributeName
+
+	// SnapshotAttributeNameCreateVolumePermission is a SnapshotAttributeName enum value
 	SnapshotAttributeNameCreateVolumePermission = "createVolumePermission"
 )
 
 const (
-	// @enum SnapshotState
+	// SnapshotStatePending is a SnapshotState enum value
 	SnapshotStatePending = "pending"
-	// @enum SnapshotState
+
+	// SnapshotStateCompleted is a SnapshotState enum value
 	SnapshotStateCompleted = "completed"
-	// @enum SnapshotState
+
+	// SnapshotStateError is a SnapshotState enum value
 	SnapshotStateError = "error"
 )
 
 const (
-	// @enum SpotInstanceState
+	// SpotInstanceStateOpen is a SpotInstanceState enum value
 	SpotInstanceStateOpen = "open"
-	// @enum SpotInstanceState
+
+	// SpotInstanceStateActive is a SpotInstanceState enum value
 	SpotInstanceStateActive = "active"
-	// @enum SpotInstanceState
+
+	// SpotInstanceStateClosed is a SpotInstanceState enum value
 	SpotInstanceStateClosed = "closed"
-	// @enum SpotInstanceState
+
+	// SpotInstanceStateCancelled is a SpotInstanceState enum value
 	SpotInstanceStateCancelled = "cancelled"
-	// @enum SpotInstanceState
+
+	// SpotInstanceStateFailed is a SpotInstanceState enum value
 	SpotInstanceStateFailed = "failed"
 )
 
 const (
-	// @enum SpotInstanceType
+	// SpotInstanceTypeOneTime is a SpotInstanceType enum value
 	SpotInstanceTypeOneTime = "one-time"
-	// @enum SpotInstanceType
+
+	// SpotInstanceTypePersistent is a SpotInstanceType enum value
 	SpotInstanceTypePersistent = "persistent"
 )
 
 const (
-	// @enum State
+	// StatePending is a State enum value
 	StatePending = "Pending"
-	// @enum State
+
+	// StateAvailable is a State enum value
 	StateAvailable = "Available"
-	// @enum State
+
+	// StateDeleting is a State enum value
 	StateDeleting = "Deleting"
-	// @enum State
+
+	// StateDeleted is a State enum value
 	StateDeleted = "Deleted"
 )
 
 const (
-	// @enum Status
+	// StatusMoveInProgress is a Status enum value
 	StatusMoveInProgress = "MoveInProgress"
-	// @enum Status
+
+	// StatusInVpc is a Status enum value
 	StatusInVpc = "InVpc"
-	// @enum Status
+
+	// StatusInClassic is a Status enum value
 	StatusInClassic = "InClassic"
 )
 
 const (
-	// @enum StatusName
+	// StatusNameReachability is a StatusName enum value
 	StatusNameReachability = "reachability"
 )
 
 const (
-	// @enum StatusType
+	// StatusTypePassed is a StatusType enum value
 	StatusTypePassed = "passed"
-	// @enum StatusType
+
+	// StatusTypeFailed is a StatusType enum value
 	StatusTypeFailed = "failed"
-	// @enum StatusType
+
+	// StatusTypeInsufficientData is a StatusType enum value
 	StatusTypeInsufficientData = "insufficient-data"
-	// @enum StatusType
+
+	// StatusTypeInitializing is a StatusType enum value
 	StatusTypeInitializing = "initializing"
 )
 
 const (
-	// @enum SubnetState
+	// SubnetStatePending is a SubnetState enum value
 	SubnetStatePending = "pending"
-	// @enum SubnetState
+
+	// SubnetStateAvailable is a SubnetState enum value
 	SubnetStateAvailable = "available"
 )
 
 const (
-	// @enum SummaryStatus
+	// SummaryStatusOk is a SummaryStatus enum value
 	SummaryStatusOk = "ok"
-	// @enum SummaryStatus
+
+	// SummaryStatusImpaired is a SummaryStatus enum value
 	SummaryStatusImpaired = "impaired"
-	// @enum SummaryStatus
+
+	// SummaryStatusInsufficientData is a SummaryStatus enum value
 	SummaryStatusInsufficientData = "insufficient-data"
-	// @enum SummaryStatus
+
+	// SummaryStatusNotApplicable is a SummaryStatus enum value
 	SummaryStatusNotApplicable = "not-applicable"
-	// @enum SummaryStatus
+
+	// SummaryStatusInitializing is a SummaryStatus enum value
 	SummaryStatusInitializing = "initializing"
 )
 
 const (
-	// @enum TelemetryStatus
+	// TelemetryStatusUp is a TelemetryStatus enum value
 	TelemetryStatusUp = "UP"
-	// @enum TelemetryStatus
+
+	// TelemetryStatusDown is a TelemetryStatus enum value
 	TelemetryStatusDown = "DOWN"
 )
 
 const (
-	// @enum Tenancy
+	// TenancyDefault is a Tenancy enum value
 	TenancyDefault = "default"
-	// @enum Tenancy
+
+	// TenancyDedicated is a Tenancy enum value
 	TenancyDedicated = "dedicated"
-	// @enum Tenancy
+
+	// TenancyHost is a Tenancy enum value
 	TenancyHost = "host"
 )
 
 const (
-	// @enum TrafficType
+	// TrafficTypeAccept is a TrafficType enum value
 	TrafficTypeAccept = "ACCEPT"
-	// @enum TrafficType
+
+	// TrafficTypeReject is a TrafficType enum value
 	TrafficTypeReject = "REJECT"
-	// @enum TrafficType
+
+	// TrafficTypeAll is a TrafficType enum value
 	TrafficTypeAll = "ALL"
 )
 
 const (
-	// @enum VirtualizationType
+	// VirtualizationTypeHvm is a VirtualizationType enum value
 	VirtualizationTypeHvm = "hvm"
-	// @enum VirtualizationType
+
+	// VirtualizationTypeParavirtual is a VirtualizationType enum value
 	VirtualizationTypeParavirtual = "paravirtual"
 )
 
 const (
-	// @enum VolumeAttachmentState
+	// VolumeAttachmentStateAttaching is a VolumeAttachmentState enum value
 	VolumeAttachmentStateAttaching = "attaching"
-	// @enum VolumeAttachmentState
+
+	// VolumeAttachmentStateAttached is a VolumeAttachmentState enum value
 	VolumeAttachmentStateAttached = "attached"
-	// @enum VolumeAttachmentState
+
+	// VolumeAttachmentStateDetaching is a VolumeAttachmentState enum value
 	VolumeAttachmentStateDetaching = "detaching"
-	// @enum VolumeAttachmentState
+
+	// VolumeAttachmentStateDetached is a VolumeAttachmentState enum value
 	VolumeAttachmentStateDetached = "detached"
 )
 
 const (
-	// @enum VolumeAttributeName
+	// VolumeAttributeNameAutoEnableIo is a VolumeAttributeName enum value
 	VolumeAttributeNameAutoEnableIo = "autoEnableIO"
-	// @enum VolumeAttributeName
+
+	// VolumeAttributeNameProductCodes is a VolumeAttributeName enum value
 	VolumeAttributeNameProductCodes = "productCodes"
 )
 
 const (
-	// @enum VolumeState
+	// VolumeStateCreating is a VolumeState enum value
 	VolumeStateCreating = "creating"
-	// @enum VolumeState
+
+	// VolumeStateAvailable is a VolumeState enum value
 	VolumeStateAvailable = "available"
-	// @enum VolumeState
+
+	// VolumeStateInUse is a VolumeState enum value
 	VolumeStateInUse = "in-use"
-	// @enum VolumeState
+
+	// VolumeStateDeleting is a VolumeState enum value
 	VolumeStateDeleting = "deleting"
-	// @enum VolumeState
+
+	// VolumeStateDeleted is a VolumeState enum value
 	VolumeStateDeleted = "deleted"
-	// @enum VolumeState
+
+	// VolumeStateError is a VolumeState enum value
 	VolumeStateError = "error"
 )
 
 const (
-	// @enum VolumeStatusInfoStatus
+	// VolumeStatusInfoStatusOk is a VolumeStatusInfoStatus enum value
 	VolumeStatusInfoStatusOk = "ok"
-	// @enum VolumeStatusInfoStatus
+
+	// VolumeStatusInfoStatusImpaired is a VolumeStatusInfoStatus enum value
 	VolumeStatusInfoStatusImpaired = "impaired"
-	// @enum VolumeStatusInfoStatus
+
+	// VolumeStatusInfoStatusInsufficientData is a VolumeStatusInfoStatus enum value
 	VolumeStatusInfoStatusInsufficientData = "insufficient-data"
 )
 
 const (
-	// @enum VolumeStatusName
+	// VolumeStatusNameIoEnabled is a VolumeStatusName enum value
 	VolumeStatusNameIoEnabled = "io-enabled"
-	// @enum VolumeStatusName
+
+	// VolumeStatusNameIoPerformance is a VolumeStatusName enum value
 	VolumeStatusNameIoPerformance = "io-performance"
 )
 
 const (
-	// @enum VolumeType
+	// VolumeTypeStandard is a VolumeType enum value
 	VolumeTypeStandard = "standard"
-	// @enum VolumeType
+
+	// VolumeTypeIo1 is a VolumeType enum value
 	VolumeTypeIo1 = "io1"
-	// @enum VolumeType
+
+	// VolumeTypeGp2 is a VolumeType enum value
 	VolumeTypeGp2 = "gp2"
-	// @enum VolumeType
+
+	// VolumeTypeSc1 is a VolumeType enum value
 	VolumeTypeSc1 = "sc1"
-	// @enum VolumeType
+
+	// VolumeTypeSt1 is a VolumeType enum value
 	VolumeTypeSt1 = "st1"
 )
 
 const (
-	// @enum VpcAttributeName
+	// VpcAttributeNameEnableDnsSupport is a VpcAttributeName enum value
 	VpcAttributeNameEnableDnsSupport = "enableDnsSupport"
-	// @enum VpcAttributeName
+
+	// VpcAttributeNameEnableDnsHostnames is a VpcAttributeName enum value
 	VpcAttributeNameEnableDnsHostnames = "enableDnsHostnames"
 )
 
 const (
-	// @enum VpcPeeringConnectionStateReasonCode
+	// VpcPeeringConnectionStateReasonCodeInitiatingRequest is a VpcPeeringConnectionStateReasonCode enum value
 	VpcPeeringConnectionStateReasonCodeInitiatingRequest = "initiating-request"
-	// @enum VpcPeeringConnectionStateReasonCode
+
+	// VpcPeeringConnectionStateReasonCodePendingAcceptance is a VpcPeeringConnectionStateReasonCode enum value
 	VpcPeeringConnectionStateReasonCodePendingAcceptance = "pending-acceptance"
-	// @enum VpcPeeringConnectionStateReasonCode
+
+	// VpcPeeringConnectionStateReasonCodeActive is a VpcPeeringConnectionStateReasonCode enum value
 	VpcPeeringConnectionStateReasonCodeActive = "active"
-	// @enum VpcPeeringConnectionStateReasonCode
+
+	// VpcPeeringConnectionStateReasonCodeDeleted is a VpcPeeringConnectionStateReasonCode enum value
 	VpcPeeringConnectionStateReasonCodeDeleted = "deleted"
-	// @enum VpcPeeringConnectionStateReasonCode
+
+	// VpcPeeringConnectionStateReasonCodeRejected is a VpcPeeringConnectionStateReasonCode enum value
 	VpcPeeringConnectionStateReasonCodeRejected = "rejected"
-	// @enum VpcPeeringConnectionStateReasonCode
+
+	// VpcPeeringConnectionStateReasonCodeFailed is a VpcPeeringConnectionStateReasonCode enum value
 	VpcPeeringConnectionStateReasonCodeFailed = "failed"
-	// @enum VpcPeeringConnectionStateReasonCode
+
+	// VpcPeeringConnectionStateReasonCodeExpired is a VpcPeeringConnectionStateReasonCode enum value
 	VpcPeeringConnectionStateReasonCodeExpired = "expired"
-	// @enum VpcPeeringConnectionStateReasonCode
+
+	// VpcPeeringConnectionStateReasonCodeProvisioning is a VpcPeeringConnectionStateReasonCode enum value
 	VpcPeeringConnectionStateReasonCodeProvisioning = "provisioning"
-	// @enum VpcPeeringConnectionStateReasonCode
+
+	// VpcPeeringConnectionStateReasonCodeDeleting is a VpcPeeringConnectionStateReasonCode enum value
 	VpcPeeringConnectionStateReasonCodeDeleting = "deleting"
 )
 
 const (
-	// @enum VpcState
+	// VpcStatePending is a VpcState enum value
 	VpcStatePending = "pending"
-	// @enum VpcState
+
+	// VpcStateAvailable is a VpcState enum value
 	VpcStateAvailable = "available"
 )
 
 const (
-	// @enum VpnState
+	// VpnStatePending is a VpnState enum value
 	VpnStatePending = "pending"
-	// @enum VpnState
+
+	// VpnStateAvailable is a VpnState enum value
 	VpnStateAvailable = "available"
-	// @enum VpnState
+
+	// VpnStateDeleting is a VpnState enum value
 	VpnStateDeleting = "deleting"
-	// @enum VpnState
+
+	// VpnStateDeleted is a VpnState enum value
 	VpnStateDeleted = "deleted"
 )
 
 const (
-	// @enum VpnStaticRouteSource
+	// VpnStaticRouteSourceStatic is a VpnStaticRouteSource enum value
 	VpnStaticRouteSourceStatic = "Static"
 )
 
 const (
-	// @enum scope
+	// ScopeAvailabilityZone is a scope enum value
 	ScopeAvailabilityZone = "Availability Zone"
-	// @enum scope
+
+	// ScopeRegion is a scope enum value
 	ScopeRegion = "Region"
 )

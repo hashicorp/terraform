@@ -1,7 +1,7 @@
 sudo: false
 language: go
 go:
-- 1.7
+- 1.7.3
 go_import_path: github.com/hashicorp/terraform
 install:
 # This script is used by the Travis build to install a cookie for
@@ -11,6 +11,7 @@ install:
 - bash scripts/gogetcookie.sh
 script:
 - make test vet
+- make test TEST=./terraform TESTARGS=-Xnew-apply
 branches:
   only:
   - master

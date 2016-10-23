@@ -72,7 +72,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
 	// Build instance info
-	info := &InstanceInfo{Id: n.ResourceName, Type: n.ResourceType}
+	info := &InstanceInfo{Id: n.Name(), Type: n.ResourceType}
 	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
 
 	// Refresh the resource

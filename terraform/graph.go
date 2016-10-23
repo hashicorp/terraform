@@ -28,6 +28,11 @@ type Graph struct {
 	// RootModuleName
 	Path []string
 
+	// annotations are the annotations that are added to vertices. Annotations
+	// are arbitrary metadata taht is used for various logic. Annotations
+	// should have unique keys that are referenced via constants.
+	annotations map[dag.Vertex]map[string]interface{}
+
 	// dependableMap is a lookaside table for fast lookups for connecting
 	// dependencies by their GraphNodeDependable value to avoid O(n^3)-like
 	// situations and turn them into O(1) with respect to the number of new
@@ -35,6 +40,29 @@ type Graph struct {
 	dependableMap map[string]dag.Vertex
 
 	once sync.Once
+}
+
+// Annotations returns the annotations that are configured for the
+// given vertex. The map is guaranteed to be non-nil but may be empty.
+//
+// The returned map may be modified to modify the annotations of the
+// vertex.
+func (g *Graph) Annotations(v dag.Vertex) map[string]interface{} {
+	g.once.Do(g.init)
+
+	// If this vertex isn't in the graph, then just return an empty map
+	if !g.HasVertex(v) {
+		return map[string]interface{}{}
+	}
+
+	// Get the map, if it doesn't exist yet then initialize it
+	m, ok := g.annotations[v]
+	if !ok {
+		m = make(map[string]interface{})
+		g.annotations[v] = m
+	}
+
+	return m
 }
 
 // Add is the same as dag.Graph.Add.
@@ -48,6 +76,14 @@ func (g *Graph) Add(v dag.Vertex) dag.Vertex {
 	if dv, ok := v.(GraphNodeDependable); ok {
 		for _, n := range dv.DependableName() {
 			g.dependableMap[n] = v
+		}
+	}
+
+	// If this initializes annotations, then do that
+	if av, ok := v.(GraphNodeAnnotationInit); ok {
+		as := g.Annotations(v)
+		for k, v := range av.AnnotationInit() {
+			as[k] = v
 		}
 	}
 
@@ -65,12 +101,17 @@ func (g *Graph) Remove(v dag.Vertex) dag.Vertex {
 		}
 	}
 
+	// Remove the annotations
+	delete(g.annotations, v)
+
 	// Call upwards to remove it from the actual graph
 	return g.Graph.Remove(v)
 }
 
 // Replace is the same as dag.Graph.Replace
 func (g *Graph) Replace(o, n dag.Vertex) bool {
+	g.once.Do(g.init)
+
 	// Go through and update our lookaside to point to the new vertex
 	for k, v := range g.dependableMap {
 		if v == o {
@@ -80,6 +121,12 @@ func (g *Graph) Replace(o, n dag.Vertex) bool {
 				delete(g.dependableMap, k)
 			}
 		}
+	}
+
+	// Move the annotation if it exists
+	if m, ok := g.annotations[o]; ok {
+		g.annotations[n] = m
+		delete(g.annotations, o)
 	}
 
 	return g.Graph.Replace(o, n)
@@ -153,6 +200,10 @@ func (g *Graph) Walk(walker GraphWalker) error {
 }
 
 func (g *Graph) init() {
+	if g.annotations == nil {
+		g.annotations = make(map[dag.Vertex]map[string]interface{})
+	}
+
 	if g.dependableMap == nil {
 		g.dependableMap = make(map[string]dag.Vertex)
 	}
@@ -179,7 +230,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 		// with a GraphNodeSubPath impl.
 		vertexCtx := ctx
 		if pn, ok := v.(GraphNodeSubPath); ok && len(pn.Path()) > 0 {
-			vertexCtx = walker.EnterPath(pn.Path())
+			vertexCtx = walker.EnterPath(normalizeModulePath(pn.Path()))
 			defer walker.ExitPath(pn.Path())
 		}
 
@@ -212,10 +263,11 @@ func (g *Graph) walk(walker GraphWalker) error {
 				rerr = err
 				return
 			}
-
-			// Walk the subgraph
-			if rerr = g.walk(walker); rerr != nil {
-				return
+			if g != nil {
+				// Walk the subgraph
+				if rerr = g.walk(walker); rerr != nil {
+					return
+				}
 			}
 		}
 
@@ -235,6 +287,16 @@ func (g *Graph) walk(walker GraphWalker) error {
 	}
 
 	return g.AcyclicGraph.Walk(walkFn)
+}
+
+// GraphNodeAnnotationInit is an interface that allows a node to
+// initialize it's annotations.
+//
+// AnnotationInit will be called _once_ when the node is added to a
+// graph for the first time and is expected to return it's initial
+// annotations.
+type GraphNodeAnnotationInit interface {
+	AnnotationInit() map[string]interface{}
 }
 
 // GraphNodeDependable is an interface which says that a node can be
