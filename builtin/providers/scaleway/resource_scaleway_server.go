@@ -14,6 +14,10 @@ func resourceScalewayServer() *schema.Resource {
 		Read:   resourceScalewayServerRead,
 		Update: resourceScalewayServerUpdate,
 		Delete: resourceScalewayServerDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -138,6 +142,10 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	d.Set("name", server.Name)
+	d.Set("image", server.Image.Identifier)
+	d.Set("type", server.CommercialType)
+	d.Set("enable_ipv6", server.EnableIPV6)
 	d.Set("private_ip", server.PrivateIP)
 	d.Set("public_ip", server.PublicAddress.IP)
 

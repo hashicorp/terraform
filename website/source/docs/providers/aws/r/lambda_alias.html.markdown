@@ -31,5 +31,9 @@ resource "aws_lambda_alias" "test_alias" {
 * `function_name` - (Required) The function ARN of the Lambda function for which you want to create an alias.
 * `function_version` - (Required) Lambda function version for which you are creating the alias. Pattern: `(\$LATEST|[0-9]+)`.
 
+## Attributes Reference
+
+* `arn` - The Amazon Resource Name (ARN) identifying your Lambda function alias.
+
 [1]: http://docs.aws.amazon.com/lambda/latest/dg/welcome.html
 [2]: http://docs.aws.amazon.com/lambda/latest/dg/API_CreateAlias.html

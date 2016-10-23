@@ -68,6 +68,9 @@ func TestNewContextState(t *testing.T) {
 }
 
 func testContext2(t *testing.T, opts *ContextOpts) *Context {
+	// Enable the shadow graph
+	opts.Shadow = true
+
 	ctx, err := NewContext(opts)
 	if err != nil {
 		t.Fatalf("err: %s", err)

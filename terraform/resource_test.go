@@ -239,6 +239,49 @@ func TestResourceConfigGet(t *testing.T) {
 	}
 }
 
+func TestResourceConfigDeepCopy_nil(t *testing.T) {
+	var nilRc *ResourceConfig
+	actual := nilRc.DeepCopy()
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceConfigDeepCopy_nilComputed(t *testing.T) {
+	rc := &ResourceConfig{}
+	actual := rc.DeepCopy()
+	if actual.ComputedKeys != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceConfigEqual_nil(t *testing.T) {
+	var nilRc *ResourceConfig
+	notNil := NewResourceConfig(nil)
+
+	if nilRc.Equal(notNil) {
+		t.Fatal("should not be equal")
+	}
+
+	if notNil.Equal(nilRc) {
+		t.Fatal("should not be equal")
+	}
+}
+
+func TestResourceConfigEqual_computedKeyOrder(t *testing.T) {
+	c := map[string]interface{}{"foo": "${a.b.c}"}
+	rc := NewResourceConfig(config.TestRawConfig(t, c))
+	rc2 := NewResourceConfig(config.TestRawConfig(t, c))
+
+	// Set the computed keys manual
+	rc.ComputedKeys = []string{"foo", "bar"}
+	rc2.ComputedKeys = []string{"bar", "foo"}
+
+	if !rc.Equal(rc2) {
+		t.Fatal("should be equal")
+	}
+}
+
 func testResourceConfig(
 	t *testing.T, c map[string]interface{}) *ResourceConfig {
 	raw, err := config.NewRawConfig(c)

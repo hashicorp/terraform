@@ -5,10 +5,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 )
 
 func resourceFWFirewallV1() *schema.Resource {
@@ -231,14 +231,11 @@ func waitForFirewallDeletion(networkingClient *gophercloud.ServiceClient, id str
 		log.Printf("[DEBUG] Get firewall %s => %#v", id, fw)
 
 		if err != nil {
-			httpStatus := err.(*gophercloud.UnexpectedResponseCodeError)
-			log.Printf("[DEBUG] Get firewall %s status is %d", id, httpStatus.Actual)
-
-			if httpStatus.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Firewall %s is actually deleted", id)
 				return "", "DELETED", nil
 			}
-			return nil, "", fmt.Errorf("Unexpected status code %d", httpStatus.Actual)
+			return nil, "", fmt.Errorf("Unexpected error: %s", err)
 		}
 
 		log.Printf("[DEBUG] Firewall %s deletion is pending", id)

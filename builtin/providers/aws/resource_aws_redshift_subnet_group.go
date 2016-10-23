@@ -103,7 +103,7 @@ func resourceAwsRedshiftSubnetGroupRead(d *schema.ResourceData, meta interface{}
 
 func resourceAwsRedshiftSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).redshiftconn
-	if d.HasChange("subnet_ids") {
+	if d.HasChange("subnet_ids") || d.HasChange("description") {
 		_, n := d.GetChange("subnet_ids")
 		if n == nil {
 			n = new(schema.Set)
@@ -117,6 +117,7 @@ func resourceAwsRedshiftSubnetGroupUpdate(d *schema.ResourceData, meta interface
 
 		_, err := conn.ModifyClusterSubnetGroup(&redshift.ModifyClusterSubnetGroupInput{
 			ClusterSubnetGroupName: aws.String(d.Id()),
+			Description:            aws.String(d.Get("description").(string)),
 			SubnetIds:              sIds,
 		})
 
@@ -174,9 +175,9 @@ func subnetIdsToSlice(subnetIds []*redshift.Subnet) []string {
 
 func validateRedshiftSubnetGroupName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z-_]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters, hyphens, underscores, and periods allowed in %q", k))
+			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
 	}
 	if len(value) > 255 {
 		errors = append(errors, fmt.Errorf(

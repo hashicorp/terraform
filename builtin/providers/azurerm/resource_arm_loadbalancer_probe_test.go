@@ -2,6 +2,7 @@ package azurerm
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -15,6 +16,11 @@ func TestAccAzureRMLoadBalancerProbe_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	probeName := fmt.Sprintf("probe-%d", ri)
 
+	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
+	probe_id := fmt.Sprintf(
+		"/subscriptions/%s/resourceGroups/acctestrg-%d/providers/Microsoft.Network/loadBalancers/arm-test-loadbalancer-%d/probes/%s",
+		subscriptionID, ri, ri, probeName)
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -25,6 +31,8 @@ func TestAccAzureRMLoadBalancerProbe_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLoadBalancerExists("azurerm_lb.test", &lb),
 					testCheckAzureRMLoadBalancerProbeExists(probeName, &lb),
+					resource.TestCheckResourceAttr(
+						"azurerm_lb_probe.test", "id", probe_id),
 				),
 			},
 		},

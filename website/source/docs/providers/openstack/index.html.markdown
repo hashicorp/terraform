@@ -53,12 +53,6 @@ The following arguments are supported:
     already created by a username/password out of band of Terraform.
     If omitted, the `OS_AUTH_TOKEN` environment variable is used.
 
-* `api_key` - (Optional; Required if not using `password`) An API Key
-    is issued by a cloud provider as alternative password. Unless
-    your cloud provider has documentation referencing an API Key,
-    you can safely ignore this argument. If omitted, the `OS_API_KEY`
-    environment variable is used.
-
 * `domain_id` - (Optional) If omitted, the `OS_DOMAIN_ID` environment
     variable is used.
 

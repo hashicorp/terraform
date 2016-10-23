@@ -74,7 +74,7 @@ resource "aws_instance" "web" {
 
 ## Multiple Provider Instances
 
-Similarly to [resources](/docs/configuration/resource.html), the
+Similarly to [resources](/docs/configuration/resources.html), the
 `provider` meta-parameter can be used where a configuration has
 multiple aliased instances of the same provider:
 

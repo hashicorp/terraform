@@ -2,12 +2,11 @@ package openstack
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools"
 )
 
 func TestAccLBV2Pool_basic(t *testing.T) {
@@ -42,8 +41,6 @@ func testAccCheckLBV2PoolDestroy(s *terraform.State) error {
 	}
 
 	for _, rs := range s.RootModule().Resources {
-		log.Printf("[FINDME] rs TYPE is: %T", rs)
-
 		if rs.Type != "openstack_lb_pool_v2" {
 			continue
 		}

@@ -108,18 +108,3 @@ The `ssh` connection also supports the following fields to facilitate connnectio
   host. These can be loaded from a file on disk using the [`file()`
   interpolation function](/docs/configuration/interpolation.html#file_path_).
   Defaults to the value of the `private_key` field.
-
-## Deprecations
-
-These fields are supported for backwards compatibility and may be removed in a
-future version:
-
-* `key_file` - A path to or the contents of an SSH key to use for the
-  connection. These can be loaded from a file on disk using the [`file()`
-  interpolation function](/docs/configuration/interpolation.html#file_path_).
-  This takes preference over the password, if provided.
-
-* `bastion_key_file` - The contents of an SSH key file to use for the bastion
-  host. These can be loaded from a file on disk using the [`file()`
-  interpolation function](/docs/configuration/interpolation.html#file_path_).
-  Defaults to the value of the `key_file` field.

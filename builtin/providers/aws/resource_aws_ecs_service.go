@@ -349,7 +349,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	wait := resource.StateChangeConf{
 		Pending:    []string{"DRAINING"},
 		Target:     []string{"INACTIVE"},
-		Timeout:    5 * time.Minute,
+		Timeout:    10 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			log.Printf("[DEBUG] Checking if ECS service %s is INACTIVE", d.Id())
