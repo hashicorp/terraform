@@ -220,7 +220,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 	// Walk the graph.
 	var walkFn dag.WalkFunc
 	walkFn = func(v dag.Vertex) (rerr error) {
-		log.Printf("[DEBUG] vertex %s.%s: walking", path, dag.VertexName(v))
+		log.Printf("[DEBUG] vertex '%s.%s': walking", path, dag.VertexName(v))
 
 		walker.EnterVertex(v)
 		defer func() { walker.ExitVertex(v, rerr) }()
