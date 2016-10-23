@@ -244,7 +244,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 
 			// Allow the walker to change our tree if needed. Eval,
 			// then callback with the output.
-			log.Printf("[DEBUG] vertex %s.%s: evaluating", path, dag.VertexName(v))
+			log.Printf("[DEBUG] vertex '%s.%s': evaluating", path, dag.VertexName(v))
 			tree = walker.EnterEvalTree(v, tree)
 			output, err := Eval(tree, vertexCtx)
 			if rerr = walker.ExitEvalTree(v, output, err); rerr != nil {
