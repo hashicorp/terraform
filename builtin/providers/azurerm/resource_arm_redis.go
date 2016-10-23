@@ -117,8 +117,8 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 	family := redis.SkuFamily(d.Get("family").(string))
 	sku := redis.SkuName(d.Get("sku_name").(string))
 
-	//tags := d.Get("tags").(map[string]interface{})
-	//expandedTags := expandTags(tags)
+	tags := d.Get("tags").(map[string]interface{})
+	expandedTags := expandTags(tags)
 
 	parameters := redis.CreateOrUpdateParameters{
 		Name:     &name,
@@ -132,7 +132,7 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 				Name:     sku,
 			},
 		},
-		//Tags: expandedTags,
+		Tags: expandedTags,
 	}
 
 	if v, ok := d.GetOk("shard_count"); ok {
@@ -196,7 +196,7 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", resp.Name)
 	d.Set("resource_group_name", resGroup)
-	d.Set("location", azureRMNormalizeLocation(*resp.Location))
+	//d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
 	if resp.Properties != nil {
 
@@ -224,20 +224,20 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceArmRedisDelete(d *schema.ResourceData, meta interface{}) error {
-	/*
-			client := meta.(*ArmClient).redisClient
+	redisClient := meta.(*ArmClient).redisClient
 
-			id, err := parseAzureResourceID(d.Id())
-			if err != nil {
-				return err
-			}
-			resGroup := id.ResourceGroup
-			namespaceName := id.Path["namespaces"]
-			name := id.Path["topics"]
-
-			_, err = client.Delete(resGroup, name)
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
 		return err
-	*/
+	}
+	resGroup := id.ResourceGroup
+	name := id.Path["redis"]
+
+	resp, err := redisClient.Delete(resGroup, name)
+
+	if resp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("Error issuing Azure ARM delete request of Redis Instance '%s': %s", name, err)
+	}
 
 	return nil
 }
