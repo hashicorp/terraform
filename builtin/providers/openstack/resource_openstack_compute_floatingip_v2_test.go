@@ -8,12 +8,12 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 )
 
 func TestAccComputeV2FloatingIP_basic(t *testing.T) {
-	var floatingIP floatingip.FloatingIP
+	var floatingIP floatingips.FloatingIP
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -32,7 +32,7 @@ func TestAccComputeV2FloatingIP_basic(t *testing.T) {
 
 func TestAccComputeV2FloatingIP_attach(t *testing.T) {
 	var instance servers.Server
-	var fip floatingip.FloatingIP
+	var fip floatingips.FloatingIP
 	var testAccComputeV2FloatingIP_attach = fmt.Sprintf(`
     resource "openstack_compute_floatingip_v2" "myip" {
     }
@@ -77,7 +77,7 @@ func testAccCheckComputeV2FloatingIPDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := floatingip.Get(computeClient, rs.Primary.ID).Extract()
+		_, err := floatingips.Get(computeClient, rs.Primary.ID).Extract()
 		if err == nil {
 			return fmt.Errorf("FloatingIP still exists")
 		}
@@ -86,7 +86,7 @@ func testAccCheckComputeV2FloatingIPDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckComputeV2FloatingIPExists(t *testing.T, n string, kp *floatingip.FloatingIP) resource.TestCheckFunc {
+func testAccCheckComputeV2FloatingIPExists(t *testing.T, n string, kp *floatingips.FloatingIP) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -103,7 +103,7 @@ func testAccCheckComputeV2FloatingIPExists(t *testing.T, n string, kp *floatingi
 			return fmt.Errorf("(testAccCheckComputeV2FloatingIPExists) Error creating OpenStack compute client: %s", err)
 		}
 
-		found, err := floatingip.Get(computeClient, rs.Primary.ID).Extract()
+		found, err := floatingips.Get(computeClient, rs.Primary.ID).Extract()
 		if err != nil {
 			return err
 		}
