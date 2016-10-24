@@ -29,6 +29,7 @@ BUG FIXES:
  * provider/aws: Fix issue with updating ElasticBeanstalk environment variables [GH-9259]
  * provider/aws: Allow zero value for `scaling_adjustment` in `aws_autoscaling_policy` when using `SimpleScaling` [GH-8893]
  * provider/aws: Increase ECS service drain timeout [GH-9521]
+ * provider/aws: Remove VPC Endpoint from state if it's not found [GH-9561]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
 
 ## 0.7.7 (October 18, 2016)
