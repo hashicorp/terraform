@@ -81,6 +81,40 @@ func TestAccAWSVpcEndpoint_WithoutRouteTableOrPolicyConfig(t *testing.T) {
 	})
 }
 
+func TestAccAWSVpcEndpoint_removed(t *testing.T) {
+	var endpoint ec2.VpcEndpoint
+
+	// reach out and DELETE the VPC Endpoint outside of Terraform
+	testDestroy := func(*terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		input := &ec2.DeleteVpcEndpointsInput{
+			VpcEndpointIds: []*string{endpoint.VpcEndpointId},
+		}
+
+		_, err := conn.DeleteVpcEndpoints(input)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpcEndpointDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVpcEndpointWithoutRouteTableOrPolicyConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcEndpointExists("aws_vpc_endpoint.second-private-s3", &endpoint),
+					testDestroy,
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func testAccCheckVpcEndpointDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
