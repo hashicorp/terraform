@@ -64,7 +64,7 @@ The following attributes are exported:
 * `default_route_table_id` - The ID of the route table created by default on VPC creation
 
 
-[1]: http://docs.aws.amazon.com/fr_fr/AWSEC2/latest/UserGuide/vpc-classiclink.html
+[1]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html
 
 ## Import
 
