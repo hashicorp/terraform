@@ -18,6 +18,7 @@ IMPROVEMENTS:
  * provider/aws: No longer require `route_table_ids` list in `aws_vpc_endpoint` resources [GH-9357]
  * provider/aws: Allow `description` in `aws_redshift_subnet_group` to be modified [GH-9515]
  * provider/azurerm: add account_kind and access_tier to storage_account [GH-9408]
+ * provider/azurerm: write load_balanacer attributes to network_interface_card hash [GH-9207]
 
 BUG FIXES:
 
