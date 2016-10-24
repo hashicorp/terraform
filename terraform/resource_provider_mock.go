@@ -56,6 +56,9 @@ type MockResourceProvider struct {
 	ReadDataDiffFn                 func(*InstanceInfo, *ResourceConfig) (*InstanceDiff, error)
 	ReadDataDiffReturn             *InstanceDiff
 	ReadDataDiffReturnError        error
+	StopCalled                     bool
+	StopFn                         func() error
+	StopReturnError                error
 	DataSourcesCalled              bool
 	DataSourcesReturn              []DataSource
 	ValidateCalled                 bool
@@ -139,6 +142,18 @@ func (p *MockResourceProvider) Configure(c *ResourceConfig) error {
 	}
 
 	return p.ConfigureReturnError
+}
+
+func (p *MockResourceProvider) Stop() error {
+	p.Lock()
+	defer p.Unlock()
+
+	p.StopCalled = true
+	if p.StopFn != nil {
+		return p.StopFn()
+	}
+
+	return p.StopReturnError
 }
 
 func (p *MockResourceProvider) Apply(
