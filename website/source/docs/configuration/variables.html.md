@@ -75,6 +75,8 @@ These are the parameters that can be set:
 **Note**: Default values can be strings, lists, or maps. If a default is
 specified, it must match the declared type of the variable.
 
+### Strings
+
 String values are simple and represent a basic key to value
 mapping where the key is the variable name. An example is:
 
@@ -84,6 +86,20 @@ variable "key" {
   default = "value"
 }
 ```
+
+A multi-line string value can be provided using heredoc syntax.
+
+```
+variable "long_key" {
+  type = "string"
+  default = <<EOF
+This is a long key.
+Running over several lines.
+EOF
+}
+```
+
+### Maps
 
 A map allows a key to contain a lookup table. This is useful
 for some values that change depending on some external pivot.
@@ -99,6 +115,8 @@ variable "images" {
   }
 }
 ```
+
+### Lists
 
 A list can also be useful to store certain variables. For example:
 
