@@ -1809,10 +1809,10 @@
 			"revision": "75ce5fbba34b1912a3641adbd58cf317d7315821"
 		},
 		{
-			"checksumSHA1": "jBiNbkwHKwnuGfkaccnLc/1rzto=",
+			"checksumSHA1": "kJeuH3vcc+Ov4SRIpjmOAuEMEgM=",
 			"path": "github.com/zorkian/go-datadog-api",
-			"revision": "f9f89391f35f5c8eafed4b75b5797b9b23851908",
-			"revisionTime": "2016-10-04T18:54:04Z"
+			"revision": "a1cccc9c898754afceaa57cb2c5c221130b54f59",
+			"revisionTime": "2016-10-22T15:52:53Z"
 		},
 		{
 			"path": "golang.org/x/crypto/curve25519",

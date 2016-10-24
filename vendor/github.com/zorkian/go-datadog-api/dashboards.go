@@ -22,6 +22,23 @@ type GraphDefinitionRequest struct {
 	Style              struct {
 		Palette string `json:"palette,omitempty"`
 	} `json:"style,omitempty"`
+
+	// For change type graphs
+	ChangeType     string `json:"change_type,omitempty"`
+	OrderDirection string `json:"order_dir,omitempty"`
+	CompareTo      string `json:"compare_to,omitempty"`
+	IncreaseGood   bool   `json:"increase_good,omitempty"`
+	OrderBy        string `json:"order_by,omitempty"`
+	ExtraCol       string `json:"extra_col,omitempty"`
+}
+
+type GraphDefinitionMarker struct {
+	Type  string  `json:"type"`
+	Value string  `json:"value"`
+	Label string  `json:"label,omitempty"`
+	Val   float64 `json:"val,omitempty"`
+	Min   float64 `json:"min,omitempty"`
+	Max   float64 `json:"max,omitempty"`
 }
 
 // Graph represents a graph that might exist on a dashboard.
@@ -31,6 +48,30 @@ type Graph struct {
 	Definition struct {
 		Viz      string                   `json:"viz"`
 		Requests []GraphDefinitionRequest `json:"requests"`
+		Markers  []GraphDefinitionMarker  `json:"markers,omitempty"`
+
+		// For timeseries type graphs
+		Yaxis struct {
+			Min   float64 `json:"min,omitempty"`
+			Max   float64 `json:"max,omitempty"`
+			Scale string  `json:"scale,omitempty"`
+		} `json:"yaxis,omitempty"`
+
+		// For query value type graphs
+		Autoscale  bool   `json:"austoscale,omitempty"`
+		TextAlign  string `json:"text_align,omitempty"`
+		Precision  string `json:"precision,omitempty"`
+		CustomUnit string `json:"custom_unit,omitempty"`
+
+		// For hostnamp type graphs
+		Style struct {
+			Palette     string `json:"palette,omitempty"`
+			PaletteFlip bool   `json:"paletteFlip,omitempty"`
+		}
+		Groups                []string `json:"group,omitempty"`
+		IncludeNoMetricHosts  bool     `json:"noMetricHosts,omitempty"`
+		Scopes                []string `json:"scope,omitempty"`
+		IncludeUngroupedHosts bool     `json:"noGroupHosts,omitempty"`
 	} `json:"definition"`
 }
 
