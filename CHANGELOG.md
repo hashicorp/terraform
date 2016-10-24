@@ -12,6 +12,7 @@ FEATURES:
    creation process for 0.8. This is now available behind a flag `-Xnew-apply`
    (on any command). This will become the default in 0.8. There may still be
    bugs. [GH-9388]
+ * **New Provider:** `pagerduty` [GH-9022]
 
 IMPROVEMENTS:
 
