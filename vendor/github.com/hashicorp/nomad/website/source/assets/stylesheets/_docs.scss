@@ -1,0 +1,282 @@
+//
+// Docs
+// --------------------------------------------------
+
+body.layout-atlas,
+body.layout-consul,
+body.layout-dnsimple,
+body.layout-dme,
+body.layout-cloudflare,
+body.layout-cloudstack,
+body.layout-google,
+body.layout-heroku,
+body.layout-mailgun,
+body.layout-digitalocean,
+body.layout-aws,
+body.layout-docs,
+body.layout-inner,
+body.layout-downloads,
+body.layout-intro{
+  //background: $light-black image-url('sidebar-wire.png') left 62px no-repeat;
+  >.container{
+    .col-md-8[role=main]{
+      min-height: 800px;
+      background-color: white;
+
+      >div{
+        position: relative;
+        z-index: 10;
+      }
+    }
+  }
+}
+
+.docs-sidebar{
+  position: relative;
+  z-index: 20;
+  margin-bottom: 30px;
+  margin-top: 50px;
+  @include open();
+
+  .nav.docs-sidenav{
+    padding-bottom: 15px;
+
+    :last-child{
+      border-bottom: none;
+    }
+
+    //all li
+    li{
+      position: relative;
+
+      > a{
+        padding: 10px 8px;
+        font-size: 15px;
+        color: $blue-dark;
+
+        &:before{
+          @include bez-1-transition();
+        }
+
+        &:hover{
+          background-color: transparent !important;
+
+          &:before{
+            @include bez-1-transition();
+          }
+        }
+      }
+    }
+
+    $parent-active-state: -14px;
+    $parent-default-state: -10px;
+    $child-active-state: -4px;
+    $child-default-state: 0px;
+
+    //first teir li
+    > li {
+      margin: 0 0 0 10px;
+
+      &.active {
+        >a{
+          color: $green-dark;
+          font-weight: 600;
+          border-right: 1px solid $green-faint;
+
+          &:hover{
+            &:before{
+              left: $parent-default-state;
+            }
+          }
+
+          &:before{
+            @include rotate(90deg);
+            opacity: 1;
+          }
+        }
+
+        .nav {
+          display: block;
+        }
+      }
+
+      > a {
+        -webkit-font-smoothing: antialiased;
+
+        &:hover{
+          &:before{
+            left: $parent-active-state;
+          }
+        }
+
+        &:before{
+          content: '';
+          position: absolute;
+          width: 8px;
+          height: 12px;
+          top: 15px;
+          left: $parent-default-state;
+          overflow: hidden;
+          background: image-url("caret-light.png") 0 0 no-repeat;
+          opacity: .3;
+          @include img-retina("caret-light.png", "caret-light@2x.png", 6px, 9px);
+        }
+      }
+    }
+
+    //nested ul.nav
+    .nav {
+      display: none;
+      padding-top: 10px;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      border-right: 1px solid $green-faint;
+      border-bottom: 1px solid $green-faint;
+
+      > li{
+        margin-left: 10px;
+
+        &.active{
+          > a{
+            color: $green-dark;
+            font-weight: 600;
+
+            &:hover{
+              &:before{
+                left: $child-default-state;
+              }
+            }
+
+            &:before{
+              //background: url(triangle-sprite.png) 0 0 no-repeat;
+              //@include img-retina("triangle-sprite.png", "triangle-sprite@2x.png", 5px, 19px);
+            }
+          }
+        }
+
+        > a{
+          -webkit-font-smoothing: antialiased;
+          padding: 6px 15px;
+
+          &:hover{
+            &:before{
+              left: $child-active-state;
+            }
+          }
+
+          &:before{
+            opacity: .75;
+            content: '';
+            position: absolute;
+            width: 5px;
+            height: 7px;
+            top: 12px;
+            left: $child-default-state;
+            overflow: hidden;
+            //background: url(triangle-sprite.png) 0 -13px no-repeat;
+            //@include img-retina("triangle-sprite.png", "triangle-sprite@2x.png", 5px, 19px);
+          }
+        }
+      }
+    }
+
+    .nav-visible {
+      display: block;
+    }
+  }
+}
+
+
+.bs-docs-section{
+  padding-top: 10px;
+  padding-left: 3%;
+  padding-bottom: 160px;
+
+  .lead{
+    margin-bottom: 48px
+  }
+
+  .doc-sectional{
+    margin-bottom: 48px;
+  }
+
+  p, li, .alert {
+    color: $blue-dark;
+    font-size: 18px;
+    font-family: $font-family-open-sans;
+    font-weight: $font-weight-reg;
+    line-height: 1.84em;
+    margin: 0 0 18px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  pre{
+    margin: 0 0 18px;
+  }
+
+  a{
+    color: $green-dark;
+    border-bottom: 1px solid $green-dark;
+    @include transition(all 300ms ease-in);
+
+    &:hover{
+      color: $blue-dark;
+      border-bottom: 2px solid $blue-dark;
+      text-decoration: none;
+      @include transition(all 300ms ease-in);
+    }
+  }
+
+  img{
+    max-width: 650px;
+    margin-top: 25px;
+    margin-bottom: 25px;
+  }
+
+  h1, .h1, h2, .h2, h3, .h3, h4, .h4{
+    color: $gray-dark;
+    margin-top: 54px;
+    margin-bottom: 18px;
+    @include open-sb();
+  }
+
+  h1{
+    font-size: 36px;
+  }
+
+  #graph {
+    margin-top: 30px;
+  }
+}
+
+
+@media (max-width: 992px) {
+
+  .bs-docs-section{
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .bs-docs-section{
+    padding-top: 0;
+    h1{
+      margin-top: 0;
+    }
+  }
+}
+
+
+
+
+@media (max-width: 480px) {
+  .bs-docs-section{
+    img{
+      max-width: 450px;
+    }
+
+    h1{
+      font-size: 32px;
+    }
+  }
+}

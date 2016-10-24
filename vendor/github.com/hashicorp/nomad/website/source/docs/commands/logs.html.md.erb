@@ -1,0 +1,88 @@
+---
+layout: "docs"
+page_title: "Commands: logs"
+sidebar_current: "docs-commands-logs"
+description: >
+  Stream the logs of a task.
+---
+
+# Command: logs
+
+The `logs` command displays the log of a given task.
+
+## Usage
+
+```
+nomad logs [options] <alloc-id> <task>
+```
+
+This commands streams the logs of the given task in the allocation. If the
+allocation is only running a single task, the task name can be omitted.
+Optionally, the `-job` option may be used in which case a random allocation from
+the given job will be chosen.
+#
+## General Options
+
+<%= general_options_usage %>
+
+## Logs Options
+
+* `-stderr`: Display stderr logs.
+
+* `-verbose`: Display verbose output.
+
+* `-job`: Use a random allocation from the specified job, prefering a running
+allocation.
+
+* `-f`: Causes the output to not stop when the end of the logs are reached, but
+rather to wait for additional output. 
+
+* `-tail`: Show the logs contents with offsets relative to the end of the logs.
+If no offset is given, -n is defaulted to 10.
+
+* `-n`: Sets the tail location in best-efforted number of lines relative to the
+end of the logs.
+
+* `-c`: Sets the tail location in number of bytes relative to the end of the logs.
+
+## Examples
+
+```
+$ nomad logs eb17e557 redis
+foobar
+baz
+bam
+
+$ nomad logs -stderr eb17e557 redis
+[ERR]: foo
+[ERR]: bar
+
+$ nomad logs -job example
+[ERR]: foo
+[ERR]: bar
+
+$ nomad logs -tail -n 2 eb17e557 redis
+foobar
+baz
+
+$ nomad logs -tail -f -n 3 eb17e557 redis
+foobar
+baz
+bam
+<blocking>
+```
+
+## Using Job ID instead of Allocation ID
+
+Setting the `-job` flag causes a random allocation of the specified job to be
+selected. Nomad will prefer to select a running allocation ID for the job, but
+if no running allocations for the job are found, Nomad will use a dead
+allocation.
+
+```
+nomad logs -job <job-id> <task>
+```
+
+
+This can be useful for debugging a job that has multiple allocations, and it's
+not really required to use a specific allocation ID.

@@ -1,0 +1,79 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("what") %>>
+					<a href="/intro/index.html">What is Nomad?</a>
+				</li>
+
+				<li<%= sidebar_current("use-cases") %>>
+					<a href="/intro/use-cases.html">Use Cases</a>
+				</li>
+
+				<li<%= sidebar_current("vs-other") %>>
+					<a href="/intro/vs/index.html">Nomad vs. Other Software</a>
+					<ul class="nav">
+						<li<%= sidebar_current("vs-other-ecs") %>>
+							<a href="/intro/vs/ecs.html">AWS ECS</a>
+                        </li>
+
+						<li<%= sidebar_current("vs-other-swarm") %>>
+							<a href="/intro/vs/swarm.html">Docker Swarm</a>
+                        </li>
+
+						<li<%= sidebar_current("vs-other-htcondor") %>>
+							<a href="/intro/vs/htcondor.html">HTCondor</a>
+                        </li>
+
+						<li<%= sidebar_current("vs-other-kubernetes") %>>
+							<a href="/intro/vs/kubernetes.html">Kubernetes</a>
+                        </li>
+
+						<li<%= sidebar_current("vs-other-mesos") %>>
+							<a href="/intro/vs/mesos.html">Mesos with Aurora, Marathon, etc</a>
+                        </li>
+
+						<li<%= sidebar_current("vs-other-terraform") %>>
+							<a href="/intro/vs/terraform.html">Terraform</a>
+						</li>
+
+						<li<%= sidebar_current("vs-other-yarn") %>>
+							<a href="/intro/vs/yarn.html">Hadoop YARN</a>
+						</li>
+
+						<li<%= sidebar_current("vs-other-custom") %>>
+							<a href="/intro/vs/custom.html">Custom Solutions</a>
+						</li>
+					</ul>
+				</li>
+
+				<li<%= sidebar_current("getting-started") %>>
+					<a href="/intro/getting-started/install.html">Getting Started</a>
+					<ul class="nav">
+						<li<%= sidebar_current("getting-started-install") %>>
+							<a href="/intro/getting-started/install.html">Install Nomad</a>
+						</li>
+
+						<li<%= sidebar_current("getting-started-running") %>>
+							<a href="/intro/getting-started/running.html">Running Nomad</a>
+						</li>
+
+						<li<%= sidebar_current("getting-started-jobs") %>>
+							<a href="/intro/getting-started/jobs.html">Jobs</a>
+                        </li>
+
+						<li<%= sidebar_current("getting-started-cluster") %>>
+							<a href="/intro/getting-started/cluster.html">Clustering</a>
+						</li>
+
+						<li<%= sidebar_current("getting-started-nextsteps") %>>
+							<a href="/intro/getting-started/next-steps.html">Next Steps</a>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+<% end %>
