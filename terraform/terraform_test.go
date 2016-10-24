@@ -1492,3 +1492,17 @@ hcl_instance.hcltest:
   foo.1 = b
   type = hcl_instance
 `
+
+const testTerraformRefreshDataRefDataStr = `
+data.null_data_source.bar:
+  ID = foo
+  bar = yes
+  type = null_data_source
+
+  Dependencies:
+    data.null_data_source.foo
+data.null_data_source.foo:
+  ID = foo
+  foo = yes
+  type = null_data_source
+`
