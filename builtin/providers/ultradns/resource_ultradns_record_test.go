@@ -50,6 +50,32 @@ func TestAccUltradnsRecord(t *testing.T) {
 	})
 }
 
+func TestAccUltradnsRecordTXT(t *testing.T) {
+	var record udnssdk.RRSet
+	// domain := os.Getenv("ULTRADNS_DOMAIN")
+	domain := "ultradns.phinze.com"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccRecordCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: fmt.Sprintf(testCfgRecordTXTMinimal, domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckUltradnsRecordExists("ultradns_record.it", &record),
+					resource.TestCheckResourceAttr("ultradns_record.it", "zone", domain),
+					resource.TestCheckResourceAttr("ultradns_record.it", "name", "test-record-txt"),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.1447448707", "simple answer"),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.3337444205", "backslash answer \\"),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.3135730072", "quote answer \""),
+					resource.TestCheckResourceAttr("ultradns_record.it", "rdata.126343430", "complex answer \\ \""),
+				),
+			},
+		},
+	})
+}
+
 func testAccRecordCheckDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*udnssdk.Client)
 
@@ -92,6 +118,22 @@ resource "ultradns_record" "it" {
 
   rdata = ["10.5.0.2"]
   type  = "A"
+  ttl   = 3600
+}
+`
+
+const testCfgRecordTXTMinimal = `
+resource "ultradns_record" "it" {
+  zone = "%s"
+  name  = "test-record-txt"
+
+  rdata = [
+    "simple answer",
+    "backslash answer \\",
+    "quote answer \"",
+    "complex answer \\ \"",
+  ]
+  type  = "TXT"
   ttl   = 3600
 }
 `

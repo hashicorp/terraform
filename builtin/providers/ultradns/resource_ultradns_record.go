@@ -1,6 +1,7 @@
 package ultradns
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -44,10 +45,28 @@ func newRRSetResource(d *schema.ResourceData) (rRSetResource, error) {
 
 func populateResourceDataFromRRSet(r udnssdk.RRSet, d *schema.ResourceData) error {
 	zone := d.Get("zone")
+	typ := d.Get("type")
 	// ttl
 	d.Set("ttl", r.TTL)
 	// rdata
-	err := d.Set("rdata", makeSetFromStrings(r.RData))
+	rdata := r.RData
+
+	// UltraDNS API returns answers double-encoded like JSON, so we must decode. This is their bug.
+	if typ == "TXT" {
+		rdata = make([]string, len(r.RData))
+		for i := range r.RData {
+			var s string
+			err := json.Unmarshal([]byte(r.RData[i]), &s)
+			if err != nil {
+				log.Printf("[INFO] TXT answer parse error: %+v", err)
+				s = r.RData[i]
+			}
+			rdata[i] = s
+
+		}
+	}
+
+	err := d.Set("rdata", makeSetFromStrings(rdata))
 	if err != nil {
 		return fmt.Errorf("ultradns_record.rdata set failed: %#v", err)
 	}
