@@ -105,6 +105,7 @@ type Context struct {
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
 	runCh               <-chan struct{}
+	stopCh              chan struct{}
 	shadowErr           error
 }
 
@@ -587,6 +588,9 @@ func (c *Context) Stop() {
 	// Tell the hook we want to stop
 	c.sh.Stop()
 
+	// Close the stop channel
+	close(c.stopCh)
+
 	// Wait for us to stop
 	c.l.Unlock()
 	<-ch
@@ -672,6 +676,9 @@ func (c *Context) acquireRun() chan<- struct{} {
 	ch := make(chan struct{})
 	c.runCh = ch
 
+	// Reset the stop channel so we can watch that
+	c.stopCh = make(chan struct{})
+
 	// Reset the stop hook so we're not stopped
 	c.sh.Reset()
 
@@ -687,6 +694,7 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 
 	close(ch)
 	c.runCh = nil
+	c.stopCh = nil
 }
 
 func (c *Context) walk(
@@ -714,8 +722,15 @@ func (c *Context) walk(
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 	walker := &ContextGraphWalker{Context: realCtx, Operation: operation}
 
+	// Watch for a stop so we can call the provider Stop() API.
+	doneCh := make(chan struct{})
+	go c.watchStop(walker, c.stopCh, doneCh)
+
 	// Walk the real graph, this will block until it completes
 	realErr := graph.Walk(walker)
+
+	// Close the done channel so the watcher stops
+	close(doneCh)
 
 	// If we have a shadow graph and we interrupted the real graph, then
 	// we just close the shadow and never verify it. It is non-trivial to
@@ -794,6 +809,35 @@ func (c *Context) walk(
 	}
 
 	return walker, realErr
+}
+
+func (c *Context) watchStop(walker *ContextGraphWalker, stopCh, doneCh <-chan struct{}) {
+	// Wait for a stop or completion
+	select {
+	case <-stopCh:
+		// Stop was triggered. Fall out of the select
+	case <-doneCh:
+		// Done, just exit completely
+		return
+	}
+
+	// If we're here, we're stopped, trigger the call.
+
+	// Copy the providers so that a misbehaved blocking Stop doesn't
+	// completely hang Terraform.
+	walker.providerLock.Lock()
+	ps := make([]ResourceProvider, 0, len(walker.providerCache))
+	for _, p := range walker.providerCache {
+		ps = append(ps, p)
+	}
+	defer walker.providerLock.Unlock()
+
+	for _, p := range ps {
+		// We ignore the error for now since there isn't any reasonable
+		// action to take if there is an error here, since the stop is still
+		// advisory: Terraform will exit once the graph node completes.
+		p.Stop()
+	}
 }
 
 // parseVariableAsHCL parses the value of a single variable as would have been specified
