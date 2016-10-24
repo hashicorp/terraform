@@ -17,36 +17,36 @@ func resourcePagerDutyService() *schema.Resource {
 			State: resourcePagerDutyServiceImport,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Managed by Terraform",
 			},
-			"auto_resolve_timeout": &schema.Schema{
+			"auto_resolve_timeout": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"last_incident_timestamp": &schema.Schema{
+			"last_incident_timestamp": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"acknowledgement_timeout": &schema.Schema{
+			"acknowledgement_timeout": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"escalation_policy": &schema.Schema{
+			"escalation_policy": {
 				Type:     schema.TypeString,
 				Required: true,
 			},

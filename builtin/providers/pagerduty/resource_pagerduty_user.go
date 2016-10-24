@@ -17,20 +17,20 @@ func resourcePagerDutyUser() *schema.Resource {
 			State: resourcePagerDutyUserImport,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"email": &schema.Schema{
+			"email": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"color": &schema.Schema{
+			"color": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"role": &schema.Schema{
+			"role": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "user",
@@ -42,15 +42,15 @@ func resourcePagerDutyUser() *schema.Resource {
 					"user",
 				}),
 			},
-			"job_title": &schema.Schema{
+			"job_title": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"avatar_url": &schema.Schema{
+			"avatar_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"teams": &schema.Schema{
+			"teams": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -58,19 +58,19 @@ func resourcePagerDutyUser() *schema.Resource {
 				},
 				Set: schema.HashString,
 			},
-			"time_zone": &schema.Schema{
+			"time_zone": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"html_url": &schema.Schema{
+			"html_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"invitation_sent": &schema.Schema{
+			"invitation_sent": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Managed by Terraform",

@@ -17,50 +17,50 @@ func resourcePagerDutyEscalationPolicy() *schema.Resource {
 			State: resourcePagerDutyEscalationPolicyImport,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Managed by Terraform",
 			},
-			"num_loops": &schema.Schema{
+			"num_loops": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"teams": &schema.Schema{
+			"teams": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
 			},
-			"rule": &schema.Schema{
+			"rule": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"escalation_delay_in_minutes": &schema.Schema{
+						"escalation_delay_in_minutes": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"target": &schema.Schema{
+						"target": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"type": &schema.Schema{
+									"type": {
 										Type:     schema.TypeString,
 										Optional: true,
 										Default:  "user_reference",
 									},
-									"id": &schema.Schema{
+									"id": {
 										Type:     schema.TypeString,
 										Required: true,
 									},

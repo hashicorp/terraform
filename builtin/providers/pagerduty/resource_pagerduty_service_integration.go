@@ -16,15 +16,15 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 		// Therefore it needs to be manually removed from the Web UI.
 		Delete: resourcePagerDutyServiceIntegrationDelete,
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"service": &schema.Schema{
+			"service": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -40,17 +40,17 @@ func resourcePagerDutyServiceIntegration() *schema.Resource {
 					"sql_monitor_inbound_integration",
 				}),
 			},
-			"vendor": &schema.Schema{
+			"vendor": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
-			"integration_key": &schema.Schema{
+			"integration_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"integration_email": &schema.Schema{
+			"integration_email": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
