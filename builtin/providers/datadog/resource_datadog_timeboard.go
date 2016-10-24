@@ -11,7 +11,6 @@ import (
 )
 
 func resourceDatadogTimeboard() *schema.Resource {
-
 	request := &schema.Schema{
 		Type:     schema.TypeList,
 		Required: true,
@@ -35,6 +34,107 @@ func resourceDatadogTimeboard() *schema.Resource {
 					Type:     schema.TypeMap,
 					Optional: true,
 				},
+				"conditional_format": &schema.Schema{
+					Type:        schema.TypeList,
+					Optional:    true,
+					Description: "A list of conditional formatting rules.",
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"palette": &schema.Schema{
+								Type:        schema.TypeString,
+								Optional:    true,
+								Description: "The palette to use if this condition is met.",
+							},
+							"comparator": &schema.Schema{
+								Type:        schema.TypeBool,
+								Required:    true,
+								Description: "Comparator (<, >, etc)",
+							},
+							"custom_bg_color": &schema.Schema{
+								Type:        schema.TypeString,
+								Optional:    true,
+								Description: "Custom background color (e.g., #205081)",
+							},
+							"value": &schema.Schema{
+								Type:        schema.TypeFloat,
+								Optional:    true,
+								Description: "Value that is threshold for conditional format",
+							},
+							"inverted": &schema.Schema{
+								Type:     schema.TypeBool,
+								Optional: true,
+							},
+							"custom_fg_color": &schema.Schema{
+								Type:        schema.TypeString,
+								Optional:    true,
+								Description: "Custom foreground color (e.g., #59afe1)",
+							},
+						},
+					},
+				},
+				"change_type": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Type of change for change graphs.",
+				},
+				"change_direction": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "Sort change graph in ascending or descending order.",
+				},
+				"compare_to": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The time period to compare change against in change graphs.",
+				},
+				"increase_good": &schema.Schema{
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Decides whether to represent increases as good or bad in change graphs.",
+				},
+				"order_by": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The field a change graph will be ordered by.",
+				},
+				"extra_col": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "If set to 'present', this will include the present values in change graphs.",
+				},
+			},
+		},
+	}
+
+	marker := &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"type": &schema.Schema{
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"value": &schema.Schema{
+					Type:     schema.TypeString,
+					Required: true,
+				},
+				"label": &schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				"val": &schema.Schema{
+					Type:     schema.TypeFloat,
+					Optional: true,
+				},
+				"min": &schema.Schema{
+					Type:     schema.TypeFloat,
+					Optional: true,
+				},
+				"max": &schema.Schema{
+					Type:     schema.TypeFloat,
+					Optional: true,
+				},
 			},
 		},
 	}
@@ -50,11 +150,107 @@ func resourceDatadogTimeboard() *schema.Resource {
 					Required:    true,
 					Description: "The name of the graph.",
 				},
+				"events": &schema.Schema{
+					Type:        schema.TypeList,
+					Optional:    true,
+					Description: "Filter for events to be overlayed on the graph.",
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"q": &schema.Schema{
+								Type:     schema.TypeString,
+								Required: true,
+							},
+						},
+					},
+				},
 				"viz": &schema.Schema{
 					Type:     schema.TypeString,
 					Required: true,
 				},
 				"request": request,
+				"marker":  marker,
+				"yaxis": &schema.Schema{
+					Type:     schema.TypeMap,
+					Optional: true,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"min": &schema.Schema{
+								Type:     schema.TypeFloat,
+								Optional: true,
+							},
+							"max": &schema.Schema{
+								Type:     schema.TypeFloat,
+								Optional: true,
+							},
+							"scale": &schema.Schema{
+								Type:     schema.TypeString,
+								Optional: true,
+							},
+						},
+					},
+				},
+				"autoscale": &schema.Schema{
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Automatically scale graphs",
+				},
+				"text_align": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "How to align text",
+				},
+				"precision": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "How to align text",
+				},
+				"custom_unit": &schema.Schema{
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "How to align text",
+				},
+				"style": &schema.Schema{
+					Type:     schema.TypeMap,
+					Optional: true,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"palette": &schema.Schema{
+								Type:     schema.TypeString,
+								Optional: true,
+							},
+							"palette_flip": &schema.Schema{
+								Type:     schema.TypeBool,
+								Optional: true,
+							},
+						},
+					},
+				},
+				"groups": &schema.Schema{
+					Type:        schema.TypeList,
+					Optional:    true,
+					Description: "A list of groupings for hostmap type graphs.",
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
+				"include_no_metric_hosts": &schema.Schema{
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Include hosts without metrics in hostmap graphs",
+				},
+				"scopes": &schema.Schema{
+					Type:        schema.TypeList,
+					Optional:    true,
+					Description: "A list of scope filters for hostmap type graphs.",
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+				},
+				"include_ungrouped_hosts": &schema.Schema{
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Include ungrouped hosts in hostmap graphs",
+				},
 			},
 		},
 	}
@@ -90,6 +286,9 @@ func resourceDatadogTimeboard() *schema.Resource {
 		Read:   resourceDatadogTimeboardRead,
 		Delete: resourceDatadogTimeboardDelete,
 		Exists: resourceDatadogTimeboardExists,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"title": &schema.Schema{
@@ -215,8 +414,45 @@ func resourceDatadogTimeboardRead(d *schema.ResourceData, meta interface{}) erro
 	log.Printf("[DEBUG] timeboard: %v", timeboard)
 	d.Set("title", timeboard.Title)
 	d.Set("description", timeboard.Description)
-	d.Set("graphs", timeboard.Graphs)
-	d.Set("template_variables", timeboard.TemplateVariables)
+
+	graphs := []map[string]interface{}{}
+	for _, datadog_graph := range timeboard.Graphs {
+		graph := map[string]interface{}{}
+		graph["title"] = datadog_graph.Title
+		graph["viz"] = datadog_graph.Definition.Viz
+
+		requests := []map[string]interface{}{}
+		for _, datadog_request := range datadog_graph.Definition.Requests {
+			request := map[string]interface{}{}
+			request["q"] = datadog_request.Query
+			request["stacked"] = datadog_request.Stacked
+			request["type"] = datadog_request.Type
+			request["style"] = map[string]string{
+				"palette": datadog_request.Style.Palette,
+			}
+			conditional_formats := []map[string]interface{}{}
+			for _, cf := range datadog_request.ConditionalFormats {
+				conditional_format := map[string]interface{}{
+					"palette":         cf.Palette,
+					"comparator":      cf.Comparator,
+					"custom_bg_color": cf.CustomBgColor,
+					"value":           cf.Value,
+					"inverted":        cf.Inverted,
+					"custom_fg_color": cf.CustomFgColor,
+				}
+				conditional_formats = append(conditional_formats, conditional_format)
+			}
+			request["conditional_format"] = conditional_formats
+
+			requests = append(requests, request)
+		}
+		graph["request"] = requests
+
+		graphs = append(graphs, graph)
+	}
+	d.Set("graph", graphs)
+	// TODO template variables (list)
+	d.Set("template_variable", timeboard.TemplateVariables)
 	return nil
 }
 

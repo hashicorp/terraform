@@ -43,12 +43,14 @@ type GraphDefinitionMarker struct {
 
 // Graph represents a graph that might exist on a dashboard.
 type Graph struct {
-	Title      string     `json:"title"`
-	Events     []struct{} `json:"events"`
+	Title      string `json:"title"`
 	Definition struct {
 		Viz      string                   `json:"viz"`
 		Requests []GraphDefinitionRequest `json:"requests"`
-		Markers  []GraphDefinitionMarker  `json:"markers,omitempty"`
+		Events   []struct {
+			Query string `json:"q"`
+		} `json:"events"`
+		Markers []GraphDefinitionMarker `json:"markers,omitempty"`
 
 		// For timeseries type graphs
 		Yaxis struct {
