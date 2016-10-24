@@ -17,7 +17,8 @@ import (
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
-	return &schema.Provider{
+	var p *schema.Provider
+	p = &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"subscription_id": {
 				Type:        schema.TypeString,
@@ -104,8 +105,10 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_sql_firewall_rule": resourceArmSqlFirewallRule(),
 			"azurerm_sql_server":        resourceArmSqlServer(),
 		},
-		ConfigureFunc: providerConfigure,
+		ConfigureFunc: providerConfigure(p),
 	}
+
+	return p
 }
 
 // Config is the configuration structure used to instantiate a
@@ -140,29 +143,33 @@ func (c *Config) validate() error {
 	return err.ErrorOrNil()
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := &Config{
-		SubscriptionID: d.Get("subscription_id").(string),
-		ClientID:       d.Get("client_id").(string),
-		ClientSecret:   d.Get("client_secret").(string),
-		TenantID:       d.Get("tenant_id").(string),
-	}
+func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
+	return func(d *schema.ResourceData) (interface{}, error) {
+		config := &Config{
+			SubscriptionID: d.Get("subscription_id").(string),
+			ClientID:       d.Get("client_id").(string),
+			ClientSecret:   d.Get("client_secret").(string),
+			TenantID:       d.Get("tenant_id").(string),
+		}
 
-	if err := config.validate(); err != nil {
-		return nil, err
-	}
+		if err := config.validate(); err != nil {
+			return nil, err
+		}
 
-	client, err := config.getArmClient()
-	if err != nil {
-		return nil, err
-	}
+		client, err := config.getArmClient()
+		if err != nil {
+			return nil, err
+		}
 
-	err = registerAzureResourceProvidersWithSubscription(client.rivieraClient)
-	if err != nil {
-		return nil, err
-	}
+		client.stopCh = p.StopCh()
 
-	return client, nil
+		err = registerAzureResourceProvidersWithSubscription(client.rivieraClient)
+		if err != nil {
+			return nil, err
+		}
+
+		return client, nil
+	}
 }
 
 func registerProviderWithSubscription(providerName string, client *riviera.Client) error {
