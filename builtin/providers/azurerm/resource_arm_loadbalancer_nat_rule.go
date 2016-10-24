@@ -82,7 +82,11 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancerID := d.Get("loadbalancer_id").(string)
+	armMutexKV.Lock(loadBalancerID)
+	defer armMutexKV.Unlock(loadBalancerID)
+
+	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -188,7 +192,11 @@ func resourceArmLoadBalancerNatRuleDelete(d *schema.ResourceData, meta interface
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancerID := d.Get("loadbalancer_id").(string)
+	armMutexKV.Lock(loadBalancerID)
+	defer armMutexKV.Unlock(loadBalancerID)
+
+	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
