@@ -106,6 +106,8 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 		}
 
 		if ec2err.Code() == "InvalidVpcEndpointId.NotFound" {
+			log.Printf("[WARN] VPC Endpoint (%s) not found, removing from state", d.Id())
+			d.SetId("")
 			return nil
 		}
 
