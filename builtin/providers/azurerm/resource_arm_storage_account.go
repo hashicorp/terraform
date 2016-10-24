@@ -81,9 +81,12 @@ func resourceArmStorageAccount() *schema.Resource {
 				}, true),
 			},
 
+			// ForceNew enabled as changing this value no longer works, appears to be an
+			// Azure bug, support case pending.
 			"enable_blob_encryption": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"primary_location": {

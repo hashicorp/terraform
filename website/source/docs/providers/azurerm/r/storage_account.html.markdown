@@ -61,7 +61,7 @@ The following arguments are supported:
 
 * `enable_bool_encryption` - (Optional) Boolean flag which controls if Encryption
     Services are enabled for Blob storage, see [here](https://azure.microsoft.com/en-us/documentation/articles/storage-service-encryption/)
-    for more information. 
+    for more information. Changing this forces a new resource to be created.
 
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
