@@ -17,50 +17,35 @@ func resourcePagerDutySchedule() *schema.Resource {
 			State: resourcePagerDutyScheduleImport,
 		},
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"time_zone": &schema.Schema{
+			"time_zone": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "Managed by Terraform",
 			},
-			"layer": &schema.Schema{
+			"layer": {
 				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": &schema.Schema{
+						"id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
-						"start": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Computed: true,
-							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-								if old == "" {
-									return false
-								}
-								return true
-							},
-						},
-						"end": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"rotation_virtual_start": &schema.Schema{
+						"start": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -71,31 +56,46 @@ func resourcePagerDutySchedule() *schema.Resource {
 								return true
 							},
 						},
-						"rotation_turn_length_seconds": &schema.Schema{
+						"end": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"rotation_virtual_start": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+								if old == "" {
+									return false
+								}
+								return true
+							},
+						},
+						"rotation_turn_length_seconds": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"users": &schema.Schema{
+						"users": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
 							},
 						},
-						"restriction": &schema.Schema{
+						"restriction": {
 							Optional: true,
 							Type:     schema.TypeList,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"type": &schema.Schema{
+									"type": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"start_time_of_day": &schema.Schema{
+									"start_time_of_day": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"duration_seconds": &schema.Schema{
+									"duration_seconds": {
 										Type:     schema.TypeInt,
 										Required: true,
 									},

@@ -14,15 +14,15 @@ func dataSourcePagerDutyVendor() *schema.Resource {
 		Read: dataSourcePagerDutyVendorRead,
 
 		Schema: map[string]*schema.Schema{
-			"name_regex": &schema.Schema{
+			"name_regex": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
