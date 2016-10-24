@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
@@ -49,6 +50,10 @@ type Provider struct {
 	ConfigureFunc ConfigureFunc
 
 	meta interface{}
+
+	stopCh   chan struct{} // stopCh is closed when Stop is called
+	stopped  bool          // set to true once stopped to avoid double close of stopCh
+	stopLock sync.Mutex
 }
 
 // ConfigureFunc is the function used to configure a Provider.
@@ -102,6 +107,45 @@ func (p *Provider) Meta() interface{} {
 // set here.
 func (p *Provider) SetMeta(v interface{}) {
 	p.meta = v
+}
+
+// Stopped reports whether the provider has been stopped or not.
+func (p *Provider) Stopped() bool {
+	p.stopLock.Lock()
+	defer p.stopLock.Unlock()
+	return p.stopped
+}
+
+// StopCh returns a channel that is closed once the provider is stopped.
+func (p *Provider) StopCh() <-chan struct{} {
+	p.stopLock.Lock()
+	defer p.stopLock.Unlock()
+
+	if p.stopCh == nil {
+		p.stopCh = make(chan struct{})
+	}
+
+	return p.stopCh
+}
+
+// Stop implementation of terraform.ResourceProvider interface.
+func (p *Provider) Stop() error {
+	p.stopLock.Lock()
+	defer p.stopLock.Unlock()
+
+	// Close the stop channel and mark as stopped if we haven't
+	if !p.stopped {
+		// Initialize the stop channel so future calls to StopCh work
+		if p.stopCh == nil {
+			p.stopCh = make(chan struct{})
+		}
+
+		// Close and mark
+		close(p.stopCh)
+		p.stopped = true
+	}
+
+	return nil
 }
 
 // Input implementation of terraform.ResourceProvider interface.
