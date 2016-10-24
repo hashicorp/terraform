@@ -41,6 +41,7 @@ func resourceAwsInstance() *schema.Resource {
 			"associate_public_ip_address": &schema.Schema{
 				Type:     schema.TypeBool,
 				ForceNew: true,
+				Computed: true,
 				Optional: true,
 			},
 
