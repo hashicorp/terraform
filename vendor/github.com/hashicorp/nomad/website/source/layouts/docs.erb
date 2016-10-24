@@ -1,0 +1,232 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+					<a href="/docs/index.html">Documentation Home</a>
+				</li>
+
+				<li<%= sidebar_current("docs-internal") %>>
+					<a href="/docs/internals/index.html">Internals</a>
+					<ul class="nav">
+						<li<%= sidebar_current("docs-internals-architecture") %>>
+							<a href="/docs/internals/architecture.html">Architecture</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-internals-consensus") %>>
+                        <a href="/docs/internals/consensus.html">Consensus Protocol</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-internals-gossip") %>>
+                        <a href="/docs/internals/gossip.html">Gossip Protocol</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-internals-scheduling") %>>
+                        <a href="/docs/internals/scheduling.html">Scheduling</a>
+                        </li>
+					</ul>
+				</li>
+
+				<li<%= sidebar_current("docs-install") %>>
+					<a href="/docs/install/index.html">Installation</a>
+                </li>
+
+                <li<%= sidebar_current("docs-cluster") %>>
+                    <a href="/docs/cluster/bootstrapping.html">Creating a Cluster</a>
+                </li>
+
+                <li<%= sidebar_current("docs-jobops") %>>
+                    <a href="/docs/jobops/index.html">Operating a Job</a>
+					<ul class="nav">
+						<li<%= sidebar_current("docs-jobops-task-config") %>>
+							<a href="/docs/jobops/taskconfig.html">Task Configuration</a>
+                        </li>
+						<li<%= sidebar_current("docs-jobops-inspection") %>>
+							<a href="/docs/jobops/inspecting.html">Inspecting State</a>
+                        </li>
+						<li<%= sidebar_current("docs-jobops-resource-utilization") %>>
+							<a href="/docs/jobops/resources.html">Resource Utilization</a>
+                        </li>
+						<li<%= sidebar_current("docs-jobops-service-discovery") %>>
+							<a href="/docs/jobops/servicediscovery.html">Service Discovery</a>
+                        </li>
+						<li<%= sidebar_current("docs-jobops-logs") %>>
+							<a href="/docs/jobops/logs.html">Accessing Logs</a>
+                        </li>
+						<li<%= sidebar_current("docs-jobops-updating") %>>
+							<a href="/docs/jobops/updating.html">Updating Jobs</a>
+                        </li>
+					</ul>
+                </li>
+
+				<li<%= sidebar_current("docs-upgrade") %>>
+					<a href="/docs/upgrade/index.html">Upgrading</a>
+					<ul class="nav">
+						<li<%= sidebar_current("docs-upgrade-upgrading") %>>
+							<a href="/docs/upgrade/index.html">Upgrading Nomad</a>
+                        </li>
+						<li<%= sidebar_current("docs-upgrade-specific") %>>
+							<a href="/docs/upgrade/upgrade-specific.html">Specific Version Details</a>
+                        </li>
+					</ul>
+                </li>
+
+
+				<li<%= sidebar_current("docs-jobspec") %>>
+					<a href="/docs/jobspec/index.html">Job Specification</a>
+                    <ul class="nav">
+                        <li<%= sidebar_current("docs-jobspec-syntax") %>>
+                            <a href="/docs/jobspec/index.html">HCL Syntax</a>
+                        </li>
+                        <li<%= sidebar_current("docs-jobspec-json-syntax") %>>
+                            <a href="/docs/jobspec/json.html">JSON Syntax</a>
+                        </li>
+                        <li<%= sidebar_current("docs-jobspec-interpreted") %>>
+                            <a href="/docs/jobspec/interpreted.html">Interpreted Variables</a>
+                        </li>
+                        <li<%= sidebar_current("docs-jobspec-environment") %>>
+                            <a href="/docs/jobspec/environment.html">Runtime Environment</a>
+                        </li>
+                        <li<%= sidebar_current("docs-jobspec-schedulers") %>>
+                            <a href="/docs/jobspec/schedulers.html">Scheduler Types</a>
+                        </li>
+                        <li<%= sidebar_current("docs-jobspec-service-discovery") %>>
+                            <a href="/docs/jobspec/servicediscovery.html">Service Discovery</a>
+                        </li>
+                        <li<%= sidebar_current("docs-jobspec-networking") %>>
+                            <a href="/docs/jobspec/networking.html">Networking</a>
+                        </li>
+                    </ul>
+                </li>
+
+				<li<%= sidebar_current("docs-drivers") %>>
+					<a href="/docs/drivers/index.html">Task Drivers</a>
+					<ul class="nav">
+						<li<%= sidebar_current("docs-drivers-docker") %>>
+							<a href="/docs/drivers/docker.html">Docker</a>
+                        </li>
+
+						<li<%= sidebar_current("docs-drivers-exec") %>>
+							<a href="/docs/drivers/exec.html">Isolated Fork/Exec</a>
+						</li>
+
+						<li<%= sidebar_current("docs-drivers-raw-exec") %>>
+							<a href="/docs/drivers/raw_exec.html">Raw Fork/Exec</a>
+						</li>
+
+						<li<%= sidebar_current("docs-drivers-java") %>>
+							<a href="/docs/drivers/java.html">Java</a>
+						</li>
+
+						<li<%= sidebar_current("docs-drivers-qemu") %>>
+							<a href="/docs/drivers/qemu.html">Qemu</a>
+						</li>
+
+						<li<%= sidebar_current("docs-drivers-rkt") %>>
+							<a href="/docs/drivers/rkt.html">Rkt</a>
+						</li>
+
+						<li<%= sidebar_current("docs-drivers-custom") %>>
+							<a href="/docs/drivers/custom.html">Custom</a>
+						</li>
+					</ul>
+                </li>
+
+
+				<li<%= sidebar_current("docs-commands") %>>
+					<a href="/docs/commands/index.html">Commands (CLI)</a>
+					<ul class="nav">
+						<li<%= sidebar_current("docs-commands-_agent") %>>
+							<a href="/docs/commands/agent.html">agent</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-agent-info") %>>
+							<a href="/docs/commands/agent-info.html">agent-info</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-alloc-status") %>>
+							<a href="/docs/commands/alloc-status.html">alloc-status</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-client-config") %>>
+							<a href="/docs/commands/client-config.html">client-config</a>
+						</li>
+                        <li<%= sidebar_current("docs-commands-eval-status") %>>
+                            <a href="/docs/commands/eval-status.html">eval-status</a>
+                        </li>
+                        <li<%= sidebar_current("docs-commands-fs") %>>
+                            <a href="/docs/commands/fs.html">fs</a>
+                        </li>
+						<li<%= sidebar_current("docs-commands-init") %>>
+							<a href="/docs/commands/init.html">init</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-inspect") %>>
+							<a href="/docs/commands/inspect.html">inspect</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-logs") %>>
+							<a href="/docs/commands/logs.html">logs</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-node-drain") %>>
+							<a href="/docs/commands/node-drain.html">node-drain</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-node-status") %>>
+							<a href="/docs/commands/node-status.html">node-status</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-plan") %>>
+							<a href="/docs/commands/plan.html">plan</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-run") %>>
+							<a href="/docs/commands/run.html">run</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-server-force-leave") %>>
+							<a href="/docs/commands/server-force-leave.html">server-force-leave</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-server-join") %>>
+							<a href="/docs/commands/server-join.html">server-join</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-server-members") %>>
+							<a href="/docs/commands/server-members.html">server-members</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-status") %>>
+							<a href="/docs/commands/status.html">status</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-stop") %>>
+							<a href="/docs/commands/stop.html">stop</a>
+                        </li>
+						<li<%= sidebar_current("docs-commands-validate") %>>
+							<a href="/docs/commands/validate.html">validate</a>
+						</li>
+						<li<%= sidebar_current("docs-commands-version") %>>
+							<a href="/docs/commands/version.html">version</a>
+						</li>
+					</ul>
+                </li>
+
+				<li<%= sidebar_current("docs-agent") %>>
+                    <a href="/docs/agent/index.html">Nomad Agent</a>
+
+                    <ul class="nav">
+                        <li<%= sidebar_current("docs-agent-basics") %>>
+                        <a href="/docs/agent/index.html">Basics</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-agent-config") %>>
+                        <a href="/docs/agent/config.html">Configuration</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-agent-telemetry") %>>
+                        <a href="/docs/agent/telemetry.html">Telemetry</a>
+                        </li>
+                    </ul>
+                </li>
+
+				<li<%= sidebar_current("docs-http") %>>
+					<a href="/docs/http/index.html">HTTP API</a>
+                </li>
+
+				<li<%= sidebar_current("docs-faq") %>>
+					<a href="/docs/faq.html">Frequently Asked Questions</a>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+<% end %>

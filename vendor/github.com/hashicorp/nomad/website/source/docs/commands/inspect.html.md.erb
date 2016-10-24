@@ -1,0 +1,154 @@
+---
+layout: "docs"
+page_title: "Commands: inspect"
+sidebar_current: "docs-commands-inspect"
+description: >
+  The inspect command is used to inspect a submitted job.
+---
+
+# Command: inspect
+
+The `inspect` command is used to inspect the content of a submitted job.
+
+## Usage
+
+```
+nomad inspect [options] <job>
+```
+
+The `inspect` command requires a single argument, a submitted job's name, and
+will retrieve the JSON version of the job. This JSON is valid to be submitted to
+the [Job HTTP API](/docs/http/job.html). This command is useful to inspect what
+version of a job Nomad is running.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Inspect Options
+
+* `-short`: Display short output. Used only when a single node is being queried.
+  Drops verbose node allocation data from the output.
+
+* `-verbose`: Show full information.
+
+## Examples
+
+Inspect a submitted job:
+
+```
+$ nomad inspect redis
+{
+    "Job": {
+        "Region": "global",
+        "ID": "redis
+        "Name": "redis
+        "Type": "service",
+        "Priority": 50,
+        "AllAtOnce": false,
+        "Datacenters": [
+            "dc1"
+        ],
+        "Constraints": [
+            {
+                "LTarget": "${attr.kernel.name}",
+                "RTarget": "linux",
+                "Operand": "="
+            }
+        ],
+        "TaskGroups": [
+            {
+                "Name": "cache",
+                "Count": 1,
+                "Constraints": null,
+                "Tasks": [
+                    {
+                        "Name": "redis",
+                        "Driver": "docker",
+                        "User": "",
+                        "Config": {
+                            "image": "redis:latest",
+                            "port_map": [
+                                {
+                                    "db": 6379
+                                }
+                            ]
+                        },
+                        "Constraints": null,
+                        "Env": null,
+                        "Services": [
+                            {
+                                "Id": "",
+                                "Name": "cache-redis",
+                                "Tags": [
+                                    "global",
+                                    "cache"
+                                ],
+                                "PortLabel": "db",
+                                "Checks": [
+                                    {
+                                        "Id": "",
+                                        "Name": "alive",
+                                        "Type": "tcp",
+                                        "Command": "",
+                                        "Args": null,
+                                        "Path": "",
+                                        "Protocol": "",
+                                        "Interval": 10000000000,
+                                        "Timeout": 2000000000
+                                    }
+                                ]
+                            }
+                        ],
+                        "Resources": {
+                            "CPU": 500,
+                            "MemoryMB": 256,
+                            "DiskMB": 300,
+                            "IOPS": 0,
+                            "Networks": [
+                                {
+                                    "Public": false,
+                                    "CIDR": "",
+                                    "ReservedPorts": null,
+                                    "DynamicPorts": [
+                                        {
+                                            "Label": "db",
+                                            "Value": 0
+                                        }
+                                    ],
+                                    "IP": "",
+                                    "MBits": 10
+                                }
+                            ]
+                        },
+                        "Meta": null,
+                        "KillTimeout": 5000000000,
+                        "LogConfig": {
+                            "MaxFiles": 10,
+                            "MaxFileSizeMB": 10
+                        },
+                        "Artifacts": null
+                    }
+                ],
+                "RestartPolicy": {
+                    "Interval": 300000000000,
+                    "Attempts": 10,
+                    "Delay": 25000000000,
+                    "Mode": "delay"
+                },
+                "Meta": null
+            }
+        ],
+        "Update": {
+            "Stagger": 10000000000,
+            "MaxParallel": 1
+        },
+        "Periodic": null,
+        "Meta": null,
+        "Status": "running",
+        "StatusDescription": "",
+        "CreateIndex": 5,
+        "ModifyIndex": 7
+    }
+}
+```

@@ -1,0 +1,38 @@
+---
+layout: "docs"
+page_title: "Commands: server-join"
+sidebar_current: "docs-commands-server-join"
+description: >
+  Joins the local server to one or more Nomad servers.
+---
+
+# Command: server-join
+
+The `server-join` command joins the local server to one or more Nomad servers.
+Joining is only required for server nodes, and only needs to succeed against
+one or more of the provided addresses. Once joined, the gossip layer will
+handle discovery of the other server nodes in the cluster.
+
+## Usage
+
+```
+nomad server-join [options] <addr> [<addr>...]
+```
+
+One or more server addresses are required. If multiple server addresses are
+specified, then an attempt will be made to join each one. If one or more nodes
+are joined successfully, the exit code will be 0. Otherwise, the exit code will
+be 1.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Examples
+
+Join the local server to a remote server:
+
+```
+$ nomad server-join 10.0.0.8:4648
+Joined 1 servers successfully
+```
