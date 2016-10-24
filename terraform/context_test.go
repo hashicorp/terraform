@@ -79,6 +79,18 @@ func testContext2(t *testing.T, opts *ContextOpts) *Context {
 	return ctx
 }
 
+func testDataApplyFn(
+	info *InstanceInfo,
+	d *InstanceDiff) (*InstanceState, error) {
+	return testApplyFn(info, new(InstanceState), d)
+}
+
+func testDataDiffFn(
+	info *InstanceInfo,
+	c *ResourceConfig) (*InstanceDiff, error) {
+	return testDiffFn(info, new(InstanceState), c)
+}
+
 func testApplyFn(
 	info *InstanceInfo,
 	s *InstanceState,
