@@ -8,6 +8,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
+	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
@@ -24,6 +25,10 @@ import (
 // ArmClient contains the handles to all the specific Azure Resource Manager
 // resource classes' respective clients.
 type ArmClient struct {
+	clientId       string
+	tenantId       string
+	subscriptionId string
+
 	rivieraClient *riviera.Client
 
 	availSetClient         compute.AvailabilitySetsClient
@@ -71,6 +76,8 @@ type ArmClient struct {
 	serviceBusNamespacesClient    servicebus.NamespacesClient
 	serviceBusTopicsClient        servicebus.TopicsClient
 	serviceBusSubscriptionsClient servicebus.SubscriptionsClient
+
+	keyVaultClient keyvault.VaultsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -110,7 +117,11 @@ func setUserAgent(client *autorest.Client) {
 // *ArmClient based on the Config's current settings.
 func (c *Config) getArmClient() (*ArmClient, error) {
 	// client declarations:
-	client := ArmClient{}
+	client := ArmClient{
+		clientId:       c.ClientID,
+		tenantId:       c.TenantID,
+		subscriptionId: c.SubscriptionID,
+	}
 
 	rivieraClient, err := riviera.NewClient(&riviera.AzureResourceManagerCredentials{
 		ClientID:       c.ClientID,
@@ -365,6 +376,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	sbsc.Authorizer = spt
 	sbsc.Sender = autorest.CreateSender(withRequestLogging())
 	client.serviceBusSubscriptionsClient = sbsc
+
+	kvc := keyvault.NewVaultsClient(c.SubscriptionID)
+	setUserAgent(&kvc.Client)
+	kvc.Authorizer = spt
+	kvc.Sender = autorest.CreateSender(withRequestLogging())
+	client.keyVaultClient = kvc
 
 	return &client, nil
 }
