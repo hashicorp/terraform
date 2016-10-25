@@ -4,19 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/vault/helper/pgpkeys"
-	"log"
-	"time"
+	"regexp"
 )
 
 func TestAccAWSUserLoginProfile_basic(t *testing.T) {
@@ -27,7 +26,7 @@ func TestAccAWSUserLoginProfile_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSUserDestroy,
+		CheckDestroy: testAccCheckAWSUserLoginProfileDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAWSUserLoginProfileConfig(username, "/", testPubKey1),
@@ -48,7 +47,7 @@ func TestAccAWSUserLoginProfile_keybase(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSUserDestroy,
+		CheckDestroy: testAccCheckAWSUserLoginProfileDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAWSUserLoginProfileConfig(username, "/", "keybase:terraformacctest"),
@@ -68,15 +67,61 @@ func TestAccAWSUserLoginProfile_keybaseDoesntExist(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSUserDestroy,
+		CheckDestroy: testAccCheckAWSUserLoginProfileDestroy,
 		Steps: []resource.TestStep{
 			{
-				// Hope no-one creates this keybase user...
+				// We own this account but it doesn't have any key associated with it
 				Config:      testAccAWSUserLoginProfileConfig(username, "/", "keybase:terraform_nope"),
-				ExpectError: true,
+				ExpectError: regexp.MustCompile(`Error retrieving Public Key`),
 			},
 		},
 	})
+}
+
+func TestAccAWSUserLoginProfile_notAKey(t *testing.T) {
+	username := fmt.Sprintf("test-user-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSUserLoginProfileDestroy,
+		Steps: []resource.TestStep{
+			{
+				// We own this account but it doesn't have any key associated with it
+				Config:      testAccAWSUserLoginProfileConfig(username, "/", "lolimnotakey"),
+				ExpectError: regexp.MustCompile(`Error encrypting password`),
+			},
+		},
+	})
+}
+
+func testAccCheckAWSUserLoginProfileDestroy(s *terraform.State) error {
+	iamconn := testAccProvider.Meta().(*AWSClient).iamconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_iam_user_login_profile" {
+			continue
+		}
+
+		// Try to get user
+		_, err := iamconn.GetLoginProfile(&iam.GetLoginProfileInput{
+			UserName: aws.String(rs.Primary.ID),
+		})
+		if err == nil {
+			return fmt.Errorf("still exists.")
+		}
+
+		// Verify the error is what we want
+		ec2err, ok := err.(awserr.Error)
+		if !ok {
+			return err
+		}
+		if ec2err.Code() != "NoSuchEntity" {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func testDecryptPasswordAndTest(nProfile, nAccessKey, key string) resource.TestCheckFunc {
