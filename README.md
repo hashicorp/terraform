@@ -2,7 +2,7 @@ Terraform
 =========
 
 - Website: http://www.terraform.io
-- [![Gitter chat](https://badges.gitter.im/terraform-tool/Lobby.png)](https://gitter.im/terraform-tool/Lobby)
+- [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
 - Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
 ![Terraform](https://raw.githubusercontent.com/hashicorp/terraform/master/website/source/assets/images/readme.png)
