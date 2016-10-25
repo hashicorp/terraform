@@ -8,9 +8,9 @@ description: |-
 
 # aws\_emr\_cluster
 
-Provides an Elastic MapReduce Cluster, a web service that makes it easy to 
-process large amounts of data efficiently. See [Amazon Elastic MapReduce Documentation](https://aws.amazon.com/documentation/elastic-mapreduce/) 
-for more information. 
+Provides an Elastic MapReduce Cluster, a web service that makes it easy to
+process large amounts of data efficiently. See [Amazon Elastic MapReduce Documentation](https://aws.amazon.com/documentation/elastic-mapreduce/)
+for more information.
 
 ## Example Usage
 
@@ -52,9 +52,9 @@ The `aws_emr_cluster` resource typically requires two IAM roles, one for the EMR
 to use as a service, and another to place on your Cluster Instances to interact
 with AWS from those instances. The suggested role policy template for the EMR service is `AmazonElasticMapReduceRole`,
 and `AmazonElasticMapReduceforEC2Role` for the EC2 profile. See the [Getting
-Started](https://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-gs-launch-sample-cluster.html) 
+Started](https://docs.aws.amazon.com/ElasticMapReduce/latest/ManagementGuide/emr-gs-launch-sample-cluster.html)
 guide for more information on these IAM roles. There is also a fully-bootable
-example Terraform configuration at the bottom of this page. 
+example Terraform configuration at the bottom of this page.
 
 ## Argument Reference
 
@@ -92,10 +92,11 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 * `additional_slave_security_groups` - (Optional) list of additional Amazon EC2 security group IDs for the slave nodes
 * `emr_managed_master_security_group` - (Optional) identifier of the Amazon EC2 security group for the master node
 * `emr_managed_slave_security_group` - (Optional) identifier of the Amazon EC2 security group for the slave nodes
+* `service_access_security_group` - (Optional) identifier of the Amazon EC2 service-access security group - required when the cluster runs on a private subnet
 * `instance_profile` - (Optional) Instance Profile for EC2 instances of the cluster assume this role
 
 
-## bootstrap\_action 
+## bootstrap\_action
 
 * `name` - (Required) name of the bootstrap action
 * `path` - (Required) location of the script to run during a bootstrap action. Can be either a location in Amazon S3 or on a local file system
@@ -106,8 +107,8 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 The following attributes are exported:
 
 * `id` - The ID of the EMR Cluster
-* `name` 
-* `release_label` 
+* `name`
+* `release_label`
 * `master_instance_type`
 * `core_instance_type`
 * `core_instance_count`
@@ -123,7 +124,7 @@ The following attributes are exported:
 
 ## Example bootable config
 
-**NOTE:** This configuration demonstrates a minimal configuration needed to 
+**NOTE:** This configuration demonstrates a minimal configuration needed to
 boot an example EMR Cluster. It is not meant to display best practices. Please
 use at your own risk.
 
