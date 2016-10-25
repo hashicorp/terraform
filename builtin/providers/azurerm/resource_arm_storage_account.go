@@ -1,6 +1,7 @@
 package azurerm
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -192,10 +193,9 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Create
-	cancelCh, doneCh := client.CancelCh(1 * time.Hour)
+	cancelCtx, _ := context.WithTimeout(client.StopContext, 1*time.Hour)
 	_, createErr := storageClient.Create(
-		resourceGroupName, storageAccountName, opts, cancelCh)
-	close(doneCh)
+		resourceGroupName, storageAccountName, opts, cancelCtx.Done())
 
 	// The only way to get the ID back apparently is to read the resource again
 	read, err := storageClient.GetProperties(resourceGroupName, storageAccountName)
