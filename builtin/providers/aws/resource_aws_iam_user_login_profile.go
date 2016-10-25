@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -79,7 +80,7 @@ func generatePassword(length int) string {
 	}
 
 	// Use all character sets
-	random := rand.New(rand.Source(time.Now().UTC().UnixNano()))
+	random := rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 	components := make(map[int]byte, length)
 	for i := 0; i < length; i++ {
 		charset := charsets[i%len(charsets)]
@@ -147,6 +148,13 @@ func resourceAwsIamUserLoginProfileCreate(d *schema.ResourceData, meta interface
 	log.Println("[DEBUG] Create IAM User Login Profile request:", request)
 	createResp, err := iamconn.CreateLoginProfile(request)
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "EntityAlreadyExists" {
+			// If there is already a login profile, bring it under management (to prevent
+			// resource creation diffs) - we will never modify it, but obviously cannot
+			// set the password.
+			d.SetId(*createResp.LoginProfile.UserName)
+			return nil
+		}
 		return errwrap.Wrapf(fmt.Sprintf("Error creating IAM User Login Profile for %q: {{err}}", username), err)
 	}
 
