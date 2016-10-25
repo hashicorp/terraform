@@ -31,6 +31,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Resources suffixed with 'panic' won't falsely trigger crash detection. [GH-9395]
+ * core: Validate lifecycle options don't contain interpolations. [GH-9576]
  * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value [GH-9453]
  * provider/aws: Fix issue with updating ElasticBeanstalk environment variables [GH-9259]
  * provider/aws: Allow zero value for `scaling_adjustment` in `aws_autoscaling_policy` when using `SimpleScaling` [GH-8893]
