@@ -128,6 +128,21 @@ func resourceAwsIamUserLoginProfileCreate(d *schema.ResourceData, meta interface
 	passwordResetRequired := d.Get("password_reset_required").(bool)
 	passwordLength := d.Get("password_length").(int)
 
+	_, err := iamconn.GetLoginProfile(&iam.GetLoginProfileInput{
+		UserName: aws.String(username),
+	})
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() != "NoSuchEntity" {
+			// If there is already a login profile, bring it under management (to prevent
+			// resource creation diffs) - we will never modify it, but obviously cannot
+			// set the password.
+			d.SetId(username)
+			d.Set("key_fingerprint", "")
+			d.Set("encrypted_password", "")
+			return nil
+		}
+	}
+
 	var pgpKey string
 	if pgpKeyInterface, ok := d.GetOk("pgp_key"); ok {
 		pgpKey = pgpKeyInterface.(string)
@@ -152,7 +167,9 @@ func resourceAwsIamUserLoginProfileCreate(d *schema.ResourceData, meta interface
 			// If there is already a login profile, bring it under management (to prevent
 			// resource creation diffs) - we will never modify it, but obviously cannot
 			// set the password.
-			d.SetId(*createResp.LoginProfile.UserName)
+			d.SetId(username)
+			d.Set("key_fingerprint", "")
+			d.Set("encrypted_password", "")
 			return nil
 		}
 		return errwrap.Wrapf(fmt.Sprintf("Error creating IAM User Login Profile for %q: {{err}}", username), err)
