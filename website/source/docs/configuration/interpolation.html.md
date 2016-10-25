@@ -250,6 +250,7 @@ The supported built-in functions are:
     returned by the `keys` function. This function only works on flat maps and
     will return an error for maps that include nested lists or maps.
 
+<a id="templates"></a>
 ## Templates
 
 Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [data-sources](/docs/configuration/data-sources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
@@ -312,9 +313,8 @@ resource "aws_instance" "web" {
 With this, we will build a list of `template_file.web_init` data sources which we can
 use in combination with our list of `aws_instance.web` resources.
 
-## Math
-
 <a id="math"></a>
+## Math
 
 Simple math can be performed in interpolations:
 
