@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -39,8 +40,9 @@ func resourceAwsIamUser() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateAwsIamUserName,
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
@@ -201,4 +203,14 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error deleting IAM User %s: %s", d.Id(), err)
 	}
 	return nil
+}
+
+func validateAwsIamUserName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z=,.@-]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, hyphens, commas, periods, @ symbols and equals signs allowed in %q: %q",
+			k, value))
+	}
+	return
 }
