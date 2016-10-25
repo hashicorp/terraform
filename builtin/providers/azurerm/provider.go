@@ -44,6 +44,10 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"azurerm_client_config": dataSourceArmClientConfig(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
 			"azurerm_availability_set": resourceArmAvailabilitySet(),
@@ -57,6 +61,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
 			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
 
+			"azurerm_key_vault":                 resourceArmKeyVault(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),
 			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
@@ -187,7 +192,7 @@ func registerAzureResourceProvidersWithSubscription(client *riviera.Client) erro
 	var err error
 	providerRegistrationOnce.Do(func() {
 		// We register Microsoft.Compute during client initialization
-		providers := []string{"Microsoft.Network", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources", "Microsoft.ServiceBus"}
+		providers := []string{"Microsoft.Network", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources", "Microsoft.ServiceBus", "Microsoft.KeyVault"}
 
 		var wg sync.WaitGroup
 		wg.Add(len(providers))
