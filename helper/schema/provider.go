@@ -1,9 +1,11 @@
 package schema
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
@@ -49,6 +51,10 @@ type Provider struct {
 	ConfigureFunc ConfigureFunc
 
 	meta interface{}
+
+	stopCtx       context.Context
+	stopCtxCancel context.CancelFunc
+	stopOnce      sync.Once
 }
 
 // ConfigureFunc is the function used to configure a Provider.
@@ -102,6 +108,34 @@ func (p *Provider) Meta() interface{} {
 // set here.
 func (p *Provider) SetMeta(v interface{}) {
 	p.meta = v
+}
+
+// Stopped reports whether the provider has been stopped or not.
+func (p *Provider) Stopped() bool {
+	ctx := p.StopContext()
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+}
+
+// StopCh returns a channel that is closed once the provider is stopped.
+func (p *Provider) StopContext() context.Context {
+	p.stopOnce.Do(p.stopInit)
+	return p.stopCtx
+}
+
+func (p *Provider) stopInit() {
+	p.stopCtx, p.stopCtxCancel = context.WithCancel(context.Background())
+}
+
+// Stop implementation of terraform.ResourceProvider interface.
+func (p *Provider) Stop() error {
+	p.stopOnce.Do(p.stopInit)
+	p.stopCtxCancel()
+	return nil
 }
 
 // Input implementation of terraform.ResourceProvider interface.
