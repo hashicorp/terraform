@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -51,9 +52,9 @@ type Provider struct {
 
 	meta interface{}
 
-	stopCh   chan struct{} // stopCh is closed when Stop is called
-	stopped  bool          // set to true once stopped to avoid double close of stopCh
-	stopLock sync.Mutex
+	stopCtx       context.Context
+	stopCtxCancel context.CancelFunc
+	stopOnce      sync.Once
 }
 
 // ConfigureFunc is the function used to configure a Provider.
@@ -111,40 +112,29 @@ func (p *Provider) SetMeta(v interface{}) {
 
 // Stopped reports whether the provider has been stopped or not.
 func (p *Provider) Stopped() bool {
-	p.stopLock.Lock()
-	defer p.stopLock.Unlock()
-	return p.stopped
+	ctx := p.StopContext()
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
 }
 
 // StopCh returns a channel that is closed once the provider is stopped.
-func (p *Provider) StopCh() <-chan struct{} {
-	p.stopLock.Lock()
-	defer p.stopLock.Unlock()
+func (p *Provider) StopContext() context.Context {
+	p.stopOnce.Do(p.stopInit)
+	return p.stopCtx
+}
 
-	if p.stopCh == nil {
-		p.stopCh = make(chan struct{})
-	}
-
-	return p.stopCh
+func (p *Provider) stopInit() {
+	p.stopCtx, p.stopCtxCancel = context.WithCancel(context.Background())
 }
 
 // Stop implementation of terraform.ResourceProvider interface.
 func (p *Provider) Stop() error {
-	p.stopLock.Lock()
-	defer p.stopLock.Unlock()
-
-	// Close the stop channel and mark as stopped if we haven't
-	if !p.stopped {
-		// Initialize the stop channel so future calls to StopCh work
-		if p.stopCh == nil {
-			p.stopCh = make(chan struct{})
-		}
-
-		// Close and mark
-		close(p.stopCh)
-		p.stopped = true
-	}
-
+	p.stopOnce.Do(p.stopInit)
+	p.stopCtxCancel()
 	return nil
 }
 
