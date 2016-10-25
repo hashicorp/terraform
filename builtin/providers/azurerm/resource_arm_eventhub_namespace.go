@@ -143,6 +143,8 @@ func resourceArmEventHubNamespaceRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Set("name", resp.Name)
+	d.Set("location", resp.Location)
+	d.Set("resource_group_name", resGroup)
 	d.Set("sku", string(resp.Sku.Name))
 	d.Set("capacity", resp.Sku.Capacity)
 
