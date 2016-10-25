@@ -1043,10 +1043,6 @@ func TestContext2Apply_cancel(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
-
-	if !p.StopCalled {
-		t.Fatal("stop should be called")
-	}
 }
 
 func TestContext2Apply_compute(t *testing.T) {
