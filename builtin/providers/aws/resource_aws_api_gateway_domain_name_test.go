@@ -41,6 +41,9 @@ func TestAccAWSAPIGatewayDomainName_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_domain_name.test", "domain_name", name,
 					),
+					resource.TestCheckResourceAttrSet(
+						"aws_api_gateway_domain_name.test", "certificate_upload_date",
+					),
 				),
 			},
 		},
