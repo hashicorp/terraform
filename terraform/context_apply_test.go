@@ -508,6 +508,156 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 	}
 }
 
+// Test that the destroy operation uses depends_on as a source of ordering.
+func TestContext2Apply_destroyDependsOn(t *testing.T) {
+	// It is possible for this to be racy, so we loop a number of times
+	// just to check.
+	for i := 0; i < 10; i++ {
+		testContext2Apply_destroyDependsOn(t)
+	}
+}
+
+func testContext2Apply_destroyDependsOn(t *testing.T) {
+	m := testModule(t, "apply-destroy-depends-on")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "foo",
+							Attributes: map[string]string{},
+						},
+					},
+
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "bar",
+							Attributes: map[string]string{},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Record the order we see Apply
+	var actual []string
+	var actualLock sync.Mutex
+	p.ApplyFn = func(
+		info *InstanceInfo, _ *InstanceState, _ *InstanceDiff) (*InstanceState, error) {
+		actualLock.Lock()
+		defer actualLock.Unlock()
+		actual = append(actual, info.Id)
+		return nil, nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:       state,
+		Destroy:     true,
+		Parallelism: 1, // To check ordering
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []string{"aws_instance.foo", "aws_instance.bar"}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+// Test that destroy ordering is correct with dependencies only
+// in the state.
+func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
+	// It is possible for this to be racy, so we loop a number of times
+	// just to check.
+	for i := 0; i < 10; i++ {
+		testContext2Apply_destroyDependsOnStateOnly(t)
+	}
+}
+
+func testContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
+	m := testModule(t, "empty")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "foo",
+							Attributes: map[string]string{},
+						},
+					},
+
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "bar",
+							Attributes: map[string]string{},
+						},
+						Dependencies: []string{"aws_instance.foo"},
+					},
+				},
+			},
+		},
+	}
+
+	// Record the order we see Apply
+	var actual []string
+	var actualLock sync.Mutex
+	p.ApplyFn = func(
+		info *InstanceInfo, _ *InstanceState, _ *InstanceDiff) (*InstanceState, error) {
+		actualLock.Lock()
+		defer actualLock.Unlock()
+		actual = append(actual, info.Id)
+		return nil, nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:       state,
+		Destroy:     true,
+		Parallelism: 1, // To check ordering
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []string{"aws_instance.bar", "aws_instance.foo"}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestContext2Apply_dataBasic(t *testing.T) {
 	m := testModule(t, "apply-data-basic")
 	p := testProvider("null")
