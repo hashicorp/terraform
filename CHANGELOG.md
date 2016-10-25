@@ -43,6 +43,7 @@ BUG FIXES:
  * provider/aws: Remove VPC Endpoint from state if it's not found [GH-9561]
  * provider/aws: Delete Loging Profile from IAM User on force_destroy [GH-9583]
  * provider/aws: Exposed aws_api_gw_domain_name.certificate_upload_date attribute [GH-9533]
+ * provider/aws: fix aws_elasticache_replication_group for Redis in cluster mode [GH-9601]
  * provider/azurerm: Fix Azure RM loadbalancer rules validation [GH-9468]
  * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff [GH-9323]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
