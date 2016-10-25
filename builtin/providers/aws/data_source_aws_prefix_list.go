@@ -51,7 +51,7 @@ func dataSourceAwsPrefixListRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 	if resp == nil || len(resp.PrefixLists) == 0 {
-		return fmt.Errorf("no matching PL found")
+		return fmt.Errorf("no matching prefix list found; the prefix list ID may be invalid or not exist in the current region")
 	}
 
 	pl := resp.PrefixLists[0]
