@@ -82,12 +82,16 @@ The following arguments are supported:
 
 * `enable_partitioning` - (Optional) Boolean flag which controls whether to enable
     the topic to be partitioned across multiple message brokers. Defaults to false.
+    Changing this forces a new resource to be created.
 
 * `max_size_in_megabytes` - (Optional) Integer value which controls the size of
-    memory allocated for the topic.
+    memory allocated for the topic. Supported values are multiples of 1024 up to
+    10240, if `enable_partitioning` is enabled then 16 partitions will be created
+    per GB, making the maximum possible topic size 163840 (10240 * 16).
 
 * `requires_duplicate_detection` - (Optional) Boolean flag which controls whether
-    the Topic requires duplicate detection. Defaults to false.
+    the Topic requires duplicate detection. Defaults to false. Changing this forces
+    a new resource to be created.
 
 * `support_ordering` - (Optional) Boolean flag which controls whether the Topic
     supports ordering. Defaults to false.
