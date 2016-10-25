@@ -193,9 +193,10 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Create
-	cancelCtx, _ := context.WithTimeout(client.StopContext, 1*time.Hour)
+	cancelCtx, cancelFunc := context.WithTimeout(client.StopContext, 1*time.Hour)
 	_, createErr := storageClient.Create(
 		resourceGroupName, storageAccountName, opts, cancelCtx.Done())
+	cancelFunc()
 
 	// The only way to get the ID back apparently is to read the resource again
 	read, err := storageClient.GetProperties(resourceGroupName, storageAccountName)
