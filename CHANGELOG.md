@@ -13,6 +13,8 @@ FEATURES:
    (on any command). This will become the default in 0.8. There may still be
    bugs. [GH-9388]
  * **New Provider:** `pagerduty` [GH-9022]
+ * **New Resource:** `azurerm_key_vault` [GH-9478]
+ * **New DataSource:** `azurerm_client_config` [GH-9478]
 
 IMPROVEMENTS:
 
