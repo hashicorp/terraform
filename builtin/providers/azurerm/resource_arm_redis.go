@@ -214,6 +214,11 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 
 		d.Set("redis_version", resp.Properties.RedisVersion)
 		d.Set("enable_non_ssl_port", resp.Properties.EnableNonSslPort)
+		d.Set("ssl_port", resp.Properties.SslPort)
+
+		if resp.Properties.Port != nil {
+			d.Set("port", resp.Properties.Port)
+		}
 
 		if resp.Properties.Sku != nil {
 			d.Set("capacity", resp.Properties.Sku.Capacity)
@@ -221,11 +226,9 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 			d.Set("sku_name", resp.Properties.Sku.Name)
 		}
 
-		/*
-			if resp.Properties.ShardCount > 0 {
-				d.Set("shard_count", resp.Properties.ShardCount)
-			}
-		*/
+		if resp.Properties.ShardCount != nil {
+			d.Set("shard_count", resp.Properties.ShardCount)
+		}
 	}
 
 	// TODO: Redis Configuation
@@ -243,7 +246,7 @@ func resourceArmRedisDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	resGroup := id.ResourceGroup
-	name := id.Path["Redis"]
+	name := id.Path["redis"]
 
 	resp, err := redisClient.Delete(resGroup, name)
 
