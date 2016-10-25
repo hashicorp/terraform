@@ -5,6 +5,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/openstack: The OpenStack provider has switched to the new Gophercloud SDK.
    No front-facing changes were made, but please be aware that there might be bugs.
    Please report any if found.
+ * `archive_file` is now a data source, instead of a resource [GH-8492]
 
 FEATURES:
 
@@ -33,6 +34,7 @@ BUG FIXES:
 
  * core: Resources suffixed with 'panic' won't falsely trigger crash detection. [GH-9395]
  * core: Validate lifecycle options don't contain interpolations. [GH-9576]
+ * provider/archive: Converting to datasource. [GH-8492]
  * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value [GH-9453]
  * provider/aws: Fix issue with updating ElasticBeanstalk environment variables [GH-9259]
  * provider/aws: Allow zero value for `scaling_adjustment` in `aws_autoscaling_policy` when using `SimpleScaling` [GH-8893]
