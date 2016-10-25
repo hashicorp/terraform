@@ -37,6 +37,7 @@ BUG FIXES:
  * provider/aws: Increase ECS service drain timeout [GH-9521]
  * provider/aws: Remove VPC Endpoint from state if it's not found [GH-9561]
  * provider/aws: Delete Loging Profile from IAM User on force_destroy [GH-9583]
+ * provider/azurerm: Fix Azure RM loadbalancer rules validation [GH-9468]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
 
 ## 0.7.7 (October 18, 2016)
