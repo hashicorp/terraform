@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAzureRMServiceBusNamespaceCapacity_validation(t *testing.T) {
+func TestAccAzureRMEventHubNamespaceCapacity_validation(t *testing.T) {
 	cases := []struct {
 		Value    int
 		ErrCount int
@@ -29,21 +29,25 @@ func TestAccAzureRMServiceBusNamespaceCapacity_validation(t *testing.T) {
 			ErrCount: 0,
 		},
 		{
+			Value:    3,
+			ErrCount: 1,
+		},
+		{
 			Value:    4,
 			ErrCount: 0,
 		},
 	}
 
 	for _, tc := range cases {
-		_, errors := validateServiceBusNamespaceCapacity(tc.Value, "azurerm_servicebus_namespace")
+		_, errors := validateEventHubNamespaceCapacity(tc.Value, "azurerm_eventhub_namespace")
 
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Azure RM ServiceBus Namespace Capacity to trigger a validation error")
+			t.Fatalf("Expected the Azure RM EventHub Namespace Capacity to trigger a validation error")
 		}
 	}
 }
 
-func TestAccAzureRMServiceBusNamespaceSku_validation(t *testing.T) {
+func TestAccAzureRMEventHubNamespaceSku_validation(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
@@ -58,7 +62,7 @@ func TestAccAzureRMServiceBusNamespaceSku_validation(t *testing.T) {
 		},
 		{
 			Value:    "Premium",
-			ErrCount: 0,
+			ErrCount: 1,
 		},
 		{
 			Value:    "Random",
@@ -67,66 +71,66 @@ func TestAccAzureRMServiceBusNamespaceSku_validation(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		_, errors := validateServiceBusNamespaceSku(tc.Value, "azurerm_servicebus_namespace")
+		_, errors := validateEventHubNamespaceSku(tc.Value, "azurerm_eventhub_namespace")
 
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Azure RM ServiceBus Namespace Sku to trigger a validation error")
+			t.Fatalf("Expected the Azure RM EventHub Namespace Sku to trigger a validation error")
 		}
 	}
 }
 
-func TestAccAzureRMServiceBusNamespace_basic(t *testing.T) {
+func TestAccAzureRMEventHubNamespace_basic(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMServiceBusNamespace_basic, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMEventHubNamespace_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusNamespaceDestroy,
+		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMServiceBusNamespaceExists("azurerm_servicebus_namespace.test"),
+					testCheckAzureRMEventHubNamespaceExists("azurerm_eventhub_namespace.test"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccAzureRMServiceBusNamespace_readDefaultKeys(t *testing.T) {
+func TestAccAzureRMEventHubNamespace_readDefaultKeys(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMServiceBusNamespace_basic, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMEventHubNamespace_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMServiceBusNamespaceDestroy,
+		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMServiceBusNamespaceExists("azurerm_servicebus_namespace.test"),
+					testCheckAzureRMEventHubNamespaceExists("azurerm_eventhub_namespace.test"),
 					resource.TestMatchResourceAttr(
-						"azurerm_servicebus_namespace.test", "default_primary_connection_string", regexp.MustCompile("Endpoint=.+")),
+						"azurerm_eventhub_namespace.test", "default_primary_connection_string", regexp.MustCompile("Endpoint=.+")),
 					resource.TestMatchResourceAttr(
-						"azurerm_servicebus_namespace.test", "default_secondary_connection_string", regexp.MustCompile("Endpoint=.+")),
+						"azurerm_eventhub_namespace.test", "default_secondary_connection_string", regexp.MustCompile("Endpoint=.+")),
 					resource.TestMatchResourceAttr(
-						"azurerm_servicebus_namespace.test", "default_primary_key", regexp.MustCompile(".+")),
+						"azurerm_eventhub_namespace.test", "default_primary_key", regexp.MustCompile(".+")),
 					resource.TestMatchResourceAttr(
-						"azurerm_servicebus_namespace.test", "default_secondary_key", regexp.MustCompile(".+")),
+						"azurerm_eventhub_namespace.test", "default_secondary_key", regexp.MustCompile(".+")),
 				),
 			},
 		},
 	})
 }
 
-func testCheckAzureRMServiceBusNamespaceDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*ArmClient).serviceBusNamespacesClient
+func testCheckAzureRMEventHubNamespaceDestroy(s *terraform.State) error {
+	conn := testAccProvider.Meta().(*ArmClient).eventHubNamespacesClient
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "azurerm_servicebus_namespace" {
+		if rs.Type != "azurerm_eventhub_namespace" {
 			continue
 		}
 
@@ -140,14 +144,14 @@ func testCheckAzureRMServiceBusNamespaceDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("ServiceBus Namespace still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("EventHub Namespace still exists:\n%#v", resp.Properties)
 		}
 	}
 
 	return nil
 }
 
-func testCheckAzureRMServiceBusNamespaceExists(name string) resource.TestCheckFunc {
+func testCheckAzureRMEventHubNamespaceExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
 		rs, ok := s.RootModule().Resources[name]
@@ -158,33 +162,33 @@ func testCheckAzureRMServiceBusNamespaceExists(name string) resource.TestCheckFu
 		namespaceName := rs.Primary.Attributes["name"]
 		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
 		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for Service Bus Namespace: %s", namespaceName)
+			return fmt.Errorf("Bad: no resource group found in state for Event Hub Namespace: %s", namespaceName)
 		}
 
-		conn := testAccProvider.Meta().(*ArmClient).serviceBusNamespacesClient
+		conn := testAccProvider.Meta().(*ArmClient).eventHubNamespacesClient
 
 		resp, err := conn.Get(resourceGroup, namespaceName)
 		if err != nil {
-			return fmt.Errorf("Bad: Get on serviceBusNamespacesClient: %s", err)
+			return fmt.Errorf("Bad: Get on eventHubNamespacesClient: %s", err)
 		}
 
 		if resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("Bad: Service Bus Namespace %q (resource group: %q) does not exist", namespaceName, resourceGroup)
+			return fmt.Errorf("Bad: Event Hub Namespace %q (resource group: %q) does not exist", namespaceName, resourceGroup)
 		}
 
 		return nil
 	}
 }
 
-var testAccAzureRMServiceBusNamespace_basic = `
+var testAccAzureRMEventHubNamespace_basic = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
 }
-resource "azurerm_servicebus_namespace" "test" {
-    name = "acctestservicebusnamespace-%d"
+resource "azurerm_eventhub_namespace" "test" {
+    name = "acctesteventhubnamespace-%d"
     location = "West US"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "basic"
+    sku = "Basic"
 }
 `

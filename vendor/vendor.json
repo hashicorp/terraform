@@ -21,10 +21,22 @@
 			"versionExact": "v5.0.0-beta"
 		},
 		{
-			"checksumSHA1": "twJBMkI9NiMeQbPFmw4ehZQAPaE=",
+			"checksumSHA1": "ndoTo9HTATazQPZiPzq5rFYJhHM=",
+			"comment": "v2.1.1-beta-8-gca4d906",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/eventhub",
+			"revision": "91f3d4a4d024e3c0d4d9412916d05cf84504a616",
+			"revisionTime": "2016-10-05T01:22:46Z",
+			"version": "v5.0.0-beta",
+			"versionExact": "v5.0.0-beta"
+		},
+		{
+			"checksumSHA1": "ndoTo9HTATazQPZiPzq5rFYJhHM=",
+			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/keyvault",
 			"revision": "91f3d4a4d024e3c0d4d9412916d05cf84504a616",
-			"revisionTime": "2016-10-05T01:22:46Z"
+			"revisionTime": "2016-10-05T01:22:46Z",
+			"version": "v5.0.0-beta",
+			"versionExact": "v5.0.0-beta"
 		},
 		{
 			"checksumSHA1": "33Eny6aOVU6MjMYlfzufuo9OdCk=",
