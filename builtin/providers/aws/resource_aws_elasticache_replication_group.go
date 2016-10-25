@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsElasticacheReplicationGroup() *schema.Resource {
+func resourceAwsElasticacheReplicationGroupCommon() map[string]*schema.Schema {
 
 	resourceSchema := resourceAwsElastiCacheCommonSchema()
 
@@ -23,12 +23,6 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		Required:     true,
 		ForceNew:     true,
 		ValidateFunc: validateAwsElastiCacheReplicationGroupId,
-	}
-
-	resourceSchema["automatic_failover_enabled"] = &schema.Schema{
-		Type:     schema.TypeBool,
-		Optional: true,
-		Default:  false,
 	}
 
 	resourceSchema["auto_minor_version_upgrade"] = &schema.Schema{
@@ -42,10 +36,28 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		Required: true,
 	}
 
+	resourceSchema["engine"].Required = false
+	resourceSchema["engine"].Optional = true
+	resourceSchema["engine"].Default = "redis"
+	resourceSchema["engine"].ValidateFunc = validateAwsElastiCacheReplicationGroupEngine
+
+	return resourceSchema
+}
+
+func resourceAwsElasticacheReplicationGroup() *schema.Resource {
+
+	resourceSchema := resourceAwsElasticacheReplicationGroupCommon()
+
 	resourceSchema["number_cache_clusters"] = &schema.Schema{
 		Type:     schema.TypeInt,
 		Required: true,
 		ForceNew: true,
+	}
+
+	resourceSchema["automatic_failover_enabled"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+		Default:  false,
 	}
 
 	resourceSchema["primary_endpoint_address"] = &schema.Schema{
@@ -57,11 +69,6 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		Type:     schema.TypeString,
 		Computed: true,
 	}
-
-	resourceSchema["engine"].Required = false
-	resourceSchema["engine"].Optional = true
-	resourceSchema["engine"].Default = "redis"
-	resourceSchema["engine"].ValidateFunc = validateAwsElastiCacheReplicationGroupEngine
 
 	return &schema.Resource{
 		Create: resourceAwsElasticacheReplicationGroupCreate,
@@ -76,8 +83,7 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 	}
 }
 
-func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).elasticacheconn
+func resourceAwsElasticacheReplicationGroupCreateSetup(d *schema.ResourceData, meta interface{}) *elasticache.CreateReplicationGroupInput {
 
 	tags := tagsFromMapEC(d.Get("tags").(map[string]interface{}))
 	params := &elasticache.CreateReplicationGroupInput{
@@ -88,8 +94,11 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		CacheNodeType:               aws.String(d.Get("node_type").(string)),
 		Engine:                      aws.String(d.Get("engine").(string)),
 		Port:                        aws.Int64(int64(d.Get("port").(int))),
-		NumCacheClusters:            aws.Int64(int64(d.Get("number_cache_clusters").(int))),
 		Tags:                        tags,
+	}
+
+	if v, ok := d.GetOk("number_cache_clusters"); ok {
+		params.NumCacheClusters = aws.Int64(int64(v.(int)))
 	}
 
 	if v, ok := d.GetOk("engine_version"); ok {
@@ -145,6 +154,12 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		params.SnapshotName = aws.String(v.(string))
 	}
 
+	return params
+}
+
+func resourceAwsElasticacheReplicationGroupCreateCommon(d *schema.ResourceData, meta interface{}, params *elasticache.CreateReplicationGroupInput) error {
+	conn := meta.(*AWSClient).elasticacheconn
+
 	resp, err := conn.CreateReplicationGroup(params)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache Replication Group: %s", err)
@@ -169,6 +184,11 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 	}
 
 	return resourceAwsElasticacheReplicationGroupRead(d, meta)
+}
+
+func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta interface{}) error {
+	params := resourceAwsElasticacheReplicationGroupCreateSetup(d, meta)
+	return resourceAwsElasticacheReplicationGroupCreateCommon(d, meta, params)
 }
 
 func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta interface{}) error {
