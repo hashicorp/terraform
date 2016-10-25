@@ -58,8 +58,8 @@ func resourceAwsIamUserLoginProfile() *schema.Resource {
 
 func validateAwsIamLoginProfilePasswordLength(v interface{}, _ string) (_ []string, es []error) {
 	length := v.(int)
-	if length < 1 {
-		es = append(es, errors.New("minimum password_length is 1 character"))
+	if length < 4 {
+		es = append(es, errors.New("minimum password_length is 4 characters"))
 	}
 	if length > 128 {
 		es = append(es, errors.New("maximum password_length is 128 characters"))
@@ -67,15 +67,34 @@ func validateAwsIamLoginProfilePasswordLength(v interface{}, _ string) (_ []stri
 	return
 }
 
+// generatePassword generates a random password of a given length using
+// characters that are likely to satisfy any possible AWS password policy
+// (given sufficient length).
 func generatePassword(length int) string {
-	const CharSetIAMPassword = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012346789!@#$%^&*()_+-=[]{}|'"
-	charSetLength := len(CharSetIAMPassword)
-
-	rand.Seed(time.Now().UTC().UnixNano())
-	result := make([]byte, length)
-	for i := 0; i < length; i++ {
-		result[i] = CharSetIAMPassword[rand.Intn(charSetLength)]
+	charsets := []string{
+		"abcdefghijklmnopqrstuvwxyz",
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+		"012346789",
+		"!@#$%^&*()_+-=[]{}|'",
 	}
+
+	// Use all character sets
+	random := rand.New(rand.Source(time.Now().UTC().UnixNano()))
+	components := make(map[int]byte, length)
+	for i := 0; i < length; i++ {
+		charset := charsets[i%len(charsets)]
+		components[i] = charset[random.Intn(len(charset))]
+	}
+
+	// Randomise the ordering so we don't end up with a predictable
+	// lower case, upper case, numeric, symbol pattern
+	result := make([]byte, length)
+	i := 0
+	for _, b := range components {
+		result[i] = b
+		i = i + 1
+	}
+
 	return string(result)
 }
 
@@ -103,6 +122,7 @@ func encryptPassword(password string, pgpKey string) (string, string, error) {
 
 func resourceAwsIamUserLoginProfileCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
+
 	username := d.Get("user").(string)
 	passwordResetRequired := d.Get("password_reset_required").(bool)
 	passwordLength := d.Get("password_length").(int)
