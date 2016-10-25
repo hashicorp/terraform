@@ -105,6 +105,10 @@ func resourceAwsEMRCluster() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+						"service_access_security_group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -214,6 +218,10 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 		if len(strings.TrimSpace(attributes["instance_profile"].(string))) != 0 {
 			instanceProfile = strings.TrimSpace(attributes["instance_profile"].(string))
+		}
+
+		if v, ok := attributes["service_access_security_group"]; ok {
+			instanceConfig.ServiceAccessSecurityGroup = aws.String(v.(string))
 		}
 	}
 
@@ -508,6 +516,10 @@ func flattenEc2Attributes(ia *emr.Ec2InstanceAttributes) []map[string]interface{
 	if len(ia.AdditionalSlaveSecurityGroups) > 0 {
 		strs := aws.StringValueSlice(ia.AdditionalSlaveSecurityGroups)
 		attrs["additional_slave_security_groups"] = strings.Join(strs, ",")
+	}
+
+	if ia.ServiceAccessSecurityGroup != nil {
+		attrs["service_access_security_group"] = *ia.ServiceAccessSecurityGroup
 	}
 
 	result = append(result, attrs)
