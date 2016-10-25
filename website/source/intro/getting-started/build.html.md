@@ -80,7 +80,7 @@ The general structure should be intuitive and straightforward.
 The `provider` block is used to configure the named provider, in
 our case "aws." A provider is responsible for creating and
 managing resources. Multiple provider blocks can exist if a
-Terraform configuration is comprised of multiple providers,
+Terraform configuration is composed of multiple providers,
 which is a common situation.
 
 The `resource` block defines a resource that exists within
