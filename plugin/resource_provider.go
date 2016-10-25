@@ -28,19 +28,6 @@ type ResourceProvider struct {
 	Client *rpc.Client
 }
 
-func (p *ResourceProvider) Stop() error {
-	var resp ResourceProviderStopResponse
-	err := p.Client.Call("Plugin.Stop", new(interface{}), &resp)
-	if err != nil {
-		return err
-	}
-	if resp.Error != nil {
-		err = resp.Error
-	}
-
-	return err
-}
-
 func (p *ResourceProvider) Input(
 	input terraform.UIInput,
 	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
@@ -308,10 +295,6 @@ type ResourceProviderServer struct {
 	Provider terraform.ResourceProvider
 }
 
-type ResourceProviderStopResponse struct {
-	Error *plugin.BasicError
-}
-
 type ResourceProviderConfigureResponse struct {
 	Error *plugin.BasicError
 }
@@ -405,17 +388,6 @@ type ResourceProviderValidateResourceArgs struct {
 type ResourceProviderValidateResourceResponse struct {
 	Warnings []string
 	Errors   []*plugin.BasicError
-}
-
-func (s *ResourceProviderServer) Stop(
-	_ interface{},
-	reply *ResourceProviderStopResponse) error {
-	err := s.Provider.Stop()
-	*reply = ResourceProviderStopResponse{
-		Error: plugin.NewBasicError(err),
-	}
-
-	return nil
 }
 
 func (s *ResourceProviderServer) Input(
