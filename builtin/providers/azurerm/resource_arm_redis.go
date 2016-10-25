@@ -5,9 +5,11 @@ import (
 	"log"
 
 	"github.com/Azure/azure-sdk-for-go/arm/redis"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func resourceArmRedis() *schema.Resource {
@@ -165,7 +167,19 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Redis %s (resource group %s) ID", name, resGroup)
+		return fmt.Errorf("Cannot read Redis Instance %s (resource group %s) ID", name, resGroup)
+	}
+
+	log.Printf("[DEBUG] Waiting for Redis Instance (%s) to become available", d.Get("name"))
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"Updating", "Creating"},
+		Target:     []string{"Succeeded"},
+		Refresh:    redisStateRefreshFunc(client, resGroup, name),
+		Timeout:    30 * time.Minute,
+		MinTimeout: 15 * time.Second,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for Redis Instance (%s) to become available: %s", d.Get("name"), err)
 	}
 
 	d.SetId(*read.ID)
@@ -229,7 +243,7 @@ func resourceArmRedisDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	resGroup := id.ResourceGroup
-	name := id.Path["redis"]
+	name := id.Path["Redis"]
 
 	resp, err := redisClient.Delete(resGroup, name)
 
@@ -238,6 +252,17 @@ func resourceArmRedisDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
+}
+
+func redisStateRefreshFunc(client redis.Client, resourceGroupName string, sgName string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		res, err := client.Get(resourceGroupName, sgName)
+		if err != nil {
+			return nil, "", fmt.Errorf("Error issuing read request in redisStateRefreshFunc to Azure ARM for Redis Instance '%s' (RG: '%s'): %s", sgName, resourceGroupName, err)
+		}
+
+		return res, *res.Properties.ProvisioningState, nil
+	}
 }
 
 func validateRedisFamily(v interface{}, k string) (ws []string, errors []error) {
