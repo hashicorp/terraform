@@ -44,7 +44,8 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 
 	resourceSchema["number_cache_clusters"] = &schema.Schema{
 		Type:     schema.TypeInt,
-		Required: true,
+		Computed: true,
+		Optional: true,
 		ForceNew: true,
 	}
 
@@ -56,6 +57,26 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 	resourceSchema["configuration_endpoint_address"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Computed: true,
+	}
+
+	resourceSchema["cluster_mode"] = &schema.Schema{
+		Type:     schema.TypeSet,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"replicas_per_node_group": {
+					Type:     schema.TypeInt,
+					Required: true,
+					ForceNew: true,
+				},
+				"num_node_groups": {
+					Type:     schema.TypeInt,
+					Required: true,
+					ForceNew: true,
+				},
+			},
+		},
 	}
 
 	resourceSchema["engine"].Required = false
@@ -88,7 +109,6 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		CacheNodeType:               aws.String(d.Get("node_type").(string)),
 		Engine:                      aws.String(d.Get("engine").(string)),
 		Port:                        aws.Int64(int64(d.Get("port").(int))),
-		NumCacheClusters:            aws.Int64(int64(d.Get("number_cache_clusters").(int))),
 		Tags:                        tags,
 	}
 
@@ -143,6 +163,23 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 
 	if v, ok := d.GetOk("snapshot_name"); ok {
 		params.SnapshotName = aws.String(v.(string))
+	}
+
+	if a, ok := d.GetOk("cluster_mode"); ok {
+		clusterModeAttributes := a.(*schema.Set).List()
+		attributes := clusterModeAttributes[0].(map[string]interface{})
+
+		if v, ok := attributes["num_node_groups"]; ok {
+			params.NumNodeGroups = aws.Int64(int64(v.(int)))
+		}
+
+		if v, ok := attributes["replicas_per_node_group"]; ok {
+			params.ReplicasPerNodeGroup = aws.Int64(int64(v.(int)))
+		}
+	} else if v, ok := d.GetOk("number_cache_clusters"); ok {
+		params.NumCacheClusters = aws.Int64(int64(v.(int)))
+	} else {
+		return fmt.Errorf("number_cache_clusters must be set if not using cluster_mode")
 	}
 
 	resp, err := conn.CreateReplicationGroup(params)
