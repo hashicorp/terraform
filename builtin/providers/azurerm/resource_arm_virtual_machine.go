@@ -156,6 +156,12 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+
+						"disk_size_gb": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validateDiskSizeGB,
+						},
 					},
 				},
 				Set: resourceArmVirtualMachineStorageOsDiskHash,
@@ -188,16 +194,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"disk_size_gb": {
-							Type:     schema.TypeInt,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(int)
-								if value < 1 || value > 1023 {
-									errors = append(errors, fmt.Errorf(
-										"The `disk_size_gb` can only be between 1 and 1023"))
-								}
-								return
-							},
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateDiskSizeGB,
 						},
 
 						"lun": {
@@ -427,6 +426,15 @@ func resourceArmVirtualMachine() *schema.Resource {
 			"tags": tagsSchema(),
 		},
 	}
+}
+
+func validateDiskSizeGB(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+	if value < 1 || value > 1023 {
+		errors = append(errors, fmt.Errorf(
+			"The `disk_size_gb` can only be between 1 and 1023"))
+	}
+	return
 }
 
 func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
@@ -924,6 +932,9 @@ func flattenAzureRmVirtualMachineOsDisk(disk *compute.OSDisk) []interface{} {
 	result["vhd_uri"] = *disk.Vhd.URI
 	result["create_option"] = disk.CreateOption
 	result["caching"] = disk.Caching
+	if disk.DiskSizeGB != nil {
+		result["disk_size_gb"] = *disk.DiskSizeGB
+	}
 
 	return []interface{}{result}
 }
@@ -1256,6 +1267,11 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 
 	if v := disk["caching"].(string); v != "" {
 		osDisk.Caching = compute.CachingTypes(v)
+	}
+
+	if v := disk["disk_size_gb"].(int); v != 0 {
+		diskSize := int32(v)
+		osDisk.DiskSizeGB = &diskSize
 	}
 
 	return osDisk, nil

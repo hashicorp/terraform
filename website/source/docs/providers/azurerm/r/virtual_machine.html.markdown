@@ -249,6 +249,7 @@ For more information on the different example configurations, please check out t
 * `caching` - (Optional) Specifies the caching requirements.
 * `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version. `image_uri` can also specify the [VHD uri](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-deploy-templates/#create-a-custom-vm-image) of a custom VM image to clone. When cloning a custom disk image the `os_type` documented below becomes required.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
+* `disk_size_gb` - (Optional) Specifies the size of the data disk in gigabytes.
 
 `storage_data_disk` supports the following:
 
