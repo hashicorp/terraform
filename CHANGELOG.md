@@ -20,6 +20,7 @@ IMPROVEMENTS:
  * provider/aws: Allow `description` in `aws_redshift_subnet_group` to be modified [GH-9515]
  * provider/azurerm: add account_kind and access_tier to storage_account [GH-9408]
  * provider/azurerm: write load_balanacer attributes to network_interface_card hash [GH-9207]
+ * provider/digitalocean: Allow resizing DigitalOcean Droplets without increasing disk size. [GH-9573]
  * provider/google: enhance service scope list [GH-9442]
 
 BUG FIXES:
