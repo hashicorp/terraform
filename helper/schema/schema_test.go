@@ -2970,6 +2970,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 
 			Err: false,
 		},
+
 		"#1 - Don't suppress diff by returning false": {
 			Schema: map[string]*Schema{
 				"availability_zone": {
@@ -2999,29 +3000,80 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 
 			Err: false,
 		},
+
+		"Default with suppress makes no diff": {
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeString,
+					Optional: true,
+					Default:  "foo",
+					DiffSuppressFunc: func(k, old, new string, d *ResourceData) bool {
+						return true
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{},
+
+			ExpectedDiff: nil,
+
+			Err: false,
+		},
+
+		"Default with false suppress makes diff": {
+			Schema: map[string]*Schema{
+				"availability_zone": {
+					Type:     TypeString,
+					Optional: true,
+					Default:  "foo",
+					DiffSuppressFunc: func(k, old, new string, d *ResourceData) bool {
+						return false
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{},
+
+			ExpectedDiff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": {
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for tn, tc := range cases {
-		c, err := config.NewRawConfig(tc.Config)
-		if err != nil {
-			t.Fatalf("#%q err: %s", tn, err)
-		}
-
-		if len(tc.ConfigVariables) > 0 {
-			if err := c.Interpolate(tc.ConfigVariables); err != nil {
+		t.Run(tn, func(t *testing.T) {
+			c, err := config.NewRawConfig(tc.Config)
+			if err != nil {
 				t.Fatalf("#%q err: %s", tn, err)
 			}
-		}
 
-		d, err := schemaMap(tc.Schema).Diff(
-			tc.State, terraform.NewResourceConfig(c))
-		if err != nil != tc.Err {
-			t.Fatalf("#%q err: %s", tn, err)
-		}
+			if len(tc.ConfigVariables) > 0 {
+				if err := c.Interpolate(tc.ConfigVariables); err != nil {
+					t.Fatalf("#%q err: %s", tn, err)
+				}
+			}
 
-		if !reflect.DeepEqual(tc.ExpectedDiff, d) {
-			t.Fatalf("#%q:\n\nexpected:\n%#v\n\ngot:\n%#v", tn, tc.ExpectedDiff, d)
-		}
+			d, err := schemaMap(tc.Schema).Diff(
+				tc.State, terraform.NewResourceConfig(c))
+			if err != nil != tc.Err {
+				t.Fatalf("#%q err: %s", tn, err)
+			}
+
+			if !reflect.DeepEqual(tc.ExpectedDiff, d) {
+				t.Fatalf("#%q:\n\nexpected:\n%#v\n\ngot:\n%#v", tn, tc.ExpectedDiff, d)
+			}
+		})
 	}
 }
 
