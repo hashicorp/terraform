@@ -75,6 +75,10 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     }
   }
 
+  tags {
+    Environment = "production"
+  }
+
   viewer_certificate {
     cloudfront_default_certificate = true
   }
@@ -126,6 +130,8 @@ of several sub-resources - these resources are laid out below.
 
   * `restrictions` (Required) - The [restriction
     configuration](#restrictions-arguments) for this distribution (maximum one).
+
+  * `tags` - (Optional) A mapping of tags to assign to the resource.
 
   * `viewer_certificate` (Required) - The [SSL
     configuration](#viewer-certificate-arguments) for this distribution (maximum
