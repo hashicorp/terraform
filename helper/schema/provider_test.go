@@ -338,7 +338,7 @@ func TestProviderStop(t *testing.T) {
 	}
 
 	// Verify stopch blocks
-	ch := p.StopCh()
+	ch := p.StopContext().Done()
 	select {
 	case <-ch:
 		t.Fatal("should not be stopped")
@@ -376,7 +376,7 @@ func TestProviderStop_stopFirst(t *testing.T) {
 	}
 
 	select {
-	case <-p.StopCh():
+	case <-p.StopContext().Done():
 	case <-time.After(10 * time.Millisecond):
 		t.Fatal("should be stopped")
 	}

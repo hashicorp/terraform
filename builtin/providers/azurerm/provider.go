@@ -161,7 +161,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			return nil, err
 		}
 
-		client.stopCh = p.StopCh()
+		client.StopContext = p.StopContext()
 
 		err = registerAzureResourceProvidersWithSubscription(client.rivieraClient)
 		if err != nil {
