@@ -34,6 +34,7 @@ BUG FIXES:
  * provider/aws: Allow zero value for `scaling_adjustment` in `aws_autoscaling_policy` when using `SimpleScaling` [GH-8893]
  * provider/aws: Increase ECS service drain timeout [GH-9521]
  * provider/aws: Remove VPC Endpoint from state if it's not found [GH-9561]
+ * provider/aws: Delete Loging Profile from IAM User on force_destroy [GH-9583]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
 
 ## 0.7.7 (October 18, 2016)
