@@ -8,7 +8,7 @@ description: |-
 
 # azurerm\_key\_vault
 
-Create a ServiceBus Subscription.
+Create a Key Vault.
 
 ## Example Usage
 
@@ -52,8 +52,8 @@ resource "azurerm_key_vault" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) Specifies the name of the ServiceBus Subscription resource.
-    Changing this forces a new resource to be created.
+* `name` - (Required) Specifies the name of the Key Vault resource. Changing this
+    forces a new resource to be created.
 
 * `location` - (Required) Specifies the supported Azure location where the resource exists.
     Changing this forces a new resource to be created.
