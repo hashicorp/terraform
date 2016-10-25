@@ -41,6 +41,7 @@ configuration is dependent on the type, and is documented for each
 resource type in the
 [providers section](/docs/providers/index.html).
 
+<a id="meta-parameters"></a>
 ### Meta-parameters
 
 There are **meta-parameters** available to all resources:
@@ -54,6 +55,11 @@ There are **meta-parameters** available to all resources:
       resource has. These dependencies will be created before this
       resource. The dependencies are in the format of `TYPE.NAME`,
       for example `aws_instance.web`.
+
+  * `provider` (string) - The name of a specific provider to use for
+      this resource. The name is in the format of `TYPE.ALIAS`, for example,
+      `aws.west`. Where `west` is set using the `alias` attribute in a
+      provider. See [multiple provider instances](#multi-provider-instances).
 
   * `lifecycle` (configuration block) - Customizes the lifecycle
       behavior of the resource. The specific options are documented
@@ -90,6 +96,8 @@ which will match all attribute names. Using a partial string together with a
 wildcard (e.g. `"rout*"`) is **not** supported.
 
 
+<a id="connection-block"></a>
+
 ### Connection block
 
 Within a resource, you can optionally have a **connection block**.
@@ -104,6 +112,8 @@ but other data must be specified by the user.
 
 The full list of settings that can be specified are listed on
 the [provisioner connection page](/docs/provisioners/connection.html).
+
+<a id="provisioners"></a>
 
 ### Provisioners
 
@@ -150,6 +160,8 @@ resource "aws_instance" "app" {
   # ...
 }
 ```
+
+<a id="multi-provider-instances"></a>
 
 ## Multiple Provider Instances
 
