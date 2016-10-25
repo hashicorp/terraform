@@ -524,6 +524,7 @@ resource "azurerm_virtual_machine" "test" {
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
         create_option = "FromImage"
+        disk_size_gb = "45"
     }
 
     os_profile {
