@@ -5,7 +5,7 @@
 			<div class="container">
 					<div class="row">
 						<div class="col-sm-12">
-							<h2 class="tag-line" id="tag-line" style="visibility: hidden;">Write, plan, and create infrastructure</h2>
+							<h2 class="tag-line" id="tag-line" style="visibility: hidden;">Write, plan, and create infrastructure as code</h2>
 						</div>
 					</div>
 				</div>
@@ -17,10 +17,10 @@
 	<div class="container">
 		<div class="row">
 			<div class="col-md-8">
-				<p class="lead">Terraform is an open source tool that allows you to codify APIs into
-					declarative configuration files that can be shared amongst team members,
-					treated as code, edited, reviewed, and versioned. Safely and
-					predictably create, change, and improve production infrastructure.</p>
+				<p class="lead">Terraform enables you to safely and predictably create, change, and
+					improve production infrastructure. It is an open source tool that allows you to
+					codify APIs into declarative configuration files that can be shared amongst team members,
+					treated as code, edited, reviewed, and versioned. </p>
 				</div>
 				<div class="col-md-4">
 					<p class="center vert-container">
@@ -31,27 +31,6 @@
 		</div><!-- /. row -->
 	</div><!-- / .container -->
 </div><!-- / .#primary-cta -->
-
-<div class="skew-item" id="customer-logos">
-	<div class="container">
-		<div class="row">
-			<div class="col-sm-12">
-		    <p>Trusted in production by:</p>
-			</div>
-			<div class="">
-		    <ul class="customer-list">
-		      <li id="nike">Nike</li>
-		      <li id="hbo">HBO</li>
-		      <li id="capital-one">Capital One</li>
-		      <li id="target">Target</li>
-		      <li id="hotels-dot-com">Hotels.com</li>
-		      <li id="home-depot">Home Depot</li>
-		    </ul>
-			</div>
-		</div>
-	</div> <!-- / .container -->
-	<div class="feature-skew" id="customer-logos-bg"></div>
-</div> <!-- / #customer-logos -->
 
 <div id="feature-overview">
 	<div class="container">
@@ -68,13 +47,13 @@
 			<div class="col-sm-4">
 				<div class="feature-card feature-card-plan">
 					<h3>Plan</h3>
-					<p>Workflows, not technologies</p>
+					<p>Preview changes before applying</p>
 				</div>
 			</div>
 			<div class="col-sm-4">
 				<div class="feature-card feature-card-create">
 					<h3>Create</h3>
-					<p>Cloneable infrastructure</p>
+					<p>Reproducible infrastructure</p>
 				</div>
 			</div>
 		</div>
@@ -184,10 +163,9 @@
 			</div>
 
 			<div class="col-md-6 explantion">
-				<h3>Layering Resources</h3>
-        <p>Use attributes from other resources to create a layered
-					infrastructure. Terraform handles ordering resource creation
-					automatically.
+				<h3>Composing Resources</h3>
+        <p>Use attributes from other resources to create an infrastructure
+					composed of resources across multiple providers.
 				</p>
 			</div>
 
@@ -200,17 +178,17 @@
 							<div class="">
 								<div class="display">
 								<p>resource <span class="txt-spe">"digitalocean_droplet"</span> <span class="txt-str">"web"</span> {</p>
-								<p>    name = <span class="txt-str">"tf-web"</span></p>
-								<p>    size = <span class="txt-str">"512mb"</span></p>
-								<p>    image = <span class="txt-str">"centos-5-8-x32"</span></p>
-								<p>    region = <span class="txt-str">"sfo1"</span></p>
+								<p>  name   = <span class="txt-str">"tf-web"</span></p>
+								<p>  size   = <span class="txt-str">"512mb"</span></p>
+								<p>  image  = <span class="txt-str">"centos-5-8-x32"</span></p>
+								<p>  region = <span class="txt-str">"sfo1"</span></p>
 								<p>}</p>
 								<p> </p>
 								<p>resource <span class="txt-spe">"dnsimple_record"</span> <span class="txt-str">"hello"</span> {</p>
-								<p>    domain = <span class="txt-str">"example.com"</span></p>
-								<p>    name = <span class="txt-str">"test"</span></p>
-								<p>    value = <span class="txt-str">"<span class="txt-var">${digitalocean_droplet.web.ipv4_address}</span>"</span></p>
-								<p>    type = <span class="txt-str">"A"</span></p>
+								<p>  domain = <span class="txt-str">"example.com"</span></p>
+								<p>  name   = <span class="txt-str">"test"</span></p>
+								<p>  value  = <span class="txt-str">"<span class="txt-var">${digitalocean_droplet.web.ipv4_address}</span>"</span></p>
+								<p>  type   = <span class="txt-str">"A"</span></p>
 								<p>}</p>
 								</div>
 							</div>
