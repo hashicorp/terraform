@@ -63,6 +63,8 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
 			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
 
+			"azurerm_eventhub_namespace": resourceArmEventHubNamespace(),
+
 			"azurerm_key_vault":                 resourceArmKeyVault(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),
