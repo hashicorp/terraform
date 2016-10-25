@@ -190,6 +190,16 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 				return fmt.Errorf("Error deleting access key %s: %s", k, err)
 			}
 		}
+
+		_, err = iamconn.DeleteLoginProfile(&iam.DeleteLoginProfileInput{
+			UserName: aws.String(d.Id()),
+		})
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				return nil
+			}
+			return fmt.Errorf("Error deleting Account Login Profile: %s", err)
+		}
 	}
 
 	request := &iam.DeleteUserInput{
