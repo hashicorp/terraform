@@ -579,6 +579,20 @@ func (c *Config) Validate() error {
 						"together with a wildcard: %s", n, v))
 			}
 		}
+
+		// Verify ignore_changes has no interpolations
+		rc, err := NewRawConfig(map[string]interface{}{
+			"root": r.Lifecycle.IgnoreChanges,
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"%s: lifecycle ignore_changes error: %s",
+				n, err))
+		} else if len(rc.Interpolations) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s: lifecycle ignore_changes cannot contain interpolations",
+				n))
+		}
 	}
 
 	for source, vs := range vars {
