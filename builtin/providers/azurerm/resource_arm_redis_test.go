@@ -154,7 +154,7 @@ func testCheckAzureRMRedisExists(name string) resource.TestCheckFunc {
 		redisName := rs.Primary.Attributes["name"]
 		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
 		if !hasResourceGroup {
-			return fmt.Errorf("Bad: no resource group found in state for public ip: %s", redisName)
+			return fmt.Errorf("Bad: no resource group found in state for Redis Instance: %s", redisName)
 		}
 
 		conn := testAccProvider.Meta().(*ArmClient).redisClient

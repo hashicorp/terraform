@@ -16,6 +16,9 @@ func resourceArmRedis() *schema.Resource {
 		Read:   resourceArmRedisRead,
 		Update: resourceArmRedisCreate,
 		Delete: resourceArmRedisDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -46,27 +49,23 @@ func resourceArmRedis() *schema.Resource {
 			"capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: false,
 			},
 
 			"family": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     false,
 				ValidateFunc: validateRedisFamily,
 			},
 
 			"sku_name": {
 				Type:         schema.TypeString,
 				Required:     true,
-				ForceNew:     false,
 				ValidateFunc: validateRedisSku,
 			},
 
 			"shard_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				ForceNew: false,
 				// NOTE: this only applies to Premium SKU's
 			},
 
@@ -74,7 +73,6 @@ func resourceArmRedis() *schema.Resource {
 				Type:     schema.TypeBool,
 				Default:  false,
 				Optional: true,
-				ForceNew: false,
 			},
 
 			"redis_configuration": {
