@@ -115,6 +115,26 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	}
 
+	// Check for the new destroy
+	if terraform.X_newDestroy {
+		desc := "Experimental new destroy graph has been enabled. This may still\n" +
+			"have bugs, and should be used with care. If you'd like to continue,\n" +
+			"you must enter exactly 'yes' as a response."
+		v, err := c.UIInput().Input(&terraform.InputOpts{
+			Id:          "Xnew-destroy",
+			Query:       "Experimental feature enabled: new destroy graph. Continue?",
+			Description: desc,
+		})
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
+			return 1
+		}
+		if v != "yes" {
+			c.Ui.Output("Apply cancelled.")
+			return 1
+		}
+	}
+
 	// Build the context based on the arguments given
 	ctx, planned, err := c.Context(contextOpts{
 		Destroy:     c.Destroy,

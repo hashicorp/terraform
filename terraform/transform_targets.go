@@ -28,8 +28,10 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 		if err != nil {
 			return err
 		}
+
 		t.ParsedTargets = addrs
 	}
+
 	if len(t.ParsedTargets) > 0 {
 		targetedNodes, err := t.selectTargetedNodes(g, t.ParsedTargets)
 		if err != nil {
@@ -50,6 +52,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -62,6 +65,7 @@ func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, error) {
 		}
 		addrs[i] = *ta
 	}
+
 	return addrs, nil
 }
 
@@ -107,6 +111,7 @@ func (t *TargetsTransformer) selectTargetedNodes(
 			}
 		}
 	}
+
 	return targetedNodes, nil
 }
 
@@ -116,12 +121,14 @@ func (t *TargetsTransformer) nodeIsTarget(
 	if !ok {
 		return false
 	}
+
 	addr := r.ResourceAddress()
 	for _, targetAddr := range addrs {
 		if targetAddr.Equals(addr) {
 			return true
 		}
 	}
+
 	return false
 }
 

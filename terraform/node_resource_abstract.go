@@ -28,6 +28,8 @@ type NodeAbstractResource struct {
 
 	Config        *config.Resource // Config is the resource in the config
 	ResourceState *ResourceState   // ResourceState is the ResourceState for this
+
+	Targets []ResourceAddress // Set from GraphNodeTargetable
 }
 
 func (n *NodeAbstractResource) Name() string {
@@ -109,6 +111,16 @@ func (n *NodeAbstractResource) ProvisionedBy() []string {
 // GraphNodeResource, GraphNodeAttachResourceState
 func (n *NodeAbstractResource) ResourceAddr() *ResourceAddress {
 	return n.Addr
+}
+
+// GraphNodeAddressable, TODO: remove, used by target, should unify
+func (n *NodeAbstractResource) ResourceAddress() *ResourceAddress {
+	return n.ResourceAddr()
+}
+
+// GraphNodeTargetable
+func (n *NodeAbstractResource) SetTargets(targets []ResourceAddress) {
+	n.Targets = targets
 }
 
 // GraphNodeAttachResourceState

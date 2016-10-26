@@ -21,6 +21,10 @@ var (
 	// X_newApply will enable the new apply graph. This will be removed
 	// and be on by default in 0.8.0.
 	X_newApply = false
+
+	// X_newDestroy will enable the new destroy graph. This will be removed
+	// and be on by default in 0.8.0.
+	X_newDestroy = false
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -371,6 +375,8 @@ func (c *Context) Apply() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
+	newGraphEnabled := (c.destroy && X_newDestroy) || (!c.destroy && X_newApply)
+
 	// Build the original graph. This is before the new graph builders
 	// coming in 0.8. We do this for shadow graphing.
 	oldGraph, err := c.Graph(&ContextGraphOpts{Validate: true})
@@ -392,12 +398,13 @@ func (c *Context) Apply() (*State, error) {
 		State:        c.state,
 		Providers:    c.components.ResourceProviders(),
 		Provisioners: c.components.ResourceProvisioners(),
+		Destroy:      c.destroy,
 	}).Build(RootModulePath)
-	if err != nil && !X_newApply {
+	if err != nil && !newGraphEnabled {
 		// If we had an error graphing but we're not using this graph, just
 		// set it to nil and record it as a shadow error.
 		c.shadowErr = multierror.Append(c.shadowErr, fmt.Errorf(
-			"Error building new apply graph: %s", err))
+			"Error building new graph: %s", err))
 
 		newGraph = nil
 		err = nil
@@ -418,16 +425,11 @@ func (c *Context) Apply() (*State, error) {
 	//
 	real := oldGraph
 	shadow := newGraph
-	if c.destroy {
-		log.Printf("[WARN] terraform: real graph is original, shadow is nil")
-		shadow = nil
+	if newGraphEnabled {
+		log.Printf("[WARN] terraform: real graph is experiment, shadow is experiment")
+		real = shadow
 	} else {
-		if X_newApply {
-			log.Printf("[WARN] terraform: real graph is Xnew-apply, shadow is Xnew-apply")
-			real = shadow
-		} else {
-			log.Printf("[WARN] terraform: real graph is original, shadow is Xnew-apply")
-		}
+		log.Printf("[WARN] terraform: real graph is original, shadow is experiment")
 	}
 
 	// For now, always shadow with the real graph for verification. We don't
@@ -505,8 +507,20 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diff.init()
 	c.diffLock.Unlock()
 
-	// Build the graph
-	graph, err := c.Graph(&ContextGraphOpts{Validate: true})
+	// Build the graph. We have a branch here since for the pure-destroy
+	// plan (c.destroy) we use a much simpler graph builder that simply
+	// walks the state and reverses edges.
+	var graph *Graph
+	var err error
+	if c.destroy && X_newDestroy {
+		graph, err = (&DestroyPlanGraphBuilder{
+			Module:  c.module,
+			State:   c.state,
+			Targets: c.targets,
+		}).Build(RootModulePath)
+	} else {
+		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -529,11 +543,16 @@ func (c *Context) Plan() (*Plan, error) {
 		p.Diff.DeepCopy()
 	}
 
-	// Now that we have a diff, we can build the exact graph that Apply will use
-	// and catch any possible cycles during the Plan phase.
-	if _, err := c.Graph(&ContextGraphOpts{Validate: true}); err != nil {
-		return nil, err
+	// We don't do the reverification during the new destroy plan because
+	// it will use a different apply process.
+	if !(c.destroy && X_newDestroy) {
+		// Now that we have a diff, we can build the exact graph that Apply will use
+		// and catch any possible cycles during the Plan phase.
+		if _, err := c.Graph(&ContextGraphOpts{Validate: true}); err != nil {
+			return nil, err
+		}
 	}
+
 	var errs error
 	if len(walker.ValidationErrors) > 0 {
 		errs = multierror.Append(errs, walker.ValidationErrors...)
