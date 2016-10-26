@@ -20,6 +20,7 @@ FEATURES:
  * **New Resource:** `azurerm_eventhub_namespace` [GH-9297]
  * **New Resource:** `cloudstack_security_group` [GH-9103]
  * **New DataSource:** `azurerm_client_config` [GH-9478]
+ * **New Core Interpolation:** `title` [GH-9087]
 
 IMPROVEMENTS:
 
