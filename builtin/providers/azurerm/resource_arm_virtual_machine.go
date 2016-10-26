@@ -649,7 +649,7 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 			return fmt.Errorf("Error expanding OS Disk: %s", err)
 		}
 
-		if err = resourceArmVirtualMachineDeleteVhd(*osDisk.Vhd.URI, resGroup, meta); err != nil {
+		if err = resourceArmVirtualMachineDeleteVhd(*osDisk.Vhd.URI, meta); err != nil {
 			return fmt.Errorf("Error deleting OS Disk VHD: %s", err)
 		}
 	}
@@ -664,7 +664,7 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 		}
 
 		for _, disk := range disks {
-			if err = resourceArmVirtualMachineDeleteVhd(*disk.Vhd.URI, resGroup, meta); err != nil {
+			if err = resourceArmVirtualMachineDeleteVhd(*disk.Vhd.URI, meta); err != nil {
 				return fmt.Errorf("Error deleting Data Disk VHD: %s", err)
 			}
 		}
@@ -673,7 +673,7 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceArmVirtualMachineDeleteVhd(uri, resGroup string, meta interface{}) error {
+func resourceArmVirtualMachineDeleteVhd(uri string, meta interface{}) error {
 	vhdURL, err := url.Parse(uri)
 	if err != nil {
 		return fmt.Errorf("Cannot parse Disk VHD URI: %s", err)
@@ -685,13 +685,18 @@ func resourceArmVirtualMachineDeleteVhd(uri, resGroup string, meta interface{}) 
 	containerName := path[0]
 	blobName := path[1]
 
-	blobClient, saExists, err := meta.(*ArmClient).getBlobStorageClientForStorageAccount(resGroup, storageAccountName)
+	storageAccountResourceGroupName, err := findStorageAccountResourceGroup(meta, storageAccountName)
+	if err != nil {
+		return fmt.Errorf("Error finding resource group for storage account %s: %s", storageAccountName, err)
+	}
+
+	blobClient, saExists, err := meta.(*ArmClient).getBlobStorageClientForStorageAccount(storageAccountResourceGroupName, storageAccountName)
 	if err != nil {
 		return fmt.Errorf("Error creating blob store client for VHD deletion: %s", err)
 	}
 
 	if !saExists {
-		log.Printf("[INFO] Storage Account %q in resource group %q doesn't exist so the VHD blob won't exist", storageAccountName, resGroup)
+		log.Printf("[INFO] Storage Account %q in resource group %q doesn't exist so the VHD blob won't exist", storageAccountName, storageAccountResourceGroupName)
 		return nil
 	}
 
