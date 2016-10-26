@@ -40,7 +40,7 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).ec2conn
 	req := &ec2.DescribeSecurityGroupsInput{}
 
-	if id := d.Get("id"); id != "" {
+	if  id, idExists := d.GetOk("id"); idExists {
 		req.GroupIds = []*string{aws.String(id.(string))}
 	}
 
@@ -61,7 +61,7 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 		req.Filters = nil
 	}
 
-	log.Printf("[DEBUG] Describe Security Groups %s\n", req)
+	log.Printf("[DEBUG] Describe Security Groups %v\n", req)
 	resp, err := conn.DescribeSecurityGroups(req)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("no matching SecurityGroup found")
 	}
 	if len(resp.SecurityGroups) > 1 {
-		return fmt.Errorf("multiple Security Groups matched; use additional constraints to reduce matches to a single Security Groups")
+		return fmt.Errorf("multiple Security Groups matched; use additional constraints to reduce matches to a single Security Group")
 	}
 
 	sg := resp.SecurityGroups[0]
