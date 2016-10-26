@@ -73,6 +73,32 @@ func TestAccFWRuleV1_basic(t *testing.T) {
 	})
 }
 
+func TestAccFWRuleV1_anyProtocol(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckFWRuleV1Destroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testFirewallRuleAnyProtocol,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckFWRuleV1Exists(
+						"openstack_fw_rule_v1.rule_1",
+						&rules.Rule{
+							Name:            "rule_1",
+							Description:     "Allow any protocol",
+							Protocol:        "",
+							Action:          "allow",
+							IPVersion:       4,
+							SourceIPAddress: "192.168.199.0/24",
+							Enabled:         true,
+						}),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckFWRuleV1Destroy(s *terraform.State) error {
 
 	config := testAccProvider.Meta().(*Config)
@@ -176,5 +202,17 @@ resource "openstack_fw_rule_v1" "accept_test" {
 	source_port = "666"
 	destination_port = "777"
 	enabled = false
+}
+`
+
+const testFirewallRuleAnyProtocol = `
+resource "openstack_fw_rule_v1" "rule_1" {
+	name = "rule_1"
+	description = "Allow any protocol"
+	protocol = "any"
+	action = "allow"
+	ip_version = 4
+	source_ip_address = "192.168.199.0/24"
+	enabled = true
 }
 `
