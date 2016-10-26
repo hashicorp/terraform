@@ -2,6 +2,7 @@ package gitlab
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/xanzy/go-gitlab"
@@ -69,19 +70,41 @@ func resourceGitlabProject() *schema.Resource {
 func resourceGitlabProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gitlab.Client)
 	options := &gitlab.CreateProjectOptions{
-		Name:                 gitlab.String(d.Get("name").(string)),
-		Description:          gitlab.String(d.Get("description").(string)),
-		IssuesEnabled:        gitlab.Bool(d.Get("issues_enabled").(bool)),
-		MergeRequestsEnabled: gitlab.Bool(d.Get("merge_requests_enabled").(bool)),
-		WikiEnabled:          gitlab.Bool(d.Get("wiki_enabled").(bool)),
-		SnippetsEnabled:      gitlab.Bool(d.Get("snippets_enabled").(bool)),
-		VisibilityLevel:      stringToVisibilityLevel(d.Get("visibility_level").(string)),
+		Name: gitlab.String(d.Get("name").(string)),
 	}
+
+	if v, ok := d.GetOk("description"); ok {
+		options.Description = gitlab.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("issues_enabled"); ok {
+		options.IssuesEnabled = gitlab.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("merge_requests_enabled"); ok {
+		options.MergeRequestsEnabled = gitlab.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("wiki_enabled"); ok {
+		options.WikiEnabled = gitlab.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("snippets_enabled"); ok {
+		options.SnippetsEnabled = gitlab.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("visibility_level"); ok {
+		options.VisibilityLevel = stringToVisibilityLevel(v.(string))
+	}
+
+	log.Printf("[DEBUG] making create request with options %+v", options)
 
 	project, _, err := client.Projects.CreateProject(options)
 	if err != nil {
 		return err
 	}
+
+	log.Printf("[DEBUG] created project %+v", project)
 
 	d.SetId(fmt.Sprintf("%d", project.ID))
 
@@ -94,6 +117,8 @@ func resourceGitlabProjectRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	log.Printf("[DEBUG] read state of project %+v", project)
 
 	d.Set("name", project.Name)
 	d.Set("description", project.Description)
@@ -113,20 +138,53 @@ func resourceGitlabProjectRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceGitlabProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gitlab.Client)
-	edit := &gitlab.EditProjectOptions{
-		Name:                 gitlab.String(d.Get("name").(string)),
-		Description:          gitlab.String(d.Get("description").(string)),
-		DefaultBranch:        gitlab.String(d.Get("default_branch").(string)),
-		IssuesEnabled:        gitlab.Bool(d.Get("issues_enabled").(bool)),
-		MergeRequestsEnabled: gitlab.Bool(d.Get("merge_requests_enabled").(bool)),
-		WikiEnabled:          gitlab.Bool(d.Get("wiki_enabled").(bool)),
-		SnippetsEnabled:      gitlab.Bool(d.Get("snippets_enabled").(bool)),
-		VisibilityLevel:      stringToVisibilityLevel(d.Get("visibility_level").(string)),
+
+	options := &gitlab.EditProjectOptions{
+		Name: gitlab.String(d.Get("name").(string)),
 	}
-	_, _, err := client.Projects.EditProject(d.Id(), edit)
+
+	if d.HasChange("description") {
+		options.Description = gitlab.String(d.Get("description").(string))
+	}
+
+	if d.HasChange("default_branch") {
+		options.DefaultBranch = gitlab.String(d.Get("description").(string))
+	}
+
+	if d.HasChange("issues_enabled") {
+		v := d.Get("issues_enabled").(bool)
+		log.Printf("[DEBUG] changing issues_enabled to %v", v)
+		options.IssuesEnabled = &v
+	}
+
+	if d.HasChange("merge_requests_enabled") {
+		options.MergeRequestsEnabled = gitlab.Bool(d.Get("merge_requests_enabled").(bool))
+	}
+
+	if d.HasChange("wiki_enabled") {
+		options.WikiEnabled = gitlab.Bool(d.Get("wiki_enabled").(bool))
+	}
+
+	if d.HasChange("snippets_enabled") {
+		options.SnippetsEnabled = gitlab.Bool(d.Get("snippets_enabled").(bool))
+	}
+
+	if d.HasChange("visibility_level") {
+		options.VisibilityLevel = stringToVisibilityLevel(d.Get("visibility_level").(string))
+	}
+
+	log.Printf("[DEBUG] edit with options %+v", options)
+
+	project, response, err := client.Projects.EditProject(d.Id(), options)
 	if err != nil {
 		return err
 	}
+
+	if response.Response.StatusCode != 200 {
+		log.Printf("[INFO] edit failed")
+	}
+
+	log.Printf("[DEBUG] project edited %+v", project)
 
 	return resourceGitlabProjectRead(d, meta)
 }
