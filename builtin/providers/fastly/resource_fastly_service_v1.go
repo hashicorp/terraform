@@ -172,6 +172,12 @@ func resourceServiceV1() *schema.Resource {
 							Default:     true,
 							Description: "Be strict on checking SSL certs",
 						},
+						"ssl_hostname": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							Default:     "",
+							Description: "SSL certificate hostname",
+						},
 						// UseSSL is something we want to support in the future, but
 						// requires SSL setup we don't yet have
 						// TODO: Provide all SSL fields from https://docs.fastly.com/api/config#backend
@@ -812,6 +818,7 @@ func resourceServiceV1Update(d *schema.ResourceData, meta interface{}) error {
 					Address:             df["address"].(string),
 					AutoLoadbalance:     df["auto_loadbalance"].(bool),
 					SSLCheckCert:        df["ssl_check_cert"].(bool),
+					SSLHostname:         df["ssl_hostname"].(string),
 					Port:                uint(df["port"].(int)),
 					BetweenBytesTimeout: uint(df["between_bytes_timeout"].(int)),
 					ConnectTimeout:      uint(df["connect_timeout"].(int)),
@@ -1493,6 +1500,7 @@ func flattenBackends(backendList []*gofastly.Backend) []map[string]interface{} {
 			"max_conn":              int(b.MaxConn),
 			"port":                  int(b.Port),
 			"ssl_check_cert":        b.SSLCheckCert,
+			"ssl_hostname":          b.SSLHostname,
 			"weight":                int(b.Weight),
 		}
 
