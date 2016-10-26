@@ -36,6 +36,7 @@ IMPROVEMENTS:
  * provider/google: enhance service scope list [GH-9442]
  * provider/openstack: Added value_specs to openstack_networking_port_v2, allowing vendor information [GH-9551]
  * provider/openstack: Added value_specs to openstack_networking_floatingip_v2, allowing vendor information [GH-9552]
+ * provider/openstack: Added value_specs to openstack_compute_keypair_v2, allowing vendor information [GH-9554]
 
 BUG FIXES:
 
