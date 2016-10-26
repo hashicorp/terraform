@@ -21,7 +21,7 @@ func TestFastlyServiceV1_BuildHeaders(t *testing.T) {
 			remote: &gofastly.CreateHeaderInput{
 				Name:        "someheadder",
 				Action:      gofastly.HeaderActionDelete,
-				IgnoreIfSet: true,
+				IgnoreIfSet: gofastly.CBool(true),
 				Type:        gofastly.HeaderTypeCache,
 				Destination: "http.aws-id",
 				Priority:    uint(100),
@@ -45,6 +45,7 @@ func TestFastlyServiceV1_BuildHeaders(t *testing.T) {
 			remote: &gofastly.CreateHeaderInput{
 				Name:        "someheadder",
 				Action:      gofastly.HeaderActionSet,
+				IgnoreIfSet: gofastly.CBool(false),
 				Type:        gofastly.HeaderTypeCache,
 				Destination: "http.aws-id",
 				Priority:    uint(100),
