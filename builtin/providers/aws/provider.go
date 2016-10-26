@@ -261,6 +261,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_user_policy":                          resourceAwsIamUserPolicy(),
 			"aws_iam_user_ssh_key":                         resourceAwsIamUserSshKey(),
 			"aws_iam_user":                                 resourceAwsIamUser(),
+			"aws_iam_user_login_profile":                   resourceAwsIamUserLoginProfile(),
 			"aws_instance":                                 resourceAwsInstance(),
 			"aws_internet_gateway":                         resourceAwsInternetGateway(),
 			"aws_key_pair":                                 resourceAwsKeyPair(),
