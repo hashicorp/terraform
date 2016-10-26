@@ -45,6 +45,8 @@ The following arguments are supported:
 * `fixed_ip` - Fixed IP of the port to associate with this floating IP. Required if
 the port has multiple fixed IPs.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Attributes Reference
 
 The following attributes are exported:
