@@ -95,7 +95,6 @@ type Config struct {
 }
 
 type AWSClient struct {
-<<<<<<< ef5ceb96819ba11f5e1cb4c189be405edff64b6a
 	cfconn                *cloudformation.CloudFormation
 	cloudfrontconn        *cloudfront.CloudFront
 	cloudtrailconn        *cloudtrail.CloudTrail
@@ -103,7 +102,7 @@ type AWSClient struct {
 	cloudwatchlogsconn    *cloudwatchlogs.CloudWatchLogs
 	cloudwatcheventsconn  *cloudwatchevents.CloudWatchEvents
 	dsconn                *directoryservice.DirectoryService
-	dcconn             		*directconnect.DirectConnect
+	dcconn                *directconnect.DirectConnect
 	dynamodbconn          *dynamodb.DynamoDB
 	ec2conn               *ec2.EC2
 	ecrconn               *ecr.ECR
