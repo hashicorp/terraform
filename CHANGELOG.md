@@ -18,6 +18,7 @@ FEATURES:
  * **New Resource:** `azurerm_key_vault` [GH-9478]
  * **New Resource:** `azurerm_storage_share` [GH-8674]
  * **New Resource:** `azurerm_eventhub_namespace` [GH-9297]
+ * **New Resource:** `cloudstack_security_group` [GH-9103]
  * **New DataSource:** `azurerm_client_config` [GH-9478]
 
 IMPROVEMENTS:
