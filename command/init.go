@@ -57,7 +57,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// Set the state out path to be the path requested for the module
 	// to be copied. This ensures any remote states gets setup in the
-	// proper directory.
+	// proper directory. This overrides $TF_DATA_DIR!
 	c.Meta.dataDir = filepath.Join(path, DefaultDataDir)
 
 	source := args[0]

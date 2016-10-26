@@ -112,7 +112,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		f.Close()
 		if err == nil {
 			// Setup our state
-			state, statePath, err := StateFromPlan(m.statePath, m.stateOutPath, plan)
+			state, statePath, err := StateFromPlan(m.statePath, m.stateOutPath, m.DataDir(), plan)
 			if err != nil {
 				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
@@ -182,12 +182,13 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 
 // DataDir returns the directory where local data will be stored.
 func (m *Meta) DataDir() string {
-	dataDir := DefaultDataDir
 	if m.dataDir != "" {
-		dataDir = m.dataDir
+		return m.dataDir
 	}
-
-	return dataDir
+	if envVar := os.Getenv(DataDirEnvVar); envVar != "" {
+		return envVar
+	}
+	return DefaultDataDir
 }
 
 const (

@@ -202,6 +202,9 @@ func (c *PushCommand) Run(args []string) int {
 
 	// Build the archiving options, which includes everything it can
 	// by default according to VCS rules but forcing the data directory.
+	// Note that we always use DefaultDataDir here, ignoring $TF_DATA_DIR,
+	// because this is defining the structure of the archive we send rather
+	// than the place we find the files locally.
 	archiveOpts := &archive.ArchiveOpts{
 		VCS: archiveVCS,
 		Extra: map[string]string{

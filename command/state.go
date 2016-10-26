@@ -169,7 +169,7 @@ func State(opts *StateOpts) (*StateResult, error) {
 
 // StateFromPlan gets our state from the plan.
 func StateFromPlan(
-	localPath, outPath string,
+	localPath, outPath, dataDir string,
 	plan *terraform.Plan) (state.State, string, error) {
 	var result state.State
 	resultPath := localPath
@@ -179,7 +179,7 @@ func StateFromPlan(
 
 		// It looks like we have a remote state in the plan, so
 		// we have to initialize that.
-		resultPath = filepath.Join(DefaultDataDir, DefaultStateFilename)
+		resultPath = filepath.Join(dataDir, DefaultStateFilename)
 		result, err = remoteState(plan.State, resultPath, false)
 		if err != nil {
 			return nil, "", err
