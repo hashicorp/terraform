@@ -30,6 +30,9 @@ type ApplyGraphBuilder struct {
 
 	// DisableReduce, if true, will not reduce the graph. Great for testing.
 	DisableReduce bool
+
+	// Destroy, if true, represents a pure destroy operation
+	Destroy bool
 }
 
 // See GraphBuilder
@@ -77,7 +80,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{Module: b.Module, State: b.State},
-		&CBDEdgeTransformer{Module: b.Module, State: b.State},
+		GraphTransformIf(
+			func() bool { return !b.Destroy },
+			&CBDEdgeTransformer{Module: b.Module, State: b.State},
+		),
 
 		// Create all the providers
 		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},
@@ -87,8 +93,13 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&AttachProviderConfigTransformer{Module: b.Module},
 
 		// Provisioner-related transformations
-		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
-		&ProvisionerTransformer{},
+		GraphTransformIf(
+			func() bool { return !b.Destroy },
+			GraphTransformMulti(
+				&MissingProvisionerTransformer{Provisioners: b.Provisioners},
+				&ProvisionerTransformer{},
+			),
+		),
 
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},

@@ -24,6 +24,7 @@ const fixtureDir = "./test-fixtures"
 func TestMain(m *testing.M) {
 	// Experimental features
 	xNewApply := flag.Bool("Xnew-apply", false, "Experiment: new apply graph")
+	xNewDestroy := flag.Bool("Xnew-destroy", false, "Experiment: new destroy graph")
 
 	// Normal features
 	shadow := flag.Bool("shadow", true, "Enable shadow graph")
@@ -32,6 +33,7 @@ func TestMain(m *testing.M) {
 
 	// Setup experimental features
 	X_newApply = *xNewApply
+	X_newDestroy = *xNewDestroy
 
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
@@ -1137,7 +1139,6 @@ DIFF:
 DESTROY: aws_instance.foo
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo
 
 STATE:
@@ -1154,10 +1155,8 @@ const testTerraformPlanModuleDestroyCycleStr = `
 DIFF:
 
 module.a_module:
-  DESTROY MODULE
   DESTROY: aws_instance.a
 module.b_module:
-  DESTROY MODULE
   DESTROY: aws_instance.b
 
 STATE:
@@ -1174,7 +1173,6 @@ const testTerraformPlanModuleDestroyMultivarStr = `
 DIFF:
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo.0
   DESTROY: aws_instance.foo.1
 
