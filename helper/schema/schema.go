@@ -288,9 +288,21 @@ func (s *Schema) finalizeDiff(
 		d.New = normalizeBoolString(d.New)
 	}
 
+	if s.Computed && !d.NewRemoved && d.New == "" {
+		// Computed attribute without a new value set
+		d.NewComputed = true
+	}
+
 	if s.ForceNew {
-		// Force new, set it to true in the diff
-		d.RequiresNew = true
+		// ForceNew, mark that this field is requiring new under the
+		// following conditions, explained below:
+		//
+		//   * Old != New - There is a change in value. This field
+		//       is therefore causing a new resource.
+		//
+		//   * NewComputed - This field is being computed, hence a
+		//       potential change in value, mark as causing a new resource.
+		d.RequiresNew = d.Old != d.New || d.NewComputed
 	}
 
 	if d.NewRemoved {
