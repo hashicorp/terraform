@@ -107,6 +107,10 @@ func (s *SecurityGroupService) CreateSecurityGroup(p *CreateSecurityGroupParams)
 		return nil, err
 	}
 
+	if resp, err = getRawValue(resp); err != nil {
+		return nil, err
+	}
+
 	var r CreateSecurityGroupResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -329,8 +333,8 @@ func (p *AuthorizeSecurityGroupIngressParams) toURLValues() url.Values {
 	if v, found := p.p["usersecuritygrouplist"]; found {
 		i := 0
 		for k, vv := range v.(map[string]string) {
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].key", i), k)
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].value", i), vv)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].account", i), k)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].group", i), vv)
 			i++
 		}
 	}
@@ -617,8 +621,8 @@ func (p *AuthorizeSecurityGroupEgressParams) toURLValues() url.Values {
 	if v, found := p.p["usersecuritygrouplist"]; found {
 		i := 0
 		for k, vv := range v.(map[string]string) {
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].key", i), k)
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].value", i), vv)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].account", i), k)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].group", i), vv)
 			i++
 		}
 	}
