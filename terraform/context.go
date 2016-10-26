@@ -11,20 +11,7 @@ import (
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-)
-
-// Variables prefixed with X_ are experimental features. They can be enabled
-// by setting them to true. This should be done before any API is called.
-// These should be expected to be removed at some point in the future; each
-// option should mention a schedule.
-var (
-	// X_newApply will enable the new apply graph. This will be removed
-	// and be on by default in 0.8.0.
-	X_newApply = false
-
-	// X_newDestroy will enable the new destroy graph. This will be removed
-	// and be on by default in 0.8.0.
-	X_newDestroy = false
+	"github.com/hashicorp/terraform/helper/experiment"
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -55,11 +42,6 @@ var (
 	// Plan operation, effectively testing the Diff DeepCopy whenever
 	// a Plan occurs. This is enabled for tests.
 	contextTestDeepCopyOnPlan = false
-
-	// contextTestShadow will enable the shadow graph for the new graphs.
-	// This is enabled for tests. This will be removed very shortly and
-	// be enabled by default.
-	contextTestShadow = false
 )
 
 // ContextOpts are the user-configurable options to create a context with
@@ -375,6 +357,8 @@ func (c *Context) Apply() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
+	X_newApply := experiment.Enabled(experiment.X_newApply)
+	X_newDestroy := experiment.Enabled(experiment.X_newDestroy)
 	newGraphEnabled := (c.destroy && X_newDestroy) || (!c.destroy && X_newApply)
 
 	// Build the original graph. This is before the new graph builders
@@ -430,12 +414,6 @@ func (c *Context) Apply() (*State, error) {
 		real = shadow
 	} else {
 		log.Printf("[WARN] terraform: real graph is original, shadow is experiment")
-	}
-
-	// For now, always shadow with the real graph for verification. We don't
-	// want to shadow yet with the new graphs.
-	if !contextTestShadow {
-		shadow = real
 	}
 
 	// Determine the operation
@@ -506,6 +484,9 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diff = new(Diff)
 	c.diff.init()
 	c.diffLock.Unlock()
+
+	// Used throughout below
+	X_newDestroy := experiment.Enabled(experiment.X_newDestroy)
 
 	// Build the graph. We have a branch here since for the pure-destroy
 	// plan (c.destroy) we use a much simpler graph builder that simply
@@ -713,6 +694,11 @@ func (c *Context) walk(
 	// Keep track of the "real" context which is the context that does
 	// the real work: talking to real providers, modifying real state, etc.
 	realCtx := c
+
+	// If we don't want shadowing, remove it
+	if !experiment.Enabled(experiment.X_shadow) {
+		shadow = nil
+	}
 
 	// If we have a shadow graph, walk that as well
 	var shadowCtx *Context
