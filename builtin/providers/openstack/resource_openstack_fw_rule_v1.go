@@ -88,11 +88,12 @@ func resourceFWRuleV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	enabled := d.Get("enabled").(bool)
 	ipVersion := resourceFWRuleV1DetermineIPVersion(d.Get("ip_version").(int))
+	protocol := resourceFWRuleV1DetermineProtocol(d.Get("protocol").(string))
 
 	ruleConfiguration := rules.CreateOpts{
 		Name:                 d.Get("name").(string),
 		Description:          d.Get("description").(string),
-		Protocol:             d.Get("protocol").(string),
+		Protocol:             protocol,
 		Action:               d.Get("action").(string),
 		IPVersion:            ipVersion,
 		SourceIPAddress:      d.Get("source_ip_address").(string),
@@ -101,11 +102,6 @@ func resourceFWRuleV1Create(d *schema.ResourceData, meta interface{}) error {
 		DestinationPort:      d.Get("destination_port").(string),
 		Enabled:              &enabled,
 		TenantID:             d.Get("tenant_id").(string),
-	}
-
-	if v, ok := d.GetOk("ip_version"); ok {
-		ipVersion := resourceFWRuleV1DetermineIPVersion(v.(int))
-		ruleConfiguration.IPVersion = ipVersion
 	}
 
 	log.Printf("[DEBUG] Create firewall rule: %#v", ruleConfiguration)
@@ -139,7 +135,6 @@ func resourceFWRuleV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Read OpenStack Firewall Rule %s: %#v", d.Id(), rule)
 
-	d.Set("protocol", rule.Protocol)
 	d.Set("action", rule.Action)
 	d.Set("name", rule.Name)
 	d.Set("description", rule.Description)
@@ -149,6 +144,12 @@ func resourceFWRuleV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("source_port", rule.SourcePort)
 	d.Set("destination_port", rule.DestinationPort)
 	d.Set("enabled", rule.Enabled)
+
+	if rule.Protocol == "" {
+		d.Set("protocol", "any")
+	} else {
+		d.Set("protocol", rule.Protocol)
+	}
 
 	return nil
 }
@@ -258,4 +259,20 @@ func resourceFWRuleV1DetermineIPVersion(ipv int) gophercloud.IPVersion {
 	}
 
 	return ipVersion
+}
+
+func resourceFWRuleV1DetermineProtocol(p string) rules.Protocol {
+	var protocol rules.Protocol
+	switch p {
+	case "any":
+		protocol = rules.ProtocolAny
+	case "icmp":
+		protocol = rules.ProtocolICMP
+	case "tcp":
+		protocol = rules.ProtocolTCP
+	case "udp":
+		protocol = rules.ProtocolUDP
+	}
+
+	return protocol
 }
