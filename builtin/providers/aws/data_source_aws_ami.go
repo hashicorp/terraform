@@ -45,9 +45,10 @@ func dataSourceAwsAmi() *schema.Resource {
 				},
 			},
 			"name_regex": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateNameRegex,
 			},
 			"most_recent": {
 				Type:     schema.TypeBool,
@@ -496,4 +497,15 @@ func amiTagsHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["key"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
 	return hashcode.String(buf.String())
+}
+
+func validateNameRegex(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if _, err := regexp.Compile(value); err != nil {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid regular expression: %s",
+			k, err))
+	}
+	return
 }
