@@ -53,6 +53,7 @@ BUG FIXES:
  * provider/aws: Exposed aws_api_gw_domain_name.certificate_upload_date attribute [GH-9533]
  * provider/aws: fix aws_elasticache_replication_group for Redis in cluster mode [GH-9601]
  * provider/aws: Validate regular expression passed via the ami data_source `name_regex` attribute. [GH-9622]
+ * provider/aws: Bug fix for NoSuckBucket on Destroy of aws_s3_bucket_policy [GH-9641]
  * provider/azurerm: Fix Azure RM loadbalancer rules validation [GH-9468]
  * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff [GH-9323]
  * provider/consul: Change to consul_service resource to introduce a `service_id` parameter [GH-9366]
