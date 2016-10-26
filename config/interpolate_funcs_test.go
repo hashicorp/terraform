@@ -1643,7 +1643,7 @@ func TestInterpolateFuncUUID(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		result, err := hil.Eval(ast, langEvalConfig(nil))
+		result, err := hil.Eval(ast, LangEvalConfig(nil))
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -1674,7 +1674,7 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 			t.Fatalf("Case #%d: input: %#v\nerr: %v", i, tc.Input, err)
 		}
 
-		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
+		result, err := hil.Eval(ast, LangEvalConfig(config.Vars))
 		t.Logf("err: %v", err)
 		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %v", i, tc.Input, err)

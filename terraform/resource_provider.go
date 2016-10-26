@@ -1,5 +1,7 @@
 package terraform
 
+import "encoding/gob"
+
 // ResourceProvider is an interface that must be implemented by any
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.
@@ -132,6 +134,9 @@ type ResourceProvider interface {
 	// ReadDataApply initializes a data instance using the configuration
 	// in a diff produced by ReadDataDiff.
 	ReadDataApply(*InstanceInfo, *InstanceDiff) (*InstanceState, error)
+
+	// Export exports provider and resources schema
+	Export() (*ResourceProviderSchema, error)
 }
 
 // ResourceProviderCloser is an interface that providers that can close
@@ -142,13 +147,35 @@ type ResourceProviderCloser interface {
 
 // ResourceType is a type of resource that a resource provider can manage.
 type ResourceType struct {
-	Name       string // Name of the resource, example "instance" (no provider prefix)
-	Importable bool   // Whether this resource supports importing
+	Name       string `json:"name"`       // Name of the resource, example "instance" (no provider prefix)
+	Importable bool   `json:"importable"` // Whether this resource supports importing
 }
 
 // DataSource is a data source that a resource provider implements.
 type DataSource struct {
-	Name string
+	Name string `json:"name"`
+}
+
+type SchemaElement struct {
+	Name  string      `json:"name"`
+	Type  string      `json:"type"`
+	Value interface{} `json:"value"`
+}
+
+type SchemaElements []SchemaElement
+
+type SchemaInfo map[string]SchemaElements
+
+type ResourceProviderSchema struct {
+	Schema      SchemaInfo            `json:"schema"`
+	Resources   map[string]SchemaInfo `json:"resources"`
+	DataSources map[string]SchemaInfo `json:"data-sources"`
+}
+
+func init() {
+	// Required to return such elements from ResourceSchemaElement#Value
+	gob.Register(make(SchemaElements, 0))
+	gob.Register(SchemaInfo{})
 }
 
 // ResourceProviderFactory is a function type that creates a new instance

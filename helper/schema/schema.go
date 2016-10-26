@@ -619,6 +619,66 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 	return nil
 }
 
+// Export exports the format of this schema.
+func (m schemaMap) Export() terraform.SchemaInfo {
+	result := make(terraform.SchemaInfo)
+	for k, v := range m {
+		item := export(v)
+		result[k] = item
+	}
+	return result
+}
+
+var myDefaultSchema = Schema{}
+
+func export(v *Schema) terraform.SchemaElements {
+	item := terraform.SchemaElements{}
+	s := reflect.ValueOf(v).Elem()
+	dd := reflect.ValueOf(&myDefaultSchema).Elem()
+	typeOfV := s.Type()
+	typeOfDD := dd.Type()
+	for i := 0; i < typeOfV.NumField(); i++ {
+		name := typeOfV.Field(i).Name
+		if !exportable(name) {
+			continue
+		}
+		f := s.Field(i)
+		value := f.Interface()
+		defValue := dd.Field(i).Interface()
+		if typeOfDD != typeOfV || value != defValue {
+			el := exportValue(value, name, fmt.Sprintf("%s", f.Type()))
+			item = append(item, el)
+		}
+	}
+	return item
+}
+
+func exportValue(value interface{}, name string, t string) terraform.SchemaElement {
+	s2, ok := value.(*Schema)
+	if ok {
+		return terraform.SchemaElement{Name: name, Type: "ResourceSchemaElements", Value: export(s2)}
+	}
+	r2, ok := value.(*Resource)
+	if ok {
+		return terraform.SchemaElement{Name: name, Type: "ResourceSchemaInfo", Value: r2.Export()}
+	}
+	if value != nil {
+		return terraform.SchemaElement{Name: name, Type: t, Value: fmt.Sprintf("%v", value)}
+	}
+	return terraform.SchemaElement{Name: name, Type: t, Value: ""}
+}
+
+var myExportable = []string{"Type", "Optional", "Required", "Description", "Deprecated", "Removed", "Default", "Elem"}
+
+func init() {
+	sort.Strings(myExportable)
+}
+
+func exportable(name string) bool {
+	i := sort.SearchStrings(myExportable, name)
+	return (i < len(myExportable) && myExportable[i] == name)
+}
+
 func (m schemaMap) diff(
 	k string,
 	schema *Schema,

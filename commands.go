@@ -127,6 +127,12 @@ func init() {
 			}, nil
 		},
 
+		"schemas": func() (cli.Command, error) {
+			return &command.SchemasCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"taint": func() (cli.Command, error) {
 			return &command.TaintCommand{
 				Meta: meta,

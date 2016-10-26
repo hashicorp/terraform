@@ -21,6 +21,9 @@ type ResourceProvisioner interface {
 	// is provided since provisioners only run after a resource has been
 	// newly created.
 	Apply(UIOutput, *InstanceState, *ResourceConfig) error
+
+	// Export exports provisioner schema
+	Export() (*ResourceProvisionerSchema, error)
 }
 
 // ResourceProvisionerCloser is an interface that provisioners that can close
@@ -32,3 +35,7 @@ type ResourceProvisionerCloser interface {
 // ResourceProvisionerFactory is a function type that creates a new instance
 // of a resource provisioner.
 type ResourceProvisionerFactory func() (ResourceProvisioner, error)
+
+type ResourceProvisionerSchema struct {
+	Schema SchemaInfo `json:"schema"`
+}

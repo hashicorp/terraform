@@ -8,6 +8,7 @@ import (
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/terraform/helper/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-linereader"
 )
@@ -19,7 +20,20 @@ const (
 	maxBufSize = 8 * 1024
 )
 
-type ResourceProvisioner struct{}
+type ResourceProvisioner struct {
+	schema.Provisioner
+}
+
+func Provisioner() terraform.ResourceProvisioner {
+	return &ResourceProvisioner{
+		schema.Provisioner{Schema: map[string]*schema.Schema{
+			"command": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		}},
+	}
+}
 
 func (p *ResourceProvisioner) Apply(
 	o terraform.UIOutput,

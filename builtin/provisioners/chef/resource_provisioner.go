@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
@@ -129,7 +130,17 @@ type Provisioner struct {
 }
 
 // ResourceProvisioner represents a generic chef provisioner
-type ResourceProvisioner struct{}
+type ResourceProvisioner struct {
+	schema.Provisioner
+}
+
+func GetProvisioner() terraform.ResourceProvisioner {
+	return &ResourceProvisioner{
+		schema.Provisioner{Schema: map[string]*schema.Schema{
+		// TODO: Fill from Provisioner struct, note 'required' tag
+		}},
+	}
+}
 
 // Apply executes the file provisioner
 func (r *ResourceProvisioner) Apply(
