@@ -1298,6 +1298,8 @@ func findStorageAccountResourceGroup(meta interface{}, storageAccountName string
 		return "", fmt.Errorf("Wrong number of results making resource request for query %s:  %s", filter, len(results))
 	}
 
+	// Storage Account ID is in the form
+	//   /subscriptions/[SUBSCRIPTION_ID]/resourceGroups/[RESOURCE_GROUP]/providers/Microsoft.Storage/storageAccounts/[STORAGE_ACCOUNT]
 	idSplit := strings.Split(strings.TrimPrefix(*results[0].ID, "/"), "/")
 	storageAccountResourceGroupName := idSplit[3]
 	return storageAccountResourceGroupName, nil
