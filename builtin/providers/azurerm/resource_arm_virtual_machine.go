@@ -691,7 +691,7 @@ func resourceArmVirtualMachineDeleteVhd(uri, resGroup string, meta interface{}) 
 	}
 
 	if !saExists {
-		log.Printf("[INFO] Storage Account %q doesn't exist so the VHD blob won't exist", storageAccountName)
+		log.Printf("[INFO] Storage Account %q in resource group %q doesn't exist so the VHD blob won't exist", storageAccountName, resGroup)
 		return nil
 	}
 
