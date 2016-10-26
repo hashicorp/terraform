@@ -252,6 +252,13 @@ The supported built-in functions are:
     returned by the `keys` function. This function only works on flat maps and
     will return an error for maps that include nested lists or maps.
 
+  * `zipmap(list, list)` - Creates a map from a list of keys and a list of
+      values. The keys must all be of type string, and the length of the lists
+      must be the same.
+      For example, to output a mapping of AWS IAM user names to the fingerprint
+      of the key used to encrypt their initial password, you might use:
+      `zipmap(aws_iam_user.users.*.name, aws_iam_user_login_profile.users.*.key_fingerprint)`.
+
 <a id="templates"></a>
 ## Templates
 

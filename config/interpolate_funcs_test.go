@@ -11,6 +11,115 @@ import (
 	"github.com/hashicorp/hil/ast"
 )
 
+func TestInterpolateFuncZipMap(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${zipmap(var.list, var.list2)}`,
+				map[string]interface{}{
+					"Hello": "bar",
+					"World": "baz",
+				},
+				false,
+			},
+			{
+				`${zipmap(var.list, var.nonstrings)}`,
+				map[string]interface{}{
+					"Hello": []interface{}{"bar", "baz"},
+					"World": []interface{}{"boo", "foo"},
+				},
+				false,
+			},
+			{
+				`${zipmap(var.nonstrings, var.list2)}`,
+				nil,
+				true,
+			},
+			{
+				`${zipmap(var.list, var.differentlengthlist)}`,
+				nil,
+				true,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.list": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "Hello",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "World",
+					},
+				},
+			},
+			"var.list2": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "bar",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "baz",
+					},
+				},
+			},
+			"var.differentlengthlist": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "bar",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "baz",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "boo",
+					},
+				},
+			},
+			"var.nonstrings": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{
+								Type:  ast.TypeString,
+								Value: "bar",
+							},
+							{
+								Type:  ast.TypeString,
+								Value: "baz",
+							},
+						},
+					},
+					{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{
+								Type:  ast.TypeString,
+								Value: "boo",
+							},
+							{
+								Type:  ast.TypeString,
+								Value: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncList(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
