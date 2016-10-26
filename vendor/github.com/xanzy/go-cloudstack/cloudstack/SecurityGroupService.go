@@ -24,6 +24,38 @@ import (
 	"strings"
 )
 
+// Helper function for maintaining backwards compatibility
+func convertAuthorizeSecurityGroupIngressResponse(b []byte) ([]byte, error) {
+	var raw struct {
+		Ingressrule []interface{} `json:"ingressrule"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, err
+	}
+
+	if len(raw.Ingressrule) != 1 {
+		return b, nil
+	}
+
+	return json.Marshal(raw.Ingressrule[0])
+}
+
+// Helper function for maintaining backwards compatibility
+func convertAuthorizeSecurityGroupEgressResponse(b []byte) ([]byte, error) {
+	var raw struct {
+		Egressrule []interface{} `json:"egressrule"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, err
+	}
+
+	if len(raw.Egressrule) != 1 {
+		return b, nil
+	}
+
+	return json.Marshal(raw.Egressrule[0])
+}
+
 type CreateSecurityGroupParams struct {
 	p map[string]interface{}
 }
@@ -472,6 +504,11 @@ func (s *SecurityGroupService) AuthorizeSecurityGroupIngress(p *AuthorizeSecurit
 			return nil, err
 		}
 
+		b, err = convertAuthorizeSecurityGroupIngressResponse(b)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := json.Unmarshal(b, &r); err != nil {
 			return nil, err
 		}
@@ -756,6 +793,11 @@ func (s *SecurityGroupService) AuthorizeSecurityGroupEgress(p *AuthorizeSecurity
 		}
 
 		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err = convertAuthorizeSecurityGroupEgressResponse(b)
 		if err != nil {
 			return nil, err
 		}
