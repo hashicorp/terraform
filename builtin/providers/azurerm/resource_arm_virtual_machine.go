@@ -1276,3 +1276,24 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 
 	return osDisk, nil
 }
+
+func findStorageAccountResourceGroup(meta interface{}, storageAccountName string) (string, error) {
+	client := meta.(*ArmClient).resourceFindClient
+	filter := fmt.Sprintf("name eq '%s' and resourceType eq 'Microsoft.Storage/storageAccounts'", storageAccountName)
+	expand := ""
+	var pager *int32
+	rf, err := client.List(filter, expand, pager)
+
+	if err != nil {
+		return "", fmt.Errorf("Error making resource request for query %s: %s", filter, err)
+	}
+
+	results := *rf.Value
+	if len(results) != 1 {
+		return "", fmt.Errorf("Wrong number of results making resource request for query %s:  %s", filter, len(results))
+	}
+
+	idSplit := strings.Split(strings.TrimPrefix(*results[0].ID, "/"), "/")
+	storageAccountResourceGroupName := idSplit[3]
+	return storageAccountResourceGroupName, nil
+}
