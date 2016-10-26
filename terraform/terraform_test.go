@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/logging"
 )
 
@@ -22,18 +23,8 @@ import (
 const fixtureDir = "./test-fixtures"
 
 func TestMain(m *testing.M) {
-	// Experimental features
-	xNewApply := flag.Bool("Xnew-apply", false, "Experiment: new apply graph")
-	xNewDestroy := flag.Bool("Xnew-destroy", false, "Experiment: new destroy graph")
-
-	// Normal features
-	shadow := flag.Bool("shadow", true, "Enable shadow graph")
-
+	experiment.Flag(flag.CommandLine)
 	flag.Parse()
-
-	// Setup experimental features
-	X_newApply = *xNewApply
-	X_newDestroy = *xNewDestroy
 
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
@@ -48,9 +39,6 @@ func TestMain(m *testing.M) {
 
 	// Always DeepCopy the Diff on every Plan during a test
 	contextTestDeepCopyOnPlan = true
-
-	// Shadow the new graphs
-	contextTestShadow = *shadow
 
 	os.Exit(m.Run())
 }
