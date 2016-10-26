@@ -84,6 +84,7 @@ func Funcs() map[string]ast.Function {
 		"title":        interpolationFuncTitle(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
+		"zipmap":       interpolationFuncZipMap(),
 	}
 }
 
@@ -382,6 +383,39 @@ func interpolationFuncFormat() ast.Function {
 		Callback: func(args []interface{}) (interface{}, error) {
 			format := args[0].(string)
 			return fmt.Sprintf(format, args[1:]...), nil
+		},
+	}
+}
+
+func interpolationFuncZipMap() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeList, // Keys
+			ast.TypeList, // Values
+		},
+		ReturnType: ast.TypeMap,
+		Callback: func(args []interface{}) (interface{}, error) {
+			keys := args[0].([]ast.Variable)
+			values := args[1].([]ast.Variable)
+
+			if len(keys) != len(values) {
+				return nil, fmt.Errorf("count of keys (%d) does not match count of values (%d)",
+					len(keys), len(values))
+			}
+
+			for i, val := range keys {
+				if val.Type != ast.TypeString {
+					return nil, fmt.Errorf("keys must be strings. value at position %d is %s",
+						i, val.Type.Printable())
+				}
+			}
+
+			result := map[string]ast.Variable{}
+			for i := 0; i < len(keys); i++ {
+				result[keys[i].Value.(string)] = values[i]
+			}
+
+			return result, nil
 		},
 	}
 }
