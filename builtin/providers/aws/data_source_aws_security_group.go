@@ -40,7 +40,7 @@ func dataSourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).ec2conn
 	req := &ec2.DescribeSecurityGroupsInput{}
 
-	if  id, idExists := d.GetOk("id"); idExists {
+	if id, idExists := d.GetOk("id"); idExists {
 		req.GroupIds = []*string{aws.String(id.(string))}
 	}
 
