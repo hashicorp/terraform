@@ -14,6 +14,7 @@ FEATURES:
    (on any command). This will become the default in 0.8. There may still be
    bugs. [GH-9388]
  * **New Provider:** `pagerduty` [GH-9022]
+ * **New Resource:** `aws_iam_user_login_profile` [GH-9605]
  * **New Resource:** `azurerm_key_vault` [GH-9478]
  * **New Resource:** `azurerm_storage_share` [GH-8674]
  * **New Resource:** `azurerm_eventhub_namespace` [GH-9297]
