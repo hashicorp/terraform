@@ -40,14 +40,18 @@ resource "google_compute_instance" "vm" {
 
 ## Argument Reference
 
-The following arguments are supported:
+The following arguments are supported: (Note that one of either source_disk or
+  raw_disk is required)
 
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
-* `raw_disk` - (Required) The raw disk that will be used as the source of
-    the image. Changing this forces a new resource to be created.
-    Structure is documented below.
+* `source_disk` - The URL of a disk that will be used as the source of the
+    image. Changing this forces a new resource to be created.
+
+* `raw_disk` - The raw disk that will be used as the source of the image.
+    Changing this forces a new resource to be created. Structure is documented
+    below.
 
 The `raw_disk` block supports:
 

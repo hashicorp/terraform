@@ -16,6 +16,8 @@ func resourceComputeImage() *schema.Resource {
 		Delete: resourceComputeImageDelete,
 
 		Schema: map[string]*schema.Schema{
+			// TODO(cblecker): one of source_disk or raw_disk is required
+
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -39,9 +41,15 @@ func resourceComputeImage() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"source_disk": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"raw_disk": &schema.Schema{
 				Type:     schema.TypeList,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
@@ -95,15 +103,24 @@ func resourceComputeImageCreate(d *schema.ResourceData, meta interface{}) error 
 		image.Family = v.(string)
 	}
 
-	rawDiskEle := d.Get("raw_disk").([]interface{})[0].(map[string]interface{})
-	imageRawDisk := &compute.ImageRawDisk{
-		Source:        rawDiskEle["source"].(string),
-		ContainerType: rawDiskEle["container_type"].(string),
+	// Load up the source_disk for this image if specified
+	if v, ok := d.GetOk("source_disk"); ok {
+		image.SourceDisk = v.(string)
 	}
-	if val, ok := rawDiskEle["sha1"]; ok {
-		imageRawDisk.Sha1Checksum = val.(string)
+
+	// Load up the raw_disk for this image if specified
+	if v, ok := d.GetOk("raw_disk"); ok {
+		rawDiskEle := v.([]interface{})[0].(map[string]interface{})
+		imageRawDisk := &compute.ImageRawDisk{
+			Source:        rawDiskEle["source"].(string),
+			ContainerType: rawDiskEle["container_type"].(string),
+		}
+		if val, ok := rawDiskEle["sha1"]; ok {
+			imageRawDisk.Sha1Checksum = val.(string)
+		}
+
+		image.RawDisk = imageRawDisk
 	}
-	image.RawDisk = imageRawDisk
 
 	// Insert the image
 	op, err := config.clientCompute.Images.Insert(
