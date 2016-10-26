@@ -1553,6 +1553,36 @@ func TestInterpolateFuncSha256(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncTitle(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${title("hello")}`,
+				"Hello",
+				false,
+			},
+
+			{
+				`${title("hello world")}`,
+				"Hello World",
+				false,
+			},
+
+			{
+				`${title("")}`,
+				"",
+				false,
+			},
+
+			{
+				`${title()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncTrimSpace(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
