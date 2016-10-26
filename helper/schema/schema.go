@@ -995,7 +995,7 @@ func (m schemaMap) diffString(
 	all bool) error {
 	var originalN interface{}
 	var os, ns string
-	o, n, _, _ := d.diffChange(k)
+	o, n, _, computed := d.diffChange(k)
 	if schema.StateFunc != nil && n != nil {
 		originalN = n
 		n = schema.StateFunc(n)
@@ -1019,7 +1019,7 @@ func (m schemaMap) diffString(
 		}
 
 		// Otherwise, only continue if we're computed
-		if !schema.Computed {
+		if !schema.Computed && !computed {
 			return nil
 		}
 	}
@@ -1033,10 +1033,11 @@ func (m schemaMap) diffString(
 	}
 
 	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
-		Old:        os,
-		New:        ns,
-		NewExtra:   originalN,
-		NewRemoved: removed,
+		Old:         os,
+		New:         ns,
+		NewExtra:    originalN,
+		NewRemoved:  removed,
+		NewComputed: computed,
 	})
 
 	return nil

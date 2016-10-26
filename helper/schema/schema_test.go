@@ -439,8 +439,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"availability_zone": &terraform.ResourceAttrDiff{
-						Old: "",
-						New: "${var.foo}",
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
 					},
 				},
 			},
@@ -1675,8 +1676,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 						New: "1",
 					},
 					"route.~1.gateway": &terraform.ResourceAttrDiff{
-						Old: "",
-						New: "${var.foo}",
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
 					},
 				},
 			},
