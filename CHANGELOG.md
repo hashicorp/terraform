@@ -51,6 +51,7 @@ BUG FIXES:
  * provider/aws: Validate regular expression passed via the ami data_source `name_regex` attribute. [GH-9622]
  * provider/azurerm: Fix Azure RM loadbalancer rules validation [GH-9468]
  * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff [GH-9323]
+ * provider/consul: Change to consul_service resource to introduce a `service_id` parameter [GH-9366]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
  
 
