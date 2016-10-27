@@ -2,8 +2,6 @@ package scaleway
 
 import (
 	"fmt"
-	"log"
-	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
