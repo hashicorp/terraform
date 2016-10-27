@@ -176,8 +176,11 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		}
 
 		if remove {
-			w.removeCurrent()
-			return nil
+			// Append the key to the unknown keys
+			w.unknownKeys = append(w.unknownKeys, strings.Join(w.key, "."))
+
+			//w.removeCurrent()
+			//return nil
 		}
 
 		resultVal := reflect.ValueOf(replaceVal)
