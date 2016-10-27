@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -71,11 +72,11 @@ func resourceAwsIamPolicyCreate(d *schema.ResourceData, meta interface{}) error 
 func resourceAwsIamPolicyRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	request := &iam.GetPolicyInput{
+	getPolicyRequest := &iam.GetPolicyInput{
 		PolicyArn: aws.String(d.Id()),
 	}
 
-	response, err := iamconn.GetPolicy(request)
+	getPolicyResponse, err := iamconn.GetPolicy(getPolicyRequest)
 	if err != nil {
 		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
 			d.SetId("")
@@ -84,7 +85,29 @@ func resourceAwsIamPolicyRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error reading IAM policy %s: %s", d.Id(), err)
 	}
 
-	return readIamPolicy(d, response.Policy)
+	getPolicyVersionRequest := &iam.GetPolicyVersionInput{
+		PolicyArn: aws.String(d.Id()),
+		VersionId: getPolicyResponse.Policy.DefaultVersionId,
+	}
+
+	getPolicyVersionResponse, err := iamconn.GetPolicyVersion(getPolicyVersionRequest)
+	if err != nil {
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("Error reading IAM policy version %s: %s", d.Id(), err)
+	}
+
+	policy, err := url.QueryUnescape(*getPolicyVersionResponse.PolicyVersion.Document)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("policy", policy); err != nil {
+		return err
+	}
+
+	return readIamPolicy(d, getPolicyResponse.Policy)
 }
 
 func resourceAwsIamPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -224,7 +247,8 @@ func readIamPolicy(d *schema.ResourceData, policy *iam.Policy) error {
 	if err := d.Set("arn", *policy.Arn); err != nil {
 		return err
 	}
-	// TODO: set policy
-
+	if err := d.Set("arn", *policy.Arn); err != nil {
+		return err
+	}
 	return nil
 }

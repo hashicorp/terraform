@@ -120,21 +120,7 @@ func testAccIAMRolePolicyConfig(role, policy1 string) string {
 resource "aws_iam_role" "role" {
 	name = "tf_test_role_%s"
 	path = "/"
-	assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 
 resource "aws_iam_role_policy" "foo" {
@@ -159,21 +145,7 @@ func testAccIAMRolePolicyConfigUpdate(role, policy1, policy2 string) string {
 resource "aws_iam_role" "role" {
 	name = "tf_test_role_%s"
 	path = "/"
-	assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 
 resource "aws_iam_role_policy" "foo" {

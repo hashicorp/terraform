@@ -121,7 +121,7 @@ func testAccCheckAWSInstanceProfileExists(n string, res *iam.GetInstanceProfileO
 const testAccAwsIamInstanceProfileConfig = `
 resource "aws_iam_role" "test" {
 	name = "test"
-	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 
 resource "aws_iam_instance_profile" "test" {
@@ -133,7 +133,7 @@ resource "aws_iam_instance_profile" "test" {
 const testAccAWSInstanceProfilePrefixNameConfig = `
 resource "aws_iam_role" "test" {
 	name = "test"
-	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 
 resource "aws_iam_instance_profile" "test" {
