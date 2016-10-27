@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Azure/azure-sdk-for-go/arm/redis"
-	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/helper/schema"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/Azure/azure-sdk-for-go/arm/redis"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceArmRedis() *schema.Resource {
@@ -68,7 +70,6 @@ func resourceArmRedis() *schema.Resource {
 			"shard_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				// NOTE: this only applies to Premium SKU's
 			},
 
 			"enable_non_ssl_port": {
@@ -206,15 +207,24 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	d.Set("name", resp.Name)
+	log.Printf("API Response %s", spew.Sdump(resp))
+
+	// TODO: ensure this doesn't return nil
+	// d.Set("name", resp.Name)
+	d.Set("name", name)
 	d.Set("resource_group_name", resGroup)
+
+	// TODO: interestingly this crashes..
 	//d.Set("location", azureRMNormalizeLocation(*resp.Location))
+	d.Set("location", resp.Location)
 
 	if resp.Properties != nil {
 
 		d.Set("redis_version", resp.Properties.RedisVersion)
 		d.Set("enable_non_ssl_port", resp.Properties.EnableNonSslPort)
 		d.Set("ssl_port", resp.Properties.SslPort)
+
+		d.Set("host_name", resp.Properties.HostName)
 
 		if resp.Properties.Port != nil {
 			d.Set("port", resp.Properties.Port)
@@ -226,6 +236,7 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 			d.Set("sku_name", resp.Properties.Sku.Name)
 		}
 
+		// TODO: ensure this parses out correctly
 		if resp.Properties.ShardCount != nil {
 			d.Set("shard_count", resp.Properties.ShardCount)
 		}
