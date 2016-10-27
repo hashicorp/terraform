@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -96,7 +97,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	// Check for the new apply
-	if terraform.X_newApply {
+	if experiment.Enabled(experiment.X_newApply) && !experiment.Force() {
 		desc := "Experimental new apply graph has been enabled. This may still\n" +
 			"have bugs, and should be used with care. If you'd like to continue,\n" +
 			"you must enter exactly 'yes' as a response."
@@ -116,7 +117,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	// Check for the new destroy
-	if terraform.X_newDestroy {
+	if experiment.Enabled(experiment.X_newDestroy) && !experiment.Force() {
 		desc := "Experimental new destroy graph has been enabled. This may still\n" +
 			"have bugs, and should be used with care. If you'd like to continue,\n" +
 			"you must enter exactly 'yes' as a response."

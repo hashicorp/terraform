@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -336,8 +337,7 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f.BoolVar(&m.shadow, "shadow", true, "shadow graph")
 
 	// Experimental features
-	f.BoolVar(&terraform.X_newApply, "Xnew-apply", false, "experiment: new apply")
-	f.BoolVar(&terraform.X_newDestroy, "Xnew-destroy", false, "experiment: new destroy")
+	experiment.Flag(f)
 
 	// Create an io.Writer that writes to our Ui properly for errors.
 	// This is kind of a hack, but it does the job. Basically: create
