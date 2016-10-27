@@ -83,8 +83,9 @@ func resourceAwsIamRole() *schema.Resource {
 			},
 
 			"assume_role_policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 		},
 	}

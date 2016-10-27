@@ -34,8 +34,9 @@ func resourceAwsIamPolicy() *schema.Resource {
 				ForceNew: true,
 			},
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:             schema.TypeString,
+				Required:         true,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
