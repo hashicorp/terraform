@@ -38,6 +38,7 @@ IMPROVEMENTS:
  * provider/aws: Add tagging support to aws_redshift_subnet_group [GH-9504]
  * provider/aws: Add validation to IAM User and Group Name [GH-9584]
  * provider/aws: Add Ability To Enable / Disable ALB AccessLogs [GH-9290]
+ * provider/aws: Add support for `AutoMinorVersionUpgrade` to aws_elasticache_replication_group resource. [GH-9657]
  * provider/azurerm: add account_kind and access_tier to storage_account [GH-9408]
  * provider/azurerm: write load_balanacer attributes to network_interface_card hash [GH-9207]
  * provider/azurerm: Add disk_size_gb param to VM storage_os_disk [GH-9200]
