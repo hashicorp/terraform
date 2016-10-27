@@ -1065,7 +1065,7 @@ func testAccComputeInstance_subnet_custom(instance string) string {
 	}`, acctest.RandString(10), acctest.RandString(10), instance)
 }
 
-func testAccComputeInstance_subnet_xpn(instance string, xpn_host string) string {
+func testAccComputeInstance_subnet_xpn(instance, xpn_host string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_network" "inst-test-network" {
 		name = "inst-test-network-%s"
