@@ -81,7 +81,7 @@ BUG FIXES:
 FEATURES:
 
  * **New Data Source:** `scaleway_bootsscript`. ([#9386](https://github.com/hashicorp/terraform/issues/9386))
- * **New Data Source:** `scaleway_image`. [GH9386]
+ * **New Data Source:** `scaleway_image`. [GH-9386]
 
 IMPROVEMENTS:
 
