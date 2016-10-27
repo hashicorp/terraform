@@ -23,6 +23,8 @@ FEATURES:
  * **New Resource:** `azurerm_eventhub_namespace` [GH-9297]
  * **New Resource:** `cloudstack_security_group` [GH-9103]
  * **New Resource:** `cloudstack_security_group_rule` [GH-9645]
+ * **New Resource:** `cloudstack_private_gateway` [GH-9637]
+ * **New Resource:** `cloudstack_static_route` [GH-9637]
  * **New DataSource:** `aws_prefix_list` [GH-9566]
  * **New DataSource:** `aws_security_group` [GH-9604]
  * **New DataSource:** `azurerm_client_config` [GH-9478]
