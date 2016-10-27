@@ -2137,11 +2137,11 @@
 			"revision": "9051bd6b44125d9472e0c148b5965692ab283d4a"
 		},
 		{
-			"checksumSHA1": "s6bz9U3gi638R0Ln7v14h5+e2Wg=",
+			"checksumSHA1": "tWnkfXhmDWitjF0TMHY7gy3Kt0k=",
 			"comment": "v2.1.3",
 			"path": "github.com/xanzy/go-cloudstack/cloudstack",
-			"revision": "ff444b1afdd1961f8118bad30db9fa27cb989ced",
-			"revisionTime": "2016-10-24T10:36:39Z"
+			"revision": "deca6e17c056012b540aa2d2eae3ea1e63203b85",
+			"revisionTime": "2016-10-26T18:16:49Z"
 		},
 		{
 			"path": "github.com/xanzy/ssh-agent",
