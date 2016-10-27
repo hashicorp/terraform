@@ -71,6 +71,7 @@ BUG FIXES:
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
  * provider/docker: Fixes for docker_container host object and documentation [GH-9367]
  * provider/scaleway improve the performance of server deletion [GH-9491]
+ * provider/scaleway: fix scaleway_volume_attachment with count > 1 [GH-9493]
 
 
 ## 0.7.7 (October 18, 2016)
