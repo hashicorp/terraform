@@ -1,6 +1,7 @@
 package scaleway
 
 import (
+	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -46,6 +47,8 @@ func Provider() terraform.ResourceProvider {
 		ConfigureFunc: providerConfigure,
 	}
 }
+
+var scalewayMutexKV = mutexkv.NewMutexKV()
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
