@@ -37,7 +37,7 @@ The following arguments are supported:
 
 - - -
 
-* `database_version` - (Optional, Default: `MYSQL_5_5`) The MySQL version to
+* `database_version` - (Optional, Default: `MYSQL_5_6`) The MySQL version to
     use. Can be either `MYSQL_5_5` or `MYSQL_5_6`.
 
 * `name` - (Optional, Computed) The name of the instance. If the name is left
