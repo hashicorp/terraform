@@ -205,22 +205,20 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceScalewayServerDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
-	def, err := scaleway.GetServer(d.Id())
-	if err != nil {
-		if serr, ok := err.(api.ScalewayAPIError); ok {
-			if serr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
-	}
-
-	err = deleteServerSafe(scaleway, def.Identifier)
+	s, err := scaleway.GetServer(d.Id())
 	if err != nil {
 		return err
 	}
 
-	d.SetId("")
-	return nil
+	if s.State == "stopped" {
+		return deleteStoppedServer(scaleway, s)
+	}
+
+	err = deleteRunningServer(scaleway, s)
+
+	if err == nil {
+		d.SetId("")
+	}
+
+	return err
 }
