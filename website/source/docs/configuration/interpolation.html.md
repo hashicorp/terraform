@@ -353,3 +353,14 @@ it's best to use spaces between math operators to prevent confusion or unexpecte
 behavior. For example, `${var.instance-count - 1}` will subtract **1** from the
 `instance-count` variable value, while `${var.instance-count-1}` will interpolate
 the `instance-count-1` variable value.
+
+
+-> **Note:** Operator precedence is not the usual one where *Multiply* (`*`),
+*Divide* (`/`), and *Modulo* (`%`) have precedence over *Add* (`+`) and *Subtract* (`-`).
+The operations are made in the order they appear. Parenthesis can be used to force ordering :
+```
+"${2 * 4 + 3 * 3}" # computes to 33
+"${3 * 3 + 2 * 4}" # computes to 44
+"${(2 * 4) + (3 * 3)}" # computes to 17
+"${(3 * 3) + (2 * 4)}" # computes to 17
+```
