@@ -38,7 +38,10 @@ The following arguments are supported:
 - - -
 
 * `database_version` - (Optional, Default: `MYSQL_5_6`) The MySQL version to
-    use. Can be either `MYSQL_5_5` or `MYSQL_5_6`.
+    use. Can be either `MYSQL_5_6` or `MYSQL_5_7` for second-generation
+    instances, or `MYSQL_5_5` or `MYSQL_5_6` for first-generation instances.
+    See Google's [Second Generation Capabilities](https://cloud.google.com/sql/docs/1st-2nd-gen-differences)
+    for more information.
 
 * `name` - (Optional, Computed) The name of the instance. If the name is left
     blank, Terraform will randomly generate one when the instance is first
