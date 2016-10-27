@@ -49,6 +49,7 @@ BUG FIXES:
 
  * core: Resources suffixed with 'panic' won't falsely trigger crash detection. [GH-9395]
  * core: Validate lifecycle options don't contain interpolations. [GH-9576]
+ * core: Tainted resources will not process `ignore_changes`. [GH-7855]
  * provider/archive: Converting to datasource. [GH-8492]
  * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value [GH-9453]
  * provider/aws: Fix issue with updating ElasticBeanstalk environment variables [GH-9259]
@@ -67,7 +68,7 @@ BUG FIXES:
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
  * provider/docker: Fixes for docker_container host object and documentation [GH-9367]
  * provider/scaleway improve the performance of server deletion [GH-9491]
- 
+
 
 ## 0.7.7 (October 18, 2016)
 
