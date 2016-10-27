@@ -26,6 +26,8 @@ func TestAccAWSElasticacheReplicationGroup_basic(t *testing.T) {
 					testAccCheckAWSElasticacheReplicationGroupExists("aws_elasticache_replication_group.bar", &rg),
 					resource.TestCheckResourceAttr(
 						"aws_elasticache_replication_group.bar", "number_cache_clusters", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_replication_group.bar", "auto_minor_version_upgrade", "false"),
 				),
 			},
 		},
@@ -48,6 +50,8 @@ func TestAccAWSElasticacheReplicationGroup_updateDescription(t *testing.T) {
 						"aws_elasticache_replication_group.bar", "number_cache_clusters", "2"),
 					resource.TestCheckResourceAttr(
 						"aws_elasticache_replication_group.bar", "replication_group_description", "test description"),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_replication_group.bar", "auto_minor_version_upgrade", "false"),
 				),
 			},
 
@@ -59,6 +63,8 @@ func TestAccAWSElasticacheReplicationGroup_updateDescription(t *testing.T) {
 						"aws_elasticache_replication_group.bar", "number_cache_clusters", "2"),
 					resource.TestCheckResourceAttr(
 						"aws_elasticache_replication_group.bar", "replication_group_description", "updated description"),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_replication_group.bar", "auto_minor_version_upgrade", "true"),
 				),
 			},
 		},
@@ -141,6 +147,8 @@ func TestAccAWSElasticacheReplicationGroup_vpc(t *testing.T) {
 					testAccCheckAWSElasticacheReplicationGroupExists("aws_elasticache_replication_group.bar", &rg),
 					resource.TestCheckResourceAttr(
 						"aws_elasticache_replication_group.bar", "number_cache_clusters", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_replication_group.bar", "auto_minor_version_upgrade", "false"),
 				),
 			},
 		},
@@ -353,6 +361,7 @@ resource "aws_elasticache_replication_group" "bar" {
     parameter_group_name = "default.redis3.2"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     apply_immediately = true
+    auto_minor_version_upgrade = false
 }`, rName, rName, rName)
 }
 
@@ -431,6 +440,7 @@ resource "aws_elasticache_replication_group" "bar" {
     parameter_group_name = "default.redis3.2"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     apply_immediately = true
+    auto_minor_version_upgrade = true
 }`, rName, rName, rName)
 }
 
@@ -513,6 +523,7 @@ resource "aws_elasticache_replication_group" "bar" {
     security_group_ids = ["${aws_security_group.bar.id}"]
     parameter_group_name = "default.redis3.2"
     availability_zones = ["us-west-2a"]
+    auto_minor_version_upgrade = false
 }
 
 `, acctest.RandInt(), acctest.RandInt(), acctest.RandString(10))
