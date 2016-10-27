@@ -64,6 +64,7 @@ type ArmClient struct {
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
 	tagsClient          resources.TagsClient
+	resourceFindClient  resources.Client
 
 	jobsClient            scheduler.JobsClient
 	jobsCollectionsClient scheduler.JobCollectionsClient
@@ -313,6 +314,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tc.Authorizer = spt
 	tc.Sender = autorest.CreateSender(withRequestLogging())
 	client.tagsClient = tc
+
+	rf := resources.NewClient(c.SubscriptionID)
+	setUserAgent(&rf.Client)
+	rf.Authorizer = spt
+	rf.Sender = autorest.CreateSender(withRequestLogging())
+	client.resourceFindClient = rf
 
 	jc := scheduler.NewJobsClient(c.SubscriptionID)
 	setUserAgent(&jc.Client)
