@@ -42,17 +42,17 @@ func testAccCheckCloudStackStaticRouteExists(
 		}
 
 		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
-		pip, _, err := cs.VPC.GetStaticRouteByID(rs.Primary.ID)
+		route, _, err := cs.VPC.GetStaticRouteByID(rs.Primary.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if pip.Id != rs.Primary.ID {
+		if route.Id != rs.Primary.ID {
 			return fmt.Errorf("Static Route not found")
 		}
 
-		*staticroute = *pip
+		*staticroute = *route
 
 		return nil
 	}

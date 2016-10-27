@@ -23,19 +23,12 @@ resource "cloudstack_static_route" "default" {
 
 The following arguments are supported:
 
-* `cidr` - (Required) The CIDR block for the static route. Changing this forces 
+* `cidr` - (Required) The CIDR for the static route. Changing this forces
     a new resource to be created.
 
-* `gateway_id` - (Optional) The ip_address on the VPC. Changing this forces
+* `gateway_id` - (Required) The ID of the Private gateway. Changing this forces
     a new resource to be created.
 
-* `vpc_id` - (Optional) The VPC ID in which to create this network. Changing
-    this forces a new resource to be created.
-
-* `nexthop` - (Optional) The nexthop for the CIDR.
-
-NOTE: Either private_gateway_id or vpc_id should have a value! Nexthop is required 
-      in combination with vpc_id!
 ## Attributes Reference
 
 The following attributes are exported:

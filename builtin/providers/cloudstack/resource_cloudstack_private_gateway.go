@@ -55,8 +55,7 @@ func resourceCloudStackPrivateGateway() *schema.Resource {
 
 			"acl_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 			},
 
 			"vpc_id": &schema.Schema{
@@ -93,7 +92,7 @@ func resourceCloudStackPrivateGatewayCreate(d *schema.ResourceData, meta interfa
 	}
 
 	// Check if we want to associate an ACL
-	if aclid, ok := d.GetOk("acl_id"); ok && aclid.(string) != none {
+	if aclid, ok := d.GetOk("acl_id"); ok {
 		// Set the acl ID
 		p.SetAclid(aclid.(string))
 	}
@@ -128,8 +127,8 @@ func resourceCloudStackPrivateGatewayRead(d *schema.ResourceData, meta interface
 	d.Set("ip_address", gw.Ipaddress)
 	d.Set("netmask", gw.Netmask)
 	d.Set("vlan", gw.Vlan)
-	d.Set("vpc_id", gw.Vpcid)
 	d.Set("acl_id", gw.Aclid)
+	d.Set("vpc_id", gw.Vpcid)
 
 	return nil
 }
@@ -169,5 +168,6 @@ func resourceCloudStackPrivateGatewayDelete(d *schema.ResourceData, meta interfa
 
 		return fmt.Errorf("Error deleting private gateway %s: %s", d.Id(), err)
 	}
+
 	return nil
 }

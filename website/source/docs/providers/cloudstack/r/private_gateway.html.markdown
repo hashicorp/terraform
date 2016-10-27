@@ -10,6 +10,8 @@ description: |-
 
 Creates a private gateway for the given VPC.
 
+*NOTE: private gateway can only be created using a ROOT account!*
+
 ## Example Usage
 
 ```
@@ -18,7 +20,7 @@ resource "cloudstack_private_gateway" "default" {
     ip_address = "10.0.0.2"
     netmask = "255.255.255.252"
     vlan = "200"
-	vpc_id = "76f6e8dc-07e3-4971-b2a2-8831b0cc4cb4"
+    vpc_id = "76f6e8dc-07e3-4971-b2a2-8831b0cc4cb4"
 }
 ```
 
@@ -26,32 +28,27 @@ resource "cloudstack_private_gateway" "default" {
 
 The following arguments are supported:
 
-* `gateway` - (Required) The nexthop for the static routes. Changing this
+* `gateway` - (Required) the gateway of the Private gateway. Changing this
     forces a new resource to be created.
 
-* `ip_address` - (Required) The ip_address on the VPC. Changing this forces
+* `ip_address` - (Required) the IP address of the Private gateway. Changing this forces
     a new resource to be created.
 
-* `netmask` - (Required) The netmask of the private gateway on the VPC. Changing 
+* `netmask` - (Required) The netmask of the Private gateway. Changing 
     this forces a new resource to be created.
 
-* `vlan` - (Required) The VLAN number (1-4095) the network will use. This might be
-    required by the Network Offering if specifyVlan=true is set. Only the ROOT 
-    admin can set this value.
+* `vlan` - (Required) The VLAN number (1-4095) the network will use.
 
 * `physical_network_id` - (Optional) The ID of the physical network this private
     gateway belongs to.
 
-* `network_offering` - (Optional) The name or ID of the network offering to use
-    for this private gateway.
+* `network_offering` - (Optional) The name or ID of the network offering to use for 
+    the private gateways network connection.
 
-* `vpc_id` - (Optional) The VPC ID in which to create this network. Changing
+* `acl_id` - (Required) The ACL ID that should be attached to the network.
+
+* `vpc_id` - (Required) The VPC ID in which to create this Private gateway. Changing
     this forces a new resource to be created.
-
-* `acl_id` - (Optional) The ACL ID that should be attached to the network or
-    `none` if you do not want to attach an ACL. You can dynamically attach and
-    swap ACL's, but if you want to detach an attached ACL and revert to using
-    `none`, this will force a new resource to be created. (defaults `none`)
 
 ## Attributes Reference
 

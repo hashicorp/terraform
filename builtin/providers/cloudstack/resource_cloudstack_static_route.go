@@ -22,22 +22,9 @@ func resourceCloudStackStaticRoute() *schema.Resource {
 				ForceNew: true,
 			},
 
-			/*"nexthop": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},*/
-
 			"gateway_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
-			},
-
-			"vpc_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
 				ForceNew: true,
 			},
 		},
@@ -47,27 +34,16 @@ func resourceCloudStackStaticRoute() *schema.Resource {
 func resourceCloudStackStaticRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	if err := verifyStaticRouteParams(d); err != nil {
-		return err
-	}
-
-	c := d.Get("cidr").(string)
-
 	// Create a new parameter struct
 	p := cs.VPC.NewCreateStaticRouteParams(
-		c,
+		d.Get("cidr").(string),
 		d.Get("gateway_id").(string),
 	)
-
-	// If there is a gateway_id supplied, add it to the parameter struct
-	/*if gatewayid, ok := d.GetOk("gateway_id"); ok {
-		p.SetGatewayid(gatewayid.(string))
-	}*/
 
 	// Create the new private gateway
 	r, err := cs.VPC.CreateStaticRoute(p)
 	if err != nil {
-		return fmt.Errorf("Error creating static route for %s: %s", c, err)
+		return fmt.Errorf("Error creating static route for %s: %s", d.Get("cidr").(string), err)
 	}
 
 	d.SetId(r.Id)
@@ -91,7 +67,6 @@ func resourceCloudStackStaticRouteRead(d *schema.ResourceData, meta interface{})
 	}
 
 	d.Set("cidr", staticroute.Cidr)
-	d.Set("vpc_id", staticroute.Vpcid)
 
 	return nil
 }
@@ -113,23 +88,6 @@ func resourceCloudStackStaticRouteDelete(d *schema.ResourceData, meta interface{
 		}
 
 		return fmt.Errorf("Error deleting static route for %s: %s", d.Get("cidr").(string), err)
-	}
-	return nil
-}
-
-func verifyStaticRouteParams(d *schema.ResourceData) error {
-	_, gateway := d.GetOk("gateway_id")
-	_, vpc := d.GetOk("vpc_id")
-	_, nexthop := d.GetOk("nexthop")
-
-	if (gateway && vpc) || (!gateway && !vpc) {
-		return fmt.Errorf(
-			"You must supply a value for either (so not both) the 'gateway_id' or 'vpc_id' parameter")
-	}
-
-	if (vpc && !nexthop) || (!vpc && nexthop) {
-		return fmt.Errorf(
-			"Nexthop is required if vpc_id is provided and is not allowed when gateway_id is provided")
 	}
 
 	return nil

@@ -42,17 +42,17 @@ func testAccCheckCloudStackPrivateGatewayExists(
 		}
 
 		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
-		pip, _, err := cs.VPC.GetPrivateGatewayByID(rs.Primary.ID)
+		pgw, _, err := cs.VPC.GetPrivateGatewayByID(rs.Primary.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if pip.Id != rs.Primary.ID {
+		if pgw.Id != rs.Primary.ID {
 			return fmt.Errorf("Private Gateway not found")
 		}
 
-		*gateway = *pip
+		*gateway = *pgw
 
 		return nil
 	}
