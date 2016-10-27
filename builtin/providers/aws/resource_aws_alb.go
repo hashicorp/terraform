@@ -88,7 +88,7 @@ func resourceAwsAlb() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"enabled": &schema.Schema{
+						"enabled": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
