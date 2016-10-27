@@ -111,3 +111,27 @@ func (sldds *softLayer_Dns_Domain_Service) DeleteObject(dnsId int) (bool, error)
 
 	return true, err
 }
+
+func (sldds *softLayer_Dns_Domain_Service) GetByDomainName(name string) ([]datatypes.SoftLayer_Dns_Domain, error) {
+	path := fmt.Sprintf("%s/%s/%s", sldds.GetName(), "getByDomainName", name)
+	responseBytes, errorCode, err := sldds.client.GetHttpClient().DoRawHttpRequest(path, "GET", &bytes.Buffer{})
+	if err != nil {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Dns_Domain#getByDomainName, error message '%s'", err.Error())
+		return []datatypes.SoftLayer_Dns_Domain{}, errors.New(errorMessage)
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Dns_Domain#getByDomainName, HTTP error code: '%d'", errorCode)
+		return []datatypes.SoftLayer_Dns_Domain{}, errors.New(errorMessage)
+	}
+
+	domains := []datatypes.SoftLayer_Dns_Domain{}
+	err = json.Unmarshal(responseBytes, &domains)
+	if err != nil {
+		errorMessage := fmt.Sprintf("softlayer-go: failed to decode JSON response, err message '%s'", err.Error())
+		err := errors.New(errorMessage)
+		return []datatypes.SoftLayer_Dns_Domain{}, err
+	}
+
+	return domains, nil
+}

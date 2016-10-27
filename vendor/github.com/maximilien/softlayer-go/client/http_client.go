@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/maximilien/softlayer-go/common"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
+	"strings"
 	"text/template"
+	"time"
 )
 
 const NON_VERBOSE = "NON_VERBOSE"
@@ -164,11 +168,29 @@ func (slc *HttpClient) makeHttpRequest(url string, requestType string, requestBo
 		fmt.Fprintf(os.Stderr, "\n---\n[softlayer-go] Request:\n%s\n", hideCredentials(string(bs)))
 	}
 
-	resp, err := slc.HTTPClient.Do(req)
-	if err != nil {
-		return nil, 520, err
+	var resp *http.Response
+	SL_API_WAIT_TIME, err := strconv.Atoi(os.Getenv("SL_API_WAIT_TIME"))
+	if err != nil || SL_API_WAIT_TIME == 0 {
+		SL_API_WAIT_TIME = 1
+	}
+	SL_API_RETRY_COUNT, err := strconv.Atoi(os.Getenv("SL_API_RETRY_COUNT"))
+	if err != nil || SL_API_RETRY_COUNT == 0 {
+		SL_API_RETRY_COUNT = 3
 	}
 
+	for i := 1; i <= SL_API_RETRY_COUNT; i++ {
+		resp, err = slc.HTTPClient.Do(req)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[softlayer-go] Error: %s, retrying %d time(s)\n", err.Error(), i)
+			if !strings.Contains(err.Error(), "i/o timeout") && !strings.Contains(err.Error(), "connection refused") || i >= SL_API_RETRY_COUNT {
+				return nil, 520, err
+			}
+		} else {
+			break
+		}
+
+		time.Sleep(time.Duration(SL_API_WAIT_TIME) * time.Second)
+	}
 	defer resp.Body.Close()
 
 	bs, err = httputil.DumpResponse(resp, true)
@@ -185,10 +207,28 @@ func (slc *HttpClient) makeHttpRequest(url string, requestType string, requestBo
 		return nil, resp.StatusCode, err
 	}
 
+	if common.IsHttpErrorCode(resp.StatusCode) {
+		//Try to parse response body since SoftLayer could return meaningful error message
+		err = slc.CheckForHttpResponseErrorsSilently(responseBody)
+		if err != nil {
+			return nil, resp.StatusCode, err
+		}
+	}
+
 	return responseBody, resp.StatusCode, nil
 }
 
 // Private functions
+
+func (slc *HttpClient) CheckForHttpResponseErrorsSilently(data []byte) error {
+	var decodedResponse map[string]interface{}
+	parseErr := json.Unmarshal(data, &decodedResponse)
+	if parseErr == nil {
+		return slc.HasErrors(decodedResponse)
+	}
+
+	return nil
+}
 
 func hideCredentials(s string) string {
 	hiddenStr := "\"password\":\"******\""

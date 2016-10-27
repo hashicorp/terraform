@@ -817,6 +817,18 @@
 			"revisionTime": "2016-06-01T21:42:51Z"
 		},
 		{
+			"checksumSHA1": "TbzNl200lJFg2rpZ4V6rG8Dxvdc=",
+			"path": "github.com/cloudfoundry/bosh-utils/logger",
+			"revision": "96cb2971e599f7fab2698f37e4dee9178a0d2390",
+			"revisionTime": "2016-10-25T15:52:44Z"
+		},
+		{
+			"checksumSHA1": "dNDmmKT7dGb6SHqKKbwQgalVrFA=",
+			"path": "github.com/cloudfoundry/bosh-utils/retrystrategy",
+			"revision": "96cb2971e599f7fab2698f37e4dee9178a0d2390",
+			"revisionTime": "2016-10-25T15:52:44Z"
+		},
+		{
 			"comment": "v2.3.0-alpha.0-652-ge552791",
 			"path": "github.com/coreos/etcd/client",
 			"revision": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
@@ -1639,29 +1651,34 @@
 			"revision": "56b76bdf51f7708750eac80fa38b952bb9f32639"
 		},
 		{
-			"comment": "v0.6.0",
+			"checksumSHA1": "E611q4DGLEibKTtgMltyFAeHyqU=",
+			"comment": "v0.7.0",
 			"path": "github.com/maximilien/softlayer-go/client",
-			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
+			"revision": "1d4217550aef2c9207aeae5a93c7ce5c3c91ef21"
 		},
 		{
-			"comment": "v0.6.0",
+			"checksumSHA1": "nPaYMMjIl21a30j9R2lURjb8Nts=",
+			"comment": "v0.7.0",
 			"path": "github.com/maximilien/softlayer-go/common",
-			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
+			"revision": "1d4217550aef2c9207aeae5a93c7ce5c3c91ef21"
 		},
 		{
-			"comment": "v0.6.0",
+			"checksumSHA1": "QX0ziTd3v7aZ6fsWYQ7CbOl24BM=",
+			"comment": "v0.7.0",
 			"path": "github.com/maximilien/softlayer-go/data_types",
-			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
+			"revision": "1d4217550aef2c9207aeae5a93c7ce5c3c91ef21"
 		},
 		{
-			"comment": "v0.6.0",
+			"checksumSHA1": "THDBrQO5vqBZ0MwBmJXXqwaNXjg=",
+			"comment": "v0.7.0",
 			"path": "github.com/maximilien/softlayer-go/services",
-			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
+			"revision": "1d4217550aef2c9207aeae5a93c7ce5c3c91ef21"
 		},
 		{
-			"comment": "v0.6.0",
+			"checksumSHA1": "1zyBZBF+cSPCrO06RVYCiu/AnIA=",
+			"comment": "v0.7.0",
 			"path": "github.com/maximilien/softlayer-go/softlayer",
-			"revision": "85659debe44fab5792fc92cf755c04b115b9dc19"
+			"revision": "1d4217550aef2c9207aeae5a93c7ce5c3c91ef21"
 		},
 		{
 			"checksumSHA1": "GSum+utW01N3KeMdvAPnsW0TemM=",
@@ -1752,6 +1769,12 @@
 		{
 			"path": "github.com/pearkes/mailgun",
 			"revision": "b88605989c4141d22a6d874f78800399e5bb7ac2"
+		},
+		{
+			"checksumSHA1": "6c5Q7PkY6NB46Na/wZhMBbjbz+U=",
+			"path": "github.com/pivotal-golang/clock",
+			"revision": "e0835a7d46f9ea781e764f0dc9325110e32a97dd",
+			"revisionTime": "2016-07-26T17:46:41Z"
 		},
 		{
 			"comment": "v0.3.0",

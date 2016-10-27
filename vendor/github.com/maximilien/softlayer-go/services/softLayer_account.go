@@ -397,7 +397,7 @@ func (slas *softLayer_Account_Service) GetHardware() ([]datatypes.SoftLayer_Hard
 	return hardwares, nil
 }
 
-func (slas *softLayer_Account_Service) GetDnsDomains() ([]datatypes.SoftLayer_Dns_Domain, error) {
+func (slas *softLayer_Account_Service) GetDomains() ([]datatypes.SoftLayer_Dns_Domain, error) {
 	path := fmt.Sprintf("%s/%s", slas.GetName(), "getDomains.json")
 	responseBytes, errorCode, err := slas.client.GetHttpClient().DoRawHttpRequest(path, "GET", &bytes.Buffer{})
 	if err != nil {

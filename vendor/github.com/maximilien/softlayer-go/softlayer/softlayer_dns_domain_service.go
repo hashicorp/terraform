@@ -12,4 +12,5 @@ type SoftLayer_Dns_Domain_Service interface {
 	CreateObject(template datatypes.SoftLayer_Dns_Domain_Template) (datatypes.SoftLayer_Dns_Domain, error)
 	DeleteObject(dnsId int) (bool, error)
 	GetObject(dnsId int) (datatypes.SoftLayer_Dns_Domain, error)
+	GetByDomainName(name string) ([]datatypes.SoftLayer_Dns_Domain, error)
 }

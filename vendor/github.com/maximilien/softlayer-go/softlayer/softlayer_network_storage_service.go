@@ -9,11 +9,14 @@ type SoftLayer_Network_Storage_Service interface {
 
 	DeleteObject(volumeId int) (bool, error)
 
-	CreateIscsiVolume(size int, location string) (datatypes.SoftLayer_Network_Storage, error)
-	DeleteIscsiVolume(volumeId int, immediateCancellationFlag bool) error
-	GetIscsiVolume(volumeId int) (datatypes.SoftLayer_Network_Storage, error)
+	CreateNetworkStorage(size int, capacity int, location string, userHourlyPricing bool) (datatypes.SoftLayer_Network_Storage, error)
+	DeleteNetworkStorage(volumeId int, immediateCancellationFlag bool) error
+	GetNetworkStorage(volumeId int) (datatypes.SoftLayer_Network_Storage, error)
 	GetBillingItem(volumeId int) (datatypes.SoftLayer_Billing_Item, error)
 	HasAllowedVirtualGuest(volumeId int, vmId int) (bool, error)
-	AttachIscsiVolume(virtualGuest datatypes.SoftLayer_Virtual_Guest, volumeId int) (bool, error)
-	DetachIscsiVolume(virtualGuest datatypes.SoftLayer_Virtual_Guest, volumeId int) error
+	HasAllowedHardware(volumeId int, vmId int) (bool, error)
+	AttachNetworkStorageToVirtualGuest(virtualGuest datatypes.SoftLayer_Virtual_Guest, volumeId int) (bool, error)
+	DetachNetworkStorageFromVirtualGuest(virtualGuest datatypes.SoftLayer_Virtual_Guest, volumeId int) error
+	AttachNetworkStorageToHardware(hardware datatypes.SoftLayer_Hardware, volumeId int) (bool, error)
+	DetachNetworkStorageFromHardware(hardware datatypes.SoftLayer_Hardware, volumeId int) error
 }

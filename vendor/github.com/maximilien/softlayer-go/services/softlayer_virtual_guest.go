@@ -197,7 +197,7 @@ func (slvgs *softLayer_Virtual_Guest_Service) GetObjectByPrimaryIpAddress(ipAddr
 
 func (slvgs *softLayer_Virtual_Guest_Service) GetObjectByPrimaryBackendIpAddress(ipAddress string) (datatypes.SoftLayer_Virtual_Guest, error) {
 
-	ObjectFilter := string(`{"virtualGuests":{"primaryBackendIpAddress":{"operation":` + ipAddress + `}}}`)
+	ObjectFilter := string(`{"virtualGuests":{"primaryBackendIpAddress":{"operation":"` + ipAddress + `"}}}`)
 
 	accountService, err := slvgs.client.GetSoftLayer_Account_Service()
 	if err != nil {
@@ -298,6 +298,25 @@ func (slvgs *softLayer_Virtual_Guest_Service) GetPrimaryIpAddress(instanceId int
 	}
 
 	return vgPrimaryIpAddress, nil
+}
+
+func (slvgs *softLayer_Virtual_Guest_Service) GetPrimaryBackendIpAddress(instanceId int) (string, error) {
+	response, errorCode, err := slvgs.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/getPrimaryBackendIpAddress.json", slvgs.GetName(), instanceId), "GET", new(bytes.Buffer))
+	if err != nil {
+		return "", err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Virtual_Guest#getPrimaryBackendIpAddress, HTTP error code: '%d'", errorCode)
+		return "", errors.New(errorMessage)
+	}
+
+	vgPrimaryBackendIpAddress := strings.TrimSpace(string(response))
+	if vgPrimaryBackendIpAddress == "" {
+		return "", errors.New(fmt.Sprintf("Failed to get primary IP address for instance with id '%d', got '%s' as response from the API.", instanceId, response))
+	}
+
+	return vgPrimaryBackendIpAddress, nil
 }
 
 func (slvgs *softLayer_Virtual_Guest_Service) GetActiveTransaction(instanceId int) (datatypes.SoftLayer_Provisioning_Version1_Transaction, error) {
@@ -503,7 +522,7 @@ func (slvgs *softLayer_Virtual_Guest_Service) RebootHard(instanceId int) (bool, 
 	}
 
 	if common.IsHttpErrorCode(errorCode) {
-		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Security_Ssh_Key#rebootHard, HTTP error code: '%d'", errorCode)
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Virtual_Guest#rebootHard, HTTP error code: '%d'", errorCode)
 		return false, errors.New(errorMessage)
 	}
 
@@ -1021,6 +1040,66 @@ func (slvgs *softLayer_Virtual_Guest_Service) GetNetworkVlans(instanceId int) ([
 	return networkVlans, nil
 }
 
+func (slvgs *softLayer_Virtual_Guest_Service) GetNetworkComponents(instanceId int) ([]datatypes.SoftLayer_Virtual_Guest_Network_Component, error) {
+	response, errorCode, err := slvgs.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/getNetworkComponents.json", slvgs.GetName(), instanceId), "GET", new(bytes.Buffer))
+	if err != nil {
+		return []datatypes.SoftLayer_Virtual_Guest_Network_Component{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: SoftLayer_Virtual_Guest#getNetworkComponents failed, HTTP error code: '%d'", errorCode)
+		return []datatypes.SoftLayer_Virtual_Guest_Network_Component{}, errors.New(errorMessage)
+	}
+
+	networkComponents := []datatypes.SoftLayer_Virtual_Guest_Network_Component{}
+	err = json.Unmarshal(response, &networkComponents)
+	if err != nil {
+		return []datatypes.SoftLayer_Virtual_Guest_Network_Component{}, err
+	}
+
+	return networkComponents, nil
+}
+
+func (slvgs *softLayer_Virtual_Guest_Service) GetPrimaryBackendNetworkComponent(instanceId int) (datatypes.SoftLayer_Virtual_Guest_Network_Component, error) {
+	response, errorCode, err := slvgs.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/getPrimaryBackendNetworkComponent.json", slvgs.GetName(), instanceId), "GET", new(bytes.Buffer))
+	if err != nil {
+		return datatypes.SoftLayer_Virtual_Guest_Network_Component{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: SoftLayer_Virtual_Guest#getPrimaryBackendNetworkComponent failed, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Virtual_Guest_Network_Component{}, errors.New(errorMessage)
+	}
+
+	networkComponent := datatypes.SoftLayer_Virtual_Guest_Network_Component{}
+	err = json.Unmarshal(response, &networkComponent)
+	if err != nil {
+		return datatypes.SoftLayer_Virtual_Guest_Network_Component{}, err
+	}
+
+	return networkComponent, nil
+}
+
+func (slvgs *softLayer_Virtual_Guest_Service) GetPrimaryNetworkComponent(instanceId int) (datatypes.SoftLayer_Virtual_Guest_Network_Component, error) {
+	response, errorCode, err := slvgs.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/getPrimaryNetworkComponent.json", slvgs.GetName(), instanceId), "GET", new(bytes.Buffer))
+	if err != nil {
+		return datatypes.SoftLayer_Virtual_Guest_Network_Component{}, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: SoftLayer_Virtual_Guest#getPrimaryNetworkComponent failed, HTTP error code: '%d'", errorCode)
+		return datatypes.SoftLayer_Virtual_Guest_Network_Component{}, errors.New(errorMessage)
+	}
+
+	networkComponent := datatypes.SoftLayer_Virtual_Guest_Network_Component{}
+	err = json.Unmarshal(response, &networkComponent)
+	if err != nil {
+		return datatypes.SoftLayer_Virtual_Guest_Network_Component{}, err
+	}
+
+	return networkComponent, nil
+}
+
 func (slvgs *softLayer_Virtual_Guest_Service) CheckHostDiskAvailability(instanceId int, diskCapacity int) (bool, error) {
 	response, errorCode, err := slvgs.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/checkHostDiskAvailability/%d", slvgs.GetName(), instanceId, diskCapacity), "GET", new(bytes.Buffer))
 	if err != nil {
@@ -1095,6 +1174,30 @@ func (slvgs *softLayer_Virtual_Guest_Service) CreateArchiveTransaction(instanceI
 	}
 
 	return transaction, nil
+}
+
+func (slvgs *softLayer_Virtual_Guest_Service) GetLocalDiskFlag(instanceId int) (bool, error) {
+	response, errorCode, err := slvgs.client.GetHttpClient().DoRawHttpRequest(fmt.Sprintf("%s/%d/getLocalDiskFlag.json", slvgs.GetName(), instanceId), "GET", new(bytes.Buffer))
+	if err != nil {
+		return false, err
+	}
+
+	if common.IsHttpErrorCode(errorCode) {
+		errorMessage := fmt.Sprintf("softlayer-go: could not SoftLayer_Virtual_Guest#getLocalDiskFlag, HTTP error code: '%d'", errorCode)
+		return false, errors.New(errorMessage)
+	}
+
+	res := string(response)
+
+	if res == "true" {
+		return true, nil
+	}
+
+	if res == "false" {
+		return false, nil
+	}
+
+	return false, errors.New(fmt.Sprintf("Failed to check the disk type (local or SAN) of that virtual guest with id '%d', got '%s' as response from the API.", instanceId, res))
 }
 
 //Private methods
@@ -1191,19 +1294,29 @@ func (slvgs *softLayer_Virtual_Guest_Service) checkCreateObjectRequiredValues(te
 
 func (slvgs *softLayer_Virtual_Guest_Service) findUpgradeItemPriceForEphemeralDisk(instanceId int, ephemeralDiskSize int) (datatypes.SoftLayer_Product_Item_Price, error) {
 	if ephemeralDiskSize <= 0 {
-		return datatypes.SoftLayer_Product_Item_Price{}, errors.New(fmt.Sprintf("Ephemeral disk size can not be negative: %d", ephemeralDiskSize))
+		return datatypes.SoftLayer_Product_Item_Price{}, fmt.Errorf("Ephemeral disk size can not be negative: %d", ephemeralDiskSize)
 	}
 
 	itemPrices, err := slvgs.GetUpgradeItemPrices(instanceId)
 	if err != nil {
-		return datatypes.SoftLayer_Product_Item_Price{}, nil
+		return datatypes.SoftLayer_Product_Item_Price{}, err
 	}
 
 	var currentDiskCapacity int
 	var currentItemPrice datatypes.SoftLayer_Product_Item_Price
+	var diskType string
+
+	diskTypeBool, err := slvgs.GetLocalDiskFlag(instanceId)
+	if err != nil {
+		return datatypes.SoftLayer_Product_Item_Price{}, err
+	}
+	if diskTypeBool {
+		diskType = "(LOCAL)"
+	} else {
+		diskType = "(SAN)"
+	}
 
 	for _, itemPrice := range itemPrices {
-
 		flag := false
 		for _, category := range itemPrice.Categories {
 			if category.CategoryCode == EPHEMERAL_DISK_CATEGORY_CODE {
@@ -1212,8 +1325,7 @@ func (slvgs *softLayer_Virtual_Guest_Service) findUpgradeItemPriceForEphemeralDi
 			}
 		}
 
-		if flag && strings.Contains(itemPrice.Item.Description, "(LOCAL)") {
-
+		if flag && strings.Contains(itemPrice.Item.Description, diskType) {
 			capacity, _ := strconv.Atoi(itemPrice.Item.Capacity)
 
 			if capacity >= ephemeralDiskSize {
@@ -1226,7 +1338,7 @@ func (slvgs *softLayer_Virtual_Guest_Service) findUpgradeItemPriceForEphemeralDi
 	}
 
 	if currentItemPrice.Id == 0 {
-		return datatypes.SoftLayer_Product_Item_Price{}, errors.New(fmt.Sprintf("No proper local disk for size %d", ephemeralDiskSize))
+		return datatypes.SoftLayer_Product_Item_Price{}, fmt.Errorf("No proper local disk for size %d", ephemeralDiskSize)
 	}
 
 	return currentItemPrice, nil
