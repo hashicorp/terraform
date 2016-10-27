@@ -11,4 +11,5 @@ const (
 	TypeString  EvalType = 1 << iota
 	TypeList
 	TypeMap
+	TypeUnknown
 )
