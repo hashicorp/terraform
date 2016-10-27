@@ -185,7 +185,8 @@ func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
 		return nil
 	}
 
-	// If the resource has been tainted we shouldn't alter the Diff
+	// If the resource has been tainted then we don't process ignore changes
+	// since we MUST recreate the entire resource.
 	if diff.DestroyTainted {
 		return nil
 	}
