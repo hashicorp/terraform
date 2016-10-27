@@ -209,9 +209,13 @@ func (c *ResourceConfig) GetRaw(k string) (interface{}, bool) {
 
 // IsComputed returns whether the given key is computed or not.
 func (c *ResourceConfig) IsComputed(k string) bool {
-	_, ok := c.get(k, c.Config)
+	v, ok := c.get(k, c.Config)
 	_, okRaw := c.get(k, c.Raw)
-	return !ok && okRaw
+
+	// Both tests probably aren't needed anymore since we don't remove
+	// values any longer. The latter is probably good enough since we
+	// thread through that value now.
+	return (!ok && okRaw) || v == config.UnknownVariableValue
 }
 
 // IsSet checks if the key in the configuration is set. A key is set if
