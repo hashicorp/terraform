@@ -19,6 +19,7 @@ FEATURES:
  * **New Resource:** `azurerm_storage_share` [GH-8674]
  * **New Resource:** `azurerm_eventhub_namespace` [GH-9297]
  * **New Resource:** `cloudstack_security_group` [GH-9103]
+ * **New Resource:** `cloudstack_security_group_rule` [GH-9645]
  * **New DataSource:** `azurerm_client_config` [GH-9478]
  * **New Interpolation Function:** `title` [GH-9087]
  * **New Interpolation Function:** `zipmap` [GH-9627]
