@@ -55,6 +55,7 @@ func Provider() terraform.ResourceProvider {
 			"cloudstack_port_forward":         resourceCloudStackPortForward(),
 			"cloudstack_secondary_ipaddress":  resourceCloudStackSecondaryIPAddress(),
 			"cloudstack_security_group":       resourceCloudStackSecurityGroup(),
+			"cloudstack_security_group_rule":  resourceCloudStackSecurityGroupRule(),
 			"cloudstack_ssh_keypair":          resourceCloudStackSSHKeyPair(),
 			"cloudstack_static_nat":           resourceCloudStackStaticNAT(),
 			"cloudstack_template":             resourceCloudStackTemplate(),
