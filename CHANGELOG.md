@@ -60,6 +60,7 @@ BUG FIXES:
  * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff [GH-9323]
  * provider/consul: Change to consul_service resource to introduce a `service_id` parameter [GH-9366]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
+ * provider/docker: Fixes for docker_container host object and documentation [GH-9367]
  
 
 ## 0.7.7 (October 18, 2016)
