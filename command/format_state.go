@@ -30,7 +30,7 @@ func FormatState(opts *FormatStateOpts) string {
 	}
 
 	s := opts.State
-	if len(s.Modules) == 0 {
+	if s.Empty() {
 		return "The state file is empty. No resources are represented."
 	}
 
