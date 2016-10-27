@@ -166,11 +166,19 @@ func parseVarFlagAsHCL(input string) (string, interface{}, error) {
 	if _, err := strconv.ParseFloat(trimmed, 64); err == nil {
 		return probablyName, value, nil
 	}
+
 	// HCL will also parse hex as a number
 	if strings.HasPrefix(trimmed, "0x") {
 		if _, err := strconv.ParseInt(trimmed[2:], 16, 64); err == nil {
 			return probablyName, value, nil
 		}
+	}
+
+	// If the value is a boolean value, also convert it to a simple string
+	// since Terraform core doesn't accept primitives as anything other
+	// than string for now.
+	if _, err := strconv.ParseBool(trimmed); err == nil {
+		return probablyName, value, nil
 	}
 
 	parsed, err := hcl.Parse(input)
