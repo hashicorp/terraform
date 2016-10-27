@@ -45,6 +45,7 @@ IMPROVEMENTS:
  * provider/azurerm: support importing of subnet resource [GH-9646]
  * provider/digitalocean: Allow resizing DigitalOcean Droplets without increasing disk size. [GH-9573]
  * provider/google: enhance service scope list [GH-9442]
+ * provider/google Change default MySQL instance version to 5.6 [GH-9674]
  * provider/openstack: Added value_specs to openstack_networking_port_v2, allowing vendor information [GH-9551]
  * provider/openstack: Added value_specs to openstack_networking_floatingip_v2, allowing vendor information [GH-9552]
  * provider/openstack: Added value_specs to openstack_compute_keypair_v2, allowing vendor information [GH-9554]
