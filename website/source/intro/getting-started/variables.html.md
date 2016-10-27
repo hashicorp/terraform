@@ -155,7 +155,7 @@ A variable can have a `map` type assigned explicitly, or it can be implicitly
 declared as a map by specifying a default value that is a map. The above
 demonstrates both.
 
-Then, replace the `aws\_instance` with the following:
+Then, replace the `aws_instance` with the following:
 
 ```
 resource "aws_instance" "example" {
