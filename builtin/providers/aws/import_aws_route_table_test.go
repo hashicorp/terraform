@@ -38,7 +38,7 @@ func TestAccAWSRouteTable_importBasic(t *testing.T) {
 
 func TestAccAWSRouteTable_complex(t *testing.T) {
 	checkFn := func(s []*terraform.InstanceState) error {
-		// Expect 2: group, 1 rules
+		// Expect 3: group, 2 rules
 		if len(s) != 3 {
 			return fmt.Errorf("bad states: %#v", s)
 		}
