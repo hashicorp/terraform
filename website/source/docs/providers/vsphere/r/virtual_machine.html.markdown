@@ -104,9 +104,12 @@ The `windows_opt_config` block supports:
 
 * `product_key` - (Optional) Serial number for new installation of Windows. This serial number is ignored if the original guest operating system was installed using a volume-licensed CD.
 * `admin_password` - (Optional) The password for the new `administrator` account. Omit for passwordless admin (using `""` does not work).
+* `admin_autologon` - (Optional) Autologin for the new `administrator` account; defaults to false. Requires `admin_password` be set.
+* `admin_autologon_count` - (Optional) Count of number of autologins that should occur for the new `administrator` account; defaults to 1.
 * `domain` - (Optional) Domain that the new machine will be placed into. If `domain`, `domain_user`, and `domain_user_password` are not all set, all three will be ignored.
 * `domain_user` - (Optional) User that is a member of the specified domain.
 * `domain_user_password` - (Optional) Password for domain user, in plain text.
+* `custom_commands` - (Optional) List of commands to run during Sysprep.
 
 <a id="disks"></a>
 ## Disks

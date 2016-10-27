@@ -60,11 +60,14 @@ type hardDisk struct {
 
 //Additional options Vsphere can use clones of windows machines
 type windowsOptConfig struct {
-	productKey         string
-	adminPassword      string
-	domainUser         string
-	domain             string
-	domainUserPassword string
+	productKey          string
+	adminPassword       string
+	adminAutoLogon      bool
+	adminAutoLogonCount int32
+	domainUser          string
+	domain              string
+	domainUserPassword  string
+	customCommands      []string
 }
 
 type cdrom struct {
@@ -256,6 +259,20 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"admin_autologon": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default:  false,
+						},
+
+						"admin_autologon_count": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							ForceNew: true,
+							Default:  1,
+						},
+
 						"domain_user": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -271,6 +288,13 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						"domain_user_password": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
+						},
+
+						"custom_commands": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 							ForceNew: true,
 						},
 					},
@@ -782,6 +806,12 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		if v, ok := custom_configs["admin_password"].(string); ok && v != "" {
 			winOpt.adminPassword = v
 		}
+		if v, ok := custom_configs["admin_autologon"].(bool); ok {
+			winOpt.adminAutoLogon = v
+		}
+		if v, ok := custom_configs["admin_autologon_count"].(int); ok && v != 0 {
+			winOpt.adminAutoLogonCount = int32(v)
+		}
 		if v, ok := custom_configs["domain"].(string); ok && v != "" {
 			winOpt.domain = v
 		}
@@ -793,6 +823,11 @@ func resourceVSphereVirtualMachineCreate(d *schema.ResourceData, meta interface{
 		}
 		if v, ok := custom_configs["domain_user_password"].(string); ok && v != "" {
 			winOpt.domainUserPassword = v
+		}
+		if v, ok := custom_configs["custom_commands"].([]interface{}); ok && v != nil {
+			for _, c := range v {
+				winOpt.customCommands = append(winOpt.customCommands, c.(string))
+			}
 		}
 		vm.windowsOptionalConfig = winOpt
 		log.Printf("[DEBUG] windows config init: %v", winOpt)
@@ -2035,11 +2070,10 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 			}
 
 			guiUnattended := types.CustomizationGuiUnattended{
-				AutoLogon:      false,
-				AutoLogonCount: 1,
+				AutoLogon:      vm.windowsOptionalConfig.adminAutoLogon,
+				AutoLogonCount: int32(vm.windowsOptionalConfig.adminAutoLogonCount),
 				TimeZone:       int32(timeZone),
 			}
-
 			customIdentification := types.CustomizationIdentification{}
 
 			userData := types.CustomizationUserData{
@@ -2067,10 +2101,22 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 				}
 			}
 
-			identity_options = &types.CustomizationSysprep{
-				GuiUnattended:  guiUnattended,
-				Identification: customIdentification,
-				UserData:       userData,
+			if vm.windowsOptionalConfig.customCommands != nil {
+				guiRunOnce := &types.CustomizationGuiRunOnce{
+					CommandList: vm.windowsOptionalConfig.customCommands,
+				}
+				identity_options = &types.CustomizationSysprep{
+					GuiUnattended:  guiUnattended,
+					GuiRunOnce:     guiRunOnce,
+					Identification: customIdentification,
+					UserData:       userData,
+				}
+			} else {
+				identity_options = &types.CustomizationSysprep{
+					GuiUnattended:  guiUnattended,
+					Identification: customIdentification,
+					UserData:       userData,
+				}
 			}
 		} else {
 			identity_options = &types.CustomizationLinuxPrep{
