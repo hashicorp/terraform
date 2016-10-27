@@ -51,6 +51,7 @@ BUG FIXES:
  * core: Resources suffixed with 'panic' won't falsely trigger crash detection. [GH-9395]
  * core: Validate lifecycle options don't contain interpolations. [GH-9576]
  * core: Tainted resources will not process `ignore_changes`. [GH-7855]
+ * core: Boolean looking values passed in via `-var` no longer cause type errors. [GH-9642]
  * provider/archive: Converting to datasource. [GH-8492]
  * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value [GH-9453]
  * provider/aws: Fix issue with updating ElasticBeanstalk environment variables [GH-9259]
