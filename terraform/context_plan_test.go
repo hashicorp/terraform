@@ -1937,6 +1937,51 @@ func TestContext2Plan_taint(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_taintIgnoreChanges(t *testing.T) {
+	m := testModule(t, "plan-taint-ignore-changes")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"vars": "foo",
+								"type": "aws_instance",
+							},
+							Tainted: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanTaintIgnoreChangesStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 // Fails about 50% of the time before the fix for GH-4982, covers the fix.
 func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 	m := testModule(t, "plan-taint-interpolated-count")

@@ -1369,6 +1369,21 @@ aws_instance.foo:
   num = 2
 `
 
+const testTerraformPlanTaintIgnoreChangesStr = `
+DIFF:
+
+DESTROY/CREATE: aws_instance.foo
+  type: "" => "aws_instance"
+  vars: "" => "foo"
+
+STATE:
+
+aws_instance.foo: (tainted)
+  ID = foo
+  type = aws_instance
+  vars = foo
+`
+
 const testTerraformPlanMultipleTaintStr = `
 DIFF:
 
