@@ -191,7 +191,7 @@ func TestRawConfig_merge(t *testing.T) {
 			},
 			"var.baz": ast.Variable{
 				Value: UnknownVariableValue,
-				Type:  ast.TypeString,
+				Type:  ast.TypeUnknown,
 			},
 		}
 		if err := rc2.Interpolate(vars); err != nil {
@@ -216,6 +216,7 @@ func TestRawConfig_merge(t *testing.T) {
 	expected := map[string]interface{}{
 		"foo": "foovalue",
 		"bar": "barvalue",
+		"baz": UnknownVariableValue,
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
@@ -250,7 +251,7 @@ func TestRawConfig_unknown(t *testing.T) {
 	vars := map[string]ast.Variable{
 		"var.bar": ast.Variable{
 			Value: UnknownVariableValue,
-			Type:  ast.TypeString,
+			Type:  ast.TypeUnknown,
 		},
 	}
 	if err := rc.Interpolate(vars); err != nil {
@@ -258,7 +259,7 @@ func TestRawConfig_unknown(t *testing.T) {
 	}
 
 	actual := rc.Config()
-	expected := map[string]interface{}{}
+	expected := map[string]interface{}{"foo": UnknownVariableValue}
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
@@ -283,7 +284,7 @@ func TestRawConfig_unknownPartial(t *testing.T) {
 	vars := map[string]ast.Variable{
 		"var.bar": ast.Variable{
 			Value: UnknownVariableValue,
-			Type:  ast.TypeString,
+			Type:  ast.TypeUnknown,
 		},
 	}
 	if err := rc.Interpolate(vars); err != nil {
@@ -291,7 +292,7 @@ func TestRawConfig_unknownPartial(t *testing.T) {
 	}
 
 	actual := rc.Config()
-	expected := map[string]interface{}{}
+	expected := map[string]interface{}{"foo": UnknownVariableValue}
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
