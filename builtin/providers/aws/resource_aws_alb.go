@@ -88,6 +88,11 @@ func resourceAwsAlb() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 					},
 				},
 			},
@@ -229,6 +234,8 @@ func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 	accessLogMap := map[string]interface{}{}
 	for _, attr := range attributesResp.Attributes {
 		switch *attr.Key {
+		case "access_logs.s3.enabled":
+			accessLogMap["enabled"] = *attr.Value
 		case "access_logs.s3.bucket":
 			accessLogMap["bucket"] = *attr.Value
 		case "access_logs.s3.prefix":
@@ -276,7 +283,7 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 			attributes = append(attributes,
 				&elbv2.LoadBalancerAttribute{
 					Key:   aws.String("access_logs.s3.enabled"),
-					Value: aws.String("true"),
+					Value: aws.String(strconv.FormatBool(log["enabled"].(bool))),
 				},
 				&elbv2.LoadBalancerAttribute{
 					Key:   aws.String("access_logs.s3.bucket"),
