@@ -81,7 +81,7 @@ func TestAccAzureRMServiceBusTopic_enablePartitioning(t *testing.T) {
 						"azurerm_servicebus_topic.test", "enable_partitioning", "true"),
 					// Ensure size is read back in it's original value and not the x16 value returned by Azure
 					resource.TestCheckResourceAttr(
-						"azurerm_servicebus_topic.test", "max_size_in_megabytes", "10240"),
+						"azurerm_servicebus_topic.test", "max_size_in_megabytes", "5120"),
 				),
 			},
 		},
@@ -236,7 +236,7 @@ resource "azurerm_servicebus_topic" "test" {
     namespace_name = "${azurerm_servicebus_namespace.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
     enable_partitioning = true
-	max_size_in_megabytes = 10240
+	max_size_in_megabytes = 5120
 }
 `
 
