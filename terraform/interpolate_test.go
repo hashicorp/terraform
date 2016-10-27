@@ -306,7 +306,7 @@ func TestInterpolater_resourceVariableMissingDuringInput(t *testing.T) {
 
 		testInterpolate(t, i, scope, "aws_instance.web.foo", ast.Variable{
 			Value: config.UnknownVariableValue,
-			Type:  ast.TypeString,
+			Type:  ast.TypeUnknown,
 		})
 	}
 
@@ -360,7 +360,7 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 
 	testInterpolate(t, i, scope, "aws_instance.web.*.foo", ast.Variable{
 		Value: config.UnknownVariableValue,
-		Type:  ast.TypeString,
+		Type:  ast.TypeUnknown,
 	})
 }
 
@@ -565,7 +565,7 @@ func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {
 
 	testInterpolate(t, i, scope, "aws_route53_zone.yada.name_servers", ast.Variable{
 		Value: config.UnknownVariableValue,
-		Type:  ast.TypeString,
+		Type:  ast.TypeUnknown,
 	})
 }
 

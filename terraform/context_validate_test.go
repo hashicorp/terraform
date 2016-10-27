@@ -87,7 +87,9 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+		for _, err := range e {
+			t.Errorf("bad: %s", err)
+		}
 	}
 }
 
