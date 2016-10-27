@@ -235,8 +235,8 @@ func resourceArmServiceBusTopicDelete(d *schema.ResourceData, meta interface{}) 
 
 func validateArmServiceBusTopicMaxSize(i interface{}, k string) (s []string, es []error) {
 	v := i.(int)
-	if v%1024 != 0 || v < 0 || v > 10240 {
-		es = append(es, fmt.Errorf("%q must be a multiple of 1024 up to and including 10240", k))
+	if v%1024 != 0 || v < 0 || v > 5120 {
+		es = append(es, fmt.Errorf("%q must be a multiple of 1024 up to and including 5120", k))
 	}
 
 	return
