@@ -289,7 +289,6 @@ type ProviderResourceType struct {
 	Locations    *[]string           `json:"locations,omitempty"`
 	Aliases      *[]AliasType        `json:"aliases,omitempty"`
 	APIVersions  *[]string           `json:"apiVersions,omitempty"`
-	ZoneMappings *[]ZoneMappingType  `json:"zoneMappings,omitempty"`
 	Properties   *map[string]*string `json:"properties,omitempty"`
 }
 
@@ -309,6 +308,7 @@ type ResourceGroup struct {
 	Name              *string                  `json:"name,omitempty"`
 	Properties        *ResourceGroupProperties `json:"properties,omitempty"`
 	Location          *string                  `json:"location,omitempty"`
+	ManagedBy         *string                  `json:"managedBy,omitempty"`
 	Tags              *map[string]*string      `json:"tags,omitempty"`
 }
 
@@ -454,10 +454,4 @@ type TargetResource struct {
 type TemplateLink struct {
 	URI            *string `json:"uri,omitempty"`
 	ContentVersion *string `json:"contentVersion,omitempty"`
-}
-
-// ZoneMappingType is zone mapping type.
-type ZoneMappingType struct {
-	Location *string   `json:"location,omitempty"`
-	Zones    *[]string `json:"zones,omitempty"`
 }
