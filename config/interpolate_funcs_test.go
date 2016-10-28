@@ -222,6 +222,150 @@ func TestInterpolateFuncList(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncMax(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${max()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${max("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${max(-1, 0, 1)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${max(1, 0, -1)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${max(-1, -2)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${max(-1)}`,
+				"-1",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncMin(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${min()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${min("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${min(-1, 0, 1)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${min(1, 0, -1)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${min(-1, -2)}`,
+				"-2",
+				false,
+			},
+
+			{
+				`${min(-1)}`,
+				"-1",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncFloor(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${floor()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${floor("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${floor("-1.3")}`, // there appears to be a AST bug where the parsed argument ends up being -1 without the "s
+				"-2",
+				false,
+			},
+
+			{
+				`${floor(1.7)}`,
+				"1",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncCeil(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${ceil()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${ceil("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${ceil(-1.8)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${ceil(1.2)}`,
+				"2",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncMap(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{

@@ -89,6 +89,9 @@ The supported built-in functions are:
     **This is not equivalent** of `base64encode(sha256(string))`
     since `sha256()` returns hexadecimal representation.
 
+  * `ceil(float)` - Returns the the least integer value greater than or equal
+      to the argument.
+
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
     ``cidrhost("10.0.0.0/8", 2)`` returns ``10.0.0.2``.
@@ -136,6 +139,9 @@ The supported built-in functions are:
       to other base locations. For example, when using `file()` from inside a
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
+
+  * `floor(float)` - Returns the greatest integer value less than or equal to
+      the argument
 
   * `format(format, args, ...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
@@ -197,10 +203,14 @@ The supported built-in functions are:
     * `map("hello", "world")`
     * `map("us-east", list("a", "b", "c"), "us-west", list("b", "c", "d"))`
 
+  * `max(float1, float2, ...)` - Returns the largest of the floats.
+
   * `merge(map1, map2, ...)` - Returns the union of 2 or more maps. The maps
 	are consumed in the order provided, and duplicate keys overwrite previous
 	entries.
 	* `${merge(map("a", "b"), map("c", "d"))}` returns `{"a": "b", "c": "d"}`
+
+  * `min(float1, float2, ...)` - Returns the smallest of the floats.
 
   * `md5(string)` - Returns a (conventional) hexadecimal representation of the
     MD5 hash of the given string.
