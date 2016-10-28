@@ -26,26 +26,14 @@ func resourceScalewayVolume() *schema.Resource {
 				Required: true,
 			},
 			"size_in_gb": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(int)
-					if value < 1 || value > 150 {
-						errors = append(errors, fmt.Errorf("%q be more than 1 and less than 150", k))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Required:     true,
+				ValidateFunc: validateVolumeSize,
 			},
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if value != "l_ssd" {
-						errors = append(errors, fmt.Errorf("%q must be l_ssd", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateVolumeType,
 			},
 			"server": &schema.Schema{
 				Type:     schema.TypeString,
