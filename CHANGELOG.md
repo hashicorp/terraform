@@ -13,6 +13,9 @@ FEATURES:
    creation process for 0.8. This is now available behind a flag `-Xnew-apply`
    (on any command). This will become the default in 0.8. There may still be
    bugs. [GH-9388]
+ * **Experimental new destroy graph:** `terraform destroy` is also getting
+   a new graph creation process for 0.8. This is now available behind a flag
+   `-Xnew-destroy`. This will become the default in 0.8. [GH-9527]
  * **New Provider:** `pagerduty` [GH-9022]
  * **New Resource:** `aws_iam_user_login_profile` [GH-9605]
  * **New Resource:** `aws_waf_ipset` [GH-8852]
