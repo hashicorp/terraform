@@ -86,6 +86,22 @@ func testAccCheckAWSSNSTopicSubscriptionExists(n string) resource.TestCheckFunc 
 	}
 }
 
+func TestObfuscateEndpointPassword(t *testing.T) {
+	checks := map[string]string{
+		"https://example.com/myroute":                   "https://example.com/myroute",
+		"https://username@example.com/myroute":          "https://username@example.com/myroute",
+		"https://username:password@example.com/myroute": "https://username:****@example.com/myroute",
+	}
+
+	for endpoint, expected := range checks {
+		out := obfuscateEndpointPassword(endpoint)
+
+		if expected != out {
+			t.Fatalf("Expected %v, got %v", expected, out)
+		}
+	}
+}
+
 func testAccAWSSNSTopicSubscriptionConfig(i int) string {
 	return fmt.Sprintf(`
 resource "aws_sns_topic" "test_topic" {
