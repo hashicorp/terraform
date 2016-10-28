@@ -567,6 +567,47 @@ func TestInstanceDiffSame(t *testing.T) {
 			"diff RequiresNew; old: true, new: false",
 		},
 
+		// NewComputed on primitive
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// NewComputed on primitive, removed
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{},
+			},
+			true,
+			"",
+		},
+
 		{
 			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
