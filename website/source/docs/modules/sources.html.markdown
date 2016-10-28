@@ -23,6 +23,8 @@ Terraform supports the following sources:
 
   * HTTP URLs
 
+  * S3 buckets
+
 Each is documented further below.
 
 ## Local File Paths
@@ -165,3 +167,44 @@ Terraform then looks for the resulting module URL in the following order:
 ```
 <meta name=“terraform-get” content="github.com/hashicorp/example" />
 ```
+
+### S3 Bucket
+
+Terraform can also store modules in an S3 bucket. To access the bucket
+you must have appropriate AWS credentials in your configuration or
+available via shared credentials or environment variables.
+
+There are a variety of S3 bucket addressing schemes, most are
+[documented in the S3
+configuration](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro).
+Here are a couple of examples. 
+
+Using the `s3` protocol.
+
+```
+module "consul" {
+  source = "s3::https://s3-eu-west-1.amazonaws.com/consulbucket/consul.zip"
+}
+```
+
+Or directly using the bucket's URL.
+
+```
+module "consul" {
+  source = "consulbucket.s3-eu-west-1.amazonaws.com/consul.zip"
+}
+```
+
+
+## Unarchiving
+
+Terraform will automatically unarchive files based on the extension of
+the file being requested (over any protocol). It supports the following
+archive formats:
+
+* tar.gz and tgz
+* tar.bz2 and tbz2
+* zip
+* gz
+* bz2
+
