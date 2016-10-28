@@ -35,8 +35,11 @@ var (
 	AccountAPI     = "https://account.scaleway.com/"
 	MetadataAPI    = "http://169.254.42.42/"
 	MarketplaceAPI = "https://api-marketplace.scaleway.com"
-	URLPublicDNS   = ".pub.cloud.scaleway.com"
-	URLPrivateDNS  = ".priv.cloud.scaleway.com"
+	ComputeAPIPar1 = "https://cp-par1.scaleway.com/"
+	ComputeAPIAms1 = "https://cp-ams1.scaleway.com"
+
+	URLPublicDNS  = ".pub.cloud.scaleway.com"
+	URLPrivateDNS = ".priv.cloud.scaleway.com"
 )
 
 func init() {
@@ -74,6 +77,8 @@ type ScalewayAPI struct {
 	client     *http.Client
 	verbose    bool
 	computeAPI string
+
+	Region string
 	//
 	Logger
 }
@@ -142,7 +147,7 @@ type ScalewayVolume struct {
 	Identifier string `json:"id,omitempty"`
 
 	// Size is the allocated size of the volume
-	Size uint64 `json:"size,omitempty"`
+	Size interface{} `json:"size,omitempty"`
 
 	// CreationDate is the creation date of the volume
 	CreationDate string `json:"creation_date,omitempty"`
@@ -533,6 +538,7 @@ type ScalewayServer struct {
 		Hypervisor string `json:"hypervisor_id,omitempty"`
 		Blade      string `json:"blade_id,omitempty"`
 		Node       string `json:"node_id,omitempty"`
+		ZoneID     string `json:"zone_id,omitempty"`
 	} `json:"location,omitempty"`
 
 	IPV6 *ScalewayIPV6Definition `json:"ipv6,omitempty"`
@@ -658,6 +664,11 @@ type ScalewayTokenDefinition struct {
 // ScalewayTokensDefinition represents a Scaleway Tokens
 type ScalewayTokensDefinition struct {
 	Token ScalewayTokenDefinition `json:"token"`
+}
+
+// ScalewayGetTokens represents a list of Scaleway Tokens
+type ScalewayGetTokens struct {
+	Tokens []ScalewayTokenDefinition `json:"tokens"`
 }
 
 // ScalewayContainerData represents a Scaleway container data (S3)
@@ -879,10 +890,13 @@ func NewScalewayAPI(organization, token, userAgent, region string, options ...fu
 	}
 	switch region {
 	case "par1", "":
-		s.computeAPI = "https://api.scaleway.com/"
+		s.computeAPI = ComputeAPIPar1
+	case "ams1":
+		s.computeAPI = ComputeAPIAms1
 	default:
 		return nil, fmt.Errorf("%s isn't a valid region", region)
 	}
+	s.Region = region
 	if url := os.Getenv("SCW_COMPUTE_API"); url != "" {
 		s.computeAPI = url
 	}
@@ -1092,6 +1106,30 @@ func (s *ScalewayAPI) handleHTTPError(goodStatusCode []int, resp *http.Response)
 	return body, nil
 }
 
+func (s *ScalewayAPI) fetchServers(api string, query url.Values, out chan<- ScalewayServers) func() error {
+	return func() error {
+		resp, err := s.GetResponsePaginate(api, "servers", query)
+		if resp != nil {
+			defer resp.Body.Close()
+		}
+		if err != nil {
+			return err
+		}
+
+		body, err := s.handleHTTPError([]int{http.StatusOK}, resp)
+		if err != nil {
+			return err
+		}
+		var servers ScalewayServers
+
+		if err = json.Unmarshal(body, &servers); err != nil {
+			return err
+		}
+		out <- servers
+		return nil
+	}
+}
+
 // GetServers gets the list of servers from the ScalewayAPI
 func (s *ScalewayAPI) GetServers(all bool, limit int) (*[]ScalewayServer, error) {
 	query := url.Values{}
@@ -1106,31 +1144,33 @@ func (s *ScalewayAPI) GetServers(all bool, limit int) (*[]ScalewayServer, error)
 	if all && limit == 0 {
 		s.Cache.ClearServers()
 	}
-	resp, err := s.GetResponsePaginate(s.computeAPI, "servers", query)
-	if resp != nil {
-		defer resp.Body.Close()
-	}
-	if err != nil {
-		return nil, err
+	var (
+		g    errgroup.Group
+		apis = []string{
+			ComputeAPIPar1,
+			ComputeAPIAms1,
+		}
+	)
+
+	serverChan := make(chan ScalewayServers, 2)
+	for _, api := range apis {
+		g.Go(s.fetchServers(api, query, serverChan))
 	}
 
-	body, err := s.handleHTTPError([]int{http.StatusOK}, resp)
-	if err != nil {
+	if err := g.Wait(); err != nil {
 		return nil, err
 	}
+	close(serverChan)
 	var servers ScalewayServers
-	if err = json.Unmarshal(body, &servers); err != nil {
-		return nil, err
+
+	for server := range serverChan {
+		servers.Servers = append(servers.Servers, server.Servers...)
 	}
+
 	for i, server := range servers.Servers {
-		// FIXME region, arch, owner, title
 		servers.Servers[i].DNSPublic = server.Identifier + URLPublicDNS
 		servers.Servers[i].DNSPrivate = server.Identifier + URLPrivateDNS
-		s.Cache.InsertServer(server.Identifier, "fr-1", server.Arch, server.Organization, server.Name)
-	}
-	// FIXME: when API limit is ready, remove the following code
-	if limit > 0 && limit < len(servers.Servers) {
-		servers.Servers = servers.Servers[0:limit]
+		s.Cache.InsertServer(server.Identifier, server.Location.ZoneID, server.Arch, server.Organization, server.Name)
 	}
 	return &servers.Servers, nil
 }
@@ -1172,10 +1212,10 @@ func (s *ScalewayAPI) GetServer(serverID string) (*ScalewayServer, error) {
 	if err = json.Unmarshal(body, &oneServer); err != nil {
 		return nil, err
 	}
-	// FIXME region, arch, owner, title
+	// FIXME arch, owner, title
 	oneServer.Server.DNSPublic = oneServer.Server.Identifier + URLPublicDNS
 	oneServer.Server.DNSPrivate = oneServer.Server.Identifier + URLPrivateDNS
-	s.Cache.InsertServer(oneServer.Server.Identifier, "fr-1", oneServer.Server.Arch, oneServer.Server.Organization, oneServer.Server.Name)
+	s.Cache.InsertServer(oneServer.Server.Identifier, oneServer.Server.Location.ZoneID, oneServer.Server.Arch, oneServer.Server.Organization, oneServer.Server.Name)
 	return &oneServer.Server, nil
 }
 
@@ -1234,8 +1274,8 @@ func (s *ScalewayAPI) PostServer(definition ScalewayServerDefinition) (string, e
 	if err = json.Unmarshal(body, &server); err != nil {
 		return "", err
 	}
-	// FIXME region, arch, owner, title
-	s.Cache.InsertServer(server.Server.Identifier, "fr-1", server.Server.Arch, server.Server.Organization, server.Server.Name)
+	// FIXME arch, owner, title
+	s.Cache.InsertServer(server.Server.Identifier, server.Server.Location.ZoneID, server.Server.Arch, server.Server.Organization, server.Server.Name)
 	return server.Server.Identifier, nil
 }
 
@@ -1294,8 +1334,8 @@ func (s *ScalewayAPI) PostSnapshot(volumeID string, name string) (string, error)
 	if err = json.Unmarshal(body, &snapshot); err != nil {
 		return "", err
 	}
-	// FIXME region, arch, owner, title
-	s.Cache.InsertSnapshot(snapshot.Snapshot.Identifier, "fr-1", "", snapshot.Snapshot.Organization, snapshot.Snapshot.Name)
+	// FIXME arch, owner, title
+	s.Cache.InsertSnapshot(snapshot.Snapshot.Identifier, "", "", snapshot.Snapshot.Organization, snapshot.Snapshot.Name)
 	return snapshot.Snapshot.Identifier, nil
 }
 
@@ -1329,7 +1369,7 @@ func (s *ScalewayAPI) PostImage(volumeID string, name string, bootscript string,
 		return "", err
 	}
 	// FIXME region, arch, owner, title
-	s.Cache.InsertImage(image.Image.Identifier, "fr-1", image.Image.Arch, image.Image.Organization, image.Image.Name, "")
+	s.Cache.InsertImage(image.Image.Identifier, "", image.Image.Arch, image.Image.Organization, image.Image.Name, "")
 	return image.Image.Identifier, nil
 }
 
@@ -1486,7 +1526,7 @@ func (s *ScalewayAPI) GetImages() (*[]MarketImage, error) {
 		return nil, err
 	}
 	for _, orgaImage := range OrgaImages.Images {
-		s.Cache.InsertImage(orgaImage.Identifier, "fr-1", orgaImage.Arch, orgaImage.Organization, orgaImage.Name, "")
+		s.Cache.InsertImage(orgaImage.Identifier, "", orgaImage.Arch, orgaImage.Organization, orgaImage.Name, "")
 		images.Images = append(images.Images, MarketImage{
 			Categories:           []string{"MyImages"},
 			CreationDate:         orgaImage.CreationDate,
@@ -1505,7 +1545,7 @@ func (s *ScalewayAPI) GetImages() (*[]MarketImage, error) {
 								{
 									Arch: orgaImage.Arch,
 									ID:   orgaImage.Identifier,
-									Zone: "fr-1",
+									Zone: "",
 								},
 							},
 						},
@@ -1536,8 +1576,8 @@ func (s *ScalewayAPI) GetImage(imageID string) (*ScalewayImage, error) {
 	if err = json.Unmarshal(body, &oneImage); err != nil {
 		return nil, err
 	}
-	// FIXME region, arch, owner, title
-	s.Cache.InsertImage(oneImage.Image.Identifier, "fr-1", oneImage.Image.Arch, oneImage.Image.Organization, oneImage.Image.Name, "")
+	// FIXME owner, title
+	s.Cache.InsertImage(oneImage.Image.Identifier, s.Region, oneImage.Image.Arch, oneImage.Image.Organization, oneImage.Image.Name, "")
 	return &oneImage.Image, nil
 }
 
@@ -1616,7 +1656,7 @@ func (s *ScalewayAPI) GetSnapshots() (*[]ScalewaySnapshot, error) {
 	}
 	for _, snapshot := range snapshots.Snapshots {
 		// FIXME region, arch, owner, title
-		s.Cache.InsertSnapshot(snapshot.Identifier, "fr-1", "", snapshot.Organization, snapshot.Name)
+		s.Cache.InsertSnapshot(snapshot.Identifier, "", "", snapshot.Organization, snapshot.Name)
 	}
 	return &snapshots.Snapshots, nil
 }
@@ -1641,7 +1681,7 @@ func (s *ScalewayAPI) GetSnapshot(snapshotID string) (*ScalewaySnapshot, error) 
 		return nil, err
 	}
 	// FIXME region, arch, owner, title
-	s.Cache.InsertSnapshot(oneSnapshot.Snapshot.Identifier, "fr-1", "", oneSnapshot.Snapshot.Organization, oneSnapshot.Snapshot.Name)
+	s.Cache.InsertSnapshot(oneSnapshot.Snapshot.Identifier, "", "", oneSnapshot.Snapshot.Organization, oneSnapshot.Snapshot.Name)
 	return &oneSnapshot.Snapshot, nil
 }
 
@@ -1662,6 +1702,7 @@ func (s *ScalewayAPI) GetVolumes() (*[]ScalewayVolume, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var volumes ScalewayVolumes
 
 	if err = json.Unmarshal(body, &volumes); err != nil {
@@ -1669,7 +1710,7 @@ func (s *ScalewayAPI) GetVolumes() (*[]ScalewayVolume, error) {
 	}
 	for _, volume := range volumes.Volumes {
 		// FIXME region, arch, owner, title
-		s.Cache.InsertVolume(volume.Identifier, "fr-1", "", volume.Organization, volume.Name)
+		s.Cache.InsertVolume(volume.Identifier, "", "", volume.Organization, volume.Name)
 	}
 	return &volumes.Volumes, nil
 }
@@ -1694,7 +1735,7 @@ func (s *ScalewayAPI) GetVolume(volumeID string) (*ScalewayVolume, error) {
 		return nil, err
 	}
 	// FIXME region, arch, owner, title
-	s.Cache.InsertVolume(oneVolume.Volume.Identifier, "fr-1", "", oneVolume.Volume.Organization, oneVolume.Volume.Name)
+	s.Cache.InsertVolume(oneVolume.Volume.Identifier, "", "", oneVolume.Volume.Organization, oneVolume.Volume.Name)
 	return &oneVolume.Volume, nil
 }
 
@@ -1722,7 +1763,7 @@ func (s *ScalewayAPI) GetBootscripts() (*[]ScalewayBootscript, error) {
 	}
 	for _, bootscript := range bootscripts.Bootscripts {
 		// FIXME region, arch, owner, title
-		s.Cache.InsertBootscript(bootscript.Identifier, "fr-1", bootscript.Arch, bootscript.Organization, bootscript.Title)
+		s.Cache.InsertBootscript(bootscript.Identifier, "", bootscript.Arch, bootscript.Organization, bootscript.Title)
 	}
 	return &bootscripts.Bootscripts, nil
 }
@@ -1747,7 +1788,7 @@ func (s *ScalewayAPI) GetBootscript(bootscriptID string) (*ScalewayBootscript, e
 		return nil, err
 	}
 	// FIXME region, arch, owner, title
-	s.Cache.InsertBootscript(oneBootscript.Bootscript.Identifier, "fr-1", oneBootscript.Bootscript.Arch, oneBootscript.Bootscript.Organization, oneBootscript.Bootscript.Title)
+	s.Cache.InsertBootscript(oneBootscript.Bootscript.Identifier, "", oneBootscript.Bootscript.Arch, oneBootscript.Bootscript.Organization, oneBootscript.Bootscript.Title)
 	return &oneBootscript.Bootscript, nil
 }
 
@@ -1908,7 +1949,6 @@ func (s *ScalewayAPI) GetTasks() (*[]ScalewayTask, error) {
 // CheckCredentials performs a dummy check to ensure we can contact the API
 func (s *ScalewayAPI) CheckCredentials() error {
 	query := url.Values{}
-	query.Set("token_id", s.Token)
 
 	resp, err := s.GetResponsePaginate(AccountAPI, "tokens", query)
 	if resp != nil {
@@ -1917,9 +1957,24 @@ func (s *ScalewayAPI) CheckCredentials() error {
 	if err != nil {
 		return err
 	}
-
-	if _, err := s.handleHTTPError([]int{http.StatusOK}, resp); err != nil {
+	body, err := s.handleHTTPError([]int{http.StatusOK}, resp)
+	if err != nil {
 		return err
+	}
+	found := false
+	var tokens ScalewayGetTokens
+
+	if err = json.Unmarshal(body, &tokens); err != nil {
+		return err
+	}
+	for _, token := range tokens.Tokens {
+		if token.ID == s.Token {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("Invalid token %v", s.Token)
 	}
 	return nil
 }
@@ -2060,11 +2115,12 @@ func showResolverResults(needle string, results ScalewayResolverResults) error {
 	w := tabwriter.NewWriter(os.Stderr, 20, 1, 3, ' ', 0)
 	defer w.Flush()
 	sort.Sort(results)
+	fmt.Fprintf(w, "  IMAGEID\tFROM\tNAME\tZONE\tARCH\n")
 	for _, result := range results {
 		if result.Arch == "" {
 			result.Arch = "n/a"
 		}
-		fmt.Fprintf(w, "- %s\t%s\t%s\t%s\n", result.TruncIdentifier(), result.CodeName(), result.Name, result.Arch)
+		fmt.Fprintf(w, "- %s\t%s\t%s\t%s\t%s\n", result.TruncIdentifier(), result.CodeName(), result.Name, result.Region, result.Arch)
 	}
 	return fmt.Errorf("Too many candidates for %s (%d)", needle, len(results))
 }
@@ -2118,6 +2174,19 @@ func FilterImagesByArch(res ScalewayResolverResults, arch string) (ret ScalewayR
 	return
 }
 
+// FilterImagesByRegion removes entry that doesn't match with region
+func FilterImagesByRegion(res ScalewayResolverResults, region string) (ret ScalewayResolverResults) {
+	if region == "*" {
+		return res
+	}
+	for _, result := range res {
+		if result.Region == region {
+			ret = append(ret, result)
+		}
+	}
+	return
+}
+
 // GetImageID returns exactly one image matching
 func (s *ScalewayAPI) GetImageID(needle, arch string) (*ScalewayImageIdentifier, error) {
 	// Parses optional type prefix, i.e: "image:name" -> "name"
@@ -2128,17 +2197,18 @@ func (s *ScalewayAPI) GetImageID(needle, arch string) (*ScalewayImageIdentifier,
 		return nil, fmt.Errorf("Unable to resolve image %s: %s", needle, err)
 	}
 	images = FilterImagesByArch(images, arch)
+	images = FilterImagesByRegion(images, s.Region)
 	if len(images) == 1 {
 		return &ScalewayImageIdentifier{
 			Identifier: images[0].Identifier,
 			Arch:       images[0].Arch,
 			// FIXME region, owner hardcoded
-			Region: "fr-1",
+			Region: images[0].Region,
 			Owner:  "",
 		}, nil
 	}
 	if len(images) == 0 {
-		return nil, fmt.Errorf("No such image: %s", needle)
+		return nil, fmt.Errorf("No such image (zone %s, arch %s) : %s", s.Region, arch, needle)
 	}
 	return nil, showResolverResults(needle, images)
 }
@@ -2795,4 +2865,15 @@ func (s *ScalewayAPI) DeleteMarketPlaceLocalImage(uuidImage, uuidVersion, uuidLo
 	}
 	_, err = s.handleHTTPError([]int{http.StatusNoContent}, resp)
 	return err
+}
+
+// ResolveTTYUrl return an URL to get a tty
+func (s *ScalewayAPI) ResolveTTYUrl() string {
+	switch s.Region {
+	case "par1", "":
+		return "https://tty-par1.scaleway.com/v2/"
+	case "ams1":
+		return "https://tty-ams1.scaleway.com"
+	}
+	return ""
 }

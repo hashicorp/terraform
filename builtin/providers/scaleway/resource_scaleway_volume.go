@@ -88,7 +88,9 @@ func resourceScalewayVolumeRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 	d.Set("name", volume.Name)
-	d.Set("size_in_gb", volume.Size/gb)
+	if size, ok := volume.Size.(uint64); ok {
+		d.Set("size_in_gb", size/gb)
+	}
 	d.Set("type", volume.VolumeType)
 	d.Set("server", "")
 	if volume.Server != nil {
