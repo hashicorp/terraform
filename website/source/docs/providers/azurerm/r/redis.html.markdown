@@ -10,7 +10,28 @@ description: |-
 
 Creates a new Redis Cache Resource
 
-## Example Usage
+## Example Usage (Basic)
+
+```
+resource "azurerm_resource_group" "test" {
+    name = "acceptanceTestResourceGroup1"
+    location = "West US"
+}
+
+resource "azurerm_redis" "test" {
+  name                = "test"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  redis_version       = "3.0"
+  capacity            = 0
+  family              = "C"
+  sku_name            = "Basic"
+  enable_non_ssl_port = false
+}
+
+```
+
+## Example Usage (Standard)
 
 ```
 resource "azurerm_resource_group" "test" {
@@ -25,13 +46,13 @@ resource "azurerm_redis" "test" {
   redis_version       = "3.0"
   capacity            = 1
   family              = "C"
-  sku_name            = "Basic"
+  sku_name            = "Standard"
   enable_non_ssl_port = false
 }
 
 ```
 
-## Example Usage (Clustered)
+## Example Usage (Premium with Clustering)
 ```
 resource "azurerm_resource_group" "test" {
     name = "acceptanceTestResourceGroup1"
@@ -71,7 +92,7 @@ The following arguments are supported:
 
 * `redis_version` - (Required) The version of Redis to use.
 
-* `capacity` - (Required) The amount of Redis Capacity / Storage required.
+* `capacity` - (Required) The amount of Redis Capacity / Storage required in GB. If you're using the Basic (250mb) tier, this value should be `0`.
 
 * `family` - (Required) The pricing group for the Redis Family - either "C" or "P" at present.
 
