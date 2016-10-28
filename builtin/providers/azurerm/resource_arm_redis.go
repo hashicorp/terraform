@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/redis"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -95,6 +94,16 @@ func resourceArmRedis() *schema.Resource {
 
 			"ssl_port": {
 				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
+			"primary_access_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"secondary_access_key": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 
@@ -196,7 +205,7 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	resGroup := id.ResourceGroup
-	name := id.Path["redis"]
+	name := id.Path["Redis"]
 
 	resp, err := client.Get(resGroup, name)
 	if err != nil {
@@ -207,43 +216,23 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	log.Printf("[INFO] -----======-----")
-	log.Printf("[INFO] 1 - Name is: %s", spew.Sdump(resp.Name))
-	log.Printf("[INFO] 2 - Location is: %s", spew.Sdump(resp.Location))
-	log.Printf("[INFO] -----======-----")
+	keysResp, err := client.ListKeys(resGroup, name)
+	if err != nil {
+		return fmt.Errorf("Error making ListKeys request on Azure Redis %s: %s", name, err)
+	}
 
-	// TODO: ensure this doesn't return nil
-	// d.Set("name", resp.Name)
+	//log.Printf("[INFO] -----======-----")
+	//log.Printf("[INFO] API: %s", spew.Sdump(resp))
+	//log.Printf("[INFO] -----======-----")
+
 	d.Set("name", name)
 	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
-	// TODO: interestingly this crashes..
-	//d.Set("location", azureRMNormalizeLocation(*resp.Location))
-	d.Set("location", resp.Location)
+	parseAzureRMRedisProperties(d, resp.Properties)
 
-	if resp.Properties != nil {
-
-		d.Set("redis_version", resp.Properties.RedisVersion)
-		d.Set("enable_non_ssl_port", resp.Properties.EnableNonSslPort)
-		d.Set("ssl_port", resp.Properties.SslPort)
-
-		d.Set("host_name", resp.Properties.HostName)
-
-		if resp.Properties.Port != nil {
-			d.Set("port", resp.Properties.Port)
-		}
-
-		if resp.Properties.Sku != nil {
-			d.Set("capacity", resp.Properties.Sku.Capacity)
-			d.Set("family", resp.Properties.Sku.Family)
-			d.Set("sku_name", resp.Properties.Sku.Name)
-		}
-
-		// TODO: ensure this parses out correctly
-		if resp.Properties.ShardCount != nil {
-			d.Set("shard_count", resp.Properties.ShardCount)
-		}
-	}
+	d.Set("primary_access_key", keysResp.PrimaryKey)
+	d.Set("secondary_access_key", keysResp.SecondaryKey)
 
 	// TODO: Redis Configuation
 
@@ -260,7 +249,7 @@ func resourceArmRedisDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	resGroup := id.ResourceGroup
-	name := id.Path["redis"]
+	name := id.Path["Redis"]
 
 	resp, err := redisClient.Delete(resGroup, name)
 
@@ -279,6 +268,31 @@ func redisStateRefreshFunc(client redis.Client, resourceGroupName string, sgName
 		}
 
 		return res, *res.Properties.ProvisioningState, nil
+	}
+}
+
+func parseAzureRMRedisProperties(d *schema.ResourceData, properties *redis.ReadableProperties) {
+	if properties != nil {
+		d.Set("redis_version", properties.RedisVersion)
+		d.Set("enable_non_ssl_port", properties.EnableNonSslPort)
+		d.Set("ssl_port", properties.SslPort)
+
+		d.Set("host_name", properties.HostName)
+
+		if properties.Port != nil {
+			d.Set("port", properties.Port)
+		}
+
+		if properties.Sku != nil {
+			d.Set("capacity", properties.Sku.Capacity)
+			d.Set("family", properties.Sku.Family)
+			d.Set("sku_name", properties.Sku.Name)
+		}
+
+		// TODO: ensure this parses out correctly
+		if properties.ShardCount != nil {
+			d.Set("shard_count", properties.ShardCount)
+		}
 	}
 }
 

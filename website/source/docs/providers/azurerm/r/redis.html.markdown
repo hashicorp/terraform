@@ -112,6 +112,10 @@ The following attributes are exported:
 
 * `hostname` - The Hostname of the Redis Instance
 
-* `port` - The non-SSL Port of the Redis Instance
+* `ssl_port` - The non-SSL Port of the Redis Instance
 
 * `port` - The SSL Port of the Redis Instance
+
+* `primary_access_key` - The Primary Access Key for the Redis Instance
+
+* `secondary_access_key` - The Secondary Access Key for the Redis Instance
