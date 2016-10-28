@@ -13,10 +13,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"regexp"
 )
 
 const awsSNSPendingConfirmationMessage = "pending confirmation"
 const awsSNSPendingConfirmationMessageWithoutSpaces = "pendingconfirmation"
+const awsSNSPasswordObfuscationPattern = "****"
 
 func resourceAwsSnsTopicSubscription() *schema.Resource {
 	return &schema.Resource{
@@ -244,13 +246,13 @@ func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Sub
 	protocol := d.Get("protocol").(string)
 	endpoint := d.Get("endpoint").(string)
 	topic_arn := d.Get("topic_arn").(string)
+	obfuscatedEndpointPassword := obfuscateEndpointPassword(endpoint)
 
 	req := &sns.ListSubscriptionsByTopicInput{
 		TopicArn: aws.String(topic_arn),
 	}
 
 	for {
-
 		res, err := snsconn.ListSubscriptionsByTopic(req)
 
 		if err != nil {
@@ -258,8 +260,8 @@ func findSubscriptionByNonID(d *schema.ResourceData, snsconn *sns.SNS) (*sns.Sub
 		}
 
 		for _, subscription := range res.Subscriptions {
-			log.Printf("[DEBUG] check subscription with EndPoint %s, Protocol %s,  topicARN %s and SubscriptionARN %s", *subscription.Endpoint, *subscription.Protocol, *subscription.TopicArn, *subscription.SubscriptionArn)
-			if *subscription.Endpoint == endpoint && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn && !subscriptionHasPendingConfirmation(subscription.SubscriptionArn) {
+			log.Printf("[DEBUG] check subscription with EndPoint %s, Protocol %s, topicARN %s and SubscriptionARN %s", *subscription.Endpoint, *subscription.Protocol, *subscription.TopicArn, *subscription.SubscriptionArn)
+			if *subscription.Endpoint == obfuscatedEndpointPassword && *subscription.Protocol == protocol && *subscription.TopicArn == topic_arn && !subscriptionHasPendingConfirmation(subscription.SubscriptionArn) {
 				return subscription, nil
 			}
 		}
@@ -280,4 +282,10 @@ func subscriptionHasPendingConfirmation(arn *string) bool {
 	}
 
 	return true
+}
+
+// returns the endpoint with obfuscated password, if any
+func obfuscateEndpointPassword(endpoint string) string {
+	r := regexp.MustCompile("(://[^:]+):([^@]+)")
+	return r.ReplaceAllString(endpoint, fmt.Sprintf("$1:%s", awsSNSPasswordObfuscationPattern))
 }
