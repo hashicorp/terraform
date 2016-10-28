@@ -2019,9 +2019,10 @@ func TestSchemaMap_Diff(t *testing.T) {
 						RequiresNew: true,
 					},
 					"instances.3": &terraform.ResourceAttrDiff{
-						Old:        "foo",
-						New:        "",
-						NewRemoved: true,
+						Old:         "foo",
+						New:         "",
+						NewRemoved:  true,
+						RequiresNew: true,
 					},
 				},
 			},
@@ -2331,9 +2332,10 @@ func TestSchemaMap_Diff(t *testing.T) {
 						New: "2",
 					},
 					"instances.2": &terraform.ResourceAttrDiff{
-						Old:        "22",
-						New:        "",
-						NewRemoved: true,
+						Old:         "22",
+						New:         "",
+						NewRemoved:  true,
+						RequiresNew: true,
 					},
 					"instances.3": &terraform.ResourceAttrDiff{
 						Old:         "333",
@@ -2416,6 +2418,37 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.InstanceDiff{
 				Attributes:     map[string]*terraform.ResourceAttrDiff{},
 				DestroyTainted: true,
+			},
+
+			Err: false,
+		},
+
+		"removed optional items should trigger ForceNew": {
+			Schema: map[string]*Schema{
+				"description": &Schema{
+					Type:     TypeString,
+					ForceNew: true,
+					Optional: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"description": "foo",
+				},
+			},
+
+			Config: map[string]interface{}{},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"description": &terraform.ResourceAttrDiff{
+						Old:         "foo",
+						New:         "",
+						RequiresNew: true,
+						NewRemoved:  true,
+					},
+				},
 			},
 
 			Err: false,
