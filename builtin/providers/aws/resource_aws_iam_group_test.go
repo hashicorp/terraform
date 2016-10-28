@@ -14,6 +14,7 @@ import (
 func TestValidateIamGroupName(t *testing.T) {
 	validNames := []string{
 		"test-group",
+		"test_group",
 		"testgroup123",
 		"TestGroup",
 		"Test-Group",
@@ -34,7 +35,6 @@ func TestValidateIamGroupName(t *testing.T) {
 		" ",
 		":",
 		";",
-		"testgroup_123",
 		"test name",
 		"/slash-at-the-beginning",
 		"slash-at-the-end/",

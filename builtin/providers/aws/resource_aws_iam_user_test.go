@@ -15,6 +15,7 @@ import (
 func TestValidateIamUserName(t *testing.T) {
 	validNames := []string{
 		"test-user",
+		"test_user",
 		"testuser123",
 		"TestUser",
 		"Test-User",
@@ -35,7 +36,6 @@ func TestValidateIamUserName(t *testing.T) {
 		" ",
 		":",
 		";",
-		"testuser_123",
 		"test name",
 		"/slash-at-the-beginning",
 		"slash-at-the-end/",
