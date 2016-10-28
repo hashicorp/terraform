@@ -207,7 +207,10 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	log.Printf("API Response %s", spew.Sdump(resp))
+	log.Printf("[INFO] -----======-----")
+	log.Printf("[INFO] 1 - Name is: %s", spew.Sdump(resp.Name))
+	log.Printf("[INFO] 2 - Location is: %s", spew.Sdump(resp.Location))
+	log.Printf("[INFO] -----======-----")
 
 	// TODO: ensure this doesn't return nil
 	// d.Set("name", resp.Name)
