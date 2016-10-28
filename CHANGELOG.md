@@ -56,6 +56,7 @@ IMPROVEMENTS:
  * provider/openstack: Added value_specs to openstack_networking_floatingip_v2, allowing vendor information [GH-9552]
  * provider/openstack: Added value_specs to openstack_compute_keypair_v2, allowing vendor information [GH-9554]
  * provider/openstack: Allow any protocol in openstack_fw_rule_v1 [GH-9617]
+ * provider/scaleway: update sdk for ams1 region [GH-9687]
 
 BUG FIXES:
 
