@@ -15,6 +15,9 @@ func TestAccAzureRMSubnet_basic(t *testing.T) {
 
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMSubnet_basic, ri, ri, ri, ri, ri)
+	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
+	nsg_id := fmt.Sprintf("/subscriptions/%s/resourceGroups/acctestRG-%d/providers/Microsoft.Network/networkSecurityGroups/acctestNSG%d", subscriptionID, ri, ri)
+	rt_id := fmt.Sprintf("/subscriptions/%s/resourceGroups/acctestRG-%d/providers/Microsoft.Network/routeTables/acctestRT%d", subscriptionID, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -25,6 +28,12 @@ func TestAccAzureRMSubnet_basic(t *testing.T) {
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSubnetExists("azurerm_subnet.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "network_security_group_id", nsg_id),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "route_table_id", rt_id),
+					resource.TestCheckResourceAttr(
+						"azurerm_subnet.test", "address_prefix", "10.0.2.0/24"),
 				),
 			},
 		},
