@@ -22,6 +22,7 @@ FEATURES:
  * **New Resource:** `aws_waf_rule` [GH-8852]
  * **New Resource:** `aws_waf_web_acl` [GH-8852]
  * **New Resource:** `aws_waf_byte_match_set` [GH-9681]
+ * **New Resource:** `aws_waf_size_constraint_set` [GH-9689]
  * **New Resource:** `aws_ssm_activation` [GH-9111]
  * **New Resource:** `azurerm_key_vault` [GH-9478]
  * **New Resource:** `azurerm_storage_share` [GH-8674]
