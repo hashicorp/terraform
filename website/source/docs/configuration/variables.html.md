@@ -72,7 +72,7 @@ These are the parameters that can be set:
 
 ------
 
-**Note**: Default values can be strings, lists, or maps. If a default is
+-> **Note**: Default values can be strings, lists, or maps. If a default is
 specified, it must match the declared type of the variable.
 
 ### Strings
@@ -243,11 +243,11 @@ The `-var-file` flag can be used multiple times per command invocation:
 terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
 ```
 
-**Note**: Variable files are evaluated in the order in which they are specified
-on the command line. If a variable is defined in more than one variables file,
+-> **Note**: Variable files are evaluated in the order in which they are specified
+on the command line. If a variable is defined in more than one variable file,
 the last value specified is effective.
 
-### Precedence example:
+### Precedence example
 
 Both these files have the variable `baz` defined:
 
