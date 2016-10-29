@@ -18,6 +18,22 @@ func String(val string) *string {
 	return &val
 }
 
+func validateVolumeType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "l_ssd" {
+		errors = append(errors, fmt.Errorf("%q must be l_ssd", k))
+	}
+	return
+}
+
+func validateVolumeSize(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+	if value < 1 || value > 150 {
+		errors = append(errors, fmt.Errorf("%q be more than 1 and less than 150", k))
+	}
+	return
+}
+
 // deleteRunningServer terminates the server and waits until it is removed.
 func deleteRunningServer(scaleway *api.ScalewayAPI, server *api.ScalewayServer) error {
 	err := scaleway.PostServerAction(server.Identifier, "terminate")
