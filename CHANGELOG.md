@@ -91,6 +91,7 @@ BUG FIXES:
  * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff [GH-9323]
  * provider/azurerm: lower servicebus_topic max size to Azure limit [GH-9649]
  * provider/azurerm: Fix VHD deletion when VM and Storage account are in separate resource groups [GH-9631]
+ * provider/cloudflare: update client library to stop connection closed issues [GH-9715]
  * provider/consul: Change to consul_service resource to introduce a `service_id` parameter [GH-9366]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
  * provider/docker: Fixes for docker_container host object and documentation [GH-9367]
