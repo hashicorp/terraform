@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/redis"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -150,22 +151,23 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 		parameters.Properties.ShardCount = &shardCount
 	}
 
-	/*
-		if v, ok := d.GetOk("redis_configuration"); ok {
-			params := v.(map[string]interface{})
+	if v, ok := d.GetOk("redis_configuration"); ok {
+		params := v.(map[string]interface{})
 
-			redisConfiguration := make(map[string]*string, len(params))
-			for key, val := range params {
-				redisConfiguration[key] = struct {
-					Value *string
-				}{
-					Value: val.(string),
-				}
+		redisConfiguration := make(map[string]*string, len(params))
+		for key, val := range params {
+			str := val.(*string)
+			redisConfiguration[key] = str
+			/*struct {
+				Value *string
+			}{
+				Value: val.(string),
 			}
-
-			parameters.Properties.RedisConfiguration = &redisConfiguration
+			*/
 		}
-	*/
+
+		parameters.Properties.RedisConfiguration = &redisConfiguration
+	}
 
 	_, err := client.CreateOrUpdate(resGroup, name, parameters)
 	if err != nil {
@@ -185,7 +187,7 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 		Pending:    []string{"Updating", "Creating"},
 		Target:     []string{"Succeeded"},
 		Refresh:    redisStateRefreshFunc(client, resGroup, name),
-		Timeout:    30 * time.Minute,
+		Timeout:    60 * time.Minute,
 		MinTimeout: 15 * time.Second,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -221,10 +223,6 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error making ListKeys request on Azure Redis %s: %s", name, err)
 	}
 
-	//log.Printf("[INFO] -----======-----")
-	//log.Printf("[INFO] API: %s", spew.Sdump(resp))
-	//log.Printf("[INFO] -----======-----")
-
 	d.Set("name", name)
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
@@ -233,8 +231,6 @@ func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("primary_access_key", keysResp.PrimaryKey)
 	d.Set("secondary_access_key", keysResp.SecondaryKey)
-
-	// TODO: Redis Configuation
 
 	flattenAndSetTags(d, resp.Tags)
 
@@ -289,10 +285,13 @@ func parseAzureRMRedisProperties(d *schema.ResourceData, properties *redis.Reada
 			d.Set("sku_name", properties.Sku.Name)
 		}
 
-		// TODO: ensure this parses out correctly
+		// TODO: ensure this parses out correctly once the API is fixed..
 		if properties.ShardCount != nil {
 			d.Set("shard_count", properties.ShardCount)
 		}
+
+		// TODO: Parsing out the Redis Configuration
+		//d.Set("redis_configuration", properties.RedisConfiguration)
 	}
 }
 
