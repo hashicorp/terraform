@@ -112,18 +112,24 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
-			// Setup our state
-			state, statePath, err := StateFromPlan(m.statePath, m.stateOutPath, plan)
+			// Setup our state, force it to use our plan's state
+			stateOpts := m.StateOpts()
+			if plan != nil {
+				stateOpts.ForceState = plan.State
+			}
+
+			// Get the state
+			result, err := State(stateOpts)
 			if err != nil {
 				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
 
 			// Set our state
-			m.state = state
+			m.state = result.State
 
 			// this is used for printing the saved location later
 			if m.stateOutPath == "" {
-				m.stateOutPath = statePath
+				m.stateOutPath = result.StatePath
 			}
 
 			if len(m.variables) > 0 {
