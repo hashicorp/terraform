@@ -284,6 +284,10 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 	if sgRaw == nil {
+		log.Printf(
+			"[DEBUG] Security group %q seems to have been deleted; dropping it from state",
+			d.Id(),
+		)
 		d.SetId("")
 		return nil
 	}
@@ -326,8 +330,17 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 	if sgRaw == nil {
-		d.SetId("")
-		return nil
+		// TODO: We should perhaps retry a few times in the case where we're
+		// coming from create, since it seems like there are some eventual
+		// consistency issues in the EC2 API here, but for now we'll just be
+		// sure to handle this properly as an error so that Terraform won't
+		// lose track of an existing security group.
+		//
+		// Note that the "Read" function *does* drop a missing security group,
+		// and we're going to call that later, so we're betting that any
+		// consistency issues in the EC2 API will be stabilized by the time
+		// we're done with the operations that follow.
+		return fmt.Errorf("security group %q no longer exists", d.Id())
 	}
 
 	group := sgRaw.(*ec2.SecurityGroup)
