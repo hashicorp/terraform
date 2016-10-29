@@ -8,8 +8,20 @@ import (
 	"github.com/pkg/errors"
 )
 
+// IPRanges contains lists of IPv4 and IPv6 CIDRs
+type IPRanges struct {
+	IPv4CIDRs []string `json:"ipv4_cidrs"`
+	IPv6CIDRs []string `json:"ipv6_cidrs"`
+}
+
+// IPsResponse is the API response containing a list of IPs
+type IPsResponse struct {
+	Response
+	Result IPRanges `json:"result"`
+}
+
 /*
-IPs gets a list of CloudFlare's IP ranges
+IPs gets a list of Cloudflare's IP ranges
 
 This does not require logging in to the API.
 
