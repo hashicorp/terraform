@@ -811,10 +811,10 @@
 			"revision": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
 		},
 		{
-			"checksumSHA1": "JJWLM3YJwgJD4vOLZnOYi1C2k0E=",
+			"checksumSHA1": "L0fG0Aej27fMmhJwshFsqgVY4dM=",
 			"path": "github.com/cloudflare/cloudflare-go",
-			"revision": "746075f034254832ead032aee02ac072636ff25a",
-			"revisionTime": "2016-06-01T21:42:51Z"
+			"revision": "06a204ed25dc2873323f27d0e134ed4fdbd1c1ec",
+			"revisionTime": "2016-10-05T09:59:54Z"
 		},
 		{
 			"comment": "v2.3.0-alpha.0-652-ge552791",
