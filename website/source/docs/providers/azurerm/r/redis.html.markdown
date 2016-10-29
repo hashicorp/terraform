@@ -100,9 +100,25 @@ The following arguments are supported:
 
 * `enable_non_ssl_port` - (Optional) Enable the non-SSL port (6789) - disabled by default.
 
-* `redis_configuration` - (Optional) Any Redis configuration variables you might want to set.
+* `redis_configuration` - (Optional) Any Redis configuration variables you might want to set - defined as a map - with some limitations by SKU - defaults/details are shown below.
+```
+"maxclients"         = "512"
+"maxmemory-reserved" = "10"
+"maxmemory-delta"    = "2"
+"maxmemory-policy"   = "allkeys-lru"
+```
 
 * `shard_count` - (Optional) *Only available when using the Premium SKU* The number of Shards to create on the Redis Cluster.
+
+## Default Redis Configuration Values
+| Redis Value        | Basic        | Standard     | Premium      |
+| ------------------ | ------------ | ------------ | ------------ |
+| maxclients         | 256          | 1000         |              |
+| maxmemory-reserved | 2            | 50           |              |
+| maxmemory-delta    | 2            | 50           |              |
+| maxmemory-policy   | volatile-lru | volatile-lru | volatile-lru |
+
+_*Important*: The maxmemory-reserved setting is only available for Standard and Premium caches. More details are available in the Relevant Links section below._
 
 ## Attributes Reference
 
@@ -119,3 +135,7 @@ The following attributes are exported:
 * `primary_access_key` - The Primary Access Key for the Redis Instance
 
 * `secondary_access_key` - The Secondary Access Key for the Redis Instance
+
+## Relevant Links
+ - [Azure Redis Cache: SKU specific configuration limitations](https://azure.microsoft.com/en-us/documentation/articles/cache-configure/#advanced-settings)
+ - [Redis: Available Configuration Settings](http://redis.io/topics/config)
