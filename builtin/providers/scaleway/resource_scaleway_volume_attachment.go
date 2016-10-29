@@ -69,7 +69,7 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 
 	// the API request requires most volume attributes to be unset to succeed
 	for k, v := range volumes {
-		v.Size = 0
+		v.Size = nil
 		v.CreationDate = ""
 		v.Organization = ""
 		v.ModificationDate = ""
@@ -174,7 +174,7 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 
 	// the API request requires most volume attributes to be unset to succeed
 	for k, v := range volumes {
-		v.Size = 0
+		v.Size = nil
 		v.CreationDate = ""
 		v.Organization = ""
 		v.ModificationDate = ""
