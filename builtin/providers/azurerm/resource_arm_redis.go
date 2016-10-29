@@ -156,14 +156,8 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 
 		redisConfiguration := make(map[string]*string, len(params))
 		for key, val := range params {
-			str := val.(*string)
-			redisConfiguration[key] = str
-			/*struct {
-				Value *string
-			}{
-				Value: val.(string),
-			}
-			*/
+			str := val.(string)
+			redisConfiguration[key] = &str
 		}
 
 		parameters.Properties.RedisConfiguration = &redisConfiguration
@@ -247,6 +241,12 @@ func resourceArmRedisDelete(d *schema.ResourceData, meta interface{}) error {
 	resGroup := id.ResourceGroup
 	name := id.Path["Redis"]
 
+	// TODO: * azurerm_redis.test: Error issuing Azure ARM delete request of Redis Instance 'tom-wip-std1': %!s(<nil>)
+	log.Printf("[INFO] -----======-----")
+	log.Printf("[INFO] Name: %s", spew.Sdump(name))
+	log.Printf("[INFO] Resource Group: %s", spew.Sdump(resGroup))
+	log.Printf("[INFO] -----======-----")
+
 	resp, err := redisClient.Delete(resGroup, name)
 
 	if resp.StatusCode != http.StatusNotFound {
@@ -290,8 +290,8 @@ func parseAzureRMRedisProperties(d *schema.ResourceData, properties *redis.Reada
 			d.Set("shard_count", properties.ShardCount)
 		}
 
-		// TODO: Parsing out the Redis Configuration
-		//d.Set("redis_configuration", properties.RedisConfiguration)
+		// TODO: ensure this parses out the Redis Configuration correctly
+		d.Set("redis_configuration", properties.RedisConfiguration)
 	}
 }
 
