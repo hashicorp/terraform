@@ -121,6 +121,12 @@ func resourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 	res, err := client.DescribeImages(req)
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAMIID.NotFound" {
+			log.Printf("[DEBUG] %s no longer exists, so we'll drop it from the state", id)
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
