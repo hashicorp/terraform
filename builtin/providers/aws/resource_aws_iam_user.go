@@ -54,7 +54,7 @@ func resourceAwsIamUser() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Delete user even if it has non-Terraform-managed IAM access keys",
+				Description: "Delete user even if it has non-Terraform-managed IAM access keys and login profile",
 			},
 		},
 	}
@@ -167,7 +167,7 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	// All access keys for the user must be removed
+	// All access keys and login profile for the user must be removed
 	if d.Get("force_destroy").(bool) {
 		var accessKeys []string
 		listAccessKeys := &iam.ListAccessKeysInput{
