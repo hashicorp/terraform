@@ -98,6 +98,20 @@ func testModule(t *testing.T, name string) *module.Tree {
 	return mod
 }
 
+// testPlan returns a non-nil noop plan.
+func testPlan(t *testing.T) *terraform.Plan {
+	state := terraform.NewState()
+	state.RootModule().Outputs["foo"] = &terraform.OutputState{
+		Type:  "string",
+		Value: "foo",
+	}
+
+	return &terraform.Plan{
+		Module: testModule(t, "apply"),
+		State:  state,
+	}
+}
+
 func testPlanFile(t *testing.T, plan *terraform.Plan) string {
 	path := testTempFile(t)
 
