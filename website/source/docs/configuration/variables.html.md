@@ -244,10 +244,10 @@ terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
 ```
 
 -> **Note**: Variable files are evaluated in the order in which they are specified
-on the command line. If a variable is defined in more than one variables file,
+on the command line. If a variable is defined in more than one variable file,
 the last value specified is effective.
 
-### Precedence example:
+### Precedence example
 
 Both these files have the variable `baz` defined:
 
