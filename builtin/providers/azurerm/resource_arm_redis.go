@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/arm/redis"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -241,16 +240,15 @@ func resourceArmRedisDelete(d *schema.ResourceData, meta interface{}) error {
 	resGroup := id.ResourceGroup
 	name := id.Path["Redis"]
 
-	// TODO: * azurerm_redis.test: Error issuing Azure ARM delete request of Redis Instance 'tom-wip-std1': %!s(<nil>)
-	log.Printf("[INFO] -----======-----")
-	log.Printf("[INFO] Name: %s", spew.Sdump(name))
-	log.Printf("[INFO] Resource Group: %s", spew.Sdump(resGroup))
-	log.Printf("[INFO] -----======-----")
-
 	resp, err := redisClient.Delete(resGroup, name)
 
-	if resp.StatusCode != http.StatusNotFound {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Error issuing Azure ARM delete request of Redis Instance '%s': %s", name, err)
+	}
+
+	checkResp, _ := redisClient.Get(resGroup, name)
+	if checkResp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("Error issuing Azure ARM delete request of Redis Instance '%s': it still exists after deletion", name)
 	}
 
 	return nil
