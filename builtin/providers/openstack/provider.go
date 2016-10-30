@@ -17,18 +17,21 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", nil),
+				Description: descriptions["auth_url"],
 			},
 
 			"user_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_USERNAME", ""),
+				Description: descriptions["user_name"],
 			},
 
 			"user_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_USER_ID", ""),
+				Description: descriptions["user_name"],
 			},
 
 			"tenant_id": &schema.Schema{
@@ -38,6 +41,7 @@ func Provider() terraform.ResourceProvider {
 					"OS_TENANT_ID",
 					"OS_PROJECT_ID",
 				}, ""),
+				Description: descriptions["tenant_id"],
 			},
 
 			"tenant_name": &schema.Schema{
@@ -47,6 +51,7 @@ func Provider() terraform.ResourceProvider {
 					"OS_TENANT_NAME",
 					"OS_PROJECT_NAME",
 				}, ""),
+				Description: descriptions["tenant_name"],
 			},
 
 			"password": &schema.Schema{
@@ -54,12 +59,14 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_PASSWORD", ""),
+				Description: descriptions["password"],
 			},
 
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_TOKEN", ""),
+				Description: descriptions["token"],
 			},
 
 			"domain_id": &schema.Schema{
@@ -70,6 +77,7 @@ func Provider() terraform.ResourceProvider {
 					"OS_PROJECT_DOMAIN_ID",
 					"OS_DOMAIN_ID",
 				}, ""),
+				Description: descriptions["domain_id"],
 			},
 
 			"domain_name": &schema.Schema{
@@ -81,12 +89,14 @@ func Provider() terraform.ResourceProvider {
 					"OS_DOMAIN_NAME",
 					"OS_DEFAULT_DOMAIN",
 				}, ""),
+				Description: descriptions["domain_name"],
 			},
 
 			"insecure": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_INSECURE", ""),
+				Description: descriptions["insecure"],
 			},
 
 			"endpoint_type": &schema.Schema{
@@ -99,18 +109,21 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_CACERT", ""),
+				Description: descriptions["cacert_file"],
 			},
 
 			"cert": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_CERT", ""),
+				Description: descriptions["cert"],
 			},
 
 			"key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_KEY", ""),
+				Description: descriptions["key"],
 			},
 		},
 
@@ -147,6 +160,42 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ConfigureFunc: configureProvider,
+	}
+}
+
+var descriptions map[string]string
+
+func init() {
+	descriptions = map[string]string{
+		"auth_url": "The Identity authentication URL.",
+
+		"user_name": "Username to login with.",
+
+		"user_id": "User ID to login with.",
+
+		"tenant_id": "The ID of the Tenant (Identity v2) or Project (Identity v3)\n" +
+			"to login with.",
+
+		"tenant_name": "The name of the Tenant (Identity v2) or Project (Identity v3)\n" +
+			"to login with.",
+
+		"password": "Password to login with.",
+
+		"token": "Authentication token to use as an alternative to username/password.",
+
+		"domain_id": "The ID of the Domain to scope to (Identity v3).",
+
+		"domain_name": "The name of the Domain to scope to (Identity v3).",
+
+		"insecure": "Trust self-signed certificates.",
+
+		"cacert_file": "A Custom CA certificate.",
+
+		"endpoint_type": "The catalog endpoint type to use.",
+
+		"cert": "A client certificate to authenticate with.",
+
+		"key": "A client private key to authenticate with.",
 	}
 }
 
