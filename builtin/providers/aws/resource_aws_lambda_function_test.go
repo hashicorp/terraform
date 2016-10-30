@@ -611,6 +611,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `, rName)
 }
@@ -710,6 +711,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     publish = true
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `, rName)
 }
@@ -721,6 +723,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 
     vpc_config = {
         subnet_ids = ["${aws_subnet.subnet_for_lambda.id}"]
@@ -766,6 +769,7 @@ resource "aws_lambda_function" "lambda_function_s3test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `, acctest.RandInt(), rName)
 }
@@ -795,6 +799,7 @@ resource "aws_lambda_function" "lambda_function_local" {
     function_name = "tf_acc_lambda_name_local"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `
 
@@ -832,23 +837,24 @@ resource "aws_lambda_function" "lambda_function_local" {
     function_name = "tf_acc_lambda_name_local"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `
 
 const testAccAWSLambdaFunctionConfig_s3_tpl = `
 resource "aws_s3_bucket" "artifacts" {
-	bucket = "%s"
-	acl = "private"
-	force_destroy = true
-	versioning {
-		enabled = true
-	}
+    bucket = "%s"
+    acl = "private"
+    force_destroy = true
+    versioning {
+        enabled = true
+    }
 }
 resource "aws_s3_bucket_object" "o" {
-	bucket = "${aws_s3_bucket.artifacts.bucket}"
-	key = "%s"
-	source = "%s"
-	etag = "${md5(file("%s"))}"
+    bucket = "${aws_s3_bucket.artifacts.bucket}"
+    key = "%s"
+    source = "%s"
+    etag = "${md5(file("%s"))}"
 }
 resource "aws_iam_role" "iam_for_lambda" {
     name = "iam_for_lambda"
@@ -869,12 +875,13 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 resource "aws_lambda_function" "lambda_function_s3" {
-	s3_bucket = "${aws_s3_bucket_object.o.bucket}"
-	s3_key = "${aws_s3_bucket_object.o.key}"
-	s3_object_version = "${aws_s3_bucket_object.o.version_id}"
+    s3_bucket = "${aws_s3_bucket_object.o.bucket}"
+    s3_key = "${aws_s3_bucket_object.o.key}"
+    s3_object_version = "${aws_s3_bucket_object.o.version_id}"
     function_name = "tf_acc_lambda_name_s3"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `
 
@@ -885,15 +892,15 @@ func genAWSLambdaFunctionConfig_s3(bucket, key, path string) string {
 
 const testAccAWSLambdaFunctionConfig_s3_unversioned_tpl = `
 resource "aws_s3_bucket" "artifacts" {
-	bucket = "%s"
-	acl = "private"
-	force_destroy = true
+    bucket = "%s"
+    acl = "private"
+    force_destroy = true
 }
 resource "aws_s3_bucket_object" "o" {
-	bucket = "${aws_s3_bucket.artifacts.bucket}"
-	key = "%s"
-	source = "%s"
-	etag = "${md5(file("%s"))}"
+    bucket = "${aws_s3_bucket.artifacts.bucket}"
+    key = "%s"
+    source = "%s"
+    etag = "${md5(file("%s"))}"
 }
 resource "aws_iam_role" "iam_for_lambda" {
     name = "iam_for_lambda"
@@ -914,11 +921,12 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 resource "aws_lambda_function" "lambda_function_s3" {
-	s3_bucket = "${aws_s3_bucket_object.o.bucket}"
-	s3_key = "${aws_s3_bucket_object.o.key}"
+    s3_bucket = "${aws_s3_bucket_object.o.bucket}"
+    s3_key = "${aws_s3_bucket_object.o.key}"
     function_name = "tf_acc_lambda_name_s3_unversioned"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `
 
