@@ -12,20 +12,20 @@ import (
 )
 
 type Config struct {
-	Username         string
-	UserID           string
-	Password         string
-	Token            string
-	IdentityEndpoint string
-	TenantID         string
-	TenantName       string
-	DomainID         string
-	DomainName       string
-	Insecure         bool
-	EndpointType     string
 	CACertFile       string
 	ClientCertFile   string
 	ClientKeyFile    string
+	DomainID         string
+	DomainName       string
+	EndpointType     string
+	IdentityEndpoint string
+	Insecure         bool
+	Password         string
+	TenantID         string
+	TenantName       string
+	Token            string
+	Username         string
+	UserID           string
 
 	osClient *gophercloud.ProviderClient
 }
@@ -40,15 +40,15 @@ func (c *Config) loadAndValidate() error {
 	}
 
 	ao := gophercloud.AuthOptions{
-		Username:         c.Username,
-		UserID:           c.UserID,
-		Password:         c.Password,
-		TokenID:          c.Token,
-		IdentityEndpoint: c.IdentityEndpoint,
-		TenantID:         c.TenantID,
-		TenantName:       c.TenantName,
 		DomainID:         c.DomainID,
 		DomainName:       c.DomainName,
+		IdentityEndpoint: c.IdentityEndpoint,
+		Password:         c.Password,
+		TenantID:         c.TenantID,
+		TenantName:       c.TenantName,
+		TokenID:          c.Token,
+		Username:         c.Username,
+		UserID:           c.UserID,
 	}
 
 	client, err := openstack.NewClient(ao.IdentityEndpoint)

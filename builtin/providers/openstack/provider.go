@@ -31,12 +31,18 @@ func Provider() terraform.ResourceProvider {
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "",
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"OS_TENANT_ID",
+					"OS_PROJECT_ID",
+				}, ""),
 			},
 			"tenant_name": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_TENANT_NAME", nil),
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"OS_TENANT_NAME",
+					"OS_PROJECT_NAME",
+				}, ""),
 			},
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
@@ -49,14 +55,23 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_TOKEN", ""),
 			},
 			"domain_id": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_DOMAIN_ID", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"OS_USER_DOMAIN_ID",
+					"OS_PROJECT_DOMAIN_ID",
+					"OS_DOMAIN_ID",
+				}, ""),
 			},
 			"domain_name": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_DOMAIN_NAME", ""),
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"OS_USER_DOMAIN_NAME",
+					"OS_PROJECT_DOMAIN_NAME",
+					"OS_DOMAIN_NAME",
+					"OS_DEFAULT_DOMAIN",
+				}, ""),
 			},
 			"insecure": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -123,20 +138,20 @@ func Provider() terraform.ResourceProvider {
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
+		CACertFile:       d.Get("cacert_file").(string),
+		ClientCertFile:   d.Get("cert").(string),
+		ClientKeyFile:    d.Get("key").(string),
+		DomainID:         d.Get("domain_id").(string),
+		DomainName:       d.Get("domain_name").(string),
+		EndpointType:     d.Get("endpoint_type").(string),
 		IdentityEndpoint: d.Get("auth_url").(string),
-		Username:         d.Get("user_name").(string),
-		UserID:           d.Get("user_id").(string),
+		Insecure:         d.Get("insecure").(bool),
 		Password:         d.Get("password").(string),
 		Token:            d.Get("token").(string),
 		TenantID:         d.Get("tenant_id").(string),
 		TenantName:       d.Get("tenant_name").(string),
-		DomainID:         d.Get("domain_id").(string),
-		DomainName:       d.Get("domain_name").(string),
-		Insecure:         d.Get("insecure").(bool),
-		EndpointType:     d.Get("endpoint_type").(string),
-		CACertFile:       d.Get("cacert_file").(string),
-		ClientCertFile:   d.Get("cert").(string),
-		ClientKeyFile:    d.Get("key").(string),
+		Username:         d.Get("user_name").(string),
+		UserID:           d.Get("user_id").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
