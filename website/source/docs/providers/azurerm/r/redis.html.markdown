@@ -113,9 +113,9 @@ The following arguments are supported:
 ## Default Redis Configuration Values
 | Redis Value        | Basic        | Standard     | Premium      |
 | ------------------ | ------------ | ------------ | ------------ |
-| maxclients         | 256          | 1000         |              |
-| maxmemory-reserved | 2            | 50           |              |
-| maxmemory-delta    | 2            | 50           |              |
+| maxclients         | 256          | 1000         | 7500         |
+| maxmemory-reserved | 2            | 50           | 200          |
+| maxmemory-delta    | 2            | 50           | 200          |
 | maxmemory-policy   | volatile-lru | volatile-lru | volatile-lru |
 
 _*Important*: The maxmemory-reserved setting is only available for Standard and Premium caches. More details are available in the Relevant Links section below._
