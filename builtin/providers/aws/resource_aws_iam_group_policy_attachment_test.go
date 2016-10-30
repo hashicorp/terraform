@@ -114,7 +114,7 @@ EOF
 
 resource "aws_iam_group_policy_attachment" "test-attach" {
     group = "${aws_iam_group.group.name}"
-    policy_arn = "${aws_iam_policy.policy.arn}"
+    policy_arns = ["${aws_iam_policy.policy.arn}"]
 }
 `
 
@@ -182,11 +182,7 @@ EOF
 
 resource "aws_iam_group_policy_attachment" "test-attach" {
     group = "${aws_iam_group.group.name}"
-    policy_arn = "${aws_iam_policy.policy2.arn}"
-}
-
-resource "aws_iam_group_policy_attachment" "test-attach2" {
-    group = "${aws_iam_group.group.name}"
-    policy_arn = "${aws_iam_policy.policy3.arn}"
+    policy_arns = ["${aws_iam_policy.policy2.arn}",
+                   "${aws_iam_policy.policy3.arn}"]
 }
 `

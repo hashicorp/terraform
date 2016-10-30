@@ -23,8 +23,10 @@ func resourceAwsIamRolePolicyAttachment() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"policy_arn": &schema.Schema{
-				Type:     schema.TypeString,
+			"policy_arns": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 				Required: true,
 				ForceNew: true,
 			},
@@ -36,11 +38,13 @@ func resourceAwsIamRolePolicyAttachmentCreate(d *schema.ResourceData, meta inter
 	conn := meta.(*AWSClient).iamconn
 
 	role := d.Get("role").(string)
-	arn := d.Get("policy_arn").(string)
+	arns := expandStringList(d.Get("policy_arns").(*schema.Set).List())
 
-	err := attachPolicyToRole(conn, role, arn)
-	if err != nil {
-		return fmt.Errorf("[WARN] Error attaching policy %s to IAM Role %s: %v", arn, role, err)
+	for _, arn := range arns {
+		err := attachPolicyToRole(conn, role, *arn)
+		if err != nil {
+			return fmt.Errorf("[WARN] Error attaching policy %s to IAM Role %s: %v", *arn, role, err)
+		}
 	}
 
 	d.SetId(resource.PrefixedUniqueId(fmt.Sprintf("%s-", role)))
@@ -50,7 +54,7 @@ func resourceAwsIamRolePolicyAttachmentCreate(d *schema.ResourceData, meta inter
 func resourceAwsIamRolePolicyAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	role := d.Get("role").(string)
-	arn := d.Get("policy_arn").(string)
+	arns := expandStringList(d.Get("policy_arns").(*schema.Set).List())
 
 	_, err := conn.GetRole(&iam.GetRoleInput{
 		RoleName: aws.String(role),
@@ -71,21 +75,24 @@ func resourceAwsIamRolePolicyAttachmentRead(d *schema.ResourceData, meta interfa
 		RoleName: aws.String(role),
 	}
 	var policy string
-	err = conn.ListAttachedRolePoliciesPages(&args, func(page *iam.ListAttachedRolePoliciesOutput, lastPage bool) bool {
-		for _, p := range page.AttachedPolicies {
-			if *p.PolicyArn == arn {
-				policy = *p.PolicyArn
+	for _, arn := range arns {
+		err = conn.ListAttachedRolePoliciesPages(&args, func(page *iam.ListAttachedRolePoliciesOutput, lastPage bool) bool {
+			for _, p := range page.AttachedPolicies {
+				if *p.PolicyArn == *arn {
+					policy = *p.PolicyArn
+				}
 			}
-		}
 
-		return policy == ""
-	})
-	if err != nil {
-		return err
-	}
-	if policy == "" {
-		log.Printf("[WARN] No such policy found for Role Policy Attachment (%s)", role)
-		d.SetId("")
+			return policy == ""
+		})
+		if err != nil {
+			return err
+		}
+		if policy == "" {
+			log.Printf("[WARN] No such policy found for Role Policy Attachment (%s)", role)
+			d.SetId("")
+			return nil
+		}
 	}
 
 	return nil
@@ -94,11 +101,13 @@ func resourceAwsIamRolePolicyAttachmentRead(d *schema.ResourceData, meta interfa
 func resourceAwsIamRolePolicyAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	role := d.Get("role").(string)
-	arn := d.Get("policy_arn").(string)
+	arns := expandStringList(d.Get("policy_arns").(*schema.Set).List())
 
-	err := detachPolicyFromRole(conn, role, arn)
-	if err != nil {
-		return fmt.Errorf("[WARN] Error removing policy %s from IAM Role %s: %v", arn, role, err)
+	for _, arn := range arns {
+		err := detachPolicyFromRole(conn, role, *arn)
+		if err != nil {
+			return fmt.Errorf("[WARN] Error removing policy %s from IAM Role %s: %v", *arn, role, err)
+		}
 	}
 	return nil
 }

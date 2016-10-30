@@ -114,7 +114,7 @@ EOF
 
 resource "aws_iam_user_policy_attachment" "test-attach" {
     user = "${aws_iam_user.user.name}"
-    policy_arn = "${aws_iam_policy.policy.arn}"
+    policy_arns = ["${aws_iam_policy.policy.arn}"]
 }
 `
 
@@ -182,11 +182,7 @@ EOF
 
 resource "aws_iam_user_policy_attachment" "test-attach" {
     user = "${aws_iam_user.user.name}"
-    policy_arn = "${aws_iam_policy.policy2.arn}"
-}
-
-resource "aws_iam_user_policy_attachment" "test-attach2" {
-    user = "${aws_iam_user.user.name}"
-    policy_arn = "${aws_iam_policy.policy3.arn}"
+    policy_arns = ["${aws_iam_policy.policy2.arn}",
+                   "${aws_iam_policy.policy3.arn}"]
 }
 `
