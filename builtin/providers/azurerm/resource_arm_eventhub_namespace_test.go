@@ -89,7 +89,7 @@ func TestAccAzureRMEventHubNamespace_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMEventHubNamespaceExists("azurerm_eventhub_namespace.test"),
@@ -108,7 +108,7 @@ func TestAccAzureRMEventHubNamespace_readDefaultKeys(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMEventHubNamespaceExists("azurerm_eventhub_namespace.test"),

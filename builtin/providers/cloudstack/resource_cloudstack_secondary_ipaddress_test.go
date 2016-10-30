@@ -17,7 +17,7 @@ func TestAccCloudStackSecondaryIPAddress_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackSecondaryIPAddressDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackSecondaryIPAddress_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackSecondaryIPAddressExists(
@@ -36,7 +36,7 @@ func TestAccCloudStackSecondaryIPAddress_fixedIP(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackSecondaryIPAddressDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackSecondaryIPAddress_fixedIP,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackSecondaryIPAddressExists(

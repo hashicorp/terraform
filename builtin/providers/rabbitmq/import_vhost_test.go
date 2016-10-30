@@ -15,14 +15,14 @@ func TestAccVhost_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVhostCheckDestroy(vhost),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVhostConfig_basic,
 				Check: testAccVhostCheck(
 					resourceName, &vhost,
 				),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

@@ -23,7 +23,7 @@ func TestAccAWSElasticTranscoderPipeline_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPipelineConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", pipeline),
@@ -44,7 +44,7 @@ func TestAccAWSElasticTranscoderPipeline_notifications(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderNotifications(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", &pipeline),
@@ -53,7 +53,7 @@ func TestAccAWSElasticTranscoderPipeline_notifications(t *testing.T) {
 			},
 
 			// update and check that we have 1 less notification
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderNotifications_update(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", &pipeline),
@@ -107,13 +107,13 @@ func TestAccAWSElasticTranscoderPipeline_withContentConfig(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPipelineWithContentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", pipeline),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPipelineWithContentConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", pipeline),
@@ -132,7 +132,7 @@ func TestAccAWSElasticTranscoderPipeline_withPermissions(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPipelineWithPerms,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.baz", pipeline),

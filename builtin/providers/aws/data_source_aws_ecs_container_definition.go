@@ -14,47 +14,47 @@ func dataSourceAwsEcsContainerDefinition() *schema.Resource {
 		Read: dataSourceAwsEcsContainerDefinitionRead,
 
 		Schema: map[string]*schema.Schema{
-			"task_definition": &schema.Schema{
+			"task_definition": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"container_name": &schema.Schema{
+			"container_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 			// Computed values.
-			"image": &schema.Schema{
+			"image": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"image_digest": &schema.Schema{
+			"image_digest": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"cpu": &schema.Schema{
+			"cpu": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"memory": &schema.Schema{
+			"memory": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"memory_reservation": &schema.Schema{
+			"memory_reservation": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"disable_networking": &schema.Schema{
+			"disable_networking": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"docker_labels": &schema.Schema{
+			"docker_labels": {
 				Type:     schema.TypeMap,
 				Computed: true,
 				Elem:     schema.TypeString,
 			},
-			"environment": &schema.Schema{
+			"environment": {
 				Type:     schema.TypeMap,
 				Computed: true,
 				Elem:     schema.TypeString,

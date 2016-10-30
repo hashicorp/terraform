@@ -21,7 +21,7 @@ func TestAccStorage_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageBucketsReaderDefaults(bucketName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketExists(
@@ -44,7 +44,7 @@ func TestAccStorageCustomAttributes(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageBucketsReaderCustomAttributes(bucketName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketExists(
@@ -106,7 +106,7 @@ func TestAccStorageBucketUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageBucketsReaderDefaults(bucketName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketExists(
@@ -117,7 +117,7 @@ func TestAccStorageBucketUpdate(t *testing.T) {
 						"google_storage_bucket.bucket", "force_destroy", "false"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testGoogleStorageBucketsReaderCustomAttributes(bucketName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketExists(
@@ -142,20 +142,20 @@ func TestAccStorageForceDestroy(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageBucketsReaderCustomAttributes(bucketName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketExists(
 						"google_storage_bucket.bucket", bucketName),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testGoogleStorageBucketsReaderCustomAttributes(bucketName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketPutItem(bucketName),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testGoogleStorageBucketsReaderCustomAttributes("idontexist"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStorageBucketMissing(bucketName),

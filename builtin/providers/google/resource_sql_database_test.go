@@ -19,7 +19,7 @@ func TestAccGoogleSqlDatabase_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleSqlDatabase_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseExists(

@@ -17,13 +17,13 @@ func TestAccLBV2LoadBalancer_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLBV2LoadBalancerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: TestAccLBV2LoadBalancerConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBV2LoadBalancerExists(t, "openstack_lb_loadbalancer_v2.loadbalancer_1", &lb),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: TestAccLBV2LoadBalancerConfig_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_lb_loadbalancer_v2.loadbalancer_1", "name", "tf_test_loadbalancer_v2_updated"),

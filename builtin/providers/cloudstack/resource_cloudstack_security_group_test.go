@@ -16,7 +16,7 @@ func TestAccCloudStackSecurityGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackSecurityGroup_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackSecurityGroupExists(

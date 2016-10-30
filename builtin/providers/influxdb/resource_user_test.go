@@ -13,7 +13,7 @@ func TestAccInfluxDBUser_admin(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccUserConfig_admin,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUserExists("influxdb_user.test"),
@@ -28,7 +28,7 @@ func TestAccInfluxDBUser_admin(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccUserConfig_revoke,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUserExists("influxdb_user.test"),
@@ -52,7 +52,7 @@ func TestAccInfluxDBUser_grant(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccUserConfig_grant,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUserExists("influxdb_user.test"),
@@ -71,7 +71,7 @@ func TestAccInfluxDBUser_grant(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccUserConfig_grantUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUserGrants("influxdb_user.test", "terraform-green", "WRITE"),
@@ -98,7 +98,7 @@ func TestAccInfluxDBUser_revoke(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccUserConfig_grant,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUserExists("influxdb_user.test"),
@@ -117,7 +117,7 @@ func TestAccInfluxDBUser_revoke(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccUserConfig_revoke,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUserGrantsEmpty("influxdb_user.test"),

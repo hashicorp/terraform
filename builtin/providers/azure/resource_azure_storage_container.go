@@ -18,25 +18,25 @@ func resourceAzureStorageContainer() *schema.Resource {
 		Delete: resourceAzureStorageContainerDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: parameterDescriptions["name"],
 			},
-			"storage_service_name": &schema.Schema{
+			"storage_service_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: parameterDescriptions["storage_service_name"],
 			},
-			"container_access_type": &schema.Schema{
+			"container_access_type": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: parameterDescriptions["container_access_type"],
 			},
-			"properties": &schema.Schema{
+			"properties": {
 				Type:        schema.TypeMap,
 				Computed:    true,
 				Elem:        schema.TypeString,

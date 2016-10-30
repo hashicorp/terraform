@@ -17,7 +17,7 @@ func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckRoute53HealthCheckDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRoute53HealthCheckConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
@@ -27,7 +27,7 @@ func TestAccAWSRoute53HealthCheck_basic(t *testing.T) {
 						"aws_route53_health_check.foo", "invert_healthcheck", "true"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccRoute53HealthCheckConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
@@ -48,7 +48,7 @@ func TestAccAWSRoute53HealthCheck_withSearchString(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckRoute53HealthCheckDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRoute53HealthCheckConfigWithSearchString,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
@@ -58,7 +58,7 @@ func TestAccAWSRoute53HealthCheck_withSearchString(t *testing.T) {
 						"aws_route53_health_check.foo", "search_string", "OK"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccRoute53HealthCheckConfigWithSearchStringUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
@@ -78,7 +78,7 @@ func TestAccAWSRoute53HealthCheck_withChildHealthChecks(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRoute53HealthCheckDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRoute53HealthCheckConfig_withChildHealthChecks,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
@@ -94,7 +94,7 @@ func TestAccAWSRoute53HealthCheck_IpConfig(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRoute53HealthCheckDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRoute53HealthCheckIpConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.bar"),
@@ -110,7 +110,7 @@ func TestAccAWSRoute53HealthCheck_CloudWatchAlarmCheck(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRoute53HealthCheckDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRoute53HealthCheckCloudWatchAlarm,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),

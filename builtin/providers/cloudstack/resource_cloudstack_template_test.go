@@ -17,7 +17,7 @@ func TestAccCloudStackTemplate_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackTemplateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackTemplate_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackTemplateExists("cloudstack_template.foo", &template),
@@ -38,7 +38,7 @@ func TestAccCloudStackTemplate_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackTemplateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackTemplate_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackTemplateExists("cloudstack_template.foo", &template),
@@ -46,7 +46,7 @@ func TestAccCloudStackTemplate_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackTemplate_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackTemplateExists(

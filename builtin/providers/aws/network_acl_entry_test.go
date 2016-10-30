@@ -38,7 +38,7 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 	expanded, _ := expandNetworkAclEntries(input, "egress")
 
 	expected := []*ec2.NetworkAclEntry{
-		&ec2.NetworkAclEntry{
+		{
 			Protocol: aws.String("6"),
 			PortRange: &ec2.PortRange{
 				From: aws.Int64(22),
@@ -49,7 +49,7 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 			CidrBlock:  aws.String("0.0.0.0/0"),
 			Egress:     aws.Bool(true),
 		},
-		&ec2.NetworkAclEntry{
+		{
 			Protocol: aws.String("6"),
 			PortRange: &ec2.PortRange{
 				From: aws.Int64(443),
@@ -60,7 +60,7 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 			CidrBlock:  aws.String("0.0.0.0/0"),
 			Egress:     aws.Bool(true),
 		},
-		&ec2.NetworkAclEntry{
+		{
 			Protocol: aws.String("-1"),
 			PortRange: &ec2.PortRange{
 				From: aws.Int64(443),
@@ -85,7 +85,7 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 func Test_flattenNetworkACLEntry(t *testing.T) {
 
 	apiInput := []*ec2.NetworkAclEntry{
-		&ec2.NetworkAclEntry{
+		{
 			Protocol: aws.String("tcp"),
 			PortRange: &ec2.PortRange{
 				From: aws.Int64(22),
@@ -95,7 +95,7 @@ func Test_flattenNetworkACLEntry(t *testing.T) {
 			RuleNumber: aws.Int64(1),
 			CidrBlock:  aws.String("0.0.0.0/0"),
 		},
-		&ec2.NetworkAclEntry{
+		{
 			Protocol: aws.String("tcp"),
 			PortRange: &ec2.PortRange{
 				From: aws.Int64(443),

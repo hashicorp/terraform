@@ -16,7 +16,7 @@ func TestAccAWSEcsCluster_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEcsClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEcsCluster,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcsClusterExists("aws_ecs_cluster.foo"),

@@ -16,26 +16,26 @@ func resourceGrant() *schema.Resource {
 		Delete: DeleteGrant,
 
 		Schema: map[string]*schema.Schema{
-			"user": &schema.Schema{
+			"user": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"host": &schema.Schema{
+			"host": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "localhost",
 			},
 
-			"database": &schema.Schema{
+			"database": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"privileges": &schema.Schema{
+			"privileges": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,
@@ -43,7 +43,7 @@ func resourceGrant() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"grant": &schema.Schema{
+			"grant": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,

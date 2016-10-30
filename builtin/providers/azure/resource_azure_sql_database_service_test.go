@@ -17,7 +17,7 @@ func TestAccAzureSqlDatabaseServiceBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureSqlDatabaseServiceDeleted,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureSqlDatabaseServiceConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureSqlDatabaseServerGetName,
@@ -42,7 +42,7 @@ func TestAccAzureSqlDatabaseServiceAdvanced(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureSqlDatabaseServiceDeleted,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureSqlDatabaseServiceConfigAdvanced,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureSqlDatabaseServerGetName,
@@ -70,7 +70,7 @@ func TestAccAzureSqlDatabaseServiceUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureSqlDatabaseServiceDeleted,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureSqlDatabaseServiceConfigAdvanced,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureSqlDatabaseServerGetName,
@@ -86,7 +86,7 @@ func TestAccAzureSqlDatabaseServiceUpdate(t *testing.T) {
 						"7203483a-c4fb-4304-9e9f-17c71c904f5d"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAzureSqlDatabaseServiceConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureSqlDatabaseServerGetName,

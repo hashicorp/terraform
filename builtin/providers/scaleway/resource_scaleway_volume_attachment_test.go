@@ -14,7 +14,7 @@ func TestAccScalewayVolumeAttachment_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckScalewayVolumeAttachmentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayVolumeAttachmentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalewayVolumeAttachmentExists("scaleway_volume_attachment.test"),

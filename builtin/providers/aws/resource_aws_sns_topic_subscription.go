@@ -29,7 +29,7 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
@@ -47,34 +47,34 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 					return
 				},
 			},
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"endpoint_auto_confirms": &schema.Schema{
+			"endpoint_auto_confirms": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"confirmation_timeout_in_minutes": &schema.Schema{
+			"confirmation_timeout_in_minutes": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
 			},
-			"topic_arn": &schema.Schema{
+			"topic_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"delivery_policy": &schema.Schema{
+			"delivery_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"raw_message_delivery": &schema.Schema{
+			"raw_message_delivery": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

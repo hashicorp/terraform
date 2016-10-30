@@ -24,14 +24,14 @@ func TestAccLBV1Pool_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLBV1PoolDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLBV1Pool_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBV1PoolExists(t, "openstack_lb_pool_v1.pool_1", &pool),
 					resource.TestCheckResourceAttr("openstack_lb_pool_v1.pool_1", "lb_provider", "haproxy"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccLBV1Pool_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_lb_pool_v1.pool_1", "name", "tf_test_lb_pool_updated"),
@@ -55,7 +55,7 @@ func TestAccLBV1Pool_fullstack(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLBV1PoolDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLBV1Pool_fullstack_1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.network_1", &network),
@@ -68,7 +68,7 @@ func TestAccLBV1Pool_fullstack(t *testing.T) {
 					testAccCheckLBV1VIPExists(t, "openstack_lb_vip_v1.vip_1", &vip),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccLBV1Pool_fullstack_2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.network_1", &network),

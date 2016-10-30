@@ -31,7 +31,7 @@ func TestAccLogentriesLogSet_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLogentriesLogSetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLogentriesLogSetConfig,
 				Check: lexp.TestCheckResourceExpectation(
 					"logentries_logset.test_logset",
@@ -62,7 +62,7 @@ func TestAccLogentriesLogSet_NoLocation(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLogentriesLogSetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLogentriesLogSetConfig,
 				Check: lexp.TestCheckResourceExpectation(
 					"logentries_logset.test_logset",

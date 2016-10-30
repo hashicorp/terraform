@@ -12,10 +12,10 @@ import (
 func TestApply_destroy(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -119,16 +119,16 @@ func TestApply_destroyPlan(t *testing.T) {
 func TestApply_destroyTargeted(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "i-ab123",
 						},
 					},
-					"test_load_balancer.foo": &terraform.ResourceState{
+					"test_load_balancer.foo": {
 						Type: "test_load_balancer",
 						Primary: &terraform.InstanceState{
 							ID: "lb-abc123",

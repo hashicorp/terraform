@@ -18,46 +18,46 @@ func resourceComputeUrlMap() *schema.Resource {
 		Delete: resourceComputeUrlMapDelete,
 
 		Schema: map[string]*schema.Schema{
-			"default_service": &schema.Schema{
+			"default_service": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"host_rule": &schema.Schema{
+			"host_rule": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				// TODO(evandbrown): Enable when lists support validation
 				//ValidateFunc: validateHostRules,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"description": &schema.Schema{
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"hosts": &schema.Schema{
+						"hosts": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"path_matcher": &schema.Schema{
+						"path_matcher": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -65,43 +65,43 @@ func resourceComputeUrlMap() *schema.Resource {
 				},
 			},
 
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"path_matcher": &schema.Schema{
+			"path_matcher": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"default_service": &schema.Schema{
+						"default_service": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"description": &schema.Schema{
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"path_rule": &schema.Schema{
+						"path_rule": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"paths": &schema.Schema{
+									"paths": {
 										Type:     schema.TypeList,
 										Required: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
 									},
 
-									"service": &schema.Schema{
+									"service": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -112,38 +112,38 @@ func resourceComputeUrlMap() *schema.Resource {
 				},
 			},
 
-			"project": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"self_link": &schema.Schema{
+			"self_link": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"test": &schema.Schema{
+			"test": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"description": &schema.Schema{
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"host": &schema.Schema{
+						"host": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"path": &schema.Schema{
+						"path": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"service": &schema.Schema{
+						"service": {
 							Type:     schema.TypeString,
 							Required: true,
 						},

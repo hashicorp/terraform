@@ -17,7 +17,7 @@ func TestAccAWSCloudWatchLogGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
@@ -36,14 +36,14 @@ func TestAccAWSCloudWatchLogGroup_retentionPolicy(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfig_withRetention,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
 					resource.TestCheckResourceAttr("aws_cloudwatch_log_group.foobar", "retention_in_days", "365"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfigModified_withRetention,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),
@@ -62,7 +62,7 @@ func TestAccAWSCloudWatchLogGroup_multiple(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfig_multiple,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.alpha", &lg),
@@ -85,7 +85,7 @@ func TestAccAWSCloudWatchLogGroup_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchLogGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogGroupExists("aws_cloudwatch_log_group.foobar", &lg),

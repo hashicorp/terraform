@@ -16,31 +16,31 @@ func resourceUser() *schema.Resource {
 		Delete: deleteUser,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"password": &schema.Schema{
+			"password": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"admin": &schema.Schema{
+			"admin": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
-			"grant": &schema.Schema{
+			"grant": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"database": &schema.Schema{
+						"database": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"privilege": &schema.Schema{
+						"privilege": {
 							Type:     schema.TypeString,
 							Required: true,
 						},

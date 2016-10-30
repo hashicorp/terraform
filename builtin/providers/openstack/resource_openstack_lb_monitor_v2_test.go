@@ -17,13 +17,13 @@ func TestAccLBV2Monitor_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLBV2MonitorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: TestAccLBV2MonitorConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBV2MonitorExists(t, "openstack_lb_monitor_v2.monitor_1", &monitor),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: TestAccLBV2MonitorConfig_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_lb_monitor_v2.monitor_1", "name", "tf_test_monitor_updated"),

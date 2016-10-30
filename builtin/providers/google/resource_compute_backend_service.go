@@ -20,7 +20,7 @@ func resourceComputeBackendService() *schema.Resource {
 		Delete: resourceComputeBackendServiceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -35,44 +35,44 @@ func resourceComputeBackendService() *schema.Resource {
 				},
 			},
 
-			"health_checks": &schema.Schema{
+			"health_checks": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
 				Set:      schema.HashString,
 			},
 
-			"backend": &schema.Schema{
+			"backend": {
 				Type: schema.TypeSet,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"group": &schema.Schema{
+						"group": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"balancing_mode": &schema.Schema{
+						"balancing_mode": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "UTILIZATION",
 						},
-						"capacity_scaler": &schema.Schema{
+						"capacity_scaler": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 							Default:  1,
 						},
-						"description": &schema.Schema{
+						"description": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"max_rate": &schema.Schema{
+						"max_rate": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"max_rate_per_instance": &schema.Schema{
+						"max_rate_per_instance": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 						},
-						"max_utilization": &schema.Schema{
+						"max_utilization": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 							Default:  0.8,
@@ -83,52 +83,52 @@ func resourceComputeBackendService() *schema.Resource {
 				Set:      resourceGoogleComputeBackendServiceBackendHash,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"enable_cdn": &schema.Schema{
+			"enable_cdn": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"port_name": &schema.Schema{
+			"port_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"project": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"protocol": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
-			"region": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"self_link": &schema.Schema{
+			"protocol": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"region": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"self_link": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"timeout_sec": &schema.Schema{
+			"timeout_sec": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,

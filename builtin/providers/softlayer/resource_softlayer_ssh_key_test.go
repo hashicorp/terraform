@@ -19,7 +19,7 @@ func TestAccSoftLayerSSHKey_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckSoftLayerSSHKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckSoftLayerSSHKeyConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSoftLayerSSHKeyExists("softlayer_ssh_key.testacc_foobar", &key),
@@ -33,7 +33,7 @@ func TestAccSoftLayerSSHKey_Basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckSoftLayerSSHKeyConfig_updated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSoftLayerSSHKeyExists("softlayer_ssh_key.testacc_foobar", &key),

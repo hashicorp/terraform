@@ -20,30 +20,30 @@ func resourceAwsApiGatewayDeployment() *schema.Resource {
 		Delete: resourceAwsApiGatewayDeploymentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"rest_api_id": &schema.Schema{
+			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"stage_name": &schema.Schema{
+			"stage_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"stage_description": &schema.Schema{
+			"stage_description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"variables": &schema.Schema{
+			"variables": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,

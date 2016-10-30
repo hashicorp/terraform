@@ -26,7 +26,7 @@ func TestAccVSphereFolder_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFolderDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testAccCheckVSphereFolderConfig,
 					testMethod,
@@ -58,7 +58,7 @@ func TestAccVSphereFolder_nested(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereFolderDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testAccCheckVSphereFolderConfig,
 					testMethod,
@@ -94,7 +94,7 @@ func TestAccVSphereFolder_dontDeleteExisting(t *testing.T) {
 			removeVSphereFolder(datacenter, existingPath, ""),
 		),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				PreConfig: func() {
 					createVSphereFolder(datacenter, existingPath)
 				},

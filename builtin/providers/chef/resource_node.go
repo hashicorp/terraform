@@ -17,41 +17,41 @@ func resourceChefNode() *schema.Resource {
 		Delete: DeleteNode,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"environment_name": &schema.Schema{
+			"environment_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "_default",
 			},
-			"automatic_attributes_json": &schema.Schema{
+			"automatic_attributes_json": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Default:   "{}",
 				StateFunc: jsonStateFunc,
 			},
-			"normal_attributes_json": &schema.Schema{
+			"normal_attributes_json": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Default:   "{}",
 				StateFunc: jsonStateFunc,
 			},
-			"default_attributes_json": &schema.Schema{
+			"default_attributes_json": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Default:   "{}",
 				StateFunc: jsonStateFunc,
 			},
-			"override_attributes_json": &schema.Schema{
+			"override_attributes_json": {
 				Type:      schema.TypeString,
 				Optional:  true,
 				Default:   "{}",
 				StateFunc: jsonStateFunc,
 			},
-			"run_list": &schema.Schema{
+			"run_list": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{

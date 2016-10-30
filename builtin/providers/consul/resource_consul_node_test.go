@@ -15,7 +15,7 @@ func TestAccConsulNode_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckConsulNodeDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccConsulNodeConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulNodeExists(),

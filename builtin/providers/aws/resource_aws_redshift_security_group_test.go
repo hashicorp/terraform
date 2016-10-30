@@ -19,7 +19,7 @@ func TestAccAWSRedshiftSecurityGroup_ingressCidr(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftSecurityGroupConfig_ingressCidr,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftSecurityGroupExists("aws_redshift_security_group.bar", &v),
@@ -45,7 +45,7 @@ func TestAccAWSRedshiftSecurityGroup_updateIngressCidr(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftSecurityGroupConfig_ingressCidr,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftSecurityGroupExists("aws_redshift_security_group.bar", &v),
@@ -54,7 +54,7 @@ func TestAccAWSRedshiftSecurityGroup_updateIngressCidr(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftSecurityGroupConfig_ingressCidrAdd,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftSecurityGroupExists("aws_redshift_security_group.bar", &v),
@@ -63,7 +63,7 @@ func TestAccAWSRedshiftSecurityGroup_updateIngressCidr(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftSecurityGroupConfig_ingressCidrReduce,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftSecurityGroupExists("aws_redshift_security_group.bar", &v),
@@ -83,7 +83,7 @@ func TestAccAWSRedshiftSecurityGroup_ingressSecurityGroup(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftSecurityGroupConfig_ingressSgId,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftSecurityGroupExists("aws_redshift_security_group.bar", &v),
@@ -109,7 +109,7 @@ func TestAccAWSRedshiftSecurityGroup_updateIngressSecurityGroup(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftSecurityGroupConfig_ingressSgId,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftSecurityGroupExists("aws_redshift_security_group.bar", &v),
@@ -118,7 +118,7 @@ func TestAccAWSRedshiftSecurityGroup_updateIngressSecurityGroup(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftSecurityGroupConfig_ingressSgIdAdd,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftSecurityGroupExists("aws_redshift_security_group.bar", &v),
@@ -127,7 +127,7 @@ func TestAccAWSRedshiftSecurityGroup_updateIngressSecurityGroup(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftSecurityGroupConfig_ingressSgIdReduce,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftSecurityGroupExists("aws_redshift_security_group.bar", &v),

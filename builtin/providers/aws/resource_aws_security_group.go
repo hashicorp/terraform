@@ -28,7 +28,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				Computed:      true,
@@ -44,7 +44,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				},
 			},
 
-			"name_prefix": &schema.Schema{
+			"name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -58,7 +58,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				},
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -73,49 +73,49 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				},
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"ingress": &schema.Schema{
+			"ingress": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"from_port": &schema.Schema{
+						"from_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"to_port": &schema.Schema{
+						"to_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:      schema.TypeString,
 							Required:  true,
 							StateFunc: protocolStateFunc,
 						},
 
-						"cidr_blocks": &schema.Schema{
+						"cidr_blocks": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"security_groups": &schema.Schema{
+						"security_groups": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
 
-						"self": &schema.Schema{
+						"self": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
@@ -125,48 +125,48 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Set: resourceAwsSecurityGroupRuleHash,
 			},
 
-			"egress": &schema.Schema{
+			"egress": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"from_port": &schema.Schema{
+						"from_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"to_port": &schema.Schema{
+						"to_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:      schema.TypeString,
 							Required:  true,
 							StateFunc: protocolStateFunc,
 						},
 
-						"cidr_blocks": &schema.Schema{
+						"cidr_blocks": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"prefix_list_ids": &schema.Schema{
+						"prefix_list_ids": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"security_groups": &schema.Schema{
+						"security_groups": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
 
-						"self": &schema.Schema{
+						"self": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
@@ -176,7 +176,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Set: resourceAwsSecurityGroupRuleHash,
 			},
 
-			"owner_id": &schema.Schema{
+			"owner_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -252,11 +252,11 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 		req := &ec2.RevokeSecurityGroupEgressInput{
 			GroupId: createResp.GroupId,
 			IpPermissions: []*ec2.IpPermission{
-				&ec2.IpPermission{
+				{
 					FromPort: aws.Int64(int64(0)),
 					ToPort:   aws.Int64(int64(0)),
 					IpRanges: []*ec2.IpRange{
-						&ec2.IpRange{
+						{
 							CidrIp: aws.String("0.0.0.0/0"),
 						},
 					},
@@ -1003,15 +1003,15 @@ func deleteLingeringLambdaENIs(conn *ec2.EC2, d *schema.ResourceData) error {
 	// Here we carefully find the offenders
 	params := &ec2.DescribeNetworkInterfacesInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("group-id"),
 				Values: []*string{aws.String(d.Id())},
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("description"),
 				Values: []*string{aws.String("AWS Lambda VPC ENI: *")},
 			},
-			&ec2.Filter{
+			{
 				Name:   aws.String("requester-id"),
 				Values: []*string{aws.String("*:awslambda_*")},
 			},

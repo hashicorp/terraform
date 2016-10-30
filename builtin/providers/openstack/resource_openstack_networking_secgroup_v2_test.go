@@ -18,13 +18,13 @@ func TestAccNetworkingV2SecGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2SecGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2SecGroup_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SecGroupExists(t, "openstack_networking_secgroup_v2.foo", &security_group),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2SecGroup_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_networking_secgroup_v2.foo", "name", "security_group_2"),

@@ -153,7 +153,7 @@ func TestAccAzureRMStorageBlob_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageBlobExists("azurerm_storage_blob.test"),
@@ -173,7 +173,7 @@ func TestAccAzureRMStorageBlob_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageBlobExists("azurerm_storage_blob.test"),
@@ -210,7 +210,7 @@ func TestAccAzureRMStorageBlobBlock_source(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageBlobMatchesFile("azurerm_storage_blob.source", storage.BlobTypeBlock, sourceBlob.Name()),
@@ -269,7 +269,7 @@ func TestAccAzureRMStorageBlobPage_source(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageBlobMatchesFile("azurerm_storage_blob.source", storage.BlobTypePage, sourceBlob.Name()),
@@ -304,7 +304,7 @@ func TestAccAzureRMStorageBlob_source_uri(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageBlobMatchesFile("azurerm_storage_blob.destination", storage.BlobTypeBlock, sourceBlob.Name()),

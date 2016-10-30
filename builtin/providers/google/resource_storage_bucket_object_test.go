@@ -36,7 +36,7 @@ func TestAccGoogleStorageObject_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageBucketsObjectBasic(bucketName),
 				Check:  testAccCheckGoogleStorageObject(bucketName, objectName, data_md5),
 			},
@@ -62,7 +62,7 @@ func TestAccGoogleStorageObject_content(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageBucketsObjectContent(bucketName),
 				Check:  testAccCheckGoogleStorageObject(bucketName, objectName, data_md5),
 			},

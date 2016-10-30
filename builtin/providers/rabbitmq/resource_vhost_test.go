@@ -17,7 +17,7 @@ func TestAccVhost(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccVhostCheckDestroy(vhost),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVhostConfig_basic,
 				Check: testAccVhostCheck(
 					"rabbitmq_vhost.test", &vhost,

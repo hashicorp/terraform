@@ -18,7 +18,7 @@ func TestAccLibratoService_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckLibratoServiceConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoServiceExists("librato_service.foobar", &service),
@@ -39,7 +39,7 @@ func TestAccLibratoService_Updated(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckLibratoServiceConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoServiceExists("librato_service.foobar", &service),
@@ -48,7 +48,7 @@ func TestAccLibratoService_Updated(t *testing.T) {
 						"librato_service.foobar", "title", "Foo Bar"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckLibratoServiceConfig_new_value,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoServiceExists("librato_service.foobar", &service),

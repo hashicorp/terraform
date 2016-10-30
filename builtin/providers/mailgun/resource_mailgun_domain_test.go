@@ -17,7 +17,7 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckMailgunDomainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckMailgunDomainConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMailgunDomainExists("mailgun_domain.foobar", &resp),

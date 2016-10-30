@@ -20,7 +20,7 @@ func TestAccAzureRMSqlFirewallRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMSqlFirewallRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlFirewallRuleExists("azurerm_sql_firewall_rule.test"),
@@ -29,7 +29,7 @@ func TestAccAzureRMSqlFirewallRule_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlFirewallRuleExists("azurerm_sql_firewall_rule.test"),

@@ -19,18 +19,18 @@ func resourceAwsElasticacheSecurityGroup() *schema.Resource {
 		Delete: resourceAwsElasticacheSecurityGroupDelete,
 
 		Schema: map[string]*schema.Schema{
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "Managed by Terraform",
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"security_group_names": &schema.Schema{
+			"security_group_names": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,

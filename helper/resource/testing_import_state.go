@@ -46,7 +46,7 @@ func testStepImportState(
 		Module: mod,
 
 		Targets: []*terraform.ImportTarget{
-			&terraform.ImportTarget{
+			{
 				Addr: step.ResourceName,
 				ID:   importId,
 			},

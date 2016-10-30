@@ -21,43 +21,43 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 
-			"certificate_body": &schema.Schema{
+			"certificate_body": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"certificate_chain": &schema.Schema{
+			"certificate_chain": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"certificate_name": &schema.Schema{
+			"certificate_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"certificate_private_key": &schema.Schema{
+			"certificate_private_key": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"domain_name": &schema.Schema{
+			"domain_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"cloudfront_domain_name": &schema.Schema{
+			"cloudfront_domain_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"certificate_upload_date": &schema.Schema{
+			"certificate_upload_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"cloudfront_zone_id": &schema.Schema{
+			"cloudfront_zone_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

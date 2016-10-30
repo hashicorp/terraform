@@ -19,7 +19,7 @@ func TestAccAWSRedshiftParameterGroup_withParameters(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftParameterGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftParameterGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftParameterGroupExists("aws_redshift_parameter_group.bar", &v),
@@ -55,7 +55,7 @@ func TestAccAWSRedshiftParameterGroup_withoutParameters(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftParameterGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRedshiftParameterGroupOnlyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftParameterGroupExists("aws_redshift_parameter_group.bar", &v),

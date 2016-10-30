@@ -21,7 +21,7 @@ func TestAccAWSEMRCluster_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEmrDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEmrClusterConfig(r),
 				Check:  testAccCheckAWSEmrClusterExists("aws_emr_cluster.tf-test-cluster", &jobFlow),
 			},

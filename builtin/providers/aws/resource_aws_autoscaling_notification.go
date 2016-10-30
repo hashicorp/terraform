@@ -18,20 +18,20 @@ func resourceAwsAutoscalingNotification() *schema.Resource {
 		Delete: resourceAwsAutoscalingNotificationDelete,
 
 		Schema: map[string]*schema.Schema{
-			"topic_arn": &schema.Schema{
+			"topic_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"group_names": &schema.Schema{
+			"group_names": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"notifications": &schema.Schema{
+			"notifications": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},

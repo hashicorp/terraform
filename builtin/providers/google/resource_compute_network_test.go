@@ -18,7 +18,7 @@ func TestAccComputeNetwork_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeNetwork_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeNetworkExists(
@@ -37,7 +37,7 @@ func TestAccComputeNetwork_auto_subnet(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeNetwork_auto_subnet,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeNetworkExists(
@@ -58,7 +58,7 @@ func TestAccComputeNetwork_custom_subnet(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeNetwork_custom_subnet,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeNetworkExists(

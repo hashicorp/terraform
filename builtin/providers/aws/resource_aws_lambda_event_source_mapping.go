@@ -21,51 +21,51 @@ func resourceAwsLambdaEventSourceMapping() *schema.Resource {
 		Delete: resourceAwsLambdaEventSourceMappingDelete,
 
 		Schema: map[string]*schema.Schema{
-			"event_source_arn": &schema.Schema{
+			"event_source_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"function_name": &schema.Schema{
+			"function_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"starting_position": &schema.Schema{
+			"starting_position": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"batch_size": &schema.Schema{
+			"batch_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  100,
 			},
-			"enabled": &schema.Schema{
+			"enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"function_arn": &schema.Schema{
+			"function_arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_modified": &schema.Schema{
+			"last_modified": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_processing_result": &schema.Schema{
+			"last_processing_result": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"state": &schema.Schema{
+			"state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"state_transition_reason": &schema.Schema{
+			"state_transition_reason": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"uuid": &schema.Schema{
+			"uuid": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

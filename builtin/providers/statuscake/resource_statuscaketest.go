@@ -18,42 +18,42 @@ func resourceStatusCakeTest() *schema.Resource {
 		Read:   ReadTest,
 
 		Schema: map[string]*schema.Schema{
-			"test_id": &schema.Schema{
+			"test_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"website_name": &schema.Schema{
+			"website_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"website_url": &schema.Schema{
+			"website_url": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"check_rate": &schema.Schema{
+			"check_rate": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  300,
 			},
 
-			"test_type": &schema.Schema{
+			"test_type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"paused": &schema.Schema{
+			"paused": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"timeout": &schema.Schema{
+			"timeout": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"contact_id": &schema.Schema{
+			"contact_id": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},

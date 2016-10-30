@@ -17,56 +17,56 @@ func resourceAwsDefaultRouteTable() *schema.Resource {
 		Delete: resourceAwsDefaultRouteTableDelete,
 
 		Schema: map[string]*schema.Schema{
-			"default_route_table_id": &schema.Schema{
+			"default_route_table_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"propagating_vgws": &schema.Schema{
+			"propagating_vgws": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 
-			"route": &schema.Schema{
+			"route": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"cidr_block": &schema.Schema{
+						"cidr_block": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"gateway_id": &schema.Schema{
+						"gateway_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"instance_id": &schema.Schema{
+						"instance_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"nat_gateway_id": &schema.Schema{
+						"nat_gateway_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"vpc_peering_connection_id": &schema.Schema{
+						"vpc_peering_connection_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"network_interface_id": &schema.Schema{
+						"network_interface_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},

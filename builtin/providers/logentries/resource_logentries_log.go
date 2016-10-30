@@ -16,25 +16,25 @@ func resourceLogentriesLog() *schema.Resource {
 		Delete: resourceLogentriesLogDelete,
 
 		Schema: map[string]*schema.Schema{
-			"token": &schema.Schema{
+			"token": {
 				Type:     schema.TypeString,
 				Computed: true,
 				ForceNew: true,
 			},
-			"logset_id": &schema.Schema{
+			"logset_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"filename": &schema.Schema{
+			"filename": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"retention_period": &schema.Schema{
+			"retention_period": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ACCOUNT_DEFAULT",
@@ -47,7 +47,7 @@ func resourceLogentriesLog() *schema.Resource {
 					return
 				},
 			},
-			"source": &schema.Schema{
+			"source": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "token",
@@ -60,7 +60,7 @@ func resourceLogentriesLog() *schema.Resource {
 					return
 				},
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Default:  "",
 				Optional: true,

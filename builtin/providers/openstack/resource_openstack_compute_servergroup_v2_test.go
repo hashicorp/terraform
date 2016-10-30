@@ -19,7 +19,7 @@ func TestAccComputeV2ServerGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeV2ServerGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeV2ServerGroup_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2ServerGroupExists(t, "openstack_compute_servergroup_v2.mysg", &serverGroup),
@@ -38,7 +38,7 @@ func TestAccComputeV2ServerGroup_affinity(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeV2ServerGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeV2ServerGroup_affinity,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2ServerGroupExists(t, "openstack_compute_servergroup_v2.mysg", &sg),

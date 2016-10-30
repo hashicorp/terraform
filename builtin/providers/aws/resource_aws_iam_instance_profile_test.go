@@ -17,7 +17,7 @@ func TestAccAWSIAMInstanceProfile_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsIamInstanceProfileConfig,
 			},
 		},
@@ -34,7 +34,7 @@ func TestAccAWSIAMInstanceProfile_namePrefix(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckAWSInstanceProfileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSInstanceProfilePrefixNameConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSInstanceProfileExists("aws_iam_instance_profile.test", &conf),

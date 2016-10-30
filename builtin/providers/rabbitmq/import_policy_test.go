@@ -17,14 +17,14 @@ func TestAccPolicy_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccPolicyCheckDestroy(&policy),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPolicyConfig_basic,
 				Check: testAccPolicyCheck(
 					resourceName, &policy,
 				),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

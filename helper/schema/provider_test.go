@@ -103,8 +103,8 @@ func TestProviderResources(t *testing.T) {
 				},
 			},
 			Result: []terraform.ResourceType{
-				terraform.ResourceType{Name: "bar"},
-				terraform.ResourceType{Name: "foo"},
+				{Name: "bar"},
+				{Name: "foo"},
 			},
 		},
 
@@ -112,14 +112,14 @@ func TestProviderResources(t *testing.T) {
 			P: &Provider{
 				ResourcesMap: map[string]*Resource{
 					"foo": nil,
-					"bar": &Resource{Importer: &ResourceImporter{}},
+					"bar": {Importer: &ResourceImporter{}},
 					"baz": nil,
 				},
 			},
 			Result: []terraform.ResourceType{
-				terraform.ResourceType{Name: "bar", Importable: true},
-				terraform.ResourceType{Name: "baz"},
-				terraform.ResourceType{Name: "foo"},
+				{Name: "bar", Importable: true},
+				{Name: "baz"},
+				{Name: "foo"},
 			},
 		},
 	}
@@ -150,8 +150,8 @@ func TestProviderDataSources(t *testing.T) {
 				},
 			},
 			Result: []terraform.DataSource{
-				terraform.DataSource{Name: "bar"},
-				terraform.DataSource{Name: "foo"},
+				{Name: "bar"},
+				{Name: "foo"},
 			},
 		},
 	}

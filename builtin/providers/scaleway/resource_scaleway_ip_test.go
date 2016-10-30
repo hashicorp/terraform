@@ -14,13 +14,13 @@ func TestAccScalewayIP_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckScalewayIPDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayIPConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalewayIPExists("scaleway_ip.base"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayIPAttachConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalewayIPExists("scaleway_ip.base"),
@@ -29,7 +29,7 @@ func TestAccScalewayIP_Basic(t *testing.T) {
 					}, "attachment failed"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayIPConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalewayIPExists("scaleway_ip.base"),

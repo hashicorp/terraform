@@ -16,7 +16,7 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("RABBITMQ_ENDPOINT", nil),
@@ -30,7 +30,7 @@ func Provider() terraform.ResourceProvider {
 				},
 			},
 
-			"username": &schema.Schema{
+			"username": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("RABBITMQ_USERNAME", nil),
@@ -44,7 +44,7 @@ func Provider() terraform.ResourceProvider {
 				},
 			},
 
-			"password": &schema.Schema{
+			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("RABBITMQ_PASSWORD", nil),
@@ -58,13 +58,13 @@ func Provider() terraform.ResourceProvider {
 				},
 			},
 
-			"insecure": &schema.Schema{
+			"insecure": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("RABBITMQ_INSECURE", nil),
 			},
 
-			"cacert_file": &schema.Schema{
+			"cacert_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("RABBITMQ_CACERT", ""),

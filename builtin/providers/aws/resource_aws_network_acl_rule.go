@@ -21,54 +21,54 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 		Delete: resourceAwsNetworkAclRuleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"network_acl_id": &schema.Schema{
+			"network_acl_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"rule_number": &schema.Schema{
+			"rule_number": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"egress": &schema.Schema{
+			"egress": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Default:  false,
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"rule_action": &schema.Schema{
+			"rule_action": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"cidr_block": &schema.Schema{
+			"cidr_block": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"from_port": &schema.Schema{
+			"from_port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"to_port": &schema.Schema{
+			"to_port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"icmp_type": &schema.Schema{
+			"icmp_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateICMPArgumentValue,
 			},
-			"icmp_code": &schema.Schema{
+			"icmp_code": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,

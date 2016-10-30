@@ -19,19 +19,19 @@ func resourceAwsLoadBalancerBackendServerPolicies() *schema.Resource {
 		Delete: resourceAwsLoadBalancerBackendServerPoliciesDelete,
 
 		Schema: map[string]*schema.Schema{
-			"load_balancer_name": &schema.Schema{
+			"load_balancer_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"policy_names": &schema.Schema{
+			"policy_names": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				Set:      schema.HashString,
 			},
 
-			"instance_port": &schema.Schema{
+			"instance_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},

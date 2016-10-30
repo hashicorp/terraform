@@ -12,31 +12,31 @@ func dataSourceAtlasArtifact() *schema.Resource {
 		Read: dataSourceArtifactRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"build": &schema.Schema{
+			"build": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"version": &schema.Schema{
+			"version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"metadata_keys": &schema.Schema{
+			"metadata_keys": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
@@ -44,28 +44,28 @@ func dataSourceAtlasArtifact() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"file_url": &schema.Schema{
+			"file_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"metadata_full": &schema.Schema{
+			"metadata_full": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
 
-			"slug": &schema.Schema{
+			"slug": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"version_real": &schema.Schema{
+			"version_real": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

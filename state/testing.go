@@ -36,7 +36,7 @@ func TestState(t *testing.T, s interface{}) {
 		current.AddModuleState(&terraform.ModuleState{
 			Path: []string{"root"},
 			Outputs: map[string]*terraform.OutputState{
-				"bar": &terraform.OutputState{
+				"bar": {
 					Type:      "string",
 					Sensitive: false,
 					Value:     "baz",
@@ -94,10 +94,10 @@ func TestState(t *testing.T, s interface{}) {
 		// Change the serial
 		current = current.DeepCopy()
 		current.Modules = []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root", "somewhere"},
 				Outputs: map[string]*terraform.OutputState{
-					"serialCheck": &terraform.OutputState{
+					"serialCheck": {
 						Type:      "string",
 						Sensitive: false,
 						Value:     "true",
@@ -131,10 +131,10 @@ func TestState(t *testing.T, s interface{}) {
 func TestStateInitial() *terraform.State {
 	initial := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root", "child"},
 				Outputs: map[string]*terraform.OutputState{
-					"foo": &terraform.OutputState{
+					"foo": {
 						Type:      "string",
 						Sensitive: false,
 						Value:     "bar",

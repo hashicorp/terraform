@@ -21,32 +21,32 @@ func resourceAzureSqlDatabaseService() *schema.Resource {
 		Delete: resourceAzureSqlDatabaseServiceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"database_server_name": &schema.Schema{
+			"database_server_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"collation": &schema.Schema{
+			"collation": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"edition": &schema.Schema{
+			"edition": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"max_size_bytes": &schema.Schema{
+			"max_size_bytes": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"service_level_id": &schema.Schema{
+			"service_level_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

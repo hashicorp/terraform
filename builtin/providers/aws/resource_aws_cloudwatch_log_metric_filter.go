@@ -21,14 +21,14 @@ func resourceAwsCloudWatchLogMetricFilter() *schema.Resource {
 		Delete: resourceAwsCloudWatchLogMetricFilterDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLogMetricFilterName,
 			},
 
-			"pattern": &schema.Schema{
+			"pattern": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateMaxLength(512),
@@ -41,30 +41,30 @@ func resourceAwsCloudWatchLogMetricFilter() *schema.Resource {
 				},
 			},
 
-			"log_group_name": &schema.Schema{
+			"log_group_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLogGroupName,
 			},
 
-			"metric_transformation": &schema.Schema{
+			"metric_transformation": {
 				Type:     schema.TypeList,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateLogMetricFilterTransformationName,
 						},
-						"namespace": &schema.Schema{
+						"namespace": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateLogMetricFilterTransformationName,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:         schema.TypeString,
 							Required:     true,
 							ValidateFunc: validateMaxLength(100),

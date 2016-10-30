@@ -18,7 +18,7 @@ func TestAccComputeForwardingRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeForwardingRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeForwardingRule_basic(poolName, ruleName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeForwardingRuleExists(
@@ -39,7 +39,7 @@ func TestAccComputeForwardingRule_ip(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeForwardingRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeForwardingRule_ip(addrName, poolName, ruleName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeForwardingRuleExists(

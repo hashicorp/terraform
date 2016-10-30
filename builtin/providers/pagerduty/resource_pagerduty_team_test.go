@@ -15,7 +15,7 @@ func TestAccPagerDutyTeam_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyTeamDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyTeamConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyTeamExists("pagerduty_team.foo"),
@@ -25,7 +25,7 @@ func TestAccPagerDutyTeam_Basic(t *testing.T) {
 						"pagerduty_team.foo", "description", "foo"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyTeamConfigUpdated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyTeamExists("pagerduty_team.foo"),

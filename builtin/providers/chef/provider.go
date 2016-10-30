@@ -17,25 +17,25 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"server_url": &schema.Schema{
+			"server_url": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CHEF_SERVER_URL", nil),
 				Description: "URL of the root of the target Chef server or organization.",
 			},
-			"client_name": &schema.Schema{
+			"client_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CHEF_CLIENT_NAME", nil),
 				Description: "Name of a registered client within the Chef server.",
 			},
-			"private_key_pem": &schema.Schema{
+			"private_key_pem": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: providerPrivateKeyEnvDefault,
 				Description: "PEM-formatted private key for client authentication.",
 			},
-			"allow_unverified_ssl": &schema.Schema{
+			"allow_unverified_ssl": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "If set, the Chef client will permit unverifiable SSL certificates.",

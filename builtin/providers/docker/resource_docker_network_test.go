@@ -16,7 +16,7 @@ func TestAccDockerNetwork_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDockerNetworkConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccNetwork("docker_network.foo", &n),

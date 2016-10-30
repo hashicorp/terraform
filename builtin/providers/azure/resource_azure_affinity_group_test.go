@@ -17,7 +17,7 @@ func TestAccAzureAffinityGroupBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureAffinityGroupDestroyed,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureAffinityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureAffinityGroupExists(name),
@@ -39,7 +39,7 @@ func TestAccAzureAffinityGroupUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureAffinityGroupDestroyed,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureAffinityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureAffinityGroupExists(name),
@@ -49,7 +49,7 @@ func TestAccAzureAffinityGroupUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(name, "description", "A nice description."),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAzureAffinityGroupUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureAffinityGroupExists(name),

@@ -17,7 +17,7 @@ func TestAccCloudStackNIC_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackNICDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNIC_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNICExists(
@@ -37,7 +37,7 @@ func TestAccCloudStackNIC_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackNICDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNIC_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNICExists(
@@ -46,7 +46,7 @@ func TestAccCloudStackNIC_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNIC_ipaddress,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNICExists(

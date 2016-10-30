@@ -24,7 +24,7 @@ func TestAccAzureInstance_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureInstanceDestroyed(""),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureInstance_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
@@ -58,7 +58,7 @@ func TestAccAzureInstance_separateHostedService(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureInstanceDestroyed(hostedServiceName),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
@@ -86,7 +86,7 @@ func TestAccAzureInstance_advanced(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureInstanceDestroyed(""),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureInstance_advanced,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
@@ -122,7 +122,7 @@ func TestAccAzureInstance_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureInstanceDestroyed(""),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureInstance_advanced,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(
@@ -145,7 +145,7 @@ func TestAccAzureInstance_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAzureInstance_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureInstanceExists(

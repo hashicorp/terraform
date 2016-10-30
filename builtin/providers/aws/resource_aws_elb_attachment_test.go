@@ -28,7 +28,7 @@ func TestAccAWSELBAttachment_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBAttachmentConfig1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -36,7 +36,7 @@ func TestAccAWSELBAttachment_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBAttachmentConfig2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -44,7 +44,7 @@ func TestAccAWSELBAttachment_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBAttachmentConfig3,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -52,7 +52,7 @@ func TestAccAWSELBAttachment_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSELBAttachmentConfig4,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -99,7 +99,7 @@ func TestAccAWSELBAttachment_drift(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSELBAttachmentConfig1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
@@ -108,7 +108,7 @@ func TestAccAWSELBAttachment_drift(t *testing.T) {
 			},
 
 			// remove an instance from the ELB, and make sure it gets re-added
-			resource.TestStep{
+			{
 				Config:    testAccAWSELBAttachmentConfig1,
 				PreConfig: deregInstance,
 				Check: resource.ComposeTestCheckFunc(

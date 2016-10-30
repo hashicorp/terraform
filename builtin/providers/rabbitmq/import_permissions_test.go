@@ -17,14 +17,14 @@ func TestAccPermissions_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccPermissionsCheckDestroy(&permissionInfo),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPermissionsConfig_basic,
 				Check: testAccPermissionsCheck(
 					resourceName, &permissionInfo,
 				),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

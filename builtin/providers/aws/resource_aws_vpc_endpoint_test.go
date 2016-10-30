@@ -22,7 +22,7 @@ func TestAccAWSVpcEndpoint_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckVpcEndpointDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcEndpointWithRouteTableAndPolicyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcEndpointExists("aws_vpc_endpoint.second-private-s3", &endpoint),
@@ -43,14 +43,14 @@ func TestAccAWSVpcEndpoint_withRouteTableAndPolicy(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckVpcEndpointDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcEndpointWithRouteTableAndPolicyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcEndpointExists("aws_vpc_endpoint.second-private-s3", &endpoint),
 					testAccCheckRouteTableExists("aws_route_table.default", &routeTable),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccVpcEndpointWithRouteTableAndPolicyConfigModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcEndpointExists("aws_vpc_endpoint.second-private-s3", &endpoint),
@@ -70,7 +70,7 @@ func TestAccAWSVpcEndpoint_WithoutRouteTableOrPolicyConfig(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckVpcEndpointDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcEndpointWithoutRouteTableOrPolicyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcEndpointExists("aws_vpc_endpoint.second-private-s3", &endpoint),
@@ -103,7 +103,7 @@ func TestAccAWSVpcEndpoint_removed(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpcEndpointDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpcEndpointWithoutRouteTableOrPolicyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcEndpointExists("aws_vpc_endpoint.second-private-s3", &endpoint),

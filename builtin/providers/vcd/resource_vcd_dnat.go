@@ -14,25 +14,25 @@ func resourceVcdDNAT() *schema.Resource {
 		Read:   resourceVcdDNATRead,
 
 		Schema: map[string]*schema.Schema{
-			"edge_gateway": &schema.Schema{
+			"edge_gateway": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"external_ip": &schema.Schema{
+			"external_ip": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"internal_ip": &schema.Schema{
+			"internal_ip": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

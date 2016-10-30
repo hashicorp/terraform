@@ -21,14 +21,14 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 		Delete: resourceAwsCloudWatchEventTargetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"rule": &schema.Schema{
+			"rule": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateCloudWatchEventRuleName,
 			},
 
-			"target_id": &schema.Schema{
+			"target_id": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
@@ -36,12 +36,12 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 				ValidateFunc: validateCloudWatchEventTargetId,
 			},
 
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"input": &schema.Schema{
+			"input": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"input_path"},
@@ -49,7 +49,7 @@ func resourceAwsCloudWatchEventTarget() *schema.Resource {
 				// but for built-in targets input may not be JSON
 			},
 
-			"input_path": &schema.Schema{
+			"input_path": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"input"},

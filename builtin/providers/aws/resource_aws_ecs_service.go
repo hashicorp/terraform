@@ -26,73 +26,73 @@ func resourceAwsEcsService() *schema.Resource {
 		Delete: resourceAwsEcsServiceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"cluster": &schema.Schema{
+			"cluster": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"task_definition": &schema.Schema{
+			"task_definition": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"desired_count": &schema.Schema{
+			"desired_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"iam_role": &schema.Schema{
+			"iam_role": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"deployment_maximum_percent": &schema.Schema{
+			"deployment_maximum_percent": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  200,
 			},
 
-			"deployment_minimum_healthy_percent": &schema.Schema{
+			"deployment_minimum_healthy_percent": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  100,
 			},
 
-			"load_balancer": &schema.Schema{
+			"load_balancer": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"elb_name": &schema.Schema{
+						"elb_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"target_group_arn": &schema.Schema{
+						"target_group_arn": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"container_name": &schema.Schema{
+						"container_name": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 
-						"container_port": &schema.Schema{
+						"container_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 							ForceNew: true,

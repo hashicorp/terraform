@@ -18,7 +18,7 @@ func TestAccAzureVirtualNetwork_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureVirtualNetwork_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureVirtualNetworkExists(
@@ -48,7 +48,7 @@ func TestAccAzureVirtualNetwork_advanced(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureVirtualNetwork_advanced,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureVirtualNetworkExists(
@@ -80,7 +80,7 @@ func TestAccAzureVirtualNetwork_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureVirtualNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureVirtualNetwork_advanced,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureVirtualNetworkExists(
@@ -101,7 +101,7 @@ func TestAccAzureVirtualNetwork_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAzureVirtualNetwork_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureVirtualNetworkExists(

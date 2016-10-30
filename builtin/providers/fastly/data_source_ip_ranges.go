@@ -22,7 +22,7 @@ func dataSourceFastlyIPRanges() *schema.Resource {
 		Read: dataSourceFastlyIPRangesRead,
 
 		Schema: map[string]*schema.Schema{
-			"cidr_blocks": &schema.Schema{
+			"cidr_blocks": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},

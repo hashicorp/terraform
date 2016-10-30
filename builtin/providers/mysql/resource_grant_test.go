@@ -18,7 +18,7 @@ func TestAccGrant(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGrantCheckDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGrantConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccPrivilegeExists("mysql_grant.test", "SELECT"),

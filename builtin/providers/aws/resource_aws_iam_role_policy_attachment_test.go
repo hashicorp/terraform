@@ -19,14 +19,14 @@ func TestAccAWSRolePolicyAttachment_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRolePolicyAttachmentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRolePolicyAttachConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRolePolicyAttachmentExists("aws_iam_role_policy_attachment.test-attach", 1, &out),
 					testAccCheckAWSRolePolicyAttachmentAttributes([]string{"test-policy"}, &out),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSRolePolicyAttachConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRolePolicyAttachmentExists("aws_iam_role_policy_attachment.test-attach", 2, &out),

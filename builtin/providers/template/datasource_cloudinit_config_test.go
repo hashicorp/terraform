@@ -58,7 +58,7 @@ func TestRender(t *testing.T) {
 		r.UnitTest(t, r.TestCase{
 			Providers: testProviders,
 			Steps: []r.TestStep{
-				r.TestStep{
+				{
 					Config: tt.ResourceBlock,
 					Check: r.ComposeTestCheckFunc(
 						r.TestCheckResourceAttr("data.template_cloudinit_config.foo", "rendered", tt.Expected),

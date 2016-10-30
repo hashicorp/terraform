@@ -16,7 +16,7 @@ func TestAccDnsRecordSet_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDnsRecordSetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.10", 300),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDnsRecordSetExists(
@@ -34,21 +34,21 @@ func TestAccDnsRecordSet_modify(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDnsRecordSetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.10", 300),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDnsRecordSetExists(
 						"google_dns_record_set.foobar", zoneName),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.11", 300),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDnsRecordSetExists(
 						"google_dns_record_set.foobar", zoneName),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.11", 600),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDnsRecordSetExists(
@@ -66,14 +66,14 @@ func TestAccDnsRecordSet_changeType(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDnsRecordSetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDnsRecordSet_basic(zoneName, "127.0.0.10", 300),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDnsRecordSetExists(
 						"google_dns_record_set.foobar", zoneName),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccDnsRecordSet_bigChange(zoneName, 600),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDnsRecordSetExists(

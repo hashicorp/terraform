@@ -17,49 +17,49 @@ func resourceCloudStackVPNCustomerGateway() *schema.Resource {
 		Delete: resourceCloudStackVPNCustomerGatewayDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"cidr": &schema.Schema{
+			"cidr": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"esp_policy": &schema.Schema{
+			"esp_policy": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"gateway": &schema.Schema{
+			"gateway": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"ike_policy": &schema.Schema{
+			"ike_policy": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"ipsec_psk": &schema.Schema{
+			"ipsec_psk": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"dpd": &schema.Schema{
+			"dpd": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"esp_lifetime": &schema.Schema{
+			"esp_lifetime": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ike_lifetime": &schema.Schema{
+			"ike_lifetime": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,

@@ -22,7 +22,7 @@ func TestAccComputeGlobalForwardingRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeGlobalForwardingRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeGlobalForwardingRule_basic1(fr, proxy1, proxy2, backend, hc, urlmap),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeGlobalForwardingRuleExists(
@@ -46,7 +46,7 @@ func TestAccComputeGlobalForwardingRule_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeGlobalForwardingRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeGlobalForwardingRule_basic1(fr, proxy1, proxy2, backend, hc, urlmap),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeGlobalForwardingRuleExists(
@@ -54,7 +54,7 @@ func TestAccComputeGlobalForwardingRule_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccComputeGlobalForwardingRule_basic2(fr, proxy1, proxy2, backend, hc, urlmap),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeGlobalForwardingRuleExists(

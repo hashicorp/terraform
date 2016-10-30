@@ -21,36 +21,36 @@ func resourcePermissions() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"user": &schema.Schema{
+			"user": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"vhost": &schema.Schema{
+			"vhost": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
 				ForceNew: true,
 			},
 
-			"permissions": &schema.Schema{
+			"permissions": {
 				Type:     schema.TypeList,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"configure": &schema.Schema{
+						"configure": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"write": &schema.Schema{
+						"write": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"read": &schema.Schema{
+						"read": {
 							Type:     schema.TypeString,
 							Required: true,
 						},

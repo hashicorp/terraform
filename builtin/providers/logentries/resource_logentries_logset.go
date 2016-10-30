@@ -14,11 +14,11 @@ func resourceLogentriesLogSet() *schema.Resource {
 		Delete: resourceLogentriesLogSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"location": &schema.Schema{
+			"location": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "nonlocation",

@@ -22,7 +22,7 @@ func TestAccAWSLoadBalancerBackendServerPolicy_basic(t *testing.T) {
 		},
 		CheckDestroy: testAccCheckAWSLoadBalancerBackendServerPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLoadBalancerBackendServerPolicyConfig_basic0,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-pubkey-policy0"),
@@ -30,7 +30,7 @@ func TestAccAWSLoadBalancerBackendServerPolicy_basic(t *testing.T) {
 					testAccCheckAWSLoadBalancerBackendServerPolicyState("test-aws-policies-lb", "test-backend-auth-policy0", true),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSLoadBalancerBackendServerPolicyConfig_basic1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-pubkey-policy0"),
@@ -39,7 +39,7 @@ func TestAccAWSLoadBalancerBackendServerPolicy_basic(t *testing.T) {
 					testAccCheckAWSLoadBalancerBackendServerPolicyState("test-aws-policies-lb", "test-backend-auth-policy0", true),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSLoadBalancerBackendServerPolicyConfig_basic2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerBackendServerPolicyState("test-aws-policies-lb", "test-backend-auth-policy0", false),

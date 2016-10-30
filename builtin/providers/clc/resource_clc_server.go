@@ -20,106 +20,106 @@ func resourceCLCServer() *schema.Resource {
 		Update: resourceCLCServerUpdate,
 		Delete: resourceCLCServerDelete,
 		Schema: map[string]*schema.Schema{
-			"name_template": &schema.Schema{
+			"name_template": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"group_id": &schema.Schema{
+			"group_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"source_server_id": &schema.Schema{
+			"source_server_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"cpu": &schema.Schema{
+			"cpu": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
-			"memory_mb": &schema.Schema{
+			"memory_mb": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
 			// optional
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "standard",
 				ForceNew: true,
 			},
-			"network_id": &schema.Schema{
+			"network_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"custom_fields": &schema.Schema{
+			"custom_fields": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeMap},
 			},
-			"additional_disks": &schema.Schema{
+			"additional_disks": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeMap},
 			},
-			"packages": &schema.Schema{
+			"packages": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeMap},
 			},
 
 			// optional: misc state storage. non-CLC field
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
 
 			// optional
-			"storage_type": &schema.Schema{
+			"storage_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "standard",
 			},
-			"aa_policy_id": &schema.Schema{
+			"aa_policy_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
 			// optional fields for bareMetal
-			"configuration_id": &schema.Schema{
+			"configuration_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"os_type": &schema.Schema{
+			"os_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
 			// sorta computed
-			"password": &schema.Schema{
+			"password": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				Default:  nil,
 			},
-			"private_ip_address": &schema.Schema{
+			"private_ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				Default:  nil,
 			},
-			"power_state": &schema.Schema{
+			"power_state": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -127,15 +127,15 @@ func resourceCLCServer() *schema.Resource {
 			},
 
 			// computed
-			"created_date": &schema.Schema{
+			"created_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"modified_date": &schema.Schema{
+			"modified_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"public_ip_address": &schema.Schema{
+			"public_ip_address": {
 				// RO: if a public_ip is on this server, populate it
 				Type:     schema.TypeString,
 				Computed: true,

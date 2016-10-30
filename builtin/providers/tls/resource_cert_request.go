@@ -20,7 +20,7 @@ func resourceCertRequest() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 
-			"dns_names": &schema.Schema{
+			"dns_names": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "List of DNS names to use as subjects of the certificate",
@@ -30,7 +30,7 @@ func resourceCertRequest() *schema.Resource {
 				},
 			},
 
-			"ip_addresses": &schema.Schema{
+			"ip_addresses": {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "List of IP addresses to use as subjects of the certificate",
@@ -40,14 +40,14 @@ func resourceCertRequest() *schema.Resource {
 				},
 			},
 
-			"key_algorithm": &schema.Schema{
+			"key_algorithm": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the algorithm to use to generate the certificate's private key",
 				ForceNew:    true,
 			},
 
-			"private_key_pem": &schema.Schema{
+			"private_key_pem": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "PEM-encoded private key that the certificate will belong to",
@@ -57,14 +57,14 @@ func resourceCertRequest() *schema.Resource {
 				},
 			},
 
-			"subject": &schema.Schema{
+			"subject": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem:     nameSchema,
 				ForceNew: true,
 			},
 
-			"cert_request_pem": &schema.Schema{
+			"cert_request_pem": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

@@ -18,7 +18,7 @@ func TestAccComputeProjectMetadata_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeProjectMetadataDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeProject_basic0_metadata,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
@@ -41,7 +41,7 @@ func TestAccComputeProjectMetadata_modify_1(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeProjectMetadataDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeProject_modify0_metadata,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
@@ -53,7 +53,7 @@ func TestAccComputeProjectMetadata_modify_1(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccComputeProject_modify1_metadata,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
@@ -77,7 +77,7 @@ func TestAccComputeProjectMetadata_modify_2(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeProjectMetadataDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeProject_basic0_metadata,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(
@@ -88,7 +88,7 @@ func TestAccComputeProjectMetadata_modify_2(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccComputeProject_basic1_metadata,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeProjectExists(

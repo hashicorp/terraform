@@ -20,7 +20,7 @@ func TestAccCobblerSystem_basic(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckSystemDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerSystem_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
@@ -42,7 +42,7 @@ func TestAccCobblerSystem_multi(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckSystemDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerSystem_multi,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
@@ -64,7 +64,7 @@ func TestAccCobblerSystem_change(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckSystemDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerSystem_change_1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
@@ -72,7 +72,7 @@ func TestAccCobblerSystem_change(t *testing.T) {
 					testAccCobblerCheckSystemExists(t, "cobbler_system.foo", &system),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCobblerSystem_change_2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
@@ -94,7 +94,7 @@ func TestAccCobblerSystem_removeInterface(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckSystemDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerSystem_removeInterface_1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
@@ -102,7 +102,7 @@ func TestAccCobblerSystem_removeInterface(t *testing.T) {
 					testAccCobblerCheckSystemExists(t, "cobbler_system.foo", &system),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCobblerSystem_removeInterface_2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),

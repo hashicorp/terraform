@@ -17,7 +17,7 @@ func TestAccCloudStackStaticNAT_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackStaticNATDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackStaticNAT_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackStaticNATExists(

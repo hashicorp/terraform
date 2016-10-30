@@ -27,7 +27,7 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployDeploymentGroup(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo", &group),
@@ -48,7 +48,7 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.2916377465.value", "filtervalue"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployDeploymentGroupModified(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo", &group),
@@ -83,7 +83,7 @@ func TestAccAWSCodeDeployDeploymentGroup_onPremiseTag(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployDeploymentGroupOnPremiseTags(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo", &group),
@@ -117,7 +117,7 @@ func TestAccAWSCodeDeployDeploymentGroup_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployDeploymentGroup(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo", &group),
@@ -139,7 +139,7 @@ func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_basic(t *testing.T
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_create(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
@@ -152,7 +152,7 @@ func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_basic(t *testing.T
 					}),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_update(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
@@ -180,7 +180,7 @@ func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_multiple(t *testin
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCodeDeployDeploymentGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_createMultiple(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
@@ -198,7 +198,7 @@ func TestAccAWSCodeDeployDeploymentGroup_triggerConfiguration_multiple(t *testin
 						regexp.MustCompile("^arn:aws:sns:[^:]+:[0-9]{12}:bar-topic-"+rName+"$")),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_updateMultiple(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployDeploymentGroupExists("aws_codedeploy_deployment_group.foo_group", &group),
@@ -294,7 +294,7 @@ func TestBuildTriggerConfigs(t *testing.T) {
 	}
 
 	expected := []*codedeploy.TriggerConfig{
-		&codedeploy.TriggerConfig{
+		{
 			TriggerEvents: []*string{
 				aws.String("DeploymentFailure"),
 			},
@@ -313,7 +313,7 @@ func TestBuildTriggerConfigs(t *testing.T) {
 
 func TestTriggerConfigsToMap(t *testing.T) {
 	input := []*codedeploy.TriggerConfig{
-		&codedeploy.TriggerConfig{
+		{
 			TriggerEvents: []*string{
 				aws.String("DeploymentFailure"),
 				aws.String("InstanceFailure"),
@@ -748,7 +748,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_create(rName strin
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_codedeploy_deployment_group" "foo_group" {
 	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "foo-group-%s"
@@ -766,7 +766,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_update(rName strin
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_codedeploy_deployment_group" "foo_group" {
 	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "foo-group-%s"
@@ -784,7 +784,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_createMultiple(rNa
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_sns_topic" "bar_topic" {
 	name = "bar-topic-%s"
 }
@@ -812,7 +812,7 @@ func testAccAWSCodeDeployDeploymentGroup_triggerConfiguration_updateMultiple(rNa
 	return fmt.Sprintf(`
 
 	%s
-	
+
 resource "aws_sns_topic" "bar_topic" {
 	name = "bar-topic-%s"
 }

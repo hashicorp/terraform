@@ -16,7 +16,7 @@ func TestAccComputeTargetPool_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeTargetPoolDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeTargetPool_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeTargetPoolExists(

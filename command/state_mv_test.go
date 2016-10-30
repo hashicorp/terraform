@@ -11,10 +11,10 @@ import (
 func TestStateMv(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -25,7 +25,7 @@ func TestStateMv(t *testing.T) {
 						},
 					},
 
-					"test_instance.baz": &terraform.ResourceState{
+					"test_instance.baz": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -74,10 +74,10 @@ func TestStateMv(t *testing.T) {
 func TestStateMv_stateOutNew(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -129,10 +129,10 @@ func TestStateMv_stateOutNew(t *testing.T) {
 func TestStateMv_stateOutExisting(t *testing.T) {
 	stateSrc := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -151,10 +151,10 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 
 	stateDst := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.qux": &terraform.ResourceState{
+					"test_instance.qux": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -226,10 +226,10 @@ func TestStateMv_noState(t *testing.T) {
 func TestStateMv_stateOutNew_count(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo.0": &terraform.ResourceState{
+					"test_instance.foo.0": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "foo",
@@ -240,7 +240,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 						},
 					},
 
-					"test_instance.foo.1": &terraform.ResourceState{
+					"test_instance.foo.1": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -251,7 +251,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 						},
 					},
 
-					"test_instance.bar": &terraform.ResourceState{
+					"test_instance.bar": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -303,20 +303,20 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path:      []string{"root"},
 				Resources: map[string]*terraform.ResourceState{},
 			},
 
-			&terraform.ModuleState{
+			{
 				Path:      []string{"root", "foo"},
 				Resources: map[string]*terraform.ResourceState{},
 			},
 
-			&terraform.ModuleState{
+			{
 				Path: []string{"root", "foo", "child1"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -329,10 +329,10 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 				},
 			},
 
-			&terraform.ModuleState{
+			{
 				Path: []string{"root", "foo", "child2"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",

@@ -20,7 +20,7 @@ func TestAccAWSVpnGatewayAttachment_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckVpnGatewayAttachmentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpnGatewayAttachmentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists(
@@ -58,7 +58,7 @@ func TestAccAWSVpnGatewayAttachment_deleted(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckVpnGatewayAttachmentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccVpnGatewayAttachmentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists(
@@ -72,7 +72,7 @@ func TestAccAWSVpnGatewayAttachment_deleted(t *testing.T) {
 						&vpc, &vgw),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccNoVpnGatewayAttachmentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testDeleted("aws_vpn_gateway_attachment.test"),

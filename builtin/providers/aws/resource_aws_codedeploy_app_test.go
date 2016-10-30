@@ -17,13 +17,13 @@ func TestAccAWSCodeDeployApp_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCodeDeployAppDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployApp,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployAppExists("aws_codedeploy_app.foo"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCodeDeployAppModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSCodeDeployAppExists("aws_codedeploy_app.foo"),

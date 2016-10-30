@@ -19,7 +19,7 @@ func TestAccPrivateKey_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccPrivateKeyCheckDestroy(&key),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPrivateKeyConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccPrivateKeyCheckExists("rundeck_private_key.test", &key),

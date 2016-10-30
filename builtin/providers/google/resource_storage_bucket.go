@@ -19,60 +19,60 @@ func resourceStorageBucket() *schema.Resource {
 		Delete: resourceStorageBucketDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"force_destroy": &schema.Schema{
+			"force_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:     schema.TypeString,
 				Default:  "US",
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"predefined_acl": &schema.Schema{
+			"predefined_acl": {
 				Type:       schema.TypeString,
 				Deprecated: "Please use resource \"storage_bucket_acl.predefined_acl\" instead.",
 				Optional:   true,
 				ForceNew:   true,
 			},
 
-			"project": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"self_link": &schema.Schema{
+			"self_link": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"storage_class": &schema.Schema{
+			"storage_class": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "STANDARD",
 				ForceNew: true,
 			},
 
-			"website": &schema.Schema{
+			"website": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"main_page_suffix": &schema.Schema{
+						"main_page_suffix": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"not_found_page": &schema.Schema{
+						"not_found_page": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},

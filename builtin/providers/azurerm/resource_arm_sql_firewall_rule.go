@@ -20,30 +20,30 @@ func resourceArmSqlFirewallRule() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"server_name": &schema.Schema{
+			"server_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"start_ip_address": &schema.Schema{
+			"start_ip_address": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"end_ip_address": &schema.Schema{
+			"end_ip_address": {
 				Type:     schema.TypeString,
 				Required: true,
 			},

@@ -20,71 +20,71 @@ func resourceAwsAutoscalingPolicy() *schema.Resource {
 		Delete: resourceAwsAutoscalingPolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"adjustment_type": &schema.Schema{
+			"adjustment_type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"autoscaling_group_name": &schema.Schema{
+			"autoscaling_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"policy_type": &schema.Schema{
+			"policy_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "SimpleScaling", // preserve AWS's default to make validation easier.
 			},
-			"cooldown": &schema.Schema{
+			"cooldown": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"estimated_instance_warmup": &schema.Schema{
+			"estimated_instance_warmup": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"metric_aggregation_type": &schema.Schema{
+			"metric_aggregation_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"min_adjustment_magnitude": &schema.Schema{
+			"min_adjustment_magnitude": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"min_adjustment_step": &schema.Schema{
+			"min_adjustment_step": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				Deprecated:    "Use min_adjustment_magnitude instead, otherwise you may see a perpetual diff on this resource.",
 				ConflictsWith: []string{"min_adjustment_magnitude"},
 			},
-			"scaling_adjustment": &schema.Schema{
+			"scaling_adjustment": {
 				Type:          schema.TypeInt,
 				Optional:      true,
 				ConflictsWith: []string{"step_adjustment"},
 			},
-			"step_adjustment": &schema.Schema{
+			"step_adjustment": {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				ConflictsWith: []string{"scaling_adjustment"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"metric_interval_lower_bound": &schema.Schema{
+						"metric_interval_lower_bound": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"metric_interval_upper_bound": &schema.Schema{
+						"metric_interval_upper_bound": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"scaling_adjustment": &schema.Schema{
+						"scaling_adjustment": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},

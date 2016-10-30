@@ -14,7 +14,7 @@ func TestAccResourceShuffle(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccResourceShuffleConfig,
 				Check: resource.ComposeTestCheckFunc(
 					// These results are current as of Go 1.6. The Go

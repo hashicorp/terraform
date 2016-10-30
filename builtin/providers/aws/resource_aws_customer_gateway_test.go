@@ -21,19 +21,19 @@ func TestAccAWSCustomerGateway_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckCustomerGatewayDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCustomerGatewayConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCustomerGatewayConfigUpdateTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCustomerGatewayConfigForceReplace,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),
@@ -50,7 +50,7 @@ func TestAccAWSCustomerGateway_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCustomerGatewayDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCustomerGatewayConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway("aws_customer_gateway.foo", &gateway),

@@ -22,65 +22,65 @@ func resourceLibratoAlert() *schema.Resource {
 		Delete: resourceLibratoAlertDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"active": &schema.Schema{
+			"active": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"rearm_seconds": &schema.Schema{
+			"rearm_seconds": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  600,
 			},
-			"services": &schema.Schema{
+			"services": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"condition": &schema.Schema{
+			"condition": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"metric_name": &schema.Schema{
+						"metric_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"source": &schema.Schema{
+						"source": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"detect_reset": &schema.Schema{
+						"detect_reset": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"duration": &schema.Schema{
+						"duration": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"threshold": &schema.Schema{
+						"threshold": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 						},
-						"summary_function": &schema.Schema{
+						"summary_function": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -88,12 +88,12 @@ func resourceLibratoAlert() *schema.Resource {
 				},
 				Set: resourceLibratoAlertConditionsHash,
 			},
-			"attributes": &schema.Schema{
+			"attributes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"runbook_url": &schema.Schema{
+						"runbook_url": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},

@@ -14,7 +14,7 @@ func TestAccScalewayVolume_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckScalewayVolumeDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayVolumeConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalewayVolumeExists("scaleway_volume.test"),

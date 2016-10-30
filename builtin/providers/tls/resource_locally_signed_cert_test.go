@@ -18,7 +18,7 @@ func TestLocallySignedCert(t *testing.T) {
 	r.Test(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
-			r.TestStep{
+			{
 				Config: fmt.Sprintf(`
                     resource "tls_locally_signed_cert" "test" {
                         cert_request_pem = <<EOT

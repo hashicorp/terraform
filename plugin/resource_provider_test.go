@@ -212,7 +212,7 @@ func TestResourceProvider_diff(t *testing.T) {
 
 	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"foo": &terraform.ResourceAttrDiff{
+			"foo": {
 				Old: "",
 				New: "bar",
 			},
@@ -334,7 +334,7 @@ func TestResourceProvider_importState(t *testing.T) {
 	provider := raw.(terraform.ResourceProvider)
 
 	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
+		{
 			ID: "bob",
 		},
 	}
@@ -373,8 +373,8 @@ func TestResourceProvider_resources(t *testing.T) {
 	provider := raw.(terraform.ResourceProvider)
 
 	expected := []terraform.ResourceType{
-		terraform.ResourceType{Name: "foo"},
-		terraform.ResourceType{Name: "bar", Importable: true},
+		{Name: "foo"},
+		{Name: "bar", Importable: true},
 	}
 
 	p.ResourcesReturn = expected

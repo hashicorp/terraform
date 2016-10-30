@@ -16,7 +16,7 @@ func TestAccCloudStackSecurityGroupRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackSecurityGroupRule_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackSecurityGroupRulesExist("cloudstack_security_group.foo"),
@@ -54,7 +54,7 @@ func TestAccCloudStackSecurityGroupRule_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackSecurityGroupRule_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackSecurityGroupRulesExist("cloudstack_security_group.foo"),
@@ -83,7 +83,7 @@ func TestAccCloudStackSecurityGroupRule_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackSecurityGroupRule_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackSecurityGroupRulesExist("cloudstack_security_group.foo"),

@@ -17,7 +17,7 @@ func TestAccCloudStackAffinityGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackAffinityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackAffinityGroup,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackAffinityGroupExists("cloudstack_affinity_group.foo", &affinityGroup),

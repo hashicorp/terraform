@@ -22,7 +22,7 @@ func TestAccDMERecord_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigA, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -53,7 +53,7 @@ func TestAccDMERecordCName(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigCName, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -89,7 +89,7 @@ func TestAccDMERecordAName(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigAName, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -119,7 +119,7 @@ func TestAccDMERecordMX(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigMX, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -152,7 +152,7 @@ func TestAccDMERecordHTTPRED(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigHTTPRED, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -195,7 +195,7 @@ func TestAccDMERecordTXT(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigTXT, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -226,7 +226,7 @@ func TestAccDMERecordSPF(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigSPF, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -257,7 +257,7 @@ func TestAccDMERecordPTR(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigPTR, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -288,7 +288,7 @@ func TestAccDMERecordNS(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigNS, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -319,7 +319,7 @@ func TestAccDMERecordAAAA(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigAAAA, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),
@@ -350,7 +350,7 @@ func TestAccDMERecordSRV(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDMERecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testDMERecordConfigSRV, domainid),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDMERecordExists("dme_record.test", &record),

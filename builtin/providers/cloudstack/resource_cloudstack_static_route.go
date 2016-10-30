@@ -16,13 +16,13 @@ func resourceCloudStackStaticRoute() *schema.Resource {
 		Delete: resourceCloudStackStaticRouteDelete,
 
 		Schema: map[string]*schema.Schema{
-			"cidr": &schema.Schema{
+			"cidr": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"gateway_id": &schema.Schema{
+			"gateway_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

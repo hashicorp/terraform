@@ -18,12 +18,12 @@ func resourceAwsIamUserPolicyAttachment() *schema.Resource {
 		Delete: resourceAwsIamUserPolicyAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"user": &schema.Schema{
+			"user": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"policy_arn": &schema.Schema{
+			"policy_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

@@ -26,19 +26,19 @@ func resourceVSphereFolder() *schema.Resource {
 		Delete: resourceVSphereFolderDelete,
 
 		Schema: map[string]*schema.Schema{
-			"datacenter": &schema.Schema{
+			"datacenter": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"path": &schema.Schema{
+			"path": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"existing_path": &schema.Schema{
+			"existing_path": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

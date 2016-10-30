@@ -141,7 +141,7 @@ func TestAccAWSLambdaPermission_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLambdaPermissionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLambdaPermissionConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLambdaPermissionExists("aws_lambda_permission.allow_cloudwatch", &statement),
@@ -165,7 +165,7 @@ func TestAccAWSLambdaPermission_withRawFunctionName(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLambdaPermissionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLambdaPermissionConfig_withRawFunctionName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLambdaPermissionExists("aws_lambda_permission.with_raw_func_name", &statement),
@@ -188,7 +188,7 @@ func TestAccAWSLambdaPermission_withQualifier(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLambdaPermissionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLambdaPermissionConfig_withQualifier,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLambdaPermissionExists("aws_lambda_permission.with_qualifier", &statement),
@@ -217,7 +217,7 @@ func TestAccAWSLambdaPermission_multiplePerms(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLambdaPermissionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLambdaPermissionConfig_multiplePerms,
 				Check: resource.ComposeTestCheckFunc(
 					// 1st
@@ -236,7 +236,7 @@ func TestAccAWSLambdaPermission_multiplePerms(t *testing.T) {
 						regexp.MustCompile(":function:lambda_function_name_perm_multiperms$")),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSLambdaPermissionConfig_multiplePermsModified,
 				Check: resource.ComposeTestCheckFunc(
 					// 1st
@@ -277,7 +277,7 @@ func TestAccAWSLambdaPermission_withS3(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLambdaPermissionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccAWSLambdaPermissionConfig_withS3_tpl, rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLambdaPermissionExists("aws_lambda_permission.with_s3", &statement),
@@ -303,7 +303,7 @@ func TestAccAWSLambdaPermission_withSNS(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLambdaPermissionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLambdaPermissionConfig_withSNS,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLambdaPermissionExists("aws_lambda_permission.with_sns", &statement),

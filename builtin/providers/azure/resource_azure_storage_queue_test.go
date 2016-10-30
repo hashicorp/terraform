@@ -16,7 +16,7 @@ func TestAccAzureStorageQueue(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureStorageQueueDeleted,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureStorageQueueConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureStorageQueueExists(name),

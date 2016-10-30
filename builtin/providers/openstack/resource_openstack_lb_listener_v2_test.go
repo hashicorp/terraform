@@ -17,13 +17,13 @@ func TestAccLBV2Listener_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLBV2ListenerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: TestAccLBV2ListenerConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBV2ListenerExists(t, "openstack_lb_listener_v2.listener_1", &listener),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: TestAccLBV2ListenerConfig_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_lb_listener_v2.listener_1", "name", "tf_test_listener_updated"),

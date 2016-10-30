@@ -43,7 +43,7 @@ func TestAccDigitalOceanRecord_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckDigitalOceanRecordConfig_basic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanRecordExists("digitalocean_record.foobar", &record),
@@ -71,7 +71,7 @@ func TestAccDigitalOceanRecord_Updated(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckDigitalOceanRecordConfig_basic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanRecordExists("digitalocean_record.foobar", &record),
@@ -86,7 +86,7 @@ func TestAccDigitalOceanRecord_Updated(t *testing.T) {
 						"digitalocean_record.foobar", "type", "A"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testAccCheckDigitalOceanRecordConfig_new_value, domain),
 				Check: resource.ComposeTestCheckFunc(
@@ -115,7 +115,7 @@ func TestAccDigitalOceanRecord_HostnameValue(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testAccCheckDigitalOceanRecordConfig_cname, domain),
 				Check: resource.ComposeTestCheckFunc(
@@ -144,7 +144,7 @@ func TestAccDigitalOceanRecord_ExternalHostnameValue(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testAccCheckDigitalOceanRecordConfig_external_cname, domain),
 				Check: resource.ComposeTestCheckFunc(

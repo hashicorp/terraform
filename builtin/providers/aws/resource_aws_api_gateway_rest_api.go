@@ -20,17 +20,17 @@ func resourceAwsApiGatewayRestApi() *schema.Resource {
 		Delete: resourceAwsApiGatewayRestApiDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"root_resource_id": &schema.Schema{
+			"root_resource_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

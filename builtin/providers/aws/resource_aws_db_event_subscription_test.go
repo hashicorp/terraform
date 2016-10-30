@@ -19,7 +19,7 @@ func TestAccAWSDBEventSubscription_basicUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBEventSubscriptionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBEventSubscriptionConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBEventSubscriptionExists("aws_db_event_subscription.bar", &v),
@@ -33,7 +33,7 @@ func TestAccAWSDBEventSubscription_basicUpdate(t *testing.T) {
 						"aws_db_event_subscription.bar", "tags.Name", "name"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSDBEventSubscriptionConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBEventSubscriptionExists("aws_db_event_subscription.bar", &v),
@@ -57,7 +57,7 @@ func TestAccAWSDBEventSubscription_withSourceIds(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBEventSubscriptionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBEventSubscriptionConfigWithSourceIds,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBEventSubscriptionExists("aws_db_event_subscription.bar", &v),
@@ -71,7 +71,7 @@ func TestAccAWSDBEventSubscription_withSourceIds(t *testing.T) {
 						"aws_db_event_subscription.bar", "source_ids.#", "1"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSDBEventSubscriptionConfigUpdateSourceIds,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBEventSubscriptionExists("aws_db_event_subscription.bar", &v),

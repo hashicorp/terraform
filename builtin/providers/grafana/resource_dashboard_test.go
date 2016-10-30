@@ -19,7 +19,7 @@ func TestAccDashboard_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccDashboardCheckDestroy(&dashboard),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDashboardConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("grafana_dashboard.test", &dashboard),

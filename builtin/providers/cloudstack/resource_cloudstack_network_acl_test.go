@@ -16,7 +16,7 @@ func TestAccCloudStackNetworkACL_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackNetworkACLDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNetworkACL_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNetworkACLExists(

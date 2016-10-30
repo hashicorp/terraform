@@ -15,11 +15,11 @@ func resourceScalewaySecurityGroupRule() *schema.Resource {
 		Update: resourceScalewaySecurityGroupRuleUpdate,
 		Delete: resourceScalewaySecurityGroupRuleDelete,
 		Schema: map[string]*schema.Schema{
-			"security_group": &schema.Schema{
+			"security_group": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"action": &schema.Schema{
+			"action": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -30,7 +30,7 @@ func resourceScalewaySecurityGroupRule() *schema.Resource {
 					return
 				},
 			},
-			"direction": &schema.Schema{
+			"direction": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -41,11 +41,11 @@ func resourceScalewaySecurityGroupRule() *schema.Resource {
 					return
 				},
 			},
-			"ip_range": &schema.Schema{
+			"ip_range": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
@@ -56,7 +56,7 @@ func resourceScalewaySecurityGroupRule() *schema.Resource {
 					return
 				},
 			},
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},

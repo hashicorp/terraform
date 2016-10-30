@@ -16,12 +16,12 @@ func dataSourceDockerRegistryImage() *schema.Resource {
 		Read: dataSourceDockerRegistryImageRead,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"sha256_digest": &schema.Schema{
+			"sha256_digest": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

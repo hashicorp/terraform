@@ -19,7 +19,7 @@ func resourceAwsSesReceiptRuleSet() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"rule_set_name": &schema.Schema{
+			"rule_set_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

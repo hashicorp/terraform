@@ -18,7 +18,7 @@ func TestAccComputeV2Keypair_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeV2KeypairDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeV2Keypair_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2KeypairExists(t, "openstack_compute_keypair_v2.foo", &keypair),

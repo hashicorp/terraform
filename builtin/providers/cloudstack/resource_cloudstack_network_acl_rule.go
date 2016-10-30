@@ -21,67 +21,67 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 		Delete: resourceCloudStackNetworkACLRuleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"acl_id": &schema.Schema{
+			"acl_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"managed": &schema.Schema{
+			"managed": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"rule": &schema.Schema{
+			"rule": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"action": &schema.Schema{
+						"action": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "allow",
 						},
 
-						"cidr_list": &schema.Schema{
+						"cidr_list": {
 							Type:     schema.TypeSet,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
 
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"icmp_type": &schema.Schema{
+						"icmp_type": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 						},
 
-						"icmp_code": &schema.Schema{
+						"icmp_code": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ports": &schema.Schema{
+						"ports": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
 
-						"traffic_type": &schema.Schema{
+						"traffic_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "ingress",
 						},
 
-						"uuids": &schema.Schema{
+						"uuids": {
 							Type:     schema.TypeMap,
 							Computed: true,
 						},
@@ -89,13 +89,13 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 				},
 			},
 
-			"project": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"parallelism": &schema.Schema{
+			"parallelism": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  2,

@@ -16,7 +16,7 @@ func TestAccCloudStackNetworkACLRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackNetworkACLRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNetworkACLRule_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNetworkACLRulesExist("cloudstack_network_acl.foo"),
@@ -60,7 +60,7 @@ func TestAccCloudStackNetworkACLRule_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackNetworkACLRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNetworkACLRule_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNetworkACLRulesExist("cloudstack_network_acl.foo"),
@@ -95,7 +95,7 @@ func TestAccCloudStackNetworkACLRule_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNetworkACLRule_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNetworkACLRulesExist("cloudstack_network_acl.foo"),

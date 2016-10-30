@@ -25,14 +25,14 @@ func resourceKey() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Description: "name of this key (will be generated from the key comment, if not set and comment present)",
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
 				ForceNew:    true,
 			},
-			"key": &schema.Schema{
+			"key": {
 				Description: "content of public key from disk",
 				Type:        schema.TypeString,
 				Required:    true,

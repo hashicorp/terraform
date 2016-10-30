@@ -17,7 +17,7 @@ func TestAccAWSEBSVolume_basic(t *testing.T) {
 		IDRefreshName: "aws_ebs_volume.test",
 		Providers:     testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsEbsVolumeConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVolumeExists("aws_ebs_volume.test", &v),
@@ -33,7 +33,7 @@ func TestAccAWSEBSVolume_NoIops(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsEbsVolumeConfigWithNoIops,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVolumeExists("aws_ebs_volume.iops_test", &v),
@@ -50,7 +50,7 @@ func TestAccAWSEBSVolume_withTags(t *testing.T) {
 		IDRefreshName: "aws_ebs_volume.tags_test",
 		Providers:     testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsEbsVolumeConfigWithTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVolumeExists("aws_ebs_volume.tags_test", &v),

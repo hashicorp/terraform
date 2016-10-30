@@ -13,7 +13,7 @@ func TestAccDataSourceArtifact_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataArtifact_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),
@@ -28,7 +28,7 @@ func TestAccDataSourceArtifact_metadata(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataArtifact_metadata,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),
@@ -45,7 +45,7 @@ func TestAccDataSourceArtifact_metadataSet(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataArtifact_metadataSet,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),
@@ -62,7 +62,7 @@ func TestAccDataSourceArtifact_buildLatest(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataArtifact_buildLatest,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),
@@ -77,7 +77,7 @@ func TestAccDataSourceArtifact_versionAny(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataArtifact_versionAny,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataArtifactState("name", "hashicorp/tf-provider-test"),

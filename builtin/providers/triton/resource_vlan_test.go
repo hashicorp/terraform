@@ -17,7 +17,7 @@ func TestAccTritonVLAN_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckTritonVLANDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonVLANExists("triton_vlan.test"),
@@ -36,7 +36,7 @@ func TestAccTritonVLAN_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckTritonVLANDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonVLANExists("triton_vlan.test"),
@@ -45,7 +45,7 @@ func TestAccTritonVLAN_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonVLANExists("triton_vlan.test"),

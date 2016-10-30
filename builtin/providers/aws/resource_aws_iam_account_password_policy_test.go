@@ -18,14 +18,14 @@ func TestAccAWSIAMAccountPasswordPolicy_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSIAMAccountPasswordPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSIAMAccountPasswordPolicy,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSIAMAccountPasswordPolicyExists("aws_iam_account_password_policy.default", &policy),
 					resource.TestCheckResourceAttr("aws_iam_account_password_policy.default", "minimum_password_length", "8"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSIAMAccountPasswordPolicy_modified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSIAMAccountPasswordPolicyExists("aws_iam_account_password_policy.default", &policy),

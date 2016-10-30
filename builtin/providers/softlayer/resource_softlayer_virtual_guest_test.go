@@ -19,7 +19,7 @@ func TestAccSoftLayerVirtualGuest_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckSoftLayerVirtualGuestDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config:  testAccCheckSoftLayerVirtualGuestConfig_basic,
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
@@ -61,7 +61,7 @@ func TestAccSoftLayerVirtualGuest_Basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config:  testAccCheckSoftLayerVirtualGuestConfig_userDataUpdate,
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
@@ -71,7 +71,7 @@ func TestAccSoftLayerVirtualGuest_Basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckSoftLayerVirtualGuestConfig_upgradeMemoryNetworkSpeed,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckSoftLayerVirtualGuestExists("softlayer_virtual_guest.terraform-acceptance-test-1", &guest),
@@ -84,7 +84,7 @@ func TestAccSoftLayerVirtualGuest_Basic(t *testing.T) {
 
 			// TODO: currently CPU upgrade test is disabled, due to unexpected behavior of field "dedicated_acct_host_only".
 			// TODO: For some reason it is reset by SoftLayer to "false". Daniel Bright reported corresponding issue to SoftLayer team.
-			//			resource.TestStep{
+			//			{
 			//				Config: testAccCheckSoftLayerVirtualGuestConfig_vmUpgradeCPUs,
 			//				Check: resource.ComposeTestCheckFunc(
 			//					testAccCheckSoftLayerVirtualGuestExists("softlayer_virtual_guest.terraform-acceptance-test-1", &guest),
@@ -105,7 +105,7 @@ func TestAccSoftLayerVirtualGuest_BlockDeviceTemplateGroup(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckSoftLayerVirtualGuestDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckSoftLayerVirtualGuestConfig_blockDeviceTemplateGroup,
 				Check: resource.ComposeTestCheckFunc(
 					// block_device_template_group_gid value is hardcoded. If it's valid then virtual guest will be created well
@@ -124,7 +124,7 @@ func TestAccSoftLayerVirtualGuest_postInstallScriptUri(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckSoftLayerVirtualGuestDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckSoftLayerVirtualGuestConfig_postInstallScriptUri,
 				Check: resource.ComposeTestCheckFunc(
 					// block_device_template_group_gid value is hardcoded. If it's valid then virtual guest will be created well

@@ -18,7 +18,7 @@ func TestAccProject_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccProjectCheckDestroy(&project),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccProjectConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccProjectCheckExists("rundeck_project.main", &project),

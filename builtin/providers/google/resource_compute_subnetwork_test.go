@@ -19,7 +19,7 @@ func TestAccComputeSubnetwork_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeSubnetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeSubnetwork_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeSubnetworkExists(

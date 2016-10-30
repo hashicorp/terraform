@@ -15,25 +15,25 @@ func resourceConsulKeyPrefix() *schema.Resource {
 		Delete: resourceConsulKeyPrefixDelete,
 
 		Schema: map[string]*schema.Schema{
-			"datacenter": &schema.Schema{
+			"datacenter": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"token": &schema.Schema{
+			"token": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"path_prefix": &schema.Schema{
+			"path_prefix": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"subkeys": &schema.Schema{
+			"subkeys": {
 				Type:     schema.TypeMap,
 				Required: true,
 				Elem: &schema.Schema{

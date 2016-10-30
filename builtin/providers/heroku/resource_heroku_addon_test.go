@@ -19,7 +19,7 @@ func TestAccHerokuAddon_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuAddonDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAddonConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
@@ -46,7 +46,7 @@ func TestAccHerokuAddon_noPlan(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuAddonDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAddonConfig_no_plan(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
@@ -57,7 +57,7 @@ func TestAccHerokuAddon_noPlan(t *testing.T) {
 						"heroku_addon.foobar", "plan", "memcachier"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAddonConfig_no_plan(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),

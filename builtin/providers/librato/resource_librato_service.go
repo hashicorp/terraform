@@ -20,20 +20,20 @@ func resourceLibratoService() *schema.Resource {
 		Delete: resourceLibratoServiceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"title": &schema.Schema{
+			"title": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"settings": &schema.Schema{
+			"settings": {
 				Type:      schema.TypeString,
 				Required:  true,
 				StateFunc: normalizeJson,

@@ -13,7 +13,7 @@ func TestAccDataSourceAwsRegion(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsRegionConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsRegionCheck("data.aws_region.by_name_current", "us-west-2", "true"),

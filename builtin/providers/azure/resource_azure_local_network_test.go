@@ -17,7 +17,7 @@ func TestAccAzureLocalNetworkConnectionBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccAzureLocalNetworkConnectionDestroyed,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureLocalNetworkConnectionBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureLocalNetworkConnectionExists(name),
@@ -39,7 +39,7 @@ func TestAccAzureLocalNetworkConnectionUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccAzureLocalNetworkConnectionDestroyed,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureLocalNetworkConnectionBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureLocalNetworkConnectionExists(name),
@@ -50,7 +50,7 @@ func TestAccAzureLocalNetworkConnectionUpdate(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAzureLocalNetworkConnectionUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureLocalNetworkConnectionExists(name),

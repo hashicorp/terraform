@@ -19,7 +19,7 @@ func TestAccAWSSESReceiptRuleSet_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckSESReceiptRuleSetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSESReceiptRuleSetConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsSESReceiptRuleSetExists("aws_ses_receipt_rule_set.test"),

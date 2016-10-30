@@ -19,7 +19,7 @@ func TestAccEnvironment_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccEnvironmentCheckDestroy(&env),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccEnvironmentConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccEnvironmentCheckExists("chef_environment.test", &env),

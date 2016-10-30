@@ -14,19 +14,19 @@ func dataSourceAwsSubnet() *schema.Resource {
 		Read: dataSourceAwsSubnetRead,
 
 		Schema: map[string]*schema.Schema{
-			"availability_zone": &schema.Schema{
+			"availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"cidr_block": &schema.Schema{
+			"cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"default_for_az": &schema.Schema{
+			"default_for_az": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
@@ -34,13 +34,13 @@ func dataSourceAwsSubnet() *schema.Resource {
 
 			"filter": ec2CustomFiltersSchema(),
 
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"state": &schema.Schema{
+			"state": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -48,7 +48,7 @@ func dataSourceAwsSubnet() *schema.Resource {
 
 			"tags": tagsSchemaComputed(),
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

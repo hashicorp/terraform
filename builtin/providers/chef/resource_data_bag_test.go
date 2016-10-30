@@ -17,7 +17,7 @@ func TestAccDataBag_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccDataBagCheckDestroy(dataBagName),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataBagConfig_basic,
 				Check:  testAccDataBagCheckExists("chef_data_bag.test", &dataBagName),
 			},

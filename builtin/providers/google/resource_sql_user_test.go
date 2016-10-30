@@ -18,7 +18,7 @@ func TestAccGoogleSqlUser_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleSqlUserDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleSqlUser_basic(instance, user),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlUserExists("google_sql_user.user"),
@@ -37,14 +37,14 @@ func TestAccGoogleSqlUser_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleSqlUserDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleSqlUser_basic(instance, user),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlUserExists("google_sql_user.user"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testGoogleSqlUser_basic2(instance, user),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlUserExists("google_sql_user.user"),

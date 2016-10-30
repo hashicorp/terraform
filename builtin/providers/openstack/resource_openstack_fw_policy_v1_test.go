@@ -17,7 +17,7 @@ func TestAccFWPolicyV1_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckFWPolicyV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testFirewallPolicyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWPolicyV1Exists(
@@ -35,7 +35,7 @@ func TestAccFWPolicyV1_addRules(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckFWPolicyV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testFirewallPolicyConfigAddRules,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWPolicyV1Exists(
@@ -53,7 +53,7 @@ func TestAccFWPolicyV1_deleteRules(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckFWPolicyV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testFirewallPolicyUpdateDeleteRule,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWPolicyV1Exists(

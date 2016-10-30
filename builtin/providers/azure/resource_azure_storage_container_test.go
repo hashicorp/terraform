@@ -17,7 +17,7 @@ func TestAccAzureStorageContainer(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureStorageContainerDestroyed,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureStorageContainerConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureStorageContainerExists(name),

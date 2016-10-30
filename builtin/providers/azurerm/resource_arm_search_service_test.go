@@ -19,7 +19,7 @@ func TestAccAzureRMSearchService_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMSearchServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
@@ -41,7 +41,7 @@ func TestAccAzureRMSearchService_updateReplicaCountAndTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMSearchServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),
@@ -52,7 +52,7 @@ func TestAccAzureRMSearchService_updateReplicaCountAndTags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSearchServiceExists("azurerm_search_service.test"),

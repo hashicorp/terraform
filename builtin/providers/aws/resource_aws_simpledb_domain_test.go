@@ -17,7 +17,7 @@ func TestAccAWSSimpleDBDomain_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSimpleDBDomainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSimpleDBDomainConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSimpleDBDomainExists("aws_simpledb_domain.test_domain"),

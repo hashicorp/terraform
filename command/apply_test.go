@@ -270,7 +270,7 @@ func TestApply_error(t *testing.T) {
 		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
+				"ami": {
 					New: "bar",
 				},
 			},
@@ -650,10 +650,10 @@ func TestApply_planVars(t *testing.T) {
 func TestApply_refresh(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -749,7 +749,7 @@ func TestApply_shutdown(t *testing.T) {
 		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"ami": &terraform.ResourceAttrDiff{
+				"ami": {
 					New: "bar",
 				},
 			},
@@ -819,10 +819,10 @@ func TestApply_shutdown(t *testing.T) {
 func TestApply_state(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -838,7 +838,7 @@ func TestApply_state(t *testing.T) {
 	p := testProvider()
 	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"ami": &terraform.ResourceAttrDiff{
+			"ami": {
 				New: "bar",
 			},
 		},
@@ -1216,10 +1216,10 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 func TestApply_backup(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",
@@ -1237,7 +1237,7 @@ func TestApply_backup(t *testing.T) {
 	p := testProvider()
 	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"ami": &terraform.ResourceAttrDiff{
+			"ami": {
 				New: "bar",
 			},
 		},
@@ -1306,7 +1306,7 @@ func TestApply_disableBackup(t *testing.T) {
 	p := testProvider()
 	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"ami": &terraform.ResourceAttrDiff{
+			"ami": {
 				New: "bar",
 			},
 		},

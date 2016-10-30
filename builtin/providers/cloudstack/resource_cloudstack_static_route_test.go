@@ -17,7 +17,7 @@ func TestAccCloudStackStaticRoute_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackStaticRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackStaticRoute_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackStaticRouteExists(

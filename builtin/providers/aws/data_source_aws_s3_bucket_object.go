@@ -18,84 +18,84 @@ func dataSourceAwsS3BucketObject() *schema.Resource {
 		Read: dataSourceAwsS3BucketObjectRead,
 
 		Schema: map[string]*schema.Schema{
-			"body": &schema.Schema{
+			"body": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"cache_control": &schema.Schema{
+			"cache_control": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"content_disposition": &schema.Schema{
+			"content_disposition": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"content_encoding": &schema.Schema{
+			"content_encoding": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"content_language": &schema.Schema{
+			"content_language": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"content_length": &schema.Schema{
+			"content_length": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"content_type": &schema.Schema{
+			"content_type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"etag": &schema.Schema{
+			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"expiration": &schema.Schema{
+			"expiration": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"expires": &schema.Schema{
+			"expires": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"key": &schema.Schema{
+			"key": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"last_modified": &schema.Schema{
+			"last_modified": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"metadata": &schema.Schema{
+			"metadata": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"range": &schema.Schema{
+			"range": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"server_side_encryption": &schema.Schema{
+			"server_side_encryption": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"sse_kms_key_id": &schema.Schema{
+			"sse_kms_key_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"storage_class": &schema.Schema{
+			"storage_class": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"version_id": &schema.Schema{
+			"version_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"website_redirect_location": &schema.Schema{
+			"website_redirect_location": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

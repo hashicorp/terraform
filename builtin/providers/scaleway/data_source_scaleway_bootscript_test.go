@@ -14,7 +14,7 @@ func TestAccScalewayDataSourceBootscript_Basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayBootscriptConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBootscriptID("data.scaleway_bootscript.debug"),
@@ -32,7 +32,7 @@ func TestAccScalewayDataSourceBootscript_Filtered(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayBootscriptFilterConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBootscriptID("data.scaleway_bootscript.debug"),

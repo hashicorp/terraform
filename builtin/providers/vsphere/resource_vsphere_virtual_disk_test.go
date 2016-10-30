@@ -37,7 +37,7 @@ func TestAccVSphereVirtualDisk_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVSphereVirtualDiskDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testAccCheckVSphereVirtuaDiskConfig_basic,
 					initTypeOpt,

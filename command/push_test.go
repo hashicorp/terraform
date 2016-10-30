@@ -225,7 +225,7 @@ func TestPush_inputPartial(t *testing.T) {
 	client := &mockPushClient{
 		File: archivePath,
 		GetResult: map[string]atlas.TFVar{
-			"foo": atlas.TFVar{Key: "foo", Value: "bar"},
+			"foo": {Key: "foo", Value: "bar"},
 		},
 	}
 	ui := new(cli.MockUi)
@@ -293,7 +293,7 @@ func TestPush_localOverride(t *testing.T) {
 	client := &mockPushClient{File: archivePath}
 	// Provided vars should override existing ones
 	client.GetResult = map[string]atlas.TFVar{
-		"foo": atlas.TFVar{
+		"foo": {
 			Key:   "foo",
 			Value: "old",
 		},
@@ -372,7 +372,7 @@ func TestPush_remoteOverride(t *testing.T) {
 	client := &mockPushClient{File: archivePath}
 	// Provided vars should override existing ones
 	client.GetResult = map[string]atlas.TFVar{
-		"remote": atlas.TFVar{
+		"remote": {
 			Key:   "remote",
 			Value: "old",
 		},
@@ -463,7 +463,7 @@ func TestPush_preferAtlas(t *testing.T) {
 	client := &mockPushClient{File: archivePath}
 	// Provided vars should override existing ones
 	client.GetResult = map[string]atlas.TFVar{
-		"foo": atlas.TFVar{
+		"foo": {
 			Key:   "foo",
 			Value: "old",
 		},
@@ -664,10 +664,10 @@ func TestPush_noState(t *testing.T) {
 func TestPush_noRemoteState(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID: "bar",

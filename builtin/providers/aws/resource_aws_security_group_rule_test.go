@@ -20,7 +20,7 @@ func TestIpPermissionIDHash(t *testing.T) {
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
 		IpRanges: []*ec2.IpRange{
-			&ec2.IpRange{
+			{
 				CidrIp: aws.String("10.0.0.0/8"),
 			},
 		},
@@ -31,7 +31,7 @@ func TestIpPermissionIDHash(t *testing.T) {
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
 		IpRanges: []*ec2.IpRange{
-			&ec2.IpRange{
+			{
 				CidrIp: aws.String("10.0.0.0/8"),
 			},
 		},
@@ -40,7 +40,7 @@ func TestIpPermissionIDHash(t *testing.T) {
 	egress_all := &ec2.IpPermission{
 		IpProtocol: aws.String("-1"),
 		IpRanges: []*ec2.IpRange{
-			&ec2.IpRange{
+			{
 				CidrIp: aws.String("10.0.0.0/8"),
 			},
 		},
@@ -51,15 +51,15 @@ func TestIpPermissionIDHash(t *testing.T) {
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
 		UserIdGroupPairs: []*ec2.UserIdGroupPair{
-			&ec2.UserIdGroupPair{
+			{
 				UserId:  aws.String("987654321"),
 				GroupId: aws.String("sg-12345678"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:  aws.String("123456789"),
 				GroupId: aws.String("sg-987654321"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:  aws.String("123456789"),
 				GroupId: aws.String("sg-12345678"),
 			},
@@ -71,15 +71,15 @@ func TestIpPermissionIDHash(t *testing.T) {
 		FromPort:   aws.Int64(int64(80)),
 		ToPort:     aws.Int64(int64(8000)),
 		UserIdGroupPairs: []*ec2.UserIdGroupPair{
-			&ec2.UserIdGroupPair{
+			{
 				UserId:    aws.String("987654321"),
 				GroupName: aws.String("my-security-group"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:    aws.String("123456789"),
 				GroupName: aws.String("my-security-group"),
 			},
-			&ec2.UserIdGroupPair{
+			{
 				UserId:    aws.String("123456789"),
 				GroupName: aws.String("my-other-security-group"),
 			},
@@ -130,7 +130,7 @@ func TestAccAWSSecurityGroupRule_Ingress_VPC(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRuleIngressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
@@ -167,7 +167,7 @@ func TestAccAWSSecurityGroupRule_Ingress_Protocol(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRuleIngress_protocolConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
@@ -204,7 +204,7 @@ func TestAccAWSSecurityGroupRule_Ingress_Classic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRuleIngressClassicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
@@ -247,7 +247,7 @@ func TestAccAWSSecurityGroupRule_MultiIngress(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRuleConfigMultiIngress,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
@@ -266,7 +266,7 @@ func TestAccAWSSecurityGroupRule_Egress(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRuleEgressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
@@ -285,7 +285,7 @@ func TestAccAWSSecurityGroupRule_SelfReference(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRuleConfigSelfReference,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
@@ -304,9 +304,9 @@ func TestAccAWSSecurityGroupRule_PartialMatching_basic(t *testing.T) {
 		ToPort:     aws.Int64(80),
 		IpProtocol: aws.String("tcp"),
 		IpRanges: []*ec2.IpRange{
-			&ec2.IpRange{CidrIp: aws.String("10.0.2.0/24")},
-			&ec2.IpRange{CidrIp: aws.String("10.0.3.0/24")},
-			&ec2.IpRange{CidrIp: aws.String("10.0.4.0/24")},
+			{CidrIp: aws.String("10.0.2.0/24")},
+			{CidrIp: aws.String("10.0.3.0/24")},
+			{CidrIp: aws.String("10.0.4.0/24")},
 		},
 	}
 
@@ -315,7 +315,7 @@ func TestAccAWSSecurityGroupRule_PartialMatching_basic(t *testing.T) {
 		ToPort:     aws.Int64(80),
 		IpProtocol: aws.String("tcp"),
 		IpRanges: []*ec2.IpRange{
-			&ec2.IpRange{CidrIp: aws.String("10.0.5.0/24")},
+			{CidrIp: aws.String("10.0.5.0/24")},
 		},
 	}
 
@@ -324,7 +324,7 @@ func TestAccAWSSecurityGroupRule_PartialMatching_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRulePartialMatching,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
@@ -355,7 +355,7 @@ func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
 			ToPort:     aws.Int64(80),
 			IpProtocol: aws.String("tcp"),
 			UserIdGroupPairs: []*ec2.UserIdGroupPair{
-				&ec2.UserIdGroupPair{GroupId: nat.GroupId},
+				{GroupId: nat.GroupId},
 			},
 		}
 
@@ -367,7 +367,7 @@ func TestAccAWSSecurityGroupRule_PartialMatching_Source(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRulePartialMatching_Source,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
@@ -388,7 +388,7 @@ func TestAccAWSSecurityGroupRule_Issue5310(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRuleIssue5310,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.issue_5310", &group),
@@ -406,7 +406,7 @@ func TestAccAWSSecurityGroupRule_Race(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRuleRace,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.race", &group),
@@ -424,7 +424,7 @@ func TestAccAWSSecurityGroupRule_SelfSource(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRuleSelfInSource,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
@@ -466,7 +466,7 @@ func TestAccAWSSecurityGroupRule_PrefixListEgress(t *testing.T) {
 		p = ec2.IpPermission{
 			IpProtocol: aws.String("-1"),
 			PrefixListIds: []*ec2.PrefixListId{
-				&ec2.PrefixListId{PrefixListId: prefixListsOutput.PrefixLists[0].PrefixListId},
+				{PrefixListId: prefixListsOutput.PrefixLists[0].PrefixListId},
 			},
 		}
 
@@ -478,7 +478,7 @@ func TestAccAWSSecurityGroupRule_PrefixListEgress(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupRulePrefixListEgressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.egress", &group),
@@ -572,7 +572,7 @@ func testAccCheckAWSSecurityGroupRuleAttributes(n string, group *ec2.SecurityGro
 				FromPort:   aws.Int64(80),
 				ToPort:     aws.Int64(8000),
 				IpProtocol: aws.String("tcp"),
-				IpRanges:   []*ec2.IpRange{&ec2.IpRange{CidrIp: aws.String("10.0.0.0/8")}},
+				IpRanges:   []*ec2.IpRange{{CidrIp: aws.String("10.0.0.0/8")}},
 			}
 		}
 

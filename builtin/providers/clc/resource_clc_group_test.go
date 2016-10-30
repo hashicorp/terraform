@@ -22,7 +22,7 @@ func TestAccGroupBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckGroupConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGroupExists("clc_group.acc_test_group", &resp),
@@ -33,7 +33,7 @@ func TestAccGroupBasic(t *testing.T) {
 						"clc_group.acc_test_group", "location_id", testAccDC),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckGroupConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGroupExists("clc_group.acc_test_group", &resp),
@@ -44,7 +44,7 @@ func TestAccGroupBasic(t *testing.T) {
 						"clc_group.acc_test_group", "location_id", testAccDC),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckGroupConfigReparent,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGroupExists("clc_group.acc_test_group", &resp),

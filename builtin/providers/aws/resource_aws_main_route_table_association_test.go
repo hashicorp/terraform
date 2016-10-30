@@ -15,7 +15,7 @@ func TestAccAWSMainRouteTableAssociation_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckMainRouteTableAssociationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccMainRouteTableAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMainRouteTableAssociation(
@@ -25,7 +25,7 @@ func TestAccAWSMainRouteTableAssociation_basic(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccMainRouteTableAssociationConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMainRouteTableAssociation(

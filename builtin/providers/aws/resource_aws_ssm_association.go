@@ -27,7 +27,7 @@ func resourceAwsSsmAssociation() *schema.Resource {
 				ForceNew: true,
 				Required: true,
 			},
-			"parameters": &schema.Schema{
+			"parameters": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,

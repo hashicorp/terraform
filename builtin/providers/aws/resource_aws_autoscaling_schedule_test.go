@@ -18,7 +18,7 @@ func TestAccAWSAutoscalingSchedule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoscalingScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAutoscalingScheduleConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalingScheduleExists("aws_autoscaling_schedule.foobar", &schedule),
@@ -36,7 +36,7 @@ func TestAccAWSAutoscalingSchedule_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoscalingScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAutoscalingScheduleConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalingScheduleExists("aws_autoscaling_schedule.foobar", &schedule),
@@ -70,7 +70,7 @@ func TestAccAWSAutoscalingSchedule_recurrence(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoscalingScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAutoscalingScheduleConfig_recurrence,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalingScheduleExists("aws_autoscaling_schedule.foobar", &schedule),
@@ -89,7 +89,7 @@ func TestAccAWSAutoscalingSchedule_zeroValues(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAutoscalingScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAutoscalingScheduleConfig_zeroValues,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalingScheduleExists("aws_autoscaling_schedule.foobar", &schedule),

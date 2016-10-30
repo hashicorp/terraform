@@ -20,13 +20,13 @@ func TestAccFWFirewallV1_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckFWFirewallV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testFirewallConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWFirewallV1Exists("openstack_fw_firewall_v1.accept_test", "", "", policyID),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testFirewallConfigUpdated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWFirewallV1Exists("openstack_fw_firewall_v1.accept_test", "accept_test", "terraform acceptance test", policyID),

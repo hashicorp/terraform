@@ -23,11 +23,11 @@ func TestAccAWSSecurityGroup_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupConfig,
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:     "aws_security_group.web",
 				ImportState:      true,
 				ImportStateCheck: checkFn,
@@ -42,11 +42,11 @@ func TestAccAWSSecurityGroup_importSelf(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSecurityGroupConfig_importSelf,
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      "aws_security_group.allow_all",
 				ImportState:       true,
 				ImportStateVerify: true,

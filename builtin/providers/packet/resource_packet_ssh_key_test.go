@@ -18,7 +18,7 @@ func TestAccPacketSSHKey_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPacketSSHKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPacketSSHKeyConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPacketSSHKeyExists("packet_ssh_key.foobar", &key),

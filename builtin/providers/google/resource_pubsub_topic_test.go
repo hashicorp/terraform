@@ -16,7 +16,7 @@ func TestAccPubsubTopicCreate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPubsubTopicDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPubsubTopic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccPubsubTopicExists(

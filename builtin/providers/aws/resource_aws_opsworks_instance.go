@@ -23,196 +23,196 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 		Delete: resourceAwsOpsworksInstanceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"agent_version": &schema.Schema{
+			"agent_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "INHERIT",
 			},
 
-			"ami_id": &schema.Schema{
+			"ami_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"architecture": &schema.Schema{
+			"architecture": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "x86_64",
 				ValidateFunc: validateArchitecture,
 			},
 
-			"auto_scaling_type": &schema.Schema{
+			"auto_scaling_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateAutoScalingType,
 			},
 
-			"availability_zone": &schema.Schema{
+			"availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"created_at": &schema.Schema{
+			"created_at": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"delete_ebs": &schema.Schema{
+			"delete_ebs": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"delete_eip": &schema.Schema{
+			"delete_eip": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"ebs_optimized": &schema.Schema{
+			"ebs_optimized": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
 
-			"ec2_instance_id": &schema.Schema{
+			"ec2_instance_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ecs_cluster_arn": &schema.Schema{
+			"ecs_cluster_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"elastic_ip": &schema.Schema{
+			"elastic_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"hostname": &schema.Schema{
+			"hostname": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"infrastructure_class": &schema.Schema{
+			"infrastructure_class": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"install_updates_on_boot": &schema.Schema{
+			"install_updates_on_boot": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
 
-			"instance_profile_arn": &schema.Schema{
+			"instance_profile_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"instance_type": &schema.Schema{
+			"instance_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"last_service_error_id": &schema.Schema{
+			"last_service_error_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"layer_ids": &schema.Schema{
+			"layer_ids": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"os": &schema.Schema{
+			"os": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"platform": &schema.Schema{
+			"platform": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"private_dns": &schema.Schema{
+			"private_dns": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"private_ip": &schema.Schema{
+			"private_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"public_dns": &schema.Schema{
+			"public_dns": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"public_ip": &schema.Schema{
+			"public_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"registered_by": &schema.Schema{
+			"registered_by": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"reported_agent_version": &schema.Schema{
+			"reported_agent_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"reported_os_family": &schema.Schema{
+			"reported_os_family": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"reported_os_name": &schema.Schema{
+			"reported_os_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"reported_os_version": &schema.Schema{
+			"reported_os_version": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"root_device_type": &schema.Schema{
+			"root_device_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
@@ -220,63 +220,63 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 				ValidateFunc: validateRootDeviceType,
 			},
 
-			"root_device_volume_id": &schema.Schema{
+			"root_device_volume_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"security_group_ids": &schema.Schema{
+			"security_group_ids": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"ssh_host_dsa_key_fingerprint": &schema.Schema{
+			"ssh_host_dsa_key_fingerprint": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ssh_host_rsa_key_fingerprint": &schema.Schema{
+			"ssh_host_rsa_key_fingerprint": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ssh_key_name": &schema.Schema{
+			"ssh_key_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"stack_id": &schema.Schema{
+			"stack_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"state": &schema.Schema{
+			"state": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateState,
 			},
 
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"virtualization_type": &schema.Schema{
+			"virtualization_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
@@ -284,48 +284,48 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 				ValidateFunc: validateVirtualizationType,
 			},
 
-			"ebs_block_device": &schema.Schema{
+			"ebs_block_device": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"delete_on_termination": &schema.Schema{
+						"delete_on_termination": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
 							ForceNew: true,
 						},
 
-						"device_name": &schema.Schema{
+						"device_name": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 
-						"iops": &schema.Schema{
+						"iops": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"snapshot_id": &schema.Schema{
+						"snapshot_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"volume_size": &schema.Schema{
+						"volume_size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"volume_type": &schema.Schema{
+						"volume_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -341,19 +341,19 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 					return hashcode.String(buf.String())
 				},
 			},
-			"ephemeral_block_device": &schema.Schema{
+			"ephemeral_block_device": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"device_name": &schema.Schema{
+						"device_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"virtual_name": &schema.Schema{
+						"virtual_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -368,7 +368,7 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 				},
 			},
 
-			"root_block_device": &schema.Schema{
+			"root_block_device": {
 				// TODO: This is a set because we don't support singleton
 				//       sub-resources today. We'll enforce that the set only ever has
 				//       length zero or one below. When TF gains support for
@@ -382,28 +382,28 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 					// Termination flag on the block device mapping entry for the root
 					// device volume." - bit.ly/ec2bdmap
 					Schema: map[string]*schema.Schema{
-						"delete_on_termination": &schema.Schema{
+						"delete_on_termination": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
 							ForceNew: true,
 						},
 
-						"iops": &schema.Schema{
+						"iops": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"volume_size": &schema.Schema{
+						"volume_size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"volume_type": &schema.Schema{
+						"volume_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,

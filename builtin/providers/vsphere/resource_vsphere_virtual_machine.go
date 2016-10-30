@@ -125,150 +125,150 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 		MigrateState:  resourceVSphereVirtualMachineMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"folder": &schema.Schema{
+			"folder": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"vcpu": &schema.Schema{
+			"vcpu": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
 
-			"memory": &schema.Schema{
+			"memory": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
 
-			"memory_reservation": &schema.Schema{
+			"memory_reservation": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  0,
 				ForceNew: true,
 			},
 
-			"datacenter": &schema.Schema{
+			"datacenter": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"cluster": &schema.Schema{
+			"cluster": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"resource_pool": &schema.Schema{
+			"resource_pool": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"linked_clone": &schema.Schema{
+			"linked_clone": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
-			"gateway": &schema.Schema{
+			"gateway": {
 				Type:       schema.TypeString,
 				Optional:   true,
 				ForceNew:   true,
 				Deprecated: "Please use network_interface.ipv4_gateway",
 			},
 
-			"domain": &schema.Schema{
+			"domain": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "vsphere.local",
 			},
 
-			"time_zone": &schema.Schema{
+			"time_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "Etc/UTC",
 			},
 
-			"dns_suffixes": &schema.Schema{
+			"dns_suffixes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				ForceNew: true,
 			},
 
-			"dns_servers": &schema.Schema{
+			"dns_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				ForceNew: true,
 			},
 
-			"skip_customization": &schema.Schema{
+			"skip_customization": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Default:  false,
 			},
 
-			"enable_disk_uuid": &schema.Schema{
+			"enable_disk_uuid": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Default:  false,
 			},
 
-			"uuid": &schema.Schema{
+			"uuid": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"custom_configuration_parameters": &schema.Schema{
+			"custom_configuration_parameters": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"windows_opt_config": &schema.Schema{
+			"windows_opt_config": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"product_key": &schema.Schema{
+						"product_key": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"admin_password": &schema.Schema{
+						"admin_password": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"domain_user": &schema.Schema{
+						"domain_user": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"domain": &schema.Schema{
+						"domain": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"domain_user_password": &schema.Schema{
+						"domain_user_password": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
@@ -277,75 +277,75 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				},
 			},
 
-			"network_interface": &schema.Schema{
+			"network_interface": {
 				Type:     schema.TypeList,
 				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"label": &schema.Schema{
+						"label": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 
-						"ip_address": &schema.Schema{
+						"ip_address": {
 							Type:       schema.TypeString,
 							Optional:   true,
 							Computed:   true,
 							Deprecated: "Please use ipv4_address",
 						},
 
-						"subnet_mask": &schema.Schema{
+						"subnet_mask": {
 							Type:       schema.TypeString,
 							Optional:   true,
 							Computed:   true,
 							Deprecated: "Please use ipv4_prefix_length",
 						},
 
-						"ipv4_address": &schema.Schema{
+						"ipv4_address": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ipv4_prefix_length": &schema.Schema{
+						"ipv4_prefix_length": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ipv4_gateway": &schema.Schema{
+						"ipv4_gateway": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ipv6_address": &schema.Schema{
+						"ipv6_address": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ipv6_prefix_length": &schema.Schema{
+						"ipv6_prefix_length": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ipv6_gateway": &schema.Schema{
+						"ipv6_gateway": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"adapter_type": &schema.Schema{
+						"adapter_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"mac_address": &schema.Schema{
+						"mac_address": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -354,27 +354,27 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				},
 			},
 
-			"disk": &schema.Schema{
+			"disk": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"uuid": &schema.Schema{
+						"uuid": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 
-						"key": &schema.Schema{
+						"key": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
 
-						"template": &schema.Schema{
+						"template": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "eager_zeroed",
@@ -388,43 +388,43 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							},
 						},
 
-						"datastore": &schema.Schema{
+						"datastore": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"size": &schema.Schema{
+						"size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
 
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"iops": &schema.Schema{
+						"iops": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
 
-						"vmdk": &schema.Schema{
+						"vmdk": {
 							// TODO: Add ValidateFunc to confirm path exists
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"bootable": &schema.Schema{
+						"bootable": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 
-						"keep_on_remove": &schema.Schema{
+						"keep_on_remove": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
 
-						"controller_type": &schema.Schema{
+						"controller_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "scsi",
@@ -447,25 +447,25 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				},
 			},
 
-			"detach_unknown_disks_on_delete": &schema.Schema{
+			"detach_unknown_disks_on_delete": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"cdrom": &schema.Schema{
+			"cdrom": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"datastore": &schema.Schema{
+						"datastore": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 
-						"path": &schema.Schema{
+						"path": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,

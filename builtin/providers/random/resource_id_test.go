@@ -13,7 +13,7 @@ func TestAccResourceID(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccResourceIDConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceIDCheck("random_id.foo"),

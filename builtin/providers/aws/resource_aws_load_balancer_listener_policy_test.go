@@ -19,21 +19,21 @@ func TestAccAWSLoadBalancerListenerPolicy_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLoadBalancerListenerPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLoadBalancerListenerPolicyConfig_basic0,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.magic-cookie-sticky"),
 					testAccCheckAWSLoadBalancerListenerPolicyState("test-aws-policies-lb", int64(80), "magic-cookie-sticky-policy", true),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSLoadBalancerListenerPolicyConfig_basic1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.magic-cookie-sticky"),
 					testAccCheckAWSLoadBalancerListenerPolicyState("test-aws-policies-lb", int64(80), "magic-cookie-sticky-policy", true),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSLoadBalancerListenerPolicyConfig_basic2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerListenerPolicyState("test-aws-policies-lb", int64(80), "magic-cookie-sticky-policy", false),

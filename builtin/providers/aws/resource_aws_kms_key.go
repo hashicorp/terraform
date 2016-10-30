@@ -24,20 +24,20 @@ func resourceAwsKmsKey() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"key_id": &schema.Schema{
+			"key_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"key_usage": &schema.Schema{
+			"key_usage": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -51,24 +51,24 @@ func resourceAwsKmsKey() *schema.Resource {
 					return
 				},
 			},
-			"policy": &schema.Schema{
+			"policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
 				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
-			"is_enabled": &schema.Schema{
+			"is_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"enable_key_rotation": &schema.Schema{
+			"enable_key_rotation": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"deletion_window_in_days": &schema.Schema{
+			"deletion_window_in_days": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {

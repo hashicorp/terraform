@@ -43,60 +43,60 @@ func resourceRepository() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"scm": &schema.Schema{
+			"scm": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "git",
 			},
-			"has_wiki": &schema.Schema{
+			"has_wiki": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"has_issues": &schema.Schema{
+			"has_issues": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"website": &schema.Schema{
+			"website": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"clone_ssh": &schema.Schema{
+			"clone_ssh": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"clone_https": &schema.Schema{
+			"clone_https": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"project_key": &schema.Schema{
+			"project_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"is_private": &schema.Schema{
+			"is_private": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"fork_policy": &schema.Schema{
+			"fork_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "allow_forks",
 			},
-			"language": &schema.Schema{
+			"language": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"owner": &schema.Schema{
+			"owner": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},

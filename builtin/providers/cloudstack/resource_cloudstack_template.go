@@ -18,90 +18,90 @@ func resourceCloudStackTemplate() *schema.Resource {
 		Delete: resourceCloudStackTemplateDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"display_text": &schema.Schema{
+			"display_text": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"format": &schema.Schema{
+			"format": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"hypervisor": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"os_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"url": &schema.Schema{
+			"hypervisor": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"project": &schema.Schema{
+			"os_type": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"url": {
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"zone": &schema.Schema{
+			"zone": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"is_dynamically_scalable": &schema.Schema{
+			"is_dynamically_scalable": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"is_extractable": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
-			"is_featured": &schema.Schema{
+			"is_extractable": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"is_public": &schema.Schema{
+			"is_featured": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"is_public": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"password_enabled": &schema.Schema{
+			"password_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"is_ready": &schema.Schema{
+			"is_ready": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
 
-			"is_ready_timeout": &schema.Schema{
+			"is_ready_timeout": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  300,

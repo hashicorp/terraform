@@ -32,108 +32,108 @@ func resourceAwsLambdaFunction() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"filename": &schema.Schema{
+			"filename": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"s3_bucket", "s3_key", "s3_object_version"},
 			},
-			"s3_bucket": &schema.Schema{
+			"s3_bucket": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"filename"},
 			},
-			"s3_key": &schema.Schema{
+			"s3_key": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"filename"},
 			},
-			"s3_object_version": &schema.Schema{
+			"s3_object_version": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"filename"},
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"function_name": &schema.Schema{
+			"function_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"handler": &schema.Schema{
+			"handler": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"memory_size": &schema.Schema{
+			"memory_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  128,
 			},
-			"role": &schema.Schema{
+			"role": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"runtime": &schema.Schema{
+			"runtime": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "nodejs",
 			},
-			"timeout": &schema.Schema{
+			"timeout": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  3,
 			},
-			"publish": &schema.Schema{
+			"publish": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"version": &schema.Schema{
+			"version": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"vpc_config": &schema.Schema{
+			"vpc_config": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"subnet_ids": &schema.Schema{
+						"subnet_ids": {
 							Type:     schema.TypeSet,
 							Required: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
-						"security_group_ids": &schema.Schema{
+						"security_group_ids": {
 							Type:     schema.TypeSet,
 							Required: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
-						"vpc_id": &schema.Schema{
+						"vpc_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"qualified_arn": &schema.Schema{
+			"qualified_arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_modified": &schema.Schema{
+			"last_modified": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"source_code_hash": &schema.Schema{
+			"source_code_hash": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

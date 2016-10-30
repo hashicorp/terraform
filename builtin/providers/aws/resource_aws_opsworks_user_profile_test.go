@@ -11,7 +11,7 @@ func TestAccAWSOpsworksUserProfile(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksUserProfileCreate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(

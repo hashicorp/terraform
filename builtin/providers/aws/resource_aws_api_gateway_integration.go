@@ -21,68 +21,68 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 		Delete: resourceAwsApiGatewayIntegrationDelete,
 
 		Schema: map[string]*schema.Schema{
-			"rest_api_id": &schema.Schema{
+			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_id": &schema.Schema{
+			"resource_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"http_method": &schema.Schema{
+			"http_method": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateHTTPMethod,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateApiGatewayIntegrationType,
 			},
 
-			"uri": &schema.Schema{
+			"uri": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"credentials": &schema.Schema{
+			"credentials": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"integration_http_method": &schema.Schema{
+			"integration_http_method": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ValidateFunc: validateHTTPMethod,
 			},
 
-			"request_templates": &schema.Schema{
+			"request_templates": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem:     schema.TypeString,
 			},
 
-			"request_parameters": &schema.Schema{
+			"request_parameters": {
 				Type:          schema.TypeMap,
 				Elem:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"request_parameters_in_json"},
 			},
 
-			"request_parameters_in_json": &schema.Schema{
+			"request_parameters_in_json": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"request_parameters"},
 				Deprecated:    "Use field request_parameters instead",
 			},
 
-			"passthrough_behavior": &schema.Schema{
+			"passthrough_behavior": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,

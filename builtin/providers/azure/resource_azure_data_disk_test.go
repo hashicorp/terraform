@@ -21,7 +21,7 @@ func TestAccAzureDataDisk_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureDataDiskDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureDataDisk_basic(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureDataDiskExists(
@@ -46,7 +46,7 @@ func TestAccAzureDataDisk_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureDataDiskDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureDataDisk_advanced(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureDataDiskExists(
@@ -64,7 +64,7 @@ func TestAccAzureDataDisk_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAzureDataDisk_update(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureDataDiskExists(

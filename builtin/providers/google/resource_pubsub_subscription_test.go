@@ -16,7 +16,7 @@ func TestAccPubsubSubscriptionCreate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPubsubSubscriptionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPubsubSubscription,
 				Check: resource.ComposeTestCheckFunc(
 					testAccPubsubSubscriptionExists(

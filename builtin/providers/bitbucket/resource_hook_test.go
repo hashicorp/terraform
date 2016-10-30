@@ -34,7 +34,7 @@ func TestAccBitbucketHook_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckBitbucketHookDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccBitbucketHookConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBitbucketHookExists("bitbucket_hook.test_repo_hook", &hook),

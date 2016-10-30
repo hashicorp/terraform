@@ -17,7 +17,7 @@ func TestAccCloudStackVPC_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackVPCDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackVPC_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackVPCExists(

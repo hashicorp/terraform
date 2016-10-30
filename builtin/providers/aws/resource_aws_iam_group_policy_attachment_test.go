@@ -19,14 +19,14 @@ func TestAccAWSIamGroupPolicyAttachment_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSGroupPolicyAttachmentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSGroupPolicyAttachConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupPolicyAttachmentExists("aws_iam_group_policy_attachment.test-attach", 1, &out),
 					testAccCheckAWSGroupPolicyAttachmentAttributes([]string{"test-policy"}, &out),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSGroupPolicyAttachConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupPolicyAttachmentExists("aws_iam_group_policy_attachment.test-attach", 2, &out),

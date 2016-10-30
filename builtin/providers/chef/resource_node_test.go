@@ -19,7 +19,7 @@ func TestAccNode_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccNodeCheckDestroy(&node),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNodeConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccNodeCheckExists("chef_node.test", &node),

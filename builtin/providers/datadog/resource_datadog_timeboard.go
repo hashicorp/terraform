@@ -17,21 +17,21 @@ func resourceDatadogTimeboard() *schema.Resource {
 		Required: true,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"q": &schema.Schema{
+				"q": {
 					Type:     schema.TypeString,
 					Required: true,
 				},
-				"stacked": &schema.Schema{
+				"stacked": {
 					Type:     schema.TypeBool,
 					Optional: true,
 					Default:  false,
 				},
-				"type": &schema.Schema{
+				"type": {
 					Type:     schema.TypeString,
 					Optional: true,
 					Default:  "line",
 				},
-				"style": &schema.Schema{
+				"style": {
 					Type:     schema.TypeMap,
 					Optional: true,
 				},
@@ -45,12 +45,12 @@ func resourceDatadogTimeboard() *schema.Resource {
 		Description: "A list of graph definitions.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"title": &schema.Schema{
+				"title": {
 					Type:        schema.TypeString,
 					Required:    true,
 					Description: "The name of the graph.",
 				},
-				"viz": &schema.Schema{
+				"viz": {
 					Type:     schema.TypeString,
 					Required: true,
 				},
@@ -65,17 +65,17 @@ func resourceDatadogTimeboard() *schema.Resource {
 		Description: "A list of template variables for using Dashboard templating.",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
-				"name": &schema.Schema{
+				"name": {
 					Type:        schema.TypeString,
 					Required:    true,
 					Description: "The name of the variable.",
 				},
-				"prefix": &schema.Schema{
+				"prefix": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Description: "The tag prefix associated with the variable. Only tags with this prefix will appear in the variable dropdown.",
 				},
-				"default": &schema.Schema{
+				"default": {
 					Type:        schema.TypeString,
 					Optional:    true,
 					Description: "The default value for the template variable on dashboard load.",
@@ -92,17 +92,17 @@ func resourceDatadogTimeboard() *schema.Resource {
 		Exists: resourceDatadogTimeboardExists,
 
 		Schema: map[string]*schema.Schema{
-			"title": &schema.Schema{
+			"title": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the dashboard.",
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "A description of the dashboard's content.",
 			},
-			"read_only": &schema.Schema{
+			"read_only": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,

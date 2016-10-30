@@ -18,7 +18,7 @@ func TestAccAWSIPRanges(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSIPRangesConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAWSIPRanges("data.aws_ip_ranges.some"),

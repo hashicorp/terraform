@@ -16,7 +16,7 @@ func TestAccDockerVolume_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDockerVolumeConfig,
 				Check: resource.ComposeTestCheckFunc(
 					checkDockerVolume("docker_volume.foo", &v),

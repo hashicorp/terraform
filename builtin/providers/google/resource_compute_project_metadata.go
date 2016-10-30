@@ -19,13 +19,13 @@ func resourceComputeProjectMetadata() *schema.Resource {
 		SchemaVersion: 0,
 
 		Schema: map[string]*schema.Schema{
-			"metadata": &schema.Schema{
+			"metadata": {
 				Elem:     schema.TypeString,
 				Type:     schema.TypeMap,
 				Required: true,
 			},
 
-			"project": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,

@@ -15,7 +15,7 @@ func TestAccConsulService_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckConsulServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccConsulServiceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulServiceExists(),

@@ -24,7 +24,7 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -32,58 +32,58 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 					return strings.ToUpper(val.(string))
 				},
 			},
-			"failure_threshold": &schema.Schema{
+			"failure_threshold": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"request_interval": &schema.Schema{
+			"request_interval": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true, // todo this should be updateable but the awslabs route53 service doesnt have the ability
 			},
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"fqdn": &schema.Schema{
+			"fqdn": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"invert_healthcheck": &schema.Schema{
+			"invert_healthcheck": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"resource_path": &schema.Schema{
+			"resource_path": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"search_string": &schema.Schema{
+			"search_string": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"measure_latency": &schema.Schema{
+			"measure_latency": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
 
-			"child_healthchecks": &schema.Schema{
+			"child_healthchecks": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				Set:      schema.HashString,
 			},
-			"child_health_threshold": &schema.Schema{
+			"child_health_threshold": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
@@ -96,17 +96,17 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				},
 			},
 
-			"cloudwatch_alarm_name": &schema.Schema{
+			"cloudwatch_alarm_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"cloudwatch_alarm_region": &schema.Schema{
+			"cloudwatch_alarm_region": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"insufficient_data_health_status": &schema.Schema{
+			"insufficient_data_health_status": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
