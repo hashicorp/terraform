@@ -18,16 +18,19 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", nil),
 			},
+
 			"user_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_USERNAME", ""),
 			},
+
 			"user_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_USER_ID", ""),
 			},
+
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -36,6 +39,7 @@ func Provider() terraform.ResourceProvider {
 					"OS_PROJECT_ID",
 				}, ""),
 			},
+
 			"tenant_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -44,16 +48,19 @@ func Provider() terraform.ResourceProvider {
 					"OS_PROJECT_NAME",
 				}, ""),
 			},
+
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_PASSWORD", ""),
 			},
+
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_TOKEN", ""),
 			},
+
 			"domain_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -63,6 +70,7 @@ func Provider() terraform.ResourceProvider {
 					"OS_DOMAIN_ID",
 				}, ""),
 			},
+
 			"domain_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -73,26 +81,31 @@ func Provider() terraform.ResourceProvider {
 					"OS_DEFAULT_DOMAIN",
 				}, ""),
 			},
+
 			"insecure": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_INSECURE", ""),
 			},
+
 			"endpoint_type": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_ENDPOINT_TYPE", ""),
 			},
+
 			"cacert_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_CACERT", ""),
 			},
+
 			"cert": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_CERT", ""),
 			},
+
 			"key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
