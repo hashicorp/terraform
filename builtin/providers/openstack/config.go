@@ -31,11 +31,21 @@ type Config struct {
 }
 
 func (c *Config) loadAndValidate() error {
+	validEndpoint := false
+	validEndpoints := []string{
+		"internal", "internalURL",
+		"admin", "adminURL",
+		"public", "publicURL",
+		"",
+	}
 
-	if c.EndpointType != "internal" && c.EndpointType != "internalURL" &&
-		c.EndpointType != "admin" && c.EndpointType != "adminURL" &&
-		c.EndpointType != "public" && c.EndpointType != "publicURL" &&
-		c.EndpointType != "" {
+	for _, endpoint := range validEndpoints {
+		if c.EndpointType == endpoint {
+			validEndpoint = true
+		}
+	}
+
+	if !validEndpoint {
 		return fmt.Errorf("Invalid endpoint type provided")
 	}
 
@@ -58,7 +68,6 @@ func (c *Config) loadAndValidate() error {
 
 	config := &tls.Config{}
 	if c.CACertFile != "" {
-
 		caCert, err := ioutil.ReadFile(c.CACertFile)
 		if err != nil {
 			return err
@@ -68,6 +77,7 @@ func (c *Config) loadAndValidate() error {
 		caCertPool.AppendCertsFromPEM(caCert)
 		config.RootCAs = caCertPool
 	}
+
 	if c.Insecure {
 		config.InsecureSkipVerify = true
 	}
@@ -81,6 +91,7 @@ func (c *Config) loadAndValidate() error {
 		config.Certificates = []tls.Certificate{cert}
 		config.BuildNameToCertificate()
 	}
+
 	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
 	client.HTTPClient.Transport = transport
 
