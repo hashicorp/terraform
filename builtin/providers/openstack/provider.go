@@ -24,9 +24,9 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("OS_USERNAME", ""),
 			},
 			"user_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_USER_ID", ""),
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -74,9 +74,9 @@ func Provider() terraform.ResourceProvider {
 				}, ""),
 			},
 			"insecure": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_INSECURE", ""),
 			},
 			"endpoint_type": &schema.Schema{
 				Type:        schema.TypeString,
