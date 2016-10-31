@@ -20,9 +20,13 @@ func TestAccZone_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccZoneBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "terraform.io"),
-					testAccCheckZoneExists("nsone_zone.foobar", &zone),
-					testAccCheckZoneAttributes(&zone),
+					testAccCheckZoneState("zone", "terraform-test-zone.io"),
+					testAccCheckZoneExists("nsone_zone.it", &zone),
+					testAccCheckZoneTTL(&zone, 3600),
+					testAccCheckZoneRefresh(&zone, 43200),
+					testAccCheckZoneRetry(&zone, 7200),
+					testAccCheckZoneExpiry(&zone, 1209600),
+					testAccCheckZoneNXTTL(&zone, 3600),
 				),
 			},
 		},
@@ -39,17 +43,25 @@ func TestAccZone_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccZoneBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "terraform.io"),
-					testAccCheckZoneExists("nsone_zone.foobar", &zone),
-					testAccCheckZoneAttributes(&zone),
+					testAccCheckZoneState("zone", "terraform-test-zone.io"),
+					testAccCheckZoneExists("nsone_zone.it", &zone),
+					testAccCheckZoneTTL(&zone, 3600),
+					testAccCheckZoneRefresh(&zone, 43200),
+					testAccCheckZoneRetry(&zone, 7200),
+					testAccCheckZoneExpiry(&zone, 1209600),
+					testAccCheckZoneNXTTL(&zone, 3600),
 				),
 			},
 			resource.TestStep{
 				Config: testAccZoneUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "terraform.io"),
-					testAccCheckZoneExists("nsone_zone.foobar", &zone),
-					testAccCheckZoneAttributesUpdated(&zone),
+					testAccCheckZoneState("zone", "terraform-test-zone.io"),
+					testAccCheckZoneExists("nsone_zone.it", &zone),
+					testAccCheckZoneTTL(&zone, 10800),
+					testAccCheckZoneRefresh(&zone, 3600),
+					testAccCheckZoneRetry(&zone, 300),
+					testAccCheckZoneExpiry(&zone, 2592000),
+					testAccCheckZoneNXTTL(&zone, 3601),
 				),
 			},
 		},
@@ -58,9 +70,9 @@ func TestAccZone_updated(t *testing.T) {
 
 func testAccCheckZoneState(key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["nsone_zone.foobar"]
+		rs, ok := s.RootModule().Resources["nsone_zone.it"]
 		if !ok {
-			return fmt.Errorf("Not found: %s", "nsone_zone.foobar")
+			return fmt.Errorf("Not found: %s", "nsone_zone.it")
 		}
 
 		if rs.Primary.ID == "" {
@@ -127,46 +139,62 @@ func testAccCheckZoneDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckZoneAttributes(zone *nsone.Zone) resource.TestCheckFunc {
+func testAccCheckZoneTTL(zone *nsone.Zone, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if zone.Ttl != 3600 {
-			return fmt.Errorf("Bad value : %d", zone.Ttl)
+		if zone.Ttl != expected {
+			return fmt.Errorf("TTL: got: %d want: %d", zone.Ttl, expected)
 		}
-
-		if zone.Nx_ttl != 3600 {
-			return fmt.Errorf("Bad value : %d", zone.Nx_ttl)
-		}
-
 		return nil
 	}
 }
-
-func testAccCheckZoneAttributesUpdated(zone *nsone.Zone) resource.TestCheckFunc {
+func testAccCheckZoneRefresh(zone *nsone.Zone, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if zone.Ttl != 3601 {
-			return fmt.Errorf("Bad value : %d", zone.Ttl)
+		if zone.Refresh != expected {
+			return fmt.Errorf("Refresh: got: %d want: %d", zone.Refresh, expected)
 		}
-
-		if zone.Nx_ttl != 3601 {
-			return fmt.Errorf("Bad value : %d", zone.Nx_ttl)
+		return nil
+	}
+}
+func testAccCheckZoneRetry(zone *nsone.Zone, expected int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if zone.Retry != expected {
+			return fmt.Errorf("Retry: got: %d want: %d", zone.Retry, expected)
 		}
-
+		return nil
+	}
+}
+func testAccCheckZoneExpiry(zone *nsone.Zone, expected int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if zone.Expiry != expected {
+			return fmt.Errorf("Expiry: got: %d want: %d", zone.Expiry, expected)
+		}
+		return nil
+	}
+}
+func testAccCheckZoneNXTTL(zone *nsone.Zone, expected int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if zone.Nx_ttl != expected {
+			return fmt.Errorf("NXTTL: got: %d want: %d", zone.Nx_ttl, expected)
+		}
 		return nil
 	}
 }
 
 const testAccZoneBasic = `
-resource "nsone_zone" "foobar" {
-	zone = "terraform.io"
-	hostmaster = "hostmaster@nsone.net"
-	ttl = "3600"
-	nx_ttl = "3600"
-}`
+resource "nsone_zone" "it" {
+  zone = "terraform-test-zone.io"
+}
+`
 
 const testAccZoneUpdated = `
-resource "nsone_zone" "foobar" {
-	zone = "terraform.io"
-	hostmaster = "hostmaster@nsone.net"
-	ttl = "3601"
-	nx_ttl = "3601"
-}`
+resource "nsone_zone" "it" {
+  zone    = "terraform-test-zone.io"
+  ttl     = 10800
+  refresh = 3600
+  retry   = 300
+  expiry  = 2592000
+  nx_ttl  = 3601
+  # link    = "1.2.3.4.in-addr.arpa" # TODO
+  # primary = "1.2.3.4.in-addr.arpa" # TODO
+}
+`
