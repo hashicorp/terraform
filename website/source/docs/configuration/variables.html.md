@@ -159,6 +159,53 @@ VALUE
 }
 ```
 
+### Booleans
+
+Although it appears Terraform supports boolean types, they are instead
+silently converted to string types. The implications of this are subtle and
+should be completely understood if you plan on using boolean values.
+
+It is instead recommended you avoid using boolean values for now and use
+explicit strings. A future version of Terraform will properly support
+booleans and using the current behavior could result in backwards-incompatibilities
+in the future.
+
+For a configuration such as the following:
+
+```
+variable "active" {
+    default = false
+}
+```
+
+The false is converted to a string `"0"` when running Terraform.
+
+Then, depending on where you specify overrides, the behavior can differ:
+
+  * Variables with boolean values in a `tfvars` file will likewise be
+    converted to "0" and "1" values.
+
+  * Variables specified via the `-var` command line flag will be literal
+    strings "true" and "false", so care should be taken to explicitly use
+    "0" or "1".
+
+  * Variables specified with the `TF_VAR_` environment variables will
+    be literal string values, just like `-var`.
+
+A future version of Terraform will fully support first-class boolean
+types which will make the behavior of booleans consistent as you would
+expect. This may break some of the above behavior.
+
+When passing boolean-like variables as parameters to resource configurations
+that expect boolean values, they are converted consistently:
+
+  * "1", "true", "t" all become `true`
+  * "0", "false", "f" all become `false`
+
+The behavior of conversion above will likely not change in future
+Terraform versions. Therefore, simply using string values rather than
+booleans for variables is recommended.
+
 ## Environment Variables
 
 Environment variables can be used to set the value of a variable.
