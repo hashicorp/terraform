@@ -566,7 +566,22 @@ body.page-home {
 	}
 
 	@media (min-width: 1440px) {
+		#feature-write{
+			padding: 320px 0 200px;
+			margin-top: -120px;
+		}
+
 		#feature-plan{
+			padding: 320px 0 200px;
+			margin-top: -120px;
+		}
+
+		#feature-create{
+			padding: 320px 0 200px;
+			margin-top: -120px;
+		}
+
+		#demos{
 			padding: 320px 0 200px;
 			margin-top: -120px;
 		}
