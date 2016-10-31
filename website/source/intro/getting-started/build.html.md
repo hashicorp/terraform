@@ -175,7 +175,7 @@ Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 Done! You can go to the AWS console to prove to yourself that the
 EC2 instance has been created.
 
-Terraform also put some state into the `terraform.tfstate` file
+Terraform also puts some state into the `terraform.tfstate` file
 by default. This state file is extremely important; it maps various
 resource metadata to actual resource IDs so that Terraform knows
 what it is managing. This file must be saved and distributed
