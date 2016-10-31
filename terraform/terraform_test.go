@@ -59,9 +59,15 @@ func tempDir(t *testing.T) string {
 // a function to defer to reset the old value.
 // the old value that should be set via a defer.
 func tempEnv(t *testing.T, k string, v string) func() {
-	old := os.Getenv(k)
+	old, oldOk := os.LookupEnv(k)
 	os.Setenv(k, v)
-	return func() { os.Setenv(k, old) }
+	return func() {
+		if !oldOk {
+			os.Unsetenv(k)
+		} else {
+			os.Setenv(k, old)
+		}
+	}
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
