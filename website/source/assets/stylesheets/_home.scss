@@ -73,7 +73,6 @@ body.page-home {
 			background: $black;
 			background-size: 100%;
 			@include skewY(-3deg);
-			-webkit-backface-visibility: hidden;
 		}
 	}
 
@@ -220,14 +219,12 @@ body.page-home {
 			right: 3%;
 			width: 581px;
 			@include skewY(-3deg);
-			-webkit-backface-visibility: hidden;
 		}
 
 		#feature-write-bg{
 			background: $white;
 			z-index: 70;
 			@include skewY(3deg);
-			-webkit-backface-visibility: hidden;
 			overflow: hidden;
 		}
 	}
@@ -267,7 +264,6 @@ body.page-home {
 			background: $purple;
 			z-index: 60;
 			@include skewY(-3deg);
-			-webkit-backface-visibility: hidden;
 		}
 	}
 
@@ -294,6 +290,7 @@ body.page-home {
 
 		#feature-create-bg{
 			@include skewY(3deg);
+
 			z-index: 50;
 			overflow: hidden;
 		}
@@ -311,6 +308,7 @@ body.page-home {
 		#demo-bg{
 			background-color: #E6E7E8;
 			@include skewY(3deg);
+
 			z-index: 40;
 		}
 
@@ -355,7 +353,6 @@ body.page-home {
 						position: relative;
 						text-align: center;
 						padding: 3px;
-						//background-color: #1e1e1e;
 						border-bottom: 2px solid #1e1e1e;
 
 						h4{
@@ -620,7 +617,7 @@ body.page-home {
 				background: $black;
 				background-size: 100%;
 				@include skewY(-3deg);
-				-webkit-backface-visibility: hidden;
+
 			}
 
 			ul.customer-list{
