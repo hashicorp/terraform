@@ -285,6 +285,11 @@ func (s *Schema) finalizeDiff(
 		d.New = normalizeBoolString(d.New)
 	}
 
+	if s.ForceNew {
+		// Force new, set it to true in the diff
+		d.RequiresNew = true
+	}
+
 	if d.NewRemoved {
 		return d
 	}
@@ -300,11 +305,6 @@ func (s *Schema) finalizeDiff(
 			// Computed attribute without a new value set
 			d.NewComputed = true
 		}
-	}
-
-	if s.ForceNew {
-		// Force new, set it to true in the diff
-		d.RequiresNew = true
 	}
 
 	if s.Sensitive {
