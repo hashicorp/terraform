@@ -63,6 +63,8 @@ resource "aws_route53_health_check" "foo" {
 
 The following arguments are supported:
 
+* `reference_name` - (Optional) This is a reference name used in Caller Reference
+    (helpful for identifying single health_check set amongst others)
 * `fqdn` - (Optional) The fully qualified domain name of the endpoint to be checked.
 * `ip_address` - (Optional) The IP address of the endpoint to be checked.
 * `port` - (Optional) The port of the endpoint to be checked.
