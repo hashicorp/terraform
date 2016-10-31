@@ -113,9 +113,15 @@ func resourceAwsAutoscalingScheduleCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceAwsAutoscalingScheduleRead(d *schema.ResourceData, meta interface{}) error {
-	sa, err := resourceAwsASGScheduledActionRetrieve(d, meta)
+	sa, err, exists := resourceAwsASGScheduledActionRetrieve(d, meta)
 	if err != nil {
 		return err
+	}
+
+	if !exists {
+		log.Printf("Error retrieving Autoscaling Scheduled Actions. Removing from state")
+		d.SetId("")
+		return nil
 	}
 
 	d.Set("autoscaling_group_name", sa.AutoScalingGroupName)
@@ -153,7 +159,7 @@ func resourceAwsAutoscalingScheduleDelete(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceAwsASGScheduledActionRetrieve(d *schema.ResourceData, meta interface{}) (*autoscaling.ScheduledUpdateGroupAction, error) {
+func resourceAwsASGScheduledActionRetrieve(d *schema.ResourceData, meta interface{}) (*autoscaling.ScheduledUpdateGroupAction, error, bool) {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	params := &autoscaling.DescribeScheduledActionsInput{
@@ -164,13 +170,13 @@ func resourceAwsASGScheduledActionRetrieve(d *schema.ResourceData, meta interfac
 	log.Printf("[INFO] Describing Autoscaling Scheduled Action: %+v", params)
 	actions, err := autoscalingconn.DescribeScheduledActions(params)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving Autoscaling Scheduled Actions: %s", err)
+		return nil, fmt.Errorf("Error retrieving Autoscaling Scheduled Actions: %s", err), false
 	}
 
 	if len(actions.ScheduledUpdateGroupActions) != 1 ||
 		*actions.ScheduledUpdateGroupActions[0].ScheduledActionName != d.Id() {
-		return nil, fmt.Errorf("Unable to find Autoscaling Scheduled Action: %#v", actions.ScheduledUpdateGroupActions)
+		return nil, nil, false
 	}
 
-	return actions.ScheduledUpdateGroupActions[0], nil
+	return actions.ScheduledUpdateGroupActions[0], nil, true
 }

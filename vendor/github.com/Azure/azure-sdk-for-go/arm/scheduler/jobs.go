@@ -46,20 +46,20 @@ func NewJobsClientWithBaseURI(baseURI string, subscriptionID string) JobsClient 
 // collection name. jobName is the job name. job is the job definition.
 func (client JobsClient) CreateOrUpdate(resourceGroupName string, jobCollectionName string, jobName string, job JobDefinition) (result JobDefinition, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{job,
-			[]validation.Constraint{{"job.Properties", validation.Null, false,
-				[]validation.Constraint{{"job.Properties.Status", validation.Null, false,
-					[]validation.Constraint{{"ExecutionCount", validation.ReadOnly, true, nil},
-						{"FailureCount", validation.ReadOnly, true, nil},
-						{"FaultedCount", validation.ReadOnly, true, nil},
-						{"LastExecutionTime", validation.ReadOnly, true, nil},
-						{"NextExecutionTime", validation.ReadOnly, true, nil},
+		{TargetValue: job,
+			Constraints: []validation.Constraint{{Target: "job.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "job.Properties.Status", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "job.Properties.Status.ExecutionCount", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "job.Properties.Status.FailureCount", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "job.Properties.Status.FaultedCount", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "job.Properties.Status.LastExecutionTime", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "job.Properties.Status.NextExecutionTime", Name: validation.ReadOnly, Rule: true, Chain: nil},
 					}},
-					{"Status", validation.ReadOnly, true, nil},
+					{Target: "job.Properties.Status", Name: validation.ReadOnly, Rule: true, Chain: nil},
 				}},
-				{"ID", validation.ReadOnly, true, nil},
-				{"Type", validation.ReadOnly, true, nil},
-				{"Name", validation.ReadOnly, true, nil}}}}); err != nil {
+				{Target: "job.ID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "job.Type", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "job.Name", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "scheduler.JobsClient", "CreateOrUpdate")
 	}
 
@@ -260,10 +260,10 @@ func (client JobsClient) GetResponder(resp *http.Response) (result JobDefinition
 // state.
 func (client JobsClient) List(resourceGroupName string, jobCollectionName string, top *int32, skip *int32, filter string) (result JobListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{top,
-			[]validation.Constraint{{"top", validation.Null, false,
-				[]validation.Constraint{{"top", validation.InclusiveMaximum, 100, nil},
-					{"top", validation.InclusiveMinimum, 1, nil},
+		{TargetValue: top,
+			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "top", Name: validation.InclusiveMaximum, Rule: 100, Chain: nil},
+					{Target: "top", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "scheduler.JobsClient", "List")
 	}
@@ -368,10 +368,10 @@ func (client JobsClient) ListNextResults(lastResults JobListResult) (result JobL
 // filter to apply on the job state.
 func (client JobsClient) ListJobHistory(resourceGroupName string, jobCollectionName string, jobName string, top *int32, skip *int32, filter string) (result JobHistoryListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{top,
-			[]validation.Constraint{{"top", validation.Null, false,
-				[]validation.Constraint{{"top", validation.InclusiveMaximum, 100, nil},
-					{"top", validation.InclusiveMinimum, 1, nil},
+		{TargetValue: top,
+			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "top", Name: validation.InclusiveMaximum, Rule: 100, Chain: nil},
+					{Target: "top", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "scheduler.JobsClient", "ListJobHistory")
 	}
@@ -474,10 +474,10 @@ func (client JobsClient) ListJobHistoryNextResults(lastResults JobHistoryListRes
 // collection name. jobName is the job name. job is the job definition.
 func (client JobsClient) Patch(resourceGroupName string, jobCollectionName string, jobName string, job JobDefinition) (result JobDefinition, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{job,
-			[]validation.Constraint{{"ID", validation.ReadOnly, true, nil},
-				{"Type", validation.ReadOnly, true, nil},
-				{"Name", validation.ReadOnly, true, nil}}}}); err != nil {
+		{TargetValue: job,
+			Constraints: []validation.Constraint{{Target: "job.ID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "job.Type", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "job.Name", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "scheduler.JobsClient", "Patch")
 	}
 

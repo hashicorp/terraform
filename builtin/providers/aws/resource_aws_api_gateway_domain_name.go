@@ -52,6 +52,11 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 				Computed: true,
 			},
 
+			"certificate_upload_date": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"cloudfront_zone_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,

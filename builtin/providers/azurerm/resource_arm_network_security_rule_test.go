@@ -26,6 +26,25 @@ func TestAccAzureRMNetworkSecurityRule_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMNetworkSecurityRule_disappears(t *testing.T) {
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMNetworkSecurityRuleDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMNetworkSecurityRule_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMNetworkSecurityRuleExists("azurerm_network_security_rule.test"),
+					testCheckAzureRMNetworkSecurityRuleDisappears("azurerm_network_security_rule.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMNetworkSecurityRule_addingRules(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -74,6 +93,32 @@ func testCheckAzureRMNetworkSecurityRuleExists(name string) resource.TestCheckFu
 
 		if resp.StatusCode == http.StatusNotFound {
 			return fmt.Errorf("Bad: Network Security Rule %q (resource group: %q) (network security group: %q) does not exist", sgrName, sgName, resourceGroup)
+		}
+
+		return nil
+	}
+}
+
+func testCheckAzureRMNetworkSecurityRuleDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		sgName := rs.Primary.Attributes["network_security_group_name"]
+		sgrName := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for network security rule: %s", sgName)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).secRuleClient
+
+		_, err := conn.Delete(resourceGroup, sgName, sgrName, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on secRuleClient: %s", err)
 		}
 
 		return nil

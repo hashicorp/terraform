@@ -52,7 +52,7 @@ The following arguments are supported:
 
 * `rest_api_id` - (Required) The ID of the associated REST API
 * `resource_id` - (Required) The API resource ID
-* `http_method` - (Required) The HTTP Method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`)
+* `http_method` - (Required) The HTTP Method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`, `ANY`)
 * `status_code` - (Required) The HTTP status code
 * `response_models` - (Optional) A map of the API models used for the response's content type
 * `response_parameters` - (Optional) A map of response parameters that can be sent to the caller.

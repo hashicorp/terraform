@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 )
 
 func resourceFWRuleV1() *schema.Resource {
@@ -86,13 +87,15 @@ func resourceFWRuleV1Create(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	enabled := d.Get("enabled").(bool)
+	ipVersion := resourceFWRuleV1DetermineIPVersion(d.Get("ip_version").(int))
+	protocol := resourceFWRuleV1DetermineProtocol(d.Get("protocol").(string))
 
 	ruleConfiguration := rules.CreateOpts{
 		Name:                 d.Get("name").(string),
 		Description:          d.Get("description").(string),
-		Protocol:             d.Get("protocol").(string),
+		Protocol:             protocol,
 		Action:               d.Get("action").(string),
-		IPVersion:            d.Get("ip_version").(int),
+		IPVersion:            ipVersion,
 		SourceIPAddress:      d.Get("source_ip_address").(string),
 		DestinationIPAddress: d.Get("destination_ip_address").(string),
 		SourcePort:           d.Get("source_port").(string),
@@ -132,7 +135,6 @@ func resourceFWRuleV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Read OpenStack Firewall Rule %s: %#v", d.Id(), rule)
 
-	d.Set("protocol", rule.Protocol)
 	d.Set("action", rule.Action)
 	d.Set("name", rule.Name)
 	d.Set("description", rule.Description)
@@ -142,6 +144,12 @@ func resourceFWRuleV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("source_port", rule.SourcePort)
 	d.Set("destination_port", rule.DestinationPort)
 	d.Set("enabled", rule.Enabled)
+
+	if rule.Protocol == "" {
+		d.Set("protocol", "any")
+	} else {
+		d.Set("protocol", rule.Protocol)
+	}
 
 	return nil
 }
@@ -156,39 +164,54 @@ func resourceFWRuleV1Update(d *schema.ResourceData, meta interface{}) error {
 	opts := rules.UpdateOpts{}
 
 	if d.HasChange("name") {
-		opts.Name = d.Get("name").(string)
+		v := d.Get("name").(string)
+		opts.Name = &v
 	}
+
 	if d.HasChange("description") {
-		opts.Description = d.Get("description").(string)
+		v := d.Get("description").(string)
+		opts.Description = &v
 	}
+
 	if d.HasChange("protocol") {
-		opts.Protocol = d.Get("protocol").(string)
+		v := d.Get("protocol").(string)
+		opts.Protocol = &v
 	}
+
 	if d.HasChange("action") {
-		opts.Action = d.Get("action").(string)
+		v := d.Get("action").(string)
+		opts.Action = &v
 	}
+
 	if d.HasChange("ip_version") {
-		opts.IPVersion = d.Get("ip_version").(int)
+		v := d.Get("ip_version").(int)
+		ipVersion := resourceFWRuleV1DetermineIPVersion(v)
+		opts.IPVersion = &ipVersion
 	}
+
 	if d.HasChange("source_ip_address") {
-		sourceIPAddress := d.Get("source_ip_address").(string)
-		opts.SourceIPAddress = &sourceIPAddress
+		v := d.Get("source_ip_address").(string)
+		opts.SourceIPAddress = &v
 	}
+
 	if d.HasChange("destination_ip_address") {
-		destinationIPAddress := d.Get("destination_ip_address").(string)
-		opts.DestinationIPAddress = &destinationIPAddress
+		v := d.Get("destination_ip_address").(string)
+		opts.DestinationIPAddress = &v
 	}
+
 	if d.HasChange("source_port") {
-		sourcePort := d.Get("source_port").(string)
-		opts.SourcePort = &sourcePort
+		v := d.Get("source_port").(string)
+		opts.SourcePort = &v
 	}
+
 	if d.HasChange("destination_port") {
-		destinationPort := d.Get("destination_port").(string)
-		opts.DestinationPort = &destinationPort
+		v := d.Get("destination_port").(string)
+		opts.DestinationPort = &v
 	}
+
 	if d.HasChange("enabled") {
-		enabled := d.Get("enabled").(bool)
-		opts.Enabled = &enabled
+		v := d.Get("enabled").(bool)
+		opts.Enabled = &v
 	}
 
 	log.Printf("[DEBUG] Updating firewall rules: %#v", opts)
@@ -216,11 +239,40 @@ func resourceFWRuleV1Delete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if rule.PolicyID != "" {
-		err := policies.RemoveRule(networkingClient, rule.PolicyID, rule.ID)
+		_, err := policies.RemoveRule(networkingClient, rule.PolicyID, rule.ID).Extract()
 		if err != nil {
 			return err
 		}
 	}
 
 	return rules.Delete(networkingClient, d.Id()).Err
+}
+
+func resourceFWRuleV1DetermineIPVersion(ipv int) gophercloud.IPVersion {
+	// Determine the IP Version
+	var ipVersion gophercloud.IPVersion
+	switch ipv {
+	case 4:
+		ipVersion = gophercloud.IPv4
+	case 6:
+		ipVersion = gophercloud.IPv6
+	}
+
+	return ipVersion
+}
+
+func resourceFWRuleV1DetermineProtocol(p string) rules.Protocol {
+	var protocol rules.Protocol
+	switch p {
+	case "any":
+		protocol = rules.ProtocolAny
+	case "icmp":
+		protocol = rules.ProtocolICMP
+	case "tcp":
+		protocol = rules.ProtocolTCP
+	case "udp":
+		protocol = rules.ProtocolUDP
+	}
+
+	return protocol
 }

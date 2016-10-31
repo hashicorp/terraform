@@ -26,6 +26,10 @@ type BasicGraphBuilder struct {
 func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 	g := &Graph{Path: path}
 	for _, step := range b.Steps {
+		if step == nil {
+			continue
+		}
+
 		if err := step.Transform(g); err != nil {
 			return g, err
 		}
@@ -115,7 +119,7 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
-		&DisableProviderTransformer{},
+		&DisableProviderTransformerOld{},
 
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Provisioners},

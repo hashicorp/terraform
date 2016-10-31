@@ -6,7 +6,7 @@ description: |-
   Manages Scaleway Volume attachments for servers.
 ---
 
-# scaleway\volume\_attachment
+# scaleway\_volume\_attachment
 
 This allows volumes to be attached to servers.
 

@@ -23,52 +23,75 @@ will be rendered as a literal `${foo}`.
 
 ## Available Variables
 
-**To reference user variables**, use the `var.` prefix followed by the
-variable name. For example, `${var.foo}` will interpolate the
-`foo` variable value. If the variable is a map, then you
-can reference static keys in the map with the syntax
-`var.MAP["KEY"]`. For example, `${var.amis["us-east-1"]` would
-get the value of the `us-east-1` key within the `amis` map variable.
+There are a variety of available variable references you can use.
 
-**To reference attributes of your own resource**, the syntax is
-`self.ATTRIBUTE`. For example `${self.private_ip_address}` will
-interpolate that resource's private IP address. Note that this is
-only allowed/valid within provisioners.
+### User string variables
 
-**To reference attributes of other resources**, the syntax is
-`TYPE.NAME.ATTRIBUTE`. For example, `${aws_instance.web.id}`
-will interpolate the ID attribute from the "aws\_instance"
-resource named "web". If the resource has a `count` attribute set,
-you can access individual attributes with a zero-based index, such
-as `${aws_instance.web.0.id}`. You can also use the splat syntax
-to get a list of all the attributes: `${aws_instance.web.*.id}`.
-This is documented in more detail in the
-[resource configuration page](/docs/configuration/resources.html).
+Use the `var.` prefix followed by the variable name. For example,
+`${var.foo}` will interpolate the `foo` variable value.
 
-**To reference outputs from a module**, the syntax is
-`MODULE.NAME.OUTPUT`. For example `${module.foo.bar}` will
-interpolate the "bar" output from the "foo"
+### User map variables
+
+The syntax is `var.MAP["KEY"]`. For example, `${var.amis["us-east-1"]}`
+would get the value of the `us-east-1` key within the `amis` map
+variable.
+
+### User list variables
+
+The syntax is `["${var.LIST}"]`. For example, `["${var.subnets}"]`
+would get the value of the `subnets` list, as a list. You can also
+return list elements by index: `${var.subnets[idx]}`.
+
+### Attributes of your own resource
+
+The syntax is `self.ATTRIBUTE`. For example `${self.private_ip_address}`
+will interpolate that resource's private IP address.
+
+-> **Note**: The `self.ATTRIBUTE` syntax is only allowed and valid within
+provisioners.
+
+### Attributes of other resources
+
+The syntax is `TYPE.NAME.ATTRIBUTE`. For example,
+`${aws_instance.web.id}` will interpolate the ID attribute from the
+`aws\_instance` resource named `web`. If the resource has a `count`
+attribute set, you can access individual attributes with a zero-based
+index, such as `${aws_instance.web.0.id}`. You can also use the splat
+syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
+This is documented in more detail in the [resource configuration
+page](/docs/configuration/resources.html).
+
+### Outputs from a module
+
+The syntax is `MODULE.NAME.OUTPUT`. For example `${module.foo.bar}` will
+interpolate the `bar` output from the `foo`
 [module](/docs/modules/index.html).
 
-**To reference count information**, the syntax is `count.FIELD`.
-For example, `${count.index}` will interpolate the current index
-in a multi-count resource. For more information on count, see the
-resource configuration page.
+### Count information
+
+The syntax is `count.FIELD`. For example, `${count.index}` will
+interpolate the current index in a multi-count resource. For more
+information on `count`, see the [resource configuration
+page](/docs/configuration/resources.html).
 
 <a id="path-variables"></a>
 
-**To reference path information**, the syntax is `path.TYPE`.
-TYPE can be `cwd`, `module`, or `root`. `cwd` will interpolate the
-cwd. `module` will interpolate the path to the current module. `root`
-will interpolate the path of the root module. In general, you probably
-want the `path.module` variable.
+### Path information
 
+The syntax is `path.TYPE`. TYPE can be `cwd`, `module`, or `root`.
+`cwd` will interpolate the current working directory. `module` will
+interpolate the path to the current module. `root` will interpolate the
+path of the root module.  In general, you probably want the
+`path.module` variable.
+
+<a id="functions"></a>
 ## Built-in Functions
 
-Terraform ships with built-in functions. Functions are called with
-the syntax `name(arg, arg2, ...)`. For example,
-to read a file: `${file("path.txt")}`. The built-in functions
-are documented below.
+Terraform ships with built-in functions. Functions are called with the
+syntax `name(arg, arg2, ...)`. For example, to read a file:
+`${file("path.txt")}`.
+
+### Supported built-in functions
 
 The supported built-in functions are:
 
@@ -83,23 +106,26 @@ The supported built-in functions are:
     **This is not equivalent** of `base64encode(sha256(string))`
     since `sha256()` returns hexadecimal representation.
 
+  * `ceil(float)` - Returns the least integer value greater than or equal
+      to the argument.
+
   * `cidrhost(iprange, hostnum)` - Takes an IP address range in CIDR notation
     and creates an IP address with the given host number. For example,
-    ``cidrhost("10.0.0.0/8", 2)`` returns ``10.0.0.2``.
+    `cidrhost("10.0.0.0/8", 2)` returns `10.0.0.2`.
 
   * `cidrnetmask(iprange)` - Takes an IP address range in CIDR notation
     and returns the address-formatted subnet mask format that some
     systems expect for IPv4 interfaces. For example,
-    ``cidrmask("10.0.0.0/8")`` returns ``255.0.0.0``. Not applicable
+    `cidrmask("10.0.0.0/8")` returns `255.0.0.0`. Not applicable
     to IPv6 networks since CIDR notation is the only valid notation for
     IPv4.
 
   * `cidrsubnet(iprange, newbits, netnum)` - Takes an IP address range in
-    CIDR notation (like ``10.0.0.0/8``) and extends its prefix to include an
+    CIDR notation (like `10.0.0.0/8`) and extends its prefix to include an
     additional subnet number. For example,
-    ``cidrsubnet("10.0.0.0/8", 8, 2)`` returns ``10.2.0.0/16``;
-    ``cidrsubnet("2607:f298:6051:516c::/64", 8, 2)`` returns
-    ``2607:f298:6051:516c:200::/72``.
+    `cidrsubnet("10.0.0.0/8", 8, 2)` returns `10.2.0.0/16`;
+    `cidrsubnet("2607:f298:6051:516c::/64", 8, 2)` returns
+    `2607:f298:6051:516c:200::/72`.
 
   * `coalesce(string1, string2, ...)` - Returns the first non-empty value from
     the given arguments. At least two arguments must be provided.
@@ -130,6 +156,9 @@ The supported built-in functions are:
       to other base locations. For example, when using `file()` from inside a
       module, you generally want to make the path relative to the module base,
       like this: `file("${path.module}/file")`.
+
+  * `floor(float)` - Returns the greatest integer value less than or equal to
+      the argument.
 
   * `format(format, args, ...)` - Formats a string according to the given
       format. The syntax for the format is standard `sprintf` syntax.
@@ -164,7 +193,7 @@ The supported built-in functions are:
 
   * `keys(map)` - Returns a lexically sorted list of the map keys.
 
-  * `length(list)` - Returns a number of members in a given list or map, or a number of characters in a given string.
+  * `length(list)` - Returns the number of members in a given list or map, or the number of characters in a given string.
       * `${length(split(",", "a,b,c"))}` = 3
       * `${length("a,b,c")}` = 5
       * `${length(map("key", "val"))}` = 1
@@ -191,10 +220,14 @@ The supported built-in functions are:
     * `map("hello", "world")`
     * `map("us-east", list("a", "b", "c"), "us-west", list("b", "c", "d"))`
 
+  * `max(float1, float2, ...)` - Returns the largest of the floats.
+
   * `merge(map1, map2, ...)` - Returns the union of 2 or more maps. The maps
 	are consumed in the order provided, and duplicate keys overwrite previous
 	entries.
 	* `${merge(map("a", "b"), map("c", "d"))}` returns `{"a": "b", "c": "d"}`
+
+  * `min(float1, float2, ...)` - Returns the smallest of the floats.
 
   * `md5(string)` - Returns a (conventional) hexadecimal representation of the
     MD5 hash of the given string.
@@ -215,13 +248,13 @@ The supported built-in functions are:
     SHA-256 hash of the given string.
     Example: `"${sha256("${aws_vpc.default.tags.customer}-s3-bucket")}"`
 
-  * `signum(int)` - Returns -1 for negative numbers, 0 for 0 and 1 for positive numbers.
+  * `signum(int)` - Returns `-1` for negative numbers, `0` for `0` and `1` for positive numbers.
       This function is useful when you need to set a value for the first resource and
       a different value for the rest of the resources.
       Example: `element(split(",", var.r53_failover_policy), signum(count.index))`
       where the 0th index points to `PRIMARY` and 1st to `FAILOVER`
 
-  * `sort(list)` - Returns a lexographically sorted list of the strings contained in
+  * `sort(list)` - Returns a lexicographically sorted list of the strings contained in
       the list passed as an argument. Sort may only be used with lists which contain only
       strings.
       Examples: `sort(aws_instance.foo.*.id)`, `sort(var.list_of_strings)`
@@ -234,6 +267,8 @@ The supported built-in functions are:
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
 
+  * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
+
   * `trimspace(string)` - Returns a copy of the string with all leading and trailing white spaces removed.
 
   * `upper(string)` - Returns a copy of the string with all Unicode letters mapped to their upper case.
@@ -244,9 +279,21 @@ The supported built-in functions are:
     returned by the `keys` function. This function only works on flat maps and
     will return an error for maps that include nested lists or maps.
 
+  * `zipmap(list, list)` - Creates a map from a list of keys and a list of
+      values. The keys must all be of type string, and the length of the lists
+      must be the same.
+      For example, to output a mapping of AWS IAM user names to the fingerprint
+      of the key used to encrypt their initial password, you might use:
+      `zipmap(aws_iam_user.users.*.name, aws_iam_user_login_profile.users.*.key_fingerprint)`.
+
+<a id="templates"></a>
 ## Templates
 
-Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [data-sources](/docs/configuration/data-sources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
+Long strings can be managed using templates.
+[Templates](/docs/providers/template/index.html) are
+[data-sources](/docs/configuration/data-sources.html) defined by a
+filename and some variables to use during interpolation. They have a
+computed `rendered` attribute containing the result.
 
 A template data source looks like:
 
@@ -306,9 +353,8 @@ resource "aws_instance" "web" {
 With this, we will build a list of `template_file.web_init` data sources which we can
 use in combination with our list of `aws_instance.web` resources.
 
-## Math
-
 <a id="math"></a>
+## Math
 
 Simple math can be performed in interpolations:
 
@@ -338,3 +384,14 @@ it's best to use spaces between math operators to prevent confusion or unexpecte
 behavior. For example, `${var.instance-count - 1}` will subtract **1** from the
 `instance-count` variable value, while `${var.instance-count-1}` will interpolate
 the `instance-count-1` variable value.
+
+
+-> **Note:** Operator precedence is not the usual one where *Multiply* (`*`),
+*Divide* (`/`), and *Modulo* (`%`) have precedence over *Add* (`+`) and *Subtract* (`-`).
+The operations are made in the order they appear. Parenthesis can be used to force ordering :
+```
+"${2 * 4 + 3 * 3}" # computes to 33
+"${3 * 3 + 2 * 4}" # computes to 44
+"${(2 * 4) + (3 * 3)}" # computes to 17
+"${(3 * 3) + (2 * 4)}" # computes to 17
+```

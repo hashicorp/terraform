@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 )
 
-func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, error) {
+func GetAccountInfo(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (string, string, error) {
 	// If we have creds from instance profile, we can use metadata API
 	if authProviderName == ec2rolecreds.ProviderName {
 		log.Println("[DEBUG] Trying to get account ID via AWS Metadata API")
@@ -30,7 +30,7 @@ func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (
 		setOptionalEndpoint(cfg)
 		sess, err := session.NewSession(cfg)
 		if err != nil {
-			return "", errwrap.Wrapf("Error creating AWS session: %s", err)
+			return "", "", errwrap.Wrapf("Error creating AWS session: %s", err)
 		}
 
 		metadataClient := ec2metadata.New(sess)
@@ -38,24 +38,24 @@ func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (
 		if err != nil {
 			// This can be triggered when no IAM Role is assigned
 			// or AWS just happens to return invalid response
-			return "", fmt.Errorf("Failed getting EC2 IAM info: %s", err)
+			return "", "", fmt.Errorf("Failed getting EC2 IAM info: %s", err)
 		}
 
-		return parseAccountIdFromArn(info.InstanceProfileArn)
+		return parseAccountInfoFromArn(info.InstanceProfileArn)
 	}
 
 	// Then try IAM GetUser
 	log.Println("[DEBUG] Trying to get account ID via iam:GetUser")
 	outUser, err := iamconn.GetUser(nil)
 	if err == nil {
-		return parseAccountIdFromArn(*outUser.User.Arn)
+		return parseAccountInfoFromArn(*outUser.User.Arn)
 	}
 
 	awsErr, ok := err.(awserr.Error)
 	// AccessDenied and ValidationError can be raised
 	// if credentials belong to federated profile, so we ignore these
 	if !ok || (awsErr.Code() != "AccessDenied" && awsErr.Code() != "ValidationError") {
-		return "", fmt.Errorf("Failed getting account ID via 'iam:GetUser': %s", err)
+		return "", "", fmt.Errorf("Failed getting account ID via 'iam:GetUser': %s", err)
 	}
 	log.Printf("[DEBUG] Getting account ID via iam:GetUser failed: %s", err)
 
@@ -63,7 +63,7 @@ func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (
 	log.Println("[DEBUG] Trying to get account ID via sts:GetCallerIdentity")
 	outCallerIdentity, err := stsconn.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	if err == nil {
-		return *outCallerIdentity.Account, nil
+		return parseAccountInfoFromArn(*outCallerIdentity.Arn)
 	}
 	log.Printf("[DEBUG] Getting account ID via sts:GetCallerIdentity failed: %s", err)
 
@@ -73,22 +73,22 @@ func GetAccountId(iamconn *iam.IAM, stsconn *sts.STS, authProviderName string) (
 		MaxItems: aws.Int64(int64(1)),
 	})
 	if err != nil {
-		return "", fmt.Errorf("Failed getting account ID via 'iam:ListRoles': %s", err)
+		return "", "", fmt.Errorf("Failed getting account ID via 'iam:ListRoles': %s", err)
 	}
 
 	if len(outRoles.Roles) < 1 {
-		return "", errors.New("Failed getting account ID via 'iam:ListRoles': No roles available")
+		return "", "", errors.New("Failed getting account ID via 'iam:ListRoles': No roles available")
 	}
 
-	return parseAccountIdFromArn(*outRoles.Roles[0].Arn)
+	return parseAccountInfoFromArn(*outRoles.Roles[0].Arn)
 }
 
-func parseAccountIdFromArn(arn string) (string, error) {
+func parseAccountInfoFromArn(arn string) (string, string, error) {
 	parts := strings.Split(arn, ":")
 	if len(parts) < 5 {
-		return "", fmt.Errorf("Unable to parse ID from invalid ARN: %q", arn)
+		return "", "", fmt.Errorf("Unable to parse ID from invalid ARN: %q", arn)
 	}
-	return parts[4], nil
+	return parts[1], parts[4], nil
 }
 
 // This function is responsible for reading credentials from the

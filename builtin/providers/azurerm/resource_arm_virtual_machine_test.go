@@ -30,6 +30,27 @@ func TestAccAzureRMVirtualMachine_basicLinuxMachine(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMVirtualMachine_basicLinuxMachine_disappears(t *testing.T) {
+	var vm compute.VirtualMachine
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachine, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineExists("azurerm_virtual_machine.test", &vm),
+					testCheckAzureRMVirtualMachineDisappears("azurerm_virtual_machine.test", &vm),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMVirtualMachine_withDataDisk(t *testing.T) {
 	var vm compute.VirtualMachine
 
@@ -227,8 +248,8 @@ func TestAccAzureRMVirtualMachine_deleteVHDOptOut(t *testing.T) {
 func TestAccAzureRMVirtualMachine_deleteVHDOptIn(t *testing.T) {
 	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisks, ri, ri, ri, ri, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksBefore, ri, ri, ri, ri, ri, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksAfter, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -409,9 +430,34 @@ func testCheckAzureRMVirtualMachineVHDExistance(name string, shouldExist bool) r
 	}
 }
 
+func testCheckAzureRMVirtualMachineDisappears(name string, vm *compute.VirtualMachine) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		vmName := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for virtual machine: %s", vmName)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).vmClient
+
+		_, err := conn.Delete(resourceGroup, vmName, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on vmClient: %s", err)
+		}
+
+		return nil
+	}
+}
+
 var testAccAzureRMVirtualMachine_basicLinuxMachine = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -478,6 +524,7 @@ resource "azurerm_virtual_machine" "test" {
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
         create_option = "FromImage"
+        disk_size_gb = "45"
     }
 
     os_profile {
@@ -499,7 +546,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_machineNameBeforeUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -586,9 +633,14 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
-var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisks = `
+var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksBefore = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_resource_group" "test-sa" {
+    name = "acctestRG-sa-%d"
     location = "West US"
 }
 
@@ -620,7 +672,7 @@ resource "azurerm_network_interface" "test" {
 
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+    resource_group_name = "${azurerm_resource_group.test-sa.name}"
     location = "westus"
     account_type = "Standard_LRS"
 
@@ -631,7 +683,7 @@ resource "azurerm_storage_account" "test" {
 
 resource "azurerm_storage_container" "test" {
     name = "vhds"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+    resource_group_name = "${azurerm_resource_group.test-sa.name}"
     storage_account_name = "${azurerm_storage_account.test.name}"
     container_access_type = "private"
 }
@@ -686,9 +738,65 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
+var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksAfter = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_resource_group" "test-sa" {
+    name = "acctestRG-sa-%d"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_storage_account" "test" {
+    name = "accsa%d"
+    resource_group_name = "${azurerm_resource_group.test-sa.name}"
+    location = "westus"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "staging"
+    }
+}
+
+resource "azurerm_storage_container" "test" {
+    name = "vhds"
+    resource_group_name = "${azurerm_resource_group.test-sa.name}"
+    storage_account_name = "${azurerm_storage_account.test.name}"
+    container_access_type = "private"
+}
+`
+
 var testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -739,7 +847,7 @@ resource "azurerm_storage_container" "test" {
 
 var testAccAzureRMVirtualMachine_withDataDisk = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -835,7 +943,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_basicLinuxMachineUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -922,7 +1030,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_updatedLinuxMachine = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1005,7 +1113,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_basicWindowsMachine = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1089,7 +1197,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_windowsUnattendedConfig = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1179,7 +1287,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_diagnosticsProfile = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1254,6 +1362,11 @@ resource "azurerm_virtual_machine" "test" {
 	admin_password = "Password1234!"
     }
 
+    boot_diagnostics {
+        enabled = true
+        storage_uri = "${azurerm_storage_account.test.primary_blob_endpoint}"
+    }
+
     os_profile_windows_config {
         winrm {
 	  protocol = "http"
@@ -1265,7 +1378,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_winRMConfig = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -1350,7 +1463,7 @@ resource "azurerm_virtual_machine" "test" {
 
 var testAccAzureRMVirtualMachine_withAvailabilitySet = `
  resource "azurerm_resource_group" "test" {
-     name = "acctestrg-%d"
+     name = "acctestRG-%d"
      location = "West US"
  }
 
@@ -1441,7 +1554,7 @@ var testAccAzureRMVirtualMachine_withAvailabilitySet = `
 
 var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
  resource "azurerm_resource_group" "test" {
-     name = "acctestrg-%d"
+     name = "acctestRG-%d"
      location = "West US"
  }
 
@@ -1532,7 +1645,7 @@ var testAccAzureRMVirtualMachine_updateAvailabilitySet = `
 
 var testAccAzureRMVirtualMachine_updateMachineName = `
  resource "azurerm_resource_group" "test" {
-     name = "acctestrg-%d"
+     name = "acctestRG-%d"
      location = "West US"
  }
 

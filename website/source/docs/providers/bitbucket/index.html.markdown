@@ -22,9 +22,9 @@ provider "bitbucket" {
     password = "idoillusions" # you can also use app passwords
 }
 
-resource "bitbucket_repsitory" "illusions" {
+resource "bitbucket_repository" "illusions" {
     owner = "theleagueofmagicians"
-    name = "illussions"
+    name = "illusions"
     scm = "hg"
     is_private = true
 }

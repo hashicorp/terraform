@@ -358,6 +358,49 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 	})
 }
 
+func TestInterpolater_resourceVariableMulti_interpolated(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "a",
+							Attributes: map[string]string{"foo": "a"},
+						},
+					},
+
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "b",
+							Attributes: map[string]string{"foo": "b"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Operation: walkApply,
+		Module:    testModule(t, "interpolate-multi-interp"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	expected := []interface{}{"a", "b"}
+	testInterpolate(t, i, scope, "aws_instance.web.*.foo",
+		interfaceToVariableSwallowError(expected))
+}
+
 func interfaceToVariableSwallowError(input interface{}) ast.Variable {
 	variable, _ := hil.InterfaceToVariable(input)
 	return variable

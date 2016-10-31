@@ -8,13 +8,13 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
-	"github.com/rackspace/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/pagination"
 )
 
 func TestAccComputeV2Instance_basic(t *testing.T) {
@@ -431,7 +431,7 @@ func TestAccComputeV2Instance_volumeAttachToNewInstance(t *testing.T) {
 
 func TestAccComputeV2Instance_floatingIPAttachGlobally(t *testing.T) {
 	var instance servers.Server
-	var fip floatingip.FloatingIP
+	var fip floatingips.FloatingIP
 	var testAccComputeV2Instance_floatingIPAttachGlobally = fmt.Sprintf(`
 		resource "openstack_compute_floatingip_v2" "myip" {
 		}
@@ -466,7 +466,7 @@ func TestAccComputeV2Instance_floatingIPAttachGlobally(t *testing.T) {
 
 func TestAccComputeV2Instance_floatingIPAttachToNetwork(t *testing.T) {
 	var instance servers.Server
-	var fip floatingip.FloatingIP
+	var fip floatingips.FloatingIP
 	var testAccComputeV2Instance_floatingIPAttachToNetwork = fmt.Sprintf(`
 		resource "openstack_compute_floatingip_v2" "myip" {
 		}
@@ -502,7 +502,7 @@ func TestAccComputeV2Instance_floatingIPAttachToNetwork(t *testing.T) {
 
 func TestAccComputeV2Instance_floatingIPAttachAndChange(t *testing.T) {
 	var instance servers.Server
-	var fip floatingip.FloatingIP
+	var fip floatingips.FloatingIP
 	var testAccComputeV2Instance_floatingIPAttachToNetwork_1 = fmt.Sprintf(`
 		resource "openstack_compute_floatingip_v2" "myip_1" {
 		}
@@ -1098,11 +1098,7 @@ func testAccCheckComputeV2InstanceDoesNotExist(t *testing.T, n string, instance 
 
 		_, err = servers.Get(computeClient, instance.ID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				return nil
 			}
 			return err
@@ -1124,7 +1120,7 @@ func testAccCheckComputeV2InstanceMetadata(
 				continue
 			}
 
-			if v == value.(string) {
+			if v == value {
 				return nil
 			}
 
@@ -1221,7 +1217,7 @@ func testAccCheckComputeV2InstanceBootVolumeAttachment(
 }
 
 func testAccCheckComputeV2InstanceFloatingIPAttach(
-	instance *servers.Server, fip *floatingip.FloatingIP) resource.TestCheckFunc {
+	instance *servers.Server, fip *floatingips.FloatingIP) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if fip.InstanceID == instance.ID {
 			return nil

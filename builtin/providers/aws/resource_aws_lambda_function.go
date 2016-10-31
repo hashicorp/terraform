@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+const awsMutexLambdaKey = `aws_lambda_function`
+
 func resourceAwsLambdaFunction() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsLambdaFunctionCreate,
@@ -154,6 +156,11 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 
 	var functionCode *lambda.FunctionCode
 	if v, ok := d.GetOk("filename"); ok {
+		// Grab an exclusive lock so that we're only reading one function into
+		// memory at a time.
+		// See https://github.com/hashicorp/terraform/issues/9364
+		awsMutexKV.Lock(awsMutexLambdaKey)
+		defer awsMutexKV.Unlock(awsMutexLambdaKey)
 		file, err := loadFileContent(v.(string))
 		if err != nil {
 			return fmt.Errorf("Unable to load %q: %s", v.(string), err)
@@ -361,6 +368,11 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		if v, ok := d.GetOk("filename"); ok {
+			// Grab an exclusive lock so that we're only reading one function into
+			// memory at a time.
+			// See https://github.com/hashicorp/terraform/issues/9364
+			awsMutexKV.Lock(awsMutexLambdaKey)
+			defer awsMutexKV.Unlock(awsMutexLambdaKey)
 			file, err := loadFileContent(v.(string))
 			if err != nil {
 				return fmt.Errorf("Unable to load %q: %s", v.(string), err)

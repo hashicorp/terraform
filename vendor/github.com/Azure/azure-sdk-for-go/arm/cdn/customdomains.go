@@ -57,9 +57,9 @@ func NewCustomDomainsClientWithBaseURI(baseURI string, subscriptionID string) Cu
 // name of the resource group within the Azure subscription.
 func (client CustomDomainsClient) Create(customDomainName string, customDomainProperties CustomDomainParameters, endpointName string, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{customDomainProperties,
-			[]validation.Constraint{{"customDomainProperties.Properties", validation.Null, false,
-				[]validation.Constraint{{"customDomainProperties.Properties.HostName", validation.Null, true, nil}}}}}}); err != nil {
+		{TargetValue: customDomainProperties,
+			Constraints: []validation.Constraint{{Target: "customDomainProperties.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "customDomainProperties.Properties.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "Create")
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -26,56 +27,56 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"aliases": &schema.Schema{
+			"aliases": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      aliasesHash,
 			},
-			"cache_behavior": &schema.Schema{
+			"cache_behavior": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Set:      cacheBehaviorHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"allowed_methods": &schema.Schema{
+						"allowed_methods": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"cached_methods": &schema.Schema{
+						"cached_methods": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"compress": &schema.Schema{
+						"compress": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 						},
-						"default_ttl": &schema.Schema{
+						"default_ttl": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"forwarded_values": &schema.Schema{
+						"forwarded_values": {
 							Type:     schema.TypeSet,
 							Required: true,
 							Set:      forwardedValuesHash,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"cookies": &schema.Schema{
+									"cookies": {
 										Type:     schema.TypeSet,
 										Required: true,
 										Set:      cookiePreferenceHash,
 										MaxItems: 1,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
-												"forward": &schema.Schema{
+												"forward": {
 													Type:     schema.TypeString,
 													Required: true,
 												},
-												"whitelisted_names": &schema.Schema{
+												"whitelisted_names": {
 													Type:     schema.TypeList,
 													Optional: true,
 													Elem:     &schema.Schema{Type: schema.TypeString},
@@ -83,16 +84,16 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 											},
 										},
 									},
-									"headers": &schema.Schema{
+									"headers": {
 										Type:     schema.TypeList,
 										Optional: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
 									},
-									"query_string": &schema.Schema{
+									"query_string": {
 										Type:     schema.TypeBool,
 										Required: true,
 									},
-									"query_string_cache_keys": &schema.Schema{
+									"query_string_cache_keys": {
 										Type:     schema.TypeList,
 										Optional: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
@@ -100,112 +101,112 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 								},
 							},
 						},
-						"max_ttl": &schema.Schema{
+						"max_ttl": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"min_ttl": &schema.Schema{
+						"min_ttl": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"path_pattern": &schema.Schema{
+						"path_pattern": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"smooth_streaming": &schema.Schema{
+						"smooth_streaming": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"target_origin_id": &schema.Schema{
+						"target_origin_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"trusted_signers": &schema.Schema{
+						"trusted_signers": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"viewer_protocol_policy": &schema.Schema{
+						"viewer_protocol_policy": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 					},
 				},
 			},
-			"comment": &schema.Schema{
+			"comment": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"custom_error_response": &schema.Schema{
+			"custom_error_response": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Set:      customErrorResponseHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"error_caching_min_ttl": &schema.Schema{
+						"error_caching_min_ttl": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"error_code": &schema.Schema{
+						"error_code": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"response_code": &schema.Schema{
+						"response_code": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"response_page_path": &schema.Schema{
+						"response_page_path": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 					},
 				},
 			},
-			"default_cache_behavior": &schema.Schema{
+			"default_cache_behavior": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Set:      defaultCacheBehaviorHash,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"allowed_methods": &schema.Schema{
+						"allowed_methods": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"cached_methods": &schema.Schema{
+						"cached_methods": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"compress": &schema.Schema{
+						"compress": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 						},
-						"default_ttl": &schema.Schema{
+						"default_ttl": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"forwarded_values": &schema.Schema{
+						"forwarded_values": {
 							Type:     schema.TypeSet,
 							Required: true,
 							Set:      forwardedValuesHash,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"cookies": &schema.Schema{
+									"cookies": {
 										Type:     schema.TypeSet,
 										Optional: true,
 										Set:      cookiePreferenceHash,
 										MaxItems: 1,
 										Elem: &schema.Resource{
 											Schema: map[string]*schema.Schema{
-												"forward": &schema.Schema{
+												"forward": {
 													Type:     schema.TypeString,
 													Required: true,
 												},
-												"whitelisted_names": &schema.Schema{
+												"whitelisted_names": {
 													Type:     schema.TypeList,
 													Optional: true,
 													Elem:     &schema.Schema{Type: schema.TypeString},
@@ -213,16 +214,16 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 											},
 										},
 									},
-									"headers": &schema.Schema{
+									"headers": {
 										Type:     schema.TypeList,
 										Optional: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
 									},
-									"query_string": &schema.Schema{
+									"query_string": {
 										Type:     schema.TypeBool,
 										Required: true,
 									},
-									"query_string_cache_keys": &schema.Schema{
+									"query_string_cache_keys": {
 										Type:     schema.TypeList,
 										Optional: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
@@ -230,65 +231,65 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 								},
 							},
 						},
-						"max_ttl": &schema.Schema{
+						"max_ttl": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"min_ttl": &schema.Schema{
+						"min_ttl": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"smooth_streaming": &schema.Schema{
+						"smooth_streaming": {
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
-						"target_origin_id": &schema.Schema{
+						"target_origin_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"trusted_signers": &schema.Schema{
+						"trusted_signers": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
-						"viewer_protocol_policy": &schema.Schema{
+						"viewer_protocol_policy": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 					},
 				},
 			},
-			"default_root_object": &schema.Schema{
+			"default_root_object": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"enabled": &schema.Schema{
+			"enabled": {
 				Type:     schema.TypeBool,
 				Required: true,
 			},
-			"http_version": &schema.Schema{
+			"http_version": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "http2",
 				ValidateFunc: validateHTTP,
 			},
-			"logging_config": &schema.Schema{
+			"logging_config": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Set:      loggingConfigHash,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"bucket": &schema.Schema{
+						"bucket": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"include_cookies": &schema.Schema{
+						"include_cookies": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  false,
 						},
-						"prefix": &schema.Schema{
+						"prefix": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "",
@@ -296,13 +297,13 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 					},
 				},
 			},
-			"origin": &schema.Schema{
+			"origin": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Set:      originHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"custom_origin_config": &schema.Schema{
+						"custom_origin_config": {
 							Type:          schema.TypeSet,
 							Optional:      true,
 							ConflictsWith: []string{"origin.s3_origin_config"},
@@ -310,19 +311,19 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 							MaxItems:      1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"http_port": &schema.Schema{
+									"http_port": {
 										Type:     schema.TypeInt,
 										Required: true,
 									},
-									"https_port": &schema.Schema{
+									"https_port": {
 										Type:     schema.TypeInt,
 										Required: true,
 									},
-									"origin_protocol_policy": &schema.Schema{
+									"origin_protocol_policy": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"origin_ssl_protocols": &schema.Schema{
+									"origin_ssl_protocols": {
 										Type:     schema.TypeList,
 										Required: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
@@ -330,36 +331,36 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 								},
 							},
 						},
-						"domain_name": &schema.Schema{
+						"domain_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"custom_header": &schema.Schema{
+						"custom_header": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Set:      originCustomHeaderHash,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"name": &schema.Schema{
+									"name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"value": &schema.Schema{
+									"value": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
 								},
 							},
 						},
-						"origin_id": &schema.Schema{
+						"origin_id": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"origin_path": &schema.Schema{
+						"origin_path": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"s3_origin_config": &schema.Schema{
+						"s3_origin_config": {
 							Type:          schema.TypeSet,
 							Optional:      true,
 							ConflictsWith: []string{"origin.custom_origin_config"},
@@ -367,7 +368,7 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 							MaxItems:      1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"origin_access_identity": &schema.Schema{
+									"origin_access_identity": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -377,31 +378,31 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 					},
 				},
 			},
-			"price_class": &schema.Schema{
+			"price_class": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "PriceClass_All",
 			},
-			"restrictions": &schema.Schema{
+			"restrictions": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Set:      restrictionsHash,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"geo_restriction": &schema.Schema{
+						"geo_restriction": {
 							Type:     schema.TypeSet,
 							Required: true,
 							Set:      geoRestrictionHash,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"locations": &schema.Schema{
+									"locations": {
 										Type:     schema.TypeList,
 										Optional: true,
 										Elem:     &schema.Schema{Type: schema.TypeString},
 									},
-									"restriction_type": &schema.Schema{
+									"restriction_type": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -411,80 +412,80 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 					},
 				},
 			},
-			"viewer_certificate": &schema.Schema{
+			"viewer_certificate": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Set:      viewerCertificateHash,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"acm_certificate_arn": &schema.Schema{
+						"acm_certificate_arn": {
 							Type:          schema.TypeString,
 							Optional:      true,
 							ConflictsWith: []string{"viewer_certificate.cloudfront_default_certificate", "viewer_certificate.iam_certificate_id"},
 						},
-						"cloudfront_default_certificate": &schema.Schema{
+						"cloudfront_default_certificate": {
 							Type:          schema.TypeBool,
 							Optional:      true,
 							ConflictsWith: []string{"viewer_certificate.acm_certificate_arn", "viewer_certificate.iam_certificate_id"},
 						},
-						"iam_certificate_id": &schema.Schema{
+						"iam_certificate_id": {
 							Type:          schema.TypeString,
 							Optional:      true,
 							ConflictsWith: []string{"viewer_certificate.acm_certificate_arn", "viewer_certificate.cloudfront_default_certificate"},
 						},
-						"minimum_protocol_version": &schema.Schema{
+						"minimum_protocol_version": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "SSLv3",
 						},
-						"ssl_support_method": &schema.Schema{
+						"ssl_support_method": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 					},
 				},
 			},
-			"web_acl_id": &schema.Schema{
+			"web_acl_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"caller_reference": &schema.Schema{
+			"caller_reference": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"active_trusted_signers": &schema.Schema{
+			"active_trusted_signers": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"domain_name": &schema.Schema{
+			"domain_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"last_modified_time": &schema.Schema{
+			"last_modified_time": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"in_progress_validation_batches": &schema.Schema{
+			"in_progress_validation_batches": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"etag": &schema.Schema{
+			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"hosted_zone_id": &schema.Schema{
+			"hosted_zone_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			// retain_on_delete is a non-API attribute that may help facilitate speedy
 			// deletion of a resoruce. It's mainly here for testing purposes, so
 			// enable at your own risk.
-			"retain_on_delete": &schema.Schema{
+			"retain_on_delete": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -542,17 +543,18 @@ func resourceAwsCloudFrontDistributionRead(d *schema.ResourceData, meta interfac
 	d.Set("etag", resp.ETag)
 	d.Set("arn", resp.Distribution.ARN)
 
-	cloudFrontArn := resp.Distribution.ARN
-	tagResp, tagErr := conn.ListTagsForResource(&cloudfront.ListTagsForResourceInput{
-		Resource: cloudFrontArn,
+	tagResp, err := conn.ListTagsForResource(&cloudfront.ListTagsForResourceInput{
+		Resource: aws.String(d.Get("arn").(string)),
 	})
 
-	if tagErr != nil {
-		log.Printf("[DEBUG] Error retrieving tags for ARN: %s", cloudFrontArn)
+	if err != nil {
+		return errwrap.Wrapf(fmt.Sprintf(
+			"Error retrieving EC2 tags for CloudFront Distribution %q (ARN: %q): {{err}}",
+			d.Id(), d.Get("arn").(string)), err)
 	}
 
-	if tagResp != nil {
-		d.Set("tags", tagsToMapCloudFront(tagResp.Tags))
+	if err := d.Set("tags", tagsToMapCloudFront(tagResp.Tags)); err != nil {
+		return err
 	}
 
 	return nil
@@ -589,7 +591,7 @@ func resourceAwsCloudFrontDistributionDelete(d *schema.ResourceData, meta interf
 
 	// skip delete if retain_on_delete is enabled
 	if d.Get("retain_on_delete").(bool) {
-		log.Printf("[WARN] Removing Distributions ID %s with retain_on_delete set. Please delete this distribution manually.", d.Id())
+		log.Printf("[WARN] Removing CloudFront Distribution ID %q with `retain_on_delete` set. Please delete this distribution manually.", d.Id())
 		d.SetId("")
 		return nil
 	}
@@ -643,7 +645,7 @@ func resourceAwsCloudFrontWebDistributionStateRefreshFunc(id string, meta interf
 
 		resp, err := conn.GetDistribution(params)
 		if err != nil {
-			log.Printf("Error on retrieving CloudFront distribution when waiting: %s", err)
+			log.Printf("[WARN] Error retrieving CloudFront Distribution %q details: %s", id, err)
 			return nil, "", err
 		}
 
@@ -659,15 +661,11 @@ func resourceAwsCloudFrontWebDistributionStateRefreshFunc(id string, meta interf
 // correct.
 func validateHTTP(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	found := false
-	for _, w := range []string{"http1.1", "http2"} {
-		if value == w {
-			found = true
-		}
-	}
-	if found == false {
+
+	if value != "http1.1" && value != "http2" {
 		errors = append(errors, fmt.Errorf(
-			"HTTP version parameter must be one of http1.1 or http2"))
+			"%q contains an invalid HTTP version parameter %q. Valid parameters are either %q or %q.",
+			k, value, "http1.1", "http2"))
 	}
 	return
 }

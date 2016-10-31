@@ -526,7 +526,7 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).redshiftconn
 	d.Partial(true)
 
-	arn, tagErr := buildRedshiftARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, tagErr := buildRedshiftARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if tagErr != nil {
 		return fmt.Errorf("Error building ARN for Redshift Cluster, not updating Tags for cluster %s", d.Id())
 	} else {
@@ -894,11 +894,14 @@ func validateRedshiftClusterMasterPassword(v interface{}, k string) (ws []string
 	return
 }
 
-func buildRedshiftARN(identifier, accountid, region string) (string, error) {
+func buildRedshiftARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct cluster ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct cluster ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:redshift:%s:%s:cluster:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:redshift:%s:%s:cluster:%s", partition, region, accountid, identifier)
 	return arn, nil
 
 }

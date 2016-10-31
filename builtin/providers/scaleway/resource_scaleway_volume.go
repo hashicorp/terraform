@@ -16,32 +16,24 @@ func resourceScalewayVolume() *schema.Resource {
 		Read:   resourceScalewayVolumeRead,
 		Update: resourceScalewayVolumeUpdate,
 		Delete: resourceScalewayVolumeDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
 			"size_in_gb": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(int)
-					if value < 1 || value > 150 {
-						errors = append(errors, fmt.Errorf("%q be more than 1 and less than 150", k))
-					}
-					return
-				},
+				Type:         schema.TypeInt,
+				Required:     true,
+				ValidateFunc: validateVolumeSize,
 			},
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if value != "l_ssd" {
-						errors = append(errors, fmt.Errorf("%q must be l_ssd", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateVolumeType,
 			},
 			"server": &schema.Schema{
 				Type:     schema.TypeString,
@@ -84,7 +76,9 @@ func resourceScalewayVolumeRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 	d.Set("name", volume.Name)
-	d.Set("size_in_gb", volume.Size/gb)
+	if size, ok := volume.Size.(float64); ok {
+		d.Set("size_in_gb", uint64(size)/gb)
+	}
 	d.Set("type", volume.VolumeType)
 	d.Set("server", "")
 	if volume.Server != nil {

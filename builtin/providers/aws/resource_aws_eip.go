@@ -29,6 +29,7 @@ func resourceAwsEip() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"instance": &schema.Schema{
@@ -168,7 +169,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	// On import (domain never set, which it must've been if we created),
 	// set the 'vpc' attribute depending on if we're in a VPC.
-	if _, ok := d.GetOk("domain"); !ok {
+	if address.Domain != nil {
 		d.Set("vpc", *address.Domain == "vpc")
 	}
 

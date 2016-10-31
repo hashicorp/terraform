@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
@@ -33,6 +32,10 @@ type StateOpts struct {
 	// it is assumed to be the path where the state is stored locally
 	// plus the DefaultBackupExtension.
 	BackupPath string
+
+	// ForceState is a state structure to force the value to be. This
+	// is used by Terraform plans (which contain their state).
+	ForceState *terraform.State
 }
 
 // StateResult is the result of calling State and holds various different
@@ -75,6 +78,12 @@ func State(opts *StateOpts) (*StateResult, error) {
 			if err := ls.RefreshState(); err != nil {
 				return nil, err
 			}
+
+			// If we have a forced state, set it
+			if opts.ForceState != nil {
+				ls.SetState(opts.ForceState)
+			}
+
 			is := &state.InmemState{}
 			is.WriteState(ls.State())
 
@@ -88,13 +97,29 @@ func State(opts *StateOpts) (*StateResult, error) {
 				return nil, err
 			}
 		} else {
-			if _, err := os.Stat(opts.RemotePath); err == nil {
-				// We have a remote state, initialize that.
-				remote, err = remoteStateFromPath(
+			// If we have a forced state that is remote, then we load that
+			if opts.ForceState != nil &&
+				opts.ForceState.Remote != nil &&
+				opts.ForceState.Remote.Type != "" {
+				var err error
+				remote, err = remoteState(
+					opts.ForceState,
 					opts.RemotePath,
-					opts.RemoteRefresh)
+					false)
 				if err != nil {
 					return nil, err
+				}
+			} else {
+				// Only if we have no forced state, we check our normal
+				// remote path.
+				if _, err := os.Stat(opts.RemotePath); err == nil {
+					// We have a remote state, initialize that.
+					remote, err = remoteStateFromPath(
+						opts.RemotePath,
+						opts.RemoteRefresh)
+					if err != nil {
+						return nil, err
+					}
 				}
 			}
 		}
@@ -104,6 +129,15 @@ func State(opts *StateOpts) (*StateResult, error) {
 			result.StatePath = opts.RemotePath
 			result.Remote = remote
 		}
+	}
+
+	// If we have a forced state and we were able to initialize that
+	// into a remote state, we don't do any local state stuff. This is
+	// because normally we're able to test whether we should do local vs.
+	// remote by checking file existence. With ForceState, file existence
+	// doesn't work because neither may exist, so we use state attributes.
+	if opts.ForceState != nil && result.Remote != nil {
+		opts.LocalPath = ""
 	}
 
 	// Do we have a local state?
@@ -120,23 +154,30 @@ func State(opts *StateOpts) (*StateResult, error) {
 			result.LocalPath = local.PathOut
 		}
 
-		err := local.RefreshState()
-		if err == nil {
-			if result.State != nil && !result.State.State().Empty() {
-				if !local.State().Empty() {
-					// We already have a remote state... that is an error.
-					return nil, fmt.Errorf(
-						"Remote state found, but state file '%s' also present.",
-						opts.LocalPath)
-				}
+		// If we're forcing, then set it
+		if opts.ForceState != nil {
+			local.SetState(opts.ForceState)
+		} else {
+			// If we're not forcing, then we load the state directly
+			// from disk.
+			err := local.RefreshState()
+			if err == nil {
+				if result.State != nil && !result.State.State().Empty() {
+					if !local.State().Empty() {
+						// We already have a remote state... that is an error.
+						return nil, fmt.Errorf(
+							"Remote state found, but state file '%s' also present.",
+							opts.LocalPath)
+					}
 
-				// Empty state
-				local = nil
+					// Empty state
+					local = nil
+				}
 			}
-		}
-		if err != nil {
-			return nil, errwrap.Wrapf(
-				"Error reading local state: {{err}}", err)
+			if err != nil {
+				return nil, errwrap.Wrapf(
+					"Error reading local state: {{err}}", err)
+			}
 		}
 
 		if local != nil {
@@ -165,43 +206,6 @@ func State(opts *StateOpts) (*StateResult, error) {
 
 	// Return whatever state we have
 	return result, nil
-}
-
-// StateFromPlan gets our state from the plan.
-func StateFromPlan(
-	localPath, outPath string,
-	plan *terraform.Plan) (state.State, string, error) {
-	var result state.State
-	resultPath := localPath
-	if plan != nil && plan.State != nil &&
-		plan.State.Remote != nil && plan.State.Remote.Type != "" {
-		var err error
-
-		// It looks like we have a remote state in the plan, so
-		// we have to initialize that.
-		resultPath = filepath.Join(DefaultDataDir, DefaultStateFilename)
-		result, err = remoteState(plan.State, resultPath, false)
-		if err != nil {
-			return nil, "", err
-		}
-	}
-
-	if result == nil {
-		local := &state.LocalState{
-			Path:    resultPath,
-			PathOut: outPath,
-		}
-		local.SetState(plan.State)
-		result = local
-	}
-
-	// If we have a result, make sure to back it up
-	result = &state.BackupState{
-		Real: result,
-		Path: resultPath + DefaultBackupExtension,
-	}
-
-	return result, resultPath, nil
 }
 
 func remoteState(

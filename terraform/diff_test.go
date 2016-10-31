@@ -7,7 +7,12 @@ import (
 )
 
 func TestDiffEmpty(t *testing.T) {
-	diff := new(Diff)
+	var diff *Diff
+	if !diff.Empty() {
+		t.Fatal("should be empty")
+	}
+
+	diff = new(Diff)
 	if !diff.Empty() {
 		t.Fatal("should be empty")
 	}
@@ -37,6 +42,64 @@ func TestDiffEmpty_taintedIsNotEmpty(t *testing.T) {
 
 	if diff.Empty() {
 		t.Fatal("should not be empty, since DestroyTainted was set")
+	}
+}
+
+func TestDiffEqual(t *testing.T) {
+	cases := map[string]struct {
+		D1, D2 *Diff
+		Equal  bool
+	}{
+		"nil": {
+			nil,
+			new(Diff),
+			false,
+		},
+
+		"empty": {
+			new(Diff),
+			new(Diff),
+			true,
+		},
+
+		"different module order": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}},
+					&ModuleDiff{Path: []string{"root", "bar"}},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "bar"}},
+					&ModuleDiff{Path: []string{"root", "foo"}},
+				},
+			},
+			true,
+		},
+
+		"different module diff destroys": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: false},
+				},
+			},
+			true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actual := tc.D1.Equal(tc.D2)
+			if actual != tc.Equal {
+				t.Fatalf("expected: %v\n\n%#v\n\n%#v", tc.Equal, tc.D1, tc.D2)
+			}
+		})
 	}
 }
 
@@ -112,6 +175,39 @@ func TestModuleDiff_ChangeType(t *testing.T) {
 		if actual != tc.Result {
 			t.Fatalf("%d: %#v", i, actual)
 		}
+	}
+}
+
+func TestDiff_DeepCopy(t *testing.T) {
+	cases := map[string]*Diff{
+		"empty": &Diff{},
+
+		"basic diff": &Diff{
+			Modules: []*ModuleDiff{
+				&ModuleDiff{
+					Path: []string{"root"},
+					Resources: map[string]*InstanceDiff{
+						"aws_instance.foo": &InstanceDiff{
+							Attributes: map[string]*ResourceAttrDiff{
+								"num": &ResourceAttrDiff{
+									Old: "0",
+									New: "2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			dup := tc.DeepCopy()
+			if !reflect.DeepEqual(dup, tc) {
+				t.Fatalf("\n%#v\n\n%#v", dup, tc)
+			}
+		})
 	}
 }
 
@@ -469,6 +565,47 @@ func TestInstanceDiffSame(t *testing.T) {
 			},
 			false,
 			"diff RequiresNew; old: true, new: false",
+		},
+
+		// NewComputed on primitive
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// NewComputed on primitive, removed
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{},
+			},
+			true,
+			"",
 		},
 
 		{

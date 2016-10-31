@@ -46,7 +46,7 @@ type kexResult struct {
 	Hash crypto.Hash
 
 	// The session ID, which is the first H computed. This is used
-	// to signal data inside transport.
+	// to derive key material inside the transport.
 	SessionID []byte
 }
 
@@ -77,11 +77,11 @@ type kexAlgorithm interface {
 
 // dhGroup is a multiplicative group suitable for implementing Diffie-Hellman key agreement.
 type dhGroup struct {
-	g, p *big.Int
+	g, p, pMinus1 *big.Int
 }
 
 func (group *dhGroup) diffieHellman(theirPublic, myPrivate *big.Int) (*big.Int, error) {
-	if theirPublic.Sign() <= 0 || theirPublic.Cmp(group.p) >= 0 {
+	if theirPublic.Cmp(bigOne) <= 0 || theirPublic.Cmp(group.pMinus1) >= 0 {
 		return nil, errors.New("ssh: DH parameter out of bounds")
 	}
 	return new(big.Int).Exp(theirPublic, myPrivate, group.p), nil
@@ -90,10 +90,17 @@ func (group *dhGroup) diffieHellman(theirPublic, myPrivate *big.Int) (*big.Int, 
 func (group *dhGroup) Client(c packetConn, randSource io.Reader, magics *handshakeMagics) (*kexResult, error) {
 	hashFunc := crypto.SHA1
 
-	x, err := rand.Int(randSource, group.p)
-	if err != nil {
-		return nil, err
+	var x *big.Int
+	for {
+		var err error
+		if x, err = rand.Int(randSource, group.pMinus1); err != nil {
+			return nil, err
+		}
+		if x.Sign() > 0 {
+			break
+		}
 	}
+
 	X := new(big.Int).Exp(group.g, x, group.p)
 	kexDHInit := kexDHInitMsg{
 		X: X,
@@ -146,9 +153,14 @@ func (group *dhGroup) Server(c packetConn, randSource io.Reader, magics *handsha
 		return
 	}
 
-	y, err := rand.Int(randSource, group.p)
-	if err != nil {
-		return
+	var y *big.Int
+	for {
+		if y, err = rand.Int(randSource, group.pMinus1); err != nil {
+			return
+		}
+		if y.Sign() > 0 {
+			break
+		}
 	}
 
 	Y := new(big.Int).Exp(group.g, y, group.p)
@@ -373,6 +385,7 @@ func init() {
 	kexAlgoMap[kexAlgoDH1SHA1] = &dhGroup{
 		g: new(big.Int).SetInt64(2),
 		p: p,
+		pMinus1: new(big.Int).Sub(p, bigOne),
 	}
 
 	// This is the group called diffie-hellman-group14-sha1 in RFC
@@ -382,6 +395,7 @@ func init() {
 	kexAlgoMap[kexAlgoDH14SHA1] = &dhGroup{
 		g: new(big.Int).SetInt64(2),
 		p: p,
+		pMinus1: new(big.Int).Sub(p, bigOne),
 	}
 
 	kexAlgoMap[kexAlgoECDH521] = &ecdh{elliptic.P521()}

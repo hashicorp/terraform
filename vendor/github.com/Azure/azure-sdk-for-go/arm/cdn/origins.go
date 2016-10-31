@@ -55,9 +55,9 @@ func NewOriginsClientWithBaseURI(baseURI string, subscriptionID string) OriginsC
 // resource group within the Azure subscription.
 func (client OriginsClient) Create(originName string, originProperties OriginParameters, endpointName string, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{originProperties,
-			[]validation.Constraint{{"originProperties.Properties", validation.Null, false,
-				[]validation.Constraint{{"originProperties.Properties.HostName", validation.Null, true, nil}}}}}}); err != nil {
+		{TargetValue: originProperties,
+			Constraints: []validation.Constraint{{Target: "originProperties.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "originProperties.Properties.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.OriginsClient", "Create")
 	}
 

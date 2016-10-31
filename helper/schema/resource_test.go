@@ -480,13 +480,49 @@ func TestResourceInternalValidate(t *testing.T) {
 			false,
 			true,
 		},
+
+		// writable must have Read
+		{
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Delete: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"goo": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+			},
+			true,
+			true,
+		},
+
+		// writable must have Delete
+		{
+			&Resource{
+				Create: func(d *ResourceData, meta interface{}) error { return nil },
+				Read:   func(d *ResourceData, meta interface{}) error { return nil },
+				Update: func(d *ResourceData, meta interface{}) error { return nil },
+				Schema: map[string]*Schema{
+					"goo": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+			},
+			true,
+			true,
+		},
 	}
 
 	for i, tc := range cases {
-		err := tc.In.InternalValidate(schemaMap{}, tc.Writable)
-		if err != nil != tc.Err {
-			t.Fatalf("%d: bad: %s", i, err)
-		}
+		t.Run(fmt.Sprintf("#%d", i), func(t *testing.T) {
+			err := tc.In.InternalValidate(schemaMap{}, tc.Writable)
+			if err != nil != tc.Err {
+				t.Fatalf("%d: bad: %s", i, err)
+			}
+		})
 	}
 }
 

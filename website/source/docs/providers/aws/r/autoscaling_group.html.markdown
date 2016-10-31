@@ -103,7 +103,7 @@ Tags support the following:
 
 The following attributes are exported:
 
-* `id` - The autoscaling group name.
+* `id` - The autoscaling group id.
 * `arn` - The ARN for this AutoScaling Group
 * `availability_zones` - The availability zones of the autoscale group.
 * `min_size` - The minimum size of the autoscale group

@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/logging"
 )
 
@@ -22,7 +23,9 @@ import (
 const fixtureDir = "./test-fixtures"
 
 func TestMain(m *testing.M) {
+	experiment.Flag(flag.CommandLine)
 	flag.Parse()
+
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
 		logging.SetOutput()
@@ -30,6 +33,12 @@ func TestMain(m *testing.M) {
 		// otherwise silence all logs
 		log.SetOutput(ioutil.Discard)
 	}
+
+	// Make sure shadow operations fail our real tests
+	contextFailOnShadowError = true
+
+	// Always DeepCopy the Diff on every Plan during a test
+	contextTestDeepCopyOnPlan = true
 
 	os.Exit(m.Run())
 }
@@ -50,9 +59,15 @@ func tempDir(t *testing.T) string {
 // a function to defer to reset the old value.
 // the old value that should be set via a defer.
 func tempEnv(t *testing.T, k string, v string) func() {
-	old := os.Getenv(k)
+	old, oldOk := os.LookupEnv(k)
 	os.Setenv(k, v)
-	return func() { os.Setenv(k, old) }
+	return func() {
+		if !oldOk {
+			os.Unsetenv(k)
+		} else {
+			os.Setenv(k, old)
+		}
+	}
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
@@ -236,6 +251,11 @@ aws_instance.foo:
   ID = foo
   num = 2
   type = aws_instance
+`
+
+const testTerraformApplyDataBasicStr = `
+data.null_data_source.testing:
+  ID = yo
 `
 
 const testTerraformApplyRefCountStr = `
@@ -1113,7 +1133,6 @@ DIFF:
 DESTROY: aws_instance.foo
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo
 
 STATE:
@@ -1130,10 +1149,8 @@ const testTerraformPlanModuleDestroyCycleStr = `
 DIFF:
 
 module.a_module:
-  DESTROY MODULE
   DESTROY: aws_instance.a
 module.b_module:
-  DESTROY MODULE
   DESTROY: aws_instance.b
 
 STATE:
@@ -1150,7 +1167,6 @@ const testTerraformPlanModuleDestroyMultivarStr = `
 DIFF:
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo.0
   DESTROY: aws_instance.foo.1
 
@@ -1347,6 +1363,21 @@ aws_instance.foo:
   num = 2
 `
 
+const testTerraformPlanTaintIgnoreChangesStr = `
+DIFF:
+
+DESTROY/CREATE: aws_instance.foo
+  type: "" => "aws_instance"
+  vars: "" => "foo"
+
+STATE:
+
+aws_instance.foo: (tainted)
+  ID = foo
+  type = aws_instance
+  vars = foo
+`
+
 const testTerraformPlanMultipleTaintStr = `
 DIFF:
 
@@ -1467,4 +1498,18 @@ hcl_instance.hcltest:
   foo.0 = a
   foo.1 = b
   type = hcl_instance
+`
+
+const testTerraformRefreshDataRefDataStr = `
+data.null_data_source.bar:
+  ID = foo
+  bar = yes
+  type = null_data_source
+
+  Dependencies:
+    data.null_data_source.foo
+data.null_data_source.foo:
+  ID = foo
+  foo = yes
+  type = null_data_source
 `

@@ -15,27 +15,27 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 
 ```
 # Create a new instance of the latest Ubuntu 14.04 on an
-# t1.micro node with an AWS Tag naming it "HelloWorld"
+# t2.micro node with an AWS Tag naming it "HelloWorld"
 provider "aws" {
-    region = "us-east-1"
+    region = "us-west-2"
 }
 
 data "aws_ami" "ubuntu" {
   most_recent = true
   filter {
     name = "name"
-    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
   }
   filter {
     name = "virtualization-type"
-    values = ["paravirtual"]
+    values = ["hvm"]
   }
   owners = ["099720109477"] # Canonical
 }
 
 resource "aws_instance" "web" {
     ami = "${data.aws_ami.ubuntu.id}"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
     tags {
         Name = "HelloWorld"
     }
@@ -61,7 +61,7 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
 * `monitoring` - (Optional) If true, the launched EC2 instance will have detailed monitoring enabled. (Available since v0.6.0)
-* `security_groups` - (Optional) A list of security group IDs to associate with.
+* `security_groups` - (Optional) A list of security group names to associate with.
    If you are creating Instances in a VPC, use `vpc_security_group_ids` instead.
 * `vpc_security_group_ids` - (Optional) A list of security group IDs to associate with.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.

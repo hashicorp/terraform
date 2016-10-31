@@ -175,7 +175,7 @@ func testCheckAzureRMTrafficManagerProfileDestroy(s *terraform.State) error {
 
 var testAccAzureRMTrafficManagerProfile_weighted = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -199,7 +199,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 var testAccAzureRMTrafficManagerProfile_performance = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -223,7 +223,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 var testAccAzureRMTrafficManagerProfile_priority = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -247,7 +247,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 var testAccAzureRMTrafficManagerProfile_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -276,7 +276,7 @@ resource "azurerm_traffic_manager_profile" "test" {
 
 var testAccAzureRMTrafficManagerProfile_withTagsUpdated = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 

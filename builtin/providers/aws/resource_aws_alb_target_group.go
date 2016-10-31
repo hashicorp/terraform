@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -26,6 +27,11 @@ func resourceAwsAlbTargetGroup() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"arn_suffix": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -218,6 +224,7 @@ func resourceAwsAlbTargetGroupRead(d *schema.ResourceData, meta interface{}) err
 	targetGroup := resp.TargetGroups[0]
 
 	d.Set("arn", targetGroup.TargetGroupArn)
+	d.Set("arn_suffix", albTargetGroupSuffixFromARN(targetGroup.TargetGroupArn))
 	d.Set("name", targetGroup.TargetGroupName)
 	d.Set("port", targetGroup.Port)
 	d.Set("protocol", targetGroup.Protocol)
@@ -462,4 +469,18 @@ func validateAwsAlbTargetGroupStickinessCookieDuration(v interface{}, k string) 
 		errors = append(errors, fmt.Errorf("%q must be a between 1 second and 1 week (1-604800 seconds))", k))
 	}
 	return
+}
+
+func albTargetGroupSuffixFromARN(arn *string) string {
+	if arn == nil {
+		return ""
+	}
+
+	if arnComponents := regexp.MustCompile(`arn:.*:targetgroup/(.*)`).FindAllStringSubmatch(*arn, -1); len(arnComponents) == 1 {
+		if len(arnComponents[0]) == 2 {
+			return arnComponents[0][1]
+		}
+	}
+
+	return ""
 }
