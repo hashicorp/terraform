@@ -14,19 +14,19 @@ func dataSourceAwsSecurityGroup() *schema.Resource {
 		Read: dataSourceAwsSecurityGroupRead,
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 			"filter": ec2CustomFiltersSchema(),
 
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

@@ -58,19 +58,19 @@ func TestAccAWSElasticTranscoderPreset_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckElasticTranscoderPresetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPresetConfig,
 				Check: resource.ComposeTestCheckFunc(
 					checkExists(false),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPresetConfig2,
 				Check: resource.ComposeTestCheckFunc(
 					checkExists(true),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPresetConfig3,
 				Check: resource.ComposeTestCheckFunc(
 					checkExists(true),

@@ -24,105 +24,105 @@ func resourceAwsEMRCluster() *schema.Resource {
 		Update: resourceAwsEMRClusterUpdate,
 		Delete: resourceAwsEMRClusterDelete,
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"release_label": &schema.Schema{
+			"release_label": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"master_instance_type": &schema.Schema{
+			"master_instance_type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"core_instance_type": &schema.Schema{
+			"core_instance_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
-			"core_instance_count": &schema.Schema{
+			"core_instance_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  0,
 			},
-			"cluster_state": &schema.Schema{
+			"cluster_state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"log_uri": &schema.Schema{
+			"log_uri": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
-			"master_public_dns": &schema.Schema{
+			"master_public_dns": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"applications": &schema.Schema{
+			"applications": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"ec2_attributes": &schema.Schema{
+			"ec2_attributes": {
 				Type:     schema.TypeList,
 				MaxItems: 1,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"key_name": &schema.Schema{
+						"key_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"subnet_id": &schema.Schema{
+						"subnet_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"additional_master_security_groups": &schema.Schema{
+						"additional_master_security_groups": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"additional_slave_security_groups": &schema.Schema{
+						"additional_slave_security_groups": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"emr_managed_master_security_group": &schema.Schema{
+						"emr_managed_master_security_group": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"emr_managed_slave_security_group": &schema.Schema{
+						"emr_managed_slave_security_group": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"instance_profile": &schema.Schema{
+						"instance_profile": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 					},
 				},
 			},
-			"bootstrap_action": &schema.Schema{
+			"bootstrap_action": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"path": &schema.Schema{
+						"path": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"args": &schema.Schema{
+						"args": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -132,17 +132,17 @@ func resourceAwsEMRCluster() *schema.Resource {
 				},
 			},
 			"tags": tagsSchema(),
-			"configurations": &schema.Schema{
+			"configurations": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
-			"service_role": &schema.Schema{
+			"service_role": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"visible_to_all_users": &schema.Schema{
+			"visible_to_all_users": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,

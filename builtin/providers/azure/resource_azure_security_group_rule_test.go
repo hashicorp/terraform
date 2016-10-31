@@ -27,7 +27,7 @@ func TestAccAzureSecurityGroupRuleBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureSecurityGroupRuleDeleted([]string{testAccSecurityGroupName}),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureSecurityGroupRuleBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureSecurityGroupRuleExists(name, testAccSecurityGroupName),
@@ -62,7 +62,7 @@ func TestAccAzureSecurityGroupRuleAdvanced(t *testing.T) {
 			},
 		),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureSecurityGroupRuleAdvancedConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureSecurityGroupRuleExists(name, testAcctestingSecurityGroup1),
@@ -99,7 +99,7 @@ func TestAccAzureSecurityGroupRuleUpdate(t *testing.T) {
 			},
 		),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureSecurityGroupRuleAdvancedConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureSecurityGroupRuleExists(name, testAcctestingSecurityGroup1),
@@ -120,7 +120,7 @@ func TestAccAzureSecurityGroupRuleUpdate(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAzureSecurityGroupRuleUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureSecurityGroupRuleExists(name, testAcctestingSecurityGroup2),

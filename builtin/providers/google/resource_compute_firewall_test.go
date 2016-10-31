@@ -20,7 +20,7 @@ func TestAccComputeFirewall_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeFirewallDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeFirewall_basic(networkName, firewallName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeFirewallExists(
@@ -41,14 +41,14 @@ func TestAccComputeFirewall_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeFirewallDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeFirewall_basic(networkName, firewallName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeFirewallExists(
 						"google_compute_firewall.foobar", &firewall),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccComputeFirewall_update(networkName, firewallName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeFirewallExists(

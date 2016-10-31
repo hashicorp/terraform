@@ -18,7 +18,7 @@ func TestAccLibratoSpaceChart_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoSpaceChartDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckLibratoSpaceChartConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoSpaceChartExists("librato_space_chart.foobar", &spaceChart),
@@ -39,7 +39,7 @@ func TestAccLibratoSpaceChart_Full(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoSpaceChartDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckLibratoSpaceChartConfig_full,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoSpaceChartExists("librato_space_chart.foobar", &spaceChart),
@@ -60,7 +60,7 @@ func TestAccLibratoSpaceChart_Updated(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLibratoSpaceChartDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckLibratoSpaceChartConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoSpaceChartExists("librato_space_chart.foobar", &spaceChart),
@@ -69,7 +69,7 @@ func TestAccLibratoSpaceChart_Updated(t *testing.T) {
 						"librato_space_chart.foobar", "name", "Foo Bar"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckLibratoSpaceChartConfig_new_value,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibratoSpaceChartExists("librato_space_chart.foobar", &spaceChart),

@@ -18,7 +18,7 @@ func TestAccComputeV2SecGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeV2SecGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeV2SecGroup_basic_orig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.foo", &secgroup),
@@ -36,13 +36,13 @@ func TestAccComputeV2SecGroup_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeV2SecGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeV2SecGroup_basic_orig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.foo", &secgroup),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccComputeV2SecGroup_basic_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.foo", &secgroup),
@@ -61,7 +61,7 @@ func TestAccComputeV2SecGroup_groupID(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeV2SecGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeV2SecGroup_groupID_orig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.test_group_1", &secgroup1),
@@ -70,7 +70,7 @@ func TestAccComputeV2SecGroup_groupID(t *testing.T) {
 					testAccCheckComputeV2SecGroupGroupIDMatch(t, &secgroup1, &secgroup3),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccComputeV2SecGroup_groupID_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.test_group_1", &secgroup1),
@@ -91,7 +91,7 @@ func TestAccComputeV2SecGroup_self(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeV2SecGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeV2SecGroup_self,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.test_group_1", &secgroup),
@@ -114,7 +114,7 @@ func TestAccComputeV2SecGroup_icmpZero(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeV2SecGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeV2SecGroup_icmpZero,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.test_group_1", &secgroup),
@@ -132,7 +132,7 @@ func TestAccComputeV2SecGroup_lowerCaseCIDR(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeV2SecGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeV2SecGroup_lowerCaseCIDR,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.test_group_1", &secgroup),

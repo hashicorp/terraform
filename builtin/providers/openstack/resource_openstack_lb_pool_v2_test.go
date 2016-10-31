@@ -17,13 +17,13 @@ func TestAccLBV2Pool_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLBV2PoolDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: TestAccLBV2PoolConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBV2PoolExists(t, "openstack_lb_pool_v2.pool_1", &pool),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: TestAccLBV2PoolConfig_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_lb_pool_v2.pool_1", "name", "tf_test_pool_update"),

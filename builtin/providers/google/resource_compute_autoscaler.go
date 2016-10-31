@@ -20,50 +20,50 @@ func resourceComputeAutoscaler() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"target": &schema.Schema{
+			"target": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"zone": &schema.Schema{
+			"zone": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"autoscaling_policy": &schema.Schema{
+			"autoscaling_policy": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"min_replicas": &schema.Schema{
+						"min_replicas": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"max_replicas": &schema.Schema{
+						"max_replicas": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"cooldown_period": &schema.Schema{
+						"cooldown_period": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Default:  60,
 						},
 
-						"cpu_utilization": &schema.Schema{
+						"cpu_utilization": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"target": &schema.Schema{
+									"target": {
 										Type:     schema.TypeFloat,
 										Required: true,
 									},
@@ -71,21 +71,21 @@ func resourceComputeAutoscaler() *schema.Resource {
 							},
 						},
 
-						"metric": &schema.Schema{
+						"metric": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"name": &schema.Schema{
+									"name": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
-									"target": &schema.Schema{
+									"target": {
 										Type:     schema.TypeFloat,
 										Required: true,
 									},
 
-									"type": &schema.Schema{
+									"type": {
 										Type:     schema.TypeString,
 										Required: true,
 									},
@@ -93,12 +93,12 @@ func resourceComputeAutoscaler() *schema.Resource {
 							},
 						},
 
-						"load_balancing_utilization": &schema.Schema{
+						"load_balancing_utilization": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"target": &schema.Schema{
+									"target": {
 										Type:     schema.TypeFloat,
 										Required: true,
 									},
@@ -109,18 +109,18 @@ func resourceComputeAutoscaler() *schema.Resource {
 				},
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"project": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"self_link": &schema.Schema{
+			"self_link": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

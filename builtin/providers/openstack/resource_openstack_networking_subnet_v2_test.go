@@ -18,13 +18,13 @@ func TestAccNetworkingV2Subnet_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2SubnetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2Subnet_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2Subnet_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "name", "subnet_1"),
@@ -44,7 +44,7 @@ func TestAccNetworkingV2Subnet_enableDHCP(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2SubnetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2Subnet_enableDHCP,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
@@ -63,7 +63,7 @@ func TestAccNetworkingV2Subnet_disableDHCP(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2SubnetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2Subnet_disableDHCP,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
@@ -82,7 +82,7 @@ func TestAccNetworkingV2Subnet_noGateway(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2SubnetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2Subnet_noGateway,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
@@ -101,7 +101,7 @@ func TestAccNetworkingV2Subnet_impliedGateway(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2SubnetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2Subnet_impliedGateway,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),

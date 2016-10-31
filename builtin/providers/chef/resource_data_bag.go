@@ -13,12 +13,12 @@ func resourceChefDataBag() *schema.Resource {
 		Delete: DeleteDataBag,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"api_uri": &schema.Schema{
+			"api_uri": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

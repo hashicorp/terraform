@@ -17,14 +17,14 @@ func TestAccQueue_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccQueueCheckDestroy(&queue),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccQueueConfig_basic,
 				Check: testAccQueueCheck(
 					resourceName, &queue,
 				),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

@@ -18,12 +18,12 @@ func resourceAwsWafSizeConstraintSet() *schema.Resource {
 		Delete: resourceAwsWafSizeConstraintSetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"size_constraints": &schema.Schema{
+			"size_constraints": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
@@ -45,15 +45,15 @@ func resourceAwsWafSizeConstraintSet() *schema.Resource {
 								},
 							},
 						},
-						"comparison_operator": &schema.Schema{
+						"comparison_operator": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"size": &schema.Schema{
+						"size": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"text_transformation": &schema.Schema{
+						"text_transformation": {
 							Type:     schema.TypeString,
 							Required: true,
 						},

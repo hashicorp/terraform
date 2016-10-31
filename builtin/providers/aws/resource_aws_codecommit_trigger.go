@@ -16,48 +16,48 @@ func resourceAwsCodeCommitTrigger() *schema.Resource {
 		Delete: resourceAwsCodeCommitTriggerDelete,
 
 		Schema: map[string]*schema.Schema{
-			"repository_name": &schema.Schema{
+			"repository_name": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
-			"configuration_id": &schema.Schema{
+			"configuration_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"trigger": &schema.Schema{
+			"trigger": {
 				Type:     schema.TypeSet,
 				ForceNew: true,
 				Required: true,
 				MaxItems: 10,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 
-						"destination_arn": &schema.Schema{
+						"destination_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 
-						"custom_data": &schema.Schema{
+						"custom_data": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 
-						"branches": &schema.Schema{
+						"branches": {
 							Type:     schema.TypeList,
 							Optional: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"events": &schema.Schema{
+						"events": {
 							Type:     schema.TypeList,
 							Required: true,
 							ForceNew: true,

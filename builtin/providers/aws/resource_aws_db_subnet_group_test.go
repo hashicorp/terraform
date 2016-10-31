@@ -24,7 +24,7 @@ func TestAccAWSDBSubnetGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDBSubnetGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(
@@ -54,7 +54,7 @@ func TestAccAWSDBSubnetGroup_withUndocumentedCharacters(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDBSubnetGroupConfig_withUnderscoresAndPeriodsAndSpaces,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(
@@ -78,7 +78,7 @@ func TestAccAWSDBSubnetGroup_updateDescription(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDBSubnetGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDBSubnetGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(
@@ -88,7 +88,7 @@ func TestAccAWSDBSubnetGroup_updateDescription(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccDBSubnetGroupConfig_updatedDescription,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDBSubnetGroupExists(

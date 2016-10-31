@@ -18,7 +18,7 @@ func TestAccAWSPlacementGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSPlacementGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSPlacementGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSPlacementGroupExists("aws_placement_group.pg"),

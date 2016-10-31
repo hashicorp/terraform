@@ -18,7 +18,7 @@ func TestAccComputeAddress_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeAddressDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeAddress_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeAddressExists(

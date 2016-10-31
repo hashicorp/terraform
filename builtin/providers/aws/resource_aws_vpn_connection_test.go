@@ -19,7 +19,7 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccAwsVpnConnectionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsVpnConnectionConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAwsVpnConnection(
@@ -30,7 +30,7 @@ func TestAccAWSVpnConnection_basic(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsVpnConnectionConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAwsVpnConnection(

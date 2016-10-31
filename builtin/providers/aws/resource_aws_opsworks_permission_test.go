@@ -11,7 +11,7 @@ func TestAccAWSOpsworksPermission(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksPermissionCreate,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(

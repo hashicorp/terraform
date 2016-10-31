@@ -18,7 +18,7 @@ func TestAccComputeImage_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeImageDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeImage_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeImageExists(

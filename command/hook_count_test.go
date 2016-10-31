@@ -15,10 +15,10 @@ func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
 	h := new(CountHook)
 
 	resources := map[string]*terraform.InstanceDiff{
-		"foo":   &terraform.InstanceDiff{Destroy: true},
-		"bar":   &terraform.InstanceDiff{Destroy: true},
-		"lorem": &terraform.InstanceDiff{Destroy: true},
-		"ipsum": &terraform.InstanceDiff{Destroy: true},
+		"foo":   {Destroy: true},
+		"bar":   {Destroy: true},
+		"lorem": {Destroy: true},
+		"ipsum": {Destroy: true},
 	}
 
 	n := &terraform.InstanceInfo{} // TODO
@@ -43,19 +43,19 @@ func TestCountHookPostDiff_AddOnly(t *testing.T) {
 	h := new(CountHook)
 
 	resources := map[string]*terraform.InstanceDiff{
-		"foo": &terraform.InstanceDiff{
+		"foo": {
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{RequiresNew: true},
+				"foo": {RequiresNew: true},
 			},
 		},
-		"bar": &terraform.InstanceDiff{
+		"bar": {
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{RequiresNew: true},
+				"foo": {RequiresNew: true},
 			},
 		},
-		"lorem": &terraform.InstanceDiff{
+		"lorem": {
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{RequiresNew: true},
+				"foo": {RequiresNew: true},
 			},
 		},
 	}
@@ -82,22 +82,22 @@ func TestCountHookPostDiff_ChangeOnly(t *testing.T) {
 	h := new(CountHook)
 
 	resources := map[string]*terraform.InstanceDiff{
-		"foo": &terraform.InstanceDiff{
+		"foo": {
 			Destroy: false,
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
-		"bar": &terraform.InstanceDiff{
+		"bar": {
 			Destroy: false,
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
-		"lorem": &terraform.InstanceDiff{
+		"lorem": {
 			Destroy: false,
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
 	}
@@ -124,17 +124,17 @@ func TestCountHookPostDiff_Mixed(t *testing.T) {
 	h := new(CountHook)
 
 	resources := map[string]*terraform.InstanceDiff{
-		"foo": &terraform.InstanceDiff{
+		"foo": {
 			Destroy: true,
 		},
-		"bar": &terraform.InstanceDiff{},
-		"lorem": &terraform.InstanceDiff{
+		"bar": {},
+		"lorem": {
 			Destroy: false,
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
-		"ipsum": &terraform.InstanceDiff{Destroy: true},
+		"ipsum": {Destroy: true},
 	}
 
 	n := &terraform.InstanceInfo{}
@@ -159,10 +159,10 @@ func TestCountHookPostDiff_NoChange(t *testing.T) {
 	h := new(CountHook)
 
 	resources := map[string]*terraform.InstanceDiff{
-		"foo":   &terraform.InstanceDiff{},
-		"bar":   &terraform.InstanceDiff{},
-		"lorem": &terraform.InstanceDiff{},
-		"ipsum": &terraform.InstanceDiff{},
+		"foo":   {},
+		"bar":   {},
+		"lorem": {},
+		"ipsum": {},
 	}
 
 	n := &terraform.InstanceInfo{}
@@ -187,17 +187,17 @@ func TestCountHookPostDiff_DataSource(t *testing.T) {
 	h := new(CountHook)
 
 	resources := map[string]*terraform.InstanceDiff{
-		"data.foo": &terraform.InstanceDiff{
+		"data.foo": {
 			Destroy: true,
 		},
-		"data.bar": &terraform.InstanceDiff{},
-		"data.lorem": &terraform.InstanceDiff{
+		"data.bar": {},
+		"data.lorem": {
 			Destroy: false,
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo": &terraform.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
-		"data.ipsum": &terraform.InstanceDiff{Destroy: true},
+		"data.ipsum": {Destroy: true},
 	}
 
 	for k, d := range resources {

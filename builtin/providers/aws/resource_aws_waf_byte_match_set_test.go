@@ -23,7 +23,7 @@ func TestAccAWSWafByteMatchSet_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSWafByteMatchSetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSWafByteMatchSetConfig(byteMatchSet),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSWafByteMatchSetExists("aws_waf_byte_match_set.byte_set", &v),

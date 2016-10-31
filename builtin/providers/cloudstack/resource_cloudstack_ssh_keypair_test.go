@@ -18,7 +18,7 @@ func TestAccCloudStackSSHKeyPair_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackSSHKeyPairDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackSSHKeyPair_create,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackSSHKeyPairExists("cloudstack_ssh_keypair.foo", &sshkey),
@@ -38,7 +38,7 @@ func TestAccCloudStackSSHKeyPair_register(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackSSHKeyPairDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackSSHKeyPair_register,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackSSHKeyPairExists("cloudstack_ssh_keypair.foo", &sshkey),

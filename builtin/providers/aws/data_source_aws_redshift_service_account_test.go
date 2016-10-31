@@ -11,13 +11,13 @@ func TestAccAWSRedshiftServiceAccount_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsRedshiftServiceAccountConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.aws_redshift_service_account.main", "id", "902366379725"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsRedshiftServiceAccountExplicitRegionConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.aws_redshift_service_account.regional", "id", "210876761215"),

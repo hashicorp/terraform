@@ -29,62 +29,62 @@ func resourceAwsRoute() *schema.Resource {
 		Exists: resourceAwsRouteExists,
 
 		Schema: map[string]*schema.Schema{
-			"destination_cidr_block": &schema.Schema{
+			"destination_cidr_block": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"destination_prefix_list_id": &schema.Schema{
+			"destination_prefix_list_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"gateway_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
-			"nat_gateway_id": &schema.Schema{
+			"gateway_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"instance_id": &schema.Schema{
+			"nat_gateway_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"instance_owner_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"network_interface_id": &schema.Schema{
+			"instance_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"origin": &schema.Schema{
+			"instance_owner_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"state": &schema.Schema{
+			"network_interface_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"origin": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"route_table_id": &schema.Schema{
+			"state": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"route_table_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"vpc_peering_connection_id": &schema.Schema{
+			"vpc_peering_connection_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},

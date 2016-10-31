@@ -22,7 +22,7 @@ func TestAccAWSAMILaunchPermission_Basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []r.TestStep{
 			// Scaffold everything
-			r.TestStep{
+			{
 				Config: testAccAWSAMILaunchPermissionConfig(account_id, true),
 				Check: r.ComposeTestCheckFunc(
 					testCheckResourceGetAttr("aws_ami_copy.test", "id", &image_id),
@@ -30,7 +30,7 @@ func TestAccAWSAMILaunchPermission_Basic(t *testing.T) {
 				),
 			},
 			// Drop just launch permission to test destruction
-			r.TestStep{
+			{
 				Config: testAccAWSAMILaunchPermissionConfig(account_id, false),
 				Check: r.ComposeTestCheckFunc(
 					testAccAWSAMILaunchPermissionDestroyed(account_id, &image_id),

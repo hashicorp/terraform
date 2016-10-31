@@ -21,7 +21,7 @@ func TestAccAWSEMRInstanceGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEmrInstanceGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEmrInstanceGroupConfig(rInt),
 				Check:  testAccCheckAWSEmrInstanceGroupExists("aws_emr_instance_group.task", &ig),
 			},

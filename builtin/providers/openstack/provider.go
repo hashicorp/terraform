@@ -13,72 +13,72 @@ var osMutexKV = mutexkv.NewMutexKV()
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"auth_url": &schema.Schema{
+			"auth_url": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_URL", nil),
 			},
-			"user_name": &schema.Schema{
+			"user_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_USERNAME", ""),
 			},
-			"user_id": &schema.Schema{
+			"user_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
-			"tenant_id": &schema.Schema{
+			"tenant_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
-			"tenant_name": &schema.Schema{
+			"tenant_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_TENANT_NAME", nil),
 			},
-			"password": &schema.Schema{
+			"password": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_PASSWORD", ""),
 			},
-			"token": &schema.Schema{
+			"token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_TOKEN", ""),
 			},
-			"domain_id": &schema.Schema{
+			"domain_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_DOMAIN_ID", ""),
 			},
-			"domain_name": &schema.Schema{
+			"domain_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_DOMAIN_NAME", ""),
 			},
-			"insecure": &schema.Schema{
+			"insecure": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
-			"endpoint_type": &schema.Schema{
+			"endpoint_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_ENDPOINT_TYPE", ""),
 			},
-			"cacert_file": &schema.Schema{
+			"cacert_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_CACERT", ""),
 			},
-			"cert": &schema.Schema{
+			"cert": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_CERT", ""),
 			},
-			"key": &schema.Schema{
+			"key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_KEY", ""),

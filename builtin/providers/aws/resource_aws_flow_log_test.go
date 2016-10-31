@@ -19,7 +19,7 @@ func TestAccAWSFlowLog_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccFlowLogConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFlowLogExists("aws_flow_log.test_flow_log", &flowLog),
@@ -39,7 +39,7 @@ func TestAccAWSFlowLog_subnet(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccFlowLogConfig_subnet,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFlowLogExists("aws_flow_log.test_flow_log_subnet", &flowLog),

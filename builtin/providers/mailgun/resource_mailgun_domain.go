@@ -17,56 +17,56 @@ func resourceMailgunDomain() *schema.Resource {
 		Delete: resourceMailgunDomainDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"spam_action": &schema.Schema{
+			"spam_action": {
 				Type:     schema.TypeString,
 				Computed: true,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"smtp_password": &schema.Schema{
+			"smtp_password": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Required: true,
 			},
 
-			"smtp_login": &schema.Schema{
+			"smtp_login": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 			},
 
-			"wildcard": &schema.Schema{
+			"wildcard": {
 				Type:     schema.TypeBool,
 				Computed: true,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"receiving_records": &schema.Schema{
+			"receiving_records": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"priority": &schema.Schema{
+						"priority": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"record_type": &schema.Schema{
+						"record_type": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"valid": &schema.Schema{
+						"valid": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -74,24 +74,24 @@ func resourceMailgunDomain() *schema.Resource {
 				},
 			},
 
-			"sending_records": &schema.Schema{
+			"sending_records": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"record_type": &schema.Schema{
+						"record_type": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"valid": &schema.Schema{
+						"valid": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},

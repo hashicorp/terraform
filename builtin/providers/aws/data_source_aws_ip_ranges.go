@@ -30,26 +30,26 @@ func dataSourceAwsIPRanges() *schema.Resource {
 		Read: dataSourceAwsIPRangesRead,
 
 		Schema: map[string]*schema.Schema{
-			"cidr_blocks": &schema.Schema{
+			"cidr_blocks": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"create_date": &schema.Schema{
+			"create_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"regions": &schema.Schema{
+			"regions": {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
-			"services": &schema.Schema{
+			"services": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"sync_token": &schema.Schema{
+			"sync_token": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},

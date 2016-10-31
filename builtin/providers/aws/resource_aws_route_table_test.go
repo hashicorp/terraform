@@ -63,7 +63,7 @@ func TestAccAWSRouteTable_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -72,7 +72,7 @@ func TestAccAWSRouteTable_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfigChange,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -113,7 +113,7 @@ func TestAccAWSRouteTable_instance(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfigInstance,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -134,7 +134,7 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
@@ -142,7 +142,7 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccRouteTableConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
@@ -244,7 +244,7 @@ func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableVpcPeeringConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(
@@ -285,7 +285,7 @@ func TestAccAWSRouteTable_vgwRoutePropagation(t *testing.T) {
 			testAccCheckRouteTableDestroy,
 		),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRouteTableVgwRoutePropagationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists(

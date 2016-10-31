@@ -12,10 +12,10 @@ import (
 func TestUntaint(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID:      "bar",
@@ -58,10 +58,10 @@ func TestUntaint_backup(t *testing.T) {
 	// Write the temp state
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID:      "bar",
@@ -109,10 +109,10 @@ func TestUntaint_backupDisable(t *testing.T) {
 	// Write the temp state
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID:      "bar",
@@ -175,10 +175,10 @@ func TestUntaint_defaultState(t *testing.T) {
 	// Write the temp state
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID:      "bar",
@@ -214,10 +214,10 @@ test_instance.foo:
 func TestUntaint_missing(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID:      "bar",
@@ -249,10 +249,10 @@ func TestUntaint_missing(t *testing.T) {
 func TestUntaint_missingAllow(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID:      "bar",
@@ -290,10 +290,10 @@ func TestUntaint_stateOut(t *testing.T) {
 	// Write the temp state
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID:      "bar",
@@ -334,10 +334,10 @@ test_instance.foo:
 func TestUntaint_module(t *testing.T) {
 	state := &terraform.State{
 		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID:      "bar",
@@ -346,10 +346,10 @@ func TestUntaint_module(t *testing.T) {
 					},
 				},
 			},
-			&terraform.ModuleState{
+			{
 				Path: []string{"root", "child"},
 				Resources: map[string]*terraform.ResourceState{
-					"test_instance.blah": &terraform.ResourceState{
+					"test_instance.blah": {
 						Type: "test_instance",
 						Primary: &terraform.InstanceState{
 							ID:      "bar",

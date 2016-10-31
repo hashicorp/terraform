@@ -19,7 +19,7 @@ func TestAccAzureSqlDatabaseServerFirewallRuleBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccAzureDatabaseServerFirewallRuleDeleted(testAccAzureSqlServerNames),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureDatabaseServerFirewallRuleBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureSqlDatabaseServerGetNames,
@@ -43,7 +43,7 @@ func TestAccAzureSqlDatabaseServerFirewallRuleAdvanced(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccAzureDatabaseServerFirewallRuleDeleted(testAccAzureSqlServerNames),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureDatabaseServerFirewallRuleAdvancedConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureSqlDatabaseServerGetNames,
@@ -71,7 +71,7 @@ func TestAccAzureSqlDatabaseServerFirewallRuleUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccAzureDatabaseServerFirewallRuleDeleted(testAccAzureSqlServerNames),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureDatabaseServerFirewallRuleAdvancedConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureSqlDatabaseServerGetNames,
@@ -86,7 +86,7 @@ func TestAccAzureSqlDatabaseServerFirewallRuleUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(name2, "end_ip", "200.255.255.255"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAzureDatabaseServerFirewallRuleUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureSqlDatabaseServerGetNames,

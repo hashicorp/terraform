@@ -20,7 +20,7 @@ func TestAccVcdNetwork_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVcdNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckVcdNetwork_basic, os.Getenv("VCD_EDGE_GATWEWAY")),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVcdNetworkExists("vcd_network.foonet", &network),

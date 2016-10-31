@@ -22,7 +22,7 @@ func TestAccAzureDnsServerBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureDnsServerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureDnsServerExists(name),
@@ -47,7 +47,7 @@ func TestAccAzureDnsServerUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureDnsServerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: basicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureDnsServerExists(name),
@@ -56,7 +56,7 @@ func TestAccAzureDnsServerUpdate(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: updateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureDnsServerExists(name),

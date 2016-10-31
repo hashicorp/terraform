@@ -55,14 +55,14 @@ func resourcePrivateKey() *schema.Resource {
 		Read:   ReadPrivateKey,
 
 		Schema: map[string]*schema.Schema{
-			"algorithm": &schema.Schema{
+			"algorithm": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Name of the algorithm to use to generate the private key",
 				ForceNew:    true,
 			},
 
-			"rsa_bits": &schema.Schema{
+			"rsa_bits": {
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Description: "Number of bits to use when generating an RSA key",
@@ -70,7 +70,7 @@ func resourcePrivateKey() *schema.Resource {
 				Default:     2048,
 			},
 
-			"ecdsa_curve": &schema.Schema{
+			"ecdsa_curve": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "ECDSA curve to use when generating a key",
@@ -78,17 +78,17 @@ func resourcePrivateKey() *schema.Resource {
 				Default:     "P224",
 			},
 
-			"private_key_pem": &schema.Schema{
+			"private_key_pem": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"public_key_pem": &schema.Schema{
+			"public_key_pem": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"public_key_openssh": &schema.Schema{
+			"public_key_openssh": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

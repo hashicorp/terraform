@@ -22,7 +22,7 @@ func resourceAwsAppCookieStickinessPolicy() *schema.Resource {
 		Delete: resourceAwsAppCookieStickinessPolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -36,19 +36,19 @@ func resourceAwsAppCookieStickinessPolicy() *schema.Resource {
 				},
 			},
 
-			"load_balancer": &schema.Schema{
+			"load_balancer": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"lb_port": &schema.Schema{
+			"lb_port": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"cookie_name": &schema.Schema{
+			"cookie_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

@@ -23,51 +23,51 @@ func resourceDatadogMonitor() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"message": &schema.Schema{
+			"message": {
 				Type:     schema.TypeString,
 				Required: true,
 				StateFunc: func(val interface{}) string {
 					return strings.TrimSpace(val.(string))
 				},
 			},
-			"escalation_message": &schema.Schema{
+			"escalation_message": {
 				Type:     schema.TypeString,
 				Optional: true,
 				StateFunc: func(val interface{}) string {
 					return strings.TrimSpace(val.(string))
 				},
 			},
-			"query": &schema.Schema{
+			"query": {
 				Type:     schema.TypeString,
 				Required: true,
 				StateFunc: func(val interface{}) string {
 					return strings.TrimSpace(val.(string))
 				},
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
 			// Options
-			"thresholds": &schema.Schema{
+			"thresholds": {
 				Type:     schema.TypeMap,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"ok": &schema.Schema{
+						"ok": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 						},
-						"warning": &schema.Schema{
+						"warning": {
 							Type:     schema.TypeFloat,
 							Optional: true,
 						},
-						"critical": &schema.Schema{
+						"critical": {
 							Type:     schema.TypeFloat,
 							Required: true,
 						},
@@ -75,37 +75,37 @@ func resourceDatadogMonitor() *schema.Resource {
 				},
 				DiffSuppressFunc: supressDataDogFloatIntDiff,
 			},
-			"notify_no_data": &schema.Schema{
+			"notify_no_data": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
 			},
-			"no_data_timeframe": &schema.Schema{
+			"no_data_timeframe": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"renotify_interval": &schema.Schema{
+			"renotify_interval": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"notify_audit": &schema.Schema{
+			"notify_audit": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"timeout_h": &schema.Schema{
+			"timeout_h": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"require_full_window": &schema.Schema{
+			"require_full_window": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"locked": &schema.Schema{
+			"locked": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 			// TODO should actually be map[string]int
-			"silenced": &schema.Schema{
+			"silenced": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -114,11 +114,11 @@ func resourceDatadogMonitor() *schema.Resource {
 						Type: schema.TypeInt},
 				},
 			},
-			"include_tags": &schema.Schema{
+			"include_tags": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem: &schema.Schema{

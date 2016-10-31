@@ -22,19 +22,19 @@ func resourceAzureVirtualNetwork() *schema.Resource {
 		Delete: resourceAzureVirtualNetworkDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"address_space": &schema.Schema{
+			"address_space": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"dns_servers_names": &schema.Schema{
+			"dns_servers_names": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
@@ -42,20 +42,20 @@ func resourceAzureVirtualNetwork() *schema.Resource {
 				},
 			},
 
-			"subnet": &schema.Schema{
+			"subnet": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"address_prefix": &schema.Schema{
+						"address_prefix": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"security_group": &schema.Schema{
+						"security_group": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -64,7 +64,7 @@ func resourceAzureVirtualNetwork() *schema.Resource {
 				Set: resourceAzureSubnetHash,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

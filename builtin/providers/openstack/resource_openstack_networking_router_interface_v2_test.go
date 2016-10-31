@@ -23,7 +23,7 @@ func TestAccNetworkingV2RouterInterface_basic_subnet(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2RouterInterfaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2RouterInterface_basic_subnet,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.network_1", &network),
@@ -47,7 +47,7 @@ func TestAccNetworkingV2RouterInterface_basic_port(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2RouterInterfaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2RouterInterface_basic_port,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.network_1", &network),

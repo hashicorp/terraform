@@ -18,7 +18,7 @@ func TestAccQueue(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccQueueCheckDestroy(&queueInfo),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccQueueConfig_basic,
 				Check: testAccQueueCheck(
 					"rabbitmq_queue.test", &queueInfo,

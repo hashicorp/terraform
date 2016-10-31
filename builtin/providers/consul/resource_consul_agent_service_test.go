@@ -15,7 +15,7 @@ func TestAccConsulAgentService_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckConsulAgentServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccConsulAgentServiceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulAgentServiceExists(),

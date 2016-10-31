@@ -14,7 +14,7 @@ func TestAccPagerDutyVendor_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyScheduleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPagerDutyVendorsConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccPagerDutyVendors("data.pagerduty_vendor.datadog"),

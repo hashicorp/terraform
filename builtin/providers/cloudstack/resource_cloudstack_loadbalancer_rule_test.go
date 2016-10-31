@@ -16,7 +16,7 @@ func TestAccCloudStackLoadBalancerRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackLoadBalancerRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackLoadBalancerRule_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
@@ -42,7 +42,7 @@ func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackLoadBalancerRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackLoadBalancerRule_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", &id),
@@ -57,7 +57,7 @@ func TestAccCloudStackLoadBalancerRule_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackLoadBalancerRule_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", &id),
@@ -81,7 +81,7 @@ func TestAccCloudStackLoadBalancerRule_forceNew(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackLoadBalancerRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackLoadBalancerRule_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
@@ -96,7 +96,7 @@ func TestAccCloudStackLoadBalancerRule_forceNew(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackLoadBalancerRule_forcenew,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
@@ -120,7 +120,7 @@ func TestAccCloudStackLoadBalancerRule_vpc(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackLoadBalancerRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackLoadBalancerRule_vpc,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
@@ -144,7 +144,7 @@ func TestAccCloudStackLoadBalancerRule_vpcUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackLoadBalancerRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackLoadBalancerRule_vpc,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),
@@ -159,7 +159,7 @@ func TestAccCloudStackLoadBalancerRule_vpcUpdate(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackLoadBalancerRule_vpc_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackLoadBalancerRuleExist("cloudstack_loadbalancer_rule.foo", nil),

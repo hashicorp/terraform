@@ -21,7 +21,7 @@ func TestAccAWSRoute53DelegationSet_basic(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckRoute53ZoneDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRoute53DelegationSetConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53DelegationSetExists("aws_route53_delegation_set.test"),
@@ -41,7 +41,7 @@ func TestAccAWSRoute53DelegationSet_withZones(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckRoute53ZoneDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRoute53DelegationSetWithZonesConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53DelegationSetExists("aws_route53_delegation_set.main"),

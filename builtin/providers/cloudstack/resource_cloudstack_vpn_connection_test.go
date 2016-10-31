@@ -17,7 +17,7 @@ func TestAccCloudStackVPNConnection_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackVPNConnectionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackVPNConnection_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackVPNConnectionExists(

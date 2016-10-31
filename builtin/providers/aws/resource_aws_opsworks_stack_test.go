@@ -24,7 +24,7 @@ func TestAccAWSOpsworksStackNoVpc(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksStackDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksStackConfigNoVpcCreate(stackName),
 				Check:  testAccAwsOpsworksStackCheckResourceAttrsCreate("us-east-1a", stackName),
 			},
@@ -43,11 +43,11 @@ func TestAccAWSOpsworksStackVpc(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksStackDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksStackConfigVpcCreate(stackName),
 				Check:  testAccAwsOpsworksStackCheckResourceAttrsCreate("us-west-2a", stackName),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSOpsworksStackConfigVpcUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccAwsOpsworksStackCheckResourceAttrsUpdate("us-west-2a", stackName),

@@ -20,14 +20,14 @@ func resourceAwsCodeDeployApp() *schema.Resource {
 		Delete: resourceAwsCodeDeployAppDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
 			// The unique ID is set by AWS on create.
-			"unique_id": &schema.Schema{
+			"unique_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

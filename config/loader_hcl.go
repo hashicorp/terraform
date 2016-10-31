@@ -578,7 +578,7 @@ func loadManagedResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 				item.Val = &ast.ObjectType{
 					List: &ast.ObjectList{
 						Items: []*ast.ObjectItem{
-							&ast.ObjectItem{
+							{
 								Keys: []*ast.ObjectKey{key},
 								Val:  item.Val,
 							},

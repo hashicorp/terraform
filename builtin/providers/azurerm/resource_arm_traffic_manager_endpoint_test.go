@@ -20,7 +20,7 @@ func TestAccAzureRMTrafficManagerEndpoint_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMTrafficManagerEndpointExists("azurerm_traffic_manager_endpoint.testAzure"),
@@ -42,7 +42,7 @@ func TestAccAzureRMTrafficManagerEndpoint_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMTrafficManagerEndpointExists("azurerm_traffic_manager_endpoint.testAzure"),

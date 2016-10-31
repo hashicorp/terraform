@@ -21,40 +21,40 @@ func resourcePolicy() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"vhost": &schema.Schema{
+			"vhost": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"policy": &schema.Schema{
+			"policy": {
 				Type:     schema.TypeList,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"pattern": &schema.Schema{
+						"pattern": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"priority": &schema.Schema{
+						"priority": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"apply_to": &schema.Schema{
+						"apply_to": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"definition": &schema.Schema{
+						"definition": {
 							Type:     schema.TypeMap,
 							Required: true,
 						},

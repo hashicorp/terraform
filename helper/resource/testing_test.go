@@ -79,7 +79,7 @@ func TestTest(t *testing.T) {
 		},
 		CheckDestroy: checkDestroyFn,
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 				Check:  checkStepFn,
 			},
@@ -133,7 +133,7 @@ func TestTest_idRefresh(t *testing.T) {
 			"test": mp,
 		},
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 			},
 		},
@@ -185,7 +185,7 @@ func TestTest_idRefreshCustomName(t *testing.T) {
 			"test": mp,
 		},
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 			},
 		},
@@ -246,7 +246,7 @@ func TestTest_idRefreshFail(t *testing.T) {
 			"test": mp,
 		},
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 			},
 		},
@@ -335,7 +335,7 @@ func TestTest_stepError(t *testing.T) {
 		},
 		CheckDestroy: checkDestroyFn,
 		Steps: []TestStep{
-			TestStep{
+			{
 				Config: testConfigStr,
 				Check:  checkStepFn,
 			},
@@ -482,13 +482,13 @@ func testProvider() *terraform.MockResourceProvider {
 	mp := new(terraform.MockResourceProvider)
 	mp.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"foo": &terraform.ResourceAttrDiff{
+			"foo": {
 				New: "bar",
 			},
 		},
 	}
 	mp.ResourcesReturn = []terraform.ResourceType{
-		terraform.ResourceType{Name: "test_instance"},
+		{Name: "test_instance"},
 	}
 
 	return mp

@@ -19,7 +19,7 @@ func TestAccAWSLBSSLNegotiationPolicy_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLBSSLNegotiationPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccSslNegotiationPolicyConfig(
 					fmt.Sprintf("tf-acctest-%s", acctest.RandString(10))),
 				Check: resource.ComposeTestCheckFunc(
@@ -236,8 +236,8 @@ resource "aws_lb_ssl_negotiation_policy" "foo" {
     }
     attribute {
         name = "Protocol-TLSv1.1"
-        value = "false" 
-    }       
+        value = "false"
+    }
     attribute {
         name = "Protocol-TLSv1.2"
         value = "true"
@@ -245,7 +245,7 @@ resource "aws_lb_ssl_negotiation_policy" "foo" {
     attribute {
         name = "Server-Defined-Cipher-Order"
         value = "true"
-    }       
+    }
     attribute {
         name = "ECDHE-RSA-AES128-GCM-SHA256"
         value = "true"

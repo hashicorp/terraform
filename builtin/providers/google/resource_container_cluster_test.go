@@ -15,7 +15,7 @@ func TestAccContainerCluster_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckContainerClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainerCluster_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckContainerClusterExists(
@@ -32,7 +32,7 @@ func TestAccContainerCluster_withNodeConfig(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckContainerClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainerCluster_withNodeConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckContainerClusterExists(
@@ -49,7 +49,7 @@ func TestAccContainerCluster_network(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckContainerClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContainerCluster_networkRef,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckContainerClusterExists(

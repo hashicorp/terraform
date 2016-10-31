@@ -18,7 +18,7 @@ func TestAccFWRuleV1_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckFWRuleV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testFirewallRuleMinimalConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWRuleV1Exists(
@@ -31,7 +31,7 @@ func TestAccFWRuleV1_basic(t *testing.T) {
 						}),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testFirewallRuleConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWRuleV1Exists(
@@ -50,7 +50,7 @@ func TestAccFWRuleV1_basic(t *testing.T) {
 						}),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testFirewallRuleUpdateAllFieldsConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWRuleV1Exists(
@@ -79,7 +79,7 @@ func TestAccFWRuleV1_anyProtocol(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckFWRuleV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testFirewallRuleAnyProtocol,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWRuleV1Exists(

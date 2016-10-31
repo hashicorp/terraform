@@ -20,7 +20,7 @@ func TestAccNetworkingV2FloatingIP_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2FloatingIPDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2FloatingIP_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2FloatingIPExists(t, "openstack_networking_floatingip_v2.foo", &floatingIP),
@@ -53,7 +53,7 @@ func TestAccNetworkingV2FloatingIP_attach(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2FloatingIPDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkV2FloatingIP_attach,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2FloatingIPExists(t, "openstack_networking_floatingip_v2.myip", &fip),
@@ -115,7 +115,7 @@ func TestAccNetworkingV2FloatingIP_fixedip_bind(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckNetworkingV2FloatingIPDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccNetworkingV2FloatingIP_fixedip_bind,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2FloatingIPExists(t, "openstack_networking_floatingip_v2.ip_1", &fip),

@@ -17,25 +17,25 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"account": &schema.Schema{
+			"account": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("SDC_ACCOUNT", ""),
 			},
 
-			"url": &schema.Schema{
+			"url": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("SDC_URL", "https://us-west-1.api.joyentcloud.com"),
 			},
 
-			"key_material": &schema.Schema{
+			"key_material": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("SDC_KEY_MATERIAL", ""),
 			},
 
-			"key_id": &schema.Schema{
+			"key_id": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("SDC_KEY_ID", ""),

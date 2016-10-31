@@ -19,7 +19,7 @@ func TestAccRole_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccRoleCheckDestroy(&role),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccRoleConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccRoleCheckExists("chef_role.test", &role),

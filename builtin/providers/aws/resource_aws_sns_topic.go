@@ -33,17 +33,17 @@ func resourceAwsSnsTopic() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"display_name": &schema.Schema{
+			"display_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-			"policy": &schema.Schema{
+			"policy": {
 				Type:             schema.TypeString,
 				Optional:         true,
 				Computed:         true,
@@ -54,12 +54,12 @@ func resourceAwsSnsTopic() *schema.Resource {
 					return json
 				},
 			},
-			"delivery_policy": &schema.Schema{
+			"delivery_policy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

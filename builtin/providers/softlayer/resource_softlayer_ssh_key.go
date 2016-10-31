@@ -19,28 +19,28 @@ func resourceSoftLayerSSHKey() *schema.Resource {
 		Exists: resourceSoftLayerSSHKeyExists,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"public_key": &schema.Schema{
+			"public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"notes": &schema.Schema{
+			"notes": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  nil,

@@ -20,56 +20,56 @@ func resourceCloudStackInstance() *schema.Resource {
 		Delete: resourceCloudStackInstanceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"display_name": &schema.Schema{
+			"display_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"service_offering": &schema.Schema{
+			"service_offering": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"network_id": &schema.Schema{
+			"network_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"template": &schema.Schema{
+			"template": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"root_disk_size": &schema.Schema{
+			"root_disk_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"group": &schema.Schema{
+			"group": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"affinity_group_ids": &schema.Schema{
+			"affinity_group_ids": {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				Elem:          &schema.Schema{Type: schema.TypeString},
@@ -77,7 +77,7 @@ func resourceCloudStackInstance() *schema.Resource {
 				ConflictsWith: []string{"affinity_group_names"},
 			},
 
-			"affinity_group_names": &schema.Schema{
+			"affinity_group_names": {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				Elem:          &schema.Schema{Type: schema.TypeString},
@@ -85,7 +85,7 @@ func resourceCloudStackInstance() *schema.Resource {
 				ConflictsWith: []string{"affinity_group_ids"},
 			},
 
-			"security_group_ids": &schema.Schema{
+			"security_group_ids": {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				ForceNew:      true,
@@ -94,7 +94,7 @@ func resourceCloudStackInstance() *schema.Resource {
 				ConflictsWith: []string{"security_group_names"},
 			},
 
-			"security_group_names": &schema.Schema{
+			"security_group_names": {
 				Type:          schema.TypeSet,
 				Optional:      true,
 				ForceNew:      true,
@@ -103,25 +103,25 @@ func resourceCloudStackInstance() *schema.Resource {
 				ConflictsWith: []string{"security_group_ids"},
 			},
 
-			"project": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"zone": &schema.Schema{
+			"zone": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"keypair": &schema.Schema{
+			"keypair": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"user_data": &schema.Schema{
+			"user_data": {
 				Type:     schema.TypeString,
 				Optional: true,
 				StateFunc: func(v interface{}) string {
@@ -135,7 +135,7 @@ func resourceCloudStackInstance() *schema.Resource {
 				},
 			},
 
-			"expunge": &schema.Schema{
+			"expunge": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,

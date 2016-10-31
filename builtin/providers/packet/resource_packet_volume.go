@@ -18,71 +18,71 @@ func resourcePacketVolume() *schema.Resource {
 		Delete: resourcePacketVolumeDelete,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Required: false,
 				Optional: true,
 			},
 
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},
 
-			"facility": &schema.Schema{
+			"facility": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"plan": &schema.Schema{
+			"plan": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"billing_cycle": &schema.Schema{
+			"billing_cycle": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 			},
 
-			"state": &schema.Schema{
+			"state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"locked": &schema.Schema{
+			"locked": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"snapshot_policies": &schema.Schema{
+			"snapshot_policies": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"snapshot_frequency": &schema.Schema{
+						"snapshot_frequency": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
-						"snapshot_count": &schema.Schema{
+						"snapshot_count": {
 							Type:     schema.TypeInt,
 							Required: true,
 							ForceNew: true,
@@ -91,12 +91,12 @@ func resourcePacketVolume() *schema.Resource {
 				},
 			},
 
-			"attachments": &schema.Schema{
+			"attachments": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"href": &schema.Schema{
+						"href": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -104,12 +104,12 @@ func resourcePacketVolume() *schema.Resource {
 				},
 			},
 
-			"created": &schema.Schema{
+			"created": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"updated": &schema.Schema{
+			"updated": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

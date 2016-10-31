@@ -18,13 +18,13 @@ func TestAccPermissions(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccPermissionsCheckDestroy(&permissionInfo),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPermissionsConfig_basic,
 				Check: testAccPermissionsCheck(
 					"rabbitmq_permissions.test", &permissionInfo,
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccPermissionsConfig_update,
 				Check: testAccPermissionsCheck(
 					"rabbitmq_permissions.test", &permissionInfo,

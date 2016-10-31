@@ -18,7 +18,7 @@ func TestAccCobblerKickstartFile_basic(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckKickstartFileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerKickstartFile_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckKickstartFileExists(t, "cobbler_kickstart_file.foo", &ks),

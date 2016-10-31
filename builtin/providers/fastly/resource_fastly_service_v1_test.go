@@ -18,7 +18,7 @@ func TestResourceFastlyFlattenDomains(t *testing.T) {
 	}{
 		{
 			remote: []*gofastly.Domain{
-				&gofastly.Domain{
+				{
 					Name:    "test.notexample.com",
 					Comment: "not comment",
 				},
@@ -32,7 +32,7 @@ func TestResourceFastlyFlattenDomains(t *testing.T) {
 		},
 		{
 			remote: []*gofastly.Domain{
-				&gofastly.Domain{
+				{
 					Name: "test.notexample.com",
 				},
 			},
@@ -60,7 +60,7 @@ func TestResourceFastlyFlattenBackend(t *testing.T) {
 	}{
 		{
 			remote: []*gofastly.Backend{
-				&gofastly.Backend{
+				{
 					Name:                "test.notexample.com",
 					Address:             "www.notexample.com",
 					Port:                uint(80),
@@ -112,7 +112,7 @@ func TestAccFastlyServiceV1_updateDomain(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckServiceV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccServiceV1Config(name, domainName1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
@@ -126,7 +126,7 @@ func TestAccFastlyServiceV1_updateDomain(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccServiceV1Config_domainUpdate(nameUpdate, domainName1, domainName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
@@ -154,7 +154,7 @@ func TestAccFastlyServiceV1_updateBackend(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckServiceV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccServiceV1Config_backend(name, backendName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
@@ -162,7 +162,7 @@ func TestAccFastlyServiceV1_updateBackend(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccServiceV1Config_backend_update(name, backendName, backendName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
@@ -187,7 +187,7 @@ func TestAccFastlyServiceV1_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckServiceV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccServiceV1Config(name, domainName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),
@@ -241,7 +241,7 @@ func TestAccFastlyServiceV1_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckServiceV1Destroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccServiceV1Config(name, domainName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceV1Exists("fastly_service_v1.foo", &service),

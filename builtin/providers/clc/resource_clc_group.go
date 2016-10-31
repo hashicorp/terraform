@@ -19,28 +19,28 @@ func resourceCLCGroup() *schema.Resource {
 		Update: resourceCLCGroupUpdate,
 		Delete: resourceCLCGroupDelete,
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
-			"parent": &schema.Schema{
+			"parent": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"location_id": &schema.Schema{
+			"location_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"parent_group_id": &schema.Schema{
+			"parent_group_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"custom_fields": &schema.Schema{
+			"custom_fields": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeMap},

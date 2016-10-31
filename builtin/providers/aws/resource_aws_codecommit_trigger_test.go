@@ -17,7 +17,7 @@ func TestAccAWSCodeCommitTrigger_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCodeCommitTriggerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCodeCommitTrigger_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCodeCommitTriggerExists("aws_codecommit_trigger.test"),

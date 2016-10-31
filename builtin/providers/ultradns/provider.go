@@ -9,20 +9,20 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"username": &schema.Schema{
+			"username": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ULTRADNS_USERNAME", nil),
 				Description: "UltraDNS Username.",
 			},
 
-			"password": &schema.Schema{
+			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ULTRADNS_PASSWORD", nil),
 				Description: "UltraDNS User Password",
 			},
-			"baseurl": &schema.Schema{
+			"baseurl": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ULTRADNS_BASEURL", nil),

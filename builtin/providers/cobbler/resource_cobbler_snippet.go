@@ -16,13 +16,13 @@ func resourceSnippet() *schema.Resource {
 		Delete: resourceSnippetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"body": &schema.Schema{
+			"body": {
 				Type:     schema.TypeString,
 				Required: true,
 			},

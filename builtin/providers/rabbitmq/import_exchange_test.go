@@ -17,14 +17,14 @@ func TestAccExchange_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccExchangeCheckDestroy(&exchangeInfo),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccExchangeConfig_basic,
 				Check: testAccExchangeCheck(
 					resourceName, &exchangeInfo,
 				),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

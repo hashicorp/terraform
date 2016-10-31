@@ -49,7 +49,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// one while we stabilize this feature.
 	newState, err := ctx.Import(&terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
-			&terraform.ImportTarget{
+			{
 				Addr: args[0],
 				ID:   args[1],
 			},

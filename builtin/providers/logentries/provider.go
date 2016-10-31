@@ -12,7 +12,7 @@ func Provider() terraform.ResourceProvider {
 	// The actual provider
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"account_key": &schema.Schema{
+			"account_key": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("LOGENTRIES_ACCOUNT_KEY", nil),

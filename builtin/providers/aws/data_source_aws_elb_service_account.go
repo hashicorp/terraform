@@ -29,11 +29,11 @@ func dataSourceAwsElbServiceAccount() *schema.Resource {
 		Read: dataSourceAwsElbServiceAccountRead,
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

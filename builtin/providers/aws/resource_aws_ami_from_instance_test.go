@@ -21,7 +21,7 @@ func TestAccAWSAMIFromInstance(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAMIFromInstanceConfig,
 				Check: func(state *terraform.State) error {
 					rs, ok := state.RootModule().Resources["aws_ami_from_instance.test"]

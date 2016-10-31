@@ -36,7 +36,7 @@ func TestAccAWSS3BucketObject_source(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketObjectConfigSource(rInt, tmpFile.Name()),
 				Check:  testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object", &obj),
 			},
@@ -53,7 +53,7 @@ func TestAccAWSS3BucketObject_content(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				PreConfig: func() {},
 				Config:    testAccAWSS3BucketObjectConfigContent(rInt),
 				Check:     testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object", &obj),
@@ -83,7 +83,7 @@ func TestAccAWSS3BucketObject_withContentCharacteristics(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketObjectConfig_withContentCharacteristics(rInt, tmpFile.Name()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object", &obj),
@@ -114,14 +114,14 @@ func TestAccAWSS3BucketObject_updates(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketObjectConfig_updates(rInt, tmpFile.Name()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object", &obj),
 					resource.TestCheckResourceAttr("aws_s3_bucket_object.object", "etag", "647d1d58e1011c743ec67d5e8af87b53"),
 				),
 			},
-			resource.TestStep{
+			{
 				PreConfig: func() {
 					err = ioutil.WriteFile(tmpFile.Name(), []byte("modified object"), 0644)
 					if err != nil {
@@ -158,14 +158,14 @@ func TestAccAWSS3BucketObject_updatesWithVersioning(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketObjectConfig_updatesWithVersioning(rInt, tmpFile.Name()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object", &originalObj),
 					resource.TestCheckResourceAttr("aws_s3_bucket_object.object", "etag", "cee4407fa91906284e2a5e5e03e86b1b"),
 				),
 			},
-			resource.TestStep{
+			{
 				PreConfig: func() {
 					err = ioutil.WriteFile(tmpFile.Name(), []byte("modified versioned object"), 0644)
 					if err != nil {
@@ -258,7 +258,7 @@ func TestAccAWSS3BucketObject_kms(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				PreConfig: func() {},
 				Config:    testAccAWSS3BucketObjectConfig_withKMSId(rInt),
 				Check:     testAccCheckAWSS3BucketObjectExists("aws_s3_bucket_object.object", &obj),
@@ -276,7 +276,7 @@ func TestAccAWSS3BucketObject_acl(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketObjectConfig_acl(rInt, "private"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketObjectExists(
@@ -290,7 +290,7 @@ func TestAccAWSS3BucketObject_acl(t *testing.T) {
 						[]string{"FULL_CONTROL"}),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketObjectConfig_acl(rInt, "public-read"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketObjectExists(
@@ -374,7 +374,7 @@ func TestAccAWSS3BucketObject_storageClass(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketObjectDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				PreConfig: func() {},
 				Config:    testAccAWSS3BucketObjectConfigContent(rInt),
 				Check: resource.ComposeTestCheckFunc(
@@ -390,7 +390,7 @@ func TestAccAWSS3BucketObject_storageClass(t *testing.T) {
 						"STANDARD"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketObjectConfig_storageClass(rInt, "REDUCED_REDUNDANCY"),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketObjectExists(

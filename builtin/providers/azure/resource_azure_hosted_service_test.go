@@ -20,7 +20,7 @@ func TestAccAzureHostedServiceBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureHostedServiceDestroyed,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureHostedServiceExists(name),
@@ -48,7 +48,7 @@ func TestAccAzureHostedServiceUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureHostedServiceDestroyed,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: basicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureHostedServiceExists(name),
@@ -60,7 +60,7 @@ func TestAccAzureHostedServiceUpdate(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: updateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureHostedServiceExists(name),

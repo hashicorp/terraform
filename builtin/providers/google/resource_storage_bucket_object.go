@@ -20,43 +20,43 @@ func resourceStorageBucketObject() *schema.Resource {
 		Delete: resourceStorageBucketObjectDelete,
 
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"content": &schema.Schema{
+			"content": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"source"},
 			},
 
-			"crc32c": &schema.Schema{
+			"crc32c": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"md5hash": &schema.Schema{
+			"md5hash": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"predefined_acl": &schema.Schema{
+			"predefined_acl": {
 				Type:       schema.TypeString,
 				Deprecated: "Please use resource \"storage_object_acl.predefined_acl\" instead.",
 				Optional:   true,
 				ForceNew:   true,
 			},
 
-			"source": &schema.Schema{
+			"source": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,

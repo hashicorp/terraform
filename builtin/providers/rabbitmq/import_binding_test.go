@@ -17,14 +17,14 @@ func TestAccBinding_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccBindingCheckDestroy(bindingInfo),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccBindingConfig_basic,
 				Check: testAccBindingCheck(
 					resourceName, &bindingInfo,
 				),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

@@ -21,23 +21,23 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 		Delete: resourceAwsEcsTaskDefinitionDelete,
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"family": &schema.Schema{
+			"family": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"revision": &schema.Schema{
+			"revision": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
-			"container_definitions": &schema.Schema{
+			"container_definitions": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -47,13 +47,13 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 				},
 			},
 
-			"task_role_arn": &schema.Schema{
+			"task_role_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"network_mode": &schema.Schema{
+			"network_mode": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
@@ -61,18 +61,18 @@ func resourceAwsEcsTaskDefinition() *schema.Resource {
 				ValidateFunc: validateAwsEcsTaskDefinitionNetworkMode,
 			},
 
-			"volume": &schema.Schema{
+			"volume": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"host_path": &schema.Schema{
+						"host_path": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},

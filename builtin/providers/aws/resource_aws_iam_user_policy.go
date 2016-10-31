@@ -22,16 +22,16 @@ func resourceAwsIamUserPolicy() *schema.Resource {
 		Delete: resourceAwsIamUserPolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"policy": &schema.Schema{
+			"policy": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"user": &schema.Schema{
+			"user": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

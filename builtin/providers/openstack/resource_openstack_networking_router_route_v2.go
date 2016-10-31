@@ -17,23 +17,23 @@ func resourceNetworkingRouterRouteV2() *schema.Resource {
 		Delete: resourceNetworkingRouterRouteV2Delete,
 
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
+			"region": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
-			"router_id": &schema.Schema{
+			"router_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"destination_cidr": &schema.Schema{
+			"destination_cidr": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"next_hop": &schema.Schema{
+			"next_hop": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

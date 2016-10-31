@@ -30,19 +30,19 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			// Size in GB
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true, //TODO Can this be optional (resize)?
 			},
 
-			"vmdk_path": &schema.Schema{
+			"vmdk_path": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true, //TODO Can this be optional (move)?
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -57,7 +57,7 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				},
 			},
 
-			"adapter_type": &schema.Schema{
+			"adapter_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -72,13 +72,13 @@ func resourceVSphereVirtualDisk() *schema.Resource {
 				},
 			},
 
-			"datacenter": &schema.Schema{
+			"datacenter": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"datastore": &schema.Schema{
+			"datastore": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,

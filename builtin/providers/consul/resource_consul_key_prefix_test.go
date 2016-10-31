@@ -20,7 +20,7 @@ func TestAccConsulKeyPrefix_basic(t *testing.T) {
 			testAccCheckConsulKeyPrefixKeyAbsent("bread"),
 		),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccConsulKeyPrefixConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulKeyPrefixKeyValue("cheese", "chevre"),
@@ -29,7 +29,7 @@ func TestAccConsulKeyPrefix_basic(t *testing.T) {
 					testAccCheckConsulKeyPrefixKeyAbsent("meat"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config:             testAccConsulKeyPrefixConfig,
 				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(
@@ -39,7 +39,7 @@ func TestAccConsulKeyPrefix_basic(t *testing.T) {
 					testAccAddConsulKeyPrefixRogue("species", "gorilla"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccConsulKeyPrefixConfig_Update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulKeyPrefixKeyValue("meat", "ham"),
@@ -48,7 +48,7 @@ func TestAccConsulKeyPrefix_basic(t *testing.T) {
 					testAccCheckConsulKeyPrefixKeyAbsent("species"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config:             testAccConsulKeyPrefixConfig_Update,
 				ExpectNonEmptyPlan: true,
 				Check: resource.ComposeTestCheckFunc(

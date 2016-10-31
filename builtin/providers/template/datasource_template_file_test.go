@@ -32,7 +32,7 @@ func TestTemplateRendering(t *testing.T) {
 		r.UnitTest(t, r.TestCase{
 			Providers: testProviders,
 			Steps: []r.TestStep{
-				r.TestStep{
+				{
 					Config: testTemplateConfig(tt.template, tt.vars),
 					Check: func(s *terraform.State) error {
 						got := s.RootModule().Outputs["rendered"]

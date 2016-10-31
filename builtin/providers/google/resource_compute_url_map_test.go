@@ -15,7 +15,7 @@ func TestAccComputeUrlMap_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeUrlMapDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeUrlMap_basic1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeUrlMapExists(
@@ -32,7 +32,7 @@ func TestAccComputeUrlMap_update_path_matcher(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeUrlMapDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeUrlMap_basic1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeUrlMapExists(
@@ -40,7 +40,7 @@ func TestAccComputeUrlMap_update_path_matcher(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccComputeUrlMap_basic2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeUrlMapExists(
@@ -57,7 +57,7 @@ func TestAccComputeUrlMap_advanced(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeUrlMapDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeUrlMap_advanced1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeUrlMapExists(
@@ -65,7 +65,7 @@ func TestAccComputeUrlMap_advanced(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccComputeUrlMap_advanced2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeUrlMapExists(

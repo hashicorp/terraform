@@ -18,13 +18,13 @@ func resourceAwsSqsQueuePolicy() *schema.Resource {
 		Delete: resourceAwsSqsQueuePolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"queue_url": &schema.Schema{
+			"queue_url": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"policy": &schema.Schema{
+			"policy": {
 				Type:             schema.TypeString,
 				Required:         true,
 				ValidateFunc:     validateJsonString,

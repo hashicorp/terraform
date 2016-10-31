@@ -38,7 +38,7 @@ func resourceAwsDefaultSecurityGroupCreate(d *schema.ResourceData, meta interfac
 	conn := meta.(*AWSClient).ec2conn
 	securityGroupOpts := &ec2.DescribeSecurityGroupsInput{
 		Filters: []*ec2.Filter{
-			&ec2.Filter{
+			{
 				Name:   aws.String("group-name"),
 				Values: []*string{aws.String("default")},
 			},

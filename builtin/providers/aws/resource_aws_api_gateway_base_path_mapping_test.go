@@ -22,7 +22,7 @@ func TestAccAWSAPIGatewayBasePath_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAPIGatewayBasePathDestroy(name),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayBasePathConfig(name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayBasePathExists("aws_api_gateway_base_path_mapping.test", name, &conf),

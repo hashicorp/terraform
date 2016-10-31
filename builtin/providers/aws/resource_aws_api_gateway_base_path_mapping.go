@@ -19,22 +19,22 @@ func resourceAwsApiGatewayBasePathMapping() *schema.Resource {
 		Delete: resourceAwsApiGatewayBasePathMappingDelete,
 
 		Schema: map[string]*schema.Schema{
-			"api_id": &schema.Schema{
+			"api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"base_path": &schema.Schema{
+			"base_path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"stage_name": &schema.Schema{
+			"stage_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"domain_name": &schema.Schema{
+			"domain_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

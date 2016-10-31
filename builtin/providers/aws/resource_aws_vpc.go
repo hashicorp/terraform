@@ -23,59 +23,59 @@ func resourceAwsVpc() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"cidr_block": &schema.Schema{
+			"cidr_block": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateCIDRNetworkAddress,
 			},
 
-			"instance_tenancy": &schema.Schema{
+			"instance_tenancy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"enable_dns_hostnames": &schema.Schema{
+			"enable_dns_hostnames": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"enable_dns_support": &schema.Schema{
+			"enable_dns_support": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"enable_classiclink": &schema.Schema{
+			"enable_classiclink": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"main_route_table_id": &schema.Schema{
+			"main_route_table_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"default_network_acl_id": &schema.Schema{
+			"default_network_acl_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"dhcp_options_id": &schema.Schema{
+			"dhcp_options_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"default_security_group_id": &schema.Schema{
+			"default_security_group_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"default_route_table_id": &schema.Schema{
+			"default_route_table_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

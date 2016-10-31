@@ -25,7 +25,7 @@ func TestAccBitbucketRepository_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckBitbucketRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccBitbucketRepositoryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBitbucketRepositoryExists("bitbucket_repository.test_repo", &repo),

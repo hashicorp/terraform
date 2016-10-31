@@ -19,7 +19,7 @@ func TestAccDNSimpleRecord_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDNSimpleRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckDNSimpleRecordConfig_basic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDNSimpleRecordExists("dnsimple_record.foobar", &record),
@@ -45,7 +45,7 @@ func TestAccDNSimpleRecord_Updated(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDNSimpleRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckDNSimpleRecordConfig_basic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDNSimpleRecordExists("dnsimple_record.foobar", &record),
@@ -58,7 +58,7 @@ func TestAccDNSimpleRecord_Updated(t *testing.T) {
 						"dnsimple_record.foobar", "value", "192.168.0.10"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckDNSimpleRecordConfig_new_value, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDNSimpleRecordExists("dnsimple_record.foobar", &record),

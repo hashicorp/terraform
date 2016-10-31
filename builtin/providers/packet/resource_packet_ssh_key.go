@@ -13,33 +13,33 @@ func resourcePacketSSHKey() *schema.Resource {
 		Delete: resourcePacketSSHKeyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"public_key": &schema.Schema{
+			"public_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"created": &schema.Schema{
+			"created": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"updated": &schema.Schema{
+			"updated": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

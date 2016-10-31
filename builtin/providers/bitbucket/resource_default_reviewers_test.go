@@ -32,7 +32,7 @@ func TestAccBitbucketDefaultReviewers_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckBitbucketDefaultReviewersDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccBitbucketDefaultReviewersConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBitbucketDefaultReviewersExists("bitbucket_default_reviewers.test_reviewers"),

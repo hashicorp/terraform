@@ -20,7 +20,7 @@ func TestAccAWSLoadBalancerPolicy_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLoadBalancerPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLoadBalancerPolicyConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-policy"),
@@ -36,13 +36,13 @@ func TestAccAWSLoadBalancerPolicy_updateWhileAssigned(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLoadBalancerPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned0,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-policy"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSLoadBalancerPolicyConfig_updateWhileAssigned1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLoadBalancerPolicyState("aws_elb.test-lb", "aws_load_balancer_policy.test-policy"),

@@ -17,14 +17,14 @@ func TestAccGithubTeamRepository_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamRepositoryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),
 					testAccCheckGithubTeamRepositoryRoleState("pull", &repository),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamRepositoryUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamRepositoryExists("github_team_repository.test_team_test_repo", &repository),

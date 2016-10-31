@@ -18,7 +18,7 @@ func TestAccDnsManagedZone_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDnsManagedZoneDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDnsManagedZone_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDnsManagedZoneExists(

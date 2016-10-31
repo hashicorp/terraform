@@ -15,7 +15,7 @@ func TestAccConsulPreparedQuery_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckConsulPreparedQueryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccConsulPreparedQueryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulPreparedQueryExists(),
@@ -32,7 +32,7 @@ func TestAccConsulPreparedQuery_basic(t *testing.T) {
 					testAccCheckConsulPreparedQueryAttrValue("dns.0.ttl", "8m"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccConsulPreparedQueryConfigUpdate1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulPreparedQueryExists(),
@@ -48,7 +48,7 @@ func TestAccConsulPreparedQuery_basic(t *testing.T) {
 					testAccCheckConsulPreparedQueryAttrValue("dns.0.ttl", "16m"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccConsulPreparedQueryConfigUpdate2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulPreparedQueryExists(),

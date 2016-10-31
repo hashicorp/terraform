@@ -19,12 +19,12 @@ func resourceAzureSqlDatabaseServerFirewallRule() *schema.Resource {
 		Delete: resourceAzureSqlDatabaseServerFirewallRuleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"database_server_names": &schema.Schema{
+			"database_server_names": {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,
@@ -33,11 +33,11 @@ func resourceAzureSqlDatabaseServerFirewallRule() *schema.Resource {
 				},
 				Set: schema.HashString,
 			},
-			"start_ip": &schema.Schema{
+			"start_ip": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"end_ip": &schema.Schema{
+			"end_ip": {
 				Type:     schema.TypeString,
 				Required: true,
 			},

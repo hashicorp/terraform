@@ -16,61 +16,61 @@ func resourceGithubRepository() *schema.Resource {
 		Delete: resourceGithubRepositoryDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"homepage_url": &schema.Schema{
+			"homepage_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"private": &schema.Schema{
+			"private": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"has_issues": &schema.Schema{
+			"has_issues": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"has_wiki": &schema.Schema{
+			"has_wiki": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"has_downloads": &schema.Schema{
+			"has_downloads": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"auto_init": &schema.Schema{
+			"auto_init": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"full_name": &schema.Schema{
+			"full_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"default_branch": &schema.Schema{
+			"default_branch": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"ssh_clone_url": &schema.Schema{
+			"ssh_clone_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"svn_url": &schema.Schema{
+			"svn_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"git_clone_url": &schema.Schema{
+			"git_clone_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"http_clone_url": &schema.Schema{
+			"http_clone_url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

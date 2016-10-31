@@ -11,19 +11,19 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"akey": &schema.Schema{
+			"akey": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: envDefaultFunc("DME_AKEY"),
 				Description: "A DNSMadeEasy API Key.",
 			},
-			"skey": &schema.Schema{
+			"skey": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: envDefaultFunc("DME_SKEY"),
 				Description: "The Secret Key for API operations.",
 			},
-			"usesandbox": &schema.Schema{
+			"usesandbox": {
 				Type:        schema.TypeBool,
 				Required:    true,
 				DefaultFunc: envDefaultFunc("DME_USESANDBOX"),

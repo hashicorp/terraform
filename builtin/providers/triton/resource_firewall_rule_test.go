@@ -17,7 +17,7 @@ func TestAccTritonFirewallRule_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckTritonFirewallRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),
@@ -36,7 +36,7 @@ func TestAccTritonFirewallRule_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckTritonFirewallRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),
@@ -45,7 +45,7 @@ func TestAccTritonFirewallRule_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),
@@ -66,7 +66,7 @@ func TestAccTritonFirewallRule_enable(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckTritonFirewallRuleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),
@@ -75,7 +75,7 @@ func TestAccTritonFirewallRule_enable(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFirewallRuleExists("triton_firewall_rule.test"),

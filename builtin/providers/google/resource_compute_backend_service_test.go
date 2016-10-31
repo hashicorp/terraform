@@ -21,14 +21,14 @@ func TestAccComputeBackendService_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeBackendService_basic(serviceName, checkName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeBackendServiceExists(
 						"google_compute_backend_service.foobar", &svc),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccComputeBackendService_basicModified(
 					serviceName, checkName, extraCheckName),
 				Check: resource.ComposeTestCheckFunc(
@@ -51,7 +51,7 @@ func TestAccComputeBackendService_withBackend(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeBackendService_withBackend(
 					serviceName, igName, itName, checkName, 10),
 				Check: resource.ComposeTestCheckFunc(
@@ -84,7 +84,7 @@ func TestAccComputeBackendService_withBackendAndUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeBackendService_withBackend(
 					serviceName, igName, itName, checkName, 10),
 				Check: resource.ComposeTestCheckFunc(
@@ -92,7 +92,7 @@ func TestAccComputeBackendService_withBackendAndUpdate(t *testing.T) {
 						"google_compute_backend_service.lipsum", &svc),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccComputeBackendService_withBackend(
 					serviceName, igName, itName, checkName, 20),
 				Check: resource.ComposeTestCheckFunc(
@@ -171,7 +171,7 @@ func TestAccComputeBackendService_withCDNEnabled(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeBackendService_withCDNEnabled(
 					serviceName, checkName),
 				Check: resource.ComposeTestCheckFunc(

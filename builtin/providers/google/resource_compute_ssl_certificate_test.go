@@ -15,7 +15,7 @@ func TestAccComputeSslCertificate_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeSslCertificateDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeSslCertificate_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeSslCertificateExists(

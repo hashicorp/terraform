@@ -17,7 +17,7 @@ func TestAccComputeVpnTunnel_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeVpnTunnelDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeVpnTunnel_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeVpnTunnelExists(

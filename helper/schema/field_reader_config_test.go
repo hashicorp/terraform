@@ -176,7 +176,7 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 					"foo": "${var.foo}",
 				},
 			}, map[string]ast.Variable{
-				"var.foo": ast.Variable{
+				"var.foo": {
 					Value: config.UnknownVariableValue,
 					Type:  ast.TypeString,
 				},
@@ -197,14 +197,14 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			testConfigInterpolate(t, map[string]interface{}{
 				"map": "${var.foo}",
 			}, map[string]ast.Variable{
-				"var.foo": ast.Variable{
+				"var.foo": {
 					Type: ast.TypeMap,
 					Value: map[string]ast.Variable{
-						"bar": ast.Variable{
+						"bar": {
 							Type:  ast.TypeString,
 							Value: "baz",
 						},
-						"baz": ast.Variable{
+						"baz": {
 							Type:  ast.TypeString,
 							Value: "bar",
 						},
@@ -277,7 +277,7 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 			testConfigInterpolate(t, map[string]interface{}{
 				"strSet": []interface{}{"${var.foo}"},
 			}, map[string]ast.Variable{
-				"var.foo": ast.Variable{
+				"var.foo": {
 					Value: config.UnknownVariableValue,
 					Type:  ast.TypeString,
 				},
@@ -295,7 +295,7 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 			testConfigInterpolate(t, map[string]interface{}{
 				"strSet": []interface{}{"${var.foo}/32"},
 			}, map[string]ast.Variable{
-				"var.foo": ast.Variable{
+				"var.foo": {
 					Value: config.UnknownVariableValue,
 					Type:  ast.TypeString,
 				},

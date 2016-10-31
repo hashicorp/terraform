@@ -22,30 +22,30 @@ func resourceAwsEMRInstanceGroup() *schema.Resource {
 		Update: resourceAwsEMRInstanceGroupUpdate,
 		Delete: resourceAwsEMRInstanceGroupDelete,
 		Schema: map[string]*schema.Schema{
-			"cluster_id": &schema.Schema{
+			"cluster_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"instance_type": &schema.Schema{
+			"instance_type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"instance_count": &schema.Schema{
+			"instance_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  0,
 			},
-			"running_instance_count": &schema.Schema{
+			"running_instance_count": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,

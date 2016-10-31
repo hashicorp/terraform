@@ -21,7 +21,7 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -30,7 +30,7 @@ func TestAccAWSCloudTrail_basic(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfigModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -53,7 +53,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -64,7 +64,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfigModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -73,7 +73,7 @@ func TestAccAWSCloudTrail_enable_logging(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -95,7 +95,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -104,7 +104,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfigMultiRegion(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -113,7 +113,7 @@ func TestAccAWSCloudTrail_is_multi_region(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -137,7 +137,7 @@ func TestAccAWSCloudTrail_logValidation(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_logValidation(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -147,7 +147,7 @@ func TestAccAWSCloudTrail_logValidation(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_logValidationModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -172,7 +172,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudTrailDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_tags(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -183,7 +183,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_tagsModified(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),
@@ -194,7 +194,7 @@ func TestAccAWSCloudTrail_tags(t *testing.T) {
 					testAccCheckCloudTrailKmsKeyIdEquals("aws_cloudtrail.foobar", "", &trail),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudTrailConfig_tagsModifiedAgain(cloudTrailRandInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudTrailExists("aws_cloudtrail.foobar", &trail),

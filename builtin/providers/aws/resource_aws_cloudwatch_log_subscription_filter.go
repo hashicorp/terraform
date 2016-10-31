@@ -22,27 +22,27 @@ func resourceAwsCloudwatchLogSubscriptionFilter() *schema.Resource {
 		Delete: resourceAwsCloudwatchLogSubscriptionFilterDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"destination_arn": &schema.Schema{
+			"destination_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"filter_pattern": &schema.Schema{
+			"filter_pattern": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-			"log_group_name": &schema.Schema{
+			"log_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

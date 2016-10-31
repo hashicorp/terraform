@@ -13,7 +13,7 @@ func TestAccDataSourceAwsSubnet(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsSubnetConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsSubnetCheck("data.aws_subnet.by_id"),

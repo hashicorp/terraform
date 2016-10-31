@@ -24,7 +24,7 @@ func resourceAwsInternetGateway() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},

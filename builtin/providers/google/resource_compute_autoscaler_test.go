@@ -18,7 +18,7 @@ func TestAccAutoscaler_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAutoscalerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAutoscaler_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAutoscalerExists(
@@ -37,14 +37,14 @@ func TestAccAutoscaler_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAutoscalerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAutoscaler_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAutoscalerExists(
 						"google_compute_autoscaler.foobar", &ascaler),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAutoscaler_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAutoscalerExists(

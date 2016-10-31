@@ -20,7 +20,7 @@ func TestAccHerokuApp_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAppConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
@@ -45,7 +45,7 @@ func TestAccHerokuApp_NameChange(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAppConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
@@ -56,7 +56,7 @@ func TestAccHerokuApp_NameChange(t *testing.T) {
 						"heroku_app.foobar", "config_vars.0.FOO", "bar"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAppConfig_updated(appName2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
@@ -82,7 +82,7 @@ func TestAccHerokuApp_NukeVars(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAppConfig_basic(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
@@ -93,7 +93,7 @@ func TestAccHerokuApp_NukeVars(t *testing.T) {
 						"heroku_app.foobar", "config_vars.0.FOO", "bar"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAppConfig_no_vars(appName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
@@ -123,7 +123,7 @@ func TestAccHerokuApp_Organization(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckHerokuAppConfig_organization(appName, org),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExistsOrg("heroku_app.foobar", &app),

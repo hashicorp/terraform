@@ -18,7 +18,7 @@ func TestAccCobblerDistro_basic(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckDistroDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerDistro_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
@@ -36,13 +36,13 @@ func TestAccCobblerDistro_change(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckDistroDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerDistro_change_1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCobblerDistro_change_2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),

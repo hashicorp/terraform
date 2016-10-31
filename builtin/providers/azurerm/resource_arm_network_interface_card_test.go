@@ -101,7 +101,7 @@ func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
 //		Providers:    testAccProviders,
 //		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
 //		Steps: []resource.TestStep{
-//			resource.TestStep{
+//			{
 //				Config: testAccAzureRMNetworkInterface_basic,
 //				Check: resource.ComposeTestCheckFunc(
 //					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
@@ -110,7 +110,7 @@ func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
 //				),
 //			},
 //
-//			resource.TestStep{
+//			{
 //				Config: testAccAzureRMNetworkInterface_extraIpConfiguration,
 //				Check: resource.ComposeTestCheckFunc(
 //					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),

@@ -19,7 +19,7 @@ func TestAccAzureRMDnsMxRecord_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMDnsMxRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMDnsMxRecordExists("azurerm_dns_mx_record.test"),
@@ -39,7 +39,7 @@ func TestAccAzureRMDnsMxRecord_updateRecords(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMDnsMxRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMDnsMxRecordExists("azurerm_dns_mx_record.test"),
@@ -48,7 +48,7 @@ func TestAccAzureRMDnsMxRecord_updateRecords(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMDnsMxRecordExists("azurerm_dns_mx_record.test"),
@@ -70,7 +70,7 @@ func TestAccAzureRMDnsMxRecord_withTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMDnsMxRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMDnsMxRecordExists("azurerm_dns_mx_record.test"),
@@ -79,7 +79,7 @@ func TestAccAzureRMDnsMxRecord_withTags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMDnsMxRecordExists("azurerm_dns_mx_record.test"),

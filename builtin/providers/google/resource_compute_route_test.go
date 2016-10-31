@@ -18,7 +18,7 @@ func TestAccComputeRoute_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeRoute_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeRouteExists(

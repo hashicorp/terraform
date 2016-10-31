@@ -21,17 +21,17 @@ func TestAccInstanceGroupManager_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceGroupManager_basic(template, target, igm1, igm2),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName1,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName2,
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -51,11 +51,11 @@ func TestAccInstanceGroupManager_importUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceGroupManager_update(template, target, igm),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

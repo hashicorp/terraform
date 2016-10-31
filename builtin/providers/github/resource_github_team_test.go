@@ -17,14 +17,14 @@ func TestAccGithubTeam_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubTeamDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamExists("github_team.foo", &team),
 					testAccCheckGithubTeamAttributes(&team, "foo", "Terraform acc test group"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccGithubTeamUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubTeamExists("github_team.foo", &team),

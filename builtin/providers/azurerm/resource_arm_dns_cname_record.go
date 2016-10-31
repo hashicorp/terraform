@@ -16,24 +16,24 @@ func resourceArmDnsCNameRecord() *schema.Resource {
 		Delete: resourceArmDnsCNameRecordDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"zone_name": &schema.Schema{
+			"zone_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"records": &schema.Schema{
+			"records": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -41,12 +41,12 @@ func resourceArmDnsCNameRecord() *schema.Resource {
 				Removed:  "Use `record` instead. This attribute will be removed in a future version",
 			},
 
-			"record": &schema.Schema{
+			"record": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"ttl": &schema.Schema{
+			"ttl": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},

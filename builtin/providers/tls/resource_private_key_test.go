@@ -13,7 +13,7 @@ func TestPrivateKeyRSA(t *testing.T) {
 	r.Test(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
-			r.TestStep{
+			{
 				Config: `
                     resource "tls_private_key" "test" {
                         algorithm = "RSA"
@@ -63,7 +63,7 @@ func TestPrivateKeyRSA(t *testing.T) {
 					return nil
 				},
 			},
-			r.TestStep{
+			{
 				Config: `
                     resource "tls_private_key" "test" {
                         algorithm = "RSA"
@@ -96,7 +96,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
 	r.Test(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
-			r.TestStep{
+			{
 				Config: `
                     resource "tls_private_key" "test" {
                         algorithm = "ECDSA"
@@ -140,7 +140,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
 					return nil
 				},
 			},
-			r.TestStep{
+			{
 				Config: `
                     resource "tls_private_key" "test" {
                         algorithm = "ECDSA"

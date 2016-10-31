@@ -16,12 +16,12 @@ func ResourceDashboard() *schema.Resource {
 		Read:   ReadDashboard,
 
 		Schema: map[string]*schema.Schema{
-			"slug": &schema.Schema{
+			"slug": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"config_json": &schema.Schema{
+			"config_json": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,

@@ -34,7 +34,7 @@ func TestAccGoogleStorageObjectAcl_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageObjectAclDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageObjectsAclBasic1(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(bucketName,
@@ -62,7 +62,7 @@ func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageObjectAclDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageObjectsAclBasic1(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(bucketName,
@@ -72,7 +72,7 @@ func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testGoogleStorageObjectsAclBasic2(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(bucketName,
@@ -82,7 +82,7 @@ func TestAccGoogleStorageObjectAcl_upgrade(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testGoogleStorageObjectsAclBasicDelete(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAclDelete(bucketName,
@@ -112,7 +112,7 @@ func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageObjectAclDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageObjectsAclBasic2(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(bucketName,
@@ -122,7 +122,7 @@ func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testGoogleStorageObjectsAclBasic3(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAcl(bucketName,
@@ -132,7 +132,7 @@ func TestAccGoogleStorageObjectAcl_downgrade(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testGoogleStorageObjectsAclBasicDelete(bucketName, objectName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleStorageObjectAclDelete(bucketName,
@@ -162,7 +162,7 @@ func TestAccGoogleStorageObjectAcl_predefined(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleStorageObjectAclDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleStorageObjectsAclPredefined(bucketName, objectName),
 			},
 		},

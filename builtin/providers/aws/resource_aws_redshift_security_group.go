@@ -27,37 +27,37 @@ func resourceAwsRedshiftSecurityGroup() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateRedshiftSecurityGroupName,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Default:  "Managed by Terraform",
 			},
 
-			"ingress": &schema.Schema{
+			"ingress": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"cidr": &schema.Schema{
+						"cidr": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
 
-						"security_group_name": &schema.Schema{
+						"security_group_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"security_group_owner_id": &schema.Schema{
+						"security_group_owner_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,

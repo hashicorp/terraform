@@ -41,7 +41,7 @@ func TestAccLogentriesLog_Token(t *testing.T) {
 			return nil
 		},
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLogentriesLogConfig,
 				Check: lexp.TestCheckResourceExpectation(
 					"logentries_log.test_log",
@@ -82,7 +82,7 @@ func TestAccLogentriesLog_SourceApi(t *testing.T) {
 			return nil
 		},
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLogentriesLogConfig,
 				Check: lexp.TestCheckResourceExpectation(
 					"logentries_log.test_log",
@@ -124,7 +124,7 @@ func TestAccLogentriesLog_SourceAgent(t *testing.T) {
 			return nil
 		},
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLogentriesLogConfig,
 				Check: lexp.TestCheckResourceExpectation(
 					"logentries_log.test_log",
@@ -165,7 +165,7 @@ func TestAccLogentriesLog_RetentionPeriod1M(t *testing.T) {
 			return nil
 		},
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLogentriesLogConfig,
 				Check: lexp.TestCheckResourceExpectation(
 					"logentries_log.test_log",
@@ -204,7 +204,7 @@ func TestAccLogentriesLog_RetentionPeriodAccountDefault(t *testing.T) {
 			return nil
 		},
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLogentriesLogConfig,
 				Check: lexp.TestCheckResourceExpectation(
 					"logentries_log.test_log",
@@ -244,7 +244,7 @@ func TestAccLogentriesLog_RetentionPeriodAccountUnlimited(t *testing.T) {
 			return nil
 		},
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLogentriesLogConfig,
 				Check: lexp.TestCheckResourceExpectation(
 					"logentries_log.test_log",

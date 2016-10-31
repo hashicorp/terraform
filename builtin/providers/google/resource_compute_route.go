@@ -16,77 +16,77 @@ func resourceComputeRoute() *schema.Resource {
 		Delete: resourceComputeRouteDelete,
 
 		Schema: map[string]*schema.Schema{
-			"dest_range": &schema.Schema{
+			"dest_range": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"network": &schema.Schema{
+			"network": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"priority": &schema.Schema{
+			"priority": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"next_hop_gateway": &schema.Schema{
+			"next_hop_gateway": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"next_hop_instance": &schema.Schema{
+			"next_hop_instance": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"next_hop_instance_zone": &schema.Schema{
+			"next_hop_instance_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"next_hop_ip": &schema.Schema{
+			"next_hop_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"next_hop_network": &schema.Schema{
+			"next_hop_network": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"next_hop_vpn_tunnel": &schema.Schema{
+			"next_hop_vpn_tunnel": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"project": &schema.Schema{
+			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"self_link": &schema.Schema{
+			"self_link": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,

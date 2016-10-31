@@ -20,7 +20,7 @@ func TestAccAWSDefaultSecurityGroup_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSDefaultSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDefaultSecurityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDefaultSecurityGroupExists("aws_default_security_group.web", &group),
@@ -52,7 +52,7 @@ func TestAccAWSDefaultSecurityGroup_classic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSDefaultSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDefaultSecurityGroupConfig_classic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDefaultSecurityGroupExists("aws_default_security_group.web", &group),

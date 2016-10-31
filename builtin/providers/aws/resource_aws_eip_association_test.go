@@ -18,7 +18,7 @@ func TestAccAWSEIPAssociation_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEIPAssociationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEIPAssociationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEIPExists(
@@ -47,7 +47,7 @@ func TestAccAWSEIPAssociation_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEIPAssociationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSEIPAssociationConfigDisappears,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEIPExists(
@@ -90,7 +90,7 @@ func testAccCheckAWSEIPAssociationExists(name string, res *ec2.Address) resource
 
 		request := &ec2.DescribeAddressesInput{
 			Filters: []*ec2.Filter{
-				&ec2.Filter{
+				{
 					Name:   aws.String("association-id"),
 					Values: []*string{res.AssociationId},
 				},
@@ -124,7 +124,7 @@ func testAccCheckAWSEIPAssociationDestroy(s *terraform.State) error {
 
 		request := &ec2.DescribeAddressesInput{
 			Filters: []*ec2.Filter{
-				&ec2.Filter{
+				{
 					Name:   aws.String("association-id"),
 					Values: []*string{aws.String(rs.Primary.ID)},
 				},

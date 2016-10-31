@@ -22,14 +22,14 @@ func TestAccLBPoolBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLBPDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckLBPConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBPExists("clc_load_balancer_pool.acc_test_pool", &pool),
 					resource.TestCheckResourceAttr("clc_load_balancer_pool.acc_test_pool", "port", "80"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckLBPConfigUpdates,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBPExists("clc_load_balancer_pool.acc_test_pool", &pool),

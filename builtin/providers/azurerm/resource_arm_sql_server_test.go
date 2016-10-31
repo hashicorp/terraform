@@ -19,7 +19,7 @@ func TestAccAzureRMSqlServer_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMSqlServerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlServerExists("azurerm_sql_server.test"),
@@ -39,7 +39,7 @@ func TestAccAzureRMSqlServer_withTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMSqlServerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlServerExists("azurerm_sql_server.test"),
@@ -48,7 +48,7 @@ func TestAccAzureRMSqlServer_withTags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMSqlServerExists("azurerm_sql_server.test"),

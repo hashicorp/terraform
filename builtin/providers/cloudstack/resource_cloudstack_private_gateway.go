@@ -17,48 +17,48 @@ func resourceCloudStackPrivateGateway() *schema.Resource {
 		Delete: resourceCloudStackPrivateGatewayDelete,
 
 		Schema: map[string]*schema.Schema{
-			"gateway": &schema.Schema{
+			"gateway": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"netmask": &schema.Schema{
+			"netmask": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"vlan": &schema.Schema{
+			"vlan": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"physical_network_id": &schema.Schema{
+			"physical_network_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"network_offering": &schema.Schema{
+			"network_offering": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"acl_id": &schema.Schema{
+			"acl_id": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

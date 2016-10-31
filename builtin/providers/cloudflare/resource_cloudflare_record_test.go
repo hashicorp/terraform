@@ -19,7 +19,7 @@ func TestAccCloudFlareRecord_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFlareRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigBasic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &record),
@@ -45,7 +45,7 @@ func TestAccCloudFlareRecord_Apex(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFlareRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigApex, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &record),
@@ -71,7 +71,7 @@ func TestAccCloudFlareRecord_Proxied(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFlareRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigProxied, domain, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &record),
@@ -100,7 +100,7 @@ func TestAccCloudFlareRecord_Updated(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFlareRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigBasic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &record),
@@ -113,7 +113,7 @@ func TestAccCloudFlareRecord_Updated(t *testing.T) {
 						"cloudflare_record.foobar", "value", "192.168.0.10"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigNewValue, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &record),
@@ -139,13 +139,13 @@ func TestAccCloudFlareRecord_forceNewRecord(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFlareRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigBasic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &afterCreate),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckCloudFlareRecordConfigForceNew, domain, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &afterUpdate),

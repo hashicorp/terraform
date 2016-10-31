@@ -13,7 +13,7 @@ func TestAccDataSourceAwsSecurityGroup(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsSecurityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsSecurityGroupCheck("data.aws_security_group.by_id"),

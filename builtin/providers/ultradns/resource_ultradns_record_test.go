@@ -19,7 +19,7 @@ func TestAccUltraDNSRecord_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckUltraDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigBasic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUltraDNSRecordExists("ultradns_record.foobar", &record),
@@ -45,7 +45,7 @@ func TestAccUltraDNSRecord_Updated(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckUltraDNSRecordDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigBasic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUltraDNSRecordExists("ultradns_record.foobar", &record),
@@ -58,7 +58,7 @@ func TestAccUltraDNSRecord_Updated(t *testing.T) {
 						"ultradns_record.foobar", "rdata.0", "192.168.0.10"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckUltraDNSRecordConfigNewValue, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckUltraDNSRecordExists("ultradns_record.foobar", &record),

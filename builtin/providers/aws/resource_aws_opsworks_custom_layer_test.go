@@ -22,7 +22,7 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAwsOpsworksCustomLayerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksCustomLayerConfigNoVpcCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -69,7 +69,7 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAwsOpsworksCustomLayerConfigUpdate(stackName),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -219,7 +219,7 @@ resource "aws_opsworks_custom_layer" "tf-acc" {
 
 %s
 
-%s 
+%s
 
 `, name, testAccAwsOpsworksStackConfigNoVpcCreate(name), testAccAwsOpsworksCustomLayerSecurityGroups(name))
 }
@@ -313,7 +313,7 @@ resource "aws_opsworks_custom_layer" "tf-acc" {
 
 %s
 
-%s 
+%s
 
 `, name, testAccAwsOpsworksStackConfigNoVpcCreate(name), testAccAwsOpsworksCustomLayerSecurityGroups(name))
 }

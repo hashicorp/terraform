@@ -19,7 +19,7 @@ func TestAccAWSAPIGatewayIntegrationResponse_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAPIGatewayIntegrationResponseDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayIntegrationResponseConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayIntegrationResponseExists("aws_api_gateway_integration_response.test", &conf),
@@ -31,7 +31,7 @@ func TestAccAWSAPIGatewayIntegrationResponse_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayIntegrationResponseConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayIntegrationResponseExists("aws_api_gateway_integration_response.test", &conf),

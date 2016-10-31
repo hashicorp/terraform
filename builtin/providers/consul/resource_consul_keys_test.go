@@ -15,7 +15,7 @@ func TestAccConsulKeys_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckConsulKeysDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccConsulKeysConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulKeysExists(),
@@ -24,7 +24,7 @@ func TestAccConsulKeys_basic(t *testing.T) {
 					testAccCheckConsulKeysValue("consul_keys.app", "remove_one", "hello"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccConsulKeysConfig_Update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulKeysExists(),

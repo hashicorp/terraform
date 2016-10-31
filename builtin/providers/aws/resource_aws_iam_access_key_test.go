@@ -19,7 +19,7 @@ func TestAccAWSAccessKey_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAccessKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAccessKeyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAccessKeyExists("aws_iam_access_key.a_key", &conf),

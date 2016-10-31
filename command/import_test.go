@@ -21,7 +21,7 @@ func TestImport(t *testing.T) {
 
 	p.ImportStateFn = nil
 	p.ImportStateReturn = []*terraform.InstanceState{
-		&terraform.InstanceState{
+		{
 			ID: "yay",
 			Ephemeral: terraform.EphemeralState{
 				Type: "test_instance",

@@ -18,7 +18,7 @@ func TestAccAzureSecurityGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureSecurityGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureSecurityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureSecurityGroupExists(

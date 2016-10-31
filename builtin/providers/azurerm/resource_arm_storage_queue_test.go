@@ -61,7 +61,7 @@ func TestAccAzureRMStorageQueue_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMStorageQueueDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMStorageQueueExists("azurerm_storage_queue.test"),

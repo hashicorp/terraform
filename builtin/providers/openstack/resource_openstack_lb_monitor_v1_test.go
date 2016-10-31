@@ -18,13 +18,13 @@ func TestAccLBV1Monitor_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckLBV1MonitorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccLBV1Monitor_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBV1MonitorExists(t, "openstack_lb_monitor_v1.monitor_1", &monitor),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccLBV1Monitor_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_lb_monitor_v1.monitor_1", "delay", "20"),

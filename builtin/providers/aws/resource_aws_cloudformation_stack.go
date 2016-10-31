@@ -22,12 +22,12 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 		Delete: resourceAwsCloudFormationStackDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"template_body": &schema.Schema{
+			"template_body": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
@@ -37,42 +37,42 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 					return json
 				},
 			},
-			"template_url": &schema.Schema{
+			"template_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"capabilities": &schema.Schema{
+			"capabilities": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"disable_rollback": &schema.Schema{
+			"disable_rollback": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
-			"notification_arns": &schema.Schema{
+			"notification_arns": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"on_failure": &schema.Schema{
+			"on_failure": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-			"parameters": &schema.Schema{
+			"parameters": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Computed: true,
 			},
-			"outputs": &schema.Schema{
+			"outputs": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"policy_body": &schema.Schema{
+			"policy_body": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
@@ -82,16 +82,16 @@ func resourceAwsCloudFormationStack() *schema.Resource {
 					return json
 				},
 			},
-			"policy_url": &schema.Schema{
+			"policy_url": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"timeout_in_minutes": &schema.Schema{
+			"timeout_in_minutes": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
 			},
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,

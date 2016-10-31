@@ -17,7 +17,7 @@ func TestAccAWSCloudFrontOriginAccessIdentity_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontOriginAccessIdentityDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudFrontOriginAccessIdentityConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontOriginAccessIdentityExistence("aws_cloudfront_origin_access_identity.origin_access_identity"),
@@ -46,7 +46,7 @@ func TestAccAWSCloudFrontOriginAccessIdentity_noComment(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontOriginAccessIdentityDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudFrontOriginAccessIdentityNoCommentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontOriginAccessIdentityExistence("aws_cloudfront_origin_access_identity.origin_access_identity"),

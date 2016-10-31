@@ -16,197 +16,197 @@ func resourceProfile() *schema.Resource {
 		Delete: resourceProfileDelete,
 
 		Schema: map[string]*schema.Schema{
-			"boot_files": &schema.Schema{
+			"boot_files": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"comment": &schema.Schema{
+			"comment": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"distro": &schema.Schema{
+			"distro": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"enable_gpxe": &schema.Schema{
+			"enable_gpxe": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"enable_menu": &schema.Schema{
+			"enable_menu": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"fetchable_files": &schema.Schema{
+			"fetchable_files": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kernel_options": &schema.Schema{
+			"kernel_options": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kernel_options_post": &schema.Schema{
+			"kernel_options_post": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kickstart": &schema.Schema{
+			"kickstart": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ks_meta": &schema.Schema{
+			"ks_meta": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"mgmt_classes": &schema.Schema{
+			"mgmt_classes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"mgmt_parameters": &schema.Schema{
+			"mgmt_parameters": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name_servers_search": &schema.Schema{
+			"name_servers_search": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"name_servers": &schema.Schema{
+			"name_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"owners": &schema.Schema{
+			"owners": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"parent": &schema.Schema{
+			"parent": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"proxy": &schema.Schema{
+			"proxy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"redhat_management_key": &schema.Schema{
+			"redhat_management_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"redhat_management_server": &schema.Schema{
+			"redhat_management_server": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"repos": &schema.Schema{
+			"repos": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"server": &schema.Schema{
+			"server": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"template_files": &schema.Schema{
+			"template_files": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"template_remote_kickstarts": &schema.Schema{
+			"template_remote_kickstarts": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_auto_boot": &schema.Schema{
+			"virt_auto_boot": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_bridge": &schema.Schema{
+			"virt_bridge": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_cpus": &schema.Schema{
+			"virt_cpus": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_disk_driver": &schema.Schema{
+			"virt_disk_driver": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_file_size": &schema.Schema{
+			"virt_file_size": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_path": &schema.Schema{
+			"virt_path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_ram": &schema.Schema{
+			"virt_ram": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_type": &schema.Schema{
+			"virt_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

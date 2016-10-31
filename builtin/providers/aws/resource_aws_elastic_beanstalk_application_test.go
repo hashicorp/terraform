@@ -19,7 +19,7 @@ func TestAccAWSBeanstalkApp_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckBeanstalkAppDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccBeanstalkAppConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBeanstalkAppExists("aws_elastic_beanstalk_application.tftest", &app),

@@ -19,7 +19,7 @@ func TestAccAzureRMServiceBusTopic_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMServiceBusTopicExists("azurerm_servicebus_topic.test"),
@@ -39,13 +39,13 @@ func TestAccAzureRMServiceBusTopic_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMServiceBusTopicExists("azurerm_servicebus_topic.test"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -68,13 +68,13 @@ func TestAccAzureRMServiceBusTopic_enablePartitioning(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMServiceBusTopicExists("azurerm_servicebus_topic.test"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
@@ -98,13 +98,13 @@ func TestAccAzureRMServiceBusTopic_enableDuplicateDetection(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMServiceBusTopicExists("azurerm_servicebus_topic.test"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(

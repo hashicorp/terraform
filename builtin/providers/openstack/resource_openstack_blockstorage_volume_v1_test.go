@@ -29,7 +29,7 @@ func TestAccBlockStorageV1Volume_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckBlockStorageV1VolumeDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccBlockStorageV1Volume_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume),
@@ -37,14 +37,14 @@ func TestAccBlockStorageV1Volume_basic(t *testing.T) {
 					testAccCheckBlockStorageV1VolumeMetadata(&volume, "foo", "bar"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccBlockStorageV1Volume_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume-updated"),
 					testAccCheckBlockStorageV1VolumeMetadata(&volume, "foo", "bar"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccBlockStorageV1Volume_bootable,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume-bootable"),

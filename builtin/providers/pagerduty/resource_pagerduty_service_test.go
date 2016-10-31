@@ -15,7 +15,7 @@ func TestAccPagerDutyService_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPagerDutyServiceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyServiceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceExists("pagerduty_service.foo"),
@@ -29,7 +29,7 @@ func TestAccPagerDutyService_Basic(t *testing.T) {
 						"pagerduty_service.foo", "acknowledgement_timeout", "1800"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckPagerDutyServiceConfigUpdated,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPagerDutyServiceExists("pagerduty_service.foo"),

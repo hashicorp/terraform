@@ -18,7 +18,7 @@ func TestAccJob_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccJobCheckDestroy(&job),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccJobConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccJobCheckExists("rundeck_job.test", &job),

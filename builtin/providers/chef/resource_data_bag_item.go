@@ -16,18 +16,18 @@ func resourceChefDataBagItem() *schema.Resource {
 		Delete: DeleteDataBagItem,
 
 		Schema: map[string]*schema.Schema{
-			"data_bag_name": &schema.Schema{
+			"data_bag_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"content_json": &schema.Schema{
+			"content_json": {
 				Type:      schema.TypeString,
 				Required:  true,
 				ForceNew:  true,
 				StateFunc: jsonStateFunc,
 			},
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

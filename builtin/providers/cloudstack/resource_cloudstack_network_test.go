@@ -17,7 +17,7 @@ func TestAccCloudStackNetwork_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNetwork_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNetworkExists(
@@ -38,7 +38,7 @@ func TestAccCloudStackNetwork_vpc(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNetwork_vpc,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNetworkExists(
@@ -58,7 +58,7 @@ func TestAccCloudStackNetwork_updateACL(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackNetworkDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNetwork_acl,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNetworkExists(
@@ -67,7 +67,7 @@ func TestAccCloudStackNetwork_updateACL(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackNetwork_updateACL,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackNetworkExists(

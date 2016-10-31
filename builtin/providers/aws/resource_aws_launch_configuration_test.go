@@ -23,7 +23,7 @@ func TestAccAWSLaunchConfiguration_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLaunchConfigurationNoNameConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.bar", &conf),
@@ -31,7 +31,7 @@ func TestAccAWSLaunchConfiguration_basic(t *testing.T) {
 						"aws_launch_configuration.bar", "terraform-"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSLaunchConfigurationPrefixNameConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.baz", &conf),
@@ -51,7 +51,7 @@ func TestAccAWSLaunchConfiguration_withBlockDevices(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLaunchConfigurationConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.bar", &conf),
@@ -78,7 +78,7 @@ func TestAccAWSLaunchConfiguration_withSpotPrice(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLaunchConfigurationWithSpotPriceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.bar", &conf),
@@ -100,7 +100,7 @@ func TestAccAWSLaunchConfiguration_withVpcClassicLink(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLaunchConfigurationConfig_withVpcClassicLink,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.foo", &conf),
@@ -120,7 +120,7 @@ func TestAccAWSLaunchConfiguration_withIAMProfile(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLaunchConfigurationConfig_withIAMProfile,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.bar", &conf),
@@ -164,7 +164,7 @@ func TestAccAWSLaunchConfiguration_withEncryption(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSLaunchConfigurationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSLaunchConfigurationWithEncryption,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.baz", &conf),

@@ -24,7 +24,7 @@ func TestAccAWSAPIGatewayAuthorizer_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAPIGatewayAuthorizerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayAuthorizerConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayAuthorizerExists("aws_api_gateway_authorizer.test", &conf),
@@ -44,7 +44,7 @@ func TestAccAWSAPIGatewayAuthorizer_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_api_gateway_authorizer.test", "identity_validation_expression", ""),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayAuthorizerUpdatedConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayAuthorizerExists("aws_api_gateway_authorizer.test", &conf),

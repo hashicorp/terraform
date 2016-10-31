@@ -26,7 +26,7 @@ func TestAccInstanceGroupManager_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceGroupManager_basic(template, target, igm1, igm2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
@@ -52,7 +52,7 @@ func TestAccInstanceGroupManager_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceGroupManager_update(template1, target, igm),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
@@ -63,7 +63,7 @@ func TestAccInstanceGroupManager_update(t *testing.T) {
 						&manager),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccInstanceGroupManager_update2(template1, target, template2, igm),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
@@ -93,14 +93,14 @@ func TestAccInstanceGroupManager_updateLifecycle(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceGroupManager_updateLifecycle(tag1, igm),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(
 						"google_compute_instance_group_manager.igm-update", &manager),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccInstanceGroupManager_updateLifecycle(tag2, igm),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceGroupManagerExists(

@@ -18,7 +18,7 @@ func TestAccComputeHttpHealthCheck_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHttpHealthCheckDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeHttpHealthCheck_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHttpHealthCheckExists(
@@ -41,7 +41,7 @@ func TestAccComputeHttpHealthCheck_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckComputeHttpHealthCheckDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccComputeHttpHealthCheck_update1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHttpHealthCheckExists(
@@ -52,7 +52,7 @@ func TestAccComputeHttpHealthCheck_update(t *testing.T) {
 						2, 2, &healthCheck),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccComputeHttpHealthCheck_update2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHttpHealthCheckExists(

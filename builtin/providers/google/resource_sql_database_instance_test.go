@@ -28,7 +28,7 @@ func TestAccGoogleSqlDatabaseInstance_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_basic, databaseID),
 				Check: resource.ComposeTestCheckFunc(
@@ -50,7 +50,7 @@ func TestAccGoogleSqlDatabaseInstance_basic2(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testGoogleSqlDatabaseInstance_basic2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleSqlDatabaseInstanceExists(
@@ -72,7 +72,7 @@ func TestAccGoogleSqlDatabaseInstance_settings_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_settings, databaseID),
 				Check: resource.ComposeTestCheckFunc(
@@ -95,7 +95,7 @@ func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_basic, databaseID),
 				Check: resource.ComposeTestCheckFunc(
@@ -105,7 +105,7 @@ func TestAccGoogleSqlDatabaseInstance_settings_upgrade(t *testing.T) {
 						"google_sql_database_instance.instance", &instance),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_settings, databaseID),
 				Check: resource.ComposeTestCheckFunc(
@@ -128,7 +128,7 @@ func TestAccGoogleSqlDatabaseInstance_settings_downgrade(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_settings, databaseID),
 				Check: resource.ComposeTestCheckFunc(
@@ -138,7 +138,7 @@ func TestAccGoogleSqlDatabaseInstance_settings_downgrade(t *testing.T) {
 						"google_sql_database_instance.instance", &instance),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_basic, databaseID),
 				Check: resource.ComposeTestCheckFunc(
@@ -162,15 +162,15 @@ func TestAccGoogleSqlDatabaseInstance_authNets(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccGoogleSqlDatabaseInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_authNets_step1, databaseID),
 			},
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_authNets_step2, databaseID),
 			},
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testGoogleSqlDatabaseInstance_authNets_step1, databaseID),
 			},

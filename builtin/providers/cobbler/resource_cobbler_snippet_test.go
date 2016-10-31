@@ -18,7 +18,7 @@ func TestAccCobblerSnippet_basic(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckSnippetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerSnippet_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckSnippetExists(t, "cobbler_snippet.foo", &snippet),

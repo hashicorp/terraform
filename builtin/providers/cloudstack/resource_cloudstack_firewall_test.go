@@ -16,7 +16,7 @@ func TestAccCloudStackFirewall_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackFirewallDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackFirewall_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackFirewallRulesExist("cloudstack_firewall.foo"),
@@ -50,7 +50,7 @@ func TestAccCloudStackFirewall_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackFirewallDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackFirewall_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackFirewallRulesExist("cloudstack_firewall.foo"),
@@ -75,7 +75,7 @@ func TestAccCloudStackFirewall_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackFirewall_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackFirewallRulesExist("cloudstack_firewall.foo"),

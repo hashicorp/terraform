@@ -17,7 +17,7 @@ func TestAccCloudStackVPNCustomerGateway_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackVPNCustomerGatewayDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackVPNCustomerGateway_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackVPNCustomerGatewayExists(
@@ -45,7 +45,7 @@ func TestAccCloudStackVPNCustomerGateway_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackVPNCustomerGatewayDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackVPNCustomerGateway_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackVPNCustomerGatewayExists(
@@ -62,7 +62,7 @@ func TestAccCloudStackVPNCustomerGateway_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCloudStackVPNCustomerGateway_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackVPNCustomerGatewayExists(

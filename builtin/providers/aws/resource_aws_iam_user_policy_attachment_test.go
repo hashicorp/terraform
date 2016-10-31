@@ -19,14 +19,14 @@ func TestAccAWSUserPolicyAttachment_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSUserPolicyAttachmentDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSUserPolicyAttachConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSUserPolicyAttachmentExists("aws_iam_user_policy_attachment.test-attach", 1, &out),
 					testAccCheckAWSUserPolicyAttachmentAttributes([]string{"test-policy"}, &out),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSUserPolicyAttachConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSUserPolicyAttachmentExists("aws_iam_user_policy_attachment.test-attach", 2, &out),

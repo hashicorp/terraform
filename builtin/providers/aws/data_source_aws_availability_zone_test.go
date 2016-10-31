@@ -13,7 +13,7 @@ func TestAccDataSourceAwsAvailabilityZone(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsAvailabilityZoneConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsAvailabilityZoneCheck("data.aws_availability_zone.by_name"),

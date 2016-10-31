@@ -25,19 +25,19 @@ func resourceAwsCustomerGateway() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"bgp_asn": &schema.Schema{
+			"bgp_asn": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

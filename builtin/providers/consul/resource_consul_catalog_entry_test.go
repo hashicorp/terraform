@@ -15,7 +15,7 @@ func TestAccConsulCatalogEntry_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckConsulCatalogEntryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccConsulCatalogEntryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulCatalogEntryExists(),

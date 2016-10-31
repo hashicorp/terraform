@@ -14,15 +14,15 @@ func resourceGithubTeam() *schema.Resource {
 		Delete: resourceGithubTeamDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"privacy": &schema.Schema{
+			"privacy": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Default:      "secret",

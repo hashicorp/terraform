@@ -20,7 +20,7 @@ func TestAccAWSKeyPair_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSKeyPairDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSKeyPairConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKeyPairExists("aws_key_pair.a_key_pair", &conf),
@@ -39,7 +39,7 @@ func TestAccAWSKeyPair_generatedName(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSKeyPairDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSKeyPairConfig_generatedName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKeyPairExists("aws_key_pair.a_key_pair", &conf),

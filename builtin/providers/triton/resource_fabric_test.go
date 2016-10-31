@@ -21,7 +21,7 @@ func TestAccTritonFabric_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckTritonFabricDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckTritonFabricExists("triton_fabric.test"),

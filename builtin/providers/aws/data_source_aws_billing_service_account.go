@@ -12,7 +12,7 @@ func dataSourceAwsBillingServiceAccount() *schema.Resource {
 		Read: dataSourceAwsBillingServiceAccountRead,
 
 		Schema: map[string]*schema.Schema{
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

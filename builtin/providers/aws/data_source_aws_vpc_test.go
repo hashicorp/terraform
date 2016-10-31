@@ -13,7 +13,7 @@ func TestAccDataSourceAwsVpc(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsVpcConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsVpcCheck("data.aws_vpc.by_id"),

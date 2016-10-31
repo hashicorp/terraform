@@ -16,97 +16,97 @@ func resourceDistro() *schema.Resource {
 		Delete: resourceDistroDelete,
 
 		Schema: map[string]*schema.Schema{
-			"arch": &schema.Schema{
+			"arch": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"breed": &schema.Schema{
+			"breed": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"boot_files": &schema.Schema{
+			"boot_files": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"comment": &schema.Schema{
+			"comment": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"fetchable_files": &schema.Schema{
+			"fetchable_files": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kernel": &schema.Schema{
+			"kernel": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"kernel_options": &schema.Schema{
+			"kernel_options": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kernel_options_post": &schema.Schema{
+			"kernel_options_post": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"initrd": &schema.Schema{
+			"initrd": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"mgmt_classes": &schema.Schema{
+			"mgmt_classes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"os_version": &schema.Schema{
+			"os_version": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"owners": &schema.Schema{
+			"owners": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
 			},
 
-			"redhat_management_key": &schema.Schema{
+			"redhat_management_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"redhat_management_server": &schema.Schema{
+			"redhat_management_server": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"template_files": &schema.Schema{
+			"template_files": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

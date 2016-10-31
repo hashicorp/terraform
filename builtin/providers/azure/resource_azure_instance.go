@@ -37,13 +37,13 @@ func resourceAzureInstance() *schema.Resource {
 		Delete: resourceAzureInstanceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"hosted_service_name": &schema.Schema{
+			"hosted_service_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -55,114 +55,114 @@ func resourceAzureInstance() *schema.Resource {
 			// service and the instance despite their being created separately,
 			// we must maintain a flag to definitively denote whether this
 			// instance had a hosted service created for it or not:
-			"has_dedicated_service": &schema.Schema{
+			"has_dedicated_service": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"image": &schema.Schema{
+			"image": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"subnet": &schema.Schema{
+			"subnet": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"virtual_network": &schema.Schema{
+			"virtual_network": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"storage_service_name": &schema.Schema{
+			"storage_service_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"reverse_dns": &schema.Schema{
+			"reverse_dns": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
+			"location": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"automatic_updates": &schema.Schema{
+			"automatic_updates": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
 
-			"time_zone": &schema.Schema{
+			"time_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"username": &schema.Schema{
+			"username": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"password": &schema.Schema{
+			"password": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"ssh_key_thumbprint": &schema.Schema{
+			"ssh_key_thumbprint": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"protocol": &schema.Schema{
+						"protocol": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "tcp",
 						},
 
-						"public_port": &schema.Schema{
+						"public_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"private_port": &schema.Schema{
+						"private_port": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -171,47 +171,47 @@ func resourceAzureInstance() *schema.Resource {
 				Set: resourceAzureEndpointHash,
 			},
 
-			"security_group": &schema.Schema{
+			"security_group": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ip_address": &schema.Schema{
+			"ip_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"vip_address": &schema.Schema{
+			"vip_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"domain_name": &schema.Schema{
+			"domain_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"domain_username": &schema.Schema{
+			"domain_username": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"domain_password": &schema.Schema{
+			"domain_password": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"domain_ou": &schema.Schema{
+			"domain_ou": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"custom_data": &schema.Schema{
+			"custom_data": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,

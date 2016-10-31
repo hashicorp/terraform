@@ -18,34 +18,34 @@ func resourceArmDnsMxRecord() *schema.Resource {
 		Delete: resourceArmDnsMxRecordDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_group_name": &schema.Schema{
+			"resource_group_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"zone_name": &schema.Schema{
+			"zone_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"record": &schema.Schema{
+			"record": {
 				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"preference": &schema.Schema{
+						"preference": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"exchange": &schema.Schema{
+						"exchange": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -54,7 +54,7 @@ func resourceArmDnsMxRecord() *schema.Resource {
 				Set: resourceArmDnsMxRecordHash,
 			},
 
-			"ttl": &schema.Schema{
+			"ttl": {
 				Type:     schema.TypeInt,
 				Required: true,
 			},

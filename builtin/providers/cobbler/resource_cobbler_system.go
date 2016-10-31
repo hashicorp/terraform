@@ -21,178 +21,178 @@ func resourceSystem() *schema.Resource {
 		Delete: resourceSystemDelete,
 
 		Schema: map[string]*schema.Schema{
-			"boot_files": &schema.Schema{
+			"boot_files": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"comment": &schema.Schema{
+			"comment": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"enable_gpxe": &schema.Schema{
+			"enable_gpxe": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"fetchable_files": &schema.Schema{
+			"fetchable_files": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"gateway": &schema.Schema{
+			"gateway": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"hostname": &schema.Schema{
+			"hostname": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"image": &schema.Schema{
+			"image": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"interface": &schema.Schema{
+			"interface": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
+						"name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"cnames": &schema.Schema{
+						"cnames": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"dhcp_tag": &schema.Schema{
+						"dhcp_tag": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"dns_name": &schema.Schema{
+						"dns_name": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"bonding_opts": &schema.Schema{
+						"bonding_opts": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"bridge_opts": &schema.Schema{
+						"bridge_opts": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"gateway": &schema.Schema{
+						"gateway": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"interface_type": &schema.Schema{
+						"interface_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"interface_master": &schema.Schema{
+						"interface_master": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ip_address": &schema.Schema{
+						"ip_address": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ipv6_address": &schema.Schema{
+						"ipv6_address": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ipv6_secondaries": &schema.Schema{
+						"ipv6_secondaries": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"ipv6_mtu": &schema.Schema{
+						"ipv6_mtu": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"ipv6_static_routes": &schema.Schema{
+						"ipv6_static_routes": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"ipv6_default_gateway": &schema.Schema{
+						"ipv6_default_gateway": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"mac_address": &schema.Schema{
+						"mac_address": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"management": &schema.Schema{
+						"management": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Computed: true,
 						},
 
-						"netmask": &schema.Schema{
+						"netmask": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
-						"static": &schema.Schema{
+						"static": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Computed: true,
 						},
 
-						"static_routes": &schema.Schema{
+						"static_routes": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 
-						"virt_bridge": &schema.Schema{
+						"virt_bridge": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -202,214 +202,214 @@ func resourceSystem() *schema.Resource {
 				Set: resourceSystemInterfaceHash,
 			},
 
-			"ipv6_default_device": &schema.Schema{
+			"ipv6_default_device": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kernel_options": &schema.Schema{
+			"kernel_options": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kernel_options_post": &schema.Schema{
+			"kernel_options_post": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kickstart": &schema.Schema{
+			"kickstart": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ks_meta": &schema.Schema{
+			"ks_meta": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ldap_enabled": &schema.Schema{
+			"ldap_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"ldap_type": &schema.Schema{
+			"ldap_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"mgmt_classes": &schema.Schema{
+			"mgmt_classes": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"mgmt_parameters": &schema.Schema{
+			"mgmt_parameters": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"monit_enabled": &schema.Schema{
+			"monit_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"name_servers_search": &schema.Schema{
+			"name_servers_search": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"name_servers": &schema.Schema{
+			"name_servers": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"netboot_enabled": &schema.Schema{
+			"netboot_enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"owners": &schema.Schema{
+			"owners": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"power_address": &schema.Schema{
+			"power_address": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"power_id": &schema.Schema{
+			"power_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"power_pass": &schema.Schema{
+			"power_pass": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"power_type": &schema.Schema{
+			"power_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"power_user": &schema.Schema{
+			"power_user": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"profile": &schema.Schema{
+			"profile": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"proxy": &schema.Schema{
+			"proxy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"redhat_management_key": &schema.Schema{
+			"redhat_management_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"redhat_management_server": &schema.Schema{
+			"redhat_management_server": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"template_files": &schema.Schema{
+			"template_files": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"template_remote_kickstarts": &schema.Schema{
+			"template_remote_kickstarts": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_auto_boot": &schema.Schema{
+			"virt_auto_boot": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_file_size": &schema.Schema{
+			"virt_file_size": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_cpus": &schema.Schema{
+			"virt_cpus": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_type": &schema.Schema{
+			"virt_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_path": &schema.Schema{
+			"virt_path": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_pxe_boot": &schema.Schema{
+			"virt_pxe_boot": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_ram": &schema.Schema{
+			"virt_ram": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"virt_disk_driver": &schema.Schema{
+			"virt_disk_driver": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,

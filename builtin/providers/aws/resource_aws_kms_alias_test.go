@@ -16,13 +16,13 @@ func TestAccAWSKmsAlias_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSKmsAliasDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsSingleAlias,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsAliasExists("aws_kms_alias.single"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsSingleAlias_modified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsAliasExists("aws_kms_alias.single"),
@@ -38,7 +38,7 @@ func TestAccAWSKmsAlias_name_prefix(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSKmsAliasDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsSingleAlias,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsAliasExists("aws_kms_alias.name_prefix"),
@@ -54,7 +54,7 @@ func TestAccAWSKmsAlias_no_name(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSKmsAliasDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsSingleAlias,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsAliasExists("aws_kms_alias.nothing"),
@@ -70,7 +70,7 @@ func TestAccAWSKmsAlias_multiple(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSKmsAliasDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsMultipleAliases,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsAliasExists("aws_kms_alias.one"),

@@ -16,7 +16,7 @@ func TestAccAWSSQSQueuePolicy_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSQSPolicyConfig_basic(queueName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.q"),

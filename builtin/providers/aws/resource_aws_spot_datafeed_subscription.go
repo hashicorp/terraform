@@ -20,12 +20,12 @@ func resourceAwsSpotDataFeedSubscription() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"prefix": &schema.Schema{
+			"prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,

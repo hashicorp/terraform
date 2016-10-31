@@ -20,7 +20,7 @@ func TestAccVcdFirewallRules_basic(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: newConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVcdFirewallRulesExists("vcd_firewall_rules.bar", &fwRules),

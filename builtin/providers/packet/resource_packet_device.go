@@ -18,78 +18,78 @@ func resourcePacketDevice() *schema.Resource {
 		Delete: resourcePacketDeviceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"project_id": &schema.Schema{
+			"project_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"hostname": &schema.Schema{
+			"hostname": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"operating_system": &schema.Schema{
+			"operating_system": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"facility": &schema.Schema{
+			"facility": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"plan": &schema.Schema{
+			"plan": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"billing_cycle": &schema.Schema{
+			"billing_cycle": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"state": &schema.Schema{
+			"state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"locked": &schema.Schema{
+			"locked": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
 
-			"network": &schema.Schema{
+			"network": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"address": &schema.Schema{
+						"address": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 
-						"gateway": &schema.Schema{
+						"gateway": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 
-						"family": &schema.Schema{
+						"family": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
 
-						"cidr": &schema.Schema{
+						"cidr": {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
 
-						"public": &schema.Schema{
+						"public": {
 							Type:     schema.TypeBool,
 							Computed: true,
 						},
@@ -97,22 +97,22 @@ func resourcePacketDevice() *schema.Resource {
 				},
 			},
 
-			"created": &schema.Schema{
+			"created": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"updated": &schema.Schema{
+			"updated": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"user_data": &schema.Schema{
+			"user_data": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeList,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},

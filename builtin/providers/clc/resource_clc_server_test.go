@@ -25,7 +25,7 @@ func TestAccServerBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckServerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckServerConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServerExists("clc_server.acc_test_server", &resp),
@@ -38,7 +38,7 @@ func TestAccServerBasic(t *testing.T) {
 				),
 			},
 			// update simple attrs
-			resource.TestStep{
+			{
 				Config: testAccCheckServerConfigCPUMEM,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServerExists("clc_server.acc_test_server", &resp),
@@ -52,7 +52,7 @@ func TestAccServerBasic(t *testing.T) {
 				),
 			},
 			// toggle power
-			resource.TestStep{
+			{
 				Config: testAccCheckServerConfigPower,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServerExists("clc_server.acc_test_server", &resp),
@@ -62,7 +62,7 @@ func TestAccServerBasic(t *testing.T) {
 			},
 			/* // currently broken since disk updates require diskId
 			// add disks
-			resource.TestStep{
+			{
 				Config: testAccCheckServerConfig_disks,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServerExists("clc_server.acc_test_server", &resp),
@@ -75,7 +75,7 @@ func TestAccServerBasic(t *testing.T) {
 			*/
 			/* // broken since network id is a (account-specific) guid
 			// set network id
-			resource.TestStep{
+			{
 				Config: testAccCheckServerConfigNetwork,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServerExists("clc_server.acc_test_server", &resp),

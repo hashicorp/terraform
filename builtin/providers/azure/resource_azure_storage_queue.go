@@ -16,13 +16,13 @@ func resourceAzureStorageQueue() *schema.Resource {
 		Delete: resourceAzureStorageQueueDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: parameterDescriptions["name"],
 			},
-			"storage_service_name": &schema.Schema{
+			"storage_service_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,

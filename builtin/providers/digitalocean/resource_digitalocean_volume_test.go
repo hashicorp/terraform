@@ -22,7 +22,7 @@ func TestAccDigitalOceanVolume_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanVolumeDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckDigitalOceanVolumeConfig_basic, name),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDigitalOceanVolumeExists("digitalocean_volume.foobar", &volume),
@@ -103,7 +103,7 @@ func TestAccDigitalOceanVolume_Droplet(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckDigitalOceanVolumeDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(
 					testAccCheckDigitalOceanVolumeConfig_droplet,
 					testAccValidPublicKey, volume.Name,

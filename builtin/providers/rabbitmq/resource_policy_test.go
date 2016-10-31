@@ -18,13 +18,13 @@ func TestAccPolicy(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccPolicyCheckDestroy(&policy),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPolicyConfig_basic,
 				Check: testAccPolicyCheck(
 					"rabbitmq_policy.test", &policy,
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccPolicyConfig_update,
 				Check: testAccPolicyCheck(
 					"rabbitmq_policy.test", &policy,

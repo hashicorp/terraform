@@ -23,7 +23,7 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckAWSAppautoscalingTargetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAppautoscalingTargetConfig(randClusterName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingTargetExists("aws_appautoscaling_target.bar", &target),
@@ -34,7 +34,7 @@ func TestAccAWSAppautoScalingTarget_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSAppautoscalingTargetConfigUpdate(randClusterName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAppautoscalingTargetExists("aws_appautoscaling_target.bar", &target),
@@ -201,7 +201,7 @@ resource "aws_appautoscaling_target" "bar" {
 	service_namespace = "ecs"
 	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
 	scalable_dimension = "ecs:service:DesiredCount"
-	role_arn = "${aws_iam_role.autoscale_role.arn}"	
+	role_arn = "${aws_iam_role.autoscale_role.arn}"
 	min_capacity = 1
 	max_capacity = 3
 }
@@ -293,7 +293,7 @@ resource "aws_appautoscaling_target" "bar" {
 	service_namespace = "ecs"
 	resource_id = "service/${aws_ecs_cluster.foo.name}/${aws_ecs_service.service.name}"
 	scalable_dimension = "ecs:service:DesiredCount"
-	role_arn = "${aws_iam_role.autoscale_role.arn}"	
+	role_arn = "${aws_iam_role.autoscale_role.arn}"
 	min_capacity = 2
 	max_capacity = 8
 }

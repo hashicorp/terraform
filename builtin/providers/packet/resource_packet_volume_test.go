@@ -20,7 +20,7 @@ func TestAccPacketVolume_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPacketVolumeDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccCheckPacketVolumeConfig_basic, rs),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPacketVolumeExists("packet_volume.foobar", &volume),

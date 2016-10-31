@@ -14,7 +14,7 @@ func TestAccDataSourceAwsPrefixList(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccDataSourceAwsPrefixListConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccDataSourceAwsPrefixListCheck("data.aws_prefix_list.s3"),

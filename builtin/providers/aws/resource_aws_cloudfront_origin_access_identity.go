@@ -20,28 +20,28 @@ func resourceAwsCloudFrontOriginAccessIdentity() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"comment": &schema.Schema{
+			"comment": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
 			},
-			"caller_reference": &schema.Schema{
+			"caller_reference": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"cloudfront_access_identity_path": &schema.Schema{
+			"cloudfront_access_identity_path": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"etag": &schema.Schema{
+			"etag": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"iam_arn": &schema.Schema{
+			"iam_arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"s3_canonical_user_id": &schema.Schema{
+			"s3_canonical_user_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

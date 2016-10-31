@@ -16,7 +16,7 @@ func TestAccAzureStorageBlockBlob(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureStorageBlobDeleted("block"),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureStorageBlockBlobConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureStorageBlobExists(name, "block"),
@@ -39,7 +39,7 @@ func TestAccAzureStoragePageBlob(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureStorageBlobDeleted("page"),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureStoragePageBlobConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAzureStorageBlobExists(name, "page"),

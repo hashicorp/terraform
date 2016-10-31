@@ -17,7 +17,7 @@ func TestAccCloudStackVPNGateway_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackVPNGatewayDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackVPNGateway_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackVPNGatewayExists(

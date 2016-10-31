@@ -25,51 +25,51 @@ func resourceAwsEip() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"vpc": &schema.Schema{
+			"vpc": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"instance": &schema.Schema{
+			"instance": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"network_interface": &schema.Schema{
+			"network_interface": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"allocation_id": &schema.Schema{
+			"allocation_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"association_id": &schema.Schema{
+			"association_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"domain": &schema.Schema{
+			"domain": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"public_ip": &schema.Schema{
+			"public_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"private_ip": &schema.Schema{
+			"private_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"associate_with_private_ip": &schema.Schema{
+			"associate_with_private_ip": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},

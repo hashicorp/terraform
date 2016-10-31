@@ -20,7 +20,7 @@ func TestAccAzureRMAvailabilitySet_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
@@ -44,7 +44,7 @@ func TestAccAzureRMAvailabilitySet_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
@@ -71,7 +71,7 @@ func TestAccAzureRMAvailabilitySet_withTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
@@ -84,7 +84,7 @@ func TestAccAzureRMAvailabilitySet_withTags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),
@@ -108,7 +108,7 @@ func TestAccAzureRMAvailabilitySet_withDomainCounts(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMAvailabilitySetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMAvailabilitySetExists("azurerm_availability_set.test"),

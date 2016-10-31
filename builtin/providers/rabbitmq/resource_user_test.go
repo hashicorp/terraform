@@ -17,13 +17,13 @@ func TestAccUser(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccUserCheckDestroy(user),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccUserConfig_basic,
 				Check: testAccUserCheck(
 					"rabbitmq_user.test", &user,
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccUserConfig_update,
 				Check: testAccUserCheck(
 					"rabbitmq_user.test", &user,

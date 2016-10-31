@@ -21,7 +21,7 @@ func TestAccAzureSqlDatabaseServer(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAzureSqlDatabaseServerDeleted,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAzureSqlDatabaseServerConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccAzureSqlDatabaseServerGetName,

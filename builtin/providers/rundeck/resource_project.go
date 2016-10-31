@@ -30,37 +30,37 @@ func resourceRundeckProject() *schema.Resource {
 		Read:   ReadProject,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Unique name for the project",
 				ForceNew:    true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Description of the project to be shown in the Rundeck UI",
 				Default:     "Managed by Terraform",
 			},
 
-			"ui_url": &schema.Schema{
+			"ui_url": {
 				Type:     schema.TypeString,
 				Required: false,
 				Computed: true,
 			},
 
-			"resource_model_source": &schema.Schema{
+			"resource_model_source": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:        schema.TypeString,
 							Required:    true,
 							Description: "Name of the resource model plugin to use",
 						},
-						"config": &schema.Schema{
+						"config": {
 							Type:        schema.TypeMap,
 							Required:    true,
 							Description: "Configuration parameters for the selected plugin",
@@ -69,35 +69,35 @@ func resourceRundeckProject() *schema.Resource {
 				},
 			},
 
-			"default_node_file_copier_plugin": &schema.Schema{
+			"default_node_file_copier_plugin": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "jsch-scp",
 			},
 
-			"default_node_executor_plugin": &schema.Schema{
+			"default_node_executor_plugin": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "jsch-ssh",
 			},
 
-			"ssh_authentication_type": &schema.Schema{
+			"ssh_authentication_type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "privateKey",
 			},
 
-			"ssh_key_storage_path": &schema.Schema{
+			"ssh_key_storage_path": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"ssh_key_file_path": &schema.Schema{
+			"ssh_key_file_path": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"extra_config": &schema.Schema{
+			"extra_config": {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Description: "Additional raw configuration parameters to include in the project configuration, with dots replaced with slashes in the key names due to limitations in Terraform's config language.",

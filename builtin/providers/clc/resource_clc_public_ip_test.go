@@ -23,7 +23,7 @@ func TestAccPublicIPBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPublicIPDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckPublicIPConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPublicIPExists("clc_public_ip.acc_test_public_ip", &resp),

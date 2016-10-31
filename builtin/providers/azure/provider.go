@@ -13,7 +13,7 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"settings_file": &schema.Schema{
+			"settings_file": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				DefaultFunc:  schema.EnvDefaultFunc("AZURE_SETTINGS_FILE", nil),
@@ -21,20 +21,20 @@ func Provider() terraform.ResourceProvider {
 				Deprecated:   "Use the publish_settings field instead",
 			},
 
-			"publish_settings": &schema.Schema{
+			"publish_settings": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				DefaultFunc:  schema.EnvDefaultFunc("AZURE_PUBLISH_SETTINGS", nil),
 				ValidateFunc: validatePublishSettings,
 			},
 
-			"subscription_id": &schema.Schema{
+			"subscription_id": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("AZURE_SUBSCRIPTION_ID", ""),
 			},
 
-			"certificate": &schema.Schema{
+			"certificate": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("AZURE_CERTIFICATE", ""),

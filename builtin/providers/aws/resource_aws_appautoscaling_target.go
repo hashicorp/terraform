@@ -20,7 +20,7 @@ func resourceAwsAppautoscalingTarget() *schema.Resource {
 		Delete: resourceAwsAppautoscalingTargetDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -35,37 +35,37 @@ func resourceAwsAppautoscalingTarget() *schema.Resource {
 					return
 				},
 			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"max_capacity": &schema.Schema{
+			"max_capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"min_capacity": &schema.Schema{
+			"min_capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-			"resource_id": &schema.Schema{
+			"resource_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"scalable_dimension": &schema.Schema{
+			"scalable_dimension": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ecs:service:DesiredCount",
 				ForceNew: true,
 			},
-			"service_namespace": &schema.Schema{
+			"service_namespace": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "ecs",

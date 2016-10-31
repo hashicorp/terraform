@@ -21,7 +21,7 @@ func TestAccAWSAMICopy(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAMICopyConfig,
 				Check: func(state *terraform.State) error {
 					rs, ok := state.RootModule().Resources["aws_ami_copy.test"]

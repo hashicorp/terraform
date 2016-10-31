@@ -22,7 +22,7 @@ func TestAccAWSWafIPSet_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSWafIPSetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSWafIPSetConfig(ipsetName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSWafIPSetExists("aws_waf_ipset.ipset", &v),

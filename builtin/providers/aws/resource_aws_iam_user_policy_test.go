@@ -17,7 +17,7 @@ func TestAccAWSIAMUserPolicy_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMUserPolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccIAMUserPolicyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMUserPolicy(
@@ -26,7 +26,7 @@ func TestAccAWSIAMUserPolicy_basic(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccIAMUserPolicyConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMUserPolicy(

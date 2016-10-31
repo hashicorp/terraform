@@ -18,63 +18,63 @@ func resourceDMERecord() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			// Use recordid for TF ID.
-			"domainid": &schema.Schema{
+			"domainid": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"value": &schema.Schema{
+			"value": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"ttl": &schema.Schema{
+			"ttl": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"mxLevel": &schema.Schema{
+			"mxLevel": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"weight": &schema.Schema{
+			"weight": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"priority": &schema.Schema{
+			"priority": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"keywords": &schema.Schema{
+			"keywords": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"title": &schema.Schema{
+			"title": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"hardLink": &schema.Schema{
+			"hardLink": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-			"redirectType": &schema.Schema{
+			"redirectType": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"gtdLocation": &schema.Schema{
+			"gtdLocation": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},

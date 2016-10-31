@@ -17,7 +17,7 @@ func TestAccCloudStackIPAddress_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackIPAddressDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackIPAddress_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackIPAddressExists(
@@ -37,7 +37,7 @@ func TestAccCloudStackIPAddress_vpc(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudStackIPAddressDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCloudStackIPAddress_vpc,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackIPAddressExists(

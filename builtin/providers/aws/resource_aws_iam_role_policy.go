@@ -23,11 +23,11 @@ func resourceAwsIamRolePolicy() *schema.Resource {
 		Delete: resourceAwsIamRolePolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"policy": &schema.Schema{
+			"policy": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -45,7 +45,7 @@ func resourceAwsIamRolePolicy() *schema.Resource {
 					return
 				},
 			},
-			"role": &schema.Schema{
+			"role": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,

@@ -11,51 +11,51 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"user": &schema.Schema{
+			"user": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_USER", nil),
 				Description: "The user name for vSphere API operations.",
 			},
 
-			"password": &schema.Schema{
+			"password": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_PASSWORD", nil),
 				Description: "The user password for vSphere API operations.",
 			},
 
-			"vsphere_server": &schema.Schema{
+			"vsphere_server": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_SERVER", nil),
 				Description: "The vSphere Server name for vSphere API operations.",
 			},
-			"allow_unverified_ssl": &schema.Schema{
+			"allow_unverified_ssl": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_ALLOW_UNVERIFIED_SSL", false),
 				Description: "If set, VMware vSphere client will permit unverifiable SSL certificates.",
 			},
-			"vcenter_server": &schema.Schema{
+			"vcenter_server": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_VCENTER", nil),
 				Deprecated:  "This field has been renamed to vsphere_server.",
 			},
-			"client_debug": &schema.Schema{
+			"client_debug": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG", false),
 				Description: "govomomi debug",
 			},
-			"client_debug_path_run": &schema.Schema{
+			"client_debug_path_run": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH_RUN", ""),
 				Description: "govomomi debug path for a single run",
 			},
-			"client_debug_path": &schema.Schema{
+			"client_debug_path": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("VSPHERE_CLIENT_DEBUG_PATH", ""),

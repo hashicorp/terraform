@@ -19,13 +19,13 @@ func resourceAzureSecurityGroupRule() *schema.Resource {
 		Delete: resourceAzureSecurityGroupRuleDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: parameterDescriptions["name"],
 			},
-			"security_group_names": &schema.Schema{
+			"security_group_names": {
 				Type:        schema.TypeSet,
 				Required:    true,
 				ForceNew:    true,
@@ -35,42 +35,42 @@ func resourceAzureSecurityGroupRule() *schema.Resource {
 				},
 				Set: schema.HashString,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_type"],
 			},
-			"priority": &schema.Schema{
+			"priority": {
 				Type:        schema.TypeInt,
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_priority"],
 			},
-			"action": &schema.Schema{
+			"action": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_action"],
 			},
-			"source_address_prefix": &schema.Schema{
+			"source_address_prefix": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_src_addr_prefix"],
 			},
-			"source_port_range": &schema.Schema{
+			"source_port_range": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_src_port_range"],
 			},
-			"destination_address_prefix": &schema.Schema{
+			"destination_address_prefix": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_dest_addr_prefix"],
 			},
-			"destination_port_range": &schema.Schema{
+			"destination_port_range": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_dest_port_range"],
 			},
-			"protocol": &schema.Schema{
+			"protocol": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_protocol"],

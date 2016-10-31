@@ -14,7 +14,7 @@ func TestAccScalewayServer_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckScalewayServerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayServerConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalewayServerExists("scaleway_server.base"),
@@ -37,7 +37,7 @@ func TestAccScalewayServer_Volumes(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckScalewayServerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayServerVolumeConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalewayServerExists("scaleway_server.base"),
@@ -70,14 +70,14 @@ func TestAccScalewayServer_SecurityGroup(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckScalewayServerDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayServerConfig_SecurityGroup,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalewayServerExists("scaleway_server.base"),
 					testAccCheckScalewayServerSecurityGroup("scaleway_server.base", "blue"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCheckScalewayServerConfig_SecurityGroup_Update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckScalewayServerExists("scaleway_server.base"),

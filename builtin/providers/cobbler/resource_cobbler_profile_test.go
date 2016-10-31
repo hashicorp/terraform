@@ -19,7 +19,7 @@ func TestAccCobblerProfile_basic(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckProfileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerProfile_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
@@ -39,14 +39,14 @@ func TestAccCobblerProfile_change(t *testing.T) {
 		Providers:    testAccCobblerProviders,
 		CheckDestroy: testAccCobblerCheckProfileDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCobblerProfile_change_1,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),
 					testAccCobblerCheckProfileExists(t, "cobbler_profile.foo", &profile),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCobblerProfile_change_2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCobblerCheckDistroExists(t, "cobbler_distro.foo", &distro),

@@ -27,7 +27,7 @@ func TestAccGithubRepositoryCollaborator_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryCollaboratorDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubRepositoryCollaboratorConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryCollaboratorExists("github_repository_collaborator.test_repo_collaborator"),

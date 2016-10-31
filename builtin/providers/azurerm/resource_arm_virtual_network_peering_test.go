@@ -19,7 +19,7 @@ func TestAccAzureRMVirtualNetworkPeering_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualNetworkPeeringDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkPeeringExists("azurerm_virtual_network_peering.test1"),
@@ -43,7 +43,7 @@ func TestAccAzureRMVirtualNetworkPeering_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualNetworkPeeringDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkPeeringExists("azurerm_virtual_network_peering.test1"),
@@ -70,7 +70,7 @@ func TestAccAzureRMVirtualNetworkPeering_update(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMVirtualNetworkPeeringDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkPeeringExists("azurerm_virtual_network_peering.test1"),
@@ -86,7 +86,7 @@ func TestAccAzureRMVirtualNetworkPeering_update(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMVirtualNetworkPeeringExists("azurerm_virtual_network_peering.test1"),

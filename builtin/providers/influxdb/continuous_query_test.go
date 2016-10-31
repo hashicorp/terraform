@@ -13,7 +13,7 @@ func TestAccInfluxDBContiuousQuery(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccContiuousQueryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckContiuousQueryExists("influxdb_continuous_query.minnie"),

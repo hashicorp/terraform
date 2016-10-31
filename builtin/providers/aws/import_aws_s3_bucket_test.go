@@ -18,11 +18,11 @@ func TestAccAWSS3Bucket_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketConfig(rInt),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -63,11 +63,11 @@ func TestAccAWSS3Bucket_importWithPolicy(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketConfigWithPolicy(rInt),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:     "aws_s3_bucket.bucket",
 				ImportState:      true,
 				ImportStateCheck: checkFn,

@@ -17,68 +17,68 @@ func resourceConsulPreparedQuery() *schema.Resource {
 		SchemaVersion: 0,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"datacenter": &schema.Schema{
+			"datacenter": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"session": &schema.Schema{
+			"session": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"token": &schema.Schema{
+			"token": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"stored_token": &schema.Schema{
+			"stored_token": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"service": &schema.Schema{
+			"service": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"tags": &schema.Schema{
+			"tags": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
-			"near": &schema.Schema{
+			"near": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"only_passing": &schema.Schema{
+			"only_passing": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"failover": &schema.Schema{
+			"failover": {
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"nearest_n": &schema.Schema{
+						"nearest_n": {
 							Type:     schema.TypeInt,
 							Optional: true,
 						},
-						"datacenters": &schema.Schema{
+						"datacenters": {
 							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -87,13 +87,13 @@ func resourceConsulPreparedQuery() *schema.Resource {
 				},
 			},
 
-			"dns": &schema.Schema{
+			"dns": {
 				Type:     schema.TypeList,
 				Optional: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"ttl": &schema.Schema{
+						"ttl": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -101,17 +101,17 @@ func resourceConsulPreparedQuery() *schema.Resource {
 				},
 			},
 
-			"template": &schema.Schema{
+			"template": {
 				Type:     schema.TypeList,
 				MaxItems: 1,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"regexp": &schema.Schema{
+						"regexp": {
 							Type:     schema.TypeString,
 							Required: true,
 						},

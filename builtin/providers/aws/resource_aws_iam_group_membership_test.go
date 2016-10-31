@@ -30,7 +30,7 @@ func TestAccAWSGroupMembership_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSGroupMembershipDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: configBase,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
@@ -38,7 +38,7 @@ func TestAccAWSGroupMembership_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: configUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
@@ -46,7 +46,7 @@ func TestAccAWSGroupMembership_basic(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: configUpdateDown,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
@@ -65,7 +65,7 @@ func TestAccAWSGroupMembership_paginatedUserList(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSGroupMembershipDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSGroupMemberConfigPaginatedUserList,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),

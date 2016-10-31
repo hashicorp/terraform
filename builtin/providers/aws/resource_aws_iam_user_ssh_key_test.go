@@ -23,7 +23,7 @@ func TestAccAWSUserSSHKey_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSUserSSHKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSUserSSHKeyExists("aws_iam_user_ssh_key.user", &conf),
@@ -44,7 +44,7 @@ func TestAccAWSUserSSHKey_pemEncoding(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSUserSSHKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSUserSSHKeyExists("aws_iam_user_ssh_key.user", &conf),

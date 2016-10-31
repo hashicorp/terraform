@@ -20,50 +20,50 @@ func resourceAzureHostedService() *schema.Resource {
 		Delete: resourceAzureHostedServiceDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: parameterDescriptions["name"],
 			},
-			"location": &schema.Schema{
+			"location": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: parameterDescriptions["location"],
 			},
-			"ephemeral_contents": &schema.Schema{
+			"ephemeral_contents": {
 				Type:        schema.TypeBool,
 				Required:    true,
 				Description: parameterDescriptions["ephemeral_contents"],
 			},
-			"url": &schema.Schema{
+			"url": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"reverse_dns_fqdn": &schema.Schema{
+			"reverse_dns_fqdn": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: parameterDescriptions["reverse_dns_fqdn"],
 			},
-			"label": &schema.Schema{
+			"label": {
 				Type:        schema.TypeString,
 				ForceNew:    true,
 				Optional:    true,
 				Default:     "Made by Terraform.",
 				Description: parameterDescriptions["label"],
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:        schema.TypeString,
 				ForceNew:    true,
 				Optional:    true,
 				Description: parameterDescriptions["description"],
 			},
-			"default_certificate_thumbprint": &schema.Schema{
+			"default_certificate_thumbprint": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Optional:    true,

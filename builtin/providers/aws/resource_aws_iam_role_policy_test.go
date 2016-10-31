@@ -22,7 +22,7 @@ func TestAccAWSIAMRolePolicy_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckIAMRolePolicyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccIAMRolePolicyConfig(role, policy1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMRolePolicy(
@@ -31,7 +31,7 @@ func TestAccAWSIAMRolePolicy_basic(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccIAMRolePolicyConfigUpdate(role, policy1, policy2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckIAMRolePolicy(

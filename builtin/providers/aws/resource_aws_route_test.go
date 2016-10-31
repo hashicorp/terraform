@@ -38,7 +38,7 @@ func TestAccAWSRoute_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.bar", &route),
@@ -101,14 +101,14 @@ func TestAccAWSRoute_changeCidr(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteBasicConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.bar", &route),
 					testCheck,
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteBasicConfigChangeCidr,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.bar", &route),
@@ -139,14 +139,14 @@ func TestAccAWSRoute_noopdiff(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteNoopChange,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.test", &route),
 					testCheck,
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteNoopChange,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.test", &route),
@@ -166,7 +166,7 @@ func TestAccAWSRoute_doesNotCrashWithVPCEndpoint(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteWithVPCEndpoint,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRouteExists("aws_route.bar", &route),
@@ -225,7 +225,7 @@ func TestAccAWSRoute_mix(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRouteMixConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &rt),

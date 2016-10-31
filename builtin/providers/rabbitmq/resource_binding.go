@@ -20,43 +20,43 @@ func resourceBinding() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"source": &schema.Schema{
+			"source": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"vhost": &schema.Schema{
+			"vhost": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"destination": &schema.Schema{
+			"destination": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"destination_type": &schema.Schema{
+			"destination_type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"properties_key": &schema.Schema{
+			"properties_key": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"routing_key": &schema.Schema{
+			"routing_key": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"arguments": &schema.Schema{
+			"arguments": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,

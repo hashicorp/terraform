@@ -20,7 +20,7 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBClusterParameterGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBClusterParameterGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
@@ -47,7 +47,7 @@ func TestAccAWSDBClusterParameterGroup_basic(t *testing.T) {
 						"aws_rds_cluster_parameter_group.bar", "tags.%", "1"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSDBClusterParameterGroupAddParametersConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
@@ -94,7 +94,7 @@ func TestAccAWSDBClusterParameterGroup_disappears(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBClusterParameterGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBClusterParameterGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),
@@ -114,7 +114,7 @@ func TestAccAWSDBClusterParameterGroupOnly(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDBClusterParameterGroupDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDBClusterParameterGroupOnlyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBClusterParameterGroupExists("aws_rds_cluster_parameter_group.bar", &v),

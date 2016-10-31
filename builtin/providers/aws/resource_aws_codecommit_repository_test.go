@@ -17,7 +17,7 @@ func TestAccAWSCodeCommitRepository_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCodeCommitRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCodeCommitRepository_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
@@ -33,7 +33,7 @@ func TestAccAWSCodeCommitRepository_withChanges(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCodeCommitRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCodeCommitRepository_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
@@ -41,7 +41,7 @@ func TestAccAWSCodeCommitRepository_withChanges(t *testing.T) {
 						"aws_codecommit_repository.test", "description", "This is a test description"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCodeCommitRepository_withChanges,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
@@ -59,7 +59,7 @@ func TestAccAWSCodeCommitRepository_create_default_branch(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCodeCommitRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCodeCommitRepository_with_default_branch,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
@@ -77,7 +77,7 @@ func TestAccAWSCodeCommitRepository_create_and_update_default_branch(t *testing.
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCodeCommitRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCodeCommitRepository_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),
@@ -85,7 +85,7 @@ func TestAccAWSCodeCommitRepository_create_and_update_default_branch(t *testing.
 						"aws_codecommit_repository.test", "default_branch", ""),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccCodeCommitRepository_with_default_branch,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCodeCommitRepositoryExists("aws_codecommit_repository.test"),

@@ -19,13 +19,13 @@ func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDynamoDbConfigInitialState(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSDynamoDbConfigAddSecondaryGSI,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDynamoDbTableWasUpdated("aws_dynamodb_table.basic-dynamodb-table"),
@@ -41,7 +41,7 @@ func TestAccAWSDynamoDbTable_streamSpecification(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSDynamoDbTableDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSDynamoDbConfigStreamSpecification(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInitialAWSDynamoDbTableExists("aws_dynamodb_table.basic-dynamodb-table"),

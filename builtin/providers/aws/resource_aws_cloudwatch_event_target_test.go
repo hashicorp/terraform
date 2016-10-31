@@ -18,7 +18,7 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchEventTargetConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.moobar", &target),
@@ -28,7 +28,7 @@ func TestAccAWSCloudWatchEventTarget_basic(t *testing.T) {
 						regexp.MustCompile(":tf-acc-moon$")),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchEventTargetConfigModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.moobar", &target),
@@ -50,7 +50,7 @@ func TestAccAWSCloudWatchEventTarget_missingTargetId(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchEventTargetConfigMissingTargetId,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.moobar", &target),
@@ -71,7 +71,7 @@ func TestAccAWSCloudWatchEventTarget_full(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchEventTargetDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchEventTargetConfig_full,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchEventTargetExists("aws_cloudwatch_event_target.foobar", &target),

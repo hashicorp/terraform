@@ -20,22 +20,22 @@ func resourceAwsIamAccessKey() *schema.Resource {
 		Delete: resourceAwsIamAccessKeyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"user": &schema.Schema{
+			"user": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type: schema.TypeString,
 				// this could be settable, but goamz does not support the
 				// UpdateAccessKey API yet.
 				Computed: true,
 			},
-			"secret": &schema.Schema{
+			"secret": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"ses_smtp_password": &schema.Schema{
+			"ses_smtp_password": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

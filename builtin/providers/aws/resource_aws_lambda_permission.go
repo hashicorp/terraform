@@ -24,42 +24,42 @@ func resourceAwsLambdaPermission() *schema.Resource {
 		Delete: resourceAwsLambdaPermissionDelete,
 
 		Schema: map[string]*schema.Schema{
-			"action": &schema.Schema{
+			"action": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLambdaPermissionAction,
 			},
-			"function_name": &schema.Schema{
+			"function_name": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLambdaFunctionName,
 			},
-			"principal": &schema.Schema{
+			"principal": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"qualifier": &schema.Schema{
+			"qualifier": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateLambdaQualifier,
 			},
-			"source_account": &schema.Schema{
+			"source_account": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateAwsAccountId,
 			},
-			"source_arn": &schema.Schema{
+			"source_arn": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateArn,
 			},
-			"statement_id": &schema.Schema{
+			"statement_id": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,

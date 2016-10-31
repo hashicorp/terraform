@@ -18,7 +18,7 @@ func TestAccAWSCloudWatchLogMetricFilter_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSCloudWatchLogMetricFilterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogMetricFilterConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogMetricFilterExists("aws_cloudwatch_log_metric_filter.foobar", &mf),
@@ -37,7 +37,7 @@ func TestAccAWSCloudWatchLogMetricFilter_basic(t *testing.T) {
 					}),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSCloudWatchLogMetricFilterConfigModified,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudWatchLogMetricFilterExists("aws_cloudwatch_log_metric_filter.foobar", &mf),

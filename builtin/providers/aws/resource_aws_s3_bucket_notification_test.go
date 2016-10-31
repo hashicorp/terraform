@@ -23,7 +23,7 @@ func TestAccAWSS3Bucket_Notification(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketNotificationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketConfigWithTopicNotification(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketTopicNotification(
@@ -33,11 +33,11 @@ func TestAccAWSS3Bucket_Notification(t *testing.T) {
 						[]string{"s3:ObjectCreated:*", "s3:ObjectRemoved:Delete"},
 						&s3.KeyFilter{
 							FilterRules: []*s3.FilterRule{
-								&s3.FilterRule{
+								{
 									Name:  aws.String("Prefix"),
 									Value: aws.String(fmt.Sprintf("%d/", rInt)),
 								},
-								&s3.FilterRule{
+								{
 									Name:  aws.String("Suffix"),
 									Value: aws.String(".txt"),
 								},
@@ -51,7 +51,7 @@ func TestAccAWSS3Bucket_Notification(t *testing.T) {
 						[]string{"s3:ObjectCreated:*", "s3:ObjectRemoved:Delete"},
 						&s3.KeyFilter{
 							FilterRules: []*s3.FilterRule{
-								&s3.FilterRule{
+								{
 									Name:  aws.String("Suffix"),
 									Value: aws.String(".log"),
 								},
@@ -60,7 +60,7 @@ func TestAccAWSS3Bucket_Notification(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketConfigWithQueueNotification(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketQueueNotification(
@@ -70,11 +70,11 @@ func TestAccAWSS3Bucket_Notification(t *testing.T) {
 						[]string{"s3:ObjectCreated:*", "s3:ObjectRemoved:Delete"},
 						&s3.KeyFilter{
 							FilterRules: []*s3.FilterRule{
-								&s3.FilterRule{
+								{
 									Name:  aws.String("Prefix"),
 									Value: aws.String(fmt.Sprintf("%d/", rInt)),
 								},
-								&s3.FilterRule{
+								{
 									Name:  aws.String("Suffix"),
 									Value: aws.String(".mp4"),
 								},
@@ -83,7 +83,7 @@ func TestAccAWSS3Bucket_Notification(t *testing.T) {
 					),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketConfigWithLambdaNotification(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketLambdaFunctionConfiguration(
@@ -93,11 +93,11 @@ func TestAccAWSS3Bucket_Notification(t *testing.T) {
 						[]string{"s3:ObjectCreated:*", "s3:ObjectRemoved:Delete"},
 						&s3.KeyFilter{
 							FilterRules: []*s3.FilterRule{
-								&s3.FilterRule{
+								{
 									Name:  aws.String("Prefix"),
 									Value: aws.String(fmt.Sprintf("%d/", rInt)),
 								},
-								&s3.FilterRule{
+								{
 									Name:  aws.String("Suffix"),
 									Value: aws.String(".png"),
 								},
@@ -117,7 +117,7 @@ func TestAccAWSS3Bucket_NotificationWithoutFilter(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketNotificationDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSS3BucketConfigWithTopicNotificationWithoutFilter(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketTopicNotification(

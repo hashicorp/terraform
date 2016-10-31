@@ -18,7 +18,7 @@ func TestAccStatusCake_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccTestCheckDestroy(&test),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccTestConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTestCheckExists("statuscake_test.google", &test),
@@ -36,14 +36,14 @@ func TestAccStatusCake_withUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccTestCheckDestroy(&test),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccTestConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTestCheckExists("statuscake_test.google", &test),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccTestConfig_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTestCheckExists("statuscake_test.google", &test),

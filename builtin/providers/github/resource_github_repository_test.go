@@ -18,7 +18,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckGithubRepositoryDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccGithubRepositoryConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),
@@ -33,7 +33,7 @@ func TestAccGithubRepository_basic(t *testing.T) {
 					}),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccGithubRepositoryUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryExists("github_repository.foo", &repo),

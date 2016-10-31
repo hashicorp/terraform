@@ -17,7 +17,7 @@ func TestAccAWSSESReceiptFilter_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckSESReceiptFilterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSESReceiptFilterConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsSESReceiptFilterExists("aws_ses_receipt_filter.test"),

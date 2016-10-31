@@ -16,28 +16,28 @@ func resourceHerokuCert() *schema.Resource {
 		Delete: resourceHerokuCertDelete,
 
 		Schema: map[string]*schema.Schema{
-			"app": &schema.Schema{
+			"app": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"certificate_chain": &schema.Schema{
+			"certificate_chain": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"private_key": &schema.Schema{
+			"private_key": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"cname": &schema.Schema{
+			"cname": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},

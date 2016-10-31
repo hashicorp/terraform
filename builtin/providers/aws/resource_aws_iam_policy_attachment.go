@@ -21,7 +21,7 @@ func resourceAwsIamPolicyAttachment() *schema.Resource {
 		Delete: resourceAwsIamPolicyAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -33,25 +33,25 @@ func resourceAwsIamPolicyAttachment() *schema.Resource {
 					return
 				},
 			},
-			"users": &schema.Schema{
+			"users": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"roles": &schema.Schema{
+			"roles": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"groups": &schema.Schema{
+			"groups": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"policy_arn": &schema.Schema{
+			"policy_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
