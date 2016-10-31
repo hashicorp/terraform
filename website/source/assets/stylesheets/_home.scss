@@ -42,10 +42,12 @@ body.page-home {
 	}
 
 	#primary-cta{
+		position: relative;
 		margin-top: -30px;
-		padding-bottom: 100px;
+		padding-bottom: 40px;
 		color: $white;
 		background: $black;
+		z-index: 99;
 
 		.terra-btn{
 			margin-top: 30px;
@@ -53,12 +55,14 @@ body.page-home {
 	}
 
 	.temp-skew {
+		position: relative;
 		height: 240px;
 		background-color: #000;
 		@include skewY(-3deg);
 		margin-top: -100px;
 		-webkit-backface-visibility: hidden;
 		border: 2px solid #000;
+		z-index: 0;
 	}
 
 	#customer-logos{
@@ -566,6 +570,7 @@ body.page-home {
 	}
 
 	@media (min-width: 1440px) {
+
 		#feature-write{
 			padding: 280px 0 200px;
 			margin-top: -120px;
