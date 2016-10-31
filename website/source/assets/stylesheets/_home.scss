@@ -29,7 +29,7 @@ body.page-home {
 		font-size: 15px;
 		line-height: 1.5;
 		font-weight: regular;
-		letter-spacing: .1px;
+		letter-spacing: .2px;
 		margin-bottom: 2.2em;
 		font-family: $font-family-open-sans;
 		font-weight: $font-weight-open;
@@ -50,6 +50,15 @@ body.page-home {
 		.terra-btn{
 			margin-top: 30px;
 		}
+	}
+
+	.temp-skew {
+		height: 240px;
+		background-color: #000;
+		@include skewY(-3deg);
+		margin-top: -100px;
+		-webkit-backface-visibility: hidden;
+		border: 2px solid #000;
 	}
 
 	#customer-logos{
