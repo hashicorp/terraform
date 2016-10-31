@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -109,6 +109,11 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 			"insufficient_data_health_status": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"reference_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"tags": tagsSchema(),
@@ -253,8 +258,13 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	callerRef := resource.UniqueId()
+	if v, ok := d.GetOk("reference_name"); ok {
+		callerRef = fmt.Sprintf("%s-%s", v.(string), callerRef)
+	}
+
 	input := &route53.CreateHealthCheckInput{
-		CallerReference:   aws.String(time.Now().Format(time.RFC3339Nano)),
+		CallerReference:   aws.String(callerRef),
 		HealthCheckConfig: healthConfig,
 	}
 
