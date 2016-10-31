@@ -127,6 +127,7 @@ body.page-home {
 	}
 
 	.feature-card{
+		display: block;
 		height: 200px;
 		border: 2px solid #E6E7E8;
 		margin-bottom: 15px;
@@ -144,6 +145,7 @@ body.page-home {
 		}
 
 		p{
+			color: #000;
 			font-size: 16px;
 			line-height: 1.2;
 			font-weight: 400;
@@ -164,6 +166,11 @@ body.page-home {
 		&.feature-card-create{
 			background: image-url("feature-card-create.svg") left 0 top 70% no-repeat;
 			background-size: 80%;
+		}
+
+		&:hover {
+			border: 2px solid $purple;
+			text-decoration: none;
 		}
 	}
 
