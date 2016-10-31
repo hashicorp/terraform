@@ -1,4 +1,4 @@
-package nsone
+package ns1
 
 import (
 	"os"
@@ -14,7 +14,7 @@ var testAccProvider *schema.Provider
 func init() {
 	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
-		"nsone": testAccProvider,
+		"ns1": testAccProvider,
 	}
 }
 
@@ -29,7 +29,7 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("NSONE_APIKEY"); v == "" {
-		t.Fatal("NSONE_APIKEY must be set for acceptance tests")
+	if v := os.Getenv("NS1_APIKEY"); v == "" {
+		t.Fatal("NS1_APIKEY must be set for acceptance tests")
 	}
 }
