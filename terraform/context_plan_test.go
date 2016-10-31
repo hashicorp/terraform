@@ -841,6 +841,27 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_provisionerCycle(t *testing.T) {
+	m := testModule(t, "plan-provisioner-cycle")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	pr := testProvisioner()
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"local-exec": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err == nil {
+		t.Fatalf("should error")
+	}
+}
+
 func TestContext2Plan_computed(t *testing.T) {
 	m := testModule(t, "plan-computed")
 	p := testProvider("aws")
