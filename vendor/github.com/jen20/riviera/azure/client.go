@@ -4,14 +4,14 @@ import (
 	"io/ioutil"
 	"log"
 
-	"net/http"
-
 	"github.com/hashicorp/go-retryablehttp"
+	"net/http"
 )
 
 type Client struct {
 	logger *log.Logger
 
+	BaseURL        string
 	subscriptionID string
 
 	tokenRequester *tokenRequester
@@ -27,6 +27,7 @@ func NewClient(creds *AzureResourceManagerCredentials) (*Client, error) {
 	tr := newTokenRequester(httpClient, creds.ClientID, creds.ClientSecret, creds.TenantID)
 
 	return &Client{
+		BaseURL:        "https://management.azure.com",
 		subscriptionID: creds.SubscriptionID,
 		httpClient:     httpClient,
 		tokenRequester: tr,
@@ -34,7 +35,7 @@ func NewClient(creds *AzureResourceManagerCredentials) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) SetRequestLoggingHook(hook func(*log.Logger, *http.Request, int)) {
+func (c *Client) SetRequestLoggingHook(hook func (*log.Logger, *http.Request, int)) {
 	c.httpClient.RequestLogHook = hook
 }
 
