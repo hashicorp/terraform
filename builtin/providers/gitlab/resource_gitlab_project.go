@@ -31,18 +31,22 @@ func resourceGitlabProject() *schema.Resource {
 			"issues_enabled": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 			"merge_requests_enabled": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 			"wiki_enabled": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 			"snippets_enabled": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 			"visibility_level": &schema.Schema{
 				Type:         schema.TypeString,
