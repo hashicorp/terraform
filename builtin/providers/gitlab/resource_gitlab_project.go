@@ -143,8 +143,10 @@ func resourceGitlabProjectRead(d *schema.ResourceData, meta interface{}) error {
 func resourceGitlabProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gitlab.Client)
 
-	options := &gitlab.EditProjectOptions{
-		Name: gitlab.String(d.Get("name").(string)),
+	options := &gitlab.EditProjectOptions{}
+
+	if d.HasChange("name") {
+		options.Name = gitlab.String(d.Get("name").(string))
 	}
 
 	if d.HasChange("description") {
