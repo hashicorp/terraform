@@ -75,8 +75,7 @@ func (request *Request) pollForAsynchronousResponse(acceptedResponse *http.Respo
 			return nil, err
 		}
 
-		location := reflect.Indirect(reflect.ValueOf(request.Command)).FieldByName("Location").Interface().(string)
-		err = request.client.tokenRequester.addAuthorizationToRequest(req, location)
+		err = request.client.tokenRequester.addAuthorizationToRequest(req)
 		if err != nil {
 			return nil, err
 		}
@@ -116,11 +115,10 @@ func defaultARMRequestSerialize(body interface{}) (io.ReadSeeker, error) {
 func (request *Request) Execute() (*Response, error) {
 	apiInfo := request.Command.APIInfo()
 
-	location := reflect.Indirect(reflect.ValueOf(request.Command)).FieldByName("Location").Interface().(string)
-
 	var urlString string
 
-	urlObj, _ := url.Parse(GetEndpoints(location).resourceManagerEndpointUrl)
+	// Base URL should already be validated by now so Parse is safe without error handling
+	urlObj, _ := url.Parse(request.client.BaseURL)
 
 	// Determine whether to use the URLPathFunc or the URI explicitly set in the request
 	if request.URI == nil {
@@ -166,7 +164,7 @@ func (request *Request) Execute() (*Response, error) {
 		req.Header.Add("Content-Type", "application/json")
 	}
 
-	err = request.client.tokenRequester.addAuthorizationToRequest(req, location)
+	err = request.client.tokenRequester.addAuthorizationToRequest(req)
 	if err != nil {
 		return nil, err
 	}
