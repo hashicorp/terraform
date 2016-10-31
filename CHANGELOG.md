@@ -88,6 +88,7 @@ BUG FIXES:
  * provider/aws: Bug fix for NoSuckBucket on Destroy of aws_s3_bucket_policy [GH-9641]
  * provider/aws: Refresh aws_autoscaling_schedule from state on 404 [GH-9659]
  * provider/aws: Allow underscores in IAM user and group names [GH-9684]
+ * provider/aws: aws_ami: handle deletion of AMIs [GH-9721]
  * provider/azurerm: Fix Azure RM loadbalancer rules validation [GH-9468]
  * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff [GH-9323]
  * provider/azurerm: lower servicebus_topic max size to Azure limit [GH-9649]
