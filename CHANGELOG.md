@@ -52,6 +52,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for `AutoMinorVersionUpgrade` to aws_elasticache_replication_group resource. [GH-9657]
  * provider/aws: Fix import of RouteTable with destination prefixes [GH-9686]
  * provider/aws: Add support for reference_name to aws_route53_health_check [GH-9737]
+ * provider/aws: Expose ARN suffix on ALB Target Group [GH-9734]
  * provider/azurerm: add account_kind and access_tier to storage_account [GH-9408]
  * provider/azurerm: write load_balanacer attributes to network_interface_card hash [GH-9207]
  * provider/azurerm: Add disk_size_gb param to VM storage_os_disk [GH-9200]
