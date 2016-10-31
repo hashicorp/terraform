@@ -213,9 +213,8 @@ func TestAccAWSALB_accesslogs(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "arn"),
 				),
 			},
-
 			{
-				Config: testAccAWSALBConfig_accessLogs(albName, bucketName),
+				Config: testAccAWSALBConfig_accessLogs(true, albName, bucketName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSALBExists("aws_alb.alb_test", &conf),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "name", albName),
@@ -232,6 +231,27 @@ func TestAccAWSALB_accesslogs(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.#", "1"),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.0.bucket", bucketName),
 					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.0.prefix", "testAccAWSALBConfig_accessLogs"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.0.enabled", "true"),
+					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "arn"),
+				),
+			},
+			{
+				Config: testAccAWSALBConfig_accessLogs(false, albName, bucketName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSALBExists("aws_alb.alb_test", &conf),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "name", albName),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "internal", "false"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "subnets.#", "2"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "security_groups.#", "1"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "tags.%", "1"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "tags.TestName", "TestAccAWSALB_basic1"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "enable_deletion_protection", "false"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "idle_timeout", "50"),
+					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "vpc_id"),
+					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "zone_id"),
+					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "dns_name"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.#", "1"),
+					resource.TestCheckResourceAttr("aws_alb.alb_test", "access_logs.0.enabled", "false"),
 					resource.TestCheckResourceAttrSet("aws_alb.alb_test", "arn"),
 				),
 			},
@@ -569,7 +589,7 @@ resource "aws_security_group" "alb_test" {
 }`, albName)
 }
 
-func testAccAWSALBConfig_accessLogs(albName, bucketName string) string {
+func testAccAWSALBConfig_accessLogs(enabled bool, albName, bucketName string) string {
 	return fmt.Sprintf(`resource "aws_alb" "alb_test" {
   name            = "%s"
   internal        = false
@@ -582,6 +602,7 @@ func testAccAWSALBConfig_accessLogs(albName, bucketName string) string {
   access_logs {
   	bucket = "${aws_s3_bucket.logs.bucket}"
   	prefix = "${var.bucket_prefix}"
+  	enabled = "%t"
   }
 
   tags {
@@ -676,7 +697,7 @@ resource "aws_security_group" "alb_test" {
   tags {
     TestName = "TestAccAWSALB_basic"
   }
-}`, albName, bucketName)
+}`, albName, enabled, bucketName)
 }
 
 func testAccAWSALBConfig_nosg(albName string) string {

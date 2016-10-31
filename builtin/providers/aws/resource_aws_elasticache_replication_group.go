@@ -31,6 +31,12 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		Default:  false,
 	}
 
+	resourceSchema["auto_minor_version_upgrade"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+		Default:  true,
+	}
+
 	resourceSchema["replication_group_description"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
@@ -47,6 +53,11 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		Computed: true,
 	}
 
+	resourceSchema["configuration_endpoint_address"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+	}
+
 	resourceSchema["engine"].Required = false
 	resourceSchema["engine"].Optional = true
 	resourceSchema["engine"].Default = "redis"
@@ -57,6 +68,9 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 		Read:   resourceAwsElasticacheReplicationGroupRead,
 		Update: resourceAwsElasticacheReplicationGroupUpdate,
 		Delete: resourceAwsElasticacheReplicationGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: resourceSchema,
 	}
@@ -70,6 +84,7 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		ReplicationGroupId:          aws.String(d.Get("replication_group_id").(string)),
 		ReplicationGroupDescription: aws.String(d.Get("replication_group_description").(string)),
 		AutomaticFailoverEnabled:    aws.Bool(d.Get("automatic_failover_enabled").(bool)),
+		AutoMinorVersionUpgrade:     aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
 		CacheNodeType:               aws.String(d.Get("node_type").(string)),
 		Engine:                      aws.String(d.Get("engine").(string)),
 		Port:                        aws.Int64(int64(d.Get("port").(int))),
@@ -192,7 +207,17 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		return nil
 	}
 
-	d.Set("automatic_failover_enabled", rgp.AutomaticFailover)
+	if rgp.AutomaticFailover != nil {
+		switch strings.ToLower(*rgp.AutomaticFailover) {
+		case "disabled", "disabling":
+			d.Set("automatic_failover_enabled", false)
+		case "enabled", "enabling":
+			d.Set("automatic_failover_enabled", true)
+		default:
+			log.Printf("Unknown AutomaticFailover state %s", *rgp.AutomaticFailover)
+		}
+	}
+
 	d.Set("replication_group_description", rgp.Description)
 	d.Set("number_cache_clusters", len(rgp.MemberClusters))
 	d.Set("replication_group_id", rgp.ReplicationGroupId)
@@ -217,15 +242,26 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		d.Set("engine", c.Engine)
 		d.Set("engine_version", c.EngineVersion)
 		d.Set("subnet_group_name", c.CacheSubnetGroupName)
-		d.Set("security_group_names", c.CacheSecurityGroups)
-		d.Set("security_group_ids", c.SecurityGroups)
-		d.Set("parameter_group_name", c.CacheParameterGroup)
+		d.Set("security_group_names", flattenElastiCacheSecurityGroupNames(c.CacheSecurityGroups))
+		d.Set("security_group_ids", flattenElastiCacheSecurityGroupIds(c.SecurityGroups))
+
+		if c.CacheParameterGroup != nil {
+			d.Set("parameter_group_name", c.CacheParameterGroup.CacheParameterGroupName)
+		}
+
 		d.Set("maintenance_window", c.PreferredMaintenanceWindow)
-		d.Set("snapshot_window", c.SnapshotWindow)
-		d.Set("snapshot_retention_limit", c.SnapshotRetentionLimit)
+		d.Set("snapshot_window", rgp.SnapshotWindow)
+		d.Set("snapshot_retention_limit", rgp.SnapshotRetentionLimit)
 
-		d.Set("primary_endpoint_address", rgp.NodeGroups[0].PrimaryEndpoint.Address)
+		if rgp.ConfigurationEndpoint != nil {
+			d.Set("port", rgp.ConfigurationEndpoint.Port)
+			d.Set("configuration_endpoint_address", rgp.ConfigurationEndpoint.Address)
+		} else {
+			d.Set("port", rgp.NodeGroups[0].PrimaryEndpoint.Port)
+			d.Set("primary_endpoint_address", rgp.NodeGroups[0].PrimaryEndpoint.Address)
+		}
 
+		d.Set("auto_minor_version_upgrade", c.AutoMinorVersionUpgrade)
 	}
 
 	return nil
@@ -247,6 +283,11 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 
 	if d.HasChange("automatic_failover_enabled") {
 		params.AutomaticFailoverEnabled = aws.Bool(d.Get("automatic_failover_enabled").(bool))
+		requestUpdate = true
+	}
+
+	if d.HasChange("auto_minor_version_upgrade") {
+		params.AutoMinorVersionUpgrade = aws.Bool(d.Get("auto_minor_version_upgrade").(bool))
 		requestUpdate = true
 	}
 

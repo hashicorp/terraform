@@ -53,6 +53,22 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 				},
 			},
 
+			"disk": &schema.Schema{
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
+			"vcpus": &schema.Schema{
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
+			"resize_disk": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+
 			"status": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -243,6 +259,8 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", droplet.Name)
 	d.Set("region", droplet.Region.Slug)
 	d.Set("size", droplet.Size.Slug)
+	d.Set("disk", droplet.Disk)
+	d.Set("vcpus", droplet.Vcpus)
 	d.Set("status", droplet.Status)
 	d.Set("locked", strconv.FormatBool(droplet.Locked))
 
@@ -321,7 +339,13 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		}
 
 		// Resize the droplet
-		_, _, err = client.DropletActions.Resize(id, newSize.(string), true)
+		resize_disk := d.Get("resize_disk")
+		switch {
+		case resize_disk == true:
+			_, _, err = client.DropletActions.Resize(id, newSize.(string), true)
+		case resize_disk == false:
+			_, _, err = client.DropletActions.Resize(id, newSize.(string), false)
+		}
 		if err != nil {
 			newErr := powerOnAndWait(d, meta)
 			if newErr != nil {

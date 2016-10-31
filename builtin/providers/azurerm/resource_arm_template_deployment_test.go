@@ -29,6 +29,26 @@ func TestAccAzureRMTemplateDeployment_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMTemplateDeployment_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMTemplateDeployment_basicExample, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMTemplateDeploymentDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMTemplateDeploymentExists("azurerm_template_deployment.test"),
+					testCheckAzureRMTemplateDeploymentDisappears("azurerm_template_deployment.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMTemplateDeployment_withParams(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMTemplateDeployment_withParams, ri, ri, ri)
@@ -93,6 +113,31 @@ func testCheckAzureRMTemplateDeploymentExists(name string) resource.TestCheckFun
 	}
 }
 
+func testCheckAzureRMTemplateDeploymentDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for template deployment: %s", name)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).deploymentsClient
+
+		_, err := conn.Delete(resourceGroup, name, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on deploymentsClient: %s", err)
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMTemplateDeploymentDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).vmClient
 
@@ -120,7 +165,7 @@ func testCheckAzureRMTemplateDeploymentDestroy(s *terraform.State) error {
 
 var testAccAzureRMTemplateDeployment_basicExample = `
   resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
   }
 
@@ -185,7 +230,7 @@ DEPLOY
 
 var testAccAzureRMTemplateDeployment_withParams = `
   resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
   }
 
@@ -270,7 +315,7 @@ DEPLOY
 // StorageAccount name is too long, forces error
 var testAccAzureRMTemplateDeployment_withError = `
   resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
   }
 

@@ -55,9 +55,9 @@ func NewProfilesClientWithBaseURI(baseURI string, subscriptionID string) Profile
 // subscription.
 func (client ProfilesClient) Create(profileName string, profileProperties ProfileCreateParameters, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{profileProperties,
-			[]validation.Constraint{{"profileProperties.Location", validation.Null, true, nil},
-				{"profileProperties.Sku", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: profileProperties,
+			Constraints: []validation.Constraint{{Target: "profileProperties.Location", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "profileProperties.Sku", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.ProfilesClient", "Create")
 	}
 

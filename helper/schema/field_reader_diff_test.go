@@ -11,6 +11,104 @@ func TestDiffFieldReader_impl(t *testing.T) {
 	var _ FieldReader = new(DiffFieldReader)
 }
 
+func TestDiffFieldReader_NestedSetUpdate(t *testing.T) {
+	hashFn := func(a interface{}) int {
+		m := a.(map[string]interface{})
+		return m["val"].(int)
+	}
+
+	schema := map[string]*Schema{
+		"list_of_sets_1": &Schema{
+			Type: TypeList,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"nested_set": &Schema{
+						Type: TypeSet,
+						Elem: &Resource{
+							Schema: map[string]*Schema{
+								"val": &Schema{
+									Type: TypeInt,
+								},
+							},
+						},
+						Set: hashFn,
+					},
+				},
+			},
+		},
+		"list_of_sets_2": &Schema{
+			Type: TypeList,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"nested_set": &Schema{
+						Type: TypeSet,
+						Elem: &Resource{
+							Schema: map[string]*Schema{
+								"val": &Schema{
+									Type: TypeInt,
+								},
+							},
+						},
+						Set: hashFn,
+					},
+				},
+			},
+		},
+	}
+
+	r := &DiffFieldReader{
+		Schema: schema,
+		Diff: &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"list_of_sets_1.0.nested_set.1.val": &terraform.ResourceAttrDiff{
+					Old:        "1",
+					New:        "0",
+					NewRemoved: true,
+				},
+				"list_of_sets_1.0.nested_set.2.val": &terraform.ResourceAttrDiff{
+					New: "2",
+				},
+			},
+		},
+	}
+
+	r.Source = &MultiLevelFieldReader{
+		Readers: map[string]FieldReader{
+			"diff": r,
+			"set":  &MapFieldReader{Schema: schema},
+			"state": &MapFieldReader{
+				Map: &BasicMapReader{
+					"list_of_sets_1.#":                  "1",
+					"list_of_sets_1.0.nested_set.#":     "1",
+					"list_of_sets_1.0.nested_set.1.val": "1",
+					"list_of_sets_2.#":                  "1",
+					"list_of_sets_2.0.nested_set.#":     "1",
+					"list_of_sets_2.0.nested_set.1.val": "1",
+				},
+				Schema: schema,
+			},
+		},
+		Levels: []string{"state", "config"},
+	}
+
+	out, err := r.ReadField([]string{"list_of_sets_2"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	s := &Set{F: hashFn}
+	s.Add(map[string]interface{}{"val": 1})
+	expected := s.List()
+
+	l := out.Value.([]interface{})
+	i := l[0].(map[string]interface{})
+	actual := i["nested_set"].(*Set).List()
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("bad: NestedSetUpdate\n\nexpected: %#v\n\ngot: %#v\n\n", expected, actual)
+	}
+}
+
 // https://github.com/hashicorp/terraform/issues/914
 func TestDiffFieldReader_MapHandling(t *testing.T) {
 	schema := map[string]*Schema{

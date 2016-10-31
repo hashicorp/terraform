@@ -50,9 +50,9 @@ func NewJobCollectionsClientWithBaseURI(baseURI string, subscriptionID string) J
 // collection name. jobCollection is the job collection definition.
 func (client JobCollectionsClient) CreateOrUpdate(resourceGroupName string, jobCollectionName string, jobCollection JobCollectionDefinition) (result JobCollectionDefinition, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{jobCollection,
-			[]validation.Constraint{{"ID", validation.ReadOnly, true, nil},
-				{"Type", validation.ReadOnly, true, nil}}}}); err != nil {
+		{TargetValue: jobCollection,
+			Constraints: []validation.Constraint{{Target: "jobCollection.ID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "jobCollection.Type", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "scheduler.JobCollectionsClient", "CreateOrUpdate")
 	}
 
@@ -552,9 +552,9 @@ func (client JobCollectionsClient) ListBySubscriptionNextResults(lastResults Job
 // collection name. jobCollection is the job collection definition.
 func (client JobCollectionsClient) Patch(resourceGroupName string, jobCollectionName string, jobCollection JobCollectionDefinition) (result JobCollectionDefinition, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{jobCollection,
-			[]validation.Constraint{{"ID", validation.ReadOnly, true, nil},
-				{"Type", validation.ReadOnly, true, nil}}}}); err != nil {
+		{TargetValue: jobCollection,
+			Constraints: []validation.Constraint{{Target: "jobCollection.ID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "jobCollection.Type", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "scheduler.JobCollectionsClient", "Patch")
 	}
 

@@ -34,6 +34,7 @@ The following arguments are supported:
   Defaults to git.
 * `is_private` - (Optional) If this should be private or not. Defaults to `true`.
 * `website` - (Optional) URL of website associated with this repository.
+* `language` - (Optional) What the language of this repository should be.
 * `has_issues` - (Optional) If this should have issues turned on or not.
 * `has_wiki` - (Optional) If this should have wiki turned on or not.
 * `project_key` - (Optional) If you want to have this repo associated with a
@@ -46,3 +47,11 @@ The following arguments are supported:
 
 The following arguments are computed. You can access both `clone_ssh` and
 `clone_https` for getting a clone URL.
+
+## Import
+
+Repositories can be imported using the `name`, e.g. 
+
+```
+$ terraform import bitbucket_repository.my-repo my-repo
+```

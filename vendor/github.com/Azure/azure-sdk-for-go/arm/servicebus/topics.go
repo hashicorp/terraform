@@ -47,8 +47,8 @@ func NewTopicsClientWithBaseURI(baseURI string, subscriptionID string) TopicsCli
 // supplied to create a Topic Resource.
 func (client TopicsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, topicName string, parameters TopicCreateOrUpdateParameters) (result TopicResource, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{parameters,
-			[]validation.Constraint{{"parameters.Location", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "servicebus.TopicsClient", "CreateOrUpdate")
 	}
 
@@ -122,9 +122,9 @@ func (client TopicsClient) CreateOrUpdateResponder(resp *http.Response) (result 
 // rule.
 func (client TopicsClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, topicName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{parameters,
-			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
-				[]validation.Constraint{{"parameters.Properties.Rights", validation.Null, true, nil}}}}}}); err != nil {
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "servicebus.TopicsClient", "CreateOrUpdateAuthorizationRule")
 	}
 

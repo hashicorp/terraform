@@ -30,6 +30,31 @@ func TestDestroyTransformer(t *testing.T) {
 	}
 }
 
+func TestDestroyTransformer_dependsOn(t *testing.T) {
+	mod := testModule(t, "transform-destroy-depends-on")
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &DestroyTransformer{}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformDestroyBasicStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestCreateBeforeDestroyTransformer(t *testing.T) {
 	mod := testModule(t, "transform-create-before-destroy-basic")
 

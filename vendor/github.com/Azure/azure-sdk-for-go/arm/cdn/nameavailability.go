@@ -51,9 +51,9 @@ func NewNameAvailabilityClientWithBaseURI(baseURI string, subscriptionID string)
 // checkNameAvailabilityInput is input to check.
 func (client NameAvailabilityClient) CheckNameAvailability(checkNameAvailabilityInput CheckNameAvailabilityInput) (result CheckNameAvailabilityOutput, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{checkNameAvailabilityInput,
-			[]validation.Constraint{{"checkNameAvailabilityInput.Name", validation.Null, true, nil},
-				{"checkNameAvailabilityInput.Type", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: checkNameAvailabilityInput,
+			Constraints: []validation.Constraint{{Target: "checkNameAvailabilityInput.Name", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "checkNameAvailabilityInput.Type", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.NameAvailabilityClient", "CheckNameAvailability")
 	}
 

@@ -44,11 +44,26 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"azurerm_client_config": dataSourceArmClientConfig(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
-			"azurerm_availability_set":          resourceArmAvailabilitySet(),
-			"azurerm_cdn_endpoint":              resourceArmCdnEndpoint(),
-			"azurerm_cdn_profile":               resourceArmCdnProfile(),
+			"azurerm_availability_set": resourceArmAvailabilitySet(),
+			"azurerm_cdn_endpoint":     resourceArmCdnEndpoint(),
+			"azurerm_cdn_profile":      resourceArmCdnProfile(),
+
+			"azurerm_eventhub_namespace": resourceArmEventHubNamespace(),
+
+			"azurerm_lb":                      resourceArmLoadBalancer(),
+			"azurerm_lb_backend_address_pool": resourceArmLoadBalancerBackendAddressPool(),
+			"azurerm_lb_nat_rule":             resourceArmLoadBalancerNatRule(),
+			"azurerm_lb_nat_pool":             resourceArmLoadBalancerNatPool(),
+			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
+			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
+
+			"azurerm_key_vault":                 resourceArmKeyVault(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),
 			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
@@ -57,9 +72,12 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_route":                     resourceArmRoute(),
 			"azurerm_route_table":               resourceArmRouteTable(),
 			"azurerm_servicebus_namespace":      resourceArmServiceBusNamespace(),
+			"azurerm_servicebus_subscription":   resourceArmServiceBusSubscription(),
+			"azurerm_servicebus_topic":          resourceArmServiceBusTopic(),
 			"azurerm_storage_account":           resourceArmStorageAccount(),
 			"azurerm_storage_blob":              resourceArmStorageBlob(),
 			"azurerm_storage_container":         resourceArmStorageContainer(),
+			"azurerm_storage_share":             resourceArmStorageShare(),
 			"azurerm_storage_queue":             resourceArmStorageQueue(),
 			"azurerm_storage_table":             resourceArmStorageTable(),
 			"azurerm_subnet":                    resourceArmSubnet(),
@@ -177,7 +195,7 @@ func registerAzureResourceProvidersWithSubscription(client *riviera.Client) erro
 	var err error
 	providerRegistrationOnce.Do(func() {
 		// We register Microsoft.Compute during client initialization
-		providers := []string{"Microsoft.Network", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources", "Microsoft.ServiceBus"}
+		providers := []string{"Microsoft.Network", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources", "Microsoft.ServiceBus", "Microsoft.KeyVault", "Microsoft.EventHub"}
 
 		var wg sync.WaitGroup
 		wg.Add(len(providers))
@@ -234,4 +252,10 @@ func azureStateRefreshFunc(resourceURI string, client *ArmClient, command rivier
 
 		panic(fmt.Errorf("azureStateRefreshFunc called on structure %T with no mapstructure:provisioningState tag. This is a bug", res.Parsed))
 	}
+}
+
+// Resource group names can be capitalised, but we store them in lowercase.
+// Use a custom diff function to avoid creation of new resources.
+func resourceAzurermResourceGroupNameDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	return strings.ToLower(old) == strings.ToLower(new)
 }

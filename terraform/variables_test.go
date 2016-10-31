@@ -83,15 +83,64 @@ func TestVariables(t *testing.T) {
 				},
 			},
 		},
+
+		"bools: config only": {
+			"vars-basic-bool",
+			nil,
+			nil,
+			false,
+			map[string]interface{}{
+				"a": "1",
+				"b": "0",
+			},
+		},
+
+		"bools: override with string": {
+			"vars-basic-bool",
+			nil,
+			map[string]interface{}{
+				"a": "foo",
+				"b": "bar",
+			},
+			false,
+			map[string]interface{}{
+				"a": "foo",
+				"b": "bar",
+			},
+		},
+
+		"bools: override with env": {
+			"vars-basic-bool",
+			map[string]string{
+				"TF_VAR_a": "false",
+				"TF_VAR_b": "true",
+			},
+			nil,
+			false,
+			map[string]interface{}{
+				"a": "false",
+				"b": "true",
+			},
+		},
+
+		"bools: override with bool": {
+			"vars-basic-bool",
+			nil,
+			map[string]interface{}{
+				"a": false,
+				"b": true,
+			},
+			false,
+			map[string]interface{}{
+				"a": "0",
+				"b": "1",
+			},
+		},
 	}
 
 	for name, tc := range cases {
-		if name != "override partial map" {
-			continue
-		}
-
 		// Wrapped in a func so we can get defers to work
-		func() {
+		t.Run(name, func(t *testing.T) {
 			// Set the env vars
 			for k, v := range tc.Env {
 				defer tempEnv(t, k, v)()
@@ -107,8 +156,8 @@ func TestVariables(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(actual, tc.Expected) {
-				t.Fatalf("%s: expected: %#v\n\ngot: %#v", name, tc.Expected, actual)
+				t.Fatalf("%s\n\nexpected: %#v\n\ngot: %#v", name, tc.Expected, actual)
 			}
-		}()
+		})
 	}
 }

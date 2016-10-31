@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -30,8 +31,9 @@ func resourceAwsIamGroup() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateAwsIamGroupName,
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
@@ -126,4 +128,14 @@ func resourceAwsIamGroupDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error deleting IAM Group %s: %s", d.Id(), err)
 	}
 	return nil
+}
+
+func validateAwsIamGroupName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z=,.@\-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, hyphens, underscores, commas, periods, @ symbols and equals signs allowed in %q: %q",
+			k, value))
+	}
+	return
 }

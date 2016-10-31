@@ -217,7 +217,7 @@ func TestValidateArmStorageContainerName(t *testing.T) {
 
 var testAccAzureRMStorageContainer_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 

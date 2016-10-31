@@ -1,12 +1,16 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -215,10 +219,37 @@ func resourceAwsSsmDocumentDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	_, err := ssmconn.DeleteDocument(params)
-
 	if err != nil {
 		return err
 	}
+
+	log.Printf("[DEBUG] Waiting for SSM Document %q to be deleted", d.Get("name").(string))
+	err = resource.Retry(10*time.Minute, func() *resource.RetryError {
+		_, err := ssmconn.DescribeDocument(&ssm.DescribeDocumentInput{
+			Name: aws.String(d.Get("name").(string)),
+		})
+
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if !ok {
+				return resource.NonRetryableError(err)
+			}
+
+			if awsErr.Code() == "InvalidDocument" {
+				return nil
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		return resource.RetryableError(
+			fmt.Errorf("%q: Timeout while waiting for the document to be deleted", d.Id()))
+	})
+	if err != nil {
+		return err
+	}
+
+	d.SetId("")
 
 	return nil
 }

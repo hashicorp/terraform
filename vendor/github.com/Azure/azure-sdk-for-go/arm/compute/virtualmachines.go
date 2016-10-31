@@ -53,10 +53,10 @@ func NewVirtualMachinesClientWithBaseURI(baseURI string, subscriptionID string) 
 // Virtual Machine operation.
 func (client VirtualMachinesClient) Capture(resourceGroupName string, vmName string, parameters VirtualMachineCaptureParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{parameters,
-			[]validation.Constraint{{"parameters.VhdPrefix", validation.Null, true, nil},
-				{"parameters.DestinationContainerName", validation.Null, true, nil},
-				{"parameters.OverwriteVhds", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.VhdPrefix", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "parameters.DestinationContainerName", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "parameters.OverwriteVhds", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "compute.VirtualMachinesClient", "Capture")
 	}
 
@@ -131,29 +131,29 @@ func (client VirtualMachinesClient) CaptureResponder(resp *http.Response) (resul
 // Virtual Machine operation.
 func (client VirtualMachinesClient) CreateOrUpdate(resourceGroupName string, vmName string, parameters VirtualMachine, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{parameters,
-			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
-				[]validation.Constraint{{"parameters.Properties.StorageProfile", validation.Null, false,
-					[]validation.Constraint{{"parameters.Properties.StorageProfile.OsDisk", validation.Null, false,
-						[]validation.Constraint{{"parameters.Properties.StorageProfile.OsDisk.EncryptionSettings", validation.Null, false,
-							[]validation.Constraint{{"parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.DiskEncryptionKey", validation.Null, false,
-								[]validation.Constraint{{"parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.DiskEncryptionKey.SecretURL", validation.Null, true, nil},
-									{"parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.DiskEncryptionKey.SourceVault", validation.Null, true, nil},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings", Name: validation.Null, Rule: false,
+							Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.DiskEncryptionKey", Name: validation.Null, Rule: false,
+								Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.DiskEncryptionKey.SecretURL", Name: validation.Null, Rule: true, Chain: nil},
+									{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.DiskEncryptionKey.SourceVault", Name: validation.Null, Rule: true, Chain: nil},
 								}},
-								{"parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.KeyEncryptionKey", validation.Null, false,
-									[]validation.Constraint{{"parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.KeyEncryptionKey.KeyURL", validation.Null, true, nil},
-										{"parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.KeyEncryptionKey.SourceVault", validation.Null, true, nil},
+								{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.KeyEncryptionKey", Name: validation.Null, Rule: false,
+									Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.KeyEncryptionKey.KeyURL", Name: validation.Null, Rule: true, Chain: nil},
+										{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.KeyEncryptionKey.SourceVault", Name: validation.Null, Rule: true, Chain: nil},
 									}},
 							}},
-							{"parameters.Properties.StorageProfile.OsDisk.Name", validation.Null, true, nil},
-							{"parameters.Properties.StorageProfile.OsDisk.Vhd", validation.Null, true, nil},
+							{Target: "parameters.Properties.StorageProfile.OsDisk.Name", Name: validation.Null, Rule: true, Chain: nil},
+							{Target: "parameters.Properties.StorageProfile.OsDisk.Vhd", Name: validation.Null, Rule: true, Chain: nil},
 						}},
 					}},
-					{"ProvisioningState", validation.ReadOnly, true, nil},
-					{"InstanceView", validation.ReadOnly, true, nil},
-					{"VMID", validation.ReadOnly, true, nil},
+					{Target: "parameters.Properties.ProvisioningState", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					{Target: "parameters.Properties.InstanceView", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					{Target: "parameters.Properties.VMID", Name: validation.ReadOnly, Rule: true, Chain: nil},
 				}},
-				{"Resources", validation.ReadOnly, true, nil}}}}); err != nil {
+				{Target: "parameters.Resources", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "compute.VirtualMachinesClient", "CreateOrUpdate")
 	}
 

@@ -640,6 +640,43 @@ func TestContext2Refresh_dataState(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_dataStateRefData(t *testing.T) {
+	p := testProvider("null")
+	m := testModule(t, "refresh-data-ref-data")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				// Intentionally no resources since data resources are
+				// supposed to refresh themselves even if they didn't
+				// already exist.
+				Resources: map[string]*ResourceState{},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	p.ReadDataDiffFn = testDataDiffFn
+	p.ReadDataApplyFn = testDataApplyFn
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(s.String())
+	expected := strings.TrimSpace(testTerraformRefreshDataRefDataStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
+	}
+}
+
 func TestContext2Refresh_tainted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")

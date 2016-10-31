@@ -26,10 +26,15 @@ type remoteCommandConfig struct {
 type RemoteConfigCommand struct {
 	Meta
 	conf       remoteCommandConfig
-	remoteConf terraform.RemoteState
+	remoteConf *terraform.RemoteState
 }
 
 func (c *RemoteConfigCommand) Run(args []string) int {
+	// we expect a zero struct value here, but it's not explicitly set in tests
+	if c.remoteConf == nil {
+		c.remoteConf = &terraform.RemoteState{}
+	}
+
 	args = c.Meta.process(args, false)
 	config := make(map[string]string)
 	cmdFlags := flag.NewFlagSet("remote", flag.ContinueOnError)
@@ -229,7 +234,7 @@ func (c *RemoteConfigCommand) initBlankState() int {
 
 	// Make a blank state, attach the remote configuration
 	blank := terraform.NewState()
-	blank.Remote = &c.remoteConf
+	blank.Remote = c.remoteConf
 
 	// Persist the state
 	remote := &state.LocalState{Path: c.stateResult.RemotePath}
@@ -260,7 +265,7 @@ func (c *RemoteConfigCommand) updateRemoteConfig() int {
 
 	// Update the configuration
 	state := remote.State()
-	state.Remote = &c.remoteConf
+	state.Remote = c.remoteConf
 	if err := remote.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf("%s", err))
 		return 1
@@ -312,7 +317,7 @@ func (c *RemoteConfigCommand) enableRemoteState() int {
 
 	// Update the local configuration, move into place
 	state := local.State()
-	state.Remote = &c.remoteConf
+	state.Remote = c.remoteConf
 	remote := c.stateResult.Remote
 	if err := remote.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf("%s", err))

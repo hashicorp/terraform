@@ -13,6 +13,8 @@ type Index struct {
 }
 
 func (n *Index) Accept(v Visitor) Node {
+	n.Target = n.Target.Accept(v)
+	n.Key = n.Key.Accept(v)
 	return v(n)
 }
 

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -18,6 +19,7 @@ import (
 type privKey struct {
 	signer  ssh.Signer
 	comment string
+	expire  *time.Time
 }
 
 type keyring struct {
@@ -48,15 +50,9 @@ func (r *keyring) RemoveAll() error {
 	return nil
 }
 
-// Remove removes all identities with the given public key.
-func (r *keyring) Remove(key ssh.PublicKey) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.locked {
-		return errLocked
-	}
-
-	want := key.Marshal()
+// removeLocked does the actual key removal. The caller must already be holding the
+// keyring mutex.
+func (r *keyring) removeLocked(want []byte) error {
 	found := false
 	for i := 0; i < len(r.keys); {
 		if bytes.Equal(r.keys[i].signer.PublicKey().Marshal(), want) {
@@ -75,7 +71,18 @@ func (r *keyring) Remove(key ssh.PublicKey) error {
 	return nil
 }
 
-// Lock locks the agent. Sign and Remove will fail, and List will empty an empty list.
+// Remove removes all identities with the given public key.
+func (r *keyring) Remove(key ssh.PublicKey) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.locked {
+		return errLocked
+	}
+
+	return r.removeLocked(key.Marshal())
+}
+
+// Lock locks the agent. Sign and Remove will fail, and List will return an empty list.
 func (r *keyring) Lock(passphrase []byte) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -104,6 +111,17 @@ func (r *keyring) Unlock(passphrase []byte) error {
 	return nil
 }
 
+// expireKeysLocked removes expired keys from the keyring. If a key was added
+// with a lifetimesecs contraint and seconds >= lifetimesecs seconds have
+// ellapsed, it is removed. The caller *must* be holding the keyring mutex.
+func (r *keyring) expireKeysLocked() {
+	for _, k := range r.keys {
+		if k.expire != nil && time.Now().After(*k.expire) {
+			r.removeLocked(k.signer.PublicKey().Marshal())
+		}
+	}
+}
+
 // List returns the identities known to the agent.
 func (r *keyring) List() ([]*Key, error) {
 	r.mu.Lock()
@@ -113,6 +131,7 @@ func (r *keyring) List() ([]*Key, error) {
 		return nil, nil
 	}
 
+	r.expireKeysLocked()
 	var ids []*Key
 	for _, k := range r.keys {
 		pub := k.signer.PublicKey()
@@ -146,7 +165,17 @@ func (r *keyring) Add(key AddedKey) error {
 		}
 	}
 
-	r.keys = append(r.keys, privKey{signer, key.Comment})
+	p := privKey{
+		signer:  signer,
+		comment: key.Comment,
+	}
+
+	if key.LifetimeSecs > 0 {
+		t := time.Now().Add(time.Duration(key.LifetimeSecs) * time.Second)
+		p.expire = &t
+	}
+
+	r.keys = append(r.keys, p)
 
 	return nil
 }
@@ -159,6 +188,7 @@ func (r *keyring) Sign(key ssh.PublicKey, data []byte) (*ssh.Signature, error) {
 		return nil, errLocked
 	}
 
+	r.expireKeysLocked()
 	wanted := key.Marshal()
 	for _, k := range r.keys {
 		if bytes.Equal(k.signer.PublicKey().Marshal(), wanted) {
@@ -176,6 +206,7 @@ func (r *keyring) Signers() ([]ssh.Signer, error) {
 		return nil, errLocked
 	}
 
+	r.expireKeysLocked()
 	s := make([]ssh.Signer, 0, len(r.keys))
 	for _, k := range r.keys {
 		s = append(s, k.signer)

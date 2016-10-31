@@ -5,9 +5,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 )
 
 func resourceFWPolicyV1() *schema.Resource {
@@ -61,7 +62,6 @@ func resourceFWPolicyV1() *schema.Resource {
 }
 
 func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
-
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
@@ -130,7 +130,6 @@ func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceFWPolicyV1Update(d *schema.ResourceData, meta interface{}) error {
-
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
@@ -179,24 +178,38 @@ func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	for i := 0; i < 15; i++ {
-
-		err = policies.Delete(networkingClient, d.Id()).Err
-		if err == nil {
-			break
-		}
-
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-		if !ok || httpError.Actual != 409 {
-			return err
-		}
-
-		// This error usually means that the policy is attached
-		// to a firewall. At this point, the firewall is probably
-		// being delete. So, we retry a few times.
-
-		time.Sleep(time.Second * 2)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
+		Target:     []string{"DELETED"},
+		Refresh:    waitForFirewallPolicyDeletion(networkingClient, d.Id()),
+		Timeout:    120 * time.Second,
+		Delay:      0,
+		MinTimeout: 2 * time.Second,
 	}
 
-	return err
+	if _, err = stateConf.WaitForState(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func waitForFirewallPolicyDeletion(networkingClient *gophercloud.ServiceClient, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		err := policies.Delete(networkingClient, id).Err
+		if err == nil {
+			return "", "DELETED", nil
+		}
+
+		if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+			if errCode.Actual == 409 {
+				// This error usually means that the policy is attached
+				// to a firewall. At this point, the firewall is probably
+				// being delete. So, we retry a few times.
+				return nil, "ACTIVE", nil
+			}
+		}
+
+		return nil, "ACTIVE", err
+	}
 }

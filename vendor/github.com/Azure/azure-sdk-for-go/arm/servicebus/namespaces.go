@@ -52,8 +52,8 @@ func NewNamespacesClientWithBaseURI(baseURI string, subscriptionID string) Names
 // Resource.
 func (client NamespacesClient) CreateOrUpdate(resourceGroupName string, namespaceName string, parameters NamespaceCreateOrUpdateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{parameters,
-			[]validation.Constraint{{"parameters.Location", validation.Null, true, nil}}}}); err != nil {
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "servicebus.NamespacesClient", "CreateOrUpdate")
 	}
 
@@ -126,9 +126,9 @@ func (client NamespacesClient) CreateOrUpdateResponder(resp *http.Response) (res
 // Name. parameters is the shared access authorization rule.
 func (client NamespacesClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{parameters,
-			[]validation.Constraint{{"parameters.Properties", validation.Null, false,
-				[]validation.Constraint{{"parameters.Properties.Rights", validation.Null, true, nil}}}}}}); err != nil {
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "servicebus.NamespacesClient", "CreateOrUpdateAuthorizationRule")
 	}
 

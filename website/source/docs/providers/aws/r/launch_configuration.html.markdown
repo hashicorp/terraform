@@ -17,11 +17,11 @@ data "aws_ami" "ubuntu" {
   most_recent = true
   filter {
     name = "name"
-    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
   }
   filter {
     name = "virtualization-type"
-    values = ["paravirtual"]
+    values = ["hvm"]
   }
   owners = ["099720109477"] # Canonical
 }
@@ -29,7 +29,7 @@ data "aws_ami" "ubuntu" {
 resource "aws_launch_configuration" "as_conf" {
     name = "web_config"
     image_id = "${data.aws_ami.ubuntu.id}"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
 }
 ```
 
@@ -48,11 +48,11 @@ data "aws_ami" "ubuntu" {
   most_recent = true
   filter {
     name = "name"
-    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
   }
   filter {
     name = "virtualization-type"
-    values = ["paravirtual"]
+    values = ["hvm"]
   }
   owners = ["099720109477"] # Canonical
 }
@@ -60,7 +60,7 @@ data "aws_ami" "ubuntu" {
 resource "aws_launch_configuration" "as_conf" {
     name_prefix = "terraform-lc-example-"
     image_id = "${data.aws_ami.ubuntu.id}"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
 
     lifecycle {
       create_before_destroy = true
@@ -95,18 +95,18 @@ data "aws_ami" "ubuntu" {
   most_recent = true
   filter {
     name = "name"
-    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
   }
   filter {
     name = "virtualization-type"
-    values = ["paravirtual"]
+    values = ["hvm"]
   }
   owners = ["099720109477"] # Canonical
 }
 
 resource "aws_launch_configuration" "as_conf" {
     image_id = "${data.aws_ami.ubuntu.id}"
-    instance_type = "t1.micro"
+    instance_type = "m4.large"
     spot_price = "0.001"
     lifecycle {
       create_before_destroy = true

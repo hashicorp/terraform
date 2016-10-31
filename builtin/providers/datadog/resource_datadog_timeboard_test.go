@@ -47,6 +47,13 @@ resource "datadog_timeboard" "acceptance_test" {
     request {
       q = "avg:redis.mem.rss{$host}"
     }
+    request {
+      q = "avg:redis.mem.rss{$host}"
+      type = "bars"
+      style {
+        palette = "warm"
+      }
+    }
   }
   template_variable {
     name = "host"
@@ -86,6 +93,8 @@ func TestAccDatadogTimeboard_update(t *testing.T) {
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.1.q", "avg:redis.mem.rss{$host}"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "template_variable.0.name", "host"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "template_variable.0.prefix", "host"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.2.type", "bars"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.2.style.palette", "warm"),
 		),
 	}
 

@@ -80,7 +80,7 @@ func testCheckAzureRMDnsZoneDestroy(s *terraform.State) error {
 
 var testAccAzureRMDnsZone_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {

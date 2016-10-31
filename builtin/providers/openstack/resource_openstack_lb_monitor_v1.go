@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/monitors"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/monitors"
 )
 
 func resourceLBMonitorV1() *schema.Resource {
@@ -90,13 +90,17 @@ func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	createOpts := monitors.CreateOpts{
 		TenantID:      d.Get("tenant_id").(string),
-		Type:          d.Get("type").(string),
 		Delay:         d.Get("delay").(int),
 		Timeout:       d.Get("timeout").(int),
 		MaxRetries:    d.Get("max_retries").(int),
 		URLPath:       d.Get("url_path").(string),
 		ExpectedCodes: d.Get("expected_codes").(string),
 		HTTPMethod:    d.Get("http_method").(string),
+	}
+
+	if v, ok := d.GetOk("type"); ok {
+		monitorType := resourceLBMonitorV1DetermineType(v.(string))
+		createOpts.Type = monitorType
 	}
 
 	asuRaw := d.Get("admin_state_up").(string)
@@ -148,7 +152,7 @@ func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB monitor")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LB Monitor %s: %+v", d.Id(), m)
+	log.Printf("[DEBUG] Retrieved OpenStack LB Monitor %s: %+v", d.Id(), m)
 
 	d.Set("type", m.Type)
 	d.Set("delay", m.Delay)
@@ -225,6 +229,22 @@ func resourceLBMonitorV1Delete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+func resourceLBMonitorV1DetermineType(t string) monitors.MonitorType {
+	var monitorType monitors.MonitorType
+	switch t {
+	case "PING":
+		monitorType = monitors.TypePING
+	case "TCP":
+		monitorType = monitors.TypeTCP
+	case "HTTP":
+		monitorType = monitors.TypeHTTP
+	case "HTTPS":
+		monitorType = monitors.TypeHTTPS
+	}
+
+	return monitorType
+}
+
 func waitForLBMonitorActive(networkingClient *gophercloud.ServiceClient, monitorId string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		m, err := monitors.Get(networkingClient, monitorId).Extract()
@@ -244,35 +264,37 @@ func waitForLBMonitorDelete(networkingClient *gophercloud.ServiceClient, monitor
 
 		m, err := monitors.Get(networkingClient, monitorId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return m, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LB Monitor %s", monitorId)
 				return m, "DELETED", nil
 			}
-			if errCode.Actual == 409 {
-				log.Printf("[DEBUG] OpenStack LB Monitor (%s) is waiting for Pool to delete.", monitorId)
-				return m, "PENDING", nil
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LB Monitor (%s) is waiting for Pool to delete.", monitorId)
+					return m, "PENDING", nil
+				}
 			}
+
+			return m, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LB Monitor: %+v", m)
 		err = monitors.Delete(networkingClient, monitorId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return m, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LB Monitor %s", monitorId)
 				return m, "DELETED", nil
 			}
-			if errCode.Actual == 409 {
-				log.Printf("[DEBUG] OpenStack LB Monitor (%s) is waiting for Pool to delete.", monitorId)
-				return m, "PENDING", nil
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LB Monitor (%s) is waiting for Pool to delete.", monitorId)
+					return m, "PENDING", nil
+				}
 			}
+
+			return m, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LB Monitor %s still active.", monitorId)

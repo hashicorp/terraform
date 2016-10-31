@@ -46,11 +46,11 @@ EOF
 
 The following arguments are supported:
 
-* `name` - (Required) The user's name.
+* `name` - (Required) The user's name. The name must consist of upper and lowercase alphanumeric characters with no spaces. You can also include any of the following characters: `=,.@-_.`. User names are not distinguished by case. For example, you cannot create users named both "TESTUSER" and "testuser".
 * `path` - (Optional, default "/") Path in which to create the user.
 * `force_destroy` - (Optional, default false) When destroying this user, destroy
-  even if it has non-Terraform-managed IAM access keys. Without `force_destroy`
-  a user with non-Terraform-managed access keys will fail to be destroyed.
+  even if it has non-Terraform-managed IAM access keys and login profile. Without `force_destroy`
+  a user with non-Terraform-managed access keys and login profile will fail to be destroyed.
 
 ## Attributes Reference
 
@@ -64,7 +64,7 @@ The following attributes are exported:
 
 ## Import
 
-IAM Users can be imported using the `name`, e.g. 
+IAM Users can be imported using the `name`, e.g.
 
 ```
 $ terraform import aws_iam_user.lb loadbalancer
