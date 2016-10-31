@@ -67,6 +67,21 @@ func resourceGitlabProject() *schema.Resource {
 	}
 }
 
+func resourceGitlabProjectUpdateFromAPI(d *schema.ResourceData, project *gitlab.Project) {
+	d.Set("name", project.Name)
+	d.Set("description", project.Description)
+	d.Set("default_branch", project.DefaultBranch)
+	d.Set("issues_enabled", project.IssuesEnabled)
+	d.Set("merge_requests_enabled", project.MergeRequestsEnabled)
+	d.Set("wiki_enabled", project.WikiEnabled)
+	d.Set("snippets_enabled", project.SnippetsEnabled)
+	d.Set("visibility_level", visibilityLevelToString(project.VisibilityLevel))
+
+	d.Set("ssh_url_to_repo", project.SSHURLToRepo)
+	d.Set("http_url_to_repo", project.HTTPURLToRepo)
+	d.Set("web_url", project.WebURL)
+}
+
 func resourceGitlabProjectCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gitlab.Client)
 	options := &gitlab.CreateProjectOptions{
@@ -108,7 +123,9 @@ func resourceGitlabProjectCreate(d *schema.ResourceData, meta interface{}) error
 
 	d.SetId(fmt.Sprintf("%d", project.ID))
 
-	return resourceGitlabProjectRead(d, meta)
+	resourceGitlabProjectUpdateFromAPI(d, project)
+
+	return nil
 }
 
 func resourceGitlabProjectRead(d *schema.ResourceData, meta interface{}) error {
@@ -119,20 +136,7 @@ func resourceGitlabProjectRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] read state of project %+v", project)
-
-	d.Set("name", project.Name)
-	d.Set("description", project.Description)
-	d.Set("default_branch", project.DefaultBranch)
-	d.Set("issues_enabled", project.IssuesEnabled)
-	d.Set("merge_requests_enabled", project.MergeRequestsEnabled)
-	d.Set("wiki_enabled", project.WikiEnabled)
-	d.Set("snippets_enabled", project.SnippetsEnabled)
-	d.Set("visibility_level", visibilityLevelToString(project.VisibilityLevel))
-
-	d.Set("ssh_url_to_repo", project.SSHURLToRepo)
-	d.Set("http_url_to_repo", project.HTTPURLToRepo)
-	d.Set("web_url", project.WebURL)
-
+	resourceGitlabProjectUpdateFromAPI(d, project)
 	return nil
 }
 
@@ -186,7 +190,9 @@ func resourceGitlabProjectUpdate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] project edited %+v", project)
 
-	return resourceGitlabProjectRead(d, meta)
+	resourceGitlabProjectUpdateFromAPI(d, project)
+
+	return nil
 }
 
 func resourceGitlabProjectDelete(d *schema.ResourceData, meta interface{}) error {
