@@ -110,14 +110,15 @@ func Variables(
 			case config.VariableTypeMap:
 				varSetMap(result, k, v)
 			case config.VariableTypeString:
+				// Convert to a string and set. We don't catch any errors
+				// here because the validation step later should catch
+				// any type errors.
 				var strVal string
-				if err := hilmapstructure.WeakDecode(v, &strVal); err != nil {
-					return nil, fmt.Errorf(
-						"Error converting %s value to type string: %s",
-						k, err)
+				if err := hilmapstructure.WeakDecode(v, &strVal); err == nil {
+					result[k] = strVal
+				} else {
+					result[k] = v
 				}
-
-				result[k] = strVal
 			default:
 				panic(fmt.Sprintf(
 					"Unhandled var type: %T\n\n"+
