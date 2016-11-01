@@ -19,10 +19,7 @@ import (
 func recordResource() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+			// Required
 			"zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -32,11 +29,6 @@ func recordResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-			},
-			"ttl": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Computed: true,
 			},
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
@@ -50,6 +42,12 @@ func recordResource() *schema.Resource {
 					}
 					return
 				},
+			},
+			// Optional
+			"ttl": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
 			},
 			"meta": metaSchema(),
 			"link": &schema.Schema{
@@ -158,6 +156,11 @@ func recordResource() *schema.Resource {
 						},
 					},
 				},
+			},
+			// Computed
+			"id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 		Create: RecordCreate,
@@ -473,8 +476,7 @@ func RecordRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	recordToResourceData(d, r)
-	return nil
+	return recordToResourceData(d, r)
 }
 
 // RecordDelete deltes the DNS record from ns1
@@ -495,6 +497,5 @@ func RecordUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err := client.UpdateRecord(r); err != nil {
 		return err
 	}
-	recordToResourceData(d, r)
-	return nil
+	return recordToResourceData(d, r)
 }

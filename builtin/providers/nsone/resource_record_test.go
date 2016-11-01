@@ -2,6 +2,8 @@ package nsone
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -20,9 +22,12 @@ func TestAccRecord_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecordBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordState("domain", "test.terraform.io"),
-					testAccCheckRecordExists("nsone_record.foobar", &record),
-					testAccCheckRecordAttributes(&record),
+					testAccCheckRecordState("domain", "test.terraform-record-test.io"),
+					testAccCheckRecordExists("nsone_record.it", &record),
+					testAccCheckRecordTTL(&record, 60),
+					testAccCheckRecordRegionName(&record, []string{"cal"}),
+					testAccCheckRecordAnswerMetaWeight(&record, 10),
+					testAccCheckRecordAnswerRdata(&record, "test1.terraform-record-test.io"),
 				),
 			},
 		},
@@ -39,17 +44,23 @@ func TestAccRecord_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecordBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordState("domain", "test.terraform.io"),
-					testAccCheckRecordExists("nsone_record.foobar", &record),
-					testAccCheckRecordAttributes(&record),
+					testAccCheckRecordState("domain", "test.terraform-record-test.io"),
+					testAccCheckRecordExists("nsone_record.it", &record),
+					testAccCheckRecordTTL(&record, 60),
+					testAccCheckRecordRegionName(&record, []string{"cal"}),
+					testAccCheckRecordAnswerMetaWeight(&record, 10),
+					testAccCheckRecordAnswerRdata(&record, "test1.terraform-record-test.io"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccRecordUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordState("domain", "test.terraform.io"),
-					testAccCheckRecordExists("nsone_record.foobar", &record),
-					testAccCheckRecordAttributesUpdated(&record),
+					testAccCheckRecordState("domain", "test.terraform-record-test.io"),
+					testAccCheckRecordExists("nsone_record.it", &record),
+					testAccCheckRecordTTL(&record, 120),
+					testAccCheckRecordRegionName(&record, []string{"ny", "wa"}),
+					testAccCheckRecordAnswerMetaWeight(&record, 5),
+					testAccCheckRecordAnswerRdata(&record, "test2.terraform-record-test.io"),
 				),
 			},
 		},
@@ -58,9 +69,9 @@ func TestAccRecord_updated(t *testing.T) {
 
 func testAccCheckRecordState(key, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["nsone_record.foobar"]
+		rs, ok := s.RootModule().Resources["nsone_record.it"]
 		if !ok {
-			return fmt.Errorf("Not found: %s", "nsone_record.foobar")
+			return fmt.Errorf("Not found: nsone_record.it")
 		}
 
 		if rs.Primary.ID == "" {
@@ -70,7 +81,7 @@ func testAccCheckRecordState(key, value string) resource.TestCheckFunc {
 		p := rs.Primary
 		if p.Attributes[key] != value {
 			return fmt.Errorf(
-				"%s != %s (actual: %s)", key, value, p.Attributes[key])
+				"%v: want: %v got: %v", key, value, p.Attributes[key])
 		}
 
 		return nil
@@ -82,7 +93,7 @@ func testAccCheckRecordExists(n string, record *nsone.Record) resource.TestCheck
 		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
-			return fmt.Errorf("Not found: %s", n)
+			return fmt.Errorf("Not found: %v", n)
 		}
 
 		if rs.Primary.ID == "" {
@@ -132,166 +143,146 @@ func testAccCheckRecordDestroy(s *terraform.State) error {
 	foundRecord, _ := client.GetRecord(recordDomain, recordZone, recordType)
 
 	if foundRecord.Id != "" {
-		return fmt.Errorf("Record still exists")
+		return fmt.Errorf("Record still exists: %#v", foundRecord)
 	}
 
 	return nil
 }
 
-func testAccCheckRecordAttributes(record *nsone.Record) resource.TestCheckFunc {
+func testAccCheckRecordTTL(r *nsone.Record, expected int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
-		if record.Ttl != 60 {
-			return fmt.Errorf("Bad value : %d", record.Ttl)
+		if r.Ttl != expected {
+			return fmt.Errorf("TTL: got: %#v want: %#v", r.Ttl, expected)
 		}
-
-		recordAnswer := record.Answers[0]
-		recordAnswerString := recordAnswer.Answer[0]
-
-		if recordAnswerString != "test1.terraform.io" {
-			return fmt.Errorf("Bad value : %s", record.Ttl)
-		}
-
-		if recordAnswer.Region != "cal" {
-			return fmt.Errorf("Bad value : %s", recordAnswer.Region)
-		}
-
-		recordMetas := recordAnswer.Meta
-
-		if recordMetas["weight"].(float64) != 10 {
-			return fmt.Errorf("Bad value : %b", recordMetas["weight"].(float64))
-		}
-
 		return nil
 	}
 }
 
-func testAccCheckRecordAttributesUpdated(record *nsone.Record) resource.TestCheckFunc {
+func testAccCheckRecordRegionName(r *nsone.Record, expected []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		regions := make([]string, len(r.Regions))
 
-		if record.Ttl != 120 {
-			return fmt.Errorf("Bad value : %s", record.Ttl)
+		i := 0
+		for k := range r.Regions {
+			regions[i] = k
+			i++
 		}
-
-		recordAnswer := record.Answers[1]
-		recordAnswerString := recordAnswer.Answer[0]
-
-		if recordAnswerString != "test3.terraform.io" {
-			return fmt.Errorf("Bad value for updated record: %s", recordAnswerString)
+		sort.Strings(regions)
+		sort.Strings(expected)
+		if !reflect.DeepEqual(regions, expected) {
+			return fmt.Errorf("Regions: got: %#v want: %#v", regions, expected)
 		}
+		return nil
+	}
+}
 
-		if recordAnswer.Region != "wa" {
-			return fmt.Errorf("Bad value : %s", recordAnswer.Region)
-		}
-
+func testAccCheckRecordAnswerMetaWeight(r *nsone.Record, expected float64) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		recordAnswer := r.Answers[0]
 		recordMetas := recordAnswer.Meta
-
-		if recordMetas["weight"].(float64) != 5 {
-			return fmt.Errorf("Bad value : %b", recordMetas["weight"].(float64))
+		weight := recordMetas["weight"].(float64)
+		if weight != expected {
+			return fmt.Errorf("Answers[0].Meta.Weight: got: %#v want: %#v", weight, expected)
 		}
+		return nil
+	}
+}
 
+func testAccCheckRecordAnswerRdata(r *nsone.Record, expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		recordAnswer := r.Answers[0]
+		recordAnswerString := recordAnswer.Answer[0]
+		if recordAnswerString != expected {
+			return fmt.Errorf("Answers[0].Rdata[0]: got: %#v want: %#v", recordAnswerString, expected)
+		}
 		return nil
 	}
 }
 
 const testAccRecordBasic = `
-resource "nsone_record" "foobar" {
-    zone = "${nsone_zone.test.zone}"
-		domain = "test.terraform.io"
-	  type = "CNAME"
-		ttl = 60
-		use_client_subnet = false
-    answers {
-      answer = "test1.terraform.io"
-      region = "cal"
-      meta {
-        field = "weight"
-        value = "10"
-      }
-      meta {
-        field = "up"
-        value = "1"
-      }
-    }
-    answers {
-      answer = "test2.terraform.io"
-      region = "ny"
-      meta {
-        field = "weight"
-        value = "10"
-      }
-      meta {
-        field = "up"
-        value = "1"
-      }
-    }
-    regions {
-      name = "cal"
-      us_state = "CA"
-    }
-    regions {
-      name = "ny"
-      us_state = "NY"
+resource "nsone_record" "it" {
+  zone              = "${nsone_zone.test.zone}"
+  domain            = "test.terraform-record-test.io"
+  type              = "CNAME"
+  ttl               = 60
+
+  answers {
+    answer = "test1.terraform-record-test.io"
+    region = "cal"
+
+    meta {
+      field = "weight"
+      value = "10"
     }
 
-    filters {
-        filter = "up"
+    meta {
+      field = "up"
+      value = "1"
     }
-    filters {
-        filter = "geotarget_country"
-    }
+  }
+
+  regions {
+    name     = "cal"
+    us_state = "CA"
+  }
+
+  filters {
+    filter = "up"
+  }
+
+  filters {
+    filter = "geotarget_country"
+  }
 }
+
 resource "nsone_zone" "test" {
-  zone = "terraform.io"
-}`
+  zone = "terraform-record-test.io"
+}
+`
 
 const testAccRecordUpdated = `
-resource "nsone_record" "foobar" {
-	zone = "terraform.io"
-	domain = "test.terraform.io"
-	type = "CNAME"
-	ttl = 120
-	use_client_subnet = false
-	answers {
-		answer = "test3.terraform.io"
-		region = "wa"
-		meta {
-			field = "weight"
-			value = "5"
-		}
-		meta {
-			field = "up"
-			value = "1"
-		}
-	}
-	answers {
-		answer = "test2.terraform.io"
-		region = "ny"
-		meta {
-			field = "weight"
-			value = "10"
-		}
-		meta {
-			field = "up"
-			value = "1"
-		}
-	}
-	regions {
-		name = "wa"
-		us_state = "WA"
-	}
-	regions {
-		name = "ny"
-		us_state = "NY"
-	}
+resource "nsone_record" "it" {
+  zone              = "${nsone_zone.test.zone}"
+  domain            = "test.terraform-record-test.io"
+  type              = "CNAME"
+  ttl               = 120
+  use_client_subnet = true
 
-	filters {
-		filter = "up"
-	}
-	filters {
-		filter = "geotarget_country"
-	}
+  answers {
+    answer = "test2.terraform-record-test.io"
+    region = "ny"
+
+    meta {
+      field = "weight"
+      value = "5"
+    }
+
+    meta {
+      field = "up"
+      value = "1"
+    }
+  }
+
+  regions {
+    name     = "wa"
+    us_state = "WA"
+  }
+
+  regions {
+    name     = "ny"
+    us_state = "NY"
+  }
+
+  filters {
+    filter = "up"
+  }
+
+  filters {
+    filter = "geotarget_country"
+  }
 }
+
 resource "nsone_zone" "test" {
-	zone = "terraform.io"
-}`
+  zone = "terraform-record-test.io"
+}
+`
