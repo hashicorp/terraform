@@ -45,13 +45,14 @@ The following arguments are supported:
 * `resource_group_name` - (Required) The name of the resource group in which to create the LoadBalancer.
 * `location` - (Required) Specifies the supported Azure location where the resource exists.
 * `frontend_ip_configuration` - (Optional) A frontend ip configuration block as documented below.
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 `frontend_ip_configuration` supports the following:
 
 * `name` - (Required) Specifies the name of the frontend ip configuration.
 * `subnet_id` - (Optional) Reference to subnet associated with the IP Configuration.
 * `private_ip_address` - (Optional) Private IP Address to assign to the Load Balancer. The last one and first four IPs in any range are reserved and cannot be manually assigned.
+* `private_ip_address_allocation` - (Optional) Defines how a private IP address is assigned. Options are Static or Dynamic.
 * `public_ip_address_id` - (Optional) Reference to Public IP address to be associated with the Load Balancer.
 
 ## Attributes Reference
