@@ -277,6 +277,13 @@ BUG FIXES:
 
 ## 0.7.4 (September 19, 2016)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+ * In previous releases, the `private_key` field in the connection provisioner
+   inadvertently accepted a path argument and would read the file contents.
+   This functionality has been removed in this release ([#8577](https://github.com/hashicorp/terraform/issues/8577)), and the documented
+   method of using the `file()` interpolation function should be used to load
+   the key from a file.
+
 FEATURES:
  * **New Resource:** `aws_codecommit_trigger` ([#8751](https://github.com/hashicorp/terraform/issues/8751))
  * **New Resource:** `aws_default_security_group` ([#8861](https://github.com/hashicorp/terraform/issues/8861))
