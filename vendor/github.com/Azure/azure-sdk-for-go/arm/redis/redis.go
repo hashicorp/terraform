@@ -40,47 +40,45 @@ func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
 	return Client{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate create a redis cache, or replace (overwrite/recreate, with
-// potential downtime) an existing cache
+// Create create or replace (overwrite/recreate, with potential downtime) an
+// existing redis cache This method may poll for completion. Polling can be
+// canceled by passing the cancel channel argument. The channel will be used
+// to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache. parameters is parameters supplied to the CreateOrUpdate
-// redis operation.
-func (client Client) CreateOrUpdate(resourceGroupName string, name string, parameters CreateOrUpdateParameters) (result ResourceWithAccessKey, err error) {
+// the redis cache. parameters is parameters supplied to the Create redis
+// operation.
+func (client Client) Create(resourceGroupName string, name string, parameters CreateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: true,
 				Chain: []validation.Constraint{{Target: "parameters.Properties.Sku", Name: validation.Null, Rule: true,
 					Chain: []validation.Constraint{{Target: "parameters.Properties.Sku.Capacity", Name: validation.Null, Rule: true, Chain: nil}}},
-					{Target: "parameters.Properties.SubnetID", Name: validation.Null, Rule: false,
-						Chain: []validation.Constraint{{Target: "parameters.Properties.SubnetID", Name: validation.Pattern, Rule: `^/subscriptions/[^/]*/resourceGroups/[^/]*/providers/Microsoft.(ClassicNetwork|Network)/virtualNetworks/[^/]*/subnets/[^/]*$`, Chain: nil}}},
-					{Target: "parameters.Properties.StaticIP", Name: validation.Null, Rule: false,
-						Chain: []validation.Constraint{{Target: "parameters.Properties.StaticIP", Name: validation.Pattern, Rule: `^\d+\.\d+\.\d+\.\d+$`, Chain: nil}}},
 				}}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "redis.Client", "CreateOrUpdate")
+		return result, validation.NewErrorWithValidationError(err, "redis.Client", "Create")
 	}
 
-	req, err := client.CreateOrUpdatePreparer(resourceGroupName, name, parameters)
+	req, err := client.CreatePreparer(resourceGroupName, name, parameters, cancel)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.Client", "CreateOrUpdate", nil, "Failure preparing request")
+		return result, autorest.NewErrorWithError(err, "redis.Client", "Create", nil, "Failure preparing request")
 	}
 
-	resp, err := client.CreateOrUpdateSender(req)
+	resp, err := client.CreateSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "redis.Client", "CreateOrUpdate", resp, "Failure sending request")
+		result.Response = resp
+		return result, autorest.NewErrorWithError(err, "redis.Client", "Create", resp, "Failure sending request")
 	}
 
-	result, err = client.CreateOrUpdateResponder(resp)
+	result, err = client.CreateResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.Client", "CreateOrUpdate", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "redis.Client", "Create", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// CreateOrUpdatePreparer prepares the CreateOrUpdate request.
-func (client Client) CreateOrUpdatePreparer(resourceGroupName string, name string, parameters CreateOrUpdateParameters) (*http.Request, error) {
+// CreatePreparer prepares the Create request.
+func (client Client) CreatePreparer(resourceGroupName string, name string, parameters CreateParameters, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"name":              autorest.Encode("path", name),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -98,34 +96,38 @@ func (client Client) CreateOrUpdatePreparer(resourceGroupName string, name strin
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Cache/Redis/{name}", pathParameters),
 		autorest.WithJSON(parameters),
 		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
+	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
 
-// CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
+// CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
-func (client Client) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
+func (client Client) CreateSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client,
+		req,
+		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
-// CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
+// CreateResponder handles the response to the Create request. The method always
 // closes the http.Response Body.
-func (client Client) CreateOrUpdateResponder(resp *http.Response) (result ResourceWithAccessKey, err error) {
+func (client Client) CreateResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
 		azure.WithErrorUnlessStatusCode(http.StatusCreated, http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
+	result.Response = resp
 	return
 }
 
 // Delete deletes a redis cache. This operation takes a while to complete.
+// This method may poll for completion. Polling can be canceled by passing
+// the cancel channel argument. The channel will be used to cancel polling
+// and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. name is the name of
 // the redis cache.
-func (client Client) Delete(resourceGroupName string, name string) (result autorest.Response, err error) {
-	req, err := client.DeletePreparer(resourceGroupName, name)
+func (client Client) Delete(resourceGroupName string, name string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	req, err := client.DeletePreparer(resourceGroupName, name, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "redis.Client", "Delete", nil, "Failure preparing request")
 	}
@@ -145,7 +147,7 @@ func (client Client) Delete(resourceGroupName string, name string) (result autor
 }
 
 // DeletePreparer prepares the Delete request.
-func (client Client) DeletePreparer(resourceGroupName string, name string) (*http.Request, error) {
+func (client Client) DeletePreparer(resourceGroupName string, name string, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"name":              autorest.Encode("path", name),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -161,13 +163,15 @@ func (client Client) DeletePreparer(resourceGroupName string, name string) (*htt
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Cache/Redis/{name}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
+	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
 
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
+	return autorest.SendWithSender(client,
+		req,
+		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
@@ -182,41 +186,42 @@ func (client Client) DeleteResponder(resp *http.Response) (result autorest.Respo
 	return
 }
 
-// Export import data into redis cache. This method may poll for completion.
-// Polling can be canceled by passing the cancel channel argument. The
-// channel will be used to cancel polling and any outstanding HTTP requests.
+// ExportData import data into redis cache. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. name is the name of
 // the redis cache. parameters is parameters for redis export operation.
-func (client Client) Export(resourceGroupName string, name string, parameters ExportRDBParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client Client) ExportData(resourceGroupName string, name string, parameters ExportRDBParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Prefix", Name: validation.Null, Rule: true, Chain: nil},
 				{Target: "parameters.Container", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "redis.Client", "Export")
+		return result, validation.NewErrorWithValidationError(err, "redis.Client", "ExportData")
 	}
 
-	req, err := client.ExportPreparer(resourceGroupName, name, parameters, cancel)
+	req, err := client.ExportDataPreparer(resourceGroupName, name, parameters, cancel)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.Client", "Export", nil, "Failure preparing request")
+		return result, autorest.NewErrorWithError(err, "redis.Client", "ExportData", nil, "Failure preparing request")
 	}
 
-	resp, err := client.ExportSender(req)
+	resp, err := client.ExportDataSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "redis.Client", "Export", resp, "Failure sending request")
+		return result, autorest.NewErrorWithError(err, "redis.Client", "ExportData", resp, "Failure sending request")
 	}
 
-	result, err = client.ExportResponder(resp)
+	result, err = client.ExportDataResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.Client", "Export", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "redis.Client", "ExportData", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// ExportPreparer prepares the Export request.
-func (client Client) ExportPreparer(resourceGroupName string, name string, parameters ExportRDBParameters, cancel <-chan struct{}) (*http.Request, error) {
+// ExportDataPreparer prepares the ExportData request.
+func (client Client) ExportDataPreparer(resourceGroupName string, name string, parameters ExportRDBParameters, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"name":              autorest.Encode("path", name),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -237,17 +242,17 @@ func (client Client) ExportPreparer(resourceGroupName string, name string, param
 	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
 
-// ExportSender sends the Export request. The method will close the
+// ExportDataSender sends the ExportData request. The method will close the
 // http.Response Body if it receives an error.
-func (client Client) ExportSender(req *http.Request) (*http.Response, error) {
+func (client Client) ExportDataSender(req *http.Request) (*http.Response, error) {
 	return autorest.SendWithSender(client,
 		req,
 		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
-// ExportResponder handles the response to the Export request. The method always
+// ExportDataResponder handles the response to the ExportData request. The method always
 // closes the http.Response Body.
-func (client Client) ExportResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client Client) ExportDataResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -385,40 +390,41 @@ func (client Client) GetResponder(resp *http.Response) (result ResourceType, err
 	return
 }
 
-// Import import data into redis cache. This method may poll for completion.
-// Polling can be canceled by passing the cancel channel argument. The
-// channel will be used to cancel polling and any outstanding HTTP requests.
+// ImportData import data into redis cache. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. name is the name of
 // the redis cache. parameters is parameters for redis import operation.
-func (client Client) Import(resourceGroupName string, name string, parameters ImportRDBParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+func (client Client) ImportData(resourceGroupName string, name string, parameters ImportRDBParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Files", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
-		return result, validation.NewErrorWithValidationError(err, "redis.Client", "Import")
+		return result, validation.NewErrorWithValidationError(err, "redis.Client", "ImportData")
 	}
 
-	req, err := client.ImportPreparer(resourceGroupName, name, parameters, cancel)
+	req, err := client.ImportDataPreparer(resourceGroupName, name, parameters, cancel)
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "redis.Client", "Import", nil, "Failure preparing request")
+		return result, autorest.NewErrorWithError(err, "redis.Client", "ImportData", nil, "Failure preparing request")
 	}
 
-	resp, err := client.ImportSender(req)
+	resp, err := client.ImportDataSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "redis.Client", "Import", resp, "Failure sending request")
+		return result, autorest.NewErrorWithError(err, "redis.Client", "ImportData", resp, "Failure sending request")
 	}
 
-	result, err = client.ImportResponder(resp)
+	result, err = client.ImportDataResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.Client", "Import", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "redis.Client", "ImportData", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// ImportPreparer prepares the Import request.
-func (client Client) ImportPreparer(resourceGroupName string, name string, parameters ImportRDBParameters, cancel <-chan struct{}) (*http.Request, error) {
+// ImportDataPreparer prepares the ImportData request.
+func (client Client) ImportDataPreparer(resourceGroupName string, name string, parameters ImportRDBParameters, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"name":              autorest.Encode("path", name),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -439,17 +445,17 @@ func (client Client) ImportPreparer(resourceGroupName string, name string, param
 	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
 
-// ImportSender sends the Import request. The method will close the
+// ImportDataSender sends the ImportData request. The method will close the
 // http.Response Body if it receives an error.
-func (client Client) ImportSender(req *http.Request) (*http.Response, error) {
+func (client Client) ImportDataSender(req *http.Request) (*http.Response, error) {
 	return autorest.SendWithSender(client,
 		req,
 		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
-// ImportResponder handles the response to the Import request. The method always
+// ImportDataResponder handles the response to the ImportData request. The method always
 // closes the http.Response Body.
-func (client Client) ImportResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client Client) ImportDataResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -631,7 +637,7 @@ func (client Client) ListByResourceGroupNextResults(lastResults ListResult) (res
 //
 // resourceGroupName is the name of the resource group. name is the name of
 // the redis cache.
-func (client Client) ListKeys(resourceGroupName string, name string) (result ListKeysResult, err error) {
+func (client Client) ListKeys(resourceGroupName string, name string) (result AccessKeys, err error) {
 	req, err := client.ListKeysPreparer(resourceGroupName, name)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "redis.Client", "ListKeys", nil, "Failure preparing request")
@@ -679,7 +685,7 @@ func (client Client) ListKeysSender(req *http.Request) (*http.Response, error) {
 
 // ListKeysResponder handles the response to the ListKeys request. The method always
 // closes the http.Response Body.
-func (client Client) ListKeysResponder(resp *http.Response) (result ListKeysResult, err error) {
+func (client Client) ListKeysResponder(resp *http.Response) (result AccessKeys, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -695,7 +701,7 @@ func (client Client) ListKeysResponder(resp *http.Response) (result ListKeysResu
 //
 // resourceGroupName is the name of the resource group. name is the name of
 // the redis cache. parameters is specifies which key to reset.
-func (client Client) RegenerateKey(resourceGroupName string, name string, parameters RegenerateKeyParameters) (result ListKeysResult, err error) {
+func (client Client) RegenerateKey(resourceGroupName string, name string, parameters RegenerateKeyParameters) (result AccessKeys, err error) {
 	req, err := client.RegenerateKeyPreparer(resourceGroupName, name, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "redis.Client", "RegenerateKey", nil, "Failure preparing request")
@@ -745,7 +751,7 @@ func (client Client) RegenerateKeySender(req *http.Request) (*http.Response, err
 
 // RegenerateKeyResponder handles the response to the RegenerateKey request. The method always
 // closes the http.Response Body.
-func (client Client) RegenerateKeyResponder(resp *http.Response) (result ListKeysResult, err error) {
+func (client Client) RegenerateKeyResponder(resp *http.Response) (result AccessKeys, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -753,5 +759,74 @@ func (client Client) RegenerateKeyResponder(resp *http.Response) (result ListKey
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// Update update an existing Redis cache This method may poll for completion.
+// Polling can be canceled by passing the cancel channel argument. The
+// channel will be used to cancel polling and any outstanding HTTP requests.
+//
+// resourceGroupName is the name of the resource group. name is the name of
+// the redis cache. parameters is parameters supplied to the Update redis
+// operation.
+func (client Client) Update(resourceGroupName string, name string, parameters UpdateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+	req, err := client.UpdatePreparer(resourceGroupName, name, parameters, cancel)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "redis.Client", "Update", nil, "Failure preparing request")
+	}
+
+	resp, err := client.UpdateSender(req)
+	if err != nil {
+		result.Response = resp
+		return result, autorest.NewErrorWithError(err, "redis.Client", "Update", resp, "Failure sending request")
+	}
+
+	result, err = client.UpdateResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "redis.Client", "Update", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// UpdatePreparer prepares the Update request.
+func (client Client) UpdatePreparer(resourceGroupName string, name string, parameters UpdateParameters, cancel <-chan struct{}) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"name":              autorest.Encode("path", name),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsJSON(),
+		autorest.AsPatch(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Cache/Redis/{name}", pathParameters),
+		autorest.WithJSON(parameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{Cancel: cancel})
+}
+
+// UpdateSender sends the Update request. The method will close the
+// http.Response Body if it receives an error.
+func (client Client) UpdateSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client,
+		req,
+		azure.DoPollForAsynchronous(client.PollingDelay))
+}
+
+// UpdateResponder handles the response to the Update request. The method always
+// closes the http.Response Body.
+func (client Client) UpdateResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByClosing())
+	result.Response = resp
 	return
 }

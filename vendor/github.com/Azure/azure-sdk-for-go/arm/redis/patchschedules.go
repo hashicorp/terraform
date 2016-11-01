@@ -47,11 +47,15 @@ func NewPatchSchedulesClientWithBaseURI(baseURI string, subscriptionID string) P
 // resourceGroupName is the name of the resource group. name is the name of
 // the redis cache. parameters is parameters to set patch schedules for redis
 // cache.
-func (client PatchSchedulesClient) CreateOrUpdate(resourceGroupName string, name string, parameters PatchSchedulesRequest) (result PatchSchedulesResponse, err error) {
+func (client PatchSchedulesClient) CreateOrUpdate(resourceGroupName string, name string, parameters PatchSchedule) (result PatchSchedule, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: true,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.ScheduleEntriesProperty", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+				Chain: []validation.Constraint{{Target: "parameters.Properties.ScheduleEntriesProperty", Name: validation.Null, Rule: true, Chain: nil}}},
+				{Target: "parameters.ID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "parameters.Name", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "parameters.Type", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "parameters.Location", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "redis.PatchSchedulesClient", "CreateOrUpdate")
 	}
 
@@ -75,7 +79,7 @@ func (client PatchSchedulesClient) CreateOrUpdate(resourceGroupName string, name
 }
 
 // CreateOrUpdatePreparer prepares the CreateOrUpdate request.
-func (client PatchSchedulesClient) CreateOrUpdatePreparer(resourceGroupName string, name string, parameters PatchSchedulesRequest) (*http.Request, error) {
+func (client PatchSchedulesClient) CreateOrUpdatePreparer(resourceGroupName string, name string, parameters PatchSchedule) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"name":              autorest.Encode("path", name),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -104,7 +108,7 @@ func (client PatchSchedulesClient) CreateOrUpdateSender(req *http.Request) (*htt
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client PatchSchedulesClient) CreateOrUpdateResponder(resp *http.Response) (result PatchSchedulesResponse, err error) {
+func (client PatchSchedulesClient) CreateOrUpdateResponder(resp *http.Response) (result PatchSchedule, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -181,7 +185,7 @@ func (client PatchSchedulesClient) DeleteResponder(resp *http.Response) (result 
 //
 // resourceGroupName is the name of the resource group. name is the name of
 // the redis cache.
-func (client PatchSchedulesClient) Get(resourceGroupName string, name string) (result PatchSchedulesResponse, err error) {
+func (client PatchSchedulesClient) Get(resourceGroupName string, name string) (result PatchSchedule, err error) {
 	req, err := client.GetPreparer(resourceGroupName, name)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "redis.PatchSchedulesClient", "Get", nil, "Failure preparing request")
@@ -229,11 +233,11 @@ func (client PatchSchedulesClient) GetSender(req *http.Request) (*http.Response,
 
 // GetResponder handles the response to the Get request. The method always
 // closes the http.Response Body.
-func (client PatchSchedulesClient) GetResponder(resp *http.Response) (result PatchSchedulesResponse, err error) {
+func (client PatchSchedulesClient) GetResponder(resp *http.Response) (result PatchSchedule, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNotFound),
 		autorest.ByUnmarshallingJSON(&result),
 		autorest.ByClosing())
 	result.Response = autorest.Response{Response: resp}
