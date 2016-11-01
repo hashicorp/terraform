@@ -1,5 +1,14 @@
 ## 0.7.9 (Unreleased)
 
+FEATURES:
+
+
+IMPROVEMENTS:
+ 
+
+BUGS:
+ * provider/google: fix for looking up project image families [GH-9243]
+
 ## 0.7.8 (November 1, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
