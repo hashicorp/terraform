@@ -3,6 +3,8 @@ package gitlab
 import (
 	"fmt"
 	"log"
+	"reflect"
+	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	gitlab "github.com/xanzy/go-gitlab"
@@ -144,6 +146,14 @@ func resourceGitlabProjectRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
+// Workaround for https://gitlab.com/gitlab-org/gitlab-ce/issues/22831
+type buggyBools struct {
+	IssuesEnabled        *string `json:"issues_enabled,omitempty"`
+	WikiEnabled          *string `json:"wiki_enabled,omitempty"`
+	MergeRequestsEnabled *string `json:"merge_requests_enabled,omitempty"`
+	SnippetsEnabled      *string `json:"snippets_enabled,omitempty"`
+}
+
 func resourceGitlabProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gitlab.Client)
 
@@ -161,42 +171,63 @@ func resourceGitlabProjectUpdate(d *schema.ResourceData, meta interface{}) error
 		options.DefaultBranch = gitlab.String(d.Get("description").(string))
 	}
 
+	boolOptions := &buggyBools{}
+
 	if d.HasChange("issues_enabled") {
-		v := d.Get("issues_enabled").(bool)
-		log.Printf("[DEBUG] changing issues_enabled to %v", v)
-		options.IssuesEnabled = &v
+		v := strconv.FormatBool(d.Get("issues_enabled").(bool))
+		boolOptions.IssuesEnabled = &v
 	}
 
 	if d.HasChange("merge_requests_enabled") {
-		options.MergeRequestsEnabled = gitlab.Bool(d.Get("merge_requests_enabled").(bool))
+		v := strconv.FormatBool(d.Get("merge_requests_enabled").(bool))
+		boolOptions.MergeRequestsEnabled = &v
 	}
 
 	if d.HasChange("wiki_enabled") {
-		options.WikiEnabled = gitlab.Bool(d.Get("wiki_enabled").(bool))
+		v := strconv.FormatBool(d.Get("wiki_enabled").(bool))
+		boolOptions.WikiEnabled = &v
 	}
 
 	if d.HasChange("snippets_enabled") {
-		options.SnippetsEnabled = gitlab.Bool(d.Get("snippets_enabled").(bool))
+		v := strconv.FormatBool(d.Get("snippets_enabled").(bool))
+		boolOptions.SnippetsEnabled = &v
 	}
 
 	if d.HasChange("visibility_level") {
 		options.VisibilityLevel = stringToVisibilityLevel(d.Get("visibility_level").(string))
 	}
 
-	log.Printf("[DEBUG] edit with options %+v", options)
+	if !reflect.DeepEqual(boolOptions, &buggyBools{}) {
+		log.Printf("[DEBUG] booledit with options %+v", boolOptions)
 
-	project, response, err := client.Projects.EditProject(d.Id(), options)
-	if err != nil {
-		return err
+		req, err := client.NewRequest("PUT", fmt.Sprintf("projects/%s", d.Id()), boolOptions)
+		if err != nil {
+			return err
+		}
+
+		project := &gitlab.Project{}
+		_, err := client.Do(req, project)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("[DEBUG] updated %+v", project)
+
+		resourceGitlabProjectUpdateFromAPI(d, project)
 	}
 
-	if response.Response.StatusCode != 200 {
-		log.Printf("[INFO] edit failed")
+	if !reflect.DeepEqual(options, &gitlab.EditProjectOptions{}) {
+		log.Printf("[DEBUG] edit with options %+v", options)
+
+		project, _, err := client.Projects.EditProject(d.Id(), options)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("[DEBUG] project edited %+v", project)
+
+		resourceGitlabProjectUpdateFromAPI(d, project)
 	}
-
-	log.Printf("[DEBUG] project edited %+v", project)
-
-	resourceGitlabProjectUpdateFromAPI(d, project)
 
 	return nil
 }
