@@ -29,6 +29,25 @@ type keyingTransport interface {
 	// direction will be effected if a msgNewKeys message is sent
 	// or received.
 	prepareKeyChange(*algorithms, *kexResult) error
+
+	// getSessionID returns the session ID. prepareKeyChange must
+	// have been called once.
+	getSessionID() []byte
+}
+
+// rekeyingTransport is the interface of handshakeTransport that we
+// (internally) expose to ClientConn and ServerConn.
+type rekeyingTransport interface {
+	packetConn
+
+	// requestKeyChange asks the remote side to change keys. All
+	// writes are blocked until the key change succeeds, which is
+	// signaled by reading a msgNewKeys.
+	requestKeyChange() error
+
+	// getSessionID returns the session ID. This is only valid
+	// after the first key change has completed.
+	getSessionID() []byte
 }
 
 // handshakeTransport implements rekeying on top of a keyingTransport
@@ -67,9 +86,6 @@ type handshakeTransport struct {
 	sentInitMsg     *kexInitMsg
 	writtenSinceKex uint64
 	writeError      error
-
-	// The session ID or nil if first kex did not complete yet.
-	sessionID []byte
 }
 
 func newHandshakeTransport(conn keyingTransport, config *Config, clientVersion, serverVersion []byte) *handshakeTransport {
@@ -106,7 +122,7 @@ func newServerTransport(conn keyingTransport, clientVersion, serverVersion []byt
 }
 
 func (t *handshakeTransport) getSessionID() []byte {
-	return t.sessionID
+	return t.conn.getSessionID()
 }
 
 func (t *handshakeTransport) id() string {
@@ -161,22 +177,15 @@ func (t *handshakeTransport) readOnePacket() ([]byte, error) {
 
 	t.readSinceKex += uint64(len(p))
 	if debugHandshake {
-		if p[0] == msgChannelData || p[0] == msgChannelExtendedData {
-			log.Printf("%s got data (packet %d bytes)", t.id(), len(p))
-		} else {
-			msg, err := decode(p)
-			log.Printf("%s got %T %v (%v)", t.id(), msg, msg, err)
-		}
+		msg, err := decode(p)
+		log.Printf("%s got %T %v (%v)", t.id(), msg, msg, err)
 	}
 	if p[0] != msgKexInit {
 		return p, nil
 	}
+	err = t.enterKeyExchange(p)
 
 	t.mu.Lock()
-
-	firstKex := t.sessionID == nil
-
-	err = t.enterKeyExchangeLocked(p)
 	if err != nil {
 		// drop connection
 		t.conn.Close()
@@ -184,7 +193,7 @@ func (t *handshakeTransport) readOnePacket() ([]byte, error) {
 	}
 
 	if debugHandshake {
-		log.Printf("%s exited key exchange (first %v), err %v", t.id(), firstKex, err)
+		log.Printf("%s exited key exchange, err %v", t.id(), err)
 	}
 
 	// Unblock writers.
@@ -199,69 +208,28 @@ func (t *handshakeTransport) readOnePacket() ([]byte, error) {
 	}
 
 	t.readSinceKex = 0
-
-	// By default, a key exchange is hidden from higher layers by
-	// translating it into msgIgnore.
-	successPacket := []byte{msgIgnore}
-	if firstKex {
-		// sendKexInit() for the first kex waits for
-		// msgNewKeys so the authentication process is
-		// guaranteed to happen over an encrypted transport.
-		successPacket = []byte{msgNewKeys}
-	}
-
-	return successPacket, nil
+	return []byte{msgNewKeys}, nil
 }
-
-// keyChangeCategory describes whether a key exchange is the first on a
-// connection, or a subsequent one.
-type keyChangeCategory bool
-
-const (
-	firstKeyExchange      keyChangeCategory = true
-	subsequentKeyExchange keyChangeCategory = false
-)
 
 // sendKexInit sends a key change message, and returns the message
 // that was sent. After initiating the key change, all writes will be
 // blocked until the change is done, and a failed key change will
 // close the underlying transport. This function is safe for
 // concurrent use by multiple goroutines.
-func (t *handshakeTransport) sendKexInit(isFirst keyChangeCategory) error {
-	var err error
-
+func (t *handshakeTransport) sendKexInit() (*kexInitMsg, []byte, error) {
 	t.mu.Lock()
-	// If this is the initial key change, but we already have a sessionID,
-	// then do nothing because the key exchange has already completed
-	// asynchronously.
-	if !isFirst || t.sessionID == nil {
-		_, _, err = t.sendKexInitLocked(isFirst)
-	}
-	t.mu.Unlock()
-	if err != nil {
-		return err
-	}
-	if isFirst {
-		if packet, err := t.readPacket(); err != nil {
-			return err
-		} else if packet[0] != msgNewKeys {
-			return unexpectedMessageError(msgNewKeys, packet[0])
-		}
-	}
-	return nil
-}
-
-func (t *handshakeTransport) requestInitialKeyChange() error {
-	return t.sendKexInit(firstKeyExchange)
+	defer t.mu.Unlock()
+	return t.sendKexInitLocked()
 }
 
 func (t *handshakeTransport) requestKeyChange() error {
-	return t.sendKexInit(subsequentKeyExchange)
+	_, _, err := t.sendKexInit()
+	return err
 }
 
 // sendKexInitLocked sends a key change message. t.mu must be locked
 // while this happens.
-func (t *handshakeTransport) sendKexInitLocked(isFirst keyChangeCategory) (*kexInitMsg, []byte, error) {
+func (t *handshakeTransport) sendKexInitLocked() (*kexInitMsg, []byte, error) {
 	// kexInits may be sent either in response to the other side,
 	// or because our side wants to initiate a key change, so we
 	// may have already sent a kexInit. In that case, don't send a
@@ -269,7 +237,6 @@ func (t *handshakeTransport) sendKexInitLocked(isFirst keyChangeCategory) (*kexI
 	if t.sentInitMsg != nil {
 		return t.sentInitMsg, t.sentInitPacket, nil
 	}
-
 	msg := &kexInitMsg{
 		KexAlgos:                t.config.KeyExchanges,
 		CiphersClientServer:     t.config.Ciphers,
@@ -309,7 +276,7 @@ func (t *handshakeTransport) writePacket(p []byte) error {
 	defer t.mu.Unlock()
 
 	if t.writtenSinceKex > t.config.RekeyThreshold {
-		t.sendKexInitLocked(subsequentKeyExchange)
+		t.sendKexInitLocked()
 	}
 	for t.sentInitMsg != nil && t.writeError == nil {
 		t.cond.Wait()
@@ -333,12 +300,12 @@ func (t *handshakeTransport) Close() error {
 	return t.conn.Close()
 }
 
-// enterKeyExchange runs the key exchange. t.mu must be held while running this.
-func (t *handshakeTransport) enterKeyExchangeLocked(otherInitPacket []byte) error {
+// enterKeyExchange runs the key exchange.
+func (t *handshakeTransport) enterKeyExchange(otherInitPacket []byte) error {
 	if debugHandshake {
 		log.Printf("%s entered key exchange", t.id())
 	}
-	myInit, myInitPacket, err := t.sendKexInitLocked(subsequentKeyExchange)
+	myInit, myInitPacket, err := t.sendKexInit()
 	if err != nil {
 		return err
 	}
@@ -371,16 +338,7 @@ func (t *handshakeTransport) enterKeyExchangeLocked(otherInitPacket []byte) erro
 	}
 
 	// We don't send FirstKexFollows, but we handle receiving it.
-	//
-	// RFC 4253 section 7 defines the kex and the agreement method for
-	// first_kex_packet_follows. It states that the guessed packet
-	// should be ignored if the "kex algorithm and/or the host
-	// key algorithm is guessed wrong (server and client have
-	// different preferred algorithm), or if any of the other
-	// algorithms cannot be agreed upon". The other algorithms have
-	// already been checked above so the kex algorithm and host key
-	// algorithm are checked here.
-	if otherInit.FirstKexFollows && (clientInit.KexAlgos[0] != serverInit.KexAlgos[0] || clientInit.ServerHostKeyAlgos[0] != serverInit.ServerHostKeyAlgos[0]) {
+	if otherInit.FirstKexFollows && algs.kex != otherInit.KexAlgos[0] {
 		// other side sent a kex message for the wrong algorithm,
 		// which we have to ignore.
 		if _, err := t.conn.readPacket(); err != nil {
@@ -404,11 +362,6 @@ func (t *handshakeTransport) enterKeyExchangeLocked(otherInitPacket []byte) erro
 		return err
 	}
 
-	if t.sessionID == nil {
-		t.sessionID = result.H
-	}
-	result.SessionID = t.sessionID
-
 	t.conn.prepareKeyChange(algs, result)
 	if err = t.conn.writePacket([]byte{msgNewKeys}); err != nil {
 		return err
@@ -418,7 +371,6 @@ func (t *handshakeTransport) enterKeyExchangeLocked(otherInitPacket []byte) erro
 	} else if packet[0] != msgNewKeys {
 		return unexpectedMessageError(msgNewKeys, packet[0])
 	}
-
 	return nil
 }
 
