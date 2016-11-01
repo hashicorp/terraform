@@ -36,7 +36,6 @@ func testAccDataSourceAwsRoute53ZoneCheck(name string) resource.TestCheckFunc {
 			return fmt.Errorf("can't find aws_hosted_zone.test in state")
 		}
 		attr := rs.Primary.Attributes
-
 		if attr["id"] != hostedZone.Primary.Attributes["id"] {
 			return fmt.Errorf(
 				"id is %s; want %s",
@@ -57,6 +56,7 @@ func testAccDataSourceAwsRoute53ZoneCheck(name string) resource.TestCheckFunc {
 }
 
 const testAccDataSourceAwsRoute53ZoneConfig = `
+
 provider "aws" {
   region = "us-east-2"
 }

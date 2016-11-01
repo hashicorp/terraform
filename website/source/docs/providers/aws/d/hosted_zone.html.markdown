@@ -21,6 +21,7 @@ The following example shows how to get a Hosted Zone from it's name and from thi
 ```
 data "aws_route53_zone" "selected" {
   name = "test.com."
+  private_zone = true
 }
 
 resource "aws_route53_record" "www" {
@@ -36,11 +37,12 @@ resource "aws_route53_record" "www" {
 
 The arguments of this data source act as filters for querying the available
 Hosted Zone. You have to use `zone_id` or `name`, not both of them. The given filter must match exactly one
-Hosted Zone.
+Hosted Zone. If you use `name` field for private Hosted Zone, you need to add `private_zone` field to `true`
 
 * `zone_id` - (Optional) The Hosted Zone id of the desired Hosted Zone.
 
 * `name` - (Optional) The Hosted Zone name of the desired Hosted Zone.
+* `private_zone` - (Optional) Used with `name` field to get a private Hosted Zone.
 
 ## Attributes Reference
 
@@ -51,4 +53,6 @@ the selected Hosted Zone.
 
 The following attribute is additionally exported:
 
+* `caller_reference` - Caller Reference of the Hosted Zone.
 * `comment` - The comment field of the Hosted Zone.
+* `resource_record_set_count` - the number of Record Set in the Hosted Zone
