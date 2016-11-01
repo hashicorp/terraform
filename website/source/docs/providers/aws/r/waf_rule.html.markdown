@@ -6,6 +6,10 @@ description: |-
   Provides a AWS WAF rule resource.
 ---
 
+# aws\_waf\_rule
+
+Provides a WAF Rule Resource
+
 ## Example Usage
 
 ```

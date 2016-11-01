@@ -6,6 +6,10 @@ description: |-
   Provides a AWS WAF IPSet resource.
 ---
 
+# aws\_waf\_ipset
+
+Provides a WAF IPSet Resource
+
 ## Example Usage
 
 ```
