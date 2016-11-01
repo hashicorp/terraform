@@ -6,6 +6,10 @@ description: |-
   Provides a AWS WAF ByteMatchSet resource.
 ---
 
+# aws\_waf\_byte\_match\_set
+
+Provides a WAF Byte Match Set Resource
+
 ## Example Usage
 
 ```

@@ -1,10 +1,14 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_waf_web_acl"
-sidebar_current: "docs-aws-resource-waf"
+sidebar_current: "docs-aws-resource-waf-webacl"
 description: |-
   Provides a AWS WAF web access control group (ACL) resource.
 ---
+
+# aws\_waf\_web\_acl
+
+Provides a WAF Web ACL Resource
 
 ## Example Usage
 
@@ -53,8 +57,6 @@ The following arguments are supported:
 * `name` - (Required) The name or description of the web ACL.
 * `rules` - (Required) The rules to associate with the web ACL and the settings for each rule.
 
-
-## Remarks
 
 ## Attributes Reference
 
