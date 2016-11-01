@@ -1,3 +1,5 @@
+## 0.7.9 (Unreleased)
+
 ## 0.7.8 (November 1, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
