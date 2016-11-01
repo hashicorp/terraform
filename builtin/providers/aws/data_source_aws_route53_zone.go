@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -61,7 +62,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 		req.DNSName = aws.String(name.(string))
 		req.MaxItems = aws.String("1")
 		resp, err := conn.ListHostedZonesByName(req)
-		name := HostedZoneName(name.(string))
+		name := hostedZoneName(name.(string))
 		if err != nil {
 			errwrap.Wrapf("Error finding Route 53 Hosted Zone: {{err}}", err)
 		}
@@ -71,7 +72,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 		}
 		// We test that the first HZ is private or not, if it's not match the field private_zone, we test the second one
 		index := -1
-		if *resp.HostedZones[0].Config.PrivateZone == d.Get("private_zone") {
+		if *resp.HostedZones[0].Config.PrivateZone == d.Get("private_zone").(bool) {
 			index = 0
 		} else if len(resp.HostedZones) >= 2 && *resp.HostedZones[1].Name != name {
 			index = 1
@@ -119,9 +120,8 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 // used to manage trailing .
-func HostedZoneName(name string) string {
-	n := len(name)
-	if n == 0 || name[n-1] == '.' {
+func hostedZoneName(name string) string {
+	if strings.HasSuffix(name, ".") {
 		return name
 	} else {
 		return name + "."

@@ -6,12 +6,11 @@ description: |-
     Provides details about a specific Hosted Zone
 ---
 
-# aws\_vpc
+# aws\_hosted\_zone
 
 `aws_hosted_zone` provides details about a specific Hosted Zone.
 
-This resource can be useful when a module accepts a Hosted Zone name as
-an input variable and needs to, for example, add a Record Set in Route 53
+This data source allows to find a Hosted Zone ID given Hosted Zone name and certain search criteria. 
 
 ## Example Usage
 
