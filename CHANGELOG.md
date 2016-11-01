@@ -63,6 +63,7 @@ IMPROVEMENTS:
  * provider/google Change default MySQL instance version to 5.6 [GH-9674]
  * provider/google Support MySQL 5.7 instances [GH-9673]
  * provider/google: Add support for using source_disk to google_compute_image [GH-9614]
+ * provider/google: Add support for default-internet-gateway alias for google_compute_route [GH-9676]
  * provider/openstack: Added value_specs to openstack_networking_port_v2, allowing vendor information [GH-9551]
  * provider/openstack: Added value_specs to openstack_networking_floatingip_v2, allowing vendor information [GH-9552]
  * provider/openstack: Added value_specs to openstack_compute_keypair_v2, allowing vendor information [GH-9554]
