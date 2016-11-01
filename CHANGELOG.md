@@ -108,6 +108,7 @@ BUG FIXES:
  * provider/azurerm: lower servicebus_topic max size to Azure limit [GH-9649]
  * provider/azurerm: Fix VHD deletion when VM and Storage account are in separate resource groups [GH-9631]
  * provider/azurerm: Guard against panic when importing arm_virtual_network [GH-9739]
+ * provider/azurerm: fix sql_database resource reading tags [GH-9767]
  * provider/cloudflare: update client library to stop connection closed issues [GH-9715]
  * provider/consul: Change to consul_service resource to introduce a `service_id` parameter [GH-9366]
  * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
