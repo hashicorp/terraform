@@ -107,6 +107,7 @@ BUG FIXES:
  * provider/aws: aws_ami: handle deletion of AMIs [GH-9721]
  * provider/aws: Fix aws_route53_record alias perpetual diff [GH-9704]
  * provider/aws: Allow `active` state while waiting for the VPC Peering Connection. #9754
+ * provider/aws: Normalize all-principals wildcard in `aws_iam_policy_document` [GH-9720]
  * provider/azurerm: Fix Azure RM loadbalancer rules validation [GH-9468]
  * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff [GH-9323]
  * provider/azurerm: lower servicebus_topic max size to Azure limit [GH-9649]
