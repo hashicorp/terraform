@@ -129,9 +129,7 @@ func resourceGitlabProjectCreate(d *schema.ResourceData, meta interface{}) error
 
 	d.SetId(fmt.Sprintf("%d", project.ID))
 
-	resourceGitlabProjectUpdateFromAPI(d, project)
-
-	return nil
+	return resourceGitlabProjectUpdateBooleans(d, meta)
 }
 
 func resourceGitlabProjectRead(d *schema.ResourceData, meta interface{}) error {
@@ -154,6 +152,54 @@ type buggyBools struct {
 	SnippetsEnabled      *string `json:"snippets_enabled,omitempty"`
 }
 
+func resourceGitlabProjectUpdateBooleans(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*gitlab.Client)
+	options := &buggyBools{}
+
+	if d.HasChange("issues_enabled") {
+		v := strconv.FormatBool(d.Get("issues_enabled").(bool))
+		options.IssuesEnabled = &v
+	}
+
+	if d.HasChange("merge_requests_enabled") {
+		v := strconv.FormatBool(d.Get("merge_requests_enabled").(bool))
+		options.MergeRequestsEnabled = &v
+	}
+
+	if d.HasChange("wiki_enabled") {
+		v := strconv.FormatBool(d.Get("wiki_enabled").(bool))
+		options.WikiEnabled = &v
+	}
+
+	if d.HasChange("snippets_enabled") {
+		v := strconv.FormatBool(d.Get("snippets_enabled").(bool))
+		options.SnippetsEnabled = &v
+	}
+
+	if !reflect.DeepEqual(options, &buggyBools{}) {
+		log.Printf("[DEBUG] booledit with options %+v", options)
+
+		// partial reimplementation of EditProject
+		req, err := client.NewRequest("PUT", fmt.Sprintf("projects/%s", d.Id()), options)
+		if err != nil {
+			return err
+		}
+
+		project := &gitlab.Project{}
+		resp, err := client.Do(req, project)
+
+		if err != nil {
+			return err
+		}
+
+		log.Printf("[DEBUG] updated %+v %+v", project, resp)
+
+		resourceGitlabProjectUpdateFromAPI(d, project)
+	}
+
+	return nil
+}
+
 func resourceGitlabProjectUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*gitlab.Client)
 
@@ -171,49 +217,8 @@ func resourceGitlabProjectUpdate(d *schema.ResourceData, meta interface{}) error
 		options.DefaultBranch = gitlab.String(d.Get("description").(string))
 	}
 
-	boolOptions := &buggyBools{}
-
-	if d.HasChange("issues_enabled") {
-		v := strconv.FormatBool(d.Get("issues_enabled").(bool))
-		boolOptions.IssuesEnabled = &v
-	}
-
-	if d.HasChange("merge_requests_enabled") {
-		v := strconv.FormatBool(d.Get("merge_requests_enabled").(bool))
-		boolOptions.MergeRequestsEnabled = &v
-	}
-
-	if d.HasChange("wiki_enabled") {
-		v := strconv.FormatBool(d.Get("wiki_enabled").(bool))
-		boolOptions.WikiEnabled = &v
-	}
-
-	if d.HasChange("snippets_enabled") {
-		v := strconv.FormatBool(d.Get("snippets_enabled").(bool))
-		boolOptions.SnippetsEnabled = &v
-	}
-
 	if d.HasChange("visibility_level") {
 		options.VisibilityLevel = stringToVisibilityLevel(d.Get("visibility_level").(string))
-	}
-
-	if !reflect.DeepEqual(boolOptions, &buggyBools{}) {
-		log.Printf("[DEBUG] booledit with options %+v", boolOptions)
-
-		req, err := client.NewRequest("PUT", fmt.Sprintf("projects/%s", d.Id()), boolOptions)
-		if err != nil {
-			return err
-		}
-
-		project := &gitlab.Project{}
-		_, err := client.Do(req, project)
-		if err != nil {
-			return err
-		}
-
-		log.Printf("[DEBUG] updated %+v", project)
-
-		resourceGitlabProjectUpdateFromAPI(d, project)
 	}
 
 	if !reflect.DeepEqual(options, &gitlab.EditProjectOptions{}) {
@@ -229,7 +234,7 @@ func resourceGitlabProjectUpdate(d *schema.ResourceData, meta interface{}) error
 		resourceGitlabProjectUpdateFromAPI(d, project)
 	}
 
-	return nil
+	return resourceGitlabProjectUpdateBooleans(d, meta)
 }
 
 func resourceGitlabProjectDelete(d *schema.ResourceData, meta interface{}) error {
