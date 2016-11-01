@@ -458,6 +458,30 @@ func TestAccComputeInstance_address_custom(t *testing.T) {
 		},
 	})
 }
+
+func TestAccComputeInstance_private_image_family(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+	var imageName = fmt.Sprintf("instance-testi-%s", acctest.RandString(10))
+	var familyName = fmt.Sprintf("instance-testf-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_private_image_family(diskName, imageName, familyName, instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -1094,4 +1118,37 @@ func testAccComputeInstance_address_custom(instance, address string) string {
 		}
 
 	}`, acctest.RandString(10), acctest.RandString(10), instance, address)
+}
+
+func testAccComputeInstance_private_image_family(disk, image, family, instance string) string {
+	return fmt.Sprintf(`
+		resource "google_compute_disk" "foobar" {
+			name = "%s"
+			zone = "us-central1-a"
+			image = "debian-8-jessie-v20160803"
+		}
+
+		resource "google_compute_image" "foobar" {
+			name = "%s"
+			source_disk = "${google_compute_disk.foobar.self_link}"
+			family = "%s"
+		}
+
+		resource "google_compute_instance" "foobar" {
+			name = "%s"
+			machine_type = "n1-standard-1"
+			zone = "us-central1-a"
+
+			disk {
+				image = "${google_compute_image.foobar.family}"
+			}
+
+			network_interface {
+				network = "default"
+			}
+
+			metadata {
+				foo = "bar"
+			}
+		}`, disk, image, family, instance)
 }
