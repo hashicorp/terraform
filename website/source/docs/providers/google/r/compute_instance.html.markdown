@@ -112,9 +112,11 @@ the type is "local-ssd", in which case scratch must be true).
     `google_compute_disk`) to attach.
 
 * `image` - The image from which to initialize this
-    disk. Either the full URL, a contraction of the form "project/name", an
+    disk. Either the full URL, a contraction of the form "project/name", the
+    name of a Google-supported
     [image family](https://cloud.google.com/compute/docs/images#image_families),
-    or just a name (in which case the current project is used).
+    or simple the name of an image or image family (in which case the current
+    project is used).
 
 * `auto_delete` - (Optional) Whether or not the disk should be auto-deleted.
     This defaults to true. Leave true for local SSDs.
