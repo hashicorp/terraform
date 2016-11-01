@@ -118,17 +118,27 @@ func (p *printer) output(n interface{}) []byte {
 		defer un(trace(p, "ObjectList"))
 
 		var index int
-		var nextItem token.Pos
 		for {
-			// TODO(arslan): refactor below comment printing, we have the same in objectType
-			for _, c := range p.standaloneComments {
-				for _, comment := range c.List {
-					if index != len(t.Items) {
-						nextItem = t.Items[index].Pos()
-					} else {
-						nextItem = token.Pos{Offset: infinity, Line: infinity}
-					}
+			// Determine the location of the next actual non-comment
+			// item. If we're at the end, the next item is at "infinity"
+			var nextItem token.Pos
+			if index != len(t.Items) {
+				nextItem = t.Items[index].Pos()
+			} else {
+				nextItem = token.Pos{Offset: infinity, Line: infinity}
+			}
 
+			// Go through the standalone comments in the file and print out
+			// the comments that we should be for this object item.
+			for _, c := range p.standaloneComments {
+				// Go through all the comments in the group. The group
+				// should be printed together, not separated by double newlines.
+				printed := false
+				for _, comment := range c.List {
+					// We only care about comments after the previous item
+					// we've printed so that comments are printed in the
+					// correct locations (between two objects for example).
+					// And before the next item.
 					if comment.Pos().After(p.prev) && comment.Pos().Before(nextItem) {
 						// if we hit the end add newlines so we can print the comment
 						// we don't do this if prev is invalid which means the
@@ -138,13 +148,20 @@ func (p *printer) output(n interface{}) []byte {
 							buf.Write([]byte{newline, newline})
 						}
 
+						// Write the actual comment.
 						buf.WriteString(comment.Text)
-
 						buf.WriteByte(newline)
-						if index != len(t.Items) {
-							buf.WriteByte(newline)
-						}
+
+						// Set printed to true to note that we printed something
+						printed = true
 					}
+				}
+
+				// If we're not at the last item, write a new line so
+				// that there is a newline separating this comment from
+				// the next object.
+				if printed && index != len(t.Items) {
+					buf.WriteByte(newline)
 				}
 			}
 
