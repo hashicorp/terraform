@@ -9,7 +9,6 @@ package ssh
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -282,10 +281,9 @@ func (s *Session) Start(cmd string) error {
 // copying stdin, stdout, and stderr, and exits with a zero exit
 // status.
 //
-// If the remote server does not send an exit status, an error of type
-// *ExitMissingError is returned. If the command completes
-// unsuccessfully or is interrupted by a signal, the error is of type
-// *ExitError. Other error types may be returned for I/O problems.
+// If the command fails to run or doesn't complete successfully, the
+// error is of type *ExitError. Other error types may be
+// returned for I/O problems.
 func (s *Session) Run(cmd string) error {
 	err := s.Start(cmd)
 	if err != nil {
@@ -372,10 +370,9 @@ func (s *Session) start() error {
 // copying stdin, stdout, and stderr, and exits with a zero exit
 // status.
 //
-// If the remote server does not send an exit status, an error of type
-// *ExitMissingError is returned. If the command completes
-// unsuccessfully or is interrupted by a signal, the error is of type
-// *ExitError. Other error types may be returned for I/O problems.
+// If the command fails to run or doesn't complete successfully, the
+// error is of type *ExitError. Other error types may be
+// returned for I/O problems.
 func (s *Session) Wait() error {
 	if !s.started {
 		return errors.New("ssh: session not started")
@@ -403,7 +400,8 @@ func (s *Session) wait(reqs <-chan *Request) error {
 	for msg := range reqs {
 		switch msg.Type {
 		case "exit-status":
-			wm.status = int(binary.BigEndian.Uint32(msg.Payload))
+			d := msg.Payload
+			wm.status = int(d[0])<<24 | int(d[1])<<16 | int(d[2])<<8 | int(d[3])
 		case "exit-signal":
 			var sigval struct {
 				Signal     string
@@ -433,27 +431,14 @@ func (s *Session) wait(reqs <-chan *Request) error {
 	if wm.status == -1 {
 		// exit-status was never sent from server
 		if wm.signal == "" {
-			// signal was not sent either.  RFC 4254
-			// section 6.10 recommends against this
-			// behavior, but it is allowed, so we let
-			// clients handle it.
-			return &ExitMissingError{}
+			return errors.New("wait: remote command exited without exit status or exit signal")
 		}
 		wm.status = 128
 		if _, ok := signals[Signal(wm.signal)]; ok {
 			wm.status += signals[Signal(wm.signal)]
 		}
 	}
-
 	return &ExitError{wm}
-}
-
-// ExitMissingError is returned if a session is torn down cleanly, but
-// the server sends no confirmation of the exit status.
-type ExitMissingError struct{}
-
-func (e *ExitMissingError) Error() string {
-	return "wait: remote command exited without exit status or exit signal"
 }
 
 func (s *Session) stdin() {
@@ -616,12 +601,5 @@ func (w Waitmsg) Lang() string {
 }
 
 func (w Waitmsg) String() string {
-	str := fmt.Sprintf("Process exited with status %v", w.status)
-	if w.signal != "" {
-		str += fmt.Sprintf(" from signal %v", w.signal)
-	}
-	if w.msg != "" {
-		str += fmt.Sprintf(". Reason was: %v", w.msg)
-	}
-	return str
+	return fmt.Sprintf("Process exited with: %v. Reason was: %v (%v)", w.status, w.msg, w.signal)
 }
