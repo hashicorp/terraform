@@ -29,6 +29,25 @@ func TestAccComputeImage_basic(t *testing.T) {
 	})
 }
 
+func TestAccComputeImage_basedondisk(t *testing.T) {
+	var image compute.Image
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeImageDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeImage_basedondisk,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeImageExists(
+						"google_compute_image.foobar", &image),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeImageDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -83,3 +102,14 @@ resource "google_compute_image" "foobar" {
 	  source = "https://storage.googleapis.com/bosh-cpi-artifacts/bosh-stemcell-3262.4-google-kvm-ubuntu-trusty-go_agent-raw.tar.gz"
 	}
 }`, acctest.RandString(10))
+
+var testAccComputeImage_basedondisk = fmt.Sprintf(`
+resource "google_compute_disk" "foobar" {
+	name = "disk-test-%s"
+	zone = "us-central1-a"
+	image = "debian-8-jessie-v20160803"
+}
+resource "google_compute_image" "foobar" {
+	name = "image-test-%s"
+	source_disk = "${google_compute_disk.foobar.self_link}"
+}`, acctest.RandString(10), acctest.RandString(10))
