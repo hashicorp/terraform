@@ -272,7 +272,7 @@ type Properties struct {
 	CreatedAt              *date.Time   `json:"createdAt,omitempty"`
 	MessageRetentionInDays *int64       `json:"messageRetentionInDays,omitempty"`
 	PartitionCount         *int64       `json:"partitionCount,omitempty"`
-	PartitionIds           *[]int32     `json:"partitionIds,omitempty"`
+	PartitionIds           *[]string    `json:"partitionIds,omitempty"`
 	Status                 EntityStatus `json:"status,omitempty"`
 	UpdatedAt              *date.Time   `json:"updatedAt,omitempty"`
 }
