@@ -92,7 +92,7 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 * `additional_slave_security_groups` - (Optional) list of additional Amazon EC2 security group IDs for the slave nodes
 * `emr_managed_master_security_group` - (Optional) identifier of the Amazon EC2 security group for the master node
 * `emr_managed_slave_security_group` - (Optional) identifier of the Amazon EC2 security group for the slave nodes
-* `instance_profile` - (Optional) Instance Profile for EC2 instances of the cluster assume this role
+* `instance_profile` - (Required) Instance Profile for EC2 instances of the cluster assume this role
 
 
 ## bootstrap\_action 
