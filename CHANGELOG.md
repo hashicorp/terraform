@@ -1,125 +1,125 @@
-## 0.7.8 (Unreleased)
+## 0.7.8 (November 1, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/openstack: The OpenStack provider has switched to the new Gophercloud SDK.
    No front-facing changes were made, but please be aware that there might be bugs.
    Please report any if found.
- * `archive_file` is now a data source, instead of a resource [GH-8492]
+ * `archive_file` is now a data source, instead of a resource ([#8492](https://github.com/hashicorp/terraform/issues/8492))
 
 FEATURES:
 
  * **Experimental new apply graph:** `terraform apply` is getting a new graph
    creation process for 0.8. This is now available behind a flag `-Xnew-apply`
    (on any command). This will become the default in 0.8. There may still be
-   bugs. [GH-9388]
+   bugs. ([#9388](https://github.com/hashicorp/terraform/issues/9388))
  * **Experimental new destroy graph:** `terraform destroy` is also getting
    a new graph creation process for 0.8. This is now available behind a flag
-   `-Xnew-destroy`. This will become the default in 0.8. [GH-9527]
- * **New Provider:** `pagerduty` [GH-9022]
- * **New Resource:** `aws_iam_user_login_profile` [GH-9605]
- * **New Resource:** `aws_waf_ipset` [GH-8852]
- * **New Resource:** `aws_waf_rule` [GH-8852]
- * **New Resource:** `aws_waf_web_acl` [GH-8852]
- * **New Resource:** `aws_waf_byte_match_set` [GH-9681]
- * **New Resource:** `aws_waf_size_constraint_set` [GH-9689]
- * **New Resource:** `aws_waf_sql_injection_match_set` [GH-9709]
- * **New Resource:** `aws_waf_xss_match_set` [GH-9710]
- * **New Resource:** `aws_ssm_activation` [GH-9111]
- * **New Resource:** `azurerm_key_vault` [GH-9478]
- * **New Resource:** `azurerm_storage_share` [GH-8674]
- * **New Resource:** `azurerm_eventhub_namespace` [GH-9297]
- * **New Resource:** `cloudstack_security_group` [GH-9103]
- * **New Resource:** `cloudstack_security_group_rule` [GH-9645]
- * **New Resource:** `cloudstack_private_gateway` [GH-9637]
- * **New Resource:** `cloudstack_static_route` [GH-9637]
- * **New DataSource:** `aws_ebs_volume` [GH-9753]
- * **New DataSource:** `aws_prefix_list` [GH-9566]
- * **New DataSource:** `aws_security_group` [GH-9604]
- * **New DataSource:** `azurerm_client_config` [GH-9478]
- * **New Interpolation Function:** `ceil` [GH-9692]
- * **New Interpolation Function:** `floor` [GH-9692]
- * **New Interpolation Function:** `min` [GH-9692]
- * **New Interpolation Function:** `max` [GH-9692]
- * **New Interpolation Function:** `title` [GH-9087]
- * **New Interpolation Function:** `zipmap` [GH-9627]
+   `-Xnew-destroy`. This will become the default in 0.8. ([#9527](https://github.com/hashicorp/terraform/issues/9527))
+ * **New Provider:** `pagerduty` ([#9022](https://github.com/hashicorp/terraform/issues/9022))
+ * **New Resource:** `aws_iam_user_login_profile` ([#9605](https://github.com/hashicorp/terraform/issues/9605))
+ * **New Resource:** `aws_waf_ipset` ([#8852](https://github.com/hashicorp/terraform/issues/8852))
+ * **New Resource:** `aws_waf_rule` ([#8852](https://github.com/hashicorp/terraform/issues/8852))
+ * **New Resource:** `aws_waf_web_acl` ([#8852](https://github.com/hashicorp/terraform/issues/8852))
+ * **New Resource:** `aws_waf_byte_match_set` ([#9681](https://github.com/hashicorp/terraform/issues/9681))
+ * **New Resource:** `aws_waf_size_constraint_set` ([#9689](https://github.com/hashicorp/terraform/issues/9689))
+ * **New Resource:** `aws_waf_sql_injection_match_set` ([#9709](https://github.com/hashicorp/terraform/issues/9709))
+ * **New Resource:** `aws_waf_xss_match_set` ([#9710](https://github.com/hashicorp/terraform/issues/9710))
+ * **New Resource:** `aws_ssm_activation` ([#9111](https://github.com/hashicorp/terraform/issues/9111))
+ * **New Resource:** `azurerm_key_vault` ([#9478](https://github.com/hashicorp/terraform/issues/9478))
+ * **New Resource:** `azurerm_storage_share` ([#8674](https://github.com/hashicorp/terraform/issues/8674))
+ * **New Resource:** `azurerm_eventhub_namespace` ([#9297](https://github.com/hashicorp/terraform/issues/9297))
+ * **New Resource:** `cloudstack_security_group` ([#9103](https://github.com/hashicorp/terraform/issues/9103))
+ * **New Resource:** `cloudstack_security_group_rule` ([#9645](https://github.com/hashicorp/terraform/issues/9645))
+ * **New Resource:** `cloudstack_private_gateway` ([#9637](https://github.com/hashicorp/terraform/issues/9637))
+ * **New Resource:** `cloudstack_static_route` ([#9637](https://github.com/hashicorp/terraform/issues/9637))
+ * **New DataSource:** `aws_ebs_volume` ([#9753](https://github.com/hashicorp/terraform/issues/9753))
+ * **New DataSource:** `aws_prefix_list` ([#9566](https://github.com/hashicorp/terraform/issues/9566))
+ * **New DataSource:** `aws_security_group` ([#9604](https://github.com/hashicorp/terraform/issues/9604))
+ * **New DataSource:** `azurerm_client_config` ([#9478](https://github.com/hashicorp/terraform/issues/9478))
+ * **New Interpolation Function:** `ceil` ([#9692](https://github.com/hashicorp/terraform/issues/9692))
+ * **New Interpolation Function:** `floor` ([#9692](https://github.com/hashicorp/terraform/issues/9692))
+ * **New Interpolation Function:** `min` ([#9692](https://github.com/hashicorp/terraform/issues/9692))
+ * **New Interpolation Function:** `max` ([#9692](https://github.com/hashicorp/terraform/issues/9692))
+ * **New Interpolation Function:** `title` ([#9087](https://github.com/hashicorp/terraform/issues/9087))
+ * **New Interpolation Function:** `zipmap` ([#9627](https://github.com/hashicorp/terraform/issues/9627))
 
 IMPROVEMENTS:
 
- * provider/aws: No longer require `route_table_ids` list in `aws_vpc_endpoint` resources [GH-9357]
- * provider/aws: Allow `description` in `aws_redshift_subnet_group` to be modified [GH-9515]
- * provider/aws: Add tagging support to aws_redshift_subnet_group [GH-9504]
- * provider/aws: Add validation to IAM User and Group Name [GH-9584]
- * provider/aws: Add Ability To Enable / Disable ALB AccessLogs [GH-9290]
- * provider/aws: Add support for `AutoMinorVersionUpgrade` to aws_elasticache_replication_group resource. [GH-9657]
- * provider/aws: Fix import of RouteTable with destination prefixes [GH-9686]
- * provider/aws: Add support for reference_name to aws_route53_health_check [GH-9737]
- * provider/aws: Expose ARN suffix on ALB Target Group [GH-9734]
- * provider/azurerm: add account_kind and access_tier to storage_account [GH-9408]
- * provider/azurerm: write load_balanacer attributes to network_interface_card hash [GH-9207]
- * provider/azurerm: Add disk_size_gb param to VM storage_os_disk [GH-9200]
- * provider/azurerm: support importing of subnet resource [GH-9646]
- * provider/azurerm: Add support for *all* of the Azure regions e.g. Germany, China and Government [GH-9765]
- * provider/digitalocean: Allow resizing DigitalOcean Droplets without increasing disk size. [GH-9573]
- * provider/google: enhance service scope list [GH-9442]
- * provider/google Change default MySQL instance version to 5.6 [GH-9674]
- * provider/google Support MySQL 5.7 instances [GH-9673]
- * provider/google: Add support for using source_disk to google_compute_image [GH-9614]
- * provider/google: Add support for default-internet-gateway alias for google_compute_route [GH-9676]
- * provider/openstack: Added value_specs to openstack_networking_port_v2, allowing vendor information [GH-9551]
- * provider/openstack: Added value_specs to openstack_networking_floatingip_v2, allowing vendor information [GH-9552]
- * provider/openstack: Added value_specs to openstack_compute_keypair_v2, allowing vendor information [GH-9554]
- * provider/openstack: Allow any protocol in openstack_fw_rule_v1 [GH-9617]
- * provider/openstack: expose LoadBalancer v2 VIP Port ID [GH-9727]
- * provider/openstack: Openstack Provider enhancements including environment variables [GH-9725]
- * provider/scaleway: update sdk for ams1 region [GH-9687]
- * provider/scaleway: server volume property [GH-9695]
+ * provider/aws: No longer require `route_table_ids` list in `aws_vpc_endpoint` resources ([#9357](https://github.com/hashicorp/terraform/issues/9357))
+ * provider/aws: Allow `description` in `aws_redshift_subnet_group` to be modified ([#9515](https://github.com/hashicorp/terraform/issues/9515))
+ * provider/aws: Add tagging support to aws_redshift_subnet_group ([#9504](https://github.com/hashicorp/terraform/issues/9504))
+ * provider/aws: Add validation to IAM User and Group Name ([#9584](https://github.com/hashicorp/terraform/issues/9584))
+ * provider/aws: Add Ability To Enable / Disable ALB AccessLogs ([#9290](https://github.com/hashicorp/terraform/issues/9290))
+ * provider/aws: Add support for `AutoMinorVersionUpgrade` to aws_elasticache_replication_group resource. ([#9657](https://github.com/hashicorp/terraform/issues/9657))
+ * provider/aws: Fix import of RouteTable with destination prefixes ([#9686](https://github.com/hashicorp/terraform/issues/9686))
+ * provider/aws: Add support for reference_name to aws_route53_health_check ([#9737](https://github.com/hashicorp/terraform/issues/9737))
+ * provider/aws: Expose ARN suffix on ALB Target Group ([#9734](https://github.com/hashicorp/terraform/issues/9734))
+ * provider/azurerm: add account_kind and access_tier to storage_account ([#9408](https://github.com/hashicorp/terraform/issues/9408))
+ * provider/azurerm: write load_balanacer attributes to network_interface_card hash ([#9207](https://github.com/hashicorp/terraform/issues/9207))
+ * provider/azurerm: Add disk_size_gb param to VM storage_os_disk ([#9200](https://github.com/hashicorp/terraform/issues/9200))
+ * provider/azurerm: support importing of subnet resource ([#9646](https://github.com/hashicorp/terraform/issues/9646))
+ * provider/azurerm: Add support for *all* of the Azure regions e.g. Germany, China and Government ([#9765](https://github.com/hashicorp/terraform/issues/9765))
+ * provider/digitalocean: Allow resizing DigitalOcean Droplets without increasing disk size. ([#9573](https://github.com/hashicorp/terraform/issues/9573))
+ * provider/google: enhance service scope list ([#9442](https://github.com/hashicorp/terraform/issues/9442))
+ * provider/google Change default MySQL instance version to 5.6 ([#9674](https://github.com/hashicorp/terraform/issues/9674))
+ * provider/google Support MySQL 5.7 instances ([#9673](https://github.com/hashicorp/terraform/issues/9673))
+ * provider/google: Add support for using source_disk to google_compute_image ([#9614](https://github.com/hashicorp/terraform/issues/9614))
+ * provider/google: Add support for default-internet-gateway alias for google_compute_route ([#9676](https://github.com/hashicorp/terraform/issues/9676))
+ * provider/openstack: Added value_specs to openstack_networking_port_v2, allowing vendor information ([#9551](https://github.com/hashicorp/terraform/issues/9551))
+ * provider/openstack: Added value_specs to openstack_networking_floatingip_v2, allowing vendor information ([#9552](https://github.com/hashicorp/terraform/issues/9552))
+ * provider/openstack: Added value_specs to openstack_compute_keypair_v2, allowing vendor information ([#9554](https://github.com/hashicorp/terraform/issues/9554))
+ * provider/openstack: Allow any protocol in openstack_fw_rule_v1 ([#9617](https://github.com/hashicorp/terraform/issues/9617))
+ * provider/openstack: expose LoadBalancer v2 VIP Port ID ([#9727](https://github.com/hashicorp/terraform/issues/9727))
+ * provider/openstack: Openstack Provider enhancements including environment variables ([#9725](https://github.com/hashicorp/terraform/issues/9725))
+ * provider/scaleway: update sdk for ams1 region ([#9687](https://github.com/hashicorp/terraform/issues/9687))
+ * provider/scaleway: server volume property ([#9695](https://github.com/hashicorp/terraform/issues/9695))
 
 BUG FIXES:
 
- * core: Resources suffixed with 'panic' won't falsely trigger crash detection. [GH-9395]
- * core: Validate lifecycle options don't contain interpolations. [GH-9576]
- * core: Tainted resources will not process `ignore_changes`. [GH-7855]
- * core: Boolean looking values passed in via `-var` no longer cause type errors. [GH-9642]
- * core: Computed primitives in certain cases no longer cause diff mismatch errors. [GH-9618]
- * core: Empty arrays for list vars in JSON work [GH-8886]
- * core: Boolean types in tfvars work propertly [GH-9751]
- * core: Deposed resource destruction is accounted for properly in `apply` counts. [GH-9731]
- * core: Check for graph cycles on resource expansion to catch cycles between self-referenced resources. [GH-9728]
- * core: `prevent_destroy` prevents decreasing count [GH-9707]
- * core: removed optional items will trigger "requires new" if necessary [GH-9699]
- * command/apply: `-backup` and `-state-out` work with plan files [GH-9706]
+ * core: Resources suffixed with 'panic' won't falsely trigger crash detection. ([#9395](https://github.com/hashicorp/terraform/issues/9395))
+ * core: Validate lifecycle options don't contain interpolations. ([#9576](https://github.com/hashicorp/terraform/issues/9576))
+ * core: Tainted resources will not process `ignore_changes`. ([#7855](https://github.com/hashicorp/terraform/issues/7855))
+ * core: Boolean looking values passed in via `-var` no longer cause type errors. ([#9642](https://github.com/hashicorp/terraform/issues/9642))
+ * core: Computed primitives in certain cases no longer cause diff mismatch errors. ([#9618](https://github.com/hashicorp/terraform/issues/9618))
+ * core: Empty arrays for list vars in JSON work ([#8886](https://github.com/hashicorp/terraform/issues/8886))
+ * core: Boolean types in tfvars work propertly ([#9751](https://github.com/hashicorp/terraform/issues/9751))
+ * core: Deposed resource destruction is accounted for properly in `apply` counts. ([#9731](https://github.com/hashicorp/terraform/issues/9731))
+ * core: Check for graph cycles on resource expansion to catch cycles between self-referenced resources. ([#9728](https://github.com/hashicorp/terraform/issues/9728))
+ * core: `prevent_destroy` prevents decreasing count ([#9707](https://github.com/hashicorp/terraform/issues/9707))
+ * core: removed optional items will trigger "requires new" if necessary ([#9699](https://github.com/hashicorp/terraform/issues/9699))
+ * command/apply: `-backup` and `-state-out` work with plan files ([#9706](https://github.com/hashicorp/terraform/issues/9706))
  * command/fmt: Cleaner formatting for multiline standalone comments above resources 
- * command/validate: respond to `--help` [GH-9660]
- * provider/archive: Converting to datasource. [GH-8492]
- * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value [GH-9453]
- * provider/aws: Fix issue with updating ElasticBeanstalk environment variables [GH-9259]
- * provider/aws: Allow zero value for `scaling_adjustment` in `aws_autoscaling_policy` when using `SimpleScaling` [GH-8893]
- * provider/aws: Increase ECS service drain timeout [GH-9521]
- * provider/aws: Remove VPC Endpoint from state if it's not found [GH-9561]
- * provider/aws: Delete Loging Profile from IAM User on force_destroy [GH-9583]
- * provider/aws: Exposed aws_api_gw_domain_name.certificate_upload_date attribute [GH-9533]
- * provider/aws: fix aws_elasticache_replication_group for Redis in cluster mode [GH-9601]
- * provider/aws: Validate regular expression passed via the ami data_source `name_regex` attribute. [GH-9622]
- * provider/aws: Bug fix for NoSuckBucket on Destroy of aws_s3_bucket_policy [GH-9641]
- * provider/aws: Refresh aws_autoscaling_schedule from state on 404 [GH-9659]
- * provider/aws: Allow underscores in IAM user and group names [GH-9684]
- * provider/aws: aws_ami: handle deletion of AMIs [GH-9721]
- * provider/aws: Fix aws_route53_record alias perpetual diff [GH-9704]
+ * command/validate: respond to `--help` ([#9660](https://github.com/hashicorp/terraform/issues/9660))
+ * provider/archive: Converting to datasource. ([#8492](https://github.com/hashicorp/terraform/issues/8492))
+ * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value ([#9453](https://github.com/hashicorp/terraform/issues/9453))
+ * provider/aws: Fix issue with updating ElasticBeanstalk environment variables ([#9259](https://github.com/hashicorp/terraform/issues/9259))
+ * provider/aws: Allow zero value for `scaling_adjustment` in `aws_autoscaling_policy` when using `SimpleScaling` ([#8893](https://github.com/hashicorp/terraform/issues/8893))
+ * provider/aws: Increase ECS service drain timeout ([#9521](https://github.com/hashicorp/terraform/issues/9521))
+ * provider/aws: Remove VPC Endpoint from state if it's not found ([#9561](https://github.com/hashicorp/terraform/issues/9561))
+ * provider/aws: Delete Loging Profile from IAM User on force_destroy ([#9583](https://github.com/hashicorp/terraform/issues/9583))
+ * provider/aws: Exposed aws_api_gw_domain_name.certificate_upload_date attribute ([#9533](https://github.com/hashicorp/terraform/issues/9533))
+ * provider/aws: fix aws_elasticache_replication_group for Redis in cluster mode ([#9601](https://github.com/hashicorp/terraform/issues/9601))
+ * provider/aws: Validate regular expression passed via the ami data_source `name_regex` attribute. ([#9622](https://github.com/hashicorp/terraform/issues/9622))
+ * provider/aws: Bug fix for NoSuckBucket on Destroy of aws_s3_bucket_policy ([#9641](https://github.com/hashicorp/terraform/issues/9641))
+ * provider/aws: Refresh aws_autoscaling_schedule from state on 404 ([#9659](https://github.com/hashicorp/terraform/issues/9659))
+ * provider/aws: Allow underscores in IAM user and group names ([#9684](https://github.com/hashicorp/terraform/issues/9684))
+ * provider/aws: aws_ami: handle deletion of AMIs ([#9721](https://github.com/hashicorp/terraform/issues/9721))
+ * provider/aws: Fix aws_route53_record alias perpetual diff ([#9704](https://github.com/hashicorp/terraform/issues/9704))
  * provider/aws: Allow `active` state while waiting for the VPC Peering Connection. #9754
- * provider/aws: Normalize all-principals wildcard in `aws_iam_policy_document` [GH-9720]
- * provider/azurerm: Fix Azure RM loadbalancer rules validation [GH-9468]
- * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff [GH-9323]
- * provider/azurerm: lower servicebus_topic max size to Azure limit [GH-9649]
- * provider/azurerm: Fix VHD deletion when VM and Storage account are in separate resource groups [GH-9631]
- * provider/azurerm: Guard against panic when importing arm_virtual_network [GH-9739]
- * provider/azurerm: fix sql_database resource reading tags [GH-9767]
- * provider/cloudflare: update client library to stop connection closed issues [GH-9715]
- * provider/consul: Change to consul_service resource to introduce a `service_id` parameter [GH-9366]
- * provider/datadog: Ignore float/int diffs on thresholds [GH-9466]
- * provider/docker: Fixes for docker_container host object and documentation [GH-9367]
- * provider/scaleway improve the performance of server deletion [GH-9491]
- * provider/scaleway: fix scaleway_volume_attachment with count > 1 [GH-9493]
+ * provider/aws: Normalize all-principals wildcard in `aws_iam_policy_document` ([#9720](https://github.com/hashicorp/terraform/issues/9720))
+ * provider/azurerm: Fix Azure RM loadbalancer rules validation ([#9468](https://github.com/hashicorp/terraform/issues/9468))
+ * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff ([#9323](https://github.com/hashicorp/terraform/issues/9323))
+ * provider/azurerm: lower servicebus_topic max size to Azure limit ([#9649](https://github.com/hashicorp/terraform/issues/9649))
+ * provider/azurerm: Fix VHD deletion when VM and Storage account are in separate resource groups ([#9631](https://github.com/hashicorp/terraform/issues/9631))
+ * provider/azurerm: Guard against panic when importing arm_virtual_network ([#9739](https://github.com/hashicorp/terraform/issues/9739))
+ * provider/azurerm: fix sql_database resource reading tags ([#9767](https://github.com/hashicorp/terraform/issues/9767))
+ * provider/cloudflare: update client library to stop connection closed issues ([#9715](https://github.com/hashicorp/terraform/issues/9715))
+ * provider/consul: Change to consul_service resource to introduce a `service_id` parameter ([#9366](https://github.com/hashicorp/terraform/issues/9366))
+ * provider/datadog: Ignore float/int diffs on thresholds ([#9466](https://github.com/hashicorp/terraform/issues/9466))
+ * provider/docker: Fixes for docker_container host object and documentation ([#9367](https://github.com/hashicorp/terraform/issues/9367))
+ * provider/scaleway improve the performance of server deletion ([#9491](https://github.com/hashicorp/terraform/issues/9491))
+ * provider/scaleway: fix scaleway_volume_attachment with count > 1 ([#9493](https://github.com/hashicorp/terraform/issues/9493))
 
 
 ## 0.7.7 (October 18, 2016)
@@ -127,7 +127,7 @@ BUG FIXES:
 FEATURES:
 
  * **New Data Source:** `scaleway_bootsscript`. ([#9386](https://github.com/hashicorp/terraform/issues/9386))
- * **New Data Source:** `scaleway_image`. [GH-9386]
+ * **New Data Source:** `scaleway_image`. ([#9386](https://github.com/hashicorp/terraform/issues/9386))
 
 IMPROVEMENTS:
 
@@ -1520,7 +1520,7 @@ IMPROVEMENTS:
   * provider/google: Simplified auth (DefaultClient support) ([#3553](https://github.com/hashicorp/terraform/issues/3553))
   * provider/google: `automatic_restart`, `preemptible`, `on_host_maintenance` options ([#3643](https://github.com/hashicorp/terraform/issues/3643))
   * provider/google: Read credentials as contents instead of path ([#3901](https://github.com/hashicorp/terraform/issues/3901))
-  * null_resource: Enhance and document [GH-3244, GH-3659]
+  * null_resource: Enhance and document ([#3244](https://github.com/hashicorp/terraform/issues/3244), [#3659](https://github.com/hashicorp/terraform/issues/3659))
   * provider/aws: Add CORS settings to S3 bucket ([#3387](https://github.com/hashicorp/terraform/issues/3387))
   * provider/aws: Add notification topic ARN for ElastiCache clusters ([#3674](https://github.com/hashicorp/terraform/issues/3674))
   * provider/aws: Add `kinesis_endpoint` for configuring Kinesis ([#3255](https://github.com/hashicorp/terraform/issues/3255))
@@ -1848,14 +1848,14 @@ BACKWARDS INCOMPATIBILITIES:
 
 FEATURES:
 
-  * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380, GH-2394, GH-2515, GH-2530, GH-2562]
+  * **New provider: `azure`** ([#2052](https://github.com/hashicorp/terraform/issues/2052), [#2053](https://github.com/hashicorp/terraform/issues/2053), [#2372](https://github.com/hashicorp/terraform/issues/2372), [#2380](https://github.com/hashicorp/terraform/issues/2380), [#2394](https://github.com/hashicorp/terraform/issues/2394), [#2515](https://github.com/hashicorp/terraform/issues/2515), [#2530](https://github.com/hashicorp/terraform/issues/2530), [#2562](https://github.com/hashicorp/terraform/issues/2562))
   * **New resource: `aws_autoscaling_notification`** ([#2197](https://github.com/hashicorp/terraform/issues/2197))
   * **New resource: `aws_autoscaling_policy`** ([#2201](https://github.com/hashicorp/terraform/issues/2201))
   * **New resource: `aws_cloudwatch_metric_alarm`** ([#2201](https://github.com/hashicorp/terraform/issues/2201))
   * **New resource: `aws_dynamodb_table`** ([#2121](https://github.com/hashicorp/terraform/issues/2121))
   * **New resource: `aws_ecs_cluster`** ([#1803](https://github.com/hashicorp/terraform/issues/1803))
   * **New resource: `aws_ecs_service`** ([#1803](https://github.com/hashicorp/terraform/issues/1803))
-  * **New resource: `aws_ecs_task_definition`** [GH-1803, GH-2402]
+  * **New resource: `aws_ecs_task_definition`** ([#1803](https://github.com/hashicorp/terraform/issues/1803), [#2402](https://github.com/hashicorp/terraform/issues/2402))
   * **New resource: `aws_elasticache_parameter_group`** ([#2276](https://github.com/hashicorp/terraform/issues/2276))
   * **New resource: `aws_flow_log`** ([#2384](https://github.com/hashicorp/terraform/issues/2384))
   * **New resource: `aws_iam_group_association`** ([#2273](https://github.com/hashicorp/terraform/issues/2273))
@@ -1879,7 +1879,7 @@ IMPROVEMENTS:
   * core: `plan` now reports sum of resources to be changed/created/destroyed ([#2458](https://github.com/hashicorp/terraform/issues/2458))
   * core: Change string list representation so we can distinguish empty, single
       element lists ([#2504](https://github.com/hashicorp/terraform/issues/2504))
-  * core: Properly close provider and provisioner plugin connections [GH-2406, GH-2527]
+  * core: Properly close provider and provisioner plugin connections ([#2406](https://github.com/hashicorp/terraform/issues/2406), [#2527](https://github.com/hashicorp/terraform/issues/2527))
   * provider/aws: AutoScaling groups now support updating Load Balancers without
       recreation ([#2472](https://github.com/hashicorp/terraform/issues/2472))
   * provider/aws: Allow more in-place updates for ElastiCache cluster without recreating
@@ -2336,7 +2336,7 @@ IMPROVEMENTS:
       `engine_version`, `parameter_group_name`, and `multi_az` without forcing
       a new database to be created.([#1341](https://github.com/hashicorp/terraform/issues/1341))
   * providers/aws: Full support for block device mappings on instances and
-      launch configurations [GH-1045, GH-1364]
+      launch configurations ([#1045](https://github.com/hashicorp/terraform/issues/1045), [#1364](https://github.com/hashicorp/terraform/issues/1364))
   * provisioners/remote-exec: SSH agent support. ([#1208](https://github.com/hashicorp/terraform/issues/1208))
 
 BUG FIXES:
@@ -2829,7 +2829,7 @@ BUG FIXES:
       dependencies and allow passing skip_final_snapshot
   * providers/aws: Add associate_public_ip_address as an attribute on
       the aws_instance resource ([#85](https://github.com/hashicorp/terraform/issues/85))
-  * providers/aws: Fix cidr blocks being updated [GH-65, GH-85]
+  * providers/aws: Fix cidr blocks being updated ([#65](https://github.com/hashicorp/terraform/issues/65), [#85](https://github.com/hashicorp/terraform/issues/85))
   * providers/aws: Description is now required for security groups
   * providers/digitalocean: Private IP addresses are now a separate
       attribute
