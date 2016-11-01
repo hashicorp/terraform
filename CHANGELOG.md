@@ -81,7 +81,6 @@ BUG FIXES:
  * core: Validate lifecycle options don't contain interpolations. [GH-9576]
  * core: Tainted resources will not process `ignore_changes`. [GH-7855]
  * core: Boolean looking values passed in via `-var` no longer cause type errors. [GH-9642]
- * core: Update crypto/ssh to support ED25519 SSH keys [GH-9661
  * core: Computed primitives in certain cases no longer cause diff mismatch errors. [GH-9618]
  * core: Empty arrays for list vars in JSON work [GH-8886]
  * core: Boolean types in tfvars work propertly [GH-9751]
