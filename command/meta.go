@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -63,10 +64,13 @@ type Meta struct {
 	//
 	// parallelism is used to control the number of concurrent operations
 	// allowed when walking the graph
+	//
+	// shadow is used to enable/disable the shadow graph
 	statePath    string
 	stateOutPath string
 	backupPath   string
 	parallelism  int
+	shadow       bool
 }
 
 // initStatePaths is used to initialize the default values for
@@ -108,18 +112,24 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
-			// Setup our state
-			state, statePath, err := StateFromPlan(m.statePath, m.stateOutPath, plan)
+			// Setup our state, force it to use our plan's state
+			stateOpts := m.StateOpts()
+			if plan != nil {
+				stateOpts.ForceState = plan.State
+			}
+
+			// Get the state
+			result, err := State(stateOpts)
 			if err != nil {
 				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
 
 			// Set our state
-			m.state = state
+			m.state = result.State
 
 			// this is used for printing the saved location later
 			if m.stateOutPath == "" {
-				m.stateOutPath = statePath
+				m.stateOutPath = result.StatePath
 			}
 
 			if len(m.variables) > 0 {
@@ -163,6 +173,11 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	err = mod.Load(m.moduleStorage(m.DataDir()), copts.GetMode)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
+	}
+
+	// Validate the module right away
+	if err := mod.Validate(); err != nil {
+		return nil, false, err
 	}
 
 	opts.Module = mod
@@ -307,6 +322,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.Variables = vs
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
+	opts.Shadow = m.shadow
 
 	return &opts
 }
@@ -322,6 +338,12 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	if m.autoKey != "" {
 		f.Var((*FlagKVFile)(&m.autoVariables), m.autoKey, "variable file")
 	}
+
+	// Advanced (don't need documentation, or unlikely to be set)
+	f.BoolVar(&m.shadow, "shadow", true, "shadow graph")
+
+	// Experimental features
+	experiment.Flag(f)
 
 	// Create an io.Writer that writes to our Ui properly for errors.
 	// This is kind of a hack, but it does the job. Basically: create

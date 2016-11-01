@@ -7,12 +7,54 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestValidateIamUserName(t *testing.T) {
+	validNames := []string{
+		"test-user",
+		"test_user",
+		"testuser123",
+		"TestUser",
+		"Test-User",
+		"test.user",
+		"test.123,user",
+		"testuser@hashicorp",
+	}
+	for _, v := range validNames {
+		_, errors := validateAwsIamUserName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid IAM User name: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"!",
+		"/",
+		" ",
+		":",
+		";",
+		"test name",
+		"/slash-at-the-beginning",
+		"slash-at-the-end/",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateAwsIamUserName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid IAM User name", v)
+		}
+	}
+}
+
 func TestAccAWSUser_basic(t *testing.T) {
 	var conf iam.GetUserOutput
+
+	name1 := fmt.Sprintf("test-user-%d", acctest.RandInt())
+	name2 := fmt.Sprintf("test-user-%d", acctest.RandInt())
+	path1 := "/"
+	path2 := "/path2/"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,17 +62,17 @@ func TestAccAWSUser_basic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSUserDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSUserConfig,
+				Config: testAccAWSUserConfig(name1, path1),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSUserExists("aws_iam_user.user", &conf),
-					testAccCheckAWSUserAttributes(&conf, "test-user", "/"),
+					testAccCheckAWSUserAttributes(&conf, name1, "/"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSUserConfig2,
+				Config: testAccAWSUserConfig(name2, path2),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSUserExists("aws_iam_user.user", &conf),
-					testAccCheckAWSUserAttributes(&conf, "test-user2", "/path2/"),
+					testAccCheckAWSUserAttributes(&conf, name2, "/path2/"),
 				),
 			},
 		},
@@ -106,15 +148,10 @@ func testAccCheckAWSUserAttributes(user *iam.GetUserOutput, name string, path st
 	}
 }
 
-const testAccAWSUserConfig = `
+func testAccAWSUserConfig(r, p string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_user" "user" {
-	name = "test-user"
-	path = "/"
+	name = "%s"
+	path = "%s"
+}`, r, p)
 }
-`
-const testAccAWSUserConfig2 = `
-resource "aws_iam_user" "user" {
-	name = "test-user2"
-	path = "/path2/"
-}
-`

@@ -150,8 +150,8 @@ const (
 
 // CheckNameAvailabilityInput is input of CheckNameAvailability API.
 type CheckNameAvailabilityInput struct {
-	Name *string      `json:"name,omitempty"`
-	Type ResourceType `json:"type,omitempty"`
+	Name *string `json:"name,omitempty"`
+	Type *string `json:"type,omitempty"`
 }
 
 // CheckNameAvailabilityOutput is output of check name availability API.

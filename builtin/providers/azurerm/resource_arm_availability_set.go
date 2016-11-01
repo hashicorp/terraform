@@ -117,15 +117,16 @@ func resourceArmAvailabilitySetRead(d *schema.ResourceData, meta interface{}) er
 	name := id.Path["availabilitySets"]
 
 	resp, err := availSetClient.Get(resGroup, name)
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Availability Set %s: %s", name, err)
 	}
 
 	availSet := *resp.Properties
+	d.Set("resource_group_name", resGroup)
 	d.Set("platform_update_domain_count", availSet.PlatformUpdateDomainCount)
 	d.Set("platform_fault_domain_count", availSet.PlatformFaultDomainCount)
 	d.Set("name", resp.Name)

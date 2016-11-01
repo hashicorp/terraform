@@ -35,7 +35,7 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 	listeners := make([]*elb.Listener, 0, len(configured))
 
 	// Loop over our configured listeners and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, lRaw := range configured {
 		data := lRaw.(map[string]interface{})
 
@@ -125,9 +125,15 @@ func expandEcsLoadBalancers(configured []interface{}) []*ecs.LoadBalancer {
 		data := lRaw.(map[string]interface{})
 
 		l := &ecs.LoadBalancer{
-			ContainerName:    aws.String(data["container_name"].(string)),
-			ContainerPort:    aws.Int64(int64(data["container_port"].(int))),
-			LoadBalancerName: aws.String(data["elb_name"].(string)),
+			ContainerName: aws.String(data["container_name"].(string)),
+			ContainerPort: aws.Int64(int64(data["container_port"].(int))),
+		}
+
+		if v, ok := data["elb_name"]; ok && v.(string) != "" {
+			l.LoadBalancerName = aws.String(v.(string))
+		}
+		if v, ok := data["target_group_arn"]; ok && v.(string) != "" {
+			l.TargetGroupArn = aws.String(v.(string))
 		}
 
 		loadBalancers = append(loadBalancers, l)
@@ -228,7 +234,7 @@ func expandParameters(configured []interface{}) ([]*rds.Parameter, error) {
 	var parameters []*rds.Parameter
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -252,7 +258,7 @@ func expandRedshiftParameters(configured []interface{}) ([]*redshift.Parameter, 
 	var parameters []*redshift.Parameter
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -335,7 +341,7 @@ func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.Param
 	parameters := make([]*elasticache.ParameterNameValue, 0, len(configured))
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -366,6 +372,10 @@ func flattenAccessLog(l *elb.AccessLog) []map[string]interface{} {
 
 		if l.EmitInterval != nil {
 			r["interval"] = *l.EmitInterval
+		}
+
+		if l.Enabled != nil {
+			r["enabled"] = *l.Enabled
 		}
 
 		result = append(result, r)
@@ -553,10 +563,18 @@ func flattenEcsLoadBalancers(list []*ecs.LoadBalancer) []map[string]interface{} 
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, loadBalancer := range list {
 		l := map[string]interface{}{
-			"elb_name":       *loadBalancer.LoadBalancerName,
 			"container_name": *loadBalancer.ContainerName,
 			"container_port": *loadBalancer.ContainerPort,
 		}
+
+		if loadBalancer.LoadBalancerName != nil {
+			l["elb_name"] = *loadBalancer.LoadBalancerName
+		}
+
+		if loadBalancer.TargetGroupArn != nil {
+			l["target_group_arn"] = *loadBalancer.TargetGroupArn
+		}
+
 		result = append(result, l)
 	}
 	return result
@@ -606,10 +624,14 @@ func flattenOptions(list []*rds.Option) []map[string]interface{} {
 			if i.OptionSettings != nil {
 				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
 				for _, j := range i.OptionSettings {
-					settings = append(settings, map[string]interface{}{
-						"name":  *j.Name,
-						"value": *j.Value,
-					})
+					setting := map[string]interface{}{
+						"name": *j.Name,
+					}
+					if j.Value != nil {
+						setting["value"] = *j.Value
+					}
+
+					settings = append(settings, setting)
 				}
 
 				r["option_settings"] = settings
@@ -632,6 +654,10 @@ func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
 			if i.ParameterValue != nil {
 				r["value"] = strings.ToLower(*i.ParameterValue)
 			}
+			if i.ApplyMethod != nil {
+				r["apply_method"] = strings.ToLower(*i.ApplyMethod)
+			}
+
 			result = append(result, r)
 		}
 	}
@@ -734,6 +760,26 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentId
 	return att
+}
+
+func flattenElastiCacheSecurityGroupNames(securityGroups []*elasticache.CacheSecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.CacheSecurityGroupName != nil {
+			result = append(result, *sg.CacheSecurityGroupName)
+		}
+	}
+	return result
+}
+
+func flattenElastiCacheSecurityGroupIds(securityGroups []*elasticache.SecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.SecurityGroupId != nil {
+			result = append(result, *sg.SecurityGroupId)
+		}
+	}
+	return result
 }
 
 // Flattens step adjustments into a list of map[string]interface.
@@ -965,6 +1011,14 @@ func flattenCloudFormationParameters(cfParams []*cloudformation.Parameter,
 		if isConfigured {
 			params[*p.ParameterKey] = *p.ParameterValue
 		}
+	}
+	return params
+}
+
+func flattenAllCloudFormationParameters(cfParams []*cloudformation.Parameter) map[string]interface{} {
+	params := make(map[string]interface{}, len(cfParams))
+	for _, p := range cfParams {
+		params[*p.ParameterKey] = *p.ParameterValue
 	}
 	return params
 }
@@ -1326,7 +1380,7 @@ func flattenBeanstalkTrigger(list []*elasticbeanstalk.Trigger) []string {
 }
 
 // There are several parts of the AWS API that will sort lists of strings,
-// causing diffs inbetweeen resources that use lists. This avoids a bit of
+// causing diffs inbetween resources that use lists. This avoids a bit of
 // code duplication for pre-sorts that can be used for things like hash
 // functions, etc.
 func sortInterfaceSlice(in []interface{}) []interface{} {
@@ -1536,4 +1590,25 @@ func flattenPolicyAttributes(list []*elb.PolicyAttributeDescription) []interface
 	}
 
 	return attributes
+}
+
+// Takes a value containing JSON string and passes it through
+// the JSON parser to normalize it, returns either a parsing
+// error or normalized JSON string.
+func normalizeJsonString(jsonString interface{}) (string, error) {
+	var j interface{}
+
+	if jsonString == nil || jsonString.(string) == "" {
+		return "", nil
+	}
+
+	s := jsonString.(string)
+
+	err := json.Unmarshal([]byte(s), &j)
+	if err != nil {
+		return s, err
+	}
+
+	bytes, _ := json.Marshal(j)
+	return string(bytes[:]), nil
 }

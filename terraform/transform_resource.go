@@ -862,6 +862,7 @@ func (n *graphNodeExpandedResourceDestroy) ConfigType() GraphNodeConfigType {
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 	info := n.instanceInfo()
+	info.uniqueExtra = "destroy"
 
 	var diffApply *InstanceDiff
 	var provider ResourceProvider
@@ -895,6 +896,9 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 					},
 					Then: EvalNoop{},
 				},
+
+				// Load the instance info so we have the module path set
+				&EvalInstanceInfo{Info: info},
 
 				&EvalGetProvider{
 					Name:   n.ProvidedBy()[0],

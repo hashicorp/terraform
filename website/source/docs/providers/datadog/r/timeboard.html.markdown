@@ -25,6 +25,7 @@ resource "datadog_timeboard" "redis" {
     viz = "timeseries"
     request {
       q = "avg:redis.info.latency_ms{$host}"
+      type = "bars"
     }
   }
   
@@ -37,6 +38,9 @@ resource "datadog_timeboard" "redis" {
     }
     request {
       q = "avg:redis.mem.rss{$host}"
+      style {
+        palette = "warm"
+      }
     }
   }
 
@@ -79,6 +83,14 @@ Nested `graph` `request` blocks have the following structure:
 
 * `q` - (Required) The query of the request. Pro tip: Use the JSON tab inside the Datadog UI to help build you query strings.
 * `stacked` - (Optional) Boolean value to determin if this is this a stacked area graph. Default: false (line chart).
+* `type` - (Optional) Choose how to draw the graph. For example: "lines", "bars" or "areas". Default: "lines".
+* `style` - (Optional) Nested block to customize the graph style.
+
+### Nested `style` block
+
+The nested `style` blocks has the following structure (only `palette` is supported right now):
+
+* `palette` - (Optional) Color of the line drawn. For example: "classic", "cool", "warm", "purple", "orange" or "gray". Default: "classic".
 
 ### Nested `template_variable` blocks
 

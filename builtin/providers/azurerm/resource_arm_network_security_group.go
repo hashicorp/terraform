@@ -191,11 +191,11 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 	name := id.Path["networkSecurityGroups"]
 
 	resp, err := secGroupClient.Get(resGroup, name, "")
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Network Security Group %s: %s", name, err)
 	}
 
@@ -203,6 +203,7 @@ func resourceArmNetworkSecurityGroupRead(d *schema.ResourceData, meta interface{
 		d.Set("security_rule", flattenNetworkSecurityRules(resp.Properties.SecurityRules))
 	}
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("location", resp.Location)
 	flattenAndSetTags(d, resp.Tags)

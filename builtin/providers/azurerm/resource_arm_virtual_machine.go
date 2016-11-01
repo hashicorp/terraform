@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	riviera "github.com/jen20/riviera/azure"
 )
 
 func resourceArmVirtualMachine() *schema.Resource {
@@ -155,6 +156,12 @@ func resourceArmVirtualMachine() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+
+						"disk_size_gb": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ValidateFunc: validateDiskSizeGB,
+						},
 					},
 				},
 				Set: resourceArmVirtualMachineStorageOsDiskHash,
@@ -187,16 +194,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"disk_size_gb": {
-							Type:     schema.TypeInt,
-							Required: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-								value := v.(int)
-								if value < 1 || value > 1023 {
-									errors = append(errors, fmt.Errorf(
-										"The `disk_size_gb` can only be between 1 and 1023"))
-								}
-								return
-							},
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateDiskSizeGB,
 						},
 
 						"lun": {
@@ -211,6 +211,55 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			"diagnostics_profile": {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				MaxItems:      1,
+				ConflictsWith: []string{"boot_diagnostics"},
+				Deprecated:    "Use field boot_diagnostics instead",
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"boot_diagnostics": {
+							Type:     schema.TypeSet,
+							Required: true,
+							MaxItems: 1,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enabled": {
+										Type:     schema.TypeBool,
+										Required: true,
+									},
+
+									"storage_uri": {
+										Type:     schema.TypeString,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
+			"boot_diagnostics": {
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"enabled": {
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+
+						"storage_uri": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
 			},
 
 			"os_profile": {
@@ -379,6 +428,15 @@ func resourceArmVirtualMachine() *schema.Resource {
 	}
 }
 
+func validateDiskSizeGB(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+	if value < 1 || value > 1023 {
+		errors = append(errors, fmt.Errorf(
+			"The `disk_size_gb` can only be between 1 and 1023"))
+	}
+	return
+}
+
 func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	vmClient := client.vmClient
@@ -423,6 +481,13 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 			VMSize: compute.VirtualMachineSizeTypes(vmSize),
 		},
 		StorageProfile: &storageProfile,
+	}
+
+	if _, ok := d.GetOk("boot_diagnostics"); ok {
+		diagnosticsProfile := expandAzureRmVirtualMachineDiagnosticsProfile(d)
+		if diagnosticsProfile != nil {
+			properties.DiagnosticsProfile = diagnosticsProfile
+		}
 	}
 
 	osProfile, err := expandAzureRmVirtualMachineOsProfile(d)
@@ -485,11 +550,12 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	name := id.Path["virtualMachines"]
 
 	resp, err := vmClient.Get(resGroup, name, "")
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
+
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine %s: %s", name, err)
 	}
 
@@ -543,6 +609,12 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
+	if resp.Properties.DiagnosticsProfile != nil && resp.Properties.DiagnosticsProfile.BootDiagnostics != nil {
+		if err := d.Set("boot_diagnostics", flattenAzureRmVirtualMachineDiagnosticsProfile(resp.Properties.DiagnosticsProfile.BootDiagnostics)); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Diagnostics Profile: %#v", err)
+		}
+	}
+
 	if resp.Properties.NetworkProfile != nil {
 		if err := d.Set("network_interface_ids", flattenAzureRmVirtualMachineNetworkInterfaces(resp.Properties.NetworkProfile)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Network Interfaces: %#v", err)
@@ -577,7 +649,7 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 			return fmt.Errorf("Error expanding OS Disk: %s", err)
 		}
 
-		if err = resourceArmVirtualMachineDeleteVhd(*osDisk.Vhd.URI, resGroup, meta); err != nil {
+		if err = resourceArmVirtualMachineDeleteVhd(*osDisk.Vhd.URI, meta); err != nil {
 			return fmt.Errorf("Error deleting OS Disk VHD: %s", err)
 		}
 	}
@@ -592,7 +664,7 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 		}
 
 		for _, disk := range disks {
-			if err = resourceArmVirtualMachineDeleteVhd(*disk.Vhd.URI, resGroup, meta); err != nil {
+			if err = resourceArmVirtualMachineDeleteVhd(*disk.Vhd.URI, meta); err != nil {
 				return fmt.Errorf("Error deleting Data Disk VHD: %s", err)
 			}
 		}
@@ -601,7 +673,7 @@ func resourceArmVirtualMachineDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceArmVirtualMachineDeleteVhd(uri, resGroup string, meta interface{}) error {
+func resourceArmVirtualMachineDeleteVhd(uri string, meta interface{}) error {
 	vhdURL, err := url.Parse(uri)
 	if err != nil {
 		return fmt.Errorf("Cannot parse Disk VHD URI: %s", err)
@@ -613,13 +685,18 @@ func resourceArmVirtualMachineDeleteVhd(uri, resGroup string, meta interface{}) 
 	containerName := path[0]
 	blobName := path[1]
 
-	blobClient, saExists, err := meta.(*ArmClient).getBlobStorageClientForStorageAccount(resGroup, storageAccountName)
+	storageAccountResourceGroupName, err := findStorageAccountResourceGroup(meta, storageAccountName)
+	if err != nil {
+		return fmt.Errorf("Error finding resource group for storage account %s: %s", storageAccountName, err)
+	}
+
+	blobClient, saExists, err := meta.(*ArmClient).getBlobStorageClientForStorageAccount(storageAccountResourceGroupName, storageAccountName)
 	if err != nil {
 		return fmt.Errorf("Error creating blob store client for VHD deletion: %s", err)
 	}
 
 	if !saExists {
-		log.Printf("[INFO] Storage Account %q doesn't exist so the VHD blob won't exist", storageAccountName)
+		log.Printf("[INFO] Storage Account %q in resource group %q doesn't exist so the VHD blob won't exist", storageAccountName, storageAccountResourceGroupName)
 		return nil
 	}
 
@@ -707,6 +784,15 @@ func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) [
 	if image.Version != nil {
 		result["version"] = *image.Version
 	}
+
+	return []interface{}{result}
+}
+
+func flattenAzureRmVirtualMachineDiagnosticsProfile(profile *compute.BootDiagnostics) []interface{} {
+	result := make(map[string]interface{})
+
+	result["enabled"] = *profile.Enabled
+	result["storage_uri"] = *profile.StorageURI
 
 	return []interface{}{result}
 }
@@ -851,6 +937,9 @@ func flattenAzureRmVirtualMachineOsDisk(disk *compute.OSDisk) []interface{} {
 	result["vhd_uri"] = *disk.Vhd.URI
 	result["create_option"] = disk.CreateOption
 	result["caching"] = disk.Caching
+	if disk.DiskSizeGB != nil {
+		result["disk_size_gb"] = *disk.DiskSizeGB
+	}
 
 	return []interface{}{result}
 }
@@ -1090,6 +1179,26 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 	return data_disks, nil
 }
 
+func expandAzureRmVirtualMachineDiagnosticsProfile(d *schema.ResourceData) *compute.DiagnosticsProfile {
+	bootDiagnostics := d.Get("boot_diagnostics").([]interface{})
+
+	diagnosticsProfile := &compute.DiagnosticsProfile{}
+	if len(bootDiagnostics) > 0 {
+		bootDiagnostic := bootDiagnostics[0].(map[string]interface{})
+
+		diagnostic := &compute.BootDiagnostics{
+			Enabled:    riviera.Bool(bootDiagnostic["enabled"].(bool)),
+			StorageURI: riviera.String(bootDiagnostic["storage_uri"].(string)),
+		}
+
+		diagnosticsProfile.BootDiagnostics = diagnostic
+
+		return diagnosticsProfile
+	}
+
+	return nil
+}
+
 func expandAzureRmVirtualMachineImageReference(d *schema.ResourceData) (*compute.ImageReference, error) {
 	storageImageRefs := d.Get("storage_image_reference").(*schema.Set).List()
 
@@ -1165,5 +1274,34 @@ func expandAzureRmVirtualMachineOsDisk(d *schema.ResourceData) (*compute.OSDisk,
 		osDisk.Caching = compute.CachingTypes(v)
 	}
 
+	if v := disk["disk_size_gb"].(int); v != 0 {
+		diskSize := int32(v)
+		osDisk.DiskSizeGB = &diskSize
+	}
+
 	return osDisk, nil
+}
+
+func findStorageAccountResourceGroup(meta interface{}, storageAccountName string) (string, error) {
+	client := meta.(*ArmClient).resourceFindClient
+	filter := fmt.Sprintf("name eq '%s' and resourceType eq 'Microsoft.Storage/storageAccounts'", storageAccountName)
+	expand := ""
+	var pager *int32
+
+	rf, err := client.List(filter, expand, pager)
+	if err != nil {
+		return "", fmt.Errorf("Error making resource request for query %s: %s", filter, err)
+	}
+
+	results := *rf.Value
+	if len(results) != 1 {
+		return "", fmt.Errorf("Wrong number of results making resource request for query %s:  %s", filter, len(results))
+	}
+
+	id, err := parseAzureResourceID(*results[0].ID)
+	if err != nil {
+		return "", err
+	}
+
+	return id.ResourceGroup, nil
 }

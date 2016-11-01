@@ -19,8 +19,7 @@ To install Terraform, find the [appropriate package](/downloads.html) for
 your system and download it. Terraform is packaged as a zip archive.
 
 After downloading Terraform, unzip the package into a directory where
-Terraform will be installed. The directory will contain a set of binary
-programs, such as `terraform`, `terraform-provider-aws`, etc. The final
+Terraform will be installed. The directory will contain a binary program `terraform`. The final
 step is to make sure the directory you installed Terraform to is on the
 PATH. See
 [this page](https://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux)

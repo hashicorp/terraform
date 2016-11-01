@@ -17,6 +17,9 @@ func resourceArmCdnProfile() *schema.Resource {
 		Read:   resourceArmCdnProfileRead,
 		Update: resourceArmCdnProfileUpdate,
 		Delete: resourceArmCdnProfileDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -96,16 +99,20 @@ func resourceArmCdnProfileRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	resGroup := id.ResourceGroup
-	name := id.Path["Profiles"]
+	name := id.Path["profiles"]
 
 	resp, err := cdnProfilesClient.Get(name, resGroup)
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure CDN Profile %s: %s", name, err)
 	}
+
+	d.Set("name", name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
 	if resp.Sku != nil {
 		d.Set("sku", string(resp.Sku.Name))
@@ -147,7 +154,7 @@ func resourceArmCdnProfileDelete(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 	resGroup := id.ResourceGroup
-	name := id.Path["Profiles"]
+	name := id.Path["profiles"]
 
 	_, err = cdnProfilesClient.DeleteIfExists(name, resGroup, make(chan struct{}))
 

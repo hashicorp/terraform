@@ -68,12 +68,27 @@ func TestNewContextState(t *testing.T) {
 }
 
 func testContext2(t *testing.T, opts *ContextOpts) *Context {
+	// Enable the shadow graph
+	opts.Shadow = true
+
 	ctx, err := NewContext(opts)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	return ctx
+}
+
+func testDataApplyFn(
+	info *InstanceInfo,
+	d *InstanceDiff) (*InstanceState, error) {
+	return testApplyFn(info, new(InstanceState), d)
+}
+
+func testDataDiffFn(
+	info *InstanceInfo,
+	c *ResourceConfig) (*InstanceDiff, error) {
+	return testDiffFn(info, new(InstanceState), c)
 }
 
 func testApplyFn(

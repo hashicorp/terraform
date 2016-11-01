@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"net"
 	"strings"
 	"time"
 
@@ -28,6 +29,7 @@ func resourceAwsEip() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"instance": &schema.Schema{
@@ -127,12 +129,12 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf(
-		"[DEBUG] EIP describe configuration: %#v (domain: %s)",
+		"[DEBUG] EIP describe configuration: %s (domain: %s)",
 		req, domain)
 
 	describeAddresses, err := ec2conn.DescribeAddresses(req)
 	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAllocationID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && (ec2err.Code() == "InvalidAllocationID.NotFound" || ec2err.Code() == "InvalidAddress.NotFound") {
 			d.SetId("")
 			return nil
 		}
@@ -167,11 +169,18 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	// On import (domain never set, which it must've been if we created),
 	// set the 'vpc' attribute depending on if we're in a VPC.
-	if _, ok := d.GetOk("domain"); !ok {
+	if address.Domain != nil {
 		d.Set("vpc", *address.Domain == "vpc")
 	}
 
 	d.Set("domain", address.Domain)
+
+	// Force ID to be an Allocation ID if we're on a VPC
+	// This allows users to import the EIP based on the IP if they are in a VPC
+	if *address.Domain == "vpc" && net.ParseIP(id) != nil {
+		log.Printf("[DEBUG] Re-assigning EIP ID (%s) to it's Allocation ID (%s)", d.Id(), *address.AllocationId)
+		d.SetId(*address.AllocationId)
+	}
 
 	return nil
 }

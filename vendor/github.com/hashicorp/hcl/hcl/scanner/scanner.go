@@ -224,6 +224,11 @@ func (s *Scanner) Scan() token.Token {
 func (s *Scanner) scanComment(ch rune) {
 	// single line comments
 	if ch == '#' || (ch == '/' && s.peek() != '*') {
+		if ch == '/' && s.peek() != '/' {
+			s.err("expected '/' for comment")
+			return
+		}
+
 		ch = s.next()
 		for ch != '\n' && ch >= 0 && ch != eof {
 			ch = s.next()

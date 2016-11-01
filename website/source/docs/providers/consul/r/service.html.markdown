@@ -25,14 +25,16 @@ resource "consul_service" "google" {
 
 The following arguments are supported:
 
-* `address` - (Optional) The address of the service. Defaults to the
+* `service_id` - (Optional, string) The id of the service, defaults to the value of `name` if not supplied.
+
+* `address` - (Optional, string) The address of the service. Defaults to the
   address of the agent.
 
-* `name` - (Required) The name of the service.
+* `name` - (Required, string) The name of the service.
 
-* `port` - (Optional) The port of the service.
+* `port` - (Optional, int) The port of the service.
 
-* `tags` - (Optional) A list of values that are opaque to Consul,
+* `tags` - (Optional, set of strings) A list of values that are opaque to Consul,
   but can be used to distinguish between services or nodes.
   
 
@@ -40,8 +42,8 @@ The following arguments are supported:
 
 The following attributes are exported:
 
+* `service_id` - The id of the service, defaults to the value of `name`.
 * `address` - The address of the service.
-* `id` - The id of the service, defaults to the value of `name`.
 * `name` - The name of the service.
 * `port` - The port of the service.
 * `tags` - The tags of the service.

@@ -27,7 +27,7 @@ func TestNewRawConfig(t *testing.T) {
 	}
 }
 
-func TestRawConfig(t *testing.T) {
+func TestRawConfig_basic(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var.bar}",
 	}
@@ -341,4 +341,28 @@ func TestRawConfigValue(t *testing.T) {
 func TestRawConfig_implGob(t *testing.T) {
 	var _ gob.GobDecoder = new(RawConfig)
 	var _ gob.GobEncoder = new(RawConfig)
+}
+
+// verify that RawMap returns a identical copy
+func TestNewRawConfig_rawMap(t *testing.T) {
+	raw := map[string]interface{}{
+		"foo": "${var.bar}",
+		"bar": `${file("boom.txt")}`,
+	}
+
+	rc, err := NewRawConfig(raw)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	rawCopy := rc.RawMap()
+	if !reflect.DeepEqual(raw, rawCopy) {
+		t.Fatalf("bad: %#v", rawCopy)
+	}
+
+	// make sure they aren't the same map
+	raw["test"] = "value"
+	if reflect.DeepEqual(raw, rawCopy) {
+		t.Fatal("RawMap() didn't return a copy")
+	}
 }

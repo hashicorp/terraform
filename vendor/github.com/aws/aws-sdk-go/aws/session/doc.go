@@ -85,12 +85,6 @@ override the shared config state (AWS_SDK_LOAD_CONFIG).
 		SharedConfigState: SharedConfigEnable,
 	})
 
-Deprecated "New" function
-
-The New session function has been deprecated because it does not provide good
-way to return errors that occur when loading the configuration files and values.
-Because of this, the NewWithError
-
 Adding Handlers
 
 You can add handlers to a session for processing HTTP requests. All service

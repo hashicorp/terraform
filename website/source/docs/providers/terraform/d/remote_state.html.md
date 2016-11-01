@@ -40,4 +40,24 @@ The following attributes are exported:
 
 * `backend` - See Argument Reference above.
 * `config` - See Argument Reference above.
-* `output` - The values of the configured `outputs` for the root module referenced by the remote state.
+
+In addition, each output in the remote state appears as a top level attribute
+on the `terraform_remote_state` resource.
+
+## Root Outputs Only
+
+Only the root level outputs from the remote state are accessible. Outputs from modules within the state cannot be accessed. If you want a module output to be accessible via a remote state, you must thread the output through to a root output.
+
+An example is shown below:
+
+```
+module "app" {
+  source = "..."
+}
+
+output "app_value" {
+  value = "${module.app.value}"
+}
+```
+
+In this example, the output `value` from the "app" module is available as "app_value". If this root level output hadn't been created, then a remote state resource wouldn't be able to access the `value` output on the module.

@@ -48,11 +48,6 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("OS_AUTH_TOKEN", ""),
 			},
-			"api_key": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OS_API_KEY", ""),
-			},
 			"domain_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -133,7 +128,6 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		UserID:           d.Get("user_id").(string),
 		Password:         d.Get("password").(string),
 		Token:            d.Get("token").(string),
-		APIKey:           d.Get("api_key").(string),
 		TenantID:         d.Get("tenant_id").(string),
 		TenantName:       d.Get("tenant_name").(string),
 		DomainID:         d.Get("domain_id").(string),

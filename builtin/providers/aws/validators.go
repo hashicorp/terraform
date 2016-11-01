@@ -343,9 +343,22 @@ func validateCIDRNetworkAddress(v interface{}, k string) (ws []string, errors []
 
 func validateHTTPMethod(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if value != "GET" && value != "HEAD" && value != "OPTIONS" && value != "PUT" && value != "POST" && value != "PATCH" && value != "DELETE" {
+
+	validMethods := map[string]bool{
+		"ANY":     true,
+		"DELETE":  true,
+		"GET":     true,
+		"HEAD":    true,
+		"OPTIONS": true,
+		"PATCH":   true,
+		"POST":    true,
+		"PUT":     true,
+	}
+
+	if _, ok := validMethods[value]; !ok {
 		errors = append(errors, fmt.Errorf(
-			"%q must be one of 'GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'", k))
+			"%q contains an invalid method %q. Valid methods are either %q, %q, %q, %q, %q, %q, %q, or %q.",
+			k, value, "ANY", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"))
 	}
 	return
 }
@@ -457,6 +470,32 @@ func validateApiGatewayIntegrationPassthroughBehavior(v interface{}, k string) (
 	if value != "WHEN_NO_MATCH" && value != "WHEN_NO_TEMPLATES" && value != "NEVER" {
 		errors = append(errors, fmt.Errorf(
 			"%q must be one of 'WHEN_NO_MATCH', 'WHEN_NO_TEMPLATES', 'NEVER'", k))
+	}
+	return
+}
+
+func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
+	if _, err := normalizeJsonString(v); err != nil {
+		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
+	}
+	return
+}
+
+func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	validTypes := map[string]bool{
+		"AWS":        true,
+		"AWS_PROXY":  true,
+		"HTTP":       true,
+		"HTTP_PROXY": true,
+		"MOCK":       true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid integration type %q. Valid types are either %q, %q, %q, %q, or %q.",
+			k, value, "AWS", "AWS_PROXY", "HTTP", "HTTP_PROXY", "MOCK"))
 	}
 	return
 }

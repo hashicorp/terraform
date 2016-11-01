@@ -206,7 +206,8 @@ The following arguments are supported:
     create the virtual machine.
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 * `plan` - (Optional) A plan block as documented below.
-* `availability_set_id` - (Optional) The Id of the Availablity Set in which to create the virtual machine
+* `availability_set_id` - (Optional) The Id of the Availability Set in which to create the virtual machine
+* `boot_diagnostics` - (Optional) A boot diagnostics profile block as referenced below.
 * `vm_size` - (Required) Specifies the [size of the virtual machine](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-size-specs/).
 * `storage_image_reference` - (Optional) A Storage Image Reference block as documented below.
 * `storage_os_disk` - (Required) A Storage OS Disk block as referenced below.
@@ -228,6 +229,11 @@ For more information on the different example configurations, please check out t
 * `publisher` - (Optional) Specifies the publisher of the image.
 * `product` - (Optional) Specifies the product of the image from the marketplace.
 
+`boot_diagnostics` supports the following:
+
+* `enabled`: (Required) Whether to enable boot diagnostics for the virtual machine.
+* `storage_uri`: (Required) Blob endpoint for the storage account to hold the virtual machine's diagnostic files. This must be the root of a storage account, and not a storage container.
+
 `storage_image_reference` supports the following:
 
 * `publisher` - (Required) Specifies the publisher of the image used to create the virtual machine
@@ -243,6 +249,7 @@ For more information on the different example configurations, please check out t
 * `caching` - (Optional) Specifies the caching requirements.
 * `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version. `image_uri` can also specify the [VHD uri](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-deploy-templates/#create-a-custom-vm-image) of a custom VM image to clone. When cloning a custom disk image the `os_type` documented below becomes required.
 * `os_type` - (Optional) Specifies the operating system Type, valid values are windows, linux.
+* `disk_size_gb` - (Optional) Specifies the size of the data disk in gigabytes.
 
 `storage_data_disk` supports the following:
 

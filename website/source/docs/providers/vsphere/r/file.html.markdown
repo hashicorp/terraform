@@ -3,7 +3,7 @@ layout: "vsphere"
 page_title: "VMware vSphere: vsphere_file"
 sidebar_current: "docs-vsphere-resource-file"
 description: |-
-  Provides a VMware vSphere virtual machine file resource. This can be used to upload files (e.g. vmdk disks) from the Terraform host machine to a remote vSphere or copy fields withing vSphere.
+  Provides a VMware vSphere virtual machine file resource. This can be used to upload files (e.g. vmdk disks) from the Terraform host machine to a remote vSphere or copy fields within vSphere.
 ---
 
 # vsphere\_file
@@ -15,6 +15,7 @@ Updates to file resources will handle moving a file to a new destination (datace
 ## Example Usages
 
 **Upload file to vSphere:**
+
 ```
 resource "vsphere_file" "ubuntu_disk_upload" {
   datacenter = "my_datacenter"
@@ -25,6 +26,7 @@ resource "vsphere_file" "ubuntu_disk_upload" {
 ```
 
 **Copy file within vSphere:**
+
 ```
 resource "vsphere_file" "ubuntu_disk_copy" {
   source_datacenter = "my_datacenter"

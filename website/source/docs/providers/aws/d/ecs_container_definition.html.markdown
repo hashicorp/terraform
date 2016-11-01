@@ -35,6 +35,7 @@ The following attributes are exported:
 * `image_digest` - The digest of the docker image in use
 * `cpu` - The CPU limit for this container definition
 * `memory` - The memory limit for this container definition
+* `memory_reservation` - The soft limit (in MiB) of memory to reserve for the container. When system memory is under contention, Docker attempts to keep the container memory to this soft limit
 * `environment` - The environment in use
 * `disable_networking` - Indicator if networking is disabled
 * `docker_labels` - Set docker labels

@@ -53,7 +53,7 @@ func resourceAwsEcrRepositoryPolicyCreate(d *schema.ResourceData, meta interface
 	log.Printf("[DEBUG] ECR repository policy created: %s", *repositoryPolicy.RepositoryName)
 
 	d.SetId(*repositoryPolicy.RepositoryName)
-	d.Set("registry_id", *repositoryPolicy.RegistryId)
+	d.Set("registry_id", repositoryPolicy.RegistryId)
 
 	return resourceAwsEcrRepositoryPolicyRead(d, meta)
 }
@@ -84,7 +84,7 @@ func resourceAwsEcrRepositoryPolicyRead(d *schema.ResourceData, meta interface{}
 	repositoryPolicy := out
 
 	d.SetId(*repositoryPolicy.RepositoryName)
-	d.Set("registry_id", *repositoryPolicy.RegistryId)
+	d.Set("registry_id", repositoryPolicy.RegistryId)
 
 	return nil
 }
@@ -110,7 +110,7 @@ func resourceAwsEcrRepositoryPolicyUpdate(d *schema.ResourceData, meta interface
 	repositoryPolicy := *out
 
 	d.SetId(*repositoryPolicy.RepositoryName)
-	d.Set("registry_id", *repositoryPolicy.RegistryId)
+	d.Set("registry_id", repositoryPolicy.RegistryId)
 
 	return nil
 }

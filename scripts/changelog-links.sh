@@ -24,6 +24,6 @@ else
   SED="sed -i.bak -r -e"
 fi
 
-$SED 's/\[GH-([0-9]+)\]/\(\[#\1\]\(https:\/\/github.com\/hashicorp\/terraform\/issues\/\1\)\)/g' CHANGELOG.md
+$SED 's/GH-([0-9]+)/\[#\1\]\(https:\/\/github.com\/hashicorp\/terraform\/issues\/\1\)/g' -e 's/\[\[#(.+)([0-9])\)]$/(\[#\1\2))/g' CHANGELOG.md
 
 rm CHANGELOG.md.bak

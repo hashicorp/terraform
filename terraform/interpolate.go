@@ -265,6 +265,7 @@ func (i *Interpolater) valueSelfVar(
 		return fmt.Errorf(
 			"%s: invalid scope, self variables are only valid on resources", n)
 	}
+
 	rv, err := config.NewResourceVariable(fmt.Sprintf(
 		"%s.%s.%d.%s",
 		scope.Resource.Type,
@@ -359,9 +360,23 @@ func (i *Interpolater) computeResourceVariable(
 
 	// Get the information about this resource variable, and verify
 	// that it exists and such.
-	module, _, err := i.resourceVariableInfo(scope, v)
+	module, cr, err := i.resourceVariableInfo(scope, v)
 	if err != nil {
 		return nil, err
+	}
+
+	// If we're requesting "count" its a special variable that we grab
+	// directly from the config itself.
+	if v.Field == "count" {
+		count, err := cr.Count()
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error reading %s count: %s",
+				v.ResourceId(),
+				err)
+		}
+
+		return &ast.Variable{Type: ast.TypeInt, Value: count}, nil
 	}
 
 	// If we have no module in the state yet or count, return empty
@@ -475,17 +490,14 @@ func (i *Interpolater) computeResourceMultiVariable(
 		return nil, err
 	}
 
-	// Get the count so we know how many to iterate over
-	count, err := cr.Count()
+	// Get the keys for all the resources that are created for this resource
+	resourceKeys, err := i.resourceCountKeys(module, cr, v)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Error reading %s count: %s",
-			v.ResourceId(),
-			err)
+		return nil, err
 	}
 
 	// If count is zero, we return an empty list
-	if count == 0 {
+	if len(resourceKeys) == 0 {
 		return &ast.Variable{Type: ast.TypeList, Value: []ast.Variable{}}, nil
 	}
 
@@ -495,13 +507,15 @@ func (i *Interpolater) computeResourceMultiVariable(
 	}
 
 	var values []interface{}
-	for j := 0; j < count; j++ {
-		id := fmt.Sprintf("%s.%d", v.ResourceId(), j)
-
-		// If we're dealing with only a single resource, then the
-		// ID doesn't have a trailing index.
-		if count == 1 {
-			id = v.ResourceId()
+	for _, id := range resourceKeys {
+		// ID doesn't have a trailing index. We try both here, but if a value
+		// without a trailing index is found we prefer that. This choice
+		// is for legacy reasons: older versions of TF preferred it.
+		if id == v.ResourceId()+".0" {
+			potential := v.ResourceId()
+			if _, ok := module.Resources[potential]; ok {
+				id = potential
+			}
 		}
 
 		r, ok := module.Resources[id]
@@ -662,4 +676,45 @@ func (i *Interpolater) resourceVariableInfo(
 	// Get the relevant module
 	module := i.State.ModuleByPath(scope.Path)
 	return module, cr, nil
+}
+
+func (i *Interpolater) resourceCountKeys(
+	ms *ModuleState,
+	cr *config.Resource,
+	v *config.ResourceVariable) ([]string, error) {
+	id := v.ResourceId()
+
+	// If we're NOT applying, then we assume we can read the count
+	// from the state. Plan and so on may not have any state yet so
+	// we do a full interpolation.
+	if i.Operation != walkApply {
+		count, err := cr.Count()
+		if err != nil {
+			return nil, err
+		}
+
+		result := make([]string, count)
+		for i := 0; i < count; i++ {
+			result[i] = fmt.Sprintf("%s.%d", id, i)
+		}
+
+		return result, nil
+	}
+
+	// We need to determine the list of resource keys to get values from.
+	// This needs to be sorted so the order is deterministic. We used to
+	// use "cr.Count()" but that doesn't work if the count is interpolated
+	// and we can't guarantee that so we instead depend on the state.
+	var resourceKeys []string
+	for k, _ := range ms.Resources {
+		// If we don't have the right prefix then ignore it
+		if k != id && !strings.HasPrefix(k, id+".") {
+			continue
+		}
+
+		// Add it to the list
+		resourceKeys = append(resourceKeys, k)
+	}
+	sort.Strings(resourceKeys)
+	return resourceKeys, nil
 }

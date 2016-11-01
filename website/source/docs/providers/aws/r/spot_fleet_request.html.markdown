@@ -42,10 +42,35 @@ resource "aws_spot_fleet_request" "cheap_compute" {
 }
 ```
 
+~> **NOTE:** Terraform does not support the functionality where multiple `subnet_id` or `availability_zone` parameters can be specified in the same 
+launch configuration block. If you want to specify multiple values, then separate launch configuration blocks should be used:
+
+```
+resource "aws_spot_fleet_request" "foo" {
+    iam_fleet_role = "arn:aws:iam::12345678:role/spot-fleet"
+    spot_price = "0.005"
+    target_capacity = 2
+    valid_until = "2019-11-04T20:44:20Z"
+    launch_specification {
+        instance_type = "m1.small"
+        ami = "ami-d06a90b0"
+        key_name = "my-key"
+        availability_zone = "us-west-2a"
+    }
+    launch_specification {
+        instance_type = "m3.large"
+        ami = "ami-d06a90b0"
+        key_name = "my-key"
+        availability_zone = "us-west-2a"
+    }
+    depends_on = ["aws_iam_policy_attachment.test-attach"]
+}
+```
+
 ## Argument Reference
 
 Most of these arguments directly correspond to the
-[offical API](http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SpotFleetRequestConfigData.html).
+[official API](http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_SpotFleetRequestConfigData.html).
 
 * `iam_fleet_role` - (Required) Grants the Spot fleet permission to terminate
   Spot instances on your behalf when you cancel its Spot fleet request using

@@ -478,14 +478,13 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			if networkName != "" && subnetworkName != "" {
 				return fmt.Errorf("Cannot specify both network and subnetwork values.")
 			} else if networkName != "" {
-				network, err := config.clientCompute.Networks.Get(
-					project, networkName).Do()
+				networkLink, err = getNetworkLink(d, config, prefix+".network")
 				if err != nil {
 					return fmt.Errorf(
 						"Error referencing network '%s': %s",
 						networkName, err)
 				}
-				networkLink = network.SelfLink
+
 			} else {
 				region := getRegionFromZone(d.Get("zone").(string))
 				subnetwork, err := config.clientCompute.Subnetworks.Get(

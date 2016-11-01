@@ -59,9 +59,9 @@ func resourceAwsVpnGatewayAttachmentCreate(d *schema.ResourceData, meta interfac
 		Pending:    []string{"detached", "attaching"},
 		Target:     []string{"attached"},
 		Refresh:    vpnGatewayAttachmentStateRefresh(conn, vpcId, vgwId),
-		Timeout:    5 * time.Minute,
+		Timeout:    15 * time.Minute,
 		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+		MinTimeout: 5 * time.Second,
 	}
 
 	_, err = stateConf.WaitForState()
@@ -151,9 +151,9 @@ func resourceAwsVpnGatewayAttachmentDelete(d *schema.ResourceData, meta interfac
 		Pending:    []string{"attached", "detaching"},
 		Target:     []string{"detached"},
 		Refresh:    vpnGatewayAttachmentStateRefresh(conn, vpcId, vgwId),
-		Timeout:    5 * time.Minute,
+		Timeout:    15 * time.Minute,
 		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+		MinTimeout: 5 * time.Second,
 	}
 
 	_, err = stateConf.WaitForState()

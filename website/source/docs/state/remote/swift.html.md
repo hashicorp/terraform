@@ -21,7 +21,7 @@ terraform remote config \
 ## Example Referencing
 
 ```
-resource "terraform_remote_state" "foo" {
+data "terraform_remote_state" "foo" {
 	backend = "swift"
 	config {
 		path = "random/path"

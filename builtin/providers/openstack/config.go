@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
 )
 
 type Config struct {
@@ -16,7 +16,6 @@ type Config struct {
 	UserID           string
 	Password         string
 	Token            string
-	APIKey           string
 	IdentityEndpoint string
 	TenantID         string
 	TenantName       string
@@ -45,7 +44,6 @@ func (c *Config) loadAndValidate() error {
 		UserID:           c.UserID,
 		Password:         c.Password,
 		TokenID:          c.Token,
-		APIKey:           c.APIKey,
 		IdentityEndpoint: c.IdentityEndpoint,
 		TenantID:         c.TenantID,
 		TenantName:       c.TenantName,
@@ -83,7 +81,7 @@ func (c *Config) loadAndValidate() error {
 		config.Certificates = []tls.Certificate{cert}
 		config.BuildNameToCertificate()
 	}
-	transport := &http.Transport{TLSClientConfig: config}
+	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
 	client.HTTPClient.Transport = transport
 
 	err = openstack.Authenticate(client, ao)

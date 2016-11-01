@@ -23,19 +23,6 @@ type EvalConfig struct {
 // semantic check on an AST tree. This will be called with the root node.
 type SemanticChecker func(ast.Node) error
 
-// EvalType represents the type of the output returned from a HIL
-// evaluation.
-type EvalType uint32
-
-const (
-	TypeInvalid EvalType = 0
-	TypeString  EvalType = 1 << iota
-	TypeList
-	TypeMap
-)
-
-//go:generate stringer -type=EvalType
-
 // EvaluationResult is a struct returned from the hil.Eval function,
 // representing the result of an interpolation. Results are returned in their
 // "natural" Go structure rather than in terms of the HIL AST.  For the types
@@ -77,7 +64,7 @@ func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 			Value: output,
 		})
 		return EvaluationResult{
-			Type: TypeMap,
+			Type:  TypeMap,
 			Value: val,
 		}, err
 	case ast.TypeString:
@@ -257,39 +244,20 @@ func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, e
 type evalIndex struct{ *ast.Index }
 
 func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
-	evalVarAccess, err := evalNode(v.Target)
-	if err != nil {
-		return nil, ast.TypeInvalid, err
-	}
-	target, targetType, err := evalVarAccess.Eval(scope, stack)
-
-	evalKey, err := evalNode(v.Key)
-	if err != nil {
-		return nil, ast.TypeInvalid, err
-	}
-
-	key, keyType, err := evalKey.Eval(scope, stack)
-	if err != nil {
-		return nil, ast.TypeInvalid, err
-	}
+	key := stack.Pop().(*ast.LiteralNode)
+	target := stack.Pop().(*ast.LiteralNode)
 
 	variableName := v.Index.Target.(*ast.VariableAccess).Name
 
-	switch targetType {
+	switch target.Typex {
 	case ast.TypeList:
-		if keyType != ast.TypeInt {
-			return nil, ast.TypeInvalid, fmt.Errorf("key for indexing list %q must be an int, is %s", variableName, keyType)
-		}
-
-		return v.evalListIndex(variableName, target, key)
+		return v.evalListIndex(variableName, target.Value, key.Value)
 	case ast.TypeMap:
-		if keyType != ast.TypeString {
-			return nil, ast.TypeInvalid, fmt.Errorf("key for indexing map %q must be a string, is %s", variableName, keyType)
-		}
-
-		return v.evalMapIndex(variableName, target, key)
+		return v.evalMapIndex(variableName, target.Value, key.Value)
 	default:
-		return nil, ast.TypeInvalid, fmt.Errorf("target %q for indexing must be ast.TypeList or ast.TypeMap, is %s", variableName, targetType)
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"target %q for indexing must be ast.TypeList or ast.TypeMap, is %s",
+			variableName, target.Typex)
 	}
 }
 
@@ -298,12 +266,14 @@ func (v *evalIndex) evalListIndex(variableName string, target interface{}, key i
 	// is a list and key is an int
 	list, ok := target.([]ast.Variable)
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast target to []Variable")
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"cannot cast target to []Variable, is: %T", target)
 	}
 
 	keyInt, ok := key.(int)
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast key to int")
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"cannot cast key to int, is: %T", key)
 	}
 
 	if len(list) == 0 {
@@ -311,12 +281,13 @@ func (v *evalIndex) evalListIndex(variableName string, target interface{}, key i
 	}
 
 	if keyInt < 0 || len(list) < keyInt+1 {
-		return nil, ast.TypeInvalid, fmt.Errorf("index %d out of range for list %s (max %d)", keyInt, variableName, len(list))
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"index %d out of range for list %s (max %d)",
+			keyInt, variableName, len(list))
 	}
 
 	returnVal := list[keyInt].Value
 	returnType := list[keyInt].Type
-
 	return returnVal, returnType, nil
 }
 
@@ -325,12 +296,14 @@ func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key in
 	// is a map and key is a string
 	vmap, ok := target.(map[string]ast.Variable)
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast target to map[string]Variable")
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"cannot cast target to map[string]Variable, is: %T", target)
 	}
 
 	keyString, ok := key.(string)
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast key to string")
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"cannot cast key to string, is: %T", key)
 	}
 
 	if len(vmap) == 0 {
@@ -339,7 +312,8 @@ func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key in
 
 	value, ok := vmap[keyString]
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("key %q does not exist in map %s", keyString, variableName)
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"key %q does not exist in map %s", keyString, variableName)
 	}
 
 	return value.Value, value.Type, nil

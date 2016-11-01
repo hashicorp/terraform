@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_opsworks_aplication"
+page_title: "AWS: aws_opsworks_application"
 sidebar_current: "docs-aws-resource-opsworks-application"
 description: |-
   Provides an OpsWorks application resource.

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -94,8 +95,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 						},
 
 						"name": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: normalizeAwsAliasName,
 						},
 
 						"evaluate_target_health": &schema.Schema{
@@ -270,6 +272,9 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		zone, *rec.Name, req)
 
 	respRaw, err := changeRoute53RecordSet(conn, req)
+	if err != nil {
+		return errwrap.Wrapf("[ERR]: Error building changeset: {{err}}", err)
+	}
 
 	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
 
@@ -370,15 +375,14 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if alias := record.AliasTarget; alias != nil {
-		if _, ok := d.GetOk("alias"); !ok {
-			d.Set("alias", []interface{}{
-				map[string]interface{}{
-					"zone_id": *alias.HostedZoneId,
-					"name":    *alias.DNSName,
-					"evaluate_target_health": *alias.EvaluateTargetHealth,
-				},
-			})
-		}
+		name := normalizeAwsAliasName(*alias.DNSName)
+		d.Set("alias", []interface{}{
+			map[string]interface{}{
+				"zone_id": *alias.HostedZoneId,
+				"name":    name,
+				"evaluate_target_health": *alias.EvaluateTargetHealth,
+			},
+		})
 	}
 
 	d.Set("ttl", record.TTL)
@@ -524,7 +528,22 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		ChangeBatch:  changeBatch,
 	}
 
-	_, err = deleteRoute53RecordSet(conn, req)
+	respRaw, err := deleteRoute53RecordSet(conn, req)
+	if err != nil {
+		return errwrap.Wrapf("[ERR]: Error building changeset: {{err}}", err)
+	}
+
+	changeInfo := respRaw.(*route53.ChangeResourceRecordSetsOutput).ChangeInfo
+	if changeInfo == nil {
+		log.Printf("[INFO] No ChangeInfo Found. Waiting for Sync not required")
+		return nil
+	}
+
+	err = waitForRoute53RecordSetToSync(conn, cleanChangeID(*changeInfo.Id))
+	if err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -714,7 +733,7 @@ func expandRecordName(name, zone string) string {
 func resourceAwsRoute53AliasRecordHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", normalizeAwsAliasName(m["name"].(string))))
 	buf.WriteString(fmt.Sprintf("%s-", m["zone_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%t-", m["evaluate_target_health"].(bool)))
 
@@ -729,4 +748,13 @@ func nilString(s string) *string {
 		return nil
 	}
 	return aws.String(s)
+}
+
+func normalizeAwsAliasName(alias interface{}) string {
+	input := alias.(string)
+	if strings.HasPrefix(input, "dualstack.") {
+		return strings.Replace(input, "dualstack.", "", -1)
+	}
+
+	return strings.TrimRight(input, ".")
 }

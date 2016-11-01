@@ -21,6 +21,7 @@ package cdn
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -55,6 +56,13 @@ func NewCustomDomainsClientWithBaseURI(baseURI string, subscriptionID string) Cu
 // is name of the CDN profile within the resource group. resourceGroupName is
 // name of the resource group within the Azure subscription.
 func (client CustomDomainsClient) Create(customDomainName string, customDomainProperties CustomDomainParameters, endpointName string, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: customDomainProperties,
+			Constraints: []validation.Constraint{{Target: "customDomainProperties.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "customDomainProperties.Properties.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.CustomDomainsClient", "Create")
+	}
+
 	req, err := client.CreatePreparer(customDomainName, customDomainProperties, endpointName, profileName, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.CustomDomainsClient", "Create", nil, "Failure preparing request")

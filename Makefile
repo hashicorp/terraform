@@ -39,7 +39,7 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 # test runs the unit tests
-test: fmtcheck generate
+test: fmtcheck errcheck generate
 	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
 
 # testacc runs acceptance tests
@@ -77,7 +77,7 @@ vet:
 # generate runs `go generate` to build the dynamically generated
 # source files.
 generate:
-	@which stringer ; if [ $$? -ne 0 ]; then \
+	@which stringer > /dev/null; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
 	go generate $$(go list ./... | grep -v /terraform/vendor/)
@@ -88,5 +88,8 @@ fmt:
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
+
+errcheck:
+	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
 .PHONY: bin default generate test vet fmt fmtcheck tools

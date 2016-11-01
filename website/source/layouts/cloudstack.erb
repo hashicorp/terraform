@@ -13,6 +13,10 @@
                 <li<%= sidebar_current(/^docs-cloudstack-resource/) %>>
                     <a href="#">Resources</a>
                     <ul class="nav nav-visible">
+                        <li<%= sidebar_current("docs-cloudstack-affinity-group") %>>
+                        <a href="/docs/providers/cloudstack/r/affinity_group.html">cloudstack_affinity_group</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-cloudstack-resource-disk") %>>
                         <a href="/docs/providers/cloudstack/r/disk.html">cloudstack_disk</a>
                         </li>
@@ -57,8 +61,20 @@
                             <a href="/docs/providers/cloudstack/r/port_forward.html">cloudstack_port_forward</a>
                         </li>
 
+                        <li<%= sidebar_current("docs-cloudstack-resource-private-gateway") %>>
+                            <a href="/docs/providers/cloudstack/r/private_gateway.html">cloudstack_private_gateway</a>
+                        </li>
+
                         <li<%= sidebar_current("docs-cloudstack-resource-secondary-ipaddress") %>>
                             <a href="/docs/providers/cloudstack/r/secondary_ipaddress.html">cloudstack_secondary_ipaddress</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-cloudstack-resource-security-group") %>>
+                            <a href="/docs/providers/cloudstack/r/security_group.html">cloudstack_security_group</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-cloudstack-resource-security-group-rule") %>>
+                            <a href="/docs/providers/cloudstack/r/security_group_rule.html">cloudstack_security_group_rule</a>
                         </li>
 
                         <li<%= sidebar_current("docs-cloudstack-resource-ssh-keypair") %>>
@@ -67,6 +83,10 @@
 
                         <li<%= sidebar_current("docs-cloudstack-resource-static-nat") %>>
                             <a href="/docs/providers/cloudstack/r/static_nat.html">cloudstack_static_nat</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-cloudstack-resource-static-route") %>>
+                            <a href="/docs/providers/cloudstack/r/static_route.html">cloudstack_static_route</a>
                         </li>
 
                         <li<%= sidebar_current("docs-cloudstack-resource-template") %>>

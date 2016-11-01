@@ -5,6 +5,7 @@ import (
 	"encoding/base32"
 	"fmt"
 	"strings"
+	"time"
 )
 
 const UniqueIdPrefix = `terraform-`
@@ -16,31 +17,37 @@ func UniqueId() string {
 
 // Helper for a resource to generate a unique identifier w/ given prefix
 //
-// This uses a simple RFC 4122 v4 UUID with some basic cosmetic filters
-// applied (base32, remove padding, downcase) to make visually distinguishing
-// identifiers easier.
+// After the prefix, the ID consists of a timestamp and 12 random base32
+// characters.  The timestamp means that multiple IDs created with the same
+// prefix will sort in the order of their creation.
 func PrefixedUniqueId(prefix string) string {
-	return fmt.Sprintf("%s%s", prefix,
-		strings.ToLower(
-			strings.Replace(
-				base32.StdEncoding.EncodeToString(uuidV4()),
-				"=", "", -1)))
+	// Be precise to the level nanoseconds, but remove the dot before the
+	// nanosecond. We assume that the randomCharacters call takes at least a
+	// nanosecond, so that multiple calls to this function from the same goroutine
+	// will have distinct ordered timestamps.
+	timestamp := strings.Replace(
+		time.Now().UTC().Format("20060102150405.000000000"),
+		".",
+		"", 1)
+	// This uses 3 characters, so that the length of the unique ID is the same as
+	// it was before we added the timestamp prefix, which happened to be 23
+	// characters.
+	return fmt.Sprintf("%s%s%s", prefix, timestamp, randomCharacters(3))
 }
 
-func uuidV4() []byte {
-	var uuid [16]byte
+func randomCharacters(n int) string {
+	// Base32 has 5 bits of information per character.
+	b := randomBytes(n * 8 / 5)
+	chars := strings.ToLower(
+		strings.Replace(
+			base32.StdEncoding.EncodeToString(b),
+			"=", "", -1))
+	// Trim extra characters.
+	return chars[:n]
+}
 
-	// Set all the other bits to randomly (or pseudo-randomly) chosen
-	// values.
-	rand.Read(uuid[:])
-
-	// Set the two most significant bits (bits 6 and 7) of the
-	// clock_seq_hi_and_reserved to zero and one, respectively.
-	uuid[8] = (uuid[8] | 0x80) & 0x8f
-
-	// Set the four most significant bits (bits 12 through 15) of the
-	// time_hi_and_version field to the 4-bit version number from Section 4.1.3.
-	uuid[6] = (uuid[6] | 0x40) & 0x4f
-
-	return uuid[:]
+func randomBytes(n int) []byte {
+	b := make([]byte, n)
+	rand.Read(b)
+	return b
 }

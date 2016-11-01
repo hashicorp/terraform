@@ -2,10 +2,9 @@ package management
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
-
-	"github.com/Azure/azure-sdk-for-go/core/http"
-	"github.com/Azure/azure-sdk-for-go/core/tls"
+	"net/http"
 )
 
 const (
@@ -85,18 +84,15 @@ func (client client) sendAzureRequest(method, url, contentType string, data []by
 // the subscription for this client.
 func (client client) createHTTPClient() *http.Client {
 	cert, _ := tls.X509KeyPair(client.publishSettings.SubscriptionCert, client.publishSettings.SubscriptionKey)
-
-	ssl := &tls.Config{}
-	ssl.Certificates = []tls.Certificate{cert}
-
-	httpClient := &http.Client{
+	return &http.Client{
 		Transport: &http.Transport{
-			Proxy:           http.ProxyFromEnvironment,
-			TLSClientConfig: ssl,
+			Proxy: http.ProxyFromEnvironment,
+			TLSClientConfig: &tls.Config{
+				Renegotiation: tls.RenegotiateOnceAsClient,
+				Certificates:  []tls.Certificate{cert},
+			},
 		},
 	}
-
-	return httpClient
 }
 
 // sendRequest sends a request to the Azure management API using the given

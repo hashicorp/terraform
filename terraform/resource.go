@@ -3,10 +3,12 @@ package terraform
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/mitchellh/copystructure"
 )
 
 // ResourceProvisionerConfig is used to pair a provisioner
@@ -61,10 +63,20 @@ type InstanceInfo struct {
 
 	// Type is the resource type of this instance
 	Type string
+
+	// uniqueExtra is an internal field that can be populated to supply
+	// extra metadata that is used to identify a unique instance in
+	// the graph walk. This will be appended to HumanID when uniqueId
+	// is called.
+	uniqueExtra string
 }
 
 // HumanId is a unique Id that is human-friendly and useful for UI elements.
 func (i *InstanceInfo) HumanId() string {
+	if i == nil {
+		return "<nil>"
+	}
+
 	if len(i.ModulePath) <= 1 {
 		return i.Id
 	}
@@ -73,6 +85,15 @@ func (i *InstanceInfo) HumanId() string {
 		"module.%s.%s",
 		strings.Join(i.ModulePath[1:], "."),
 		i.Id)
+}
+
+func (i *InstanceInfo) uniqueId() string {
+	prefix := i.HumanId()
+	if v := i.uniqueExtra; v != "" {
+		prefix += " " + v
+	}
+
+	return prefix
 }
 
 // ResourceConfig holds the configuration given for a resource. This is
@@ -91,6 +112,59 @@ func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 	result := &ResourceConfig{raw: c}
 	result.interpolateForce()
 	return result
+}
+
+// DeepCopy performs a deep copy of the configuration. This makes it safe
+// to modify any of the structures that are part of the resource config without
+// affecting the original configuration.
+func (c *ResourceConfig) DeepCopy() *ResourceConfig {
+	// DeepCopying a nil should return a nil to avoid panics
+	if c == nil {
+		return nil
+	}
+
+	// Copy, this will copy all the exported attributes
+	copy, err := copystructure.Config{Lock: true}.Copy(c)
+	if err != nil {
+		panic(err)
+	}
+
+	// Force the type
+	result := copy.(*ResourceConfig)
+
+	// For the raw configuration, we can just use its own copy method
+	result.raw = c.raw.Copy()
+
+	return result
+}
+
+// Equal checks the equality of two resource configs.
+func (c *ResourceConfig) Equal(c2 *ResourceConfig) bool {
+	// If either are nil, then they're only equal if they're both nil
+	if c == nil || c2 == nil {
+		return c == c2
+	}
+
+	// Sort the computed keys so they're deterministic
+	sort.Strings(c.ComputedKeys)
+	sort.Strings(c2.ComputedKeys)
+
+	// Two resource configs if their exported properties are equal.
+	// We don't compare "raw" because it is never used again after
+	// initialization and for all intents and purposes they are equal
+	// if the exported properties are equal.
+	check := [][2]interface{}{
+		{c.ComputedKeys, c2.ComputedKeys},
+		{c.Raw, c2.Raw},
+		{c.Config, c2.Config},
+	}
+	for _, pair := range check {
+		if !reflect.DeepEqual(pair[0], pair[1]) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // CheckSet checks that the given list of configuration keys is
@@ -239,6 +313,6 @@ func (c *ResourceConfig) interpolateForce() {
 	}
 
 	c.ComputedKeys = c.raw.UnknownKeys()
-	c.Raw = c.raw.Raw
+	c.Raw = c.raw.RawMap()
 	c.Config = c.raw.Config()
 }

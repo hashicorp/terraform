@@ -28,19 +28,22 @@ func helpFunc(commands map[string]cli.CommandFactory) string {
 		}
 	}
 
-	var buf bytes.Buffer
-	buf.WriteString("usage: terraform [--version] [--help] <command> [args]\n\n")
-	buf.WriteString(
-		"The available commands for execution are listed below.\n" +
-			"The most common, useful commands are shown first, followed by\n" +
-			"less common or more advanced commands. If you're just getting\n" +
-			"started with Terraform, stick with the common commands. For the\n" +
-			"other commands, please read the help and docs before usage.\n\n")
-	buf.WriteString("Common commands:\n")
-	buf.WriteString(listCommands(porcelain, maxKeyLen))
-	buf.WriteString("\nAll other commands:\n")
-	buf.WriteString(listCommands(plumbing, maxKeyLen))
-	return buf.String()
+	helpText := fmt.Sprintf(`
+Usage: terraform [--version] [--help] <command> [args]
+
+The available commands for execution are listed below.
+The most common, useful commands are shown first, followed by
+less common or more advanced commands. If you're just getting
+started with Terraform, stick with the common commands. For the
+other commands, please read the help and docs before usage.
+
+Common commands:
+%s
+All other commands:
+%s
+`, listCommands(porcelain, maxKeyLen), listCommands(plumbing, maxKeyLen))
+
+	return strings.TrimSpace(helpText)
 }
 
 // listCommands just lists the commands in the map with the

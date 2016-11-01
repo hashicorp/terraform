@@ -53,11 +53,9 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 		d.SetId("")
 		return nil
 	}
-	username := membership.User.Login
-	roleName := membership.Role
 
-	d.Set("username", *username)
-	d.Set("role", *roleName)
+	d.Set("username", membership.User.Login)
+	d.Set("role", membership.Role)
 	return nil
 }
 

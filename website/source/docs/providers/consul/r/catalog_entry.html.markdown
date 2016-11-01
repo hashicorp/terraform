@@ -15,7 +15,7 @@ Provides access to Catalog data in Consul. This can be used to define a node or 
 ```
 resource "consul_catalog_entry" "app" {
     address = "192.168.10.10"
-    name = "foobar"
+    node = "foobar"
     service = {
         address = "127.0.0.1"
         id = "redis1"

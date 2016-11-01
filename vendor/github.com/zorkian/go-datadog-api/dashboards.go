@@ -12,16 +12,25 @@ import (
 	"fmt"
 )
 
+// GraphDefinitionRequest represents the requests passed into each graph.
+type GraphDefinitionRequest struct {
+	Query              string `json:"q"`
+	Stacked            bool   `json:"stacked"`
+	Aggregator         string
+	ConditionalFormats []DashboardConditionalFormat `json:"conditional_formats,omitempty"`
+	Type               string                       `json:"type,omitempty"`
+	Style              struct {
+		Palette string `json:"palette,omitempty"`
+	} `json:"style,omitempty"`
+}
+
 // Graph represents a graph that might exist on a dashboard.
 type Graph struct {
 	Title      string     `json:"title"`
 	Events     []struct{} `json:"events"`
 	Definition struct {
-		Viz      string `json:"viz"`
-		Requests []struct {
-			Query   string `json:"q"`
-			Stacked bool   `json:"stacked"`
-		} `json:"requests"`
+		Viz      string                   `json:"viz"`
+		Requests []GraphDefinitionRequest `json:"requests"`
 	} `json:"definition"`
 }
 
@@ -62,6 +71,15 @@ type reqGetDashboard struct {
 	Resource  string    `json:"resource"`
 	Url       string    `json:"url"`
 	Dashboard Dashboard `json:"dash"`
+}
+
+type DashboardConditionalFormat struct {
+	Palette       string  `json:"palette,omitempty"`
+	Comparator    string  `json:"comparator,omitempty"`
+	CustomBgColor string  `json:"custom_bg_color,omitempty"`
+	Value         float64 `json:"value,omitempty"`
+	Inverted      bool    `json:"invert,omitempty"`
+	CustomFgColor string  `json:"custom_fg_color,omitempty"`
 }
 
 // GetDashboard returns a single dashboard created on this account.

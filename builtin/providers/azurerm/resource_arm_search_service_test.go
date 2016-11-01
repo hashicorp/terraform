@@ -117,7 +117,7 @@ func testCheckAzureRMSearchServiceDestroy(s *terraform.State) error {
 
 var testAccAzureRMSearchService_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_search_service" "test" {
@@ -135,7 +135,7 @@ resource "azurerm_search_service" "test" {
 
 var testAccAzureRMSearchService_updated = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_search_service" "test" {

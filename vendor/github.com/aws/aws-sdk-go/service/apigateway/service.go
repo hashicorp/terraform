@@ -11,11 +11,11 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/restjson"
 )
 
-// Amazon API Gateway helps developers deliver robust, secure and scalable mobile
-// and web application backends. Amazon API Gateway allows developers to securely
-// connect mobile and web applications to APIs that run on AWS Lambda, Amazon
-// EC2, or other publicly addressable web services that are hosted outside of
-// AWS.
+// Amazon API Gateway helps developers deliver robust, secure, and scalable
+// mobile and web application back ends. Amazon API Gateway allows developers
+// to securely connect mobile and web applications to APIs that run on AWS Lambda,
+// Amazon EC2, or other publicly addressable web services that are hosted outside
+// of AWS.
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type APIGateway struct {

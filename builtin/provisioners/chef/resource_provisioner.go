@@ -11,12 +11,12 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
@@ -29,19 +29,21 @@ const (
 	firstBoot       = "first-boot.json"
 	logfileDir      = "logfiles"
 	linuxChefCmd    = "chef-client"
-	linuxKnifeCmd   = "knife"
 	linuxConfDir    = "/etc/chef"
+	linuxNoOutput   = "> /dev/null 2>&1"
+	linuxGemCmd     = "/opt/chef/embedded/bin/gem"
+	linuxKnifeCmd   = "knife"
 	secretKey       = "encrypted_data_bag_secret"
-	validationKey   = "validation.pem"
 	windowsChefCmd  = "cmd /c chef-client"
-	windowsKnifeCmd = "cmd /c knife"
 	windowsConfDir  = "C:/chef"
+	windowsNoOutput = "> nul 2>&1"
+	windowsGemCmd   = "C:/opscode/chef/embedded/bin/gem"
+	windowsKnifeCmd = "cmd /c knife"
 )
 
 const clientConf = `
 log_location            STDOUT
 chef_server_url         "{{ .ServerURL }}"
-validation_client_name  "{{ .ValidationClientName }}"
 node_name               "{{ .NodeName }}"
 {{ if .UsePolicyfile }}
 use_policyfile true
@@ -79,43 +81,51 @@ enable_reporting false
 {{ end }}
 `
 
-// Provisioner represents a specificly configured chef provisioner
+// Provisioner represents a Chef provisioner
 type Provisioner struct {
-	Attributes            interface{} `mapstructure:"attributes"`
-	AttributesJSON        string      `mapstructure:"attributes_json"`
-	ClientOptions         []string    `mapstructure:"client_options"`
-	DisableReporting      bool        `mapstructure:"disable_reporting"`
-	Environment           string      `mapstructure:"environment"`
-	FetchChefCertificates bool        `mapstructure:"fetch_chef_certificates"`
-	LogToFile             bool        `mapstructure:"log_to_file"`
-	UsePolicyfile         bool        `mapstructure:"use_policyfile"`
-	PolicyGroup           string      `mapstructure:"policy_group"`
-	PolicyName            string      `mapstructure:"policy_name"`
-	HTTPProxy             string      `mapstructure:"http_proxy"`
-	HTTPSProxy            string      `mapstructure:"https_proxy"`
-	NOProxy               []string    `mapstructure:"no_proxy"`
-	NodeName              string      `mapstructure:"node_name"`
-	OhaiHints             []string    `mapstructure:"ohai_hints"`
-	OSType                string      `mapstructure:"os_type"`
-	PreventSudo           bool        `mapstructure:"prevent_sudo"`
-	RunList               []string    `mapstructure:"run_list"`
-	SecretKey             string      `mapstructure:"secret_key"`
-	ServerURL             string      `mapstructure:"server_url"`
-	SkipInstall           bool        `mapstructure:"skip_install"`
-	SSLVerifyMode         string      `mapstructure:"ssl_verify_mode"`
-	ValidationClientName  string      `mapstructure:"validation_client_name"`
-	ValidationKey         string      `mapstructure:"validation_key"`
-	Version               string      `mapstructure:"version"`
+	AttributesJSON        string   `mapstructure:"attributes_json"`
+	ClientOptions         []string `mapstructure:"client_options"`
+	DisableReporting      bool     `mapstructure:"disable_reporting"`
+	Environment           string   `mapstructure:"environment"`
+	FetchChefCertificates bool     `mapstructure:"fetch_chef_certificates"`
+	LogToFile             bool     `mapstructure:"log_to_file"`
+	UsePolicyfile         bool     `mapstructure:"use_policyfile"`
+	PolicyGroup           string   `mapstructure:"policy_group"`
+	PolicyName            string   `mapstructure:"policy_name"`
+	HTTPProxy             string   `mapstructure:"http_proxy"`
+	HTTPSProxy            string   `mapstructure:"https_proxy"`
+	NOProxy               []string `mapstructure:"no_proxy"`
+	NodeName              string   `mapstructure:"node_name"`
+	OhaiHints             []string `mapstructure:"ohai_hints"`
+	OSType                string   `mapstructure:"os_type"`
+	RecreateClient        bool     `mapstructure:"recreate_client"`
+	PreventSudo           bool     `mapstructure:"prevent_sudo"`
+	RunList               []string `mapstructure:"run_list"`
+	SecretKey             string   `mapstructure:"secret_key"`
+	ServerURL             string   `mapstructure:"server_url"`
+	SkipInstall           bool     `mapstructure:"skip_install"`
+	SkipRegister          bool     `mapstructure:"skip_register"`
+	SSLVerifyMode         string   `mapstructure:"ssl_verify_mode"`
+	UserName              string   `mapstructure:"user_name"`
+	UserKey               string   `mapstructure:"user_key"`
+	VaultJSON             string   `mapstructure:"vault_json"`
+	Version               string   `mapstructure:"version"`
 
-	installChefClient     func(terraform.UIOutput, communicator.Communicator) error
+	attributes map[string]interface{}
+	vaults     map[string][]string
+
+	cleanupUserKeyCmd     string
 	createConfigFiles     func(terraform.UIOutput, communicator.Communicator) error
+	installChefClient     func(terraform.UIOutput, communicator.Communicator) error
 	fetchChefCertificates func(terraform.UIOutput, communicator.Communicator) error
+	generateClientKey     func(terraform.UIOutput, communicator.Communicator) error
+	configureVaults       func(terraform.UIOutput, communicator.Communicator) error
 	runChefClient         func(terraform.UIOutput, communicator.Communicator) error
 	useSudo               bool
 
 	// Deprecated Fields
-	SecretKeyPath     string `mapstructure:"secret_key_path"`
-	ValidationKeyPath string `mapstructure:"validation_key_path"`
+	ValidationClientName string `mapstructure:"validation_client_name"`
+	ValidationKey        string `mapstructure:"validation_key"`
 }
 
 // ResourceProvisioner represents a generic chef provisioner
@@ -146,15 +156,21 @@ func (r *ResourceProvisioner) Apply(
 	// Set some values based on the targeted OS
 	switch p.OSType {
 	case "linux":
-		p.installChefClient = p.linuxInstallChefClient
+		p.cleanupUserKeyCmd = fmt.Sprintf("rm -f %s", path.Join(linuxConfDir, p.UserName+".pem"))
 		p.createConfigFiles = p.linuxCreateConfigFiles
+		p.installChefClient = p.linuxInstallChefClient
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(linuxKnifeCmd, linuxConfDir)
+		p.generateClientKey = p.generateClientKeyFunc(linuxKnifeCmd, linuxConfDir, linuxNoOutput)
+		p.configureVaults = p.configureVaultsFunc(linuxGemCmd, linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
 		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
-		p.installChefClient = p.windowsInstallChefClient
+		p.cleanupUserKeyCmd = fmt.Sprintf("cd %s && del /F /Q %s", windowsConfDir, p.UserName+".pem")
 		p.createConfigFiles = p.windowsCreateConfigFiles
+		p.installChefClient = p.windowsInstallChefClient
 		p.fetchChefCertificates = p.fetchChefCertificatesFunc(windowsKnifeCmd, windowsConfDir)
+		p.generateClientKey = p.generateClientKeyFunc(windowsKnifeCmd, windowsConfDir, windowsNoOutput)
+		p.configureVaults = p.configureVaultsFunc(windowsGemCmd, windowsKnifeCmd, windowsConfDir)
 		p.runChefClient = p.runChefClientFunc(windowsChefCmd, windowsConfDir)
 		p.useSudo = false
 	default:
@@ -177,6 +193,16 @@ func (r *ResourceProvisioner) Apply(
 	}
 	defer comm.Disconnect()
 
+	// Make sure we always delete the user key from the new node!
+	var once sync.Once
+	cleanupUserKey := func() {
+		o.Output("Cleanup user key...")
+		if err := p.runCommand(o, comm, p.cleanupUserKeyCmd); err != nil {
+			o.Output("WARNING: Failed to cleanup user key on new node: " + err.Error())
+		}
+	}
+	defer once.Do(cleanupUserKey)
+
 	if !p.SkipInstall {
 		if err := p.installChefClient(o, comm); err != nil {
 			return err
@@ -188,12 +214,30 @@ func (r *ResourceProvisioner) Apply(
 		return err
 	}
 
-	if p.FetchChefCertificates {
-		o.Output("Fetch Chef certificates...")
-		if err := p.fetchChefCertificates(o, comm); err != nil {
+	if !p.SkipRegister {
+		if p.FetchChefCertificates {
+			o.Output("Fetch Chef certificates...")
+			if err := p.fetchChefCertificates(o, comm); err != nil {
+				return err
+			}
+		}
+
+		o.Output("Generate the private key...")
+		if err := p.generateClientKey(o, comm); err != nil {
 			return err
 		}
 	}
+
+	if p.VaultJSON != "" {
+		o.Output("Configure Chef vaults...")
+		if err := p.configureVaults(o, comm); err != nil {
+			return err
+		}
+	}
+
+	// Cleanup the user key before we run Chef-Client to prevent issues
+	// with rights caused by changing settings during the run.
+	once.Do(cleanupUserKey)
 
 	o.Output("Starting initial Chef-Client run...")
 	if err := p.runChefClient(o, comm); err != nil {
@@ -212,38 +256,42 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	}
 
 	if p.NodeName == "" {
-		es = append(es, fmt.Errorf("Key not found: node_name"))
+		es = append(es, errors.New("Key not found: node_name"))
 	}
 	if !p.UsePolicyfile && p.RunList == nil {
-		es = append(es, fmt.Errorf("Key not found: run_list"))
+		es = append(es, errors.New("Key not found: run_list"))
 	}
 	if p.ServerURL == "" {
-		es = append(es, fmt.Errorf("Key not found: server_url"))
-	}
-	if p.ValidationClientName == "" {
-		es = append(es, fmt.Errorf("Key not found: validation_client_name"))
-	}
-	if p.ValidationKey == "" && p.ValidationKeyPath == "" {
-		es = append(es, fmt.Errorf(
-			"One of validation_key or the deprecated validation_key_path must be provided"))
+		es = append(es, errors.New("Key not found: server_url"))
 	}
 	if p.UsePolicyfile && p.PolicyName == "" {
-		es = append(es, fmt.Errorf("Policyfile enabled but key not found: policy_name"))
+		es = append(es, errors.New("Policyfile enabled but key not found: policy_name"))
 	}
 	if p.UsePolicyfile && p.PolicyGroup == "" {
-		es = append(es, fmt.Errorf("Policyfile enabled but key not found: policy_group"))
+		es = append(es, errors.New("Policyfile enabled but key not found: policy_group"))
 	}
-	if p.ValidationKeyPath != "" {
-		ws = append(ws, "validation_key_path is deprecated, please use "+
-			"validation_key instead and load the key contents via file()")
+	if p.UserName == "" && p.ValidationClientName == "" {
+		es = append(es, errors.New(
+			"One of user_name or the deprecated validation_client_name must be provided"))
 	}
-	if p.SecretKeyPath != "" {
-		ws = append(ws, "secret_key_path is deprecated, please use "+
-			"secret_key instead and load the key contents via file()")
+	if p.UserKey == "" && p.ValidationKey == "" {
+		es = append(es, errors.New(
+			"One of user_key or the deprecated validation_key must be provided"))
 	}
-	if _, ok := c.Config["attributes"]; ok {
-		ws = append(ws, "using map style attribute values is deprecated, "+
-			" please use a single raw JSON string instead")
+	if p.ValidationClientName != "" {
+		ws = append(ws, "validation_client_name is deprecated, please use user_name instead")
+	}
+	if p.ValidationKey != "" {
+		ws = append(ws, "validation_key is deprecated, please use user_key instead")
+
+		if p.RecreateClient {
+			es = append(es, errors.New(
+				"Cannot use recreate_client=true with the deprecated validation_key, please provide a user_key"))
+		}
+		if p.VaultJSON != "" {
+			es = append(es, errors.New(
+				"Cannot configure chef vaults using the deprecated validation_key, please provide a user_key"))
+		}
 	}
 
 	return ws, es
@@ -282,6 +330,9 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		return nil, err
 	}
 
+	// Make sure the supplied URL has a trailing slash
+	p.ServerURL = strings.TrimSuffix(p.ServerURL, "/") + "/"
+
 	if p.Environment == "" {
 		p.Environment = defaultEnv
 	}
@@ -294,69 +345,143 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.OhaiHints[i] = hintPath
 	}
 
-	if p.ValidationKey == "" && p.ValidationKeyPath != "" {
-		p.ValidationKey = p.ValidationKeyPath
+	if p.UserName == "" && p.ValidationClientName != "" {
+		p.UserName = p.ValidationClientName
 	}
 
-	if p.SecretKey == "" && p.SecretKeyPath != "" {
-		p.SecretKey = p.SecretKeyPath
+	if p.UserKey == "" && p.ValidationKey != "" {
+		p.UserKey = p.ValidationKey
 	}
 
-	if attrs, ok := c.Config["attributes"]; ok {
-		p.Attributes, err = rawToJSON(attrs)
-		if err != nil {
-			return nil, fmt.Errorf("Error parsing the attributes: %v", err)
-		}
-	}
-
-	if attrs, ok := c.Config["attributes_json"]; ok {
+	if attrs, ok := c.Config["attributes_json"].(string); ok {
 		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
-			return nil, fmt.Errorf("Error parsing the attributes: %v", err)
+		if err := json.Unmarshal([]byte(attrs), &m); err != nil {
+			return nil, fmt.Errorf("Error parsing attributes_json: %v", err)
 		}
-		p.Attributes = m
+		p.attributes = m
+	}
+
+	if vaults, ok := c.Config["vault_json"].(string); ok {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(vaults), &m); err != nil {
+			return nil, fmt.Errorf("Error parsing vault_json: %v", err)
+		}
+
+		v := make(map[string][]string)
+		for vault, items := range m {
+			switch items := items.(type) {
+			case []interface{}:
+				for _, item := range items {
+					if item, ok := item.(string); ok {
+						v[vault] = append(v[vault], item)
+					}
+				}
+			case interface{}:
+				if item, ok := items.(string); ok {
+					v[vault] = append(v[vault], item)
+				}
+			}
+		}
+
+		p.vaults = v
 	}
 
 	return p, nil
 }
 
-func rawToJSON(raw interface{}) (interface{}, error) {
-	switch s := raw.(type) {
-	case []map[string]interface{}:
-		if len(s) != 1 {
-			return nil, errors.New("unexpected input while parsing raw config to JSON")
-		}
-
-		var err error
-		for k, v := range s[0] {
-			s[0][k], err = rawToJSON(v)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		return s[0], nil
-	default:
-		return s, nil
+func (p *Provisioner) deployConfigFiles(
+	o terraform.UIOutput,
+	comm communicator.Communicator,
+	confDir string) error {
+	// Copy the user key to the new instance
+	pk := strings.NewReader(p.UserKey)
+	if err := comm.Upload(path.Join(confDir, p.UserName+".pem"), pk); err != nil {
+		return fmt.Errorf("Uploading user key failed: %v", err)
 	}
+
+	if p.SecretKey != "" {
+		// Copy the secret key to the new instance
+		s := strings.NewReader(p.SecretKey)
+		if err := comm.Upload(path.Join(confDir, secretKey), s); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
+		}
+	}
+
+	// Make sure the SSLVerifyMode value is written as a symbol
+	if p.SSLVerifyMode != "" && !strings.HasPrefix(p.SSLVerifyMode, ":") {
+		p.SSLVerifyMode = fmt.Sprintf(":%s", p.SSLVerifyMode)
+	}
+
+	// Make strings.Join available for use within the template
+	funcMap := template.FuncMap{
+		"join": strings.Join,
+	}
+
+	// Create a new template and parse the client config into it
+	t := template.Must(template.New(clienrb).Funcs(funcMap).Parse(clientConf))
+
+	var buf bytes.Buffer
+	err := t.Execute(&buf, p)
+	if err != nil {
+		return fmt.Errorf("Error executing %s template: %s", clienrb, err)
+	}
+
+	// Copy the client config to the new instance
+	if err := comm.Upload(path.Join(confDir, clienrb), &buf); err != nil {
+		return fmt.Errorf("Uploading %s failed: %v", clienrb, err)
+	}
+
+	// Create a map with first boot settings
+	fb := make(map[string]interface{})
+	if p.attributes != nil {
+		fb = p.attributes
+	}
+
+	// Check if the run_list was also in the attributes and if so log a warning
+	// that it will be overwritten with the value of the run_list argument.
+	if _, found := fb["run_list"]; found {
+		log.Printf("[WARNING] Found a 'run_list' specified in the configured attributes! " +
+			"This value will be overwritten by the value of the `run_list` argument!")
+	}
+
+	// Add the initial runlist to the first boot settings
+	if !p.UsePolicyfile {
+		fb["run_list"] = p.RunList
+	}
+
+	// Marshal the first boot settings to JSON
+	d, err := json.Marshal(fb)
+	if err != nil {
+		return fmt.Errorf("Failed to create %s data: %s", firstBoot, err)
+	}
+
+	// Copy the first-boot.json to the new instance
+	if err := comm.Upload(path.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
+		return fmt.Errorf("Uploading %s failed: %v", firstBoot, err)
+	}
+
+	return nil
 }
 
-// retryFunc is used to retry a function for a given duration
-func retryFunc(timeout time.Duration, f func() error) error {
-	finish := time.After(timeout)
-	for {
-		err := f()
-		if err == nil {
-			return nil
-		}
-		log.Printf("Retryable error: %v", err)
-
-		select {
-		case <-finish:
+func (p *Provisioner) deployOhaiHints(
+	o terraform.UIOutput,
+	comm communicator.Communicator,
+	hintDir string) error {
+	for _, hint := range p.OhaiHints {
+		// Open the hint file
+		f, err := os.Open(hint)
+		if err != nil {
 			return err
-		case <-time.After(3 * time.Second):
+		}
+		defer f.Close()
+
+		// Copy the hint to the new instance
+		if err := comm.Upload(path.Join(hintDir, path.Base(hint)), f); err != nil {
+			return fmt.Errorf("Uploading %s failed: %v", path.Base(hint), err)
 		}
 	}
+
+	return nil
 }
 
 func (p *Provisioner) fetchChefCertificatesFunc(
@@ -367,6 +492,101 @@ func (p *Provisioner) fetchChefCertificatesFunc(
 		cmd := fmt.Sprintf("%s ssl fetch -c %s", knifeCmd, clientrb)
 
 		return p.runCommand(o, comm, cmd)
+	}
+}
+
+func (p *Provisioner) generateClientKeyFunc(
+	knifeCmd string,
+	confDir string,
+	noOutput string) func(terraform.UIOutput, communicator.Communicator) error {
+	return func(o terraform.UIOutput, comm communicator.Communicator) error {
+		options := fmt.Sprintf("-c %s -u %s --key %s",
+			path.Join(confDir, clienrb),
+			p.UserName,
+			path.Join(confDir, p.UserName+".pem"),
+		)
+
+		// See if we already have a node object
+		getNodeCmd := fmt.Sprintf("%s node show %s %s %s", knifeCmd, p.NodeName, options, noOutput)
+		node := p.runCommand(o, comm, getNodeCmd) == nil
+
+		// See if we already have a client object
+		getClientCmd := fmt.Sprintf("%s client show %s %s %s", knifeCmd, p.NodeName, options, noOutput)
+		client := p.runCommand(o, comm, getClientCmd) == nil
+
+		// If we have a client, we can only continue if we are to recreate the client
+		if client && !p.RecreateClient {
+			return fmt.Errorf(
+				"Chef client %q already exists, set recreate_client=true to automatically recreate the client", p.NodeName)
+		}
+
+		// If the node exists, try to delete it
+		if node {
+			deleteNodeCmd := fmt.Sprintf("%s node delete %s -y %s",
+				knifeCmd,
+				p.NodeName,
+				options,
+			)
+			if err := p.runCommand(o, comm, deleteNodeCmd); err != nil {
+				return err
+			}
+		}
+
+		// If the client exists, try to delete it
+		if client {
+			deleteClientCmd := fmt.Sprintf("%s client delete %s -y %s",
+				knifeCmd,
+				p.NodeName,
+				options,
+			)
+			if err := p.runCommand(o, comm, deleteClientCmd); err != nil {
+				return err
+			}
+		}
+
+		// Create the new client object
+		createClientCmd := fmt.Sprintf("%s client create %s -d -f %s %s",
+			knifeCmd,
+			p.NodeName,
+			path.Join(confDir, "client.pem"),
+			options,
+		)
+
+		return p.runCommand(o, comm, createClientCmd)
+	}
+}
+
+func (p *Provisioner) configureVaultsFunc(
+	gemCmd string,
+	knifeCmd string,
+	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
+	return func(o terraform.UIOutput, comm communicator.Communicator) error {
+		if err := p.runCommand(o, comm, fmt.Sprintf("%s install chef-vault", gemCmd)); err != nil {
+			return err
+		}
+
+		options := fmt.Sprintf("-c %s -u %s --key %s",
+			path.Join(confDir, clienrb),
+			p.UserName,
+			path.Join(confDir, p.UserName+".pem"),
+		)
+
+		for vault, items := range p.vaults {
+			for _, item := range items {
+				updateCmd := fmt.Sprintf("%s vault update %s %s -A %s -M client %s",
+					knifeCmd,
+					vault,
+					item,
+					p.NodeName,
+					options,
+				)
+				if err := p.runCommand(o, comm, updateCmd); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
 	}
 }
 
@@ -430,117 +650,11 @@ func (p *Provisioner) Output(output string) {
 	}
 }
 
-func (p *Provisioner) deployConfigFiles(
-	o terraform.UIOutput,
-	comm communicator.Communicator,
-	confDir string) error {
-	contents, _, err := pathorcontents.Read(p.ValidationKey)
-	if err != nil {
-		return err
-	}
-	f := strings.NewReader(contents)
-
-	// Copy the validation key to the new instance
-	if err := comm.Upload(path.Join(confDir, validationKey), f); err != nil {
-		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
-	}
-
-	if p.SecretKey != "" {
-		contents, _, err := pathorcontents.Read(p.SecretKey)
-		if err != nil {
-			return err
-		}
-		s := strings.NewReader(contents)
-		// Copy the secret key to the new instance
-		if err := comm.Upload(path.Join(confDir, secretKey), s); err != nil {
-			return fmt.Errorf("Uploading %s failed: %v", secretKey, err)
-		}
-	}
-
-	// Make sure the SSLVerifyMode value is written as a symbol
-	if p.SSLVerifyMode != "" && !strings.HasPrefix(p.SSLVerifyMode, ":") {
-		p.SSLVerifyMode = fmt.Sprintf(":%s", p.SSLVerifyMode)
-	}
-
-	// Make strings.Join available for use within the template
-	funcMap := template.FuncMap{
-		"join": strings.Join,
-	}
-
-	// Create a new template and parse the client config into it
-	t := template.Must(template.New(clienrb).Funcs(funcMap).Parse(clientConf))
-
-	var buf bytes.Buffer
-	err = t.Execute(&buf, p)
-	if err != nil {
-		return fmt.Errorf("Error executing %s template: %s", clienrb, err)
-	}
-
-	// Copy the client config to the new instance
-	if err := comm.Upload(path.Join(confDir, clienrb), &buf); err != nil {
-		return fmt.Errorf("Uploading %s failed: %v", clienrb, err)
-	}
-
-	// Create a map with first boot settings
-	fb := make(map[string]interface{})
-	if p.Attributes != nil {
-		fb = p.Attributes.(map[string]interface{})
-	}
-
-	// Check if the run_list was also in the attributes and if so log a warning
-	// that it will be overwritten with the value of the run_list argument.
-	if _, found := fb["run_list"]; found {
-		log.Printf("[WARNING] Found a 'run_list' specified in the configured attributes! " +
-			"This value will be overwritten by the value of the `run_list` argument!")
-	}
-
-	// Add the initial runlist to the first boot settings
-	if !p.UsePolicyfile {
-		fb["run_list"] = p.RunList
-	}
-
-	// Marshal the first boot settings to JSON
-	d, err := json.Marshal(fb)
-	if err != nil {
-		return fmt.Errorf("Failed to create %s data: %s", firstBoot, err)
-	}
-
-	// Copy the first-boot.json to the new instance
-	if err := comm.Upload(path.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
-		return fmt.Errorf("Uploading %s failed: %v", firstBoot, err)
-	}
-
-	return nil
-}
-
-func (p *Provisioner) deployOhaiHints(
-	o terraform.UIOutput,
-	comm communicator.Communicator,
-	hintDir string) error {
-	for _, hint := range p.OhaiHints {
-		// Open the hint file
-		f, err := os.Open(hint)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		// Copy the hint to the new instance
-		if err := comm.Upload(path.Join(hintDir, path.Base(hint)), f); err != nil {
-			return fmt.Errorf("Uploading %s failed: %v", path.Base(hint), err)
-		}
-	}
-
-	return nil
-}
-
 // runCommand is used to run already prepared commands
 func (p *Provisioner) runCommand(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	command string) error {
-	var err error
-
 	// Unless prevented, prefix the command with sudo
 	if p.useSudo {
 		command = "sudo " + command
@@ -559,7 +673,8 @@ func (p *Provisioner) runCommand(
 		Stderr:  errW,
 	}
 
-	if err := comm.Start(cmd); err != nil {
+	err := comm.Start(cmd)
+	if err != nil {
 		return fmt.Errorf("Error executing command %q: %v", cmd.Command, err)
 	}
 
@@ -575,12 +690,7 @@ func (p *Provisioner) runCommand(
 	<-outDoneCh
 	<-errDoneCh
 
-	// If we have an error, return it out now that we've cleaned up
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (p *Provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
@@ -588,5 +698,23 @@ func (p *Provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<
 	lr := linereader.New(r)
 	for line := range lr.Ch {
 		o.Output(line)
+	}
+}
+
+// retryFunc is used to retry a function for a given duration
+func retryFunc(timeout time.Duration, f func() error) error {
+	finish := time.After(timeout)
+	for {
+		err := f()
+		if err == nil {
+			return nil
+		}
+		log.Printf("Retryable error: %v", err)
+
+		select {
+		case <-finish:
+			return err
+		case <-time.After(3 * time.Second):
+		}
 	}
 }

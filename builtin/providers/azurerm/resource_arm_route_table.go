@@ -142,11 +142,11 @@ func resourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	name := id.Path["routeTables"]
 
 	resp, err := routeTablesClient.Get(resGroup, name, "")
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Route Table %s: %s", name, err)
 	}
 

@@ -132,16 +132,18 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 	name := id.Path["virtualNetworks"]
 
 	resp, err := vnetClient.Get(resGroup, name, "")
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure virtual network %s: %s", name, err)
 	}
+
 	vnet := *resp.Properties
 
 	// update appropriate values
+	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)
 	d.Set("location", resp.Location)
 	d.Set("address_space", vnet.AddressSpace.AddressPrefixes)
@@ -163,11 +165,13 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 	}
 	d.Set("subnet", subnets)
 
-	dnses := []string{}
-	for _, dns := range *vnet.DhcpOptions.DNSServers {
-		dnses = append(dnses, dns)
+	if vnet.DhcpOptions != nil && vnet.DhcpOptions.DNSServers != nil {
+		dnses := []string{}
+		for _, dns := range *vnet.DhcpOptions.DNSServers {
+			dnses = append(dnses, dns)
+		}
+		d.Set("dns_servers", dnses)
 	}
-	d.Set("dns_servers", dnses)
 
 	flattenAndSetTags(d, resp.Tags)
 

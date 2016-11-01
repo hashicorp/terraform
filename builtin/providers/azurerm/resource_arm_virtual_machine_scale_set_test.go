@@ -28,6 +28,26 @@ func TestAccAzureRMVirtualMachineScaleSet_basicLinux(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMVirtualMachineScaleSet_basicLinux_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMVirtualMachineScaleSet_basicLinux, ri, ri, ri, ri, ri, ri, ri, ri)
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMVirtualMachineScaleSetExists("azurerm_virtual_machine_scale_set.test"),
+					testCheckAzureRMVirtualMachineScaleSetDisappears("azurerm_virtual_machine_scale_set.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 //func TestAccAzureRMVirtualMachineScaleSet_basicWindowsMachine(t *testing.T) {
 //	ri := acctest.RandInt()
 //	rs := acctest.RandString(6)
@@ -76,6 +96,31 @@ func testCheckAzureRMVirtualMachineScaleSetExists(name string) resource.TestChec
 	}
 }
 
+func testCheckAzureRMVirtualMachineScaleSetDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for virtual machine: scale set %s", name)
+		}
+
+		conn := testAccProvider.Meta().(*ArmClient).vmScaleSetClient
+
+		_, err := conn.Delete(resourceGroup, name, make(chan struct{}))
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on vmScaleSetClient: %s", err)
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMVirtualMachineScaleSetDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).vmScaleSetClient
 
@@ -103,7 +148,7 @@ func testCheckAzureRMVirtualMachineScaleSetDestroy(s *terraform.State) error {
 
 var testAccAzureRMVirtualMachineScaleSet_basicLinux = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -196,7 +241,7 @@ resource "azurerm_virtual_machine_scale_set" "test" {
 
 var testAccAzureRMVirtualMachineScaleSet_basicWindows = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 

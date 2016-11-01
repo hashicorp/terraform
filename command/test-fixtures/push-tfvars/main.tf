@@ -7,7 +7,6 @@ variable "baz" {
 
   default = {
     "A"    = "a"
-    interp = "${file("t.txt")}"
   }
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -167,7 +168,7 @@ information and instructions for recovery. Error message: %s`, sg_id, awsErr.Mes
 		sg, err := findResourceSecurityGroup(conn, sg_id)
 
 		if err != nil {
-			log.Printf("[DEBUG] Error finding Secuirty Group (%s) for Rule (%s): %s", sg_id, id, err)
+			log.Printf("[DEBUG] Error finding Security Group (%s) for Rule (%s): %s", sg_id, id, err)
 			return resource.NonRetryableError(err)
 		}
 
@@ -250,7 +251,9 @@ func resourceAwsSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[DEBUG] Found rule for Security Group Rule (%s): %s", d.Id(), rule)
 
 	d.Set("type", ruleType)
-	setFromIPPerm(d, sg, p)
+	if err := setFromIPPerm(d, sg, p); err != nil {
+		return errwrap.Wrapf("Error setting IP Permission for Security Group Rule: {{err}}", err)
+	}
 	return nil
 }
 

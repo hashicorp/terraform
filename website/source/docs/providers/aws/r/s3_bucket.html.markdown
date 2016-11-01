@@ -121,8 +121,9 @@ resource "aws_s3_bucket" "bucket" {
 			days = 90
 		}
 	}
+
 	lifecycle_rule {
-		id = "log"
+		id = "tmp"
 		prefix = "tmp/"
 		enabled = true
 

@@ -28,6 +28,40 @@ func TestAccAWSAutoscalingSchedule_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSAutoscalingSchedule_disappears(t *testing.T) {
+	var schedule autoscaling.ScheduledUpdateGroupAction
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoscalingScheduleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoscalingScheduleConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalingScheduleExists("aws_autoscaling_schedule.foobar", &schedule),
+					testAccCheckScalingScheduleDisappears(&schedule),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccCheckScalingScheduleDisappears(schedule *autoscaling.ScheduledUpdateGroupAction) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		autoscalingconn := testAccProvider.Meta().(*AWSClient).autoscalingconn
+		params := &autoscaling.DeleteScheduledActionInput{
+			AutoScalingGroupName: schedule.AutoScalingGroupName,
+			ScheduledActionName:  schedule.ScheduledActionName,
+		}
+		if _, err := autoscalingconn.DeleteScheduledAction(params); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
 func TestAccAWSAutoscalingSchedule_recurrence(t *testing.T) {
 	var schedule autoscaling.ScheduledUpdateGroupAction
 
@@ -86,6 +120,8 @@ func testAccCheckScalingScheduleExists(n string, policy *autoscaling.ScheduledUp
 		if len(resp.ScheduledUpdateGroupActions) == 0 {
 			return fmt.Errorf("Scaling Schedule not found")
 		}
+
+		*policy = *resp.ScheduledUpdateGroupActions[0]
 
 		return nil
 	}

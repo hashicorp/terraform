@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -208,10 +209,76 @@ func TestResourceConfigGet(t *testing.T) {
 		rc := NewResourceConfig(rawC)
 		rc.interpolateForce()
 
-		v, _ := rc.Get(tc.Key)
-		if !reflect.DeepEqual(v, tc.Value) {
-			t.Fatalf("%d bad: %#v", i, v)
+		// Test getting a key
+		t.Run(fmt.Sprintf("get-%d", i), func(t *testing.T) {
+			v, _ := rc.Get(tc.Key)
+			if !reflect.DeepEqual(v, tc.Value) {
+				t.Fatalf("%d bad: %#v", i, v)
+			}
+		})
+
+		// If we have vars, we don't test copying
+		if len(tc.Vars) > 0 {
+			continue
 		}
+
+		// Test copying and equality
+		t.Run(fmt.Sprintf("copy-and-equal-%d", i), func(t *testing.T) {
+			copy := rc.DeepCopy()
+			if !reflect.DeepEqual(copy, rc) {
+				t.Fatalf("bad:\n\n%#v\n\n%#v", copy, rc)
+			}
+
+			if !copy.Equal(rc) {
+				t.Fatalf("copy != rc:\n\n%#v\n\n%#v", copy, rc)
+			}
+			if !rc.Equal(copy) {
+				t.Fatalf("rc != copy:\n\n%#v\n\n%#v", copy, rc)
+			}
+		})
+	}
+}
+
+func TestResourceConfigDeepCopy_nil(t *testing.T) {
+	var nilRc *ResourceConfig
+	actual := nilRc.DeepCopy()
+	if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceConfigDeepCopy_nilComputed(t *testing.T) {
+	rc := &ResourceConfig{}
+	actual := rc.DeepCopy()
+	if actual.ComputedKeys != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceConfigEqual_nil(t *testing.T) {
+	var nilRc *ResourceConfig
+	notNil := NewResourceConfig(nil)
+
+	if nilRc.Equal(notNil) {
+		t.Fatal("should not be equal")
+	}
+
+	if notNil.Equal(nilRc) {
+		t.Fatal("should not be equal")
+	}
+}
+
+func TestResourceConfigEqual_computedKeyOrder(t *testing.T) {
+	c := map[string]interface{}{"foo": "${a.b.c}"}
+	rc := NewResourceConfig(config.TestRawConfig(t, c))
+	rc2 := NewResourceConfig(config.TestRawConfig(t, c))
+
+	// Set the computed keys manual
+	rc.ComputedKeys = []string{"foo", "bar"}
+	rc2.ComputedKeys = []string{"bar", "foo"}
+
+	if !rc.Equal(rc2) {
+		t.Fatal("should be equal")
 	}
 }
 

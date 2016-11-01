@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/jen20/awspolicyequivalence"
 )
 
 func TestAccAWSSQSQueue_basic(t *testing.T) {
@@ -19,22 +20,45 @@ func TestAccAWSSQSQueue_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSQSConfigWithDefaults(queueName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.queue"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSSQSConfigWithOverrides(queueName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithOverrides("aws_sqs_queue.queue"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSSQSConfigWithDefaults(queueName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.queue"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSQSQueue_policy(t *testing.T) {
+	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(5))
+	topicName := fmt.Sprintf("sns-topic-%s", acctest.RandString(5))
+
+	expectedPolicyText := fmt.Sprintf(
+		`{"Version": "2012-10-17","Id": "sqspolicy","Statement":[{"Sid": "Stmt1451501026839","Effect": "Allow","Principal":"*","Action":"sqs:SendMessage","Resource":"arn:aws:sqs:us-west-2:470663696735:%s","Condition":{"ArnEquals":{"aws:SourceArn":"arn:aws:sns:us-west-2:470663696735:%s"}}}]}`,
+		topicName, queueName)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSSQSConfig_PolicyFormat(topicName, queueName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSQSHasPolicy("aws_sqs_queue.test-email-events", expectedPolicyText),
 				),
 			},
 		},
@@ -47,7 +71,7 @@ func TestAccAWSSQSQueue_redrivePolicy(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSQSConfigWithRedrive(acctest.RandStringFromCharSet(5, acctest.CharSetAlpha)),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithDefaults("aws_sqs_queue.my_dead_letter_queue"),
@@ -59,13 +83,15 @@ func TestAccAWSSQSQueue_redrivePolicy(t *testing.T) {
 
 // Tests formatting and compacting of Policy, Redrive json
 func TestAccAWSSQSQueue_Policybasic(t *testing.T) {
+	queueName := fmt.Sprintf("sqs-queue-%s", acctest.RandString(5))
+	topicName := fmt.Sprintf("sns-topic-%s", acctest.RandString(5))
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSQSQueueDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSSQSConfig_PolicyFormat,
+			{
+				Config: testAccAWSSQSConfig_PolicyFormat(topicName, queueName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSQSExistsWithOverrides("aws_sqs_queue.test-email-events"),
 				),
@@ -99,6 +125,48 @@ func testAccCheckAWSSQSQueueDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+func testAccCheckAWSQSHasPolicy(n string, expectedPolicyText string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Queue URL specified!")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).sqsconn
+
+		params := &sqs.GetQueueAttributesInput{
+			QueueUrl:       aws.String(rs.Primary.ID),
+			AttributeNames: []*string{aws.String("Policy")},
+		}
+		resp, err := conn.GetQueueAttributes(params)
+		if err != nil {
+			return err
+		}
+
+		var actualPolicyText string
+		for k, v := range resp.Attributes {
+			if k == "Policy" {
+				actualPolicyText = *v
+				break
+			}
+		}
+
+		equivalent, err := awspolicy.PoliciesAreEquivalent(actualPolicyText, expectedPolicyText)
+		if err != nil {
+			return fmt.Errorf("Error testing policy equivalence: %s", err)
+		}
+		if !equivalent {
+			return fmt.Errorf("Non-equivalent policy error:\n\nexpected: %s\n\n     got: %s\n",
+				expectedPolicyText, actualPolicyText)
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckAWSSQSExistsWithDefaults(n string) resource.TestCheckFunc {
@@ -242,13 +310,14 @@ resource "aws_sqs_queue" "my_dead_letter_queue" {
 `, name, name)
 }
 
-const testAccAWSSQSConfig_PolicyFormat = `
+func testAccAWSSQSConfig_PolicyFormat(queue, topic string) string {
+	return fmt.Sprintf(`
 variable "sns_name" {
-  default = "tf-test-name-2"
+  default = "%s"
 }
 
 variable "sqs_name" {
-  default = "tf-test-sqs-name-2"
+  default = "%s"
 }
 
 resource "aws_sns_topic" "test_topic" {
@@ -291,4 +360,5 @@ resource "aws_sns_topic_subscription" "test_queue_target" {
   protocol  = "sqs"
   endpoint  = "${aws_sqs_queue.test-email-events.arn}"
 }
-`
+`, topic, queue)
+}

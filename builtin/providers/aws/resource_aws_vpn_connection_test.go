@@ -119,7 +119,10 @@ func testAccAwsVpnConnection(
 }
 
 func TestAWSVpnConnection_xmlconfig(t *testing.T) {
-	tunnelInfo := xmlConfigToTunnelInfo(testAccAwsVpnTunnelInfoXML)
+	tunnelInfo, err := xmlConfigToTunnelInfo(testAccAwsVpnTunnelInfoXML)
+	if err != nil {
+		t.Fatalf("Error unmarshalling XML: %s", err)
+	}
 	if tunnelInfo.Tunnel1Address != "FIRST_ADDRESS" {
 		t.Fatalf("First address from tunnel XML was incorrect.")
 	}

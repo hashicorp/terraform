@@ -225,11 +225,11 @@ func resourceArmCdnEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	}
 	log.Printf("[INFO] Trying to find the AzureRM CDN Endpoint %s (Profile: %s, RG: %s)", name, profileName, resGroup)
 	resp, err := cdnEndpointsClient.Get(name, profileName, resGroup)
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure CDN Endpoint %s: %s", name, err)
 	}
 

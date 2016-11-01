@@ -3,11 +3,13 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -22,9 +24,28 @@ func resourceAwsAlb() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
+			"arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"arn_suffix": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"name": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
+				ValidateFunc:  validateElbName,
+			},
+
+			"name_prefix": {
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateElbName,
 			},
@@ -67,6 +88,11 @@ func resourceAwsAlb() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"enabled": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+						},
 					},
 				},
 			},
@@ -106,8 +132,18 @@ func resourceAwsAlb() *schema.Resource {
 func resourceAwsAlbCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
+	var name string
+	if v, ok := d.GetOk("name"); ok {
+		name = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		name = resource.PrefixedUniqueId(v.(string))
+	} else {
+		name = resource.PrefixedUniqueId("tf-lb-")
+	}
+	d.Set("name", name)
+
 	elbOpts := &elbv2.CreateLoadBalancerInput{
-		Name: aws.String(d.Get("name").(string)),
+		Name: aws.String(name),
 		Tags: tagsFromMapELBv2(d.Get("tags").(map[string]interface{})),
 	}
 
@@ -165,6 +201,8 @@ func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 
 	alb := describeResp.LoadBalancers[0]
 
+	d.Set("arn", alb.LoadBalancerArn)
+	d.Set("arn_suffix", albSuffixFromARN(alb.LoadBalancerArn))
 	d.Set("name", alb.LoadBalancerName)
 	d.Set("internal", (alb.Scheme != nil && *alb.Scheme == "internal"))
 	d.Set("security_groups", flattenStringList(alb.SecurityGroups))
@@ -196,6 +234,8 @@ func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 	accessLogMap := map[string]interface{}{}
 	for _, attr := range attributesResp.Attributes {
 		switch *attr.Key {
+		case "access_logs.s3.enabled":
+			accessLogMap["enabled"] = *attr.Value
 		case "access_logs.s3.bucket":
 			accessLogMap["bucket"] = *attr.Value
 		case "access_logs.s3.prefix":
@@ -227,6 +267,12 @@ func resourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbv2conn
 
+	if !d.IsNewResource() {
+		if err := setElbV2Tags(elbconn, d); err != nil {
+			return errwrap.Wrapf("Error Modifying Tags on ALB: {{err}}", err)
+		}
+	}
+
 	attributes := make([]*elbv2.LoadBalancerAttribute, 0)
 
 	if d.HasChange("access_logs") {
@@ -237,7 +283,7 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 			attributes = append(attributes,
 				&elbv2.LoadBalancerAttribute{
 					Key:   aws.String("access_logs.s3.enabled"),
-					Value: aws.String("true"),
+					Value: aws.String(strconv.FormatBool(log["enabled"].(bool))),
 				},
 				&elbv2.LoadBalancerAttribute{
 					Key:   aws.String("access_logs.s3.bucket"),
@@ -304,29 +350,6 @@ func resourceAwsAlbDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-// tagsToMapELBv2 turns the list of tags into a map.
-func tagsToMapELBv2(ts []*elbv2.Tag) map[string]string {
-	result := make(map[string]string)
-	for _, t := range ts {
-		result[*t.Key] = *t.Value
-	}
-
-	return result
-}
-
-// tagsFromMapELBv2 returns the tags for the given map of data.
-func tagsFromMapELBv2(m map[string]interface{}) []*elbv2.Tag {
-	var result []*elbv2.Tag
-	for k, v := range m {
-		result = append(result, &elbv2.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v.(string)),
-		})
-	}
-
-	return result
-}
-
 // flattenSubnetsFromAvailabilityZones creates a slice of strings containing the subnet IDs
 // for the ALB based on the AvailabilityZones structure returned by the API.
 func flattenSubnetsFromAvailabilityZones(availabilityZones []*elbv2.AvailabilityZone) []string {
@@ -335,4 +358,18 @@ func flattenSubnetsFromAvailabilityZones(availabilityZones []*elbv2.Availability
 		result = append(result, *az.SubnetId)
 	}
 	return result
+}
+
+func albSuffixFromARN(arn *string) string {
+	if arn == nil {
+		return ""
+	}
+
+	if arnComponents := regexp.MustCompile(`arn:.*:loadbalancer/(.*)`).FindAllStringSubmatch(*arn, -1); len(arnComponents) == 1 {
+		if len(arnComponents[0]) == 2 {
+			return arnComponents[0][1]
+		}
+	}
+
+	return ""
 }

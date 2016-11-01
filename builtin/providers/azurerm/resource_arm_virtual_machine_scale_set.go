@@ -431,12 +431,12 @@ func resourceArmVirtualMachineScaleSetRead(d *schema.ResourceData, meta interfac
 	name := id.Path["virtualMachineScaleSets"]
 
 	resp, err := vmScaleSetClient.Get(resGroup, name)
-	if resp.StatusCode == http.StatusNotFound {
-		log.Printf("[INFO] AzureRM Virtual Machine Scale Set (%s) Not Found. Removing from State", name)
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			log.Printf("[INFO] AzureRM Virtual Machine Scale Set (%s) Not Found. Removing from State", name)
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine Scale Set %s: %s", name, err)
 	}
 

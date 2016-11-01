@@ -24,25 +24,26 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"creation_token": &schema.Schema{
+			"creation_token": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateMaxLength(64),
 			},
 
-			"reference_name": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Deprecated:    "Please use attribute `creation_token' instead. This attribute might be removed in future releases.",
-				ConflictsWith: []string{"creation_token"},
-				ValidateFunc:  validateReferenceName,
-			},
-
-			"performance_mode": &schema.Schema{
+			"reference_name": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
+				Deprecated:   "Please use attribute `creation_token' instead. This attribute might be removed in future releases.",
+				ValidateFunc: validateReferenceName,
+			},
+
+			"performance_mode": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validatePerformanceModeType,
 			},
@@ -95,8 +96,8 @@ func resourceAwsEfsFileSystemCreate(d *schema.ResourceData, meta interface{}) er
 				return nil, "error", err
 			}
 
-			if len(resp.FileSystems) < 1 {
-				return nil, "not-found", fmt.Errorf("EFS file system %q not found", d.Id())
+			if hasEmptyFileSystems(resp) {
+				return nil, "not-found", fmt.Errorf("EFS file system %q could not be found.", d.Id())
 			}
 
 			fs := resp.FileSystems[0]
@@ -110,7 +111,7 @@ func resourceAwsEfsFileSystemCreate(d *schema.ResourceData, meta interface{}) er
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Error waiting for EFS file system (%q) to create: %q",
+		return fmt.Errorf("Error waiting for EFS file system (%q) to create: %s",
 			d.Id(), err.Error())
 	}
 	log.Printf("[DEBUG] EFS file system %q created.", d.Id())
@@ -122,7 +123,7 @@ func resourceAwsEfsFileSystemUpdate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).efsconn
 	err := setTagsEFS(conn, d)
 	if err != nil {
-		return fmt.Errorf("Error setting EC2 tags for EFS file system (%q): %q",
+		return fmt.Errorf("Error setting EC2 tags for EFS file system (%q): %s",
 			d.Id(), err.Error())
 	}
 
@@ -137,25 +138,45 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 	})
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "FileSystemNotFound" {
-			log.Printf("[WARN] EFS File System (%s) not found, error code (404)", d.Id())
+			log.Printf("[WARN] EFS file system (%s) could not be found.", d.Id())
 			d.SetId("")
 			return nil
 		}
 		return err
 	}
-	if len(resp.FileSystems) < 1 {
-		return fmt.Errorf("EFS file system %q not found", d.Id())
+
+	if hasEmptyFileSystems(resp) {
+		return fmt.Errorf("EFS file system %q could not be found.", d.Id())
 	}
 
 	tagsResp, err := conn.DescribeTags(&efs.DescribeTagsInput{
 		FileSystemId: aws.String(d.Id()),
 	})
 	if err != nil {
-		return fmt.Errorf("Error retrieving EC2 tags for EFS file system (%q): %q",
+		return fmt.Errorf("Error retrieving EC2 tags for EFS file system (%q): %s",
 			d.Id(), err.Error())
 	}
 
-	d.Set("tags", tagsToMapEFS(tagsResp.Tags))
+	err = d.Set("tags", tagsToMapEFS(tagsResp.Tags))
+	if err != nil {
+		return err
+	}
+
+	var fs *efs.FileSystemDescription
+	for _, f := range resp.FileSystems {
+		if d.Id() == *f.FileSystemId {
+			fs = f
+			break
+		}
+	}
+	if fs == nil {
+		log.Printf("[WARN] EFS (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	d.Set("creation_token", fs.CreationToken)
+	d.Set("performance_mode", fs.PerformanceMode)
 
 	return nil
 }
@@ -182,7 +203,7 @@ func resourceAwsEfsFileSystemDelete(d *schema.ResourceData, meta interface{}) er
 				return nil, "error", err
 			}
 
-			if len(resp.FileSystems) < 1 {
+			if hasEmptyFileSystems(resp) {
 				return nil, "", nil
 			}
 
@@ -197,7 +218,7 @@ func resourceAwsEfsFileSystemDelete(d *schema.ResourceData, meta interface{}) er
 
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Error waiting for EFS file system (%q) to delete: %q",
+		return fmt.Errorf("Error waiting for EFS file system (%q) to delete: %s",
 			d.Id(), err.Error())
 	}
 
@@ -218,10 +239,17 @@ func validateReferenceName(v interface{}, k string) (ws []string, errors []error
 
 func validatePerformanceModeType(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if value != "generalPurpose" && value != "maxIO" {
+	if value != efs.PerformanceModeGeneralPurpose && value != efs.PerformanceModeMaxIo {
 		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid Performance Mode %q. Valid modes are either %q or %q",
-			k, value, "generalPurpose", "maxIO"))
+			"%q contains an invalid Performance Mode %q. Valid modes are either %q or %q.",
+			k, value, efs.PerformanceModeGeneralPurpose, efs.PerformanceModeMaxIo))
 	}
 	return
+}
+
+func hasEmptyFileSystems(fs *efs.DescribeFileSystemsOutput) bool {
+	if fs != nil && len(fs.FileSystems) > 0 {
+		return false
+	}
+	return true
 }

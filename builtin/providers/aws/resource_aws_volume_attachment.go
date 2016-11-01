@@ -136,7 +136,7 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	_, err := conn.DescribeVolumes(request)
+	vols, err := conn.DescribeVolumes(request)
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVolume.NotFound" {
 			d.SetId("")
@@ -144,6 +144,12 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 		}
 		return fmt.Errorf("Error reading EC2 volume %s for instance: %s: %#v", d.Get("volume_id").(string), d.Get("instance_id").(string), err)
 	}
+
+	if len(vols.Volumes) == 0 || *vols.Volumes[0].State == "available" {
+		log.Printf("[DEBUG] Volume Attachment (%s) not found, removing from state", d.Id())
+		d.SetId("")
+	}
+
 	return nil
 }
 
@@ -161,6 +167,10 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	_, err := conn.DetachVolume(opts)
+	if err != nil {
+		return fmt.Errorf("Failed to detach Volume (%s) from Instance (%s): %s",
+			vID, iID, err)
+	}
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"detaching"},
 		Target:     []string{"detached"},

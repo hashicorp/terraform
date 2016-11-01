@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"testing"
@@ -69,6 +70,83 @@ func TestPush_good(t *testing.T) {
 
 	if client.UpsertOptions.Name != "foo" {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
+	}
+}
+
+func TestPush_noUploadModules(t *testing.T) {
+	// Path where the archive will be "uploaded" to
+	archivePath := testTempFile(t)
+	defer os.Remove(archivePath)
+
+	client := &mockPushClient{File: archivePath}
+	ui := new(cli.MockUi)
+	c := &PushCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+
+		client: client,
+	}
+
+	// Path of the test. We have to do some renaming to avoid our own
+	// VCS getting in the way.
+	path := testFixturePath("push-no-upload")
+	defer os.RemoveAll(filepath.Join(path, ".terraform"))
+
+	// Move into that directory
+	defer testChdir(t, path)()
+
+	// Do a "terraform get"
+	{
+		ui := new(cli.MockUi)
+		c := &GetCommand{
+			Meta: Meta{
+				ContextOpts: testCtxConfig(testProvider()),
+				Ui:          ui,
+			},
+		}
+
+		if code := c.Run([]string{}); code != 0 {
+			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		}
+	}
+
+	// Create remote state file, this should be pulled
+	conf, srv := testRemoteState(t, testState(), 200)
+	defer srv.Close()
+
+	// Persist local remote state
+	s := terraform.NewState()
+	s.Serial = 5
+	s.Remote = conf
+	defer os.Remove(testStateFileRemote(t, s))
+
+	args := []string{
+		"-vcs=false",
+		"-name=mitchellh/tf-test",
+		"-upload-modules=false",
+		path,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// NOTE: The duplicates below are not ideal but are how things work
+	// currently due to how we manually add the files to the archive. This
+	// is definitely a "bug" we can fix in the future.
+	actual := testArchiveStr(t, archivePath)
+	expected := []string{
+		".terraform/",
+		".terraform/",
+		".terraform/terraform.tfstate",
+		".terraform/terraform.tfstate",
+		"child/",
+		"child/main.tf",
+		"main.tf",
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
 	}
 }
 
@@ -481,7 +559,7 @@ func TestPush_tfvars(t *testing.T) {
 		"-var-file", path + "/terraform.tfvars",
 		"-vcs=false",
 		"-var",
-		"bar=1",
+		"bar=[1,2]",
 		path,
 	}
 	if code := c.Run(args); code != 0 {
@@ -508,7 +586,7 @@ func TestPush_tfvars(t *testing.T) {
 	// update bar to match cli value
 	for i, v := range tfvars {
 		if v.Key == "bar" {
-			tfvars[i].Value = "1"
+			tfvars[i].Value = "[1, 2]"
 			tfvars[i].IsHCL = true
 		}
 	}
@@ -685,13 +763,12 @@ func testArchiveStr(t *testing.T, path string) []string {
 
 func pushTFVars() []atlas.TFVar {
 	return []atlas.TFVar{
-		{"bar", "foo", false},
-		{"baz", `{
-  A      = "a"
-  interp = "${file("t.txt")}"
-}`, true},
-		{"fob", `["a", "quotes \"in\" quotes"]`, true},
-		{"foo", "bar", false},
+		{Key: "bar", Value: "foo", IsHCL: false},
+		{Key: "baz", Value: `{
+  A = "a"
+}`, IsHCL: true},
+		{Key: "fob", Value: `["a", "quotes \"in\" quotes"]`, IsHCL: true},
+		{Key: "foo", Value: "bar", IsHCL: false},
 	}
 }
 

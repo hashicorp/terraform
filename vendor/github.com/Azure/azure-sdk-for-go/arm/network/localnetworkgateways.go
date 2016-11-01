@@ -26,7 +26,7 @@ import (
 
 // LocalNetworkGatewaysClient is the the Microsoft Azure Network management
 // API provides a RESTful set of web services that interact with Microsoft
-// Azure Networks service to manage your network resrources. The API has
+// Azure Networks service to manage your network resources. The API has
 // entities that capture the relationship between an end user and the
 // Microsoft Azure Networks service.
 type LocalNetworkGatewaysClient struct {
@@ -117,7 +117,7 @@ func (client LocalNetworkGatewaysClient) CreateOrUpdateResponder(resp *http.Resp
 	return
 }
 
-// Delete the Delete LocalNetworkGateway operation deletes the specifed local
+// Delete the Delete LocalNetworkGateway operation deletes the specified local
 // network Gateway through Network resource provider. This method may poll
 // for completion. Polling can be canceled by passing the cancel channel
 // argument. The channel will be used to cancel polling and any outstanding
@@ -315,7 +315,7 @@ func (client LocalNetworkGatewaysClient) ListResponder(resp *http.Response) (res
 func (client LocalNetworkGatewaysClient) ListNextResults(lastResults LocalNetworkGatewayListResult) (result LocalNetworkGatewayListResult, err error) {
 	req, err := lastResults.LocalNetworkGatewayListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.LocalNetworkGatewaysClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.LocalNetworkGatewaysClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -324,12 +324,12 @@ func (client LocalNetworkGatewaysClient) ListNextResults(lastResults LocalNetwor
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.LocalNetworkGatewaysClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.LocalNetworkGatewaysClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.LocalNetworkGatewaysClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.LocalNetworkGatewaysClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

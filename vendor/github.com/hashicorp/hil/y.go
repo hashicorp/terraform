@@ -5,10 +5,12 @@ import __yyfmt__ "fmt"
 
 //line lang.y:6
 import (
+	"fmt"
+
 	"github.com/hashicorp/hil/ast"
 )
 
-//line lang.y:14
+//line lang.y:16
 type parserSymType struct {
 	yys      int
 	node     ast.Node
@@ -57,7 +59,7 @@ const parserEofCode = 1
 const parserErrCode = 2
 const parserInitialStackSize = 16
 
-//line lang.y:196
+//line lang.y:200
 
 //line yacctab:1
 var parserExca = [...]int{
@@ -470,7 +472,7 @@ parserdefault:
 
 	case 1:
 		parserDollar = parserS[parserpt-0 : parserpt+1]
-		//line lang.y:36
+		//line lang.y:38
 		{
 			parserResult = &ast.LiteralNode{
 				Value: "",
@@ -480,7 +482,7 @@ parserdefault:
 		}
 	case 2:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:44
+		//line lang.y:46
 		{
 			parserResult = parserDollar[1].node
 
@@ -503,13 +505,13 @@ parserdefault:
 		}
 	case 3:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:67
+		//line lang.y:69
 		{
 			parserVAL.node = parserDollar[1].node
 		}
 	case 4:
 		parserDollar = parserS[parserpt-2 : parserpt+1]
-		//line lang.y:71
+		//line lang.y:73
 		{
 			var result []ast.Node
 			if c, ok := parserDollar[1].node.(*ast.Output); ok {
@@ -525,37 +527,37 @@ parserdefault:
 		}
 	case 5:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:87
+		//line lang.y:89
 		{
 			parserVAL.node = parserDollar[1].node
 		}
 	case 6:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:91
+		//line lang.y:93
 		{
 			parserVAL.node = parserDollar[1].node
 		}
 	case 7:
 		parserDollar = parserS[parserpt-3 : parserpt+1]
-		//line lang.y:97
+		//line lang.y:99
 		{
 			parserVAL.node = parserDollar[2].node
 		}
 	case 8:
 		parserDollar = parserS[parserpt-3 : parserpt+1]
-		//line lang.y:103
+		//line lang.y:105
 		{
 			parserVAL.node = parserDollar[2].node
 		}
 	case 9:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:107
+		//line lang.y:109
 		{
 			parserVAL.node = parserDollar[1].node
 		}
 	case 10:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:111
+		//line lang.y:113
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserDollar[1].token.Value.(int),
@@ -565,7 +567,7 @@ parserdefault:
 		}
 	case 11:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:119
+		//line lang.y:121
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserDollar[1].token.Value.(float64),
@@ -575,14 +577,16 @@ parserdefault:
 		}
 	case 12:
 		parserDollar = parserS[parserpt-2 : parserpt+1]
-		//line lang.y:127
+		//line lang.y:129
 		{
 			// This is REALLY jank. We assume that a singular ARITH_OP
 			// means 0 ARITH_OP expr, which... is weird. We don't want to
 			// support *, /, etc., only -. We should fix this later with a pure
 			// Go scanner/parser.
 			if parserDollar[1].token.Value.(ast.ArithmeticOp) != ast.ArithmeticOpSub {
-				panic("Unary - is only allowed")
+				if parserErr == nil {
+					parserErr = fmt.Errorf("Invalid unary operation: %v", parserDollar[1].token.Value)
+				}
 			}
 
 			parserVAL.node = &ast.Arithmetic{
@@ -596,7 +600,7 @@ parserdefault:
 		}
 	case 13:
 		parserDollar = parserS[parserpt-3 : parserpt+1]
-		//line lang.y:146
+		//line lang.y:150
 		{
 			parserVAL.node = &ast.Arithmetic{
 				Op:    parserDollar[2].token.Value.(ast.ArithmeticOp),
@@ -606,19 +610,19 @@ parserdefault:
 		}
 	case 14:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:154
+		//line lang.y:158
 		{
 			parserVAL.node = &ast.VariableAccess{Name: parserDollar[1].token.Value.(string), Posx: parserDollar[1].token.Pos}
 		}
 	case 15:
 		parserDollar = parserS[parserpt-4 : parserpt+1]
-		//line lang.y:158
+		//line lang.y:162
 		{
 			parserVAL.node = &ast.Call{Func: parserDollar[1].token.Value.(string), Args: parserDollar[3].nodeList, Posx: parserDollar[1].token.Pos}
 		}
 	case 16:
 		parserDollar = parserS[parserpt-4 : parserpt+1]
-		//line lang.y:162
+		//line lang.y:166
 		{
 			parserVAL.node = &ast.Index{
 				Target: &ast.VariableAccess{
@@ -631,25 +635,25 @@ parserdefault:
 		}
 	case 17:
 		parserDollar = parserS[parserpt-0 : parserpt+1]
-		//line lang.y:174
+		//line lang.y:178
 		{
 			parserVAL.nodeList = nil
 		}
 	case 18:
 		parserDollar = parserS[parserpt-3 : parserpt+1]
-		//line lang.y:178
+		//line lang.y:182
 		{
 			parserVAL.nodeList = append(parserDollar[1].nodeList, parserDollar[3].node)
 		}
 	case 19:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:182
+		//line lang.y:186
 		{
 			parserVAL.nodeList = append(parserVAL.nodeList, parserDollar[1].node)
 		}
 	case 20:
 		parserDollar = parserS[parserpt-1 : parserpt+1]
-		//line lang.y:188
+		//line lang.y:192
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserDollar[1].token.Value.(string),

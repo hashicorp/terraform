@@ -60,7 +60,7 @@ provider "aws" {
 
 You can provide your credentials via `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, 
 environment variables, representing your AWS Access Key and AWS Secret Key, respectively.
-`AWS_DEFAULT_REGION` and `AWS_SECURITY_TOKEN` are also used, if applicable:
+`AWS_DEFAULT_REGION` and `AWS_SESSION_TOKEN` are also used, if applicable:
 
 ```
 provider "aws" {}
@@ -111,6 +111,23 @@ You can provide custom metadata API endpoint via `AWS_METADATA_ENDPOINT` variabl
 which expects the endpoint URL including the version
 and defaults to `http://169.254.169.254:80/latest`.
 
+###Assume role
+
+If provided with a role ARN, Terraform will attempt to assume this role
+using the supplied credentials.
+
+Usage:
+
+```
+provider "aws" {
+  assume_role {
+    role_arn = "arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME"
+    session_name = "SESSION_NAME"
+    external_id = "EXTERNAL_ID"
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported in the `provider` block:
@@ -130,11 +147,14 @@ The following arguments are supported in the `provider` block:
 * `profile` - (Optional) This is the AWS profile name as set in the shared credentials
   file.
 
+* `assume_role` - (Optional) An `assume_role` block (documented below). Only one
+  `assume_role` block may be in the configuration.
+
 * `shared_credentials_file` = (Optional) This is the path to the shared credentials file.
   If this is not set and a profile is specified, ~/.aws/credentials will be used.
 
 * `token` - (Optional) Use this to set an MFA token. It can also be sourced
-  from the `AWS_SECURITY_TOKEN` environment variable.
+  from the `AWS_SESSION_TOKEN` environment variable.
 
 * `max_retries` - (Optional) This is the maximum number of times an API call is
   being retried in case requests are being throttled or experience transient failures.
@@ -183,11 +203,21 @@ The following arguments are supported in the `provider` block:
   (static credentials set as ENV vars or config)
 
 * `s3_force_path_style` - (Optional) set this to true to force the request to use
-  path-style adressing, i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the
+  path-style addressing, i.e., http://s3.amazonaws.com/BUCKET/KEY. By default, the
   S3 client will use virtual hosted bucket addressing when possible
   (http://BUCKET.s3.amazonaws.com/KEY). Specific to the Amazon S3 service.
 
-Nested `endpoints` block supports the followings:
+The nested `assume_role` block supports the following:
+
+* `role_arn` - (Required) The ARN of the role to assume.
+
+* `session_name` - (Optional) The session name to use when making the
+  AssumeRole call.
+
+* `external_id` - (Optional) The external ID to use when making the
+  AssumeRole  call.
+
+Nested `endpoints` block supports the following:
 
 * `iam` - (Optional) Use this to override the default endpoint
   URL constructed from the `region`. It's typically used to connect to

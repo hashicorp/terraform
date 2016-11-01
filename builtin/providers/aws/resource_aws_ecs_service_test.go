@@ -241,6 +241,22 @@ func TestAccAWSEcsService_withEcsClusterName(t *testing.T) {
 	})
 }
 
+func TestAccAWSEcsService_withAlb(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEcsServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEcsServiceWithAlb,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcsServiceExists("aws_ecs_service.with_alb"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSEcsServiceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ecsconn
 
@@ -700,5 +716,130 @@ resource "aws_ecs_service" "jenkins" {
   cluster = "${aws_ecs_cluster.default.name}"
   task_definition = "${aws_ecs_task_definition.jenkins.arn}"
   desired_count = 1
+}
+`
+
+var testAccAWSEcsServiceWithAlb = `
+data "aws_availability_zones" "available" {}
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.10.0.0/16"
+}
+
+resource "aws_subnet" "main" {
+  count = 2
+  cidr_block = "${cidrsubnet(aws_vpc.main.cidr_block, 8, count.index)}"
+  availability_zone = "${data.aws_availability_zones.available.names[count.index]}"
+  vpc_id = "${aws_vpc.main.id}"
+}
+
+resource "aws_ecs_cluster" "main" {
+  name = "terraform_acc_test_ecs_15"
+}
+
+resource "aws_ecs_task_definition" "with_lb_changes" {
+  family = "tf_acc_test_ghost_lbd"
+  container_definitions = <<DEFINITION
+[
+  {
+    "cpu": 256,
+    "essential": true,
+    "image": "ghost:latest",
+    "memory": 512,
+    "name": "ghost",
+    "portMappings": [
+      {
+        "containerPort": 2368,
+        "hostPort": 8080
+      }
+    ]
+  }
+]
+DEFINITION
+}
+
+resource "aws_iam_role" "ecs_service" {
+    name = "tf_acc_test_15_role"
+    assume_role_policy = <<EOF
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ecs.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "ecs_service" {
+    name = "tf_acc_test_15_policy"
+    role = "${aws_iam_role.ecs_service.name}"
+    policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+        "elasticloadbalancing:DeregisterTargets",
+        "elasticloadbalancing:Describe*",
+        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+        "elasticloadbalancing:RegisterTargets"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_alb_target_group" "test" {
+  name = "tf-acc-test-ecs-ghost"
+  port = 80
+  protocol = "HTTP"
+  vpc_id = "${aws_vpc.main.id}"
+}
+
+resource "aws_alb" "main" {
+  name            = "tf-acc-test-test-alb-ecs"
+  subnets         = ["${aws_subnet.main.*.id}"]
+}
+
+resource "aws_alb_listener" "front_end" {
+  load_balancer_arn = "${aws_alb.main.id}"
+  port = "80"
+  protocol = "HTTP"
+
+  default_action {
+    target_group_arn = "${aws_alb_target_group.test.id}"
+    type = "forward"
+  }
+}
+
+resource "aws_ecs_service" "with_alb" {
+  name = "tf-acc-test-ecs-ghost"
+  cluster = "${aws_ecs_cluster.main.id}"
+  task_definition = "${aws_ecs_task_definition.with_lb_changes.arn}"
+  desired_count = 1
+  iam_role = "${aws_iam_role.ecs_service.name}"
+
+  load_balancer {
+    target_group_arn = "${aws_alb_target_group.test.id}"
+    container_name = "ghost"
+    container_port = "2368"
+  }
+
+  depends_on = [
+    "aws_iam_role_policy.ecs_service",
+    "aws_alb_listener.front_end"
+  ]
 }
 `

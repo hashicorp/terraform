@@ -76,7 +76,13 @@ func resourceAwsEcsService() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"elb_name": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"target_group_arn": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 							ForceNew: true,
 						},
 
@@ -195,21 +201,21 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Received ECS service %s", service)
 
 	d.SetId(*service.ServiceArn)
-	d.Set("name", *service.ServiceName)
+	d.Set("name", service.ServiceName)
 
 	// Save task definition in the same format
 	if strings.HasPrefix(d.Get("task_definition").(string), "arn:aws:ecs:") {
-		d.Set("task_definition", *service.TaskDefinition)
+		d.Set("task_definition", service.TaskDefinition)
 	} else {
 		taskDefinition := buildFamilyAndRevisionFromARN(*service.TaskDefinition)
 		d.Set("task_definition", taskDefinition)
 	}
 
-	d.Set("desired_count", *service.DesiredCount)
+	d.Set("desired_count", service.DesiredCount)
 
 	// Save cluster in the same format
 	if strings.HasPrefix(d.Get("cluster").(string), "arn:aws:ecs:") {
-		d.Set("cluster", *service.ClusterArn)
+		d.Set("cluster", service.ClusterArn)
 	} else {
 		clusterARN := getNameFromARN(*service.ClusterArn)
 		d.Set("cluster", clusterARN)
@@ -218,7 +224,7 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	// Save IAM role in the same format
 	if service.RoleArn != nil {
 		if strings.HasPrefix(d.Get("iam_role").(string), "arn:aws:iam:") {
-			d.Set("iam_role", *service.RoleArn)
+			d.Set("iam_role", service.RoleArn)
 		} else {
 			roleARN := getNameFromARN(*service.RoleArn)
 			d.Set("iam_role", roleARN)
@@ -226,8 +232,8 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if service.DeploymentConfiguration != nil {
-		d.Set("deployment_maximum_percent", *service.DeploymentConfiguration.MaximumPercent)
-		d.Set("deployment_minimum_healthy_percent", *service.DeploymentConfiguration.MinimumHealthyPercent)
+		d.Set("deployment_maximum_percent", service.DeploymentConfiguration.MaximumPercent)
+		d.Set("deployment_minimum_healthy_percent", service.DeploymentConfiguration.MinimumHealthyPercent)
 	}
 
 	if service.LoadBalancers != nil {
@@ -343,7 +349,7 @@ func resourceAwsEcsServiceDelete(d *schema.ResourceData, meta interface{}) error
 	wait := resource.StateChangeConf{
 		Pending:    []string{"DRAINING"},
 		Target:     []string{"INACTIVE"},
-		Timeout:    5 * time.Minute,
+		Timeout:    10 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			log.Printf("[DEBUG] Checking if ECS service %s is INACTIVE", d.Id())

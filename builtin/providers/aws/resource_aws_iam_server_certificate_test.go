@@ -63,7 +63,7 @@ func TestAccAWSIAMServerCertificate_disappears(t *testing.T) {
 		})
 
 		if err != nil {
-			return fmt.Errorf("Error destorying cert in test: %s", err)
+			return fmt.Errorf("Error destroying cert in test: %s", err)
 		}
 
 		return nil

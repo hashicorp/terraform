@@ -116,10 +116,9 @@ func resourceArmSearchServiceCreate(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Waiting for Search Service (%s) to become available", d.Get("name"))
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"provisioning"},
-		Target:  []string{"succeeded"},
-		Refresh: azureStateRefreshFunc(*resp.ID, client, getSearchServiceCommand),
-		// ¯\_(ツ)_/¯
+		Pending:    []string{"provisioning"},
+		Target:     []string{"succeeded"},
+		Refresh:    azureStateRefreshFunc(*resp.ID, client, getSearchServiceCommand),
 		Timeout:    30 * time.Minute,
 		MinTimeout: 15 * time.Second,
 	}

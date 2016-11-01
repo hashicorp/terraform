@@ -1,6 +1,7 @@
 package hil
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/hashicorp/hil/ast"
@@ -77,8 +78,16 @@ func builtinIntMath() ast.Function {
 				case ast.ArithmeticOpMul:
 					result *= arg
 				case ast.ArithmeticOpDiv:
+					if arg == 0 {
+						return nil, errors.New("divide by zero")
+					}
+
 					result /= arg
 				case ast.ArithmeticOpMod:
+					if arg == 0 {
+						return nil, errors.New("divide by zero")
+					}
+
 					result = result % arg
 				}
 			}

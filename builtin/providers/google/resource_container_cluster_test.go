@@ -43,6 +43,25 @@ func TestAccContainerCluster_withNodeConfig(t *testing.T) {
 	})
 }
 
+func TestAccContainerCluster_network(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_networkRef,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_net_ref_by_url"),
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_net_ref_by_name"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckContainerClusterDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -124,3 +143,35 @@ resource "google_container_cluster" "with_node_config" {
 		]
 	}
 }`, acctest.RandString(10))
+
+var testAccContainerCluster_networkRef = fmt.Sprintf(`
+resource "google_compute_network" "container_network" {
+	name = "container-net-%s"
+	auto_create_subnetworks = true
+}
+
+resource "google_container_cluster" "with_net_ref_by_url" {
+	name = "cluster-test-%s"
+	zone = "us-central1-a"
+	initial_node_count = 1
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	network = "${google_compute_network.container_network.self_link}"
+}
+
+resource "google_container_cluster" "with_net_ref_by_name" {
+	name = "cluster-test-%s"
+	zone = "us-central1-a"
+	initial_node_count = 1
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	network = "${google_compute_network.container_network.name}"
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

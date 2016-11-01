@@ -41,6 +41,9 @@ configuration is dependent on the type, and is documented for each
 resource type in the
 [providers section](/docs/providers/index.html).
 
+<a id="meta-parameters"></a>
+### Meta-parameters
+
 There are **meta-parameters** available to all resources:
 
   * `count` (int) - The number of identical resources to create.
@@ -52,6 +55,11 @@ There are **meta-parameters** available to all resources:
       resource has. These dependencies will be created before this
       resource. The dependencies are in the format of `TYPE.NAME`,
       for example `aws_instance.web`.
+
+  * `provider` (string) - The name of a specific provider to use for
+      this resource. The name is in the format of `TYPE.ALIAS`, for example,
+      `aws.west`. Where `west` is set using the `alias` attribute in a
+      provider. See [multiple provider instances](#multi-provider-instances).
 
   * `lifecycle` (configuration block) - Customizes the lifecycle
       behavior of the resource. The specific options are documented
@@ -78,13 +86,19 @@ The `lifecycle` block allows the following keys to be set:
 ~> **NOTE on create\_before\_destroy and dependencies:** Resources that utilize
 the `create_before_destroy` key can only depend on other resources that also
 include `create_before_destroy`. Referencing a resource that does not include
-`create_before_destroy` will result in a dependency graph cycle. 
+`create_before_destroy` will result in a dependency graph cycle.
 
 ~> **NOTE on ignore\_changes:** Ignored attribute names can be matched by their
 name, not state ID. For example, if an `aws_route_table` has two routes defined
 and the `ignore_changes` list contains "route", both routes will be ignored.
+Additionally you can also use a single entry with a wildcard (e.g. `"*"`)
+which will match all attribute names. Using a partial string together with a
+wildcard (e.g. `"rout*"`) is **not** supported.
 
--------------
+
+<a id="connection-block"></a>
+
+### Connection block
 
 Within a resource, you can optionally have a **connection block**.
 Connection blocks describe to Terraform how to connect to the
@@ -99,7 +113,9 @@ but other data must be specified by the user.
 The full list of settings that can be specified are listed on
 the [provisioner connection page](/docs/provisioners/connection.html).
 
--------------
+<a id="provisioners"></a>
+
+### Provisioners
 
 Within a resource, you can specify zero or more **provisioner
 blocks**. Provisioner blocks configure
@@ -125,8 +141,9 @@ You can use the `${count.index}`
 [interpolation](/docs/configuration/interpolation.html) along with a map
 [variable](/docs/configuration/variables.html) to accomplish this.
 
-For example, here's how you could create three [AWS Instances](/docs/providers/aws/r/instance.html) each with their own static IP
-address:
+For example, here's how you could create three [AWS
+Instances](/docs/providers/aws/r/instance.html) each with their own
+static IP address:
 
 ```
 variable "instance_ips" {
@@ -143,6 +160,8 @@ resource "aws_instance" "app" {
   # ...
 }
 ```
+
+<a id="multi-provider-instances"></a>
 
 ## Multiple Provider Instances
 
@@ -167,8 +186,15 @@ The value of the field should be `TYPE` or `TYPE.ALIAS`. The `ALIAS` value
 comes from the `alias` field value when configuring the
 [provider](/docs/configuration/providers.html).
 
-If no `provider` field is specified, the default (provider with no alias)
-provider is used.
+```
+provider "aws" {
+  alias = "west"
+
+  # ...
+}
+```
+
+If no `provider` field is specified, the default provider is used.
 
 ## Syntax
 

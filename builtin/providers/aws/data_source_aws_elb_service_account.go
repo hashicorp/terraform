@@ -18,6 +18,7 @@ var elbAccountIdPerRegionMap = map[string]string{
 	"eu-west-1":      "156460612806",
 	"sa-east-1":      "507241528517",
 	"us-east-1":      "127311923021",
+	"us-east-2":      "033677994240",
 	"us-gov-west":    "048591011584",
 	"us-west-1":      "027434742980",
 	"us-west-2":      "797873946194",
@@ -32,6 +33,10 @@ func dataSourceAwsElbServiceAccount() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -44,6 +49,9 @@ func dataSourceAwsElbServiceAccountRead(d *schema.ResourceData, meta interface{}
 
 	if accid, ok := elbAccountIdPerRegionMap[region]; ok {
 		d.SetId(accid)
+
+		d.Set("arn", "arn:aws:iam::"+accid+":root")
+
 		return nil
 	}
 

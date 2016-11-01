@@ -2,7 +2,7 @@ Terraform
 =========
 
 - Website: http://www.terraform.io
-- IRC: `#terraform-tool` on Freenode
+- [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
 - Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
 ![Terraform](https://raw.githubusercontent.com/hashicorp/terraform/master/website/source/assets/images/readme.png)
@@ -29,13 +29,14 @@ All documentation is available on the [Terraform website](http://www.terraform.i
 Developing Terraform
 --------------------
 
-If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.6+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
+If you wish to work on Terraform itself or any of its built-in providers, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.7+ is *required*). Alternatively, you can use the Vagrantfile in the root of this repo to stand up a virtual machine with the appropriate dev tooling already set up for you.
 
 For local dev first make sure Go is properly installed, including setting up a [GOPATH](http://golang.org/doc/code.html#GOPATH). You will also need to add `$GOPATH/bin` to your `$PATH`.
 
 Next, using [Git](https://git-scm.com/), clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`. All the necessary dependencies are either vendored or automatically installed, so you just need to type `make`. This will compile the code and then run the tests. If this exits with exit status 0, then everything is working!
 
 ```sh
+$ cd $GOPATH/src/github.com/hashicorp/terraform
 $ make
 ```
 
@@ -121,7 +122,7 @@ If you wish to cross-compile Terraform for another architecture, you can set the
 For example, to compile 64-bit Linux binaries on Mac OS X Linux, you can run:
 
 ```sh
-$ XC_OS=linux XC_ARCH=amd64 make bin 
+$ XC_OS=linux XC_ARCH=amd64 make bin
 ...
 $ file pkg/linux_amd64/terraform
 terraform: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, not stripped

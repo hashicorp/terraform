@@ -20,6 +20,8 @@ const opAddClientIDToOpenIDConnectProvider = "AddClientIDToOpenIDConnectProvider
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See AddClientIDToOpenIDConnectProvider for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -56,11 +58,38 @@ func (c *IAM) AddClientIDToOpenIDConnectProviderRequest(input *AddClientIDToOpen
 	return
 }
 
+// AddClientIDToOpenIDConnectProvider API operation for AWS Identity and Access Management.
+//
 // Adds a new client ID (also known as audience) to the list of client IDs already
 // registered for the specified IAM OpenID Connect (OIDC) provider resource.
 //
 // This action is idempotent; it does not fail or return an error if you add
 // an existing client ID to the provider.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation AddClientIDToOpenIDConnectProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) AddClientIDToOpenIDConnectProvider(input *AddClientIDToOpenIDConnectProviderInput) (*AddClientIDToOpenIDConnectProviderOutput, error) {
 	req, out := c.AddClientIDToOpenIDConnectProviderRequest(input)
 	err := req.Send()
@@ -73,6 +102,8 @@ const opAddRoleToInstanceProfile = "AddRoleToInstanceProfile"
 // client's request for the AddRoleToInstanceProfile operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AddRoleToInstanceProfile for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -110,6 +141,8 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 	return
 }
 
+// AddRoleToInstanceProfile API operation for AWS Identity and Access Management.
+//
 // Adds the specified IAM role to the specified instance profile.
 //
 //  The caller of this API must be granted the PassRole permission on the IAM
@@ -118,6 +151,31 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 //  For more information about roles, go to Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 // For more information about instance profiles, go to About Instance Profiles
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation AddRoleToInstanceProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) AddRoleToInstanceProfile(input *AddRoleToInstanceProfileInput) (*AddRoleToInstanceProfileOutput, error) {
 	req, out := c.AddRoleToInstanceProfileRequest(input)
 	err := req.Send()
@@ -130,6 +188,8 @@ const opAddUserToGroup = "AddUserToGroup"
 // client's request for the AddUserToGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AddUserToGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -167,7 +227,30 @@ func (c *IAM) AddUserToGroupRequest(input *AddUserToGroupInput) (req *request.Re
 	return
 }
 
+// AddUserToGroup API operation for AWS Identity and Access Management.
+//
 // Adds the specified user to the specified group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation AddUserToGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) AddUserToGroup(input *AddUserToGroupInput) (*AddUserToGroupOutput, error) {
 	req, out := c.AddUserToGroupRequest(input)
 	err := req.Send()
@@ -180,6 +263,8 @@ const opAttachGroupPolicy = "AttachGroupPolicy"
 // client's request for the AttachGroupPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AttachGroupPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -217,6 +302,8 @@ func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *requ
 	return
 }
 
+// AttachGroupPolicy API operation for AWS Identity and Access Management.
+//
 // Attaches the specified managed policy to the specified IAM group.
 //
 // You use this API to attach a managed policy to a group. To embed an inline
@@ -225,6 +312,31 @@ func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *requ
 // For more information about policies, see Managed Policies and Inline Policies
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation AttachGroupPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) AttachGroupPolicy(input *AttachGroupPolicyInput) (*AttachGroupPolicyOutput, error) {
 	req, out := c.AttachGroupPolicyRequest(input)
 	err := req.Send()
@@ -237,6 +349,8 @@ const opAttachRolePolicy = "AttachRolePolicy"
 // client's request for the AttachRolePolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AttachRolePolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -274,6 +388,8 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 	return
 }
 
+// AttachRolePolicy API operation for AWS Identity and Access Management.
+//
 // Attaches the specified managed policy to the specified IAM role.
 //
 // When you attach a managed policy to a role, the managed policy becomes part
@@ -286,6 +402,31 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 // in a role, use PutRolePolicy. For more information about policies, see Managed
 // Policies and Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation AttachRolePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) AttachRolePolicy(input *AttachRolePolicyInput) (*AttachRolePolicyOutput, error) {
 	req, out := c.AttachRolePolicyRequest(input)
 	err := req.Send()
@@ -298,6 +439,8 @@ const opAttachUserPolicy = "AttachUserPolicy"
 // client's request for the AttachUserPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AttachUserPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -335,6 +478,8 @@ func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *reques
 	return
 }
 
+// AttachUserPolicy API operation for AWS Identity and Access Management.
+//
 // Attaches the specified managed policy to the specified user.
 //
 // You use this API to attach a managed policy to a user. To embed an inline
@@ -343,6 +488,31 @@ func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *reques
 // For more information about policies, see Managed Policies and Inline Policies
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation AttachUserPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) AttachUserPolicy(input *AttachUserPolicyInput) (*AttachUserPolicyOutput, error) {
 	req, out := c.AttachUserPolicyRequest(input)
 	err := req.Send()
@@ -355,6 +525,8 @@ const opChangePassword = "ChangePassword"
 // client's request for the ChangePassword operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ChangePassword for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -392,12 +564,49 @@ func (c *IAM) ChangePasswordRequest(input *ChangePasswordInput) (req *request.Re
 	return
 }
 
+// ChangePassword API operation for AWS Identity and Access Management.
+//
 // Changes the password of the IAM user who is calling this action. The root
 // account password is not affected by this action.
 //
 // To change the password for a different user, see UpdateLoginProfile. For
 // more information about modifying passwords, see Managing Passwords (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ChangePassword for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidUserType
+//   The request was rejected because the type of user for the transaction was
+//   incorrect.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * EntityTemporarilyUnmodifiable
+//   The request was rejected because it referenced an entity that is temporarily
+//   unmodifiable, such as a user name that was deleted and then recreated. The
+//   error indicates that the request is likely to succeed if you try again after
+//   waiting several minutes. The error message describes the entity.
+//
+//   * PasswordPolicyViolation
+//   The request was rejected because the provided password did not meet the requirements
+//   imposed by the account password policy.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ChangePassword(input *ChangePasswordInput) (*ChangePasswordOutput, error) {
 	req, out := c.ChangePasswordRequest(input)
 	err := req.Send()
@@ -410,6 +619,8 @@ const opCreateAccessKey = "CreateAccessKey"
 // client's request for the CreateAccessKey operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateAccessKey for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -445,6 +656,8 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 	return
 }
 
+// CreateAccessKey API operation for AWS Identity and Access Management.
+//
 // Creates a new AWS secret access key and corresponding AWS access key ID for
 // the specified user. The default status for new keys is Active.
 //
@@ -462,6 +675,27 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 // a text file) if you want to be able to access it again. If a secret key is
 // lost, you can delete the access keys for the associated user and then create
 // new keys.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateAccessKey for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateAccessKey(input *CreateAccessKeyInput) (*CreateAccessKeyOutput, error) {
 	req, out := c.CreateAccessKeyRequest(input)
 	err := req.Send()
@@ -474,6 +708,8 @@ const opCreateAccountAlias = "CreateAccountAlias"
 // client's request for the CreateAccountAlias operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateAccountAlias for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -511,9 +747,32 @@ func (c *IAM) CreateAccountAliasRequest(input *CreateAccountAliasInput) (req *re
 	return
 }
 
+// CreateAccountAlias API operation for AWS Identity and Access Management.
+//
 // Creates an alias for your AWS account. For information about using an AWS
 // account alias, see Using an Alias for Your AWS Account ID (http://docs.aws.amazon.com/IAM/latest/UserGuide/AccountAlias.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateAccountAlias for usage and error information.
+//
+// Returned Error Codes:
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateAccountAlias(input *CreateAccountAliasInput) (*CreateAccountAliasOutput, error) {
 	req, out := c.CreateAccountAliasRequest(input)
 	err := req.Send()
@@ -526,6 +785,8 @@ const opCreateGroup = "CreateGroup"
 // client's request for the CreateGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -561,11 +822,38 @@ func (c *IAM) CreateGroupRequest(input *CreateGroupInput) (req *request.Request,
 	return
 }
 
+// CreateGroup API operation for AWS Identity and Access Management.
+//
 // Creates a new group.
 //
 //  For information about the number of groups you can create, see Limitations
 // on IAM Entities (http://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateGroup(input *CreateGroupInput) (*CreateGroupOutput, error) {
 	req, out := c.CreateGroupRequest(input)
 	err := req.Send()
@@ -578,6 +866,8 @@ const opCreateInstanceProfile = "CreateInstanceProfile"
 // client's request for the CreateInstanceProfile operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateInstanceProfile for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -613,12 +903,35 @@ func (c *IAM) CreateInstanceProfileRequest(input *CreateInstanceProfileInput) (r
 	return
 }
 
+// CreateInstanceProfile API operation for AWS Identity and Access Management.
+//
 // Creates a new instance profile. For information about instance profiles,
 // go to About Instance Profiles (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
 //  For information about the number of instance profiles you can create, see
 // Limitations on IAM Entities (http://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateInstanceProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateInstanceProfile(input *CreateInstanceProfileInput) (*CreateInstanceProfileOutput, error) {
 	req, out := c.CreateInstanceProfileRequest(input)
 	err := req.Send()
@@ -631,6 +944,8 @@ const opCreateLoginProfile = "CreateLoginProfile"
 // client's request for the CreateLoginProfile operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateLoginProfile for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -666,10 +981,41 @@ func (c *IAM) CreateLoginProfileRequest(input *CreateLoginProfileInput) (req *re
 	return
 }
 
+// CreateLoginProfile API operation for AWS Identity and Access Management.
+//
 // Creates a password for the specified user, giving the user the ability to
 // access AWS services through the AWS Management Console. For more information
 // about managing passwords, see Managing Passwords (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateLoginProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * PasswordPolicyViolation
+//   The request was rejected because the provided password did not meet the requirements
+//   imposed by the account password policy.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateLoginProfile(input *CreateLoginProfileInput) (*CreateLoginProfileOutput, error) {
 	req, out := c.CreateLoginProfileRequest(input)
 	err := req.Send()
@@ -682,6 +1028,8 @@ const opCreateOpenIDConnectProvider = "CreateOpenIDConnectProvider"
 // client's request for the CreateOpenIDConnectProvider operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateOpenIDConnectProvider for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -717,6 +1065,8 @@ func (c *IAM) CreateOpenIDConnectProviderRequest(input *CreateOpenIDConnectProvi
 	return
 }
 
+// CreateOpenIDConnectProvider API operation for AWS Identity and Access Management.
+//
 // Creates an IAM entity to describe an identity provider (IdP) that supports
 // OpenID Connect (OIDC) (http://openid.net/connect/).
 //
@@ -734,6 +1084,31 @@ func (c *IAM) CreateOpenIDConnectProviderRequest(input *CreateOpenIDConnectProvi
 //  Because trust for the OIDC provider is ultimately derived from the IAM
 // provider that this action creates, it is a best practice to limit access
 // to the CreateOpenIDConnectProvider action to highly-privileged users.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateOpenIDConnectProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateOpenIDConnectProvider(input *CreateOpenIDConnectProviderInput) (*CreateOpenIDConnectProviderOutput, error) {
 	req, out := c.CreateOpenIDConnectProviderRequest(input)
 	err := req.Send()
@@ -746,6 +1121,8 @@ const opCreatePolicy = "CreatePolicy"
 // client's request for the CreatePolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreatePolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -781,6 +1158,8 @@ func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Reques
 	return
 }
 
+// CreatePolicy API operation for AWS Identity and Access Management.
+//
 // Creates a new managed policy for your AWS account.
 //
 // This operation creates a policy version with a version identifier of v1
@@ -791,6 +1170,35 @@ func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Reques
 // For more information about managed policies in general, see Managed Policies
 // and Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreatePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * MalformedPolicyDocument
+//   The request was rejected because the policy document was malformed. The error
+//   message describes the specific error.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreatePolicy(input *CreatePolicyInput) (*CreatePolicyOutput, error) {
 	req, out := c.CreatePolicyRequest(input)
 	err := req.Send()
@@ -803,6 +1211,8 @@ const opCreatePolicyVersion = "CreatePolicyVersion"
 // client's request for the CreatePolicyVersion operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreatePolicyVersion for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -838,6 +1248,8 @@ func (c *IAM) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *
 	return
 }
 
+// CreatePolicyVersion API operation for AWS Identity and Access Management.
+//
 // Creates a new version of the specified managed policy. To update a managed
 // policy, you create a new policy version. A managed policy can have up to
 // five versions. If the policy has five versions, you must delete an existing
@@ -850,6 +1262,35 @@ func (c *IAM) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *
 // For more information about managed policy versions, see Versioning for Managed
 // Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreatePolicyVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * MalformedPolicyDocument
+//   The request was rejected because the policy document was malformed. The error
+//   message describes the specific error.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreatePolicyVersion(input *CreatePolicyVersionInput) (*CreatePolicyVersionOutput, error) {
 	req, out := c.CreatePolicyVersionRequest(input)
 	err := req.Send()
@@ -862,6 +1303,8 @@ const opCreateRole = "CreateRole"
 // client's request for the CreateRole operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateRole for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -897,11 +1340,38 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 	return
 }
 
+// CreateRole API operation for AWS Identity and Access Management.
+//
 // Creates a new role for your AWS account. For more information about roles,
 // go to Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 // For information about limitations on role names and the number of roles you
 // can create, go to Limitations on IAM Entities (http://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateRole for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * MalformedPolicyDocument
+//   The request was rejected because the policy document was malformed. The error
+//   message describes the specific error.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateRole(input *CreateRoleInput) (*CreateRoleOutput, error) {
 	req, out := c.CreateRoleRequest(input)
 	err := req.Send()
@@ -914,6 +1384,8 @@ const opCreateSAMLProvider = "CreateSAMLProvider"
 // client's request for the CreateSAMLProvider operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateSAMLProvider for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -949,6 +1421,8 @@ func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *re
 	return
 }
 
+// CreateSAMLProvider API operation for AWS Identity and Access Management.
+//
 // Creates an IAM resource that describes an identity provider (IdP) that supports
 // SAML 2.0.
 //
@@ -971,6 +1445,31 @@ func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *re
 // the AWS Management Console (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-saml.html)
 // and About SAML 2.0-based Federation (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_saml.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateSAMLProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateSAMLProvider(input *CreateSAMLProviderInput) (*CreateSAMLProviderOutput, error) {
 	req, out := c.CreateSAMLProviderRequest(input)
 	err := req.Send()
@@ -983,6 +1482,8 @@ const opCreateUser = "CreateUser"
 // client's request for the CreateUser operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateUser for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1018,11 +1519,38 @@ func (c *IAM) CreateUserRequest(input *CreateUserInput) (req *request.Request, o
 	return
 }
 
+// CreateUser API operation for AWS Identity and Access Management.
+//
 // Creates a new IAM user for your AWS account.
 //
 //  For information about limitations on the number of IAM users you can create,
 // see Limitations on IAM Entities (http://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateUser for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateUser(input *CreateUserInput) (*CreateUserOutput, error) {
 	req, out := c.CreateUserRequest(input)
 	err := req.Send()
@@ -1035,6 +1563,8 @@ const opCreateVirtualMFADevice = "CreateVirtualMFADevice"
 // client's request for the CreateVirtualMFADevice operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateVirtualMFADevice for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1070,6 +1600,8 @@ func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) 
 	return
 }
 
+// CreateVirtualMFADevice API operation for AWS Identity and Access Management.
+//
 // Creates a new virtual MFA device for the AWS account. After creating the
 // virtual MFA, use EnableMFADevice to attach the MFA device to an IAM user.
 // For more information about creating and working with virtual MFA devices,
@@ -1084,6 +1616,27 @@ func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) 
 // be treated like any other secret access information, such as your AWS access
 // keys or your passwords. After you provision your virtual device, you should
 // ensure that the information is destroyed following secure procedures.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation CreateVirtualMFADevice for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) CreateVirtualMFADevice(input *CreateVirtualMFADeviceInput) (*CreateVirtualMFADeviceOutput, error) {
 	req, out := c.CreateVirtualMFADeviceRequest(input)
 	err := req.Send()
@@ -1096,6 +1649,8 @@ const opDeactivateMFADevice = "DeactivateMFADevice"
 // client's request for the DeactivateMFADevice operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeactivateMFADevice for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1133,12 +1688,41 @@ func (c *IAM) DeactivateMFADeviceRequest(input *DeactivateMFADeviceInput) (req *
 	return
 }
 
+// DeactivateMFADevice API operation for AWS Identity and Access Management.
+//
 // Deactivates the specified MFA device and removes it from association with
 // the user name for which it was originally enabled.
 //
 // For more information about creating and working with virtual MFA devices,
 // go to Using a Virtual MFA Device (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_VirtualMFA.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeactivateMFADevice for usage and error information.
+//
+// Returned Error Codes:
+//   * EntityTemporarilyUnmodifiable
+//   The request was rejected because it referenced an entity that is temporarily
+//   unmodifiable, such as a user name that was deleted and then recreated. The
+//   error indicates that the request is likely to succeed if you try again after
+//   waiting several minutes. The error message describes the entity.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeactivateMFADevice(input *DeactivateMFADeviceInput) (*DeactivateMFADeviceOutput, error) {
 	req, out := c.DeactivateMFADeviceRequest(input)
 	err := req.Send()
@@ -1151,6 +1735,8 @@ const opDeleteAccessKey = "DeleteAccessKey"
 // client's request for the DeleteAccessKey operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteAccessKey for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1188,12 +1774,35 @@ func (c *IAM) DeleteAccessKeyRequest(input *DeleteAccessKeyInput) (req *request.
 	return
 }
 
+// DeleteAccessKey API operation for AWS Identity and Access Management.
+//
 // Deletes the access key pair associated with the specified IAM user.
 //
 // If you do not specify a user name, IAM determines the user name implicitly
 // based on the AWS access key ID signing the request. Because this action works
 // for access keys under the AWS account, you can use this action to manage
 // root credentials even if the AWS account has no associated users.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteAccessKey for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteAccessKey(input *DeleteAccessKeyInput) (*DeleteAccessKeyOutput, error) {
 	req, out := c.DeleteAccessKeyRequest(input)
 	err := req.Send()
@@ -1206,6 +1815,8 @@ const opDeleteAccountAlias = "DeleteAccountAlias"
 // client's request for the DeleteAccountAlias operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteAccountAlias for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1243,9 +1854,32 @@ func (c *IAM) DeleteAccountAliasRequest(input *DeleteAccountAliasInput) (req *re
 	return
 }
 
+// DeleteAccountAlias API operation for AWS Identity and Access Management.
+//
 // Deletes the specified AWS account alias. For information about using an AWS
 // account alias, see Using an Alias for Your AWS Account ID (http://docs.aws.amazon.com/IAM/latest/UserGuide/AccountAlias.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteAccountAlias for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteAccountAlias(input *DeleteAccountAliasInput) (*DeleteAccountAliasOutput, error) {
 	req, out := c.DeleteAccountAliasRequest(input)
 	err := req.Send()
@@ -1258,6 +1892,8 @@ const opDeleteAccountPasswordPolicy = "DeleteAccountPasswordPolicy"
 // client's request for the DeleteAccountPasswordPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteAccountPasswordPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1295,7 +1931,30 @@ func (c *IAM) DeleteAccountPasswordPolicyRequest(input *DeleteAccountPasswordPol
 	return
 }
 
+// DeleteAccountPasswordPolicy API operation for AWS Identity and Access Management.
+//
 // Deletes the password policy for the AWS account. There are no parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteAccountPasswordPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteAccountPasswordPolicy(input *DeleteAccountPasswordPolicyInput) (*DeleteAccountPasswordPolicyOutput, error) {
 	req, out := c.DeleteAccountPasswordPolicyRequest(input)
 	err := req.Send()
@@ -1308,6 +1967,8 @@ const opDeleteGroup = "DeleteGroup"
 // client's request for the DeleteGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1345,8 +2006,35 @@ func (c *IAM) DeleteGroupRequest(input *DeleteGroupInput) (req *request.Request,
 	return
 }
 
+// DeleteGroup API operation for AWS Identity and Access Management.
+//
 // Deletes the specified IAM group. The group must not contain any users or
 // have any attached policies.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * DeleteConflict
+//   The request was rejected because it attempted to delete a resource that has
+//   attached subordinate entities. The error message describes these entities.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteGroup(input *DeleteGroupInput) (*DeleteGroupOutput, error) {
 	req, out := c.DeleteGroupRequest(input)
 	err := req.Send()
@@ -1359,6 +2047,8 @@ const opDeleteGroupPolicy = "DeleteGroupPolicy"
 // client's request for the DeleteGroupPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteGroupPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1396,6 +2086,8 @@ func (c *IAM) DeleteGroupPolicyRequest(input *DeleteGroupPolicyInput) (req *requ
 	return
 }
 
+// DeleteGroupPolicy API operation for AWS Identity and Access Management.
+//
 // Deletes the specified inline policy that is embedded in the specified IAM
 // group.
 //
@@ -1403,6 +2095,27 @@ func (c *IAM) DeleteGroupPolicyRequest(input *DeleteGroupPolicyInput) (req *requ
 // policy from a group, use DetachGroupPolicy. For more information about policies,
 // refer to Managed Policies and Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteGroupPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteGroupPolicy(input *DeleteGroupPolicyInput) (*DeleteGroupPolicyOutput, error) {
 	req, out := c.DeleteGroupPolicyRequest(input)
 	err := req.Send()
@@ -1415,6 +2128,8 @@ const opDeleteInstanceProfile = "DeleteInstanceProfile"
 // client's request for the DeleteInstanceProfile operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteInstanceProfile for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1452,6 +2167,8 @@ func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (r
 	return
 }
 
+// DeleteInstanceProfile API operation for AWS Identity and Access Management.
+//
 // Deletes the specified instance profile. The instance profile must not have
 // an associated role.
 //
@@ -1462,6 +2179,31 @@ func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (r
 //
 //  For more information about instance profiles, go to About Instance Profiles
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteInstanceProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * DeleteConflict
+//   The request was rejected because it attempted to delete a resource that has
+//   attached subordinate entities. The error message describes these entities.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteInstanceProfile(input *DeleteInstanceProfileInput) (*DeleteInstanceProfileOutput, error) {
 	req, out := c.DeleteInstanceProfileRequest(input)
 	err := req.Send()
@@ -1474,6 +2216,8 @@ const opDeleteLoginProfile = "DeleteLoginProfile"
 // client's request for the DeleteLoginProfile operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteLoginProfile for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1511,6 +2255,8 @@ func (c *IAM) DeleteLoginProfileRequest(input *DeleteLoginProfileInput) (req *re
 	return
 }
 
+// DeleteLoginProfile API operation for AWS Identity and Access Management.
+//
 // Deletes the password for the specified IAM user, which terminates the user's
 // ability to access AWS services through the AWS Management Console.
 //
@@ -1519,6 +2265,33 @@ func (c *IAM) DeleteLoginProfileRequest(input *DeleteLoginProfileInput) (req *re
 // you must also either make any access keys inactive or delete them. For more
 // information about making keys inactive or deleting them, see UpdateAccessKey
 // and DeleteAccessKey.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteLoginProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * EntityTemporarilyUnmodifiable
+//   The request was rejected because it referenced an entity that is temporarily
+//   unmodifiable, such as a user name that was deleted and then recreated. The
+//   error indicates that the request is likely to succeed if you try again after
+//   waiting several minutes. The error message describes the entity.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteLoginProfile(input *DeleteLoginProfileInput) (*DeleteLoginProfileOutput, error) {
 	req, out := c.DeleteLoginProfileRequest(input)
 	err := req.Send()
@@ -1531,6 +2304,8 @@ const opDeleteOpenIDConnectProvider = "DeleteOpenIDConnectProvider"
 // client's request for the DeleteOpenIDConnectProvider operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteOpenIDConnectProvider for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1568,6 +2343,8 @@ func (c *IAM) DeleteOpenIDConnectProviderRequest(input *DeleteOpenIDConnectProvi
 	return
 }
 
+// DeleteOpenIDConnectProvider API operation for AWS Identity and Access Management.
+//
 // Deletes an OpenID Connect identity provider (IdP) resource object in IAM.
 //
 // Deleting an IAM OIDC provider resource does not update any roles that reference
@@ -1576,6 +2353,27 @@ func (c *IAM) DeleteOpenIDConnectProviderRequest(input *DeleteOpenIDConnectProvi
 //
 // This action is idempotent; it does not fail or return an error if you call
 // the action for a provider that does not exist.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteOpenIDConnectProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteOpenIDConnectProvider(input *DeleteOpenIDConnectProviderInput) (*DeleteOpenIDConnectProviderOutput, error) {
 	req, out := c.DeleteOpenIDConnectProviderRequest(input)
 	err := req.Send()
@@ -1588,6 +2386,8 @@ const opDeletePolicy = "DeletePolicy"
 // client's request for the DeletePolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeletePolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1625,6 +2425,8 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 	return
 }
 
+// DeletePolicy API operation for AWS Identity and Access Management.
+//
 // Deletes the specified managed policy.
 //
 // Before you can delete a managed policy, you must first detach the policy
@@ -1648,6 +2450,35 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 //   For information about managed policies, see Managed Policies and Inline
 // Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeletePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * DeleteConflict
+//   The request was rejected because it attempted to delete a resource that has
+//   attached subordinate entities. The error message describes these entities.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeletePolicy(input *DeletePolicyInput) (*DeletePolicyOutput, error) {
 	req, out := c.DeletePolicyRequest(input)
 	err := req.Send()
@@ -1660,6 +2491,8 @@ const opDeletePolicyVersion = "DeletePolicyVersion"
 // client's request for the DeletePolicyVersion operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeletePolicyVersion for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1697,6 +2530,8 @@ func (c *IAM) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *
 	return
 }
 
+// DeletePolicyVersion API operation for AWS Identity and Access Management.
+//
 // Deletes the specified version from the specified managed policy.
 //
 // You cannot delete the default version from a policy using this API. To delete
@@ -1706,6 +2541,35 @@ func (c *IAM) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *
 // For information about versions for managed policies, see Versioning for
 // Managed Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeletePolicyVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * DeleteConflict
+//   The request was rejected because it attempted to delete a resource that has
+//   attached subordinate entities. The error message describes these entities.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeletePolicyVersion(input *DeletePolicyVersionInput) (*DeletePolicyVersionOutput, error) {
 	req, out := c.DeletePolicyVersionRequest(input)
 	err := req.Send()
@@ -1718,6 +2582,8 @@ const opDeleteRole = "DeleteRole"
 // client's request for the DeleteRole operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteRole for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1755,12 +2621,39 @@ func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, o
 	return
 }
 
+// DeleteRole API operation for AWS Identity and Access Management.
+//
 // Deletes the specified role. The role must not have any policies attached.
 // For more information about roles, go to Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 //
 //  Make sure you do not have any Amazon EC2 instances running with the role
 // you are about to delete. Deleting a role or instance profile that is associated
 // with a running instance will break any applications running on the instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteRole for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * DeleteConflict
+//   The request was rejected because it attempted to delete a resource that has
+//   attached subordinate entities. The error message describes these entities.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteRole(input *DeleteRoleInput) (*DeleteRoleOutput, error) {
 	req, out := c.DeleteRoleRequest(input)
 	err := req.Send()
@@ -1773,6 +2666,8 @@ const opDeleteRolePolicy = "DeleteRolePolicy"
 // client's request for the DeleteRolePolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteRolePolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1810,6 +2705,8 @@ func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *reques
 	return
 }
 
+// DeleteRolePolicy API operation for AWS Identity and Access Management.
+//
 // Deletes the specified inline policy that is embedded in the specified IAM
 // role.
 //
@@ -1817,6 +2714,27 @@ func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *reques
 // policy from a role, use DetachRolePolicy. For more information about policies,
 // refer to Managed Policies and Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteRolePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteRolePolicy(input *DeleteRolePolicyInput) (*DeleteRolePolicyOutput, error) {
 	req, out := c.DeleteRolePolicyRequest(input)
 	err := req.Send()
@@ -1829,6 +2747,8 @@ const opDeleteSAMLProvider = "DeleteSAMLProvider"
 // client's request for the DeleteSAMLProvider operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteSAMLProvider for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1866,6 +2786,8 @@ func (c *IAM) DeleteSAMLProviderRequest(input *DeleteSAMLProviderInput) (req *re
 	return
 }
 
+// DeleteSAMLProvider API operation for AWS Identity and Access Management.
+//
 // Deletes a SAML provider resource in IAM.
 //
 // Deleting the provider resource from IAM does not update any roles that reference
@@ -1874,6 +2796,31 @@ func (c *IAM) DeleteSAMLProviderRequest(input *DeleteSAMLProviderInput) (req *re
 // ARN fails.
 //
 //   This operation requires Signature Version 4 (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteSAMLProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteSAMLProvider(input *DeleteSAMLProviderInput) (*DeleteSAMLProviderOutput, error) {
 	req, out := c.DeleteSAMLProviderRequest(input)
 	err := req.Send()
@@ -1886,6 +2833,8 @@ const opDeleteSSHPublicKey = "DeleteSSHPublicKey"
 // client's request for the DeleteSSHPublicKey operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteSSHPublicKey for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1923,6 +2872,8 @@ func (c *IAM) DeleteSSHPublicKeyRequest(input *DeleteSSHPublicKeyInput) (req *re
 	return
 }
 
+// DeleteSSHPublicKey API operation for AWS Identity and Access Management.
+//
 // Deletes the specified SSH public key.
 //
 // The SSH public key deleted by this action is used only for authenticating
@@ -1930,6 +2881,19 @@ func (c *IAM) DeleteSSHPublicKeyRequest(input *DeleteSSHPublicKeyInput) (req *re
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
 // Set up AWS CodeCommit for SSH Connections (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
 // in the AWS CodeCommit User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteSSHPublicKey for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
 func (c *IAM) DeleteSSHPublicKey(input *DeleteSSHPublicKeyInput) (*DeleteSSHPublicKeyOutput, error) {
 	req, out := c.DeleteSSHPublicKeyRequest(input)
 	err := req.Send()
@@ -1942,6 +2906,8 @@ const opDeleteServerCertificate = "DeleteServerCertificate"
 // client's request for the DeleteServerCertificate operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteServerCertificate for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1979,6 +2945,8 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 	return
 }
 
+// DeleteServerCertificate API operation for AWS Identity and Access Management.
+//
 // Deletes the specified server certificate.
 //
 // For more information about working with server certificates, including a
@@ -1995,6 +2963,31 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 // delete the certificate. For more information, go to DeleteLoadBalancerListeners
 // (http://docs.aws.amazon.com/ElasticLoadBalancing/latest/APIReference/API_DeleteLoadBalancerListeners.html)
 // in the Elastic Load Balancing API Reference.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteServerCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * DeleteConflict
+//   The request was rejected because it attempted to delete a resource that has
+//   attached subordinate entities. The error message describes these entities.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteServerCertificate(input *DeleteServerCertificateInput) (*DeleteServerCertificateOutput, error) {
 	req, out := c.DeleteServerCertificateRequest(input)
 	err := req.Send()
@@ -2007,6 +3000,8 @@ const opDeleteSigningCertificate = "DeleteSigningCertificate"
 // client's request for the DeleteSigningCertificate operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteSigningCertificate for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2044,12 +3039,35 @@ func (c *IAM) DeleteSigningCertificateRequest(input *DeleteSigningCertificateInp
 	return
 }
 
+// DeleteSigningCertificate API operation for AWS Identity and Access Management.
+//
 // Deletes a signing certificate associated with the specified IAM user.
 //
 // If you do not specify a user name, IAM determines the user name implicitly
 // based on the AWS access key ID signing the request. Because this action works
 // for access keys under the AWS account, you can use this action to manage
 // root credentials even if the AWS account has no associated IAM users.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteSigningCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteSigningCertificate(input *DeleteSigningCertificateInput) (*DeleteSigningCertificateOutput, error) {
 	req, out := c.DeleteSigningCertificateRequest(input)
 	err := req.Send()
@@ -2062,6 +3080,8 @@ const opDeleteUser = "DeleteUser"
 // client's request for the DeleteUser operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteUser for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2099,8 +3119,35 @@ func (c *IAM) DeleteUserRequest(input *DeleteUserInput) (req *request.Request, o
 	return
 }
 
+// DeleteUser API operation for AWS Identity and Access Management.
+//
 // Deletes the specified IAM user. The user must not belong to any groups or
 // have any access keys, signing certificates, or attached policies.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteUser for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * DeleteConflict
+//   The request was rejected because it attempted to delete a resource that has
+//   attached subordinate entities. The error message describes these entities.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteUser(input *DeleteUserInput) (*DeleteUserOutput, error) {
 	req, out := c.DeleteUserRequest(input)
 	err := req.Send()
@@ -2113,6 +3160,8 @@ const opDeleteUserPolicy = "DeleteUserPolicy"
 // client's request for the DeleteUserPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteUserPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2150,6 +3199,8 @@ func (c *IAM) DeleteUserPolicyRequest(input *DeleteUserPolicyInput) (req *reques
 	return
 }
 
+// DeleteUserPolicy API operation for AWS Identity and Access Management.
+//
 // Deletes the specified inline policy that is embedded in the specified IAM
 // user.
 //
@@ -2157,6 +3208,27 @@ func (c *IAM) DeleteUserPolicyRequest(input *DeleteUserPolicyInput) (req *reques
 // policy from a user, use DetachUserPolicy. For more information about policies,
 // refer to Managed Policies and Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteUserPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteUserPolicy(input *DeleteUserPolicyInput) (*DeleteUserPolicyOutput, error) {
 	req, out := c.DeleteUserPolicyRequest(input)
 	err := req.Send()
@@ -2169,6 +3241,8 @@ const opDeleteVirtualMFADevice = "DeleteVirtualMFADevice"
 // client's request for the DeleteVirtualMFADevice operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteVirtualMFADevice for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2206,10 +3280,37 @@ func (c *IAM) DeleteVirtualMFADeviceRequest(input *DeleteVirtualMFADeviceInput) 
 	return
 }
 
+// DeleteVirtualMFADevice API operation for AWS Identity and Access Management.
+//
 // Deletes a virtual MFA device.
 //
 //   You must deactivate a user's virtual MFA device before you can delete
 // it. For information about deactivating MFA devices, see DeactivateMFADevice.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DeleteVirtualMFADevice for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * DeleteConflict
+//   The request was rejected because it attempted to delete a resource that has
+//   attached subordinate entities. The error message describes these entities.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DeleteVirtualMFADevice(input *DeleteVirtualMFADeviceInput) (*DeleteVirtualMFADeviceOutput, error) {
 	req, out := c.DeleteVirtualMFADeviceRequest(input)
 	err := req.Send()
@@ -2222,6 +3323,8 @@ const opDetachGroupPolicy = "DetachGroupPolicy"
 // client's request for the DetachGroupPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DetachGroupPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2259,12 +3362,39 @@ func (c *IAM) DetachGroupPolicyRequest(input *DetachGroupPolicyInput) (req *requ
 	return
 }
 
+// DetachGroupPolicy API operation for AWS Identity and Access Management.
+//
 // Removes the specified managed policy from the specified IAM group.
 //
 // A group can also have inline policies embedded with it. To delete an inline
 // policy, use the DeleteGroupPolicy API. For information about policies, see
 // Managed Policies and Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DetachGroupPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DetachGroupPolicy(input *DetachGroupPolicyInput) (*DetachGroupPolicyOutput, error) {
 	req, out := c.DetachGroupPolicyRequest(input)
 	err := req.Send()
@@ -2277,6 +3407,8 @@ const opDetachRolePolicy = "DetachRolePolicy"
 // client's request for the DetachRolePolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DetachRolePolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2314,12 +3446,39 @@ func (c *IAM) DetachRolePolicyRequest(input *DetachRolePolicyInput) (req *reques
 	return
 }
 
+// DetachRolePolicy API operation for AWS Identity and Access Management.
+//
 // Removes the specified managed policy from the specified role.
 //
 // A role can also have inline policies embedded with it. To delete an inline
 // policy, use the DeleteRolePolicy API. For information about policies, see
 // Managed Policies and Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DetachRolePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DetachRolePolicy(input *DetachRolePolicyInput) (*DetachRolePolicyOutput, error) {
 	req, out := c.DetachRolePolicyRequest(input)
 	err := req.Send()
@@ -2332,6 +3491,8 @@ const opDetachUserPolicy = "DetachUserPolicy"
 // client's request for the DetachUserPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DetachUserPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2369,12 +3530,39 @@ func (c *IAM) DetachUserPolicyRequest(input *DetachUserPolicyInput) (req *reques
 	return
 }
 
+// DetachUserPolicy API operation for AWS Identity and Access Management.
+//
 // Removes the specified managed policy from the specified user.
 //
 // A user can also have inline policies embedded with it. To delete an inline
 // policy, use the DeleteUserPolicy API. For information about policies, see
 // Managed Policies and Inline Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation DetachUserPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) DetachUserPolicy(input *DetachUserPolicyInput) (*DetachUserPolicyOutput, error) {
 	req, out := c.DetachUserPolicyRequest(input)
 	err := req.Send()
@@ -2387,6 +3575,8 @@ const opEnableMFADevice = "EnableMFADevice"
 // client's request for the EnableMFADevice operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See EnableMFADevice for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2424,9 +3614,46 @@ func (c *IAM) EnableMFADeviceRequest(input *EnableMFADeviceInput) (req *request.
 	return
 }
 
+// EnableMFADevice API operation for AWS Identity and Access Management.
+//
 // Enables the specified MFA device and associates it with the specified IAM
 // user. When enabled, the MFA device is required for every subsequent login
 // by the IAM user associated with the device.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation EnableMFADevice for usage and error information.
+//
+// Returned Error Codes:
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * EntityTemporarilyUnmodifiable
+//   The request was rejected because it referenced an entity that is temporarily
+//   unmodifiable, such as a user name that was deleted and then recreated. The
+//   error indicates that the request is likely to succeed if you try again after
+//   waiting several minutes. The error message describes the entity.
+//
+//   * InvalidAuthenticationCode
+//   The request was rejected because the authentication code was not recognized.
+//   The error message describes the specific error.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) EnableMFADevice(input *EnableMFADeviceInput) (*EnableMFADeviceOutput, error) {
 	req, out := c.EnableMFADeviceRequest(input)
 	err := req.Send()
@@ -2439,6 +3666,8 @@ const opGenerateCredentialReport = "GenerateCredentialReport"
 // client's request for the GenerateCredentialReport operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GenerateCredentialReport for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2474,9 +3703,28 @@ func (c *IAM) GenerateCredentialReportRequest(input *GenerateCredentialReportInp
 	return
 }
 
+// GenerateCredentialReport API operation for AWS Identity and Access Management.
+//
 // Generates a credential report for the AWS account. For more information about
 // the credential report, see Getting Credential Reports (http://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GenerateCredentialReport for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GenerateCredentialReport(input *GenerateCredentialReportInput) (*GenerateCredentialReportOutput, error) {
 	req, out := c.GenerateCredentialReportRequest(input)
 	err := req.Send()
@@ -2489,6 +3737,8 @@ const opGetAccessKeyLastUsed = "GetAccessKeyLastUsed"
 // client's request for the GetAccessKeyLastUsed operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetAccessKeyLastUsed for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2524,10 +3774,25 @@ func (c *IAM) GetAccessKeyLastUsedRequest(input *GetAccessKeyLastUsedInput) (req
 	return
 }
 
+// GetAccessKeyLastUsed API operation for AWS Identity and Access Management.
+//
 // Retrieves information about when the specified access key was last used.
 // The information includes the date and time of last use, along with the AWS
 // service and region that were specified in the last request made with that
 // key.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetAccessKeyLastUsed for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
 func (c *IAM) GetAccessKeyLastUsed(input *GetAccessKeyLastUsedInput) (*GetAccessKeyLastUsedOutput, error) {
 	req, out := c.GetAccessKeyLastUsedRequest(input)
 	err := req.Send()
@@ -2540,6 +3805,8 @@ const opGetAccountAuthorizationDetails = "GetAccountAuthorizationDetails"
 // client's request for the GetAccountAuthorizationDetails operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetAccountAuthorizationDetails for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2581,6 +3848,8 @@ func (c *IAM) GetAccountAuthorizationDetailsRequest(input *GetAccountAuthorizati
 	return
 }
 
+// GetAccountAuthorizationDetails API operation for AWS Identity and Access Management.
+//
 // Retrieves information about all IAM users, groups, roles, and policies in
 // your AWS account, including their relationships to one another. Use this
 // API to obtain a snapshot of the configuration of IAM permissions (users,
@@ -2588,6 +3857,19 @@ func (c *IAM) GetAccountAuthorizationDetailsRequest(input *GetAccountAuthorizati
 //
 // You can optionally filter the results using the Filter parameter. You can
 // paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetAccountAuthorizationDetails for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetAccountAuthorizationDetails(input *GetAccountAuthorizationDetailsInput) (*GetAccountAuthorizationDetailsOutput, error) {
 	req, out := c.GetAccountAuthorizationDetailsRequest(input)
 	err := req.Send()
@@ -2626,6 +3908,8 @@ const opGetAccountPasswordPolicy = "GetAccountPasswordPolicy"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See GetAccountPasswordPolicy for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -2660,8 +3944,27 @@ func (c *IAM) GetAccountPasswordPolicyRequest(input *GetAccountPasswordPolicyInp
 	return
 }
 
+// GetAccountPasswordPolicy API operation for AWS Identity and Access Management.
+//
 // Retrieves the password policy for the AWS account. For more information about
 // using a password policy, go to Managing an IAM Password Policy (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetAccountPasswordPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetAccountPasswordPolicy(input *GetAccountPasswordPolicyInput) (*GetAccountPasswordPolicyOutput, error) {
 	req, out := c.GetAccountPasswordPolicyRequest(input)
 	err := req.Send()
@@ -2674,6 +3977,8 @@ const opGetAccountSummary = "GetAccountSummary"
 // client's request for the GetAccountSummary operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetAccountSummary for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2709,11 +4014,26 @@ func (c *IAM) GetAccountSummaryRequest(input *GetAccountSummaryInput) (req *requ
 	return
 }
 
+// GetAccountSummary API operation for AWS Identity and Access Management.
+//
 // Retrieves information about IAM entity usage and IAM quotas in the AWS account.
 //
 //  For information about limitations on IAM entities, see Limitations on IAM
 // Entities (http://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetAccountSummary for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetAccountSummary(input *GetAccountSummaryInput) (*GetAccountSummaryOutput, error) {
 	req, out := c.GetAccountSummaryRequest(input)
 	err := req.Send()
@@ -2726,6 +4046,8 @@ const opGetContextKeysForCustomPolicy = "GetContextKeysForCustomPolicy"
 // client's request for the GetContextKeysForCustomPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetContextKeysForCustomPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2761,6 +4083,8 @@ func (c *IAM) GetContextKeysForCustomPolicyRequest(input *GetContextKeysForCusto
 	return
 }
 
+// GetContextKeysForCustomPolicy API operation for AWS Identity and Access Management.
+//
 // Gets a list of all of the context keys referenced in the input policies.
 // The policies are supplied as a list of one or more strings. To get the context
 // keys from policies associated with an IAM user, group, or role, use GetContextKeysForPrincipalPolicy.
@@ -2771,6 +4095,19 @@ func (c *IAM) GetContextKeysForCustomPolicyRequest(input *GetContextKeysForCusto
 // to understand what key names and values you must supply when you call SimulateCustomPolicy.
 // Note that all parameters are shown in unencoded form here for clarity, but
 // must be URL encoded to be included as a part of a real HTML request.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetContextKeysForCustomPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
 func (c *IAM) GetContextKeysForCustomPolicy(input *GetContextKeysForCustomPolicyInput) (*GetContextKeysForPolicyResponse, error) {
 	req, out := c.GetContextKeysForCustomPolicyRequest(input)
 	err := req.Send()
@@ -2783,6 +4120,8 @@ const opGetContextKeysForPrincipalPolicy = "GetContextKeysForPrincipalPolicy"
 // client's request for the GetContextKeysForPrincipalPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetContextKeysForPrincipalPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2818,6 +4157,8 @@ func (c *IAM) GetContextKeysForPrincipalPolicyRequest(input *GetContextKeysForPr
 	return
 }
 
+// GetContextKeysForPrincipalPolicy API operation for AWS Identity and Access Management.
+//
 // Gets a list of all of the context keys referenced in all of the IAM policies
 // attached to the specified IAM entity. The entity can be an IAM user, group,
 // or role. If you specify a user, then the request also includes all of the
@@ -2835,6 +4176,23 @@ func (c *IAM) GetContextKeysForPrincipalPolicyRequest(input *GetContextKeysForPr
 // details about the context of an API query request, and can be evaluated by
 // testing against a value in an IAM policy. Use GetContextKeysForPrincipalPolicy
 // to understand what key names and values you must supply when you call SimulatePrincipalPolicy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetContextKeysForPrincipalPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
 func (c *IAM) GetContextKeysForPrincipalPolicy(input *GetContextKeysForPrincipalPolicyInput) (*GetContextKeysForPolicyResponse, error) {
 	req, out := c.GetContextKeysForPrincipalPolicyRequest(input)
 	err := req.Send()
@@ -2847,6 +4205,8 @@ const opGetCredentialReport = "GetCredentialReport"
 // client's request for the GetCredentialReport operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetCredentialReport for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2882,9 +4242,38 @@ func (c *IAM) GetCredentialReportRequest(input *GetCredentialReportInput) (req *
 	return
 }
 
+// GetCredentialReport API operation for AWS Identity and Access Management.
+//
 // Retrieves a credential report for the AWS account. For more information about
 // the credential report, see Getting Credential Reports (http://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetCredentialReport for usage and error information.
+//
+// Returned Error Codes:
+//   * ReportNotPresent
+//   The request was rejected because the credential report does not exist. To
+//   generate a credential report, use GenerateCredentialReport.
+//
+//   * ReportExpired
+//   The request was rejected because the most recent credential report has expired.
+//   To generate a new credential report, use GenerateCredentialReport. For more
+//   information about credential report expiration, see Getting Credential Reports
+//   (http://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
+//   in the IAM User Guide.
+//
+//   * ReportInProgress
+//   The request was rejected because the credential report is still being generated.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetCredentialReport(input *GetCredentialReportInput) (*GetCredentialReportOutput, error) {
 	req, out := c.GetCredentialReportRequest(input)
 	err := req.Send()
@@ -2897,6 +4286,8 @@ const opGetGroup = "GetGroup"
 // client's request for the GetGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -2938,8 +4329,27 @@ func (c *IAM) GetGroupRequest(input *GetGroupInput) (req *request.Request, outpu
 	return
 }
 
+// GetGroup API operation for AWS Identity and Access Management.
+//
 // Returns a list of IAM users that are in the specified IAM group. You can
 // paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetGroup(input *GetGroupInput) (*GetGroupOutput, error) {
 	req, out := c.GetGroupRequest(input)
 	err := req.Send()
@@ -2978,6 +4388,8 @@ const opGetGroupPolicy = "GetGroupPolicy"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See GetGroupPolicy for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -3012,6 +4424,8 @@ func (c *IAM) GetGroupPolicyRequest(input *GetGroupPolicyInput) (req *request.Re
 	return
 }
 
+// GetGroupPolicy API operation for AWS Identity and Access Management.
+//
 // Retrieves the specified inline policy document that is embedded in the specified
 // IAM group.
 //
@@ -3029,6 +4443,23 @@ func (c *IAM) GetGroupPolicyRequest(input *GetGroupPolicyInput) (req *request.Re
 // For more information about policies, see Managed Policies and Inline Policies
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetGroupPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetGroupPolicy(input *GetGroupPolicyInput) (*GetGroupPolicyOutput, error) {
 	req, out := c.GetGroupPolicyRequest(input)
 	err := req.Send()
@@ -3041,6 +4472,8 @@ const opGetInstanceProfile = "GetInstanceProfile"
 // client's request for the GetInstanceProfile operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetInstanceProfile for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3076,10 +4509,29 @@ func (c *IAM) GetInstanceProfileRequest(input *GetInstanceProfileInput) (req *re
 	return
 }
 
+// GetInstanceProfile API operation for AWS Identity and Access Management.
+//
 // Retrieves information about the specified instance profile, including the
 // instance profile's path, GUID, ARN, and role. For more information about
 // instance profiles, see About Instance Profiles (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetInstanceProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetInstanceProfile(input *GetInstanceProfileInput) (*GetInstanceProfileOutput, error) {
 	req, out := c.GetInstanceProfileRequest(input)
 	err := req.Send()
@@ -3092,6 +4544,8 @@ const opGetLoginProfile = "GetLoginProfile"
 // client's request for the GetLoginProfile operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetLoginProfile for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3127,9 +4581,28 @@ func (c *IAM) GetLoginProfileRequest(input *GetLoginProfileInput) (req *request.
 	return
 }
 
+// GetLoginProfile API operation for AWS Identity and Access Management.
+//
 // Retrieves the user name and password-creation date for the specified IAM
 // user. If the user has not been assigned a password, the action returns a
 // 404 (NoSuchEntity) error.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetLoginProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetLoginProfile(input *GetLoginProfileInput) (*GetLoginProfileOutput, error) {
 	req, out := c.GetLoginProfileRequest(input)
 	err := req.Send()
@@ -3142,6 +4615,8 @@ const opGetOpenIDConnectProvider = "GetOpenIDConnectProvider"
 // client's request for the GetOpenIDConnectProvider operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetOpenIDConnectProvider for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3177,8 +4652,31 @@ func (c *IAM) GetOpenIDConnectProviderRequest(input *GetOpenIDConnectProviderInp
 	return
 }
 
+// GetOpenIDConnectProvider API operation for AWS Identity and Access Management.
+//
 // Returns information about the specified OpenID Connect (OIDC) provider resource
 // object in IAM.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetOpenIDConnectProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetOpenIDConnectProvider(input *GetOpenIDConnectProviderInput) (*GetOpenIDConnectProviderOutput, error) {
 	req, out := c.GetOpenIDConnectProviderRequest(input)
 	err := req.Send()
@@ -3191,6 +4689,8 @@ const opGetPolicy = "GetPolicy"
 // client's request for the GetPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3226,6 +4726,8 @@ func (c *IAM) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, out
 	return
 }
 
+// GetPolicy API operation for AWS Identity and Access Management.
+//
 // Retrieves information about the specified managed policy, including the policy's
 // default version and the total number of IAM users, groups, and roles to which
 // the policy is attached. To retrieve the list of the specific users, groups,
@@ -3240,6 +4742,27 @@ func (c *IAM) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, out
 // For more information about policies, see Managed Policies and Inline Policies
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetPolicy(input *GetPolicyInput) (*GetPolicyOutput, error) {
 	req, out := c.GetPolicyRequest(input)
 	err := req.Send()
@@ -3252,6 +4775,8 @@ const opGetPolicyVersion = "GetPolicyVersion"
 // client's request for the GetPolicyVersion operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetPolicyVersion for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3287,6 +4812,8 @@ func (c *IAM) GetPolicyVersionRequest(input *GetPolicyVersionInput) (req *reques
 	return
 }
 
+// GetPolicyVersion API operation for AWS Identity and Access Management.
+//
 // Retrieves information about the specified version of the specified managed
 // policy, including the policy document.
 //
@@ -3309,6 +4836,27 @@ func (c *IAM) GetPolicyVersionRequest(input *GetPolicyVersionInput) (req *reques
 // For more information about managed policy versions, see Versioning for Managed
 // Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetPolicyVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetPolicyVersion(input *GetPolicyVersionInput) (*GetPolicyVersionOutput, error) {
 	req, out := c.GetPolicyVersionRequest(input)
 	err := req.Send()
@@ -3321,6 +4869,8 @@ const opGetRole = "GetRole"
 // client's request for the GetRole operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetRole for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3356,6 +4906,8 @@ func (c *IAM) GetRoleRequest(input *GetRoleInput) (req *request.Request, output 
 	return
 }
 
+// GetRole API operation for AWS Identity and Access Management.
+//
 // Retrieves information about the specified role, including the role's path,
 // GUID, ARN, and the role's trust policy that grants permission to assume the
 // role. For more information about roles, see Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
@@ -3365,6 +4917,23 @@ func (c *IAM) GetRoleRequest(input *GetRoleInput) (req *request.Request, output 
 // text. For example, if you use Java, you can use the decode method of the
 // java.net.URLDecoder utility class in the Java SDK. Other languages and SDKs
 // provide similar functionality.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetRole for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetRole(input *GetRoleInput) (*GetRoleOutput, error) {
 	req, out := c.GetRoleRequest(input)
 	err := req.Send()
@@ -3377,6 +4946,8 @@ const opGetRolePolicy = "GetRolePolicy"
 // client's request for the GetRolePolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetRolePolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3412,6 +4983,8 @@ func (c *IAM) GetRolePolicyRequest(input *GetRolePolicyInput) (req *request.Requ
 	return
 }
 
+// GetRolePolicy API operation for AWS Identity and Access Management.
+//
 // Retrieves the specified inline policy document that is embedded with the
 // specified IAM role.
 //
@@ -3432,6 +5005,23 @@ func (c *IAM) GetRolePolicyRequest(input *GetRolePolicyInput) (req *request.Requ
 //
 // For more information about roles, see Using Roles to Delegate Permissions
 // and Federate Identities (http://docs.aws.amazon.com/IAM/latest/UserGuide/roles-toplevel.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetRolePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetRolePolicy(input *GetRolePolicyInput) (*GetRolePolicyOutput, error) {
 	req, out := c.GetRolePolicyRequest(input)
 	err := req.Send()
@@ -3444,6 +5034,8 @@ const opGetSAMLProvider = "GetSAMLProvider"
 // client's request for the GetSAMLProvider operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetSAMLProvider for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3479,10 +5071,33 @@ func (c *IAM) GetSAMLProviderRequest(input *GetSAMLProviderInput) (req *request.
 	return
 }
 
+// GetSAMLProvider API operation for AWS Identity and Access Management.
+//
 // Returns the SAML provider metadocument that was uploaded when the IAM SAML
 // provider resource object was created or updated.
 //
 //  This operation requires Signature Version 4 (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetSAMLProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetSAMLProvider(input *GetSAMLProviderInput) (*GetSAMLProviderOutput, error) {
 	req, out := c.GetSAMLProviderRequest(input)
 	err := req.Send()
@@ -3495,6 +5110,8 @@ const opGetSSHPublicKey = "GetSSHPublicKey"
 // client's request for the GetSSHPublicKey operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetSSHPublicKey for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3530,6 +5147,8 @@ func (c *IAM) GetSSHPublicKeyRequest(input *GetSSHPublicKeyInput) (req *request.
 	return
 }
 
+// GetSSHPublicKey API operation for AWS Identity and Access Management.
+//
 // Retrieves the specified SSH public key, including metadata about the key.
 //
 // The SSH public key retrieved by this action is used only for authenticating
@@ -3537,6 +5156,23 @@ func (c *IAM) GetSSHPublicKeyRequest(input *GetSSHPublicKeyInput) (req *request.
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
 // Set up AWS CodeCommit for SSH Connections (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
 // in the AWS CodeCommit User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetSSHPublicKey for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * UnrecognizedPublicKeyEncoding
+//   The request was rejected because the public key encoding format is unsupported
+//   or unrecognized.
+//
 func (c *IAM) GetSSHPublicKey(input *GetSSHPublicKeyInput) (*GetSSHPublicKeyOutput, error) {
 	req, out := c.GetSSHPublicKeyRequest(input)
 	err := req.Send()
@@ -3549,6 +5185,8 @@ const opGetServerCertificate = "GetServerCertificate"
 // client's request for the GetServerCertificate operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetServerCertificate for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3584,12 +5222,31 @@ func (c *IAM) GetServerCertificateRequest(input *GetServerCertificateInput) (req
 	return
 }
 
+// GetServerCertificate API operation for AWS Identity and Access Management.
+//
 // Retrieves information about the specified server certificate stored in IAM.
 //
 // For more information about working with server certificates, including a
 // list of AWS services that can use the server certificates that you manage
 // with IAM, go to Working with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetServerCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetServerCertificate(input *GetServerCertificateInput) (*GetServerCertificateOutput, error) {
 	req, out := c.GetServerCertificateRequest(input)
 	err := req.Send()
@@ -3602,6 +5259,8 @@ const opGetUser = "GetUser"
 // client's request for the GetUser operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetUser for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3637,11 +5296,30 @@ func (c *IAM) GetUserRequest(input *GetUserInput) (req *request.Request, output 
 	return
 }
 
+// GetUser API operation for AWS Identity and Access Management.
+//
 // Retrieves information about the specified IAM user, including the user's
 // creation date, path, unique ID, and ARN.
 //
 // If you do not specify a user name, IAM determines the user name implicitly
 // based on the AWS access key ID used to sign the request to this API.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetUser for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetUser(input *GetUserInput) (*GetUserOutput, error) {
 	req, out := c.GetUserRequest(input)
 	err := req.Send()
@@ -3654,6 +5332,8 @@ const opGetUserPolicy = "GetUserPolicy"
 // client's request for the GetUserPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetUserPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3689,6 +5369,8 @@ func (c *IAM) GetUserPolicyRequest(input *GetUserPolicyInput) (req *request.Requ
 	return
 }
 
+// GetUserPolicy API operation for AWS Identity and Access Management.
+//
 // Retrieves the specified inline policy document that is embedded in the specified
 // IAM user.
 //
@@ -3706,6 +5388,23 @@ func (c *IAM) GetUserPolicyRequest(input *GetUserPolicyInput) (req *request.Requ
 // For more information about policies, see Managed Policies and Inline Policies
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation GetUserPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) GetUserPolicy(input *GetUserPolicyInput) (*GetUserPolicyOutput, error) {
 	req, out := c.GetUserPolicyRequest(input)
 	err := req.Send()
@@ -3718,6 +5417,8 @@ const opListAccessKeys = "ListAccessKeys"
 // client's request for the ListAccessKeys operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListAccessKeys for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3759,6 +5460,8 @@ func (c *IAM) ListAccessKeysRequest(input *ListAccessKeysInput) (req *request.Re
 	return
 }
 
+// ListAccessKeys API operation for AWS Identity and Access Management.
+//
 // Returns information about the access key IDs associated with the specified
 // IAM user. If there are none, the action returns an empty list.
 //
@@ -3772,6 +5475,23 @@ func (c *IAM) ListAccessKeysRequest(input *ListAccessKeysInput) (req *request.Re
 //
 //  To ensure the security of your AWS account, the secret access key is accessible
 // only during key and user creation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListAccessKeys for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListAccessKeys(input *ListAccessKeysInput) (*ListAccessKeysOutput, error) {
 	req, out := c.ListAccessKeysRequest(input)
 	err := req.Send()
@@ -3809,6 +5529,8 @@ const opListAccountAliases = "ListAccountAliases"
 // client's request for the ListAccountAliases operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListAccountAliases for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3850,10 +5572,25 @@ func (c *IAM) ListAccountAliasesRequest(input *ListAccountAliasesInput) (req *re
 	return
 }
 
+// ListAccountAliases API operation for AWS Identity and Access Management.
+//
 // Lists the account alias associated with the AWS account (Note: you can have
 // only one). For information about using an AWS account alias, see Using an
 // Alias for Your AWS Account ID (http://docs.aws.amazon.com/IAM/latest/UserGuide/AccountAlias.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListAccountAliases for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListAccountAliases(input *ListAccountAliasesInput) (*ListAccountAliasesOutput, error) {
 	req, out := c.ListAccountAliasesRequest(input)
 	err := req.Send()
@@ -3891,6 +5628,8 @@ const opListAttachedGroupPolicies = "ListAttachedGroupPolicies"
 // client's request for the ListAttachedGroupPolicies operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListAttachedGroupPolicies for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -3932,6 +5671,8 @@ func (c *IAM) ListAttachedGroupPoliciesRequest(input *ListAttachedGroupPoliciesI
 	return
 }
 
+// ListAttachedGroupPolicies API operation for AWS Identity and Access Management.
+//
 // Lists all managed policies that are attached to the specified IAM group.
 //
 // An IAM group can also have inline policies embedded with it. To list the
@@ -3944,6 +5685,27 @@ func (c *IAM) ListAttachedGroupPoliciesRequest(input *ListAttachedGroupPoliciesI
 // matching the specified path prefix. If there are no policies attached to
 // the specified group (or none that match the specified path prefix), the action
 // returns an empty list.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListAttachedGroupPolicies for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListAttachedGroupPolicies(input *ListAttachedGroupPoliciesInput) (*ListAttachedGroupPoliciesOutput, error) {
 	req, out := c.ListAttachedGroupPoliciesRequest(input)
 	err := req.Send()
@@ -3981,6 +5743,8 @@ const opListAttachedRolePolicies = "ListAttachedRolePolicies"
 // client's request for the ListAttachedRolePolicies operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListAttachedRolePolicies for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4022,6 +5786,8 @@ func (c *IAM) ListAttachedRolePoliciesRequest(input *ListAttachedRolePoliciesInp
 	return
 }
 
+// ListAttachedRolePolicies API operation for AWS Identity and Access Management.
+//
 // Lists all managed policies that are attached to the specified IAM role.
 //
 // An IAM role can also have inline policies embedded with it. To list the
@@ -4034,6 +5800,27 @@ func (c *IAM) ListAttachedRolePoliciesRequest(input *ListAttachedRolePoliciesInp
 // matching the specified path prefix. If there are no policies attached to
 // the specified role (or none that match the specified path prefix), the action
 // returns an empty list.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListAttachedRolePolicies for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListAttachedRolePolicies(input *ListAttachedRolePoliciesInput) (*ListAttachedRolePoliciesOutput, error) {
 	req, out := c.ListAttachedRolePoliciesRequest(input)
 	err := req.Send()
@@ -4071,6 +5858,8 @@ const opListAttachedUserPolicies = "ListAttachedUserPolicies"
 // client's request for the ListAttachedUserPolicies operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListAttachedUserPolicies for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4112,6 +5901,8 @@ func (c *IAM) ListAttachedUserPoliciesRequest(input *ListAttachedUserPoliciesInp
 	return
 }
 
+// ListAttachedUserPolicies API operation for AWS Identity and Access Management.
+//
 // Lists all managed policies that are attached to the specified IAM user.
 //
 // An IAM user can also have inline policies embedded with it. To list the
@@ -4124,6 +5915,27 @@ func (c *IAM) ListAttachedUserPoliciesRequest(input *ListAttachedUserPoliciesInp
 // matching the specified path prefix. If there are no policies attached to
 // the specified group (or none that match the specified path prefix), the action
 // returns an empty list.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListAttachedUserPolicies for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListAttachedUserPolicies(input *ListAttachedUserPoliciesInput) (*ListAttachedUserPoliciesOutput, error) {
 	req, out := c.ListAttachedUserPoliciesRequest(input)
 	err := req.Send()
@@ -4161,6 +5973,8 @@ const opListEntitiesForPolicy = "ListEntitiesForPolicy"
 // client's request for the ListEntitiesForPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListEntitiesForPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4202,6 +6016,8 @@ func (c *IAM) ListEntitiesForPolicyRequest(input *ListEntitiesForPolicyInput) (r
 	return
 }
 
+// ListEntitiesForPolicy API operation for AWS Identity and Access Management.
+//
 // Lists all IAM users, groups, and roles that the specified managed policy
 // is attached to.
 //
@@ -4211,6 +6027,27 @@ func (c *IAM) ListEntitiesForPolicyRequest(input *ListEntitiesForPolicyInput) (r
 // to Role.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListEntitiesForPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListEntitiesForPolicy(input *ListEntitiesForPolicyInput) (*ListEntitiesForPolicyOutput, error) {
 	req, out := c.ListEntitiesForPolicyRequest(input)
 	err := req.Send()
@@ -4248,6 +6085,8 @@ const opListGroupPolicies = "ListGroupPolicies"
 // client's request for the ListGroupPolicies operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListGroupPolicies for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4289,6 +6128,8 @@ func (c *IAM) ListGroupPoliciesRequest(input *ListGroupPoliciesInput) (req *requ
 	return
 }
 
+// ListGroupPolicies API operation for AWS Identity and Access Management.
+//
 // Lists the names of the inline policies that are embedded in the specified
 // IAM group.
 //
@@ -4301,6 +6142,23 @@ func (c *IAM) ListGroupPoliciesRequest(input *ListGroupPoliciesInput) (req *requ
 // You can paginate the results using the MaxItems and Marker parameters. If
 // there are no inline policies embedded with the specified group, the action
 // returns an empty list.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListGroupPolicies for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListGroupPolicies(input *ListGroupPoliciesInput) (*ListGroupPoliciesOutput, error) {
 	req, out := c.ListGroupPoliciesRequest(input)
 	err := req.Send()
@@ -4338,6 +6196,8 @@ const opListGroups = "ListGroups"
 // client's request for the ListGroups operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListGroups for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4379,9 +6239,24 @@ func (c *IAM) ListGroupsRequest(input *ListGroupsInput) (req *request.Request, o
 	return
 }
 
+// ListGroups API operation for AWS Identity and Access Management.
+//
 // Lists the IAM groups that have the specified path prefix.
 //
 //  You can paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListGroups(input *ListGroupsInput) (*ListGroupsOutput, error) {
 	req, out := c.ListGroupsRequest(input)
 	err := req.Send()
@@ -4419,6 +6294,8 @@ const opListGroupsForUser = "ListGroupsForUser"
 // client's request for the ListGroupsForUser operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListGroupsForUser for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4460,9 +6337,28 @@ func (c *IAM) ListGroupsForUserRequest(input *ListGroupsForUserInput) (req *requ
 	return
 }
 
+// ListGroupsForUser API operation for AWS Identity and Access Management.
+//
 // Lists the IAM groups that the specified IAM user belongs to.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListGroupsForUser for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListGroupsForUser(input *ListGroupsForUserInput) (*ListGroupsForUserOutput, error) {
 	req, out := c.ListGroupsForUserRequest(input)
 	err := req.Send()
@@ -4500,6 +6396,8 @@ const opListInstanceProfiles = "ListInstanceProfiles"
 // client's request for the ListInstanceProfiles operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListInstanceProfiles for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4541,11 +6439,26 @@ func (c *IAM) ListInstanceProfilesRequest(input *ListInstanceProfilesInput) (req
 	return
 }
 
+// ListInstanceProfiles API operation for AWS Identity and Access Management.
+//
 // Lists the instance profiles that have the specified path prefix. If there
 // are none, the action returns an empty list. For more information about instance
 // profiles, go to About Instance Profiles (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
 // You can paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListInstanceProfiles for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListInstanceProfiles(input *ListInstanceProfilesInput) (*ListInstanceProfilesOutput, error) {
 	req, out := c.ListInstanceProfilesRequest(input)
 	err := req.Send()
@@ -4583,6 +6496,8 @@ const opListInstanceProfilesForRole = "ListInstanceProfilesForRole"
 // client's request for the ListInstanceProfilesForRole operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListInstanceProfilesForRole for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4624,11 +6539,30 @@ func (c *IAM) ListInstanceProfilesForRoleRequest(input *ListInstanceProfilesForR
 	return
 }
 
+// ListInstanceProfilesForRole API operation for AWS Identity and Access Management.
+//
 // Lists the instance profiles that have the specified associated IAM role.
 // If there are none, the action returns an empty list. For more information
 // about instance profiles, go to About Instance Profiles (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
 // You can paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListInstanceProfilesForRole for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListInstanceProfilesForRole(input *ListInstanceProfilesForRoleInput) (*ListInstanceProfilesForRoleOutput, error) {
 	req, out := c.ListInstanceProfilesForRoleRequest(input)
 	err := req.Send()
@@ -4666,6 +6600,8 @@ const opListMFADevices = "ListMFADevices"
 // client's request for the ListMFADevices operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListMFADevices for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4707,12 +6643,31 @@ func (c *IAM) ListMFADevicesRequest(input *ListMFADevicesInput) (req *request.Re
 	return
 }
 
+// ListMFADevices API operation for AWS Identity and Access Management.
+//
 // Lists the MFA devices for an IAM user. If the request includes a IAM user
 // name, then this action lists all the MFA devices associated with the specified
 // user. If you do not specify a user name, IAM determines the user name implicitly
 // based on the AWS access key ID signing the request for this API.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListMFADevices for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListMFADevices(input *ListMFADevicesInput) (*ListMFADevicesOutput, error) {
 	req, out := c.ListMFADevicesRequest(input)
 	err := req.Send()
@@ -4751,6 +6706,8 @@ const opListOpenIDConnectProviders = "ListOpenIDConnectProviders"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See ListOpenIDConnectProviders for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -4785,8 +6742,23 @@ func (c *IAM) ListOpenIDConnectProvidersRequest(input *ListOpenIDConnectProvider
 	return
 }
 
+// ListOpenIDConnectProviders API operation for AWS Identity and Access Management.
+//
 // Lists information about the IAM OpenID Connect (OIDC) provider resource objects
 // defined in the AWS account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListOpenIDConnectProviders for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListOpenIDConnectProviders(input *ListOpenIDConnectProvidersInput) (*ListOpenIDConnectProvidersOutput, error) {
 	req, out := c.ListOpenIDConnectProvidersRequest(input)
 	err := req.Send()
@@ -4799,6 +6771,8 @@ const opListPolicies = "ListPolicies"
 // client's request for the ListPolicies operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListPolicies for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4840,6 +6814,8 @@ func (c *IAM) ListPoliciesRequest(input *ListPoliciesInput) (req *request.Reques
 	return
 }
 
+// ListPolicies API operation for AWS Identity and Access Management.
+//
 // Lists all the managed policies that are available in your AWS account, including
 // your own customer-defined managed policies and all AWS managed policies.
 //
@@ -4853,6 +6829,19 @@ func (c *IAM) ListPoliciesRequest(input *ListPoliciesInput) (req *request.Reques
 // For more information about managed policies, see Managed Policies and Inline
 // Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListPolicies for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListPolicies(input *ListPoliciesInput) (*ListPoliciesOutput, error) {
 	req, out := c.ListPoliciesRequest(input)
 	err := req.Send()
@@ -4890,6 +6879,8 @@ const opListPolicyVersions = "ListPolicyVersions"
 // client's request for the ListPolicyVersions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListPolicyVersions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -4931,12 +6922,35 @@ func (c *IAM) ListPolicyVersionsRequest(input *ListPolicyVersionsInput) (req *re
 	return
 }
 
+// ListPolicyVersions API operation for AWS Identity and Access Management.
+//
 // Lists information about the versions of the specified managed policy, including
 // the version that is currently set as the policy's default version.
 //
 // For more information about managed policies, see Managed Policies and Inline
 // Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListPolicyVersions for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListPolicyVersions(input *ListPolicyVersionsInput) (*ListPolicyVersionsOutput, error) {
 	req, out := c.ListPolicyVersionsRequest(input)
 	err := req.Send()
@@ -4974,6 +6988,8 @@ const opListRolePolicies = "ListRolePolicies"
 // client's request for the ListRolePolicies operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListRolePolicies for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5015,6 +7031,8 @@ func (c *IAM) ListRolePoliciesRequest(input *ListRolePoliciesInput) (req *reques
 	return
 }
 
+// ListRolePolicies API operation for AWS Identity and Access Management.
+//
 // Lists the names of the inline policies that are embedded in the specified
 // IAM role.
 //
@@ -5026,6 +7044,23 @@ func (c *IAM) ListRolePoliciesRequest(input *ListRolePoliciesInput) (req *reques
 // You can paginate the results using the MaxItems and Marker parameters. If
 // there are no inline policies embedded with the specified role, the action
 // returns an empty list.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListRolePolicies for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListRolePolicies(input *ListRolePoliciesInput) (*ListRolePoliciesOutput, error) {
 	req, out := c.ListRolePoliciesRequest(input)
 	err := req.Send()
@@ -5063,6 +7098,8 @@ const opListRoles = "ListRoles"
 // client's request for the ListRoles operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListRoles for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5104,11 +7141,26 @@ func (c *IAM) ListRolesRequest(input *ListRolesInput) (req *request.Request, out
 	return
 }
 
+// ListRoles API operation for AWS Identity and Access Management.
+//
 // Lists the IAM roles that have the specified path prefix. If there are none,
 // the action returns an empty list. For more information about roles, go to
 // Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 //
 // You can paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListRoles for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListRoles(input *ListRolesInput) (*ListRolesOutput, error) {
 	req, out := c.ListRolesRequest(input)
 	err := req.Send()
@@ -5147,6 +7199,8 @@ const opListSAMLProviders = "ListSAMLProviders"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See ListSAMLProviders for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -5181,9 +7235,24 @@ func (c *IAM) ListSAMLProvidersRequest(input *ListSAMLProvidersInput) (req *requ
 	return
 }
 
+// ListSAMLProviders API operation for AWS Identity and Access Management.
+//
 // Lists the SAML provider resource objects defined in IAM in the account.
 //
 //   This operation requires Signature Version 4 (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListSAMLProviders for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListSAMLProviders(input *ListSAMLProvidersInput) (*ListSAMLProvidersOutput, error) {
 	req, out := c.ListSAMLProvidersRequest(input)
 	err := req.Send()
@@ -5196,6 +7265,8 @@ const opListSSHPublicKeys = "ListSSHPublicKeys"
 // client's request for the ListSSHPublicKeys operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListSSHPublicKeys for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5237,6 +7308,8 @@ func (c *IAM) ListSSHPublicKeysRequest(input *ListSSHPublicKeysInput) (req *requ
 	return
 }
 
+// ListSSHPublicKeys API operation for AWS Identity and Access Management.
+//
 // Returns information about the SSH public keys associated with the specified
 // IAM user. If there are none, the action returns an empty list.
 //
@@ -5248,6 +7321,19 @@ func (c *IAM) ListSSHPublicKeysRequest(input *ListSSHPublicKeysInput) (req *requ
 //
 // Although each user is limited to a small number of keys, you can still paginate
 // the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListSSHPublicKeys for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
 func (c *IAM) ListSSHPublicKeys(input *ListSSHPublicKeysInput) (*ListSSHPublicKeysOutput, error) {
 	req, out := c.ListSSHPublicKeysRequest(input)
 	err := req.Send()
@@ -5285,6 +7371,8 @@ const opListServerCertificates = "ListServerCertificates"
 // client's request for the ListServerCertificates operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListServerCertificates for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5326,6 +7414,8 @@ func (c *IAM) ListServerCertificatesRequest(input *ListServerCertificatesInput) 
 	return
 }
 
+// ListServerCertificates API operation for AWS Identity and Access Management.
+//
 // Lists the server certificates stored in IAM that have the specified path
 // prefix. If none exist, the action returns an empty list.
 //
@@ -5335,6 +7425,19 @@ func (c *IAM) ListServerCertificatesRequest(input *ListServerCertificatesInput) 
 // list of AWS services that can use the server certificates that you manage
 // with IAM, go to Working with Server Certificates (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListServerCertificates for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListServerCertificates(input *ListServerCertificatesInput) (*ListServerCertificatesOutput, error) {
 	req, out := c.ListServerCertificatesRequest(input)
 	err := req.Send()
@@ -5372,6 +7475,8 @@ const opListSigningCertificates = "ListSigningCertificates"
 // client's request for the ListSigningCertificates operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListSigningCertificates for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5413,6 +7518,8 @@ func (c *IAM) ListSigningCertificatesRequest(input *ListSigningCertificatesInput
 	return
 }
 
+// ListSigningCertificates API operation for AWS Identity and Access Management.
+//
 // Returns information about the signing certificates associated with the specified
 // IAM user. If there are none, the action returns an empty list.
 //
@@ -5424,6 +7531,23 @@ func (c *IAM) ListSigningCertificatesRequest(input *ListSigningCertificatesInput
 // this action works for access keys under the AWS account, you can use this
 // action to manage root credentials even if the AWS account has no associated
 // users.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListSigningCertificates for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListSigningCertificates(input *ListSigningCertificatesInput) (*ListSigningCertificatesOutput, error) {
 	req, out := c.ListSigningCertificatesRequest(input)
 	err := req.Send()
@@ -5461,6 +7585,8 @@ const opListUserPolicies = "ListUserPolicies"
 // client's request for the ListUserPolicies operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListUserPolicies for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5502,6 +7628,8 @@ func (c *IAM) ListUserPoliciesRequest(input *ListUserPoliciesInput) (req *reques
 	return
 }
 
+// ListUserPolicies API operation for AWS Identity and Access Management.
+//
 // Lists the names of the inline policies embedded in the specified IAM user.
 //
 // An IAM user can also have managed policies attached to it. To list the managed
@@ -5512,6 +7640,23 @@ func (c *IAM) ListUserPoliciesRequest(input *ListUserPoliciesInput) (req *reques
 // You can paginate the results using the MaxItems and Marker parameters. If
 // there are no inline policies embedded with the specified user, the action
 // returns an empty list.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListUserPolicies for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListUserPolicies(input *ListUserPoliciesInput) (*ListUserPoliciesOutput, error) {
 	req, out := c.ListUserPoliciesRequest(input)
 	err := req.Send()
@@ -5549,6 +7694,8 @@ const opListUsers = "ListUsers"
 // client's request for the ListUsers operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListUsers for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5590,11 +7737,26 @@ func (c *IAM) ListUsersRequest(input *ListUsersInput) (req *request.Request, out
 	return
 }
 
+// ListUsers API operation for AWS Identity and Access Management.
+//
 // Lists the IAM users that have the specified path prefix. If no path prefix
 // is specified, the action returns all users in the AWS account. If there are
 // none, the action returns an empty list.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListUsers for usage and error information.
+//
+// Returned Error Codes:
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ListUsers(input *ListUsersInput) (*ListUsersOutput, error) {
 	req, out := c.ListUsersRequest(input)
 	err := req.Send()
@@ -5632,6 +7794,8 @@ const opListVirtualMFADevices = "ListVirtualMFADevices"
 // client's request for the ListVirtualMFADevices operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListVirtualMFADevices for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5673,12 +7837,21 @@ func (c *IAM) ListVirtualMFADevicesRequest(input *ListVirtualMFADevicesInput) (r
 	return
 }
 
+// ListVirtualMFADevices API operation for AWS Identity and Access Management.
+//
 // Lists the virtual MFA devices defined in the AWS account by assignment status.
 // If you do not specify an assignment status, the action returns a list of
 // all virtual MFA devices. Assignment status can be Assigned, Unassigned, or
 // Any.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListVirtualMFADevices for usage and error information.
 func (c *IAM) ListVirtualMFADevices(input *ListVirtualMFADevicesInput) (*ListVirtualMFADevicesOutput, error) {
 	req, out := c.ListVirtualMFADevicesRequest(input)
 	err := req.Send()
@@ -5717,6 +7890,8 @@ const opPutGroupPolicy = "PutGroupPolicy"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See PutGroupPolicy for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -5753,6 +7928,8 @@ func (c *IAM) PutGroupPolicyRequest(input *PutGroupPolicyInput) (req *request.Re
 	return
 }
 
+// PutGroupPolicy API operation for AWS Identity and Access Management.
+//
 // Adds or updates an inline policy document that is embedded in the specified
 // IAM group.
 //
@@ -5770,6 +7947,31 @@ func (c *IAM) PutGroupPolicyRequest(input *PutGroupPolicyInput) (req *request.Re
 // GET when calling PutGroupPolicy. For general information about using the
 // Query API with IAM, go to Making Query Requests (http://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation PutGroupPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * MalformedPolicyDocument
+//   The request was rejected because the policy document was malformed. The error
+//   message describes the specific error.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) PutGroupPolicy(input *PutGroupPolicyInput) (*PutGroupPolicyOutput, error) {
 	req, out := c.PutGroupPolicyRequest(input)
 	err := req.Send()
@@ -5782,6 +7984,8 @@ const opPutRolePolicy = "PutRolePolicy"
 // client's request for the PutRolePolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PutRolePolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5819,6 +8023,8 @@ func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Requ
 	return
 }
 
+// PutRolePolicy API operation for AWS Identity and Access Management.
+//
 // Adds or updates an inline policy document that is embedded in the specified
 // IAM role.
 //
@@ -5843,6 +8049,31 @@ func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Requ
 // GET when calling PutRolePolicy. For general information about using the Query
 // API with IAM, go to Making Query Requests (http://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation PutRolePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * MalformedPolicyDocument
+//   The request was rejected because the policy document was malformed. The error
+//   message describes the specific error.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) PutRolePolicy(input *PutRolePolicyInput) (*PutRolePolicyOutput, error) {
 	req, out := c.PutRolePolicyRequest(input)
 	err := req.Send()
@@ -5855,6 +8086,8 @@ const opPutUserPolicy = "PutUserPolicy"
 // client's request for the PutUserPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PutUserPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5892,6 +8125,8 @@ func (c *IAM) PutUserPolicyRequest(input *PutUserPolicyInput) (req *request.Requ
 	return
 }
 
+// PutUserPolicy API operation for AWS Identity and Access Management.
+//
 // Adds or updates an inline policy document that is embedded in the specified
 // IAM user.
 //
@@ -5909,6 +8144,31 @@ func (c *IAM) PutUserPolicyRequest(input *PutUserPolicyInput) (req *request.Requ
 // GET when calling PutUserPolicy. For general information about using the Query
 // API with IAM, go to Making Query Requests (http://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation PutUserPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * MalformedPolicyDocument
+//   The request was rejected because the policy document was malformed. The error
+//   message describes the specific error.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) PutUserPolicy(input *PutUserPolicyInput) (*PutUserPolicyOutput, error) {
 	req, out := c.PutUserPolicyRequest(input)
 	err := req.Send()
@@ -5921,6 +8181,8 @@ const opRemoveClientIDFromOpenIDConnectProvider = "RemoveClientIDFromOpenIDConne
 // client's request for the RemoveClientIDFromOpenIDConnectProvider operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RemoveClientIDFromOpenIDConnectProvider for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -5958,12 +8220,35 @@ func (c *IAM) RemoveClientIDFromOpenIDConnectProviderRequest(input *RemoveClient
 	return
 }
 
+// RemoveClientIDFromOpenIDConnectProvider API operation for AWS Identity and Access Management.
+//
 // Removes the specified client ID (also known as audience) from the list of
 // client IDs registered for the specified IAM OpenID Connect (OIDC) provider
 // resource object.
 //
 // This action is idempotent; it does not fail or return an error if you try
 // to remove a client ID that does not exist.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation RemoveClientIDFromOpenIDConnectProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) RemoveClientIDFromOpenIDConnectProvider(input *RemoveClientIDFromOpenIDConnectProviderInput) (*RemoveClientIDFromOpenIDConnectProviderOutput, error) {
 	req, out := c.RemoveClientIDFromOpenIDConnectProviderRequest(input)
 	err := req.Send()
@@ -5976,6 +8261,8 @@ const opRemoveRoleFromInstanceProfile = "RemoveRoleFromInstanceProfile"
 // client's request for the RemoveRoleFromInstanceProfile operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RemoveRoleFromInstanceProfile for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6013,6 +8300,8 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 	return
 }
 
+// RemoveRoleFromInstanceProfile API operation for AWS Identity and Access Management.
+//
 // Removes the specified IAM role from the specified EC2 instance profile.
 //
 //  Make sure you do not have any Amazon EC2 instances running with the role
@@ -6023,6 +8312,27 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 //   For more information about IAM roles, go to Working with Roles (http://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 // For more information about instance profiles, go to About Instance Profiles
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation RemoveRoleFromInstanceProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) RemoveRoleFromInstanceProfile(input *RemoveRoleFromInstanceProfileInput) (*RemoveRoleFromInstanceProfileOutput, error) {
 	req, out := c.RemoveRoleFromInstanceProfileRequest(input)
 	err := req.Send()
@@ -6035,6 +8345,8 @@ const opRemoveUserFromGroup = "RemoveUserFromGroup"
 // client's request for the RemoveUserFromGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RemoveUserFromGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6072,7 +8384,30 @@ func (c *IAM) RemoveUserFromGroupRequest(input *RemoveUserFromGroupInput) (req *
 	return
 }
 
+// RemoveUserFromGroup API operation for AWS Identity and Access Management.
+//
 // Removes the specified user from the specified group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation RemoveUserFromGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) RemoveUserFromGroup(input *RemoveUserFromGroupInput) (*RemoveUserFromGroupOutput, error) {
 	req, out := c.RemoveUserFromGroupRequest(input)
 	err := req.Send()
@@ -6085,6 +8420,8 @@ const opResyncMFADevice = "ResyncMFADevice"
 // client's request for the ResyncMFADevice operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ResyncMFADevice for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6122,12 +8459,39 @@ func (c *IAM) ResyncMFADeviceRequest(input *ResyncMFADeviceInput) (req *request.
 	return
 }
 
+// ResyncMFADevice API operation for AWS Identity and Access Management.
+//
 // Synchronizes the specified MFA device with its IAM resource object on the
 // AWS servers.
 //
 // For more information about creating and working with virtual MFA devices,
 // go to Using a Virtual MFA Device (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_VirtualMFA.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ResyncMFADevice for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidAuthenticationCode
+//   The request was rejected because the authentication code was not recognized.
+//   The error message describes the specific error.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) ResyncMFADevice(input *ResyncMFADeviceInput) (*ResyncMFADeviceOutput, error) {
 	req, out := c.ResyncMFADeviceRequest(input)
 	err := req.Send()
@@ -6140,6 +8504,8 @@ const opSetDefaultPolicyVersion = "SetDefaultPolicyVersion"
 // client's request for the SetDefaultPolicyVersion operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetDefaultPolicyVersion for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6177,6 +8543,8 @@ func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput
 	return
 }
 
+// SetDefaultPolicyVersion API operation for AWS Identity and Access Management.
+//
 // Sets the specified version of the specified policy as the policy's default
 // (operative) version.
 //
@@ -6187,6 +8555,31 @@ func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput
 // For information about managed policies, see Managed Policies and Inline
 // Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation SetDefaultPolicyVersion for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) SetDefaultPolicyVersion(input *SetDefaultPolicyVersionInput) (*SetDefaultPolicyVersionOutput, error) {
 	req, out := c.SetDefaultPolicyVersionRequest(input)
 	err := req.Send()
@@ -6199,6 +8592,8 @@ const opSimulateCustomPolicy = "SimulateCustomPolicy"
 // client's request for the SimulateCustomPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SimulateCustomPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6240,6 +8635,8 @@ func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req
 	return
 }
 
+// SimulateCustomPolicy API operation for AWS Identity and Access Management.
+//
 // Simulate how a set of IAM policies and optionally a resource-based policy
 // works with a list of API actions and AWS resources to determine the policies'
 // effective permissions. The policies are provided as strings.
@@ -6257,6 +8654,23 @@ func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req
 //
 // If the output is long, you can use MaxItems and Marker parameters to paginate
 // the results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation SimulateCustomPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * PolicyEvaluation
+//   The request failed because a provided policy could not be successfully evaluated.
+//   An additional detail message indicates the source of the failure.
+//
 func (c *IAM) SimulateCustomPolicy(input *SimulateCustomPolicyInput) (*SimulatePolicyResponse, error) {
 	req, out := c.SimulateCustomPolicyRequest(input)
 	err := req.Send()
@@ -6294,6 +8708,8 @@ const opSimulatePrincipalPolicy = "SimulatePrincipalPolicy"
 // client's request for the SimulatePrincipalPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SimulatePrincipalPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6335,6 +8751,8 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 	return
 }
 
+// SimulatePrincipalPolicy API operation for AWS Identity and Access Management.
+//
 // Simulate how a set of IAM policies attached to an IAM entity works with a
 // list of API actions and AWS resources to determine the policies' effective
 // permissions. The entity can be an IAM user, group, or role. If you specify
@@ -6362,6 +8780,27 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 //
 // If the output is long, you can use the MaxItems and Marker parameters to
 // paginate the results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation SimulatePrincipalPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * PolicyEvaluation
+//   The request failed because a provided policy could not be successfully evaluated.
+//   An additional detail message indicates the source of the failure.
+//
 func (c *IAM) SimulatePrincipalPolicy(input *SimulatePrincipalPolicyInput) (*SimulatePolicyResponse, error) {
 	req, out := c.SimulatePrincipalPolicyRequest(input)
 	err := req.Send()
@@ -6400,6 +8839,8 @@ const opUpdateAccessKey = "UpdateAccessKey"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See UpdateAccessKey for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -6436,6 +8877,8 @@ func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.
 	return
 }
 
+// UpdateAccessKey API operation for AWS Identity and Access Management.
+//
 // Changes the status of the specified access key from Active to Inactive, or
 // vice versa. This action can be used to disable a user's key as part of a
 // key rotation work flow.
@@ -6448,6 +8891,27 @@ func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.
 // For information about rotating keys, see Managing Keys and Certificates
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingCredentials.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateAccessKey for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateAccessKey(input *UpdateAccessKeyInput) (*UpdateAccessKeyOutput, error) {
 	req, out := c.UpdateAccessKeyRequest(input)
 	err := req.Send()
@@ -6460,6 +8924,8 @@ const opUpdateAccountPasswordPolicy = "UpdateAccountPasswordPolicy"
 // client's request for the UpdateAccountPasswordPolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateAccountPasswordPolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6497,6 +8963,8 @@ func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPol
 	return
 }
 
+// UpdateAccountPasswordPolicy API operation for AWS Identity and Access Management.
+//
 // Updates the password policy settings for the AWS account.
 //
 //  This action does not support partial updates. No parameters are required,
@@ -6507,6 +8975,31 @@ func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPol
 //   For more information about using a password policy, see Managing an IAM
 // Password Policy (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateAccountPasswordPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * MalformedPolicyDocument
+//   The request was rejected because the policy document was malformed. The error
+//   message describes the specific error.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateAccountPasswordPolicy(input *UpdateAccountPasswordPolicyInput) (*UpdateAccountPasswordPolicyOutput, error) {
 	req, out := c.UpdateAccountPasswordPolicyRequest(input)
 	err := req.Send()
@@ -6519,6 +9012,8 @@ const opUpdateAssumeRolePolicy = "UpdateAssumeRolePolicy"
 // client's request for the UpdateAssumeRolePolicy operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateAssumeRolePolicy for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6556,10 +9051,37 @@ func (c *IAM) UpdateAssumeRolePolicyRequest(input *UpdateAssumeRolePolicyInput) 
 	return
 }
 
+// UpdateAssumeRolePolicy API operation for AWS Identity and Access Management.
+//
 // Updates the policy that grants an IAM entity permission to assume a role.
 // This is typically referred to as the "role trust policy". For more information
 // about roles, go to Using Roles to Delegate Permissions and Federate Identities
 // (http://docs.aws.amazon.com/IAM/latest/UserGuide/roles-toplevel.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateAssumeRolePolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * MalformedPolicyDocument
+//   The request was rejected because the policy document was malformed. The error
+//   message describes the specific error.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateAssumeRolePolicy(input *UpdateAssumeRolePolicyInput) (*UpdateAssumeRolePolicyOutput, error) {
 	req, out := c.UpdateAssumeRolePolicyRequest(input)
 	err := req.Send()
@@ -6572,6 +9094,8 @@ const opUpdateGroup = "UpdateGroup"
 // client's request for the UpdateGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6609,6 +9133,8 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 	return
 }
 
+// UpdateGroup API operation for AWS Identity and Access Management.
+//
 // Updates the name and/or the path of the specified IAM group.
 //
 //   You should understand the implications of changing a group's path or name.
@@ -6620,6 +9146,31 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 // to "MGRs", the entity making the request must have permission on both "Managers"
 // and "MGRs", or must have permission on all (*). For more information about
 // permissions, see Permissions and Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PermissionsAndPolicies.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateGroup(input *UpdateGroupInput) (*UpdateGroupOutput, error) {
 	req, out := c.UpdateGroupRequest(input)
 	err := req.Send()
@@ -6632,6 +9183,8 @@ const opUpdateLoginProfile = "UpdateLoginProfile"
 // client's request for the UpdateLoginProfile operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateLoginProfile for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6669,11 +9222,44 @@ func (c *IAM) UpdateLoginProfileRequest(input *UpdateLoginProfileInput) (req *re
 	return
 }
 
+// UpdateLoginProfile API operation for AWS Identity and Access Management.
+//
 // Changes the password for the specified IAM user.
 //
 // IAM users can change their own passwords by calling ChangePassword. For
 // more information about modifying passwords, see Managing Passwords (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateLoginProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * EntityTemporarilyUnmodifiable
+//   The request was rejected because it referenced an entity that is temporarily
+//   unmodifiable, such as a user name that was deleted and then recreated. The
+//   error indicates that the request is likely to succeed if you try again after
+//   waiting several minutes. The error message describes the entity.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * PasswordPolicyViolation
+//   The request was rejected because the provided password did not meet the requirements
+//   imposed by the account password policy.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateLoginProfile(input *UpdateLoginProfileInput) (*UpdateLoginProfileOutput, error) {
 	req, out := c.UpdateLoginProfileRequest(input)
 	err := req.Send()
@@ -6686,6 +9272,8 @@ const opUpdateOpenIDConnectProviderThumbprint = "UpdateOpenIDConnectProviderThum
 // client's request for the UpdateOpenIDConnectProviderThumbprint operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateOpenIDConnectProviderThumbprint for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6723,6 +9311,8 @@ func (c *IAM) UpdateOpenIDConnectProviderThumbprintRequest(input *UpdateOpenIDCo
 	return
 }
 
+// UpdateOpenIDConnectProviderThumbprint API operation for AWS Identity and Access Management.
+//
 // Replaces the existing list of server certificate thumbprints associated with
 // an OpenID Connect (OIDC) provider resource object with a new list of thumbprints.
 //
@@ -6738,6 +9328,27 @@ func (c *IAM) UpdateOpenIDConnectProviderThumbprintRequest(input *UpdateOpenIDCo
 // certificate and is validated by the thumbprint, it is a best practice to
 // limit access to the UpdateOpenIDConnectProviderThumbprint action to highly-privileged
 // users.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateOpenIDConnectProviderThumbprint for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateOpenIDConnectProviderThumbprint(input *UpdateOpenIDConnectProviderThumbprintInput) (*UpdateOpenIDConnectProviderThumbprintOutput, error) {
 	req, out := c.UpdateOpenIDConnectProviderThumbprintRequest(input)
 	err := req.Send()
@@ -6750,6 +9361,8 @@ const opUpdateSAMLProvider = "UpdateSAMLProvider"
 // client's request for the UpdateSAMLProvider operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateSAMLProvider for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6785,9 +9398,36 @@ func (c *IAM) UpdateSAMLProviderRequest(input *UpdateSAMLProviderInput) (req *re
 	return
 }
 
+// UpdateSAMLProvider API operation for AWS Identity and Access Management.
+//
 // Updates the metadata document for an existing SAML provider resource object.
 //
 //  This operation requires Signature Version 4 (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateSAMLProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidInput
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateSAMLProvider(input *UpdateSAMLProviderInput) (*UpdateSAMLProviderOutput, error) {
 	req, out := c.UpdateSAMLProviderRequest(input)
 	err := req.Send()
@@ -6800,6 +9440,8 @@ const opUpdateSSHPublicKey = "UpdateSSHPublicKey"
 // client's request for the UpdateSSHPublicKey operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateSSHPublicKey for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6837,6 +9479,8 @@ func (c *IAM) UpdateSSHPublicKeyRequest(input *UpdateSSHPublicKeyInput) (req *re
 	return
 }
 
+// UpdateSSHPublicKey API operation for AWS Identity and Access Management.
+//
 // Sets the status of an IAM user's SSH public key to active or inactive. SSH
 // public keys that are inactive cannot be used for authentication. This action
 // can be used to disable a user's SSH public key as part of a key rotation
@@ -6847,6 +9491,19 @@ func (c *IAM) UpdateSSHPublicKeyRequest(input *UpdateSSHPublicKeyInput) (req *re
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
 // Set up AWS CodeCommit for SSH Connections (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
 // in the AWS CodeCommit User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateSSHPublicKey for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
 func (c *IAM) UpdateSSHPublicKey(input *UpdateSSHPublicKeyInput) (*UpdateSSHPublicKeyOutput, error) {
 	req, out := c.UpdateSSHPublicKeyRequest(input)
 	err := req.Send()
@@ -6859,6 +9516,8 @@ const opUpdateServerCertificate = "UpdateServerCertificate"
 // client's request for the UpdateServerCertificate operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateServerCertificate for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6896,6 +9555,8 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 	return
 }
 
+// UpdateServerCertificate API operation for AWS Identity and Access Management.
+//
 // Updates the name and/or the path of the specified server certificate stored
 // in IAM.
 //
@@ -6915,6 +9576,31 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 // have permission on all (*). For more information about permissions, see Access
 // Management (http://docs.aws.amazon.com/IAM/latest/UserGuide/access.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateServerCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateServerCertificate(input *UpdateServerCertificateInput) (*UpdateServerCertificateOutput, error) {
 	req, out := c.UpdateServerCertificateRequest(input)
 	err := req.Send()
@@ -6927,6 +9613,8 @@ const opUpdateSigningCertificate = "UpdateSigningCertificate"
 // client's request for the UpdateSigningCertificate operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateSigningCertificate for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -6964,6 +9652,8 @@ func (c *IAM) UpdateSigningCertificateRequest(input *UpdateSigningCertificateInp
 	return
 }
 
+// UpdateSigningCertificate API operation for AWS Identity and Access Management.
+//
 // Changes the status of the specified user signing certificate from active
 // to disabled, or vice versa. This action can be used to disable an IAM user's
 // signing certificate as part of a certificate rotation work flow.
@@ -6972,6 +9662,27 @@ func (c *IAM) UpdateSigningCertificateRequest(input *UpdateSigningCertificateInp
 // based on the AWS access key ID used to sign the request. Because this action
 // works for access keys under the AWS account, you can use this action to manage
 // root credentials even if the AWS account has no associated users.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateSigningCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateSigningCertificate(input *UpdateSigningCertificateInput) (*UpdateSigningCertificateOutput, error) {
 	req, out := c.UpdateSigningCertificateRequest(input)
 	err := req.Send()
@@ -6984,6 +9695,8 @@ const opUpdateUser = "UpdateUser"
 // client's request for the UpdateUser operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateUser for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7021,6 +9734,8 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 	return
 }
 
+// UpdateUser API operation for AWS Identity and Access Management.
+//
 // Updates the name and/or the path of the specified IAM user.
 //
 //   You should understand the implications of changing an IAM user's path
@@ -7033,6 +9748,37 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 // to Robert, the entity making the request must have permission on Bob and
 // Robert, or must have permission on all (*). For more information about permissions,
 // see Permissions and Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PermissionsAndPolicies.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UpdateUser for usage and error information.
+//
+// Returned Error Codes:
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * EntityTemporarilyUnmodifiable
+//   The request was rejected because it referenced an entity that is temporarily
+//   unmodifiable, such as a user name that was deleted and then recreated. The
+//   error indicates that the request is likely to succeed if you try again after
+//   waiting several minutes. The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UpdateUser(input *UpdateUserInput) (*UpdateUserOutput, error) {
 	req, out := c.UpdateUserRequest(input)
 	err := req.Send()
@@ -7045,6 +9791,8 @@ const opUploadSSHPublicKey = "UploadSSHPublicKey"
 // client's request for the UploadSSHPublicKey operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UploadSSHPublicKey for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7080,6 +9828,8 @@ func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *re
 	return
 }
 
+// UploadSSHPublicKey API operation for AWS Identity and Access Management.
+//
 // Uploads an SSH public key and associates it with the specified IAM user.
 //
 // The SSH public key uploaded by this action can be used only for authenticating
@@ -7087,6 +9837,35 @@ func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *re
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
 // Set up AWS CodeCommit for SSH Connections (http://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
 // in the AWS CodeCommit User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UploadSSHPublicKey for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * InvalidPublicKey
+//   The request was rejected because the public key is malformed or otherwise
+//   invalid.
+//
+//   * DuplicateSSHPublicKey
+//   The request was rejected because the SSH public key is already associated
+//   with the specified IAM user.
+//
+//   * UnrecognizedPublicKeyEncoding
+//   The request was rejected because the public key encoding format is unsupported
+//   or unrecognized.
+//
 func (c *IAM) UploadSSHPublicKey(input *UploadSSHPublicKeyInput) (*UploadSSHPublicKeyOutput, error) {
 	req, out := c.UploadSSHPublicKeyRequest(input)
 	err := req.Send()
@@ -7099,6 +9878,8 @@ const opUploadServerCertificate = "UploadServerCertificate"
 // client's request for the UploadServerCertificate operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UploadServerCertificate for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7134,6 +9915,8 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 	return
 }
 
+// UploadServerCertificate API operation for AWS Identity and Access Management.
+//
 // Uploads a server certificate entity for the AWS account. The server certificate
 // entity includes a public key certificate, a private key, and an optional
 // certificate chain, which should all be PEM-encoded.
@@ -7154,6 +9937,35 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 // in the AWS General Reference. For general information about using the Query
 // API with IAM, go to Calling the API by Making HTTP Query Requests (http://docs.aws.amazon.com/IAM/latest/UserGuide/programming.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UploadServerCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * MalformedCertificate
+//   The request was rejected because the certificate was malformed or expired.
+//   The error message describes the specific error.
+//
+//   * KeyPairMismatch
+//   The request was rejected because the public key certificate and the private
+//   key do not match.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UploadServerCertificate(input *UploadServerCertificateInput) (*UploadServerCertificateOutput, error) {
 	req, out := c.UploadServerCertificateRequest(input)
 	err := req.Send()
@@ -7166,6 +9978,8 @@ const opUploadSigningCertificate = "UploadSigningCertificate"
 // client's request for the UploadSigningCertificate operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UploadSigningCertificate for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -7201,6 +10015,8 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 	return
 }
 
+// UploadSigningCertificate API operation for AWS Identity and Access Management.
+//
 // Uploads an X.509 signing certificate and associates it with the specified
 // IAM user. Some AWS services use X.509 signing certificates to validate requests
 // that are signed with a corresponding private key. When you upload the certificate,
@@ -7219,6 +10035,42 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 // in the AWS General Reference. For general information about using the Query
 // API with IAM, go to Making Query Requests (http://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
 // in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UploadSigningCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * LimitExceeded
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * EntityAlreadyExists
+//   The request was rejected because it attempted to create a resource that already
+//   exists.
+//
+//   * MalformedCertificate
+//   The request was rejected because the certificate was malformed or expired.
+//   The error message describes the specific error.
+//
+//   * InvalidCertificate
+//   The request was rejected because the certificate is invalid.
+//
+//   * DuplicateCertificate
+//   The request was rejected because the same certificate is associated with
+//   an IAM user in the account.
+//
+//   * NoSuchEntity
+//   The request was rejected because it referenced an entity that does not exist.
+//   The error message describes the entity.
+//
+//   * ServiceFailure
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
 func (c *IAM) UploadSigningCertificate(input *UploadSigningCertificateInput) (*UploadSigningCertificateOutput, error) {
 	req, out := c.UploadSigningCertificateRequest(input)
 	err := req.Send()
@@ -7238,19 +10090,27 @@ type AccessKey struct {
 	_ struct{} `type:"structure"`
 
 	// The ID for this access key.
+	//
+	// AccessKeyId is a required field
 	AccessKeyId *string `min:"16" type:"string" required:"true"`
 
 	// The date when the access key was created.
 	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
 	// The secret key used to sign requests.
+	//
+	// SecretAccessKey is a required field
 	SecretAccessKey *string `type:"string" required:"true"`
 
 	// The status of the access key. Active means the key is valid for API calls,
 	// while Inactive means it is not.
+	//
+	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
 
 	// The name of the IAM user that the access key is associated with.
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -7280,6 +10140,8 @@ type AccessKeyLastUsed struct {
 	// tracking this information on April 22nd, 2015.
 	//
 	//   There is no sign-in data associated with the user
+	//
+	// LastUsedDate is a required field
 	LastUsedDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The AWS region where this access key was most recently used. This field is
@@ -7294,6 +10156,8 @@ type AccessKeyLastUsed struct {
 	//
 	//   For more information about AWS regions, see Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html)
 	// in the Amazon Web Services General Reference.
+	//
+	// Region is a required field
 	Region *string `type:"string" required:"true"`
 
 	// The name of the AWS service with which this access key was most recently
@@ -7305,6 +10169,8 @@ type AccessKeyLastUsed struct {
 	// tracking this information on April 22nd, 2015.
 	//
 	//   There is no sign-in data associated with the user
+	//
+	// ServiceName is a required field
 	ServiceName *string `type:"string" required:"true"`
 }
 
@@ -7353,11 +10219,15 @@ type AddClientIDToOpenIDConnectProviderInput struct {
 
 	// The client ID (also known as audience) to add to the IAM OpenID Connect provider
 	// resource.
+	//
+	// ClientID is a required field
 	ClientID *string `min:"1" type:"string" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the IAM OpenID Connect (OIDC) provider
 	// resource to add the client ID to. You can get a list of OIDC provider ARNs
 	// by using the ListOpenIDConnectProviders action.
+	//
+	// OpenIDConnectProviderArn is a required field
 	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -7415,6 +10285,8 @@ type AddRoleToInstanceProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the role to add.
@@ -7422,6 +10294,8 @@ type AddRoleToInstanceProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -7479,6 +10353,8 @@ type AddUserToGroupInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the user to add.
@@ -7486,6 +10362,8 @@ type AddUserToGroupInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -7543,6 +10421,8 @@ type AttachGroupPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the IAM policy you want to attach.
@@ -7550,6 +10430,8 @@ type AttachGroupPolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -7607,6 +10489,8 @@ type AttachRolePolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 
 	// The name (friendly name, not ARN) of the role to attach the policy to.
@@ -7614,6 +10498,8 @@ type AttachRolePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -7671,6 +10557,8 @@ type AttachUserPolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 
 	// The name (friendly name, not ARN) of the IAM user to attach the policy to.
@@ -7678,6 +10566,8 @@ type AttachUserPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -7775,9 +10665,13 @@ type ChangePasswordInput struct {
 	// note that many tools, such as the AWS Management Console, might restrict
 	// the ability to enter certain characters because they have special meaning
 	// within that tool.
+	//
+	// NewPassword is a required field
 	NewPassword *string `min:"1" type:"string" required:"true"`
 
 	// The IAM user's current password.
+	//
+	// OldPassword is a required field
 	OldPassword *string `min:"1" type:"string" required:"true"`
 }
 
@@ -7913,6 +10807,8 @@ type CreateAccessKeyOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure with details about the access key.
+	//
+	// AccessKey is a required field
 	AccessKey *AccessKey `type:"structure" required:"true"`
 }
 
@@ -7935,6 +10831,8 @@ type CreateAccountAliasInput struct {
 	// a string of characters consisting of lowercase letters, digits, and dashes.
 	// You cannot start or finish with a dash, nor can you have two dashes in a
 	// row.
+	//
+	// AccountAlias is a required field
 	AccountAlias *string `min:"3" type:"string" required:"true"`
 }
 
@@ -7985,7 +10883,11 @@ type CreateGroupInput struct {
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-.
+	// The group name must be unique within the account. Group names are not distinguished
+	// by case. For example, you cannot create groups named both "ADMINS" and "admins".
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The path to the group. For more information about paths, see IAM Identifiers
@@ -8037,6 +10939,8 @@ type CreateGroupOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing details about the new group.
+	//
+	// Group is a required field
 	Group *Group `type:"structure" required:"true"`
 }
 
@@ -8058,6 +10962,8 @@ type CreateInstanceProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
 
 	// The path to the instance profile. For more information about paths, see IAM
@@ -8109,6 +11015,8 @@ type CreateInstanceProfileOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing details about the new instance profile.
+	//
+	// InstanceProfile is a required field
 	InstanceProfile *InstanceProfile `type:"structure" required:"true"`
 }
 
@@ -8135,6 +11043,8 @@ type CreateLoginProfileInput struct {
 	// note that many tools, such as the AWS Management Console, might restrict
 	// the ability to enter certain characters because they have special meaning
 	// within that tool.
+	//
+	// Password is a required field
 	Password *string `min:"1" type:"string" required:"true"`
 
 	// Specifies whether the user is required to set a new password on next sign-in.
@@ -8146,6 +11056,8 @@ type CreateLoginProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -8186,6 +11098,8 @@ type CreateLoginProfileOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing the user name and password create date.
+	//
+	// LoginProfile is a required field
 	LoginProfile *LoginProfile `type:"structure" required:"true"`
 }
 
@@ -8234,6 +11148,8 @@ type CreateOpenIDConnectProviderInput struct {
 	// For more information about obtaining the OIDC provider's thumbprint, see
 	// Obtaining the Thumbprint for an OpenID Connect Provider (http://docs.aws.amazon.com/IAM/latest/UserGuide/identity-providers-oidc-obtain-thumbprint.html)
 	// in the IAM User Guide.
+	//
+	// ThumbprintList is a required field
 	ThumbprintList []*string `type:"list" required:"true"`
 
 	// The URL of the identity provider. The URL must begin with "https://" and
@@ -8245,6 +11161,8 @@ type CreateOpenIDConnectProviderInput struct {
 	// You cannot register the same provider multiple times in a single AWS account.
 	// If you try to submit a URL that has already been used for an OpenID Connect
 	// provider in the AWS account, you will get an error.
+	//
+	// Url is a required field
 	Url *string `min:"1" type:"string" required:"true"`
 }
 
@@ -8331,6 +11249,8 @@ type CreatePolicyInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// The friendly name of the policy.
@@ -8338,6 +11258,8 @@ type CreatePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -8400,6 +11322,8 @@ type CreatePolicyVersionInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 
 	// The JSON policy document that you want to use as the content for this new
@@ -8410,6 +11334,8 @@ type CreatePolicyVersionInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// Specifies whether to set this version as the policy's default version.
@@ -8485,6 +11411,8 @@ type CreateRoleInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// AssumeRolePolicyDocument is a required field
 	AssumeRolePolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// The path to the role. For more information about paths, see IAM Identifiers
@@ -8505,7 +11433,11 @@ type CreateRoleInput struct {
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-.
+	// Role names are not distinguished by case. For example, you cannot create
+	// roles named both "PRODROLE" and "prodrole".
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -8549,6 +11481,8 @@ type CreateRoleOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing details about the new role.
+	//
+	// Role is a required field
 	Role *Role `type:"structure" required:"true"`
 }
 
@@ -8570,6 +11504,8 @@ type CreateSAMLProviderInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// Name is a required field
 	Name *string `min:"1" type:"string" required:"true"`
 
 	// An XML document generated by an identity provider (IdP) that supports SAML
@@ -8580,6 +11516,8 @@ type CreateSAMLProviderInput struct {
 	//
 	// For more information, see About SAML 2.0-based Federation (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_saml.html)
 	// in the IAM User Guide
+	//
+	// SAMLMetadataDocument is a required field
 	SAMLMetadataDocument *string `min:"1000" type:"string" required:"true"`
 }
 
@@ -8654,7 +11592,11 @@ type CreateUserInput struct {
 	//
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
-	// with no spaces. You can also include any of the following characters: =,.@-
+	// with no spaces. You can also include any of the following characters: =,.@-.
+	// User names are not distinguished by case. For example, you cannot create
+	// users named both "TESTUSER" and "testuser".
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -8728,6 +11670,8 @@ type CreateVirtualMFADeviceInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// VirtualMFADeviceName is a required field
 	VirtualMFADeviceName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -8765,6 +11709,8 @@ type CreateVirtualMFADeviceOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing details about the new virtual MFA device.
+	//
+	// VirtualMFADevice is a required field
 	VirtualMFADevice *VirtualMFADevice `type:"structure" required:"true"`
 }
 
@@ -8787,6 +11733,8 @@ type DeactivateMFADeviceInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =/:,.@-
+	//
+	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
 
 	// The name of the user whose MFA device you want to deactivate.
@@ -8794,6 +11742,8 @@ type DeactivateMFADeviceInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -8852,6 +11802,8 @@ type DeleteAccessKeyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters that can consist of any upper or lowercased letter
 	// or digit.
+	//
+	// AccessKeyId is a required field
 	AccessKeyId *string `min:"16" type:"string" required:"true"`
 
 	// The name of the user whose access key pair you want to delete.
@@ -8914,6 +11866,8 @@ type DeleteAccountAliasInput struct {
 	// a string of characters consisting of lowercase letters, digits, and dashes.
 	// You cannot start or finish with a dash, nor can you have two dashes in a
 	// row.
+	//
+	// AccountAlias is a required field
 	AccountAlias *string `min:"3" type:"string" required:"true"`
 }
 
@@ -8993,6 +11947,8 @@ type DeleteGroupInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9045,6 +12001,8 @@ type DeleteGroupPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The name identifying the policy document to delete.
@@ -9052,6 +12010,8 @@ type DeleteGroupPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9109,6 +12069,8 @@ type DeleteInstanceProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9160,6 +12122,8 @@ type DeleteLoginProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9209,6 +12173,8 @@ type DeleteOpenIDConnectProviderInput struct {
 	// The Amazon Resource Name (ARN) of the IAM OpenID Connect provider resource
 	// object to delete. You can get a list of OpenID Connect provider resource
 	// ARNs by using the ListOpenIDConnectProviders action.
+	//
+	// OpenIDConnectProviderArn is a required field
 	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -9260,6 +12226,8 @@ type DeletePolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -9312,6 +12280,8 @@ type DeletePolicyVersionInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 
 	// The policy version to delete.
@@ -9324,6 +12294,8 @@ type DeletePolicyVersionInput struct {
 	// For more information about managed policy versions, see Versioning for Managed
 	// Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 	// in the IAM User Guide.
+	//
+	// VersionId is a required field
 	VersionId *string `type:"string" required:"true"`
 }
 
@@ -9378,6 +12350,8 @@ type DeleteRoleInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9429,6 +12403,8 @@ type DeleteRolePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The name (friendly name, not ARN) identifying the role that the policy is
@@ -9437,6 +12413,8 @@ type DeleteRolePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9490,6 +12468,8 @@ type DeleteSAMLProviderInput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the SAML provider to delete.
+	//
+	// SAMLProviderArn is a required field
 	SAMLProviderArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -9541,6 +12521,8 @@ type DeleteSSHPublicKeyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters that can consist of any upper or lowercased letter
 	// or digit.
+	//
+	// SSHPublicKeyId is a required field
 	SSHPublicKeyId *string `min:"20" type:"string" required:"true"`
 
 	// The name of the IAM user associated with the SSH public key.
@@ -9548,6 +12530,8 @@ type DeleteSSHPublicKeyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9605,6 +12589,8 @@ type DeleteServerCertificateInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9656,6 +12642,8 @@ type DeleteSigningCertificateInput struct {
 	// The format of this parameter, as described by its regex (http://wikipedia.org/wiki/regex)
 	// pattern, is a string of characters that can be upper- or lower-cased letters
 	// or digits.
+	//
+	// CertificateId is a required field
 	CertificateId *string `min:"24" type:"string" required:"true"`
 
 	// The name of the user the signing certificate belongs to.
@@ -9717,6 +12705,8 @@ type DeleteUserInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9768,6 +12758,8 @@ type DeleteUserPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The name (friendly name, not ARN) identifying the user that the policy is
@@ -9776,6 +12768,8 @@ type DeleteUserPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -9834,6 +12828,8 @@ type DeleteVirtualMFADeviceInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =/:,.@-
+	//
+	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
 }
 
@@ -9885,6 +12881,8 @@ type DetachGroupPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the IAM policy you want to detach.
@@ -9892,6 +12890,8 @@ type DetachGroupPolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -9949,6 +12949,8 @@ type DetachRolePolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 
 	// The name (friendly name, not ARN) of the IAM role to detach the policy from.
@@ -9956,6 +12958,8 @@ type DetachRolePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -10013,6 +13017,8 @@ type DetachUserPolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 
 	// The name (friendly name, not ARN) of the IAM user to detach the policy from.
@@ -10020,6 +13026,8 @@ type DetachUserPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -10075,11 +13083,15 @@ type EnableMFADeviceInput struct {
 	// An authentication code emitted by the device.
 	//
 	// The format for this parameter is a string of 6 digits.
+	//
+	// AuthenticationCode1 is a required field
 	AuthenticationCode1 *string `min:"6" type:"string" required:"true"`
 
 	// A subsequent authentication code emitted by the device.
 	//
 	// The format for this parameter is a string of 6 digits.
+	//
+	// AuthenticationCode2 is a required field
 	AuthenticationCode2 *string `min:"6" type:"string" required:"true"`
 
 	// The serial number that uniquely identifies the MFA device. For virtual MFA
@@ -10088,6 +13100,8 @@ type EnableMFADeviceInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =/:,.@-
+	//
+	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
 
 	// The name of the IAM user for whom you want to enable the MFA device.
@@ -10095,6 +13109,8 @@ type EnableMFADeviceInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -10164,9 +13180,13 @@ type EvaluationResult struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the API action tested on the indicated resource.
+	//
+	// EvalActionName is a required field
 	EvalActionName *string `min:"3" type:"string" required:"true"`
 
 	// The result of the simulation.
+	//
+	// EvalDecision is a required field
 	EvalDecision *string `type:"string" required:"true" enum:"PolicyEvaluationDecisionType"`
 
 	// Additional details about the results of the evaluation decision. When there
@@ -10254,6 +13274,8 @@ type GetAccessKeyLastUsedInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters that can consist of any upper or lowercased letter
 	// or digit.
+	//
+	// AccessKeyId is a required field
 	AccessKeyId *string `min:"16" type:"string" required:"true"`
 }
 
@@ -10423,6 +13445,8 @@ type GetAccountPasswordPolicyOutput struct {
 	//
 	//  This data type is used as a response element in the GetAccountPasswordPolicy
 	// action.
+	//
+	// PasswordPolicy is a required field
 	PasswordPolicy *PasswordPolicy `type:"structure" required:"true"`
 }
 
@@ -10481,6 +13505,8 @@ type GetContextKeysForCustomPolicyInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// PolicyInputList is a required field
 	PolicyInputList []*string `type:"list" required:"true"`
 }
 
@@ -10550,6 +13576,8 @@ type GetContextKeysForPrincipalPolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicySourceArn is a required field
 	PolicySourceArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -10628,6 +13656,8 @@ type GetGroupInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// Use this parameter only when paginating results and only after you receive
@@ -10685,6 +13715,8 @@ type GetGroupOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure that contains details about the group.
+	//
+	// Group is a required field
 	Group *Group `type:"structure" required:"true"`
 
 	// A flag that indicates whether there are more items to return. If your results
@@ -10700,6 +13732,8 @@ type GetGroupOutput struct {
 	Marker *string `min:"1" type:"string"`
 
 	// A list of users in the group.
+	//
+	// Users is a required field
 	Users []*User `type:"list" required:"true"`
 }
 
@@ -10721,6 +13755,8 @@ type GetGroupPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the policy document to get.
@@ -10728,6 +13764,8 @@ type GetGroupPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -10768,12 +13806,18 @@ type GetGroupPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The group the policy is associated with.
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The policy document.
+	//
+	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// The name of the policy.
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -10795,6 +13839,8 @@ type GetInstanceProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -10829,6 +13875,8 @@ type GetInstanceProfileOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing details about the instance profile.
+	//
+	// InstanceProfile is a required field
 	InstanceProfile *InstanceProfile `type:"structure" required:"true"`
 }
 
@@ -10850,6 +13898,8 @@ type GetLoginProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -10884,6 +13934,8 @@ type GetLoginProfileOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing the user name and password create date for the user.
+	//
+	// LoginProfile is a required field
 	LoginProfile *LoginProfile `type:"structure" required:"true"`
 }
 
@@ -10907,6 +13959,8 @@ type GetOpenIDConnectProviderInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// OpenIDConnectProviderArn is a required field
 	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -10976,6 +14030,8 @@ type GetPolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -11032,6 +14088,8 @@ type GetPolicyVersionInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 
 	// Identifies the policy version to retrieve.
@@ -11040,6 +14098,8 @@ type GetPolicyVersionInput struct {
 	// a string of characters that consists of the lowercase letter 'v' followed
 	// by one or two digits, and optionally followed by a period '.' and a string
 	// of letters and digits.
+	//
+	// VersionId is a required field
 	VersionId *string `type:"string" required:"true"`
 }
 
@@ -11098,6 +14158,8 @@ type GetRoleInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -11132,6 +14194,8 @@ type GetRoleOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing details about the IAM role.
+	//
+	// Role is a required field
 	Role *Role `type:"structure" required:"true"`
 }
 
@@ -11153,6 +14217,8 @@ type GetRolePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the role associated with the policy.
@@ -11160,6 +14226,8 @@ type GetRolePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -11200,12 +14268,18 @@ type GetRolePolicyOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The policy document.
+	//
+	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// The name of the policy.
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The role the policy is associated with.
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -11228,6 +14302,8 @@ type GetSAMLProviderInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// SAMLProviderArn is a required field
 	SAMLProviderArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -11287,6 +14363,8 @@ type GetSSHPublicKeyInput struct {
 	// Specifies the public key encoding format to use in the response. To retrieve
 	// the public key in ssh-rsa format, use SSH. To retrieve the public key in
 	// PEM format, use PEM.
+	//
+	// Encoding is a required field
 	Encoding *string `type:"string" required:"true" enum:"encodingType"`
 
 	// The unique identifier for the SSH public key.
@@ -11294,6 +14372,8 @@ type GetSSHPublicKeyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters that can consist of any upper or lowercased letter
 	// or digit.
+	//
+	// SSHPublicKeyId is a required field
 	SSHPublicKeyId *string `min:"20" type:"string" required:"true"`
 
 	// The name of the IAM user associated with the SSH public key.
@@ -11301,6 +14381,8 @@ type GetSSHPublicKeyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -11365,6 +14447,8 @@ type GetServerCertificateInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -11399,6 +14483,8 @@ type GetServerCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing details about the server certificate.
+	//
+	// ServerCertificate is a required field
 	ServerCertificate *ServerCertificate `type:"structure" required:"true"`
 }
 
@@ -11453,6 +14539,8 @@ type GetUserOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A structure containing details about the IAM user.
+	//
+	// User is a required field
 	User *User `type:"structure" required:"true"`
 }
 
@@ -11474,6 +14562,8 @@ type GetUserPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the user who the policy is associated with.
@@ -11481,6 +14571,8 @@ type GetUserPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -11521,12 +14613,18 @@ type GetUserPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The policy document.
+	//
+	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// The name of the policy.
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The user the policy is associated with.
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -11555,23 +14653,33 @@ type Group struct {
 	// The Amazon Resource Name (ARN) specifying the group. For more information
 	// about ARNs and how to use them in policies, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Arn is a required field
 	Arn *string `min:"20" type:"string" required:"true"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the group was created.
+	//
+	// CreateDate is a required field
 	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The stable and unique string identifying the group. For more information
 	// about IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// GroupId is a required field
 	GroupId *string `min:"16" type:"string" required:"true"`
 
 	// The friendly name that identifies the group.
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The path to the group. For more information about paths, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
 }
 
@@ -11651,25 +14759,37 @@ type InstanceProfile struct {
 	// information about ARNs and how to use them in policies, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Arn is a required field
 	Arn *string `min:"20" type:"string" required:"true"`
 
 	// The date when the instance profile was created.
+	//
+	// CreateDate is a required field
 	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The stable and unique string identifying the instance profile. For more information
 	// about IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// InstanceProfileId is a required field
 	InstanceProfileId *string `min:"16" type:"string" required:"true"`
 
 	// The name identifying the instance profile.
+	//
+	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
 
 	// The path to the instance profile. For more information about paths, see IAM
 	// Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
 
 	// The role associated with the instance profile.
+	//
+	// Roles is a required field
 	Roles []*Role `type:"list" required:"true"`
 }
 
@@ -11745,6 +14865,8 @@ type ListAccessKeysOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of objects containing metadata about the access keys.
+	//
+	// AccessKeyMetadata is a required field
 	AccessKeyMetadata []*AccessKeyMetadata `type:"list" required:"true"`
 
 	// A flag that indicates whether there are more items to return. If your results
@@ -11823,6 +14945,8 @@ type ListAccountAliasesOutput struct {
 
 	// A list of aliases associated with the account. AWS supports only one alias
 	// per account.
+	//
+	// AccountAliases is a required field
 	AccountAliases []*string `type:"list" required:"true"`
 
 	// A flag that indicates whether there are more items to return. If your results
@@ -11857,6 +14981,8 @@ type ListAttachedGroupPoliciesInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// Use this parameter only when paginating results and only after you receive
@@ -11984,6 +15110,8 @@ type ListAttachedRolePoliciesInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -12084,6 +15212,8 @@ type ListAttachedUserPoliciesInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -12192,6 +15322,8 @@ type ListEntitiesForPolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -12274,6 +15406,8 @@ type ListGroupPoliciesInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// Use this parameter only when paginating results and only after you receive
@@ -12343,6 +15477,8 @@ type ListGroupPoliciesOutput struct {
 	Marker *string `min:"1" type:"string"`
 
 	// A list of policy names.
+	//
+	// PolicyNames is a required field
 	PolicyNames []*string `type:"list" required:"true"`
 }
 
@@ -12381,6 +15517,8 @@ type ListGroupsForUserInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -12421,6 +15559,8 @@ type ListGroupsForUserOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of groups.
+	//
+	// Groups is a required field
 	Groups []*Group `type:"list" required:"true"`
 
 	// A flag that indicates whether there are more items to return. If your results
@@ -12513,6 +15653,8 @@ type ListGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of groups.
+	//
+	// Groups is a required field
 	Groups []*Group `type:"list" required:"true"`
 
 	// A flag that indicates whether there are more items to return. If your results
@@ -12563,6 +15705,8 @@ type ListInstanceProfilesForRoleInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -12603,6 +15747,8 @@ type ListInstanceProfilesForRoleOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of instance profiles.
+	//
+	// InstanceProfiles is a required field
 	InstanceProfiles []*InstanceProfile `type:"list" required:"true"`
 
 	// A flag that indicates whether there are more items to return. If your results
@@ -12695,6 +15841,8 @@ type ListInstanceProfilesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of instance profiles.
+	//
+	// InstanceProfiles is a required field
 	InstanceProfiles []*InstanceProfile `type:"list" required:"true"`
 
 	// A flag that indicates whether there are more items to return. If your results
@@ -12790,6 +15938,8 @@ type ListMFADevicesOutput struct {
 	IsTruncated *bool `type:"boolean"`
 
 	// A list of MFA devices.
+	//
+	// MFADevices is a required field
 	MFADevices []*MFADevice `type:"list" required:"true"`
 
 	// When IsTruncated is true, this element is present and contains the value
@@ -12966,6 +16116,8 @@ type ListPolicyVersionsInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -13060,6 +16212,8 @@ type ListRolePoliciesInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -13112,6 +16266,8 @@ type ListRolePoliciesOutput struct {
 	Marker *string `min:"1" type:"string"`
 
 	// A list of policy names.
+	//
+	// PolicyNames is a required field
 	PolicyNames []*string `type:"list" required:"true"`
 }
 
@@ -13204,6 +16360,8 @@ type ListRolesOutput struct {
 	Marker *string `min:"1" type:"string"`
 
 	// A list of roles.
+	//
+	// Roles is a required field
 	Roles []*Role `type:"list" required:"true"`
 }
 
@@ -13417,6 +16575,8 @@ type ListServerCertificatesOutput struct {
 	Marker *string `min:"1" type:"string"`
 
 	// A list of server certificates.
+	//
+	// ServerCertificateMetadataList is a required field
 	ServerCertificateMetadataList []*ServerCertificateMetadata `type:"list" required:"true"`
 }
 
@@ -13492,6 +16652,8 @@ type ListSigningCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of the user's signing certificate information.
+	//
+	// Certificates is a required field
 	Certificates []*SigningCertificate `type:"list" required:"true"`
 
 	// A flag that indicates whether there are more items to return. If your results
@@ -13542,6 +16704,8 @@ type ListUserPoliciesInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -13594,6 +16758,8 @@ type ListUserPoliciesOutput struct {
 	Marker *string `min:"1" type:"string"`
 
 	// A list of policy names.
+	//
+	// PolicyNames is a required field
 	PolicyNames []*string `type:"list" required:"true"`
 }
 
@@ -13686,6 +16852,8 @@ type ListUsersOutput struct {
 	Marker *string `min:"1" type:"string"`
 
 	// A list of users.
+	//
+	// Users is a required field
 	Users []*User `type:"list" required:"true"`
 }
 
@@ -13769,6 +16937,8 @@ type ListVirtualMFADevicesOutput struct {
 
 	// The list of virtual MFA devices in the current account that match the AssignmentStatus
 	// value that was passed in the request.
+	//
+	// VirtualMFADevices is a required field
 	VirtualMFADevices []*VirtualMFADevice `type:"list" required:"true"`
 }
 
@@ -13790,6 +16960,8 @@ type LoginProfile struct {
 	_ struct{} `type:"structure"`
 
 	// The date when the password for the user was created.
+	//
+	// CreateDate is a required field
 	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// Specifies whether the user is required to set a new password on next sign-in.
@@ -13797,6 +16969,8 @@ type LoginProfile struct {
 
 	// The name of the user, which can be used for signing in to the AWS Management
 	// Console.
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -13817,13 +16991,19 @@ type MFADevice struct {
 	_ struct{} `type:"structure"`
 
 	// The date when the MFA device was enabled for the user.
+	//
+	// EnableDate is a required field
 	EnableDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The serial number that uniquely identifies the MFA device. For virtual MFA
 	// devices, the serial number is the device ARN.
+	//
+	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
 
 	// The user with whom the MFA device is associated.
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -14253,6 +17433,8 @@ type PutGroupPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The policy document.
@@ -14262,6 +17444,8 @@ type PutGroupPolicyInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// The name of the policy document.
@@ -14269,6 +17453,8 @@ type PutGroupPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -14334,6 +17520,8 @@ type PutRolePolicyInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// The name of the policy document.
@@ -14341,6 +17529,8 @@ type PutRolePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the role to associate the policy with.
@@ -14348,6 +17538,8 @@ type PutRolePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -14413,6 +17605,8 @@ type PutUserPolicyInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// The name of the policy document.
@@ -14420,6 +17614,8 @@ type PutUserPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the user to associate the policy with.
@@ -14427,6 +17623,8 @@ type PutUserPolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -14487,6 +17685,8 @@ type RemoveClientIDFromOpenIDConnectProviderInput struct {
 
 	// The client ID (also known as audience) to remove from the IAM OIDC provider
 	// resource. For more information about client IDs, see CreateOpenIDConnectProvider.
+	//
+	// ClientID is a required field
 	ClientID *string `min:"1" type:"string" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the IAM OIDC provider resource to remove
@@ -14496,6 +17696,8 @@ type RemoveClientIDFromOpenIDConnectProviderInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// OpenIDConnectProviderArn is a required field
 	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -14553,6 +17755,8 @@ type RemoveRoleFromInstanceProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// InstanceProfileName is a required field
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the role to remove.
@@ -14560,6 +17764,8 @@ type RemoveRoleFromInstanceProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -14617,6 +17823,8 @@ type RemoveUserFromGroupInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// The name of the user to remove.
@@ -14624,6 +17832,8 @@ type RemoveUserFromGroupInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -14689,9 +17899,13 @@ type ResourceSpecificResult struct {
 
 	// The result of the simulation of the simulated API action on the resource
 	// specified in EvalResourceName.
+	//
+	// EvalResourceDecision is a required field
 	EvalResourceDecision *string `type:"string" required:"true" enum:"PolicyEvaluationDecisionType"`
 
 	// The name of the simulated resource, in Amazon Resource Name (ARN) format.
+	//
+	// EvalResourceName is a required field
 	EvalResourceName *string `min:"1" type:"string" required:"true"`
 
 	// A list of the statements in the input policies that determine the result
@@ -14728,11 +17942,15 @@ type ResyncMFADeviceInput struct {
 	// An authentication code emitted by the device.
 	//
 	// The format for this parameter is a sequence of six digits.
+	//
+	// AuthenticationCode1 is a required field
 	AuthenticationCode1 *string `min:"6" type:"string" required:"true"`
 
 	// A subsequent authentication code emitted by the device.
 	//
 	// The format for this parameter is a sequence of six digits.
+	//
+	// AuthenticationCode2 is a required field
 	AuthenticationCode2 *string `min:"6" type:"string" required:"true"`
 
 	// Serial number that uniquely identifies the MFA device.
@@ -14740,6 +17958,8 @@ type ResyncMFADeviceInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
 
 	// The name of the user whose MFA device you want to resynchronize.
@@ -14747,6 +17967,8 @@ type ResyncMFADeviceInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -14823,6 +18045,8 @@ type Role struct {
 	// The Amazon Resource Name (ARN) specifying the role. For more information
 	// about ARNs and how to use them in policies, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Arn is a required field
 	Arn *string `min:"20" type:"string" required:"true"`
 
 	// The policy that grants an entity permission to assume the role.
@@ -14830,19 +18054,27 @@ type Role struct {
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the role was created.
+	//
+	// CreateDate is a required field
 	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The path to the role. For more information about paths, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
 
 	// The stable and unique string identifying the role. For more information about
 	// IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// RoleId is a required field
 	RoleId *string `min:"16" type:"string" required:"true"`
 
 	// The friendly name that identifies the role.
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -14944,16 +18176,24 @@ type SSHPublicKey struct {
 	_ struct{} `type:"structure"`
 
 	// The MD5 message digest of the SSH public key.
+	//
+	// Fingerprint is a required field
 	Fingerprint *string `min:"48" type:"string" required:"true"`
 
 	// The SSH public key.
+	//
+	// SSHPublicKeyBody is a required field
 	SSHPublicKeyBody *string `min:"1" type:"string" required:"true"`
 
 	// The unique identifier for the SSH public key.
+	//
+	// SSHPublicKeyId is a required field
 	SSHPublicKeyId *string `min:"20" type:"string" required:"true"`
 
 	// The status of the SSH public key. Active means the key can be used for authentication
 	// with an AWS CodeCommit repository. Inactive means the key cannot be used.
+	//
+	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
@@ -14961,6 +18201,8 @@ type SSHPublicKey struct {
 	UploadDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
 	// The name of the IAM user associated with the SSH public key.
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -14981,17 +18223,25 @@ type SSHPublicKeyMetadata struct {
 	_ struct{} `type:"structure"`
 
 	// The unique identifier for the SSH public key.
+	//
+	// SSHPublicKeyId is a required field
 	SSHPublicKeyId *string `min:"20" type:"string" required:"true"`
 
 	// The status of the SSH public key. Active means the key can be used for authentication
 	// with an AWS CodeCommit repository. Inactive means the key cannot be used.
+	//
+	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the SSH public key was uploaded.
+	//
+	// UploadDate is a required field
 	UploadDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The name of the IAM user associated with the SSH public key.
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -15013,6 +18263,8 @@ type ServerCertificate struct {
 	_ struct{} `type:"structure"`
 
 	// The contents of the public key certificate.
+	//
+	// CertificateBody is a required field
 	CertificateBody *string `min:"1" type:"string" required:"true"`
 
 	// The contents of the public key certificate chain.
@@ -15020,6 +18272,8 @@ type ServerCertificate struct {
 
 	// The meta information of the server certificate, such as its name, path, ID,
 	// and ARN.
+	//
+	// ServerCertificateMetadata is a required field
 	ServerCertificateMetadata *ServerCertificateMetadata `type:"structure" required:"true"`
 }
 
@@ -15045,6 +18299,8 @@ type ServerCertificateMetadata struct {
 	// information about ARNs and how to use them in policies, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Arn is a required field
 	Arn *string `min:"20" type:"string" required:"true"`
 
 	// The date on which the certificate is set to expire.
@@ -15053,14 +18309,20 @@ type ServerCertificateMetadata struct {
 	// The path to the server certificate. For more information about paths, see
 	// IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
 
 	// The stable and unique string identifying the server certificate. For more
 	// information about IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// ServerCertificateId is a required field
 	ServerCertificateId *string `min:"16" type:"string" required:"true"`
 
 	// The name that identifies the server certificate.
+	//
+	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
 
 	// The date when the server certificate was uploaded.
@@ -15086,6 +18348,8 @@ type SetDefaultPolicyVersionInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicyArn is a required field
 	PolicyArn *string `min:"20" type:"string" required:"true"`
 
 	// The version of the policy to set as the default (operative) version.
@@ -15093,6 +18357,8 @@ type SetDefaultPolicyVersionInput struct {
 	// For more information about managed policy versions, see Versioning for Managed
 	// Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 	// in the IAM User Guide.
+	//
+	// VersionId is a required field
 	VersionId *string `type:"string" required:"true"`
 }
 
@@ -15147,19 +18413,27 @@ type SigningCertificate struct {
 	_ struct{} `type:"structure"`
 
 	// The contents of the signing certificate.
+	//
+	// CertificateBody is a required field
 	CertificateBody *string `min:"1" type:"string" required:"true"`
 
 	// The ID for the signing certificate.
+	//
+	// CertificateId is a required field
 	CertificateId *string `min:"24" type:"string" required:"true"`
 
 	// The status of the signing certificate. Active means the key is valid for
 	// API calls, while Inactive means it is not.
+	//
+	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
 
 	// The date when the signing certificate was uploaded.
 	UploadDate *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
 	// The name of the user the signing certificate is associated with.
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -15179,6 +18453,8 @@ type SimulateCustomPolicyInput struct {
 	// A list of names of API actions to evaluate in the simulation. Each action
 	// is evaluated against each resource. Each action must include the service
 	// identifier, such as iam:CreateUser.
+	//
+	// ActionNames is a required field
 	ActionNames []*string `type:"list" required:"true"`
 
 	// The ARN of the IAM user that you want to use as the simulated caller of the
@@ -15225,6 +18501,8 @@ type SimulateCustomPolicyInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// PolicyInputList is a required field
 	PolicyInputList []*string `type:"list" required:"true"`
 
 	// A list of ARNs of AWS resources to include in the simulation. If this parameter
@@ -15400,6 +18678,8 @@ type SimulatePrincipalPolicyInput struct {
 	// A list of names of API actions to evaluate in the simulation. Each action
 	// is evaluated for each resource. Each action must include the service identifier,
 	// such as iam:CreateUser.
+	//
+	// ActionNames is a required field
 	ActionNames []*string `type:"list" required:"true"`
 
 	// The ARN of the IAM user that you want to specify as the simulated caller
@@ -15463,6 +18743,8 @@ type SimulatePrincipalPolicyInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// PolicySourceArn is a required field
 	PolicySourceArn *string `min:"20" type:"string" required:"true"`
 
 	// A list of ARNs of AWS resources to include in the simulation. If this parameter
@@ -15640,11 +18922,15 @@ type UpdateAccessKeyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters that can consist of any upper or lowercased letter
 	// or digit.
+	//
+	// AccessKeyId is a required field
 	AccessKeyId *string `min:"16" type:"string" required:"true"`
 
 	// The status you want to assign to the secret access key. Active means the
 	// key can be used for API calls to AWS, while Inactive means the key cannot
 	// be used.
+	//
+	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
 
 	// The name of the user whose key you want to update.
@@ -15815,6 +19101,8 @@ type UpdateAssumeRolePolicyInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// PolicyDocument is a required field
 	PolicyDocument *string `min:"1" type:"string" required:"true"`
 
 	// The name of the role to update with the new policy.
@@ -15822,6 +19110,8 @@ type UpdateAssumeRolePolicyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -15880,6 +19170,8 @@ type UpdateGroupInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
 	// New name for the IAM group. Only include this if changing the group's name.
@@ -15968,6 +19260,8 @@ type UpdateLoginProfileInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -16024,10 +19318,14 @@ type UpdateOpenIDConnectProviderThumbprintInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// OpenIDConnectProviderArn is a required field
 	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
 
 	// A list of certificate thumbprints that are associated with the specified
 	// IAM OpenID Connect provider. For more information, see CreateOpenIDConnectProvider.
+	//
+	// ThumbprintList is a required field
 	ThumbprintList []*string `type:"list" required:"true"`
 }
 
@@ -16082,6 +19380,8 @@ type UpdateSAMLProviderInput struct {
 	// keys that can be used to validate the SAML authentication response (assertions)
 	// that are received from the IdP. You must generate the metadata document using
 	// the identity management software that is used as your organization's IdP.
+	//
+	// SAMLMetadataDocument is a required field
 	SAMLMetadataDocument *string `min:"1000" type:"string" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the SAML provider to update.
@@ -16089,6 +19389,8 @@ type UpdateSAMLProviderInput struct {
 	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
 	// Service Namespaces (http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
+	//
+	// SAMLProviderArn is a required field
 	SAMLProviderArn *string `min:"20" type:"string" required:"true"`
 }
 
@@ -16150,11 +19452,15 @@ type UpdateSSHPublicKeyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters that can consist of any upper or lowercased letter
 	// or digit.
+	//
+	// SSHPublicKeyId is a required field
 	SSHPublicKeyId *string `min:"20" type:"string" required:"true"`
 
 	// The status to assign to the SSH public key. Active means the key can be used
 	// for authentication with an AWS CodeCommit repository. Inactive means the
 	// key cannot be used.
+	//
+	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
 
 	// The name of the IAM user associated with the SSH public key.
@@ -16162,6 +19468,8 @@ type UpdateSSHPublicKeyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -16241,6 +19549,8 @@ type UpdateServerCertificateInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -16298,11 +19608,15 @@ type UpdateSigningCertificateInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters that can consist of any upper or lowercased letter
 	// or digit.
+	//
+	// CertificateId is a required field
 	CertificateId *string `min:"24" type:"string" required:"true"`
 
 	// The status you want to assign to the certificate. Active means the certificate
 	// can be used for API calls to AWS, while Inactive means the certificate cannot
 	// be used.
+	//
+	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"statusType"`
 
 	// The name of the IAM user the signing certificate belongs to.
@@ -16386,6 +19700,8 @@ type UpdateUserInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -16446,6 +19762,8 @@ type UploadSSHPublicKeyInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// SSHPublicKeyBody is a required field
 	SSHPublicKeyBody *string `min:"1" type:"string" required:"true"`
 
 	// The name of the IAM user to associate the SSH public key with.
@@ -16453,6 +19771,8 @@ type UploadSSHPublicKeyInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -16516,6 +19836,8 @@ type UploadServerCertificateInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// CertificateBody is a required field
 	CertificateBody *string `min:"1" type:"string" required:"true"`
 
 	// The contents of the certificate chain. This is typically a concatenation
@@ -16552,6 +19874,8 @@ type UploadServerCertificateInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// PrivateKey is a required field
 	PrivateKey *string `min:"1" type:"string" required:"true"`
 
 	// The name for the server certificate. Do not include the path in this value.
@@ -16560,6 +19884,8 @@ type UploadServerCertificateInput struct {
 	// The regex pattern (http://wikipedia.org/wiki/regex) for this parameter is
 	// a string of characters consisting of upper and lowercase alphanumeric characters
 	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -16636,6 +19962,8 @@ type UploadSigningCertificateInput struct {
 	// from the space character (\u0020) through end of the ASCII character range
 	// (\u00FF). It also includes the special characters tab (\u0009), line feed
 	// (\u000A), and carriage return (\u000D).
+	//
+	// CertificateBody is a required field
 	CertificateBody *string `min:"1" type:"string" required:"true"`
 
 	// The name of the user the signing certificate is for.
@@ -16680,6 +20008,8 @@ type UploadSigningCertificateOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Information about the certificate.
+	//
+	// Certificate is a required field
 	Certificate *SigningCertificate `type:"structure" required:"true"`
 }
 
@@ -16708,10 +20038,14 @@ type User struct {
 	// The Amazon Resource Name (ARN) that identifies the user. For more information
 	// about ARNs and how to use ARNs in policies, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Arn is a required field
 	Arn *string `min:"20" type:"string" required:"true"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the user was created.
+	//
+	// CreateDate is a required field
 	CreateDate *time.Time `type:"timestamp" timestampFormat:"iso8601" required:"true"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
@@ -16735,14 +20069,20 @@ type User struct {
 	// The path to the user. For more information about paths, see IAM Identifiers
 	// (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
 
 	// The stable and unique string identifying the user. For more information about
 	// IDs, see IAM Identifiers (http://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the Using IAM guide.
+	//
+	// UserId is a required field
 	UserId *string `min:"16" type:"string" required:"true"`
 
 	// The friendly name identifying the user.
+	//
+	// UserName is a required field
 	UserName *string `min:"1" type:"string" required:"true"`
 }
 
@@ -16830,6 +20170,8 @@ type VirtualMFADevice struct {
 	QRCodePNG []byte `type:"blob"`
 
 	// The serial number associated with VirtualMFADevice.
+	//
+	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
 
 	// Contains information about an IAM user entity.
@@ -16855,166 +20197,221 @@ func (s VirtualMFADevice) GoString() string {
 }
 
 const (
-	// @enum ContextKeyTypeEnum
+	// ContextKeyTypeEnumString is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumString = "string"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumStringList is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumStringList = "stringList"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumNumeric is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumNumeric = "numeric"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumNumericList is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumNumericList = "numericList"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumBoolean is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumBoolean = "boolean"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumBooleanList is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumBooleanList = "booleanList"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumIp is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumIp = "ip"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumIpList is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumIpList = "ipList"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumBinary is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumBinary = "binary"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumBinaryList is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumBinaryList = "binaryList"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumDate is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumDate = "date"
-	// @enum ContextKeyTypeEnum
+
+	// ContextKeyTypeEnumDateList is a ContextKeyTypeEnum enum value
 	ContextKeyTypeEnumDateList = "dateList"
 )
 
 const (
-	// @enum EntityType
+	// EntityTypeUser is a EntityType enum value
 	EntityTypeUser = "User"
-	// @enum EntityType
+
+	// EntityTypeRole is a EntityType enum value
 	EntityTypeRole = "Role"
-	// @enum EntityType
+
+	// EntityTypeGroup is a EntityType enum value
 	EntityTypeGroup = "Group"
-	// @enum EntityType
+
+	// EntityTypeLocalManagedPolicy is a EntityType enum value
 	EntityTypeLocalManagedPolicy = "LocalManagedPolicy"
-	// @enum EntityType
+
+	// EntityTypeAwsmanagedPolicy is a EntityType enum value
 	EntityTypeAwsmanagedPolicy = "AWSManagedPolicy"
 )
 
 const (
-	// @enum PolicyEvaluationDecisionType
+	// PolicyEvaluationDecisionTypeAllowed is a PolicyEvaluationDecisionType enum value
 	PolicyEvaluationDecisionTypeAllowed = "allowed"
-	// @enum PolicyEvaluationDecisionType
+
+	// PolicyEvaluationDecisionTypeExplicitDeny is a PolicyEvaluationDecisionType enum value
 	PolicyEvaluationDecisionTypeExplicitDeny = "explicitDeny"
-	// @enum PolicyEvaluationDecisionType
+
+	// PolicyEvaluationDecisionTypeImplicitDeny is a PolicyEvaluationDecisionType enum value
 	PolicyEvaluationDecisionTypeImplicitDeny = "implicitDeny"
 )
 
 const (
-	// @enum PolicySourceType
+	// PolicySourceTypeUser is a PolicySourceType enum value
 	PolicySourceTypeUser = "user"
-	// @enum PolicySourceType
+
+	// PolicySourceTypeGroup is a PolicySourceType enum value
 	PolicySourceTypeGroup = "group"
-	// @enum PolicySourceType
+
+	// PolicySourceTypeRole is a PolicySourceType enum value
 	PolicySourceTypeRole = "role"
-	// @enum PolicySourceType
+
+	// PolicySourceTypeAwsManaged is a PolicySourceType enum value
 	PolicySourceTypeAwsManaged = "aws-managed"
-	// @enum PolicySourceType
+
+	// PolicySourceTypeUserManaged is a PolicySourceType enum value
 	PolicySourceTypeUserManaged = "user-managed"
-	// @enum PolicySourceType
+
+	// PolicySourceTypeResource is a PolicySourceType enum value
 	PolicySourceTypeResource = "resource"
-	// @enum PolicySourceType
+
+	// PolicySourceTypeNone is a PolicySourceType enum value
 	PolicySourceTypeNone = "none"
 )
 
 const (
-	// @enum ReportFormatType
+	// ReportFormatTypeTextCsv is a ReportFormatType enum value
 	ReportFormatTypeTextCsv = "text/csv"
 )
 
 const (
-	// @enum ReportStateType
+	// ReportStateTypeStarted is a ReportStateType enum value
 	ReportStateTypeStarted = "STARTED"
-	// @enum ReportStateType
+
+	// ReportStateTypeInprogress is a ReportStateType enum value
 	ReportStateTypeInprogress = "INPROGRESS"
-	// @enum ReportStateType
+
+	// ReportStateTypeComplete is a ReportStateType enum value
 	ReportStateTypeComplete = "COMPLETE"
 )
 
 const (
-	// @enum assignmentStatusType
+	// AssignmentStatusTypeAssigned is a assignmentStatusType enum value
 	AssignmentStatusTypeAssigned = "Assigned"
-	// @enum assignmentStatusType
+
+	// AssignmentStatusTypeUnassigned is a assignmentStatusType enum value
 	AssignmentStatusTypeUnassigned = "Unassigned"
-	// @enum assignmentStatusType
+
+	// AssignmentStatusTypeAny is a assignmentStatusType enum value
 	AssignmentStatusTypeAny = "Any"
 )
 
 const (
-	// @enum encodingType
+	// EncodingTypeSsh is a encodingType enum value
 	EncodingTypeSsh = "SSH"
-	// @enum encodingType
+
+	// EncodingTypePem is a encodingType enum value
 	EncodingTypePem = "PEM"
 )
 
 const (
-	// @enum policyScopeType
+	// PolicyScopeTypeAll is a policyScopeType enum value
 	PolicyScopeTypeAll = "All"
-	// @enum policyScopeType
+
+	// PolicyScopeTypeAws is a policyScopeType enum value
 	PolicyScopeTypeAws = "AWS"
-	// @enum policyScopeType
+
+	// PolicyScopeTypeLocal is a policyScopeType enum value
 	PolicyScopeTypeLocal = "Local"
 )
 
 const (
-	// @enum statusType
+	// StatusTypeActive is a statusType enum value
 	StatusTypeActive = "Active"
-	// @enum statusType
+
+	// StatusTypeInactive is a statusType enum value
 	StatusTypeInactive = "Inactive"
 )
 
 const (
-	// @enum summaryKeyType
+	// SummaryKeyTypeUsers is a summaryKeyType enum value
 	SummaryKeyTypeUsers = "Users"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeUsersQuota is a summaryKeyType enum value
 	SummaryKeyTypeUsersQuota = "UsersQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeGroups is a summaryKeyType enum value
 	SummaryKeyTypeGroups = "Groups"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeGroupsQuota is a summaryKeyType enum value
 	SummaryKeyTypeGroupsQuota = "GroupsQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeServerCertificates is a summaryKeyType enum value
 	SummaryKeyTypeServerCertificates = "ServerCertificates"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeServerCertificatesQuota is a summaryKeyType enum value
 	SummaryKeyTypeServerCertificatesQuota = "ServerCertificatesQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeUserPolicySizeQuota is a summaryKeyType enum value
 	SummaryKeyTypeUserPolicySizeQuota = "UserPolicySizeQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeGroupPolicySizeQuota is a summaryKeyType enum value
 	SummaryKeyTypeGroupPolicySizeQuota = "GroupPolicySizeQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeGroupsPerUserQuota is a summaryKeyType enum value
 	SummaryKeyTypeGroupsPerUserQuota = "GroupsPerUserQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeSigningCertificatesPerUserQuota is a summaryKeyType enum value
 	SummaryKeyTypeSigningCertificatesPerUserQuota = "SigningCertificatesPerUserQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeAccessKeysPerUserQuota is a summaryKeyType enum value
 	SummaryKeyTypeAccessKeysPerUserQuota = "AccessKeysPerUserQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeMfadevices is a summaryKeyType enum value
 	SummaryKeyTypeMfadevices = "MFADevices"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeMfadevicesInUse is a summaryKeyType enum value
 	SummaryKeyTypeMfadevicesInUse = "MFADevicesInUse"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeAccountMfaenabled is a summaryKeyType enum value
 	SummaryKeyTypeAccountMfaenabled = "AccountMFAEnabled"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeAccountAccessKeysPresent is a summaryKeyType enum value
 	SummaryKeyTypeAccountAccessKeysPresent = "AccountAccessKeysPresent"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeAccountSigningCertificatesPresent is a summaryKeyType enum value
 	SummaryKeyTypeAccountSigningCertificatesPresent = "AccountSigningCertificatesPresent"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeAttachedPoliciesPerGroupQuota is a summaryKeyType enum value
 	SummaryKeyTypeAttachedPoliciesPerGroupQuota = "AttachedPoliciesPerGroupQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeAttachedPoliciesPerRoleQuota is a summaryKeyType enum value
 	SummaryKeyTypeAttachedPoliciesPerRoleQuota = "AttachedPoliciesPerRoleQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeAttachedPoliciesPerUserQuota is a summaryKeyType enum value
 	SummaryKeyTypeAttachedPoliciesPerUserQuota = "AttachedPoliciesPerUserQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypePolicies is a summaryKeyType enum value
 	SummaryKeyTypePolicies = "Policies"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypePoliciesQuota is a summaryKeyType enum value
 	SummaryKeyTypePoliciesQuota = "PoliciesQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypePolicySizeQuota is a summaryKeyType enum value
 	SummaryKeyTypePolicySizeQuota = "PolicySizeQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypePolicyVersionsInUse is a summaryKeyType enum value
 	SummaryKeyTypePolicyVersionsInUse = "PolicyVersionsInUse"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypePolicyVersionsInUseQuota is a summaryKeyType enum value
 	SummaryKeyTypePolicyVersionsInUseQuota = "PolicyVersionsInUseQuota"
-	// @enum summaryKeyType
+
+	// SummaryKeyTypeVersionsPerPolicyQuota is a summaryKeyType enum value
 	SummaryKeyTypeVersionsPerPolicyQuota = "VersionsPerPolicyQuota"
 )

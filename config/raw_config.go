@@ -18,7 +18,7 @@ import (
 const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 
 // RawConfig is a structure that holds a piece of configuration
-// where te overall structure is unknown since it will be used
+// where the overall structure is unknown since it will be used
 // to configure a plugin or some other similar external component.
 //
 // RawConfigs can be interpolated with variables that come from
@@ -48,8 +48,24 @@ func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
 	return result, nil
 }
 
+// RawMap returns a copy of the RawConfig.Raw map.
+func (r *RawConfig) RawMap() map[string]interface{} {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	m := make(map[string]interface{})
+	for k, v := range r.Raw {
+		m[k] = v
+	}
+	return m
+}
+
 // Copy returns a copy of this RawConfig, uninterpolated.
 func (r *RawConfig) Copy() *RawConfig {
+	if r == nil {
+		return nil
+	}
+
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -175,23 +191,28 @@ func (r *RawConfig) Merge(other *RawConfig) *RawConfig {
 	}
 
 	// Build the unknown keys
-	unknownKeys := make(map[string]struct{})
-	for _, k := range r.unknownKeys {
-		unknownKeys[k] = struct{}{}
-	}
-	for _, k := range other.unknownKeys {
-		unknownKeys[k] = struct{}{}
-	}
+	if len(r.unknownKeys) > 0 || len(other.unknownKeys) > 0 {
+		unknownKeys := make(map[string]struct{})
+		for _, k := range r.unknownKeys {
+			unknownKeys[k] = struct{}{}
+		}
+		for _, k := range other.unknownKeys {
+			unknownKeys[k] = struct{}{}
+		}
 
-	result.unknownKeys = make([]string, 0, len(unknownKeys))
-	for k, _ := range unknownKeys {
-		result.unknownKeys = append(result.unknownKeys, k)
+		result.unknownKeys = make([]string, 0, len(unknownKeys))
+		for k, _ := range unknownKeys {
+			result.unknownKeys = append(result.unknownKeys, k)
+		}
 	}
 
 	return result
 }
 
 func (r *RawConfig) init() error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	r.config = r.Raw
 	r.Interpolations = nil
 	r.Variables = nil
@@ -261,6 +282,8 @@ func (r *RawConfig) merge(r2 *RawConfig) *RawConfig {
 // UnknownKeys returns the keys of the configuration that are unknown
 // because they had interpolated variables that must be computed.
 func (r *RawConfig) UnknownKeys() []string {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	return r.unknownKeys
 }
 

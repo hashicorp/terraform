@@ -2,10 +2,10 @@ package azurerm
 
 import (
 	"fmt"
+	"net/http"
 	"path"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/core/http"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -28,6 +28,30 @@ func TestAccAzureRMTrafficManagerEndpoint_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("azurerm_traffic_manager_endpoint.testAzure", "endpoint_status", "Enabled"),
 					resource.TestCheckResourceAttr("azurerm_traffic_manager_endpoint.testExternal", "endpoint_status", "Enabled"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMTrafficManagerEndpoint_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMTrafficManagerEndpoint_basic, ri, ri, ri, ri, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMTrafficManagerEndpointDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMTrafficManagerEndpointExists("azurerm_traffic_manager_endpoint.testAzure"),
+					testCheckAzureRMTrafficManagerEndpointExists("azurerm_traffic_manager_endpoint.testExternal"),
+					resource.TestCheckResourceAttr("azurerm_traffic_manager_endpoint.testAzure", "endpoint_status", "Enabled"),
+					resource.TestCheckResourceAttr("azurerm_traffic_manager_endpoint.testExternal", "endpoint_status", "Enabled"),
+					testCheckAzureRMTrafficManagerEndpointDisappears("azurerm_traffic_manager_endpoint.testAzure"),
+				),
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -183,6 +207,34 @@ func testCheckAzureRMTrafficManagerEndpointExists(name string) resource.TestChec
 	}
 }
 
+func testCheckAzureRMTrafficManagerEndpointDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		// Ensure we have enough information in state to look up in API
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		endpointType := rs.Primary.Attributes["type"]
+		profileName := rs.Primary.Attributes["profile_name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for Traffic Manager Profile: %s", name)
+		}
+
+		// Ensure resource group/virtual network combination exists in API
+		conn := testAccProvider.Meta().(*ArmClient).trafficManagerEndpointsClient
+
+		_, err := conn.Delete(resourceGroup, profileName, path.Base(endpointType), name)
+		if err != nil {
+			return fmt.Errorf("Bad: Delete on trafficManagerEndpointsClient: %s", err)
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMTrafficManagerEndpointDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*ArmClient).trafficManagerEndpointsClient
 
@@ -211,7 +263,7 @@ func testCheckAzureRMTrafficManagerEndpointDestroy(s *terraform.State) error {
 
 var testAccAzureRMTrafficManagerEndpoint_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -261,7 +313,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternal" {
 
 var testAccAzureRMTrafficManagerEndpoint_basicDisableExternal = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -312,7 +364,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternal" {
 
 var testAccAzureRMTrafficManagerEndpoint_weight = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -354,7 +406,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
 
 var testAccAzureRMTrafficManagerEndpoint_updateWeight = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -396,7 +448,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
 
 var testAccAzureRMTrafficManagerEndpoint_priority = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -438,7 +490,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
 
 var testAccAzureRMTrafficManagerEndpoint_updatePriority = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -480,7 +532,7 @@ resource "azurerm_traffic_manager_endpoint" "testExternalNew" {
 
 var testAccAzureRMTrafficManagerEndpoint_nestedEndpoints = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "West US"
 }
 

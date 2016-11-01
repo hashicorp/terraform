@@ -43,7 +43,7 @@ func (t *ExpandTransform) Transform(v dag.Vertex) (dag.Vertex, error) {
 	}
 
 	// Expand the subgraph!
-	log.Printf("[DEBUG] vertex %s: static expanding", dag.VertexName(ev))
+	log.Printf("[DEBUG] vertex %q: static expanding", dag.VertexName(ev))
 	return ev.Expand(t.Builder)
 }
 

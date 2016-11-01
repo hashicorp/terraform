@@ -7,13 +7,13 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/monitors"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/monitors"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 )
 
 func TestAccLBV1Pool_basic(t *testing.T) {

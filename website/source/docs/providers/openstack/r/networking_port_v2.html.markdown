@@ -63,6 +63,11 @@ The following arguments are supported:
 * `fixed_ip` - (Optional) An array of desired IPs for this port. The structure is
     described below.
 
+* `allowed_address_pairs` - (Optional) An IP/MAC Address pair of additional IP
+    addresses that can be active on this port. The structure is described
+    below.
+
+* `value_specs` - (Optional) Map of additional options.
 
 The `fixed_ip` block supports:
 
@@ -72,6 +77,12 @@ this port.
 * `ip_address` - (Optional) IP address desired in the subnet for this port. If
 you don't specify `ip_address`, an available IP address from the specified
 subnet will be allocated to this port.
+
+The `allowed_address_pairs` block supports:
+
+* `ip_address` - (Required) The additional IP address.
+
+* `mac_address` - (Optional) The additional MAC address.
 
 ## Attributes Reference
 

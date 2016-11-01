@@ -66,7 +66,7 @@ resource "google_container_cluster" "primary" {
     `monitoring.googleapis.com` and `none`. Defaults to
     `monitoring.googleapis.com`
 
-* `network` - (Optional) The name of the Google Compute Engine network to which
+* `network` - (Optional) The name or self_link of the Google Compute Engine network to which
     the cluster is connected
 
 * `node_config` -  (Optional) The machine type and image to use for all nodes in
@@ -112,13 +112,14 @@ resource "google_container_cluster" "primary" {
 * `horizontal_pod_autoscaling` - (Optional) The status of the Horizontal Pod Autoscaling addon. It is enabled by default; set `disabled = true` to disable.
 
 This example `addons_config` disables both addons:
+
 ```
 addons_config {
   http_load_balancing { 
-    disabled = false
+    disabled = true
   }
   horizontal_pod_autoscaling {
-    disabled = false
+    disabled = true
   }
 }
 ```

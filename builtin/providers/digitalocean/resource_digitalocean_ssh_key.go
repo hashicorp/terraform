@@ -21,31 +21,33 @@ func resourceDigitalOceanSSHKey() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"public_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				StateFunc: func(val interface{}) string {
-					return strings.TrimSpace(val.(string))
-				},
+			"public_key": {
+				Type:             schema.TypeString,
+				Required:         true,
+				ForceNew:         true,
+				DiffSuppressFunc: resourceDigitalOceanSSHKeyPublicKeyDiffSuppress,
 			},
 
-			"fingerprint": &schema.Schema{
+			"fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 		},
 	}
+}
+
+func resourceDigitalOceanSSHKeyPublicKeyDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	return strings.TrimSpace(old) == strings.TrimSpace(new)
 }
 
 func resourceDigitalOceanSSHKeyCreate(d *schema.ResourceData, meta interface{}) error {

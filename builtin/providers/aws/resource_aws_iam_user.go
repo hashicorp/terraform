@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -30,7 +31,7 @@ func resourceAwsIamUser() *schema.Resource {
 				The UniqueID could be used as the Id(), but none of the API
 				calls allow specifying a user by the UniqueID: they require the
 				name. The only way to locate a user by UniqueID is to list them
-				all and that would make this provider unnecessarilly complex
+				all and that would make this provider unnecessarily complex
 				and inefficient. Still, there are other reasons one might want
 				the UniqueID, so we can make it available.
 			*/
@@ -39,8 +40,9 @@ func resourceAwsIamUser() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateAwsIamUserName,
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
@@ -52,7 +54,7 @@ func resourceAwsIamUser() *schema.Resource {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
-				Description: "Delete user even if it has non-Terraform-managed IAM access keys",
+				Description: "Delete user even if it has non-Terraform-managed IAM access keys and login profile",
 			},
 		},
 	}
@@ -165,7 +167,7 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	// All access keys for the user must be removed
+	// All access keys and login profile for the user must be removed
 	if d.Get("force_destroy").(bool) {
 		var accessKeys []string
 		listAccessKeys := &iam.ListAccessKeysInput{
@@ -190,6 +192,16 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 				return fmt.Errorf("Error deleting access key %s: %s", k, err)
 			}
 		}
+
+		_, err = iamconn.DeleteLoginProfile(&iam.DeleteLoginProfileInput{
+			UserName: aws.String(d.Id()),
+		})
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
+				return nil
+			}
+			return fmt.Errorf("Error deleting Account Login Profile: %s", err)
+		}
 	}
 
 	request := &iam.DeleteUserInput{
@@ -201,4 +213,14 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error deleting IAM User %s: %s", d.Id(), err)
 	}
 	return nil
+}
+
+func validateAwsIamUserName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z=,.@\-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, hyphens, underscores, commas, periods, @ symbols and equals signs allowed in %q: %q",
+			k, value))
+	}
+	return
 }
