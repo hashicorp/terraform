@@ -117,7 +117,7 @@ BUG FIXES:
  * provider/aws: Allow underscores in IAM user and group names ([#9684](https://github.com/hashicorp/terraform/issues/9684))
  * provider/aws: aws_ami: handle deletion of AMIs ([#9721](https://github.com/hashicorp/terraform/issues/9721))
  * provider/aws: Fix aws_route53_record alias perpetual diff ([#9704](https://github.com/hashicorp/terraform/issues/9704))
- * provider/aws: Allow `active` state while waiting for the VPC Peering Connection. #9754
+ * provider/aws: Allow `active` state while waiting for the VPC Peering Connection. ([#9754](https://github.com/hashicorp/terraform/issues/9754))
  * provider/aws: Normalize all-principals wildcard in `aws_iam_policy_document` ([#9720](https://github.com/hashicorp/terraform/issues/9720))
  * provider/azurerm: Fix Azure RM loadbalancer rules validation ([#9468](https://github.com/hashicorp/terraform/issues/9468))
  * provider/azurerm: Fix servicebus_topic values when using the Update func to stop perpetual diff ([#9323](https://github.com/hashicorp/terraform/issues/9323))
