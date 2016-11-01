@@ -52,13 +52,13 @@ func populateResourceDataFromRRSet(r udnssdk.RRSet, d *schema.ResourceData) erro
 	rdata := r.RData
 
 	// UltraDNS API returns answers double-encoded like JSON, so we must decode. This is their bug.
-	if typ == "TXT" {
+	if typ == "TXT" || typ == "SPF" {
 		rdata = make([]string, len(r.RData))
 		for i := range r.RData {
 			var s string
 			err := json.Unmarshal([]byte(r.RData[i]), &s)
 			if err != nil {
-				log.Printf("[INFO] TXT answer parse error: %+v", err)
+				log.Printf("[INFO] %v answer parse error: %+v", typ, err)
 				s = r.RData[i]
 			}
 			rdata[i] = s
