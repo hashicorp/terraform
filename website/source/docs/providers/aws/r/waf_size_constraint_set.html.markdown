@@ -6,6 +6,10 @@ description: |-
   Provides a AWS WAF SizeConstraintSet resource.
 ---
 
+# aws\_waf\_size\_constraint\_set
+
+Provides a WAF Size Constraint Set Resource
+
 ## Example Usage
 
 ```
