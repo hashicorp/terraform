@@ -1,14 +1,17 @@
 package spotinst
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log"
+	"net/http"
 	"regexp"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/spotinst/spotinst-sdk-go/spotinst"
 )
@@ -57,6 +60,7 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 						},
 					},
 				},
+				Set: hashAwsGroupCapacity,
 			},
 
 			"strategy": &schema.Schema{
@@ -612,7 +616,10 @@ func resourceSpotinstAwsGroupCreate(d *schema.ResourceData, meta interface{}) er
 	}
 	log.Printf("[DEBUG] AwsGroup create configuration: %#v\n", newAwsGroup)
 	res, _, err := client.AwsGroup.Create(newAwsGroup)
-	if err != nil || len(res) == 0 {
+	if err == nil && len(res) != 1 {
+		err = fmt.Errorf("Spotinst API has returned a malformed response, aborted.")
+	}
+	if err != nil {
 		return fmt.Errorf("[ERROR] Error creating group: %s", err)
 	}
 	d.SetId(*res[0].ID)
@@ -625,7 +632,7 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 	groups, _, err := client.AwsGroup.Get(d.Id())
 	if err != nil {
 		if serr, ok := err.(*spotinst.ErrorResponse); ok {
-			if serr.Response.StatusCode == 400 {
+			if serr.Response.StatusCode == http.StatusBadRequest {
 				d.SetId("")
 				return nil
 			} else {
@@ -643,241 +650,116 @@ func resourceSpotinstAwsGroupRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("name", g.Name)
 		d.Set("description", g.Description)
 		d.Set("product", g.Compute.Product)
-
-		// Set the capacity.
-		capacity := make([]map[string]interface{}, 0, 1)
-		capacity = append(capacity, map[string]interface{}{
-			"target":  g.Capacity.Target,
-			"minimum": g.Capacity.Minimum,
-			"maximum": g.Capacity.Maximum,
-			"unit":    g.Capacity.Unit,
-		})
-		d.Set("capacity", capacity)
-
-		// Set the strategy.
-		strategy := make([]map[string]interface{}, 0, 1)
-		strategy = append(strategy, map[string]interface{}{
-			"risk":                       g.Strategy.Risk,
-			"ondemand_count":             g.Strategy.OnDemandCount,
-			"availability_vs_cost":       g.Strategy.AvailabilityVsCost,
-			"draining_timeout":           g.Strategy.DrainingTimeout,
-			"utilize_reserved_instances": g.Strategy.UtilizeReservedInstances,
-			"fallback_to_ondemand":       g.Strategy.FallbackToOnDemand,
-		})
-		d.Set("strategy", strategy)
-
-		// Set the launch specification.
-		lspec := make([]map[string]interface{}, 0, 1)
-		l := map[string]interface{}{
-			"health_check_grace_period": g.Compute.LaunchSpecification.HealthCheckGracePeriod,
-			"health_check_type":         g.Compute.LaunchSpecification.HealthCheckType,
-			"image_id":                  g.Compute.LaunchSpecification.ImageID,
-			"key_pair":                  g.Compute.LaunchSpecification.KeyPair,
-			"load_balancer_names":       g.Compute.LaunchSpecification.LoadBalancerNames,
-			"monitoring":                g.Compute.LaunchSpecification.Monitoring,
-			"security_group_ids":        g.Compute.LaunchSpecification.SecurityGroupIDs,
-			"user_data":                 g.Compute.LaunchSpecification.UserData,
-		}
-		if g.Compute.LaunchSpecification.IamInstanceProfile != nil {
-			if g.Compute.LaunchSpecification.IamInstanceProfile.Arn != nil {
-				l["iam_instance_profile"] = g.Compute.LaunchSpecification.IamInstanceProfile.Arn
-			} else {
-				l["iam_instance_profile"] = g.Compute.LaunchSpecification.IamInstanceProfile.Name
-			}
-		}
-		lspec = append(lspec, l)
-		d.Set("launch_specification", lspec)
-
-		// Set the load balancers.
-		if g.Compute.LaunchSpecification.LoadBalancersConfig != nil {
-			lbs := make([]map[string]interface{}, 0, len(g.Compute.LaunchSpecification.LoadBalancersConfig.LoadBalancers))
-			for _, lb := range g.Compute.LaunchSpecification.LoadBalancersConfig.LoadBalancers {
-				lbs = append(lbs, map[string]interface{}{
-					"name": lb.Name,
-					"arn":  lb.Arn,
-					"type": lb.Type,
-				})
-			}
-			d.Set("load_balancer", lbs)
-		}
-
-		// Set the availability zones.
-		zones := make([]map[string]interface{}, 0, len(g.Compute.AvailabilityZones))
-		for _, z := range g.Compute.AvailabilityZones {
-			zones = append(zones, map[string]interface{}{
-				"name":      z.Name,
-				"subnet_id": z.SubnetID,
-			})
-		}
-		d.Set("availability_zone", zones)
-
-		// Set the EBS volume pool.
-		volumes := make([]map[string]interface{}, 0, len(g.Compute.EBSVolumePool))
-		for _, v := range g.Compute.EBSVolumePool {
-			volumes = append(volumes, map[string]interface{}{
-				"device_name": v.DeviceName,
-				"volume_ids":  v.VolumeIDs,
-			})
-		}
-		d.Set("hot_ebs_volume", volumes)
-
-		// Set the signals.
-		signals := make([]map[string]interface{}, 0, len(g.Strategy.Signals))
-		for _, s := range g.Strategy.Signals {
-			signals = append(signals, map[string]interface{}{
-				"name": s.Name,
-			})
-		}
-		d.Set("signal", signals)
-
-		// Set the scheduled tasks.
-		tasks := make([]map[string]interface{}, 0, len(g.Scheduling.Tasks))
-		for _, t := range g.Scheduling.Tasks {
-			tasks = append(tasks, map[string]interface{}{
-				"task_type":             t.TaskType,
-				"cron_expression":       t.CronExpression,
-				"frequency":             t.Frequency,
-				"scale_target_capacity": t.ScaleTargetCapacity,
-				"scale_min_capacity":    t.ScaleMinCapacity,
-				"scale_max_capacity":    t.ScaleMaxCapacity,
-			})
-		}
-		d.Set("scheduled_task", tasks)
-
-		// Set the tags.
 		d.Set("tags", tagsToMap(g.Compute.LaunchSpecification.Tags))
-
-		// Set the elastic IPs.
 		d.Set("elastic_ips", g.Compute.ElasticIPs)
 
-		// Set the scaling up policies.
-		up := make([]map[string]interface{}, 0, len(g.Scaling.Up))
-		for _, p := range g.Scaling.Up {
-			up = append(up, map[string]interface{}{
-				"adjustment":          p.Adjustment,
-				"cooldown":            p.Cooldown,
-				"dimensions":          p.Dimensions,
-				"evaluation_periods":  p.EvaluationPeriods,
-				"max_target_capacity": p.MaxTargetCapacity,
-				"metric_name":         p.MetricName,
-				"min_target_capacity": p.MinTargetCapacity,
-				"namespace":           p.Namespace,
-				"operator":            p.Operator,
-				"period":              p.Period,
-				"policy_name":         p.PolicyName,
-				"statistic":           p.Statistic,
-				"threshold":           p.Threshold,
-				"unit":                p.Unit,
-			})
-		}
-		d.Set("scaling_up_policy", up)
-
-		// Set the scaling down policies.
-		down := make([]map[string]interface{}, 0, len(g.Scaling.Down))
-		for _, p := range g.Scaling.Down {
-			down = append(down, map[string]interface{}{
-				"adjustment":          p.Adjustment,
-				"cooldown":            p.Cooldown,
-				"dimensions":          p.Dimensions,
-				"evaluation_periods":  p.EvaluationPeriods,
-				"max_target_capacity": p.MaxTargetCapacity,
-				"metric_name":         p.MetricName,
-				"min_target_capacity": p.MinTargetCapacity,
-				"namespace":           p.Namespace,
-				"operator":            p.Operator,
-				"period":              p.Period,
-				"policy_name":         p.PolicyName,
-				"statistic":           p.Statistic,
-				"threshold":           p.Threshold,
-				"unit":                p.Unit,
-			})
-		}
-		d.Set("scaling_down_policy", down)
-
-		// Set the network interfaces.
-		interfaces := make([]map[string]interface{}, 0, len(g.Compute.LaunchSpecification.NetworkInterfaces))
-		for _, i := range g.Compute.LaunchSpecification.NetworkInterfaces {
-			interfaces = append(interfaces, map[string]interface{}{
-				"associate_public_ip_address":        i.AssociatePublicIPAddress,
-				"delete_on_termination":              i.DeleteOnTermination,
-				"description":                        i.Description,
-				"device_index":                       i.DeviceIndex,
-				"network_interface_id":               i.ID,
-				"private_ip_address":                 i.PrivateIPAddress,
-				"secondary_private_ip_address_count": i.SecondaryPrivateIPAddressCount,
-				"security_group_ids":                 i.SecurityGroupsIDs,
-				"subnet_id":                          i.SubnetID,
-			})
-		}
-		d.Set("network_interface", interfaces)
-
-		// Set the EBS block devices.
-		ebsDevices := make([]map[string]interface{}, 0, len(g.Compute.LaunchSpecification.BlockDevices))
-		for _, d := range g.Compute.LaunchSpecification.BlockDevices {
-			if d.EBS != nil {
-				ebsDevices = append(ebsDevices, map[string]interface{}{
-					"device_name":           d.DeviceName,
-					"delete_on_termination": d.EBS.DeleteOnTermination,
-					"encrypted":             d.EBS.Encrypted,
-					"iops":                  d.EBS.IOPS,
-					"snapshot_id":           d.EBS.SnapshotID,
-					"volume_size":           d.EBS.VolumeSize,
-					"volume_type":           d.EBS.VolumeType,
-				})
+		// Set capacity.
+		if g.Capacity != nil {
+			if err := d.Set("capacity", flattenAwsGroupCapacity(g.Capacity)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting capacity onfiguration: %#v", err)
 			}
 		}
-		d.Set("ebs_block_device", ebsDevices)
 
-		// Set the Ephemeral block devices.
-		ephemeralDevices := make([]map[string]interface{}, 0, len(g.Compute.LaunchSpecification.BlockDevices))
-		for _, d := range g.Compute.LaunchSpecification.BlockDevices {
-			if d.EBS == nil {
-				ephemeralDevices = append(ephemeralDevices, map[string]interface{}{
-					"device_name":  d.DeviceName,
-					"virtual_name": d.VirtualName,
-				})
+		// Set strategy.
+		if g.Strategy != nil {
+			if err := d.Set("strategy", flattenAwsGroupStrategy(g.Strategy)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting strategy configuration: %#v", err)
 			}
 		}
-		d.Set("ephemeral_block_device", ephemeralDevices)
 
-		// Set the Rancher integration.
-		rancher := make([]map[string]interface{}, 0, 1)
+		// Set signals.
+		if g.Strategy.Signals != nil {
+			if err := d.Set("signal", flattenAwsGroupSignals(g.Strategy.Signals)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting signals configuration: %#v", err)
+			}
+		}
+
+		// Set scheduled tasks.
+		if g.Scheduling.Tasks != nil {
+			if err := d.Set("scheduled_task", flattenAwsGroupScheduledTasks(g.Scheduling.Tasks)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting scheduled tasks configuration: %#v", err)
+			}
+		}
+
+		// Set scaling up policies.
+		if g.Scaling.Up != nil {
+			if err := d.Set("scaling_up_policy", flattenAwsGroupScalingPolicies(g.Scaling.Up)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting scaling up policies configuration: %#v", err)
+			}
+		}
+
+		// Set scaling down policies.
+		if g.Scaling.Down != nil {
+			if err := d.Set("scaling_down_policy", flattenAwsGroupScalingPolicies(g.Scaling.Down)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting scaling down policies configuration: %#v", err)
+			}
+		}
+
+		// Set launch specification.
+		if g.Compute.LaunchSpecification != nil {
+			if err := d.Set("launch_specification", flattenAwsGroupLaunchSpecification(g.Compute.LaunchSpecification)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting launch specification configuration: %#v", err)
+			}
+		}
+
+		// Set load balancers.
+		if g.Compute.LaunchSpecification.LoadBalancersConfig != nil {
+			if err := d.Set("load_balancer", flattenAwsGroupLoadBalancers(g.Compute.LaunchSpecification.LoadBalancersConfig.LoadBalancers)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting load balancers configuration: %#v", err)
+			}
+		}
+
+		// Set EBS volume pool.
+		if g.Compute.EBSVolumePool != nil {
+			if err := d.Set("hot_ebs_volume", flattenAwsGroupEBSVolumePool(g.Compute.EBSVolumePool)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting EBS volume pool configuration: %#v", err)
+			}
+		}
+
+		// Set network interfaces.
+		if g.Compute.LaunchSpecification.NetworkInterfaces != nil {
+			if err := d.Set("network_interface", flattenAwsGroupNetworkInterfaces(g.Compute.LaunchSpecification.NetworkInterfaces)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting network interfaces configuration: %#v", err)
+			}
+		}
+
+		// Set block devices.
+		if g.Compute.LaunchSpecification.BlockDevices != nil {
+			if err := d.Set("ebs_block_device", flattenAwsGroupEBSBlockDevices(g.Compute.LaunchSpecification.BlockDevices)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting EBS block devices configuration: %#v", err)
+			}
+			if err := d.Set("ephemeral_block_device", flattenAwsGroupEphemeralBlockDevices(g.Compute.LaunchSpecification.BlockDevices)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting Ephemeral block devices configuration: %#v", err)
+			}
+		}
+
+		// Set Rancher integration.
 		if g.Integration.Rancher != nil {
-			rancher = append(rancher, map[string]interface{}{
-				"master_host": g.Integration.Rancher.MasterHost,
-				"access_key":  g.Integration.Rancher.AccessKey,
-				"secret_leu":  g.Integration.Rancher.SecretKey,
-			})
+			if err := d.Set("rancher_integration", flattenAwsGroupRancherIntegration(g.Integration.Rancher)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting Rancher configuration: %#v", err)
+			}
 		}
-		d.Set("rancher_integration", rancher)
 
-		// Set the Elastic Beanstalk integration.
-		beanstalk := make([]map[string]interface{}, 0, 1)
+		// Set Elastic Beanstalk integration.
 		if g.Integration.ElasticBeanstalk != nil {
-			beanstalk = append(beanstalk, map[string]interface{}{
-				"environment_id": g.Integration.ElasticBeanstalk.EnvironmentID,
-			})
+			if err := d.Set("elastic_beanstalk_integration", flattenAwsGroupElasticBeanstalkIntegration(g.Integration.ElasticBeanstalk)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting Elastic Beanstalk configuration: %#v", err)
+			}
 		}
-		d.Set("elastic_beanstalk_integration", beanstalk)
 
-		// Set the EC2 Container Service integration.
-		ecs := make([]map[string]interface{}, 0, 1)
+		// Set EC2 Container Service integration.
 		if g.Integration.EC2ContainerService != nil {
-			ecs = append(ecs, map[string]interface{}{
-				"cluster_name": g.Integration.EC2ContainerService.ClusterName,
-			})
+			if err := d.Set("ec2_container_service_integration", flattenAwsGroupEC2ContainerServiceIntegration(g.Integration.EC2ContainerService)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting EC2 Container Service configuration: %#v", err)
+			}
 		}
-		d.Set("ec2_container_service_integration", ecs)
 
-		// Set the Kubernetes integration.
-		kubernetes := make([]map[string]interface{}, 0, 1)
+		// Set Kubernetes integration.
 		if g.Integration.Kubernetes != nil {
-			kubernetes = append(kubernetes, map[string]interface{}{
-				"api_server": g.Integration.Kubernetes.Server,
-				"token":      g.Integration.Kubernetes.Token,
-			})
+			if err := d.Set("kubernetes_integration", flattenAwsGroupKubernetesIntegration(g.Integration.Kubernetes)); err != nil {
+				return fmt.Errorf("[ERROR] Error setting Kubernetes configuration: %#v", err)
+			}
 		}
-		d.Set("kubernetes_integration", kubernetes)
 	} else {
 		d.SetId("")
 		return nil
@@ -1250,6 +1132,239 @@ func resourceSpotinstAwsGroupDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
+func flattenAwsGroupCapacity(capacity *spotinst.AwsGroupCapacity) []interface{} {
+	result := make(map[string]interface{})
+
+	result["target"] = spotinst.IntValue(capacity.Target)
+	result["minimum"] = spotinst.IntValue(capacity.Minimum)
+	result["maximum"] = spotinst.IntValue(capacity.Maximum)
+	result["unit"] = spotinst.StringValue(capacity.Unit)
+
+	return []interface{}{result}
+}
+
+func flattenAwsGroupStrategy(strategy *spotinst.AwsGroupStrategy) []interface{} {
+	result := make(map[string]interface{})
+
+	result["risk"] = spotinst.Float64Value(strategy.Risk)
+	result["ondemand_count"] = spotinst.IntValue(strategy.OnDemandCount)
+	result["availability_vs_cost"] = spotinst.StringValue(strategy.AvailabilityVsCost)
+	result["draining_timeout"] = spotinst.IntValue(strategy.DrainingTimeout)
+	result["utilize_reserved_instances"] = spotinst.BoolValue(strategy.UtilizeReservedInstances)
+	result["fallback_to_ondemand"] = spotinst.BoolValue(strategy.FallbackToOnDemand)
+
+	return []interface{}{result}
+}
+
+func flattenAwsGroupLaunchSpecification(lspec *spotinst.AwsGroupComputeLaunchSpecification) []interface{} {
+	result := make(map[string]interface{})
+
+	result["health_check_grace_period"] = spotinst.IntValue(lspec.HealthCheckGracePeriod)
+	result["health_check_type"] = spotinst.StringValue(lspec.HealthCheckType)
+	result["image_id"] = spotinst.StringValue(lspec.ImageID)
+	result["key_pair"] = spotinst.StringValue(lspec.KeyPair)
+	result["user_data"] = spotinst.StringValue(lspec.UserData)
+	result["monitoring"] = spotinst.BoolValue(lspec.Monitoring)
+	result["load_balancer_names"] = lspec.LoadBalancerNames
+	result["security_group_ids"] = lspec.SecurityGroupIDs
+
+	if lspec.IamInstanceProfile != nil {
+		if lspec.IamInstanceProfile.Arn != nil {
+			result["iam_instance_profile"] = spotinst.StringValue(lspec.IamInstanceProfile.Arn)
+		} else {
+			result["iam_instance_profile"] = spotinst.StringValue(lspec.IamInstanceProfile.Name)
+		}
+	}
+
+	return []interface{}{result}
+}
+
+func flattenAwsGroupLoadBalancers(balancers []*spotinst.AwsGroupComputeLoadBalancer) []interface{} {
+	result := make([]interface{}, 0, len(balancers))
+
+	for _, b := range balancers {
+		m := make(map[string]interface{})
+		m["name"] = spotinst.StringValue(b.Name)
+		m["arn"] = spotinst.StringValue(b.Arn)
+		m["type"] = spotinst.StringValue(b.Type)
+
+		result = append(result, m)
+	}
+
+	return result
+}
+
+func flattenAwsGroupEBSVolumePool(volumes []*spotinst.AwsGroupComputeEBSVolume) []interface{} {
+	result := make([]interface{}, 0, len(volumes))
+
+	for _, v := range volumes {
+		m := make(map[string]interface{})
+		m["device_name"] = spotinst.StringValue(v.DeviceName)
+		m["volume_ids"] = v.VolumeIDs
+
+		result = append(result, m)
+	}
+
+	return result
+}
+
+func flattenAwsGroupSignals(signals []*spotinst.AwsGroupStrategySignal) []interface{} {
+	result := make([]interface{}, 0, len(signals))
+
+	for _, s := range signals {
+		m := make(map[string]interface{})
+		m["name"] = spotinst.StringValue(s.Name)
+
+		result = append(result, m)
+	}
+
+	return result
+}
+
+func flattenAwsGroupScheduledTasks(tasks []*spotinst.AwsGroupScheduledTask) []interface{} {
+	result := make([]interface{}, 0, len(tasks))
+
+	for _, t := range tasks {
+		m := make(map[string]interface{})
+		m["task_type"] = spotinst.StringValue(t.TaskType)
+		m["cron_expression"] = spotinst.StringValue(t.CronExpression)
+		m["frequency"] = spotinst.StringValue(t.Frequency)
+		m["scale_target_capacity"] = spotinst.IntValue(t.ScaleTargetCapacity)
+		m["scale_min_capacity"] = spotinst.IntValue(t.ScaleMinCapacity)
+		m["scale_max_capacity"] = spotinst.IntValue(t.ScaleMaxCapacity)
+
+		result = append(result, m)
+	}
+
+	return result
+}
+
+func flattenAwsGroupScalingPolicies(policies []*spotinst.AwsGroupScalingPolicy) []interface{} {
+	result := make([]interface{}, 0, len(policies))
+
+	for _, p := range policies {
+		m := make(map[string]interface{})
+		m["adjustment"] = spotinst.IntValue(p.Adjustment)
+		m["cooldown"] = spotinst.IntValue(p.Cooldown)
+		m["evaluation_periods"] = spotinst.IntValue(p.EvaluationPeriods)
+		m["min_target_capacity"] = spotinst.IntValue(p.MinTargetCapacity)
+		m["max_target_capacity"] = spotinst.IntValue(p.MaxTargetCapacity)
+		m["metric_name"] = spotinst.StringValue(p.MetricName)
+		m["namespace"] = spotinst.StringValue(p.Namespace)
+		m["operator"] = spotinst.StringValue(p.Operator)
+		m["period"] = spotinst.IntValue(p.Period)
+		m["policy_name"] = spotinst.StringValue(p.PolicyName)
+		m["statistic"] = spotinst.StringValue(p.Statistic)
+		m["threshold"] = spotinst.Float64Value(p.Threshold)
+		m["unit"] = spotinst.StringValue(p.Unit)
+
+		if p.Dimensions != nil {
+			dm := make(map[string]interface{})
+			for _, d := range p.Dimensions {
+				dm[spotinst.StringValue(d.Name)] = spotinst.StringValue(d.Value)
+			}
+			m["dimensions"] = dm
+		}
+
+		result = append(result, m)
+	}
+
+	return result
+}
+
+func flattenAwsGroupNetworkInterfaces(ifaces []*spotinst.AwsGroupComputeNetworkInterface) []interface{} {
+	result := make([]interface{}, 0, len(ifaces))
+
+	for _, iface := range ifaces {
+		m := make(map[string]interface{})
+		m["associate_public_ip_address"] = spotinst.BoolValue(iface.AssociatePublicIPAddress)
+		m["delete_on_termination"] = spotinst.BoolValue(iface.DeleteOnTermination)
+		m["description"] = spotinst.StringValue(iface.Description)
+		m["device_index"] = spotinst.IntValue(iface.DeviceIndex)
+		m["network_interface_id"] = spotinst.StringValue(iface.ID)
+		m["private_ip_address"] = spotinst.StringValue(iface.PrivateIPAddress)
+		m["secondary_private_ip_address_count"] = spotinst.IntValue(iface.SecondaryPrivateIPAddressCount)
+		m["subnet_id"] = spotinst.StringValue(iface.SubnetID)
+		m["security_group_ids"] = iface.SecurityGroupsIDs
+
+		result = append(result, m)
+	}
+
+	return result
+}
+
+func flattenAwsGroupEBSBlockDevices(devices []*spotinst.AwsGroupComputeBlockDevice) []interface{} {
+	result := make([]interface{}, 0, len(devices))
+
+	for _, dev := range devices {
+		if dev.EBS != nil {
+			m := make(map[string]interface{})
+			m["device_name"] = spotinst.StringValue(dev.DeviceName)
+			m["delete_on_termination"] = spotinst.BoolValue(dev.EBS.DeleteOnTermination)
+			m["encrypted"] = spotinst.BoolValue(dev.EBS.Encrypted)
+			m["iops"] = spotinst.IntValue(dev.EBS.IOPS)
+			m["snapshot_id"] = spotinst.StringValue(dev.EBS.SnapshotID)
+			m["volume_type"] = spotinst.StringValue(dev.EBS.VolumeType)
+			m["volume_size"] = spotinst.IntValue(dev.EBS.VolumeSize)
+
+			result = append(result, m)
+		}
+	}
+
+	return result
+}
+
+func flattenAwsGroupEphemeralBlockDevices(devices []*spotinst.AwsGroupComputeBlockDevice) []interface{} {
+	result := make([]interface{}, 0, len(devices))
+
+	for _, dev := range devices {
+		if dev.EBS == nil {
+			m := make(map[string]interface{})
+			m["device_name"] = spotinst.StringValue(dev.DeviceName)
+			m["virtual_name"] = spotinst.StringValue(dev.VirtualName)
+
+			result = append(result, m)
+		}
+	}
+
+	return result
+}
+
+func flattenAwsGroupRancherIntegration(integration *spotinst.AwsGroupRancherIntegration) []interface{} {
+	result := make(map[string]interface{})
+
+	result["master_host"] = spotinst.StringValue(integration.MasterHost)
+	result["access_key"] = spotinst.StringValue(integration.AccessKey)
+	result["secret_key"] = spotinst.StringValue(integration.SecretKey)
+
+	return []interface{}{result}
+}
+
+func flattenAwsGroupElasticBeanstalkIntegration(integration *spotinst.AwsGroupElasticBeanstalkIntegration) []interface{} {
+	result := make(map[string]interface{})
+
+	result["environment_id"] = spotinst.StringValue(integration.EnvironmentID)
+
+	return []interface{}{result}
+}
+
+func flattenAwsGroupEC2ContainerServiceIntegration(integration *spotinst.AwsGroupEC2ContainerServiceIntegration) []interface{} {
+	result := make(map[string]interface{})
+
+	result["cluster_name"] = spotinst.StringValue(integration.ClusterName)
+
+	return []interface{}{result}
+}
+
+func flattenAwsGroupKubernetesIntegration(integration *spotinst.AwsGroupKubernetesIntegration) []interface{} {
+	result := make(map[string]interface{})
+
+	result["api_server"] = spotinst.StringValue(integration.Server)
+	result["token"] = spotinst.StringValue(integration.Token)
+
+	return []interface{}{result}
+}
+
 // buildAwsGroupOpts builds the Spotinst AWS Group options.
 func buildAwsGroupOpts(d *schema.ResourceData, meta interface{}) (*spotinst.AwsGroup, error) {
 	group := &spotinst.AwsGroup{
@@ -1564,20 +1679,19 @@ func expandAwsGroupScalingPolicies(data interface{}) ([]*spotinst.AwsGroupScalin
 			policy.EvaluationPeriods = spotinst.Int(v)
 		}
 
-		if v, ok := m["cooldown"].(int); ok {
+		if v, ok := m["cooldown"].(int); ok && v > 0 {
 			policy.Cooldown = spotinst.Int(v)
 		}
 
 		if v, ok := m["dimensions"].(map[string]interface{}); ok {
-			dimensions := make([]*spotinst.AwsGroupScalingPolicyDimension, 0, len(v))
-			for i, k := range v {
-				dimensions = append(dimensions, &spotinst.AwsGroupScalingPolicyDimension{
-					Name:  spotinst.String(i),
-					Value: spotinst.String(k.(string)),
+			dm := make([]*spotinst.AwsGroupScalingPolicyDimension, 0, len(v))
+			for key, val := range v {
+				dm = append(dm, &spotinst.AwsGroupScalingPolicyDimension{
+					Name:  spotinst.String(key),
+					Value: spotinst.String(val.(string)),
 				})
 			}
-
-			policy.Dimensions = dimensions
+			policy.Dimensions = dm
 		}
 
 		log.Printf("[DEBUG] AwsGroup scaling policy configuration: %#v\n", policy)
@@ -2065,6 +2179,17 @@ func expandAwsGroupTags(data interface{}) ([]*spotinst.AwsGroupComputeTag, error
 	}
 
 	return tags, nil
+}
+
+func hashAwsGroupCapacity(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%d-", m["target"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["minimum"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["maximum"].(int)))
+
+	return hashcode.String(buf.String())
 }
 
 // tagsToMap turns the list of tags into a map.
