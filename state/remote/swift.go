@@ -3,14 +3,17 @@ package remote
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/tls"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
-	"strings"
+	"strconv"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
-	"github.com/rackspace/gophercloud/openstack/objectstorage/v1/containers"
-	"github.com/rackspace/gophercloud/openstack/objectstorage/v1/objects"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
+	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/objects"
 )
 
 const TFSTATE_NAME = "tfstate.tf"
@@ -49,13 +52,38 @@ func (c *SwiftClient) validateConfig(conf map[string]string) (err error) {
 		return fmt.Errorf("missing 'path' configuration")
 	}
 
-	provider, err := openstack.AuthenticatedClient(gophercloud.AuthOptions{
+	ao := gophercloud.AuthOptions{
 		IdentityEndpoint: os.Getenv("OS_AUTH_URL"),
 		Username:         os.Getenv("OS_USERNAME"),
 		TenantName:       os.Getenv("OS_TENANT_NAME"),
 		Password:         os.Getenv("OS_PASSWORD"),
-	})
+		DomainName:       os.Getenv("OS_DOMAIN_NAME"),
+		DomainID:         os.Getenv("OS_DOMAIN_ID"),
+	}
 
+	provider, err := openstack.NewClient(ao.IdentityEndpoint)
+	if err != nil {
+		return err
+	}
+
+	config := &tls.Config{}
+	insecure := false
+	if insecure_env := os.Getenv("OS_INSECURE"); insecure_env != "" {
+		insecure, err = strconv.ParseBool(insecure_env)
+		if err != nil {
+			return err
+		}
+	}
+
+	if insecure {
+		log.Printf("[DEBUG] Insecure mode set")
+		config.InsecureSkipVerify = true
+	}
+
+	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
+	provider.HTTPClient.Transport = transport
+
+	err = openstack.Authenticate(provider, ao)
 	if err != nil {
 		return err
 	}
@@ -70,12 +98,18 @@ func (c *SwiftClient) validateConfig(conf map[string]string) (err error) {
 
 func (c *SwiftClient) Get() (*Payload, error) {
 	result := objects.Download(c.client, c.path, TFSTATE_NAME, nil)
-	bytes, err := result.ExtractContent()
 
+	// Extract any errors from result
+	_, err := result.Extract()
+
+	// 404 response is to be expected if the object doesn't already exist!
+	if _, ok := err.(gophercloud.ErrDefault404); ok {
+		log.Printf("[DEBUG] Container doesn't exist to download.")
+		return nil, nil
+	}
+
+	bytes, err := result.ExtractContent()
 	if err != nil {
-		if strings.Contains(err.Error(), "but got 404 instead") {
-			return nil, nil
-		}
 		return nil, err
 	}
 
@@ -94,7 +128,10 @@ func (c *SwiftClient) Put(data []byte) error {
 	}
 
 	reader := bytes.NewReader(data)
-	result := objects.Create(c.client, c.path, TFSTATE_NAME, reader, nil)
+	createOpts := objects.CreateOpts{
+		Content: reader,
+	}
+	result := objects.Create(c.client, c.path, TFSTATE_NAME, createOpts)
 
 	return result.Err
 }
