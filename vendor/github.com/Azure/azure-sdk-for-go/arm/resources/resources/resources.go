@@ -115,35 +115,100 @@ func (client Client) CheckExistenceResponder(resp *http.Response) (result autore
 	return
 }
 
-// CreateOrUpdate create a resource.
+// CheckExistenceByID checks whether resource exists.
+//
+// resourceID is the fully qualified Id of the resource, including the
+// resource name and resource type. For example,
+// /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myGroup/Microsoft.Web/sites/mySite
+func (client Client) CheckExistenceByID(resourceID string) (result autorest.Response, err error) {
+	req, err := client.CheckExistenceByIDPreparer(resourceID)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "resources.Client", "CheckExistenceByID", nil, "Failure preparing request")
+	}
+
+	resp, err := client.CheckExistenceByIDSender(req)
+	if err != nil {
+		result.Response = resp
+		return result, autorest.NewErrorWithError(err, "resources.Client", "CheckExistenceByID", resp, "Failure sending request")
+	}
+
+	result, err = client.CheckExistenceByIDResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "resources.Client", "CheckExistenceByID", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// CheckExistenceByIDPreparer prepares the CheckExistenceByID request.
+func (client Client) CheckExistenceByIDPreparer(resourceID string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"resourceId": resourceID,
+	}
+
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsHead(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/{resourceId}", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{})
+}
+
+// CheckExistenceByIDSender sends the CheckExistenceByID request. The method will close the
+// http.Response Body if it receives an error.
+func (client Client) CheckExistenceByIDSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req)
+}
+
+// CheckExistenceByIDResponder handles the response to the CheckExistenceByID request. The method always
+// closes the http.Response Body.
+func (client Client) CheckExistenceByIDResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent, http.StatusNotFound),
+		autorest.ByClosing())
+	result.Response = resp
+	return
+}
+
+// CreateOrUpdate create a resource. This method may poll for completion.
+// Polling can be canceled by passing the cancel channel argument. The
+// channel will be used to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. The name is case
 // insensitive. resourceProviderNamespace is resource identity.
 // parentResourcePath is resource identity. resourceType is resource
 // identity. resourceName is resource identity. parameters is create or
 // update resource parameters.
-func (client Client) CreateOrUpdate(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, parameters GenericResource) (result GenericResource, err error) {
+func (client Client) CreateOrUpdate(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, parameters GenericResource, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Identity", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.Identity.PrincipalID", Name: validation.ReadOnly, Rule: true, Chain: nil},
-					{Target: "parameters.Identity.TenantID", Name: validation.ReadOnly, Rule: true, Chain: nil},
-				}}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "parameters.Kind", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Kind", Name: validation.Pattern, Rule: `^[-\w\._,\(\)]+$`, Chain: nil}}},
+				{Target: "parameters.Identity", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Identity.PrincipalID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "parameters.Identity.TenantID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "resources.Client", "CreateOrUpdate")
 	}
 
-	req, err := client.CreateOrUpdatePreparer(resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName, parameters)
+	req, err := client.CreateOrUpdatePreparer(resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.Client", "CreateOrUpdate", nil, "Failure preparing request")
 	}
 
 	resp, err := client.CreateOrUpdateSender(req)
 	if err != nil {
-		result.Response = autorest.Response{Response: resp}
+		result.Response = resp
 		return result, autorest.NewErrorWithError(err, "resources.Client", "CreateOrUpdate", resp, "Failure sending request")
 	}
 
@@ -156,7 +221,7 @@ func (client Client) CreateOrUpdate(resourceGroupName string, resourceProviderNa
 }
 
 // CreateOrUpdatePreparer prepares the CreateOrUpdate request.
-func (client Client) CreateOrUpdatePreparer(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, parameters GenericResource) (*http.Request, error) {
+func (client Client) CreateOrUpdatePreparer(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, parameters GenericResource, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"parentResourcePath":        parentResourcePath,
 		"resourceGroupName":         autorest.Encode("path", resourceGroupName),
@@ -177,35 +242,117 @@ func (client Client) CreateOrUpdatePreparer(resourceGroupName string, resourcePr
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePath}/{resourceType}/{resourceName}", pathParameters),
 		autorest.WithJSON(parameters),
 		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
+	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
 
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
+	return autorest.SendWithSender(client,
+		req,
+		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
 // CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client Client) CreateOrUpdateResponder(resp *http.Response) (result GenericResource, err error) {
+func (client Client) CreateOrUpdateResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusCreated, http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result),
+		azure.WithErrorUnlessStatusCode(http.StatusCreated, http.StatusOK, http.StatusAccepted),
 		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
+	result.Response = resp
 	return
 }
 
-// Delete delete resource and all of its resources.
+// CreateOrUpdateByID create a resource. This method may poll for completion.
+// Polling can be canceled by passing the cancel channel argument. The
+// channel will be used to cancel polling and any outstanding HTTP requests.
+//
+// resourceID is the fully qualified Id of the resource, including the
+// resource name and resource type. For example,
+// /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myGroup/Microsoft.Web/sites/mySite
+// parameters is create or update resource parameters.
+func (client Client) CreateOrUpdateByID(resourceID string, parameters GenericResource, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Kind", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Kind", Name: validation.Pattern, Rule: `^[-\w\._,\(\)]+$`, Chain: nil}}},
+				{Target: "parameters.Identity", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Identity.PrincipalID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "parameters.Identity.TenantID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.Client", "CreateOrUpdateByID")
+	}
+
+	req, err := client.CreateOrUpdateByIDPreparer(resourceID, parameters, cancel)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "resources.Client", "CreateOrUpdateByID", nil, "Failure preparing request")
+	}
+
+	resp, err := client.CreateOrUpdateByIDSender(req)
+	if err != nil {
+		result.Response = resp
+		return result, autorest.NewErrorWithError(err, "resources.Client", "CreateOrUpdateByID", resp, "Failure sending request")
+	}
+
+	result, err = client.CreateOrUpdateByIDResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "resources.Client", "CreateOrUpdateByID", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// CreateOrUpdateByIDPreparer prepares the CreateOrUpdateByID request.
+func (client Client) CreateOrUpdateByIDPreparer(resourceID string, parameters GenericResource, cancel <-chan struct{}) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"resourceId": resourceID,
+	}
+
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsJSON(),
+		autorest.AsPut(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/{resourceId}", pathParameters),
+		autorest.WithJSON(parameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{Cancel: cancel})
+}
+
+// CreateOrUpdateByIDSender sends the CreateOrUpdateByID request. The method will close the
+// http.Response Body if it receives an error.
+func (client Client) CreateOrUpdateByIDSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client,
+		req,
+		azure.DoPollForAsynchronous(client.PollingDelay))
+}
+
+// CreateOrUpdateByIDResponder handles the response to the CreateOrUpdateByID request. The method always
+// closes the http.Response Body.
+func (client Client) CreateOrUpdateByIDResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusCreated, http.StatusOK, http.StatusAccepted),
+		autorest.ByClosing())
+	result.Response = resp
+	return
+}
+
+// Delete deletes a resource. This method may poll for completion. Polling can
+// be canceled by passing the cancel channel argument. The channel will be
+// used to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. The name is case
 // insensitive. resourceProviderNamespace is resource identity.
 // parentResourcePath is resource identity. resourceType is resource
 // identity. resourceName is resource identity.
-func (client Client) Delete(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result autorest.Response, err error) {
+func (client Client) Delete(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -214,7 +361,7 @@ func (client Client) Delete(resourceGroupName string, resourceProviderNamespace 
 		return result, validation.NewErrorWithValidationError(err, "resources.Client", "Delete")
 	}
 
-	req, err := client.DeletePreparer(resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName)
+	req, err := client.DeletePreparer(resourceGroupName, resourceProviderNamespace, parentResourcePath, resourceType, resourceName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.Client", "Delete", nil, "Failure preparing request")
 	}
@@ -234,7 +381,7 @@ func (client Client) Delete(resourceGroupName string, resourceProviderNamespace 
 }
 
 // DeletePreparer prepares the Delete request.
-func (client Client) DeletePreparer(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (*http.Request, error) {
+func (client Client) DeletePreparer(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"parentResourcePath":        parentResourcePath,
 		"resourceGroupName":         autorest.Encode("path", resourceGroupName),
@@ -253,18 +400,85 @@ func (client Client) DeletePreparer(resourceGroupName string, resourceProviderNa
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePath}/{resourceType}/{resourceName}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
+	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
 
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
+	return autorest.SendWithSender(client,
+		req,
+		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
 // closes the http.Response Body.
 func (client Client) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNoContent, http.StatusAccepted),
+		autorest.ByClosing())
+	result.Response = resp
+	return
+}
+
+// DeleteByID deletes a resource. This method may poll for completion. Polling
+// can be canceled by passing the cancel channel argument. The channel will
+// be used to cancel polling and any outstanding HTTP requests.
+//
+// resourceID is the fully qualified Id of the resource, including the
+// resource name and resource type. For example,
+// /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myGroup/Microsoft.Web/sites/mySite
+func (client Client) DeleteByID(resourceID string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	req, err := client.DeleteByIDPreparer(resourceID, cancel)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "resources.Client", "DeleteByID", nil, "Failure preparing request")
+	}
+
+	resp, err := client.DeleteByIDSender(req)
+	if err != nil {
+		result.Response = resp
+		return result, autorest.NewErrorWithError(err, "resources.Client", "DeleteByID", resp, "Failure sending request")
+	}
+
+	result, err = client.DeleteByIDResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "resources.Client", "DeleteByID", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// DeleteByIDPreparer prepares the DeleteByID request.
+func (client Client) DeleteByIDPreparer(resourceID string, cancel <-chan struct{}) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"resourceId": resourceID,
+	}
+
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsDelete(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/{resourceId}", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{Cancel: cancel})
+}
+
+// DeleteByIDSender sends the DeleteByID request. The method will close the
+// http.Response Body if it receives an error.
+func (client Client) DeleteByIDSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client,
+		req,
+		azure.DoPollForAsynchronous(client.PollingDelay))
+}
+
+// DeleteByIDResponder handles the response to the DeleteByID request. The method always
+// closes the http.Response Body.
+func (client Client) DeleteByIDResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -340,6 +554,68 @@ func (client Client) GetSender(req *http.Request) (*http.Response, error) {
 // GetResponder handles the response to the Get request. The method always
 // closes the http.Response Body.
 func (client Client) GetResponder(resp *http.Response) (result GenericResource, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// GetByID gets a resource.
+//
+// resourceID is the fully qualified Id of the resource, including the
+// resource name and resource type. For example,
+// /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myGroup/Microsoft.Web/sites/mySite
+func (client Client) GetByID(resourceID string) (result GenericResource, err error) {
+	req, err := client.GetByIDPreparer(resourceID)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "resources.Client", "GetByID", nil, "Failure preparing request")
+	}
+
+	resp, err := client.GetByIDSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "resources.Client", "GetByID", resp, "Failure sending request")
+	}
+
+	result, err = client.GetByIDResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "resources.Client", "GetByID", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetByIDPreparer prepares the GetByID request.
+func (client Client) GetByIDPreparer(resourceID string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"resourceId": resourceID,
+	}
+
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/{resourceId}", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{})
+}
+
+// GetByIDSender sends the GetByID request. The method will close the
+// http.Response Body if it receives an error.
+func (client Client) GetByIDSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req)
+}
+
+// GetByIDResponder handles the response to the GetByID request. The method always
+// closes the http.Response Body.
+func (client Client) GetByIDResponder(resp *http.Response) (result GenericResource, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),

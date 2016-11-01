@@ -25,40 +25,90 @@ import (
 	"net/http"
 )
 
+// CertificatePermissions enumerates the values for certificate permissions.
+type CertificatePermissions string
+
+const (
+	// All specifies the all state for certificate permissions.
+	All CertificatePermissions = "all"
+	// Create specifies the create state for certificate permissions.
+	Create CertificatePermissions = "create"
+	// Delete specifies the delete state for certificate permissions.
+	Delete CertificatePermissions = "delete"
+	// Deleteissuers specifies the deleteissuers state for certificate
+	// permissions.
+	Deleteissuers CertificatePermissions = "deleteissuers"
+	// Get specifies the get state for certificate permissions.
+	Get CertificatePermissions = "get"
+	// Getissuers specifies the getissuers state for certificate permissions.
+	Getissuers CertificatePermissions = "getissuers"
+	// Import specifies the import state for certificate permissions.
+	Import CertificatePermissions = "import"
+	// List specifies the list state for certificate permissions.
+	List CertificatePermissions = "list"
+	// Listissuers specifies the listissuers state for certificate permissions.
+	Listissuers CertificatePermissions = "listissuers"
+	// Managecontacts specifies the managecontacts state for certificate
+	// permissions.
+	Managecontacts CertificatePermissions = "managecontacts"
+	// Manageissuers specifies the manageissuers state for certificate
+	// permissions.
+	Manageissuers CertificatePermissions = "manageissuers"
+	// Setissuers specifies the setissuers state for certificate permissions.
+	Setissuers CertificatePermissions = "setissuers"
+	// Update specifies the update state for certificate permissions.
+	Update CertificatePermissions = "update"
+)
+
 // KeyPermissions enumerates the values for key permissions.
 type KeyPermissions string
 
 const (
-	// All specifies the all state for key permissions.
-	All KeyPermissions = "all"
-	// Backup specifies the backup state for key permissions.
-	Backup KeyPermissions = "backup"
-	// Create specifies the create state for key permissions.
-	Create KeyPermissions = "create"
-	// Decrypt specifies the decrypt state for key permissions.
-	Decrypt KeyPermissions = "decrypt"
-	// Delete specifies the delete state for key permissions.
-	Delete KeyPermissions = "delete"
-	// Encrypt specifies the encrypt state for key permissions.
-	Encrypt KeyPermissions = "encrypt"
-	// Get specifies the get state for key permissions.
-	Get KeyPermissions = "get"
-	// Import specifies the import state for key permissions.
-	Import KeyPermissions = "import"
-	// List specifies the list state for key permissions.
-	List KeyPermissions = "list"
-	// Restore specifies the restore state for key permissions.
-	Restore KeyPermissions = "restore"
-	// Sign specifies the sign state for key permissions.
-	Sign KeyPermissions = "sign"
-	// Unwrapkey specifies the unwrapkey state for key permissions.
-	Unwrapkey KeyPermissions = "unwrapkey"
-	// Update specifies the update state for key permissions.
-	Update KeyPermissions = "update"
-	// Verify specifies the verify state for key permissions.
-	Verify KeyPermissions = "verify"
-	// Wrapkey specifies the wrapkey state for key permissions.
-	Wrapkey KeyPermissions = "wrapkey"
+	// KeyPermissionsAll specifies the key permissions all state for key
+	// permissions.
+	KeyPermissionsAll KeyPermissions = "all"
+	// KeyPermissionsBackup specifies the key permissions backup state for key
+	// permissions.
+	KeyPermissionsBackup KeyPermissions = "backup"
+	// KeyPermissionsCreate specifies the key permissions create state for key
+	// permissions.
+	KeyPermissionsCreate KeyPermissions = "create"
+	// KeyPermissionsDecrypt specifies the key permissions decrypt state for
+	// key permissions.
+	KeyPermissionsDecrypt KeyPermissions = "decrypt"
+	// KeyPermissionsDelete specifies the key permissions delete state for key
+	// permissions.
+	KeyPermissionsDelete KeyPermissions = "delete"
+	// KeyPermissionsEncrypt specifies the key permissions encrypt state for
+	// key permissions.
+	KeyPermissionsEncrypt KeyPermissions = "encrypt"
+	// KeyPermissionsGet specifies the key permissions get state for key
+	// permissions.
+	KeyPermissionsGet KeyPermissions = "get"
+	// KeyPermissionsImport specifies the key permissions import state for key
+	// permissions.
+	KeyPermissionsImport KeyPermissions = "import"
+	// KeyPermissionsList specifies the key permissions list state for key
+	// permissions.
+	KeyPermissionsList KeyPermissions = "list"
+	// KeyPermissionsRestore specifies the key permissions restore state for
+	// key permissions.
+	KeyPermissionsRestore KeyPermissions = "restore"
+	// KeyPermissionsSign specifies the key permissions sign state for key
+	// permissions.
+	KeyPermissionsSign KeyPermissions = "sign"
+	// KeyPermissionsUnwrapKey specifies the key permissions unwrap key state
+	// for key permissions.
+	KeyPermissionsUnwrapKey KeyPermissions = "unwrapKey"
+	// KeyPermissionsUpdate specifies the key permissions update state for key
+	// permissions.
+	KeyPermissionsUpdate KeyPermissions = "update"
+	// KeyPermissionsVerify specifies the key permissions verify state for key
+	// permissions.
+	KeyPermissionsVerify KeyPermissions = "verify"
+	// KeyPermissionsWrapKey specifies the key permissions wrap key state for
+	// key permissions.
+	KeyPermissionsWrapKey KeyPermissions = "wrapKey"
 )
 
 // SecretPermissions enumerates the values for secret permissions.
@@ -92,9 +142,9 @@ const (
 	Standard SkuName = "standard"
 )
 
-// AccessPolicyEntry is an array of 0 to 16 identities that have access to the
-// key vault. All identities in the array must use the same tenant ID as the
-// key vault's tenant ID.
+// AccessPolicyEntry is an identity that have access to the key vault. All
+// identities in the array must use the same tenant ID as the key vault's
+// tenant ID.
 type AccessPolicyEntry struct {
 	TenantID      *uuid.UUID   `json:"tenantId,omitempty"`
 	ObjectID      *uuid.UUID   `json:"objectId,omitempty"`
@@ -102,10 +152,12 @@ type AccessPolicyEntry struct {
 	Permissions   *Permissions `json:"permissions,omitempty"`
 }
 
-// Permissions is permissions the identity has for keys and secrets
+// Permissions is permissions the identity has for keys, secrets and
+// certificates.
 type Permissions struct {
-	Keys    *[]KeyPermissions    `json:"keys,omitempty"`
-	Secrets *[]SecretPermissions `json:"secrets,omitempty"`
+	Keys         *[]KeyPermissions         `json:"keys,omitempty"`
+	Secrets      *[]SecretPermissions      `json:"secrets,omitempty"`
+	Certificates *[]CertificatePermissions `json:"certificates,omitempty"`
 }
 
 // Resource is key Vault resource
