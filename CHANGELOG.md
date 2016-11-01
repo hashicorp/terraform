@@ -89,6 +89,7 @@ BUG FIXES:
  * core: `prevent_destroy` prevents decreasing count [GH-9707]
  * core: removed optional items will trigger "requires new" if necessary [GH-9699]
  * command/apply: `-backup` and `-state-out` work with plan files [GH-9706]
+ * command/fmt: Cleaner formatting for multiline standalone comments above resources 
  * command/validate: respond to `--help` [GH-9660]
  * provider/archive: Converting to datasource. [GH-8492]
  * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value [GH-9453]
