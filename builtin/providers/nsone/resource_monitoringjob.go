@@ -2,26 +2,26 @@ package nsone
 
 import (
 	"fmt"
-	"github.com/ns1/ns1-go"
-	"github.com/hashicorp/terraform/helper/schema"
 	"regexp"
 	"strconv"
+
+	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/ns1/ns1-go"
 )
 
 func monitoringJobResource() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
+			// Required
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"active": &schema.Schema{
-				Type:     schema.TypeBool,
+			"job_type": &schema.Schema{
+				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"regions": &schema.Schema{
 				Type:     schema.TypeList,
@@ -30,22 +30,29 @@ func monitoringJobResource() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			"job_type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
 			"frequency": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 			},
+			"config": &schema.Schema{
+				Type:     schema.TypeMap,
+				Required: true,
+			},
+			// Optional
+			"active": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			"rapid_recheck": &schema.Schema{
 				Type:     schema.TypeBool,
-				Required: true,
+				Optional: true,
+				Default:  false,
 			},
 			"policy": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "quorum",
 				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
 					value := v.(string)
 					if !regexp.MustCompile(`^(all|one|quorum)$`).MatchString(value) {
@@ -58,10 +65,6 @@ func monitoringJobResource() *schema.Resource {
 			"notes": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-			},
-			"config": &schema.Schema{
-				Type:     schema.TypeMap,
-				Required: true,
 			},
 			"notify_delay": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -102,6 +105,11 @@ func monitoringJobResource() *schema.Resource {
 						},
 					},
 				},
+			},
+			// Computed
+			"id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 		Create: MonitoringJobCreate,
