@@ -117,6 +117,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 
 	return nil
 }
+
 // used to manage trailing .
 func HostedZoneName(name string) string {
 	n := len(name)
