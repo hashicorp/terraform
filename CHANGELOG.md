@@ -58,6 +58,7 @@ IMPROVEMENTS:
  * provider/azurerm: write load_balanacer attributes to network_interface_card hash [GH-9207]
  * provider/azurerm: Add disk_size_gb param to VM storage_os_disk [GH-9200]
  * provider/azurerm: support importing of subnet resource [GH-9646]
+ * provider/azurerm: Add support for *all* of the Azure regions e.g. Germany, China and Government [GH-9765]
  * provider/digitalocean: Allow resizing DigitalOcean Droplets without increasing disk size. [GH-9573]
  * provider/google: enhance service scope list [GH-9442]
  * provider/google Change default MySQL instance version to 5.6 [GH-9674]
