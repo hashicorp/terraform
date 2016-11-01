@@ -222,6 +222,8 @@ func resourceArmSqlDatabaseRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("creation_date", resp.CreationDate)
 	d.Set("default_secondary_location", resp.DefaultSecondaryLocation)
 
+	flattenAndSetTags(d, resp.Tags)
+
 	return nil
 }
 
