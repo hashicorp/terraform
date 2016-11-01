@@ -57,7 +57,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"google_iam_policy": dataSourceGoogleIamPolicy(),
+			"google_iam_policy":                dataSourceGoogleIamPolicy(),
+			"google_storage_object_signed_url": dataSourceGoogleSignedUrl(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
