@@ -615,7 +615,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			// that value is allowed since it may mean the value ended up
 			// being the same.
 			if diffOld.NewComputed {
-				continue
+				ok = true
 			}
 
 			// No exact match, but maybe this is a set containing computed

@@ -608,6 +608,34 @@ func TestInstanceDiffSame(t *testing.T) {
 			"",
 		},
 
+		// NewComputed on set, removed
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.1": &ResourceAttrDiff{
+						Old:        "foo",
+						New:        "",
+						NewRemoved: true,
+					},
+					"foo.2": &ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
 		{
 			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
