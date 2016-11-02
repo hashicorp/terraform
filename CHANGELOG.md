@@ -8,8 +8,9 @@ IMPROVEMENTS:
  * provider/aws: Allows aws_alb security_groups to be updated [GH-9804]
  
 
-BUGS:
+BUG FIXES:
  * provider/google: fix for looking up project image families [GH-9243]
+ * provider/aws: Fix issue setting `certificate_upload_date` in `aws_api_gateway_domain_name` [GH-9815]
 
 ## 0.7.8 (November 1, 2016)
 
