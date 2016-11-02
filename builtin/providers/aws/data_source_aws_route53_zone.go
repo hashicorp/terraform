@@ -40,6 +40,11 @@ func dataSourceAwsRoute53Zone() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"vpc_id": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
 			"resource_record_set_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -52,69 +57,81 @@ func dataSourceAwsRoute53Zone() *schema.Resource {
 func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 	name, nameExists := d.GetOk("name")
+	name = hostedZoneName(name.(string))
 	id, idExists := d.GetOk("zone_id")
+	vpcId, vpcIdExists := d.GetOk("vpc_id")
 	if nameExists && idExists {
 		return fmt.Errorf("zone_id and name arguments can't be used together")
-	}
-
-	if nameExists {
-		req := &route53.ListHostedZonesByNameInput{}
-		req.DNSName = aws.String(name.(string))
-		req.MaxItems = aws.String("1")
-		resp, err := conn.ListHostedZonesByName(req)
-		name := hostedZoneName(name.(string))
-		if err != nil {
-			errwrap.Wrapf("Error finding Route 53 Hosted Zone: {{err}}", err)
-		}
-
-		if resp == nil || len(resp.HostedZones) == 0 || *resp.HostedZones[0].Name != name {
-			return fmt.Errorf("no matching Route53Zone found")
-		}
-		// We test that the first HZ is private or not, if it's not match the field private_zone, we test the second one
-		index := -1
-		if *resp.HostedZones[0].Config.PrivateZone == d.Get("private_zone").(bool) {
-			index = 0
-		} else if len(resp.HostedZones) >= 2 && *resp.HostedZones[1].Name != name {
-			index = 1
-		} else {
-			return fmt.Errorf("no matching Route53Zone found")
-		}
-		hostedZone := resp.HostedZones[index]
-		id := cleanZoneID(*hostedZone.Id)
-		d.SetId(id)
-		d.Set("zone_id", id)
-		d.Set("name", hostedZone.Name)
-		d.Set("comment", hostedZone.Config.Comment)
-		d.Set("private_zone", hostedZone.Config.PrivateZone)
-		d.Set("caller_reference", hostedZone.CallerReference)
-		d.Set("resource_record_set_count", hostedZone.ResourceRecordSetCount)
-
-	} else if idExists {
-		req := &route53.GetHostedZoneInput{}
-		req.Id = aws.String(id.(string))
-
-		resp, err := conn.GetHostedZone(req)
-
-		if err != nil {
-			errwrap.Wrapf("Error finding Route 53 Hosted Zone: {{err}}", err)
-		}
-
-		if resp == nil {
-			return fmt.Errorf("no matching Route53Zone found")
-		}
-		hostedZone := resp.HostedZone
-		id := cleanZoneID(*resp.HostedZone.Id)
-		d.SetId(id)
-		d.Set("zone_id", id)
-		d.Set("name", hostedZone.Name)
-		d.Set("comment", hostedZone.Config.Comment)
-		d.Set("private_zone", hostedZone.Config.PrivateZone)
-		d.Set("caller_reference", hostedZone.CallerReference)
-		d.Set("resource_record_set_count", hostedZone.ResourceRecordSetCount)
-
-	} else {
+	} else if !nameExists && !idExists {
 		return fmt.Errorf("Either name or zone_id must be set")
 	}
+
+	var nextMarker *string
+
+	var hostedZoneFound *route53.HostedZone
+	// We loop through all hostedzone
+	for allHostedZoneListed := false; !allHostedZoneListed; {
+		req := &route53.ListHostedZonesInput{}
+		if nextMarker != nil {
+			req.Marker = nextMarker
+		}
+		resp, err := conn.ListHostedZones(req)
+
+		if err != nil {
+			errwrap.Wrapf("Error finding Route 53 Hosted Zone: {{err}}", err)
+		}
+		for _, hostedZone := range resp.HostedZones {
+			hostedZoneId := cleanZoneID(*hostedZone.Id)
+			if idExists && hostedZoneId == id.(string) {
+				fmt.Print("founded !!!")
+				hostedZoneFound = hostedZone
+				break
+				// we check if the name is the same as requested and if private zone field is the same as requested or if there is a vpc_id
+			} else if *hostedZone.Name == name && (*hostedZone.Config.PrivateZone == d.Get("private_zone").(bool) || (*hostedZone.Config.PrivateZone == true && vpcIdExists)) {
+				fmt.Printf("in IF")
+				if vpcIdExists {
+					reqHostedZone := &route53.GetHostedZoneInput{}
+					reqHostedZone.Id = aws.String(hostedZoneId)
+
+					respHostedZone, errHostedZone := conn.GetHostedZone(reqHostedZone)
+					if err != nil {
+						errwrap.Wrapf("Error finding Route 53 Hosted Zone: {{err}}", errHostedZone)
+					}
+					// we go through all VPCs
+					for _, vpc := range respHostedZone.VPCs {
+						if *vpc.VPCId == vpcId.(string) {
+							hostedZoneFound = hostedZone
+							break
+						}
+					}
+				} else {
+					if hostedZoneFound != nil {
+						return fmt.Errorf("multplie Route53Zone found please use vpc_id option to filter")
+					} else {
+						hostedZoneFound = hostedZone
+					}
+				}
+			}
+		}
+		if *resp.IsTruncated {
+
+			nextMarker = resp.NextMarker
+		} else {
+			allHostedZoneListed = true
+		}
+	}
+	if hostedZoneFound == nil {
+		return fmt.Errorf("no matching Route53Zone found")
+	}
+
+	idHostedZone := cleanZoneID(*hostedZoneFound.Id)
+	d.SetId(idHostedZone)
+	d.Set("zone_id", idHostedZone)
+	d.Set("name", hostedZoneFound.Name)
+	d.Set("comment", hostedZoneFound.Config.Comment)
+	d.Set("private_zone", hostedZoneFound.Config.PrivateZone)
+	d.Set("caller_reference", hostedZoneFound.CallerReference)
+	d.Set("resource_record_set_count", hostedZoneFound.ResourceRecordSetCount)
 
 	return nil
 }

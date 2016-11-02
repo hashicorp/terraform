@@ -71,5 +71,4 @@ data "aws_route53_zone" "by_name" {
   name = "${data.aws_route53_zone.by_zone_id.name}"
 }
 
-
 `
