@@ -58,6 +58,9 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		&PruneProviderTransformer{},
 		&AttachProviderConfigTransformer{Module: mod},
 
+		// This validates that the providers only depend on variables
+		&ImportProviderValidateTransformer{},
+
 		// Single root
 		&RootTransformer{},
 

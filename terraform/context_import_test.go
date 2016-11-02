@@ -264,6 +264,36 @@ func TestContextImport_providerVarConfig(t *testing.T) {
 	}
 }
 
+// Test that provider configs can't reference resources.
+func TestContextImport_providerNonVarConfig(t *testing.T) {
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "import-provider-non-vars"),
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	_, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: "aws_instance.foo",
+				ID:   "bar",
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestContextImport_refresh(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
