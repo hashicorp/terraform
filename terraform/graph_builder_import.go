@@ -49,11 +49,11 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		&DisableProviderTransformerOld{},
 		&PruneProviderTransformer{},
 
-		// Single root
-		&RootTransformer{},
-
 		// Insert nodes to close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Single root
+		&RootTransformer{},
 
 		// Optimize
 		&TransitiveReductionTransformer{},
