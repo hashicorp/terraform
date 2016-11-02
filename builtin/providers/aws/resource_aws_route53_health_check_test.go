@@ -122,6 +122,41 @@ func TestAccAWSRoute53HealthCheck_CloudWatchAlarmCheck(t *testing.T) {
 	})
 }
 
+func TestAccAWSRoute53HealthCheck_withSNI(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_route53_health_check.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckRoute53HealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53HealthCheckConfigWithoutSNI,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "enable_sni", "true"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccRoute53HealthCheckConfigWithSNIDisabled,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "enable_sni", "false"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccRoute53HealthCheckConfigWithSNI,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53HealthCheckExists("aws_route53_health_check.foo"),
+					resource.TestCheckResourceAttr(
+						"aws_route53_health_check.foo", "enable_sni", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53HealthCheckDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).r53conn
 
@@ -308,6 +343,59 @@ resource "aws_route53_health_check" "foo" {
   measure_latency = true
   invert_healthcheck = true
   search_string = "FAILED"
+
+  tags = {
+    Name = "tf-test-health-check"
+   }
+}
+`
+
+const testAccRoute53HealthCheckConfigWithoutSNI = `
+resource "aws_route53_health_check" "foo" {
+  fqdn = "dev.notexample.com"
+  port = 443
+  type = "HTTPS"
+  resource_path = "/"
+  failure_threshold = "2"
+  request_interval = "30"
+  measure_latency = true
+  invert_healthcheck = true
+
+  tags = {
+    Name = "tf-test-health-check"
+   }
+}
+`
+
+const testAccRoute53HealthCheckConfigWithSNI = `
+resource "aws_route53_health_check" "foo" {
+	fqdn = "dev.notexample.com"
+  port = 443
+  type = "HTTPS"
+  resource_path = "/"
+  failure_threshold = "2"
+  request_interval = "30"
+  measure_latency = true
+  invert_healthcheck = true
+  enable_sni = true
+
+  tags = {
+    Name = "tf-test-health-check"
+   }
+}
+`
+
+const testAccRoute53HealthCheckConfigWithSNIDisabled = `
+resource "aws_route53_health_check" "foo" {
+	fqdn = "dev.notexample.com"
+  port = 443
+  type = "HTTPS"
+  resource_path = "/"
+  failure_threshold = "2"
+  request_interval = "30"
+  measure_latency = true
+  invert_healthcheck = true
+  enable_sni = false
 
   tags = {
     Name = "tf-test-health-check"
