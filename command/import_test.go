@@ -102,6 +102,63 @@ func TestImport_providerConfig(t *testing.T) {
 	testStateOutput(t, statePath, testImportStr)
 }
 
+func TestImport_providerConfigDisable(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-provider"))()
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ImportCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	p.ImportStateFn = nil
+	p.ImportStateReturn = []*terraform.InstanceState{
+		&terraform.InstanceState{
+			ID: "yay",
+			Ephemeral: terraform.EphemeralState{
+				Type: "test_instance",
+			},
+		},
+	}
+
+	configured := false
+	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
+		configured = true
+
+		if v, ok := c.Get("foo"); ok {
+			return fmt.Errorf("bad value: %#v", v)
+		}
+
+		return nil
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-config", "",
+		"test_instance.foo",
+		"bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Verify that we were called
+	if !configured {
+		t.Fatal("Configure should be called")
+	}
+
+	if !p.ImportStateCalled {
+		t.Fatal("ImportState should be called")
+	}
+
+	testStateOutput(t, statePath, testImportStr)
+}
+
 /*
 func TestRefresh_badState(t *testing.T) {
 	p := testProvider()
