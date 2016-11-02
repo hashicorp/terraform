@@ -43,12 +43,6 @@ func resourceArmRedis() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"redis_version": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
 			"capacity": {
 				Type:     schema.TypeInt,
 				Required: true,
@@ -120,7 +114,6 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
 
-	redisVersion := d.Get("redis_version").(string)
 	enableNonSSLPort := d.Get("enable_non_ssl_port").(bool)
 
 	capacity := int32(d.Get("capacity").(int))
@@ -130,12 +123,11 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 	tags := d.Get("tags").(map[string]interface{})
 	expandedTags := expandTags(tags)
 
-	parameters := redis.CreateOrUpdateParameters{
+	parameters := redis.CreateParameters{
 		Name:     &name,
 		Location: &location,
-		Properties: &redis.Properties{
+		Properties: &redis.CreateProperties{
 			EnableNonSslPort: &enableNonSSLPort,
-			RedisVersion:     &redisVersion,
 			Sku: &redis.Sku{
 				Capacity: &capacity,
 				Family:   family,
@@ -162,7 +154,7 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 		parameters.Properties.RedisConfiguration = &redisConfiguration
 	}
 
-	_, err := client.CreateOrUpdate(resGroup, name, parameters)
+	_, err := client.Create(resGroup, name, parameters, make(chan struct{}))
 	if err != nil {
 		return err
 	}
@@ -190,6 +182,10 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(*read.ID)
 
 	return resourceArmRedisRead(d, meta)
+}
+
+func resourceArmRedisUpdate(d *schema.ResourceData, meta interface{}) error {
+
 }
 
 func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
@@ -240,7 +236,7 @@ func resourceArmRedisDelete(d *schema.ResourceData, meta interface{}) error {
 	resGroup := id.ResourceGroup
 	name := id.Path["Redis"]
 
-	resp, err := redisClient.Delete(resGroup, name)
+	resp, err := redisClient.Delete(resGroup, name, make(chan struct{}))
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Error issuing Azure ARM delete request of Redis Instance '%s': %s", name, err)
@@ -265,10 +261,8 @@ func redisStateRefreshFunc(client redis.Client, resourceGroupName string, sgName
 	}
 }
 
-func parseAzureRMRedisProperties(d *schema.ResourceData, properties *redis.ReadableProperties) {
+func parseAzureRMRedisProperties(d *schema.ResourceData, properties *redis.ResourceProperties) {
 	if properties != nil {
-		d.Set("redis_version", properties.RedisVersion)
-		d.Set("enable_non_ssl_port", properties.EnableNonSslPort)
 		d.Set("ssl_port", properties.SslPort)
 
 		d.Set("host_name", properties.HostName)
@@ -277,19 +271,24 @@ func parseAzureRMRedisProperties(d *schema.ResourceData, properties *redis.Reada
 			d.Set("port", properties.Port)
 		}
 
-		if properties.Sku != nil {
-			d.Set("capacity", properties.Sku.Capacity)
-			d.Set("family", properties.Sku.Family)
-			d.Set("sku_name", properties.Sku.Name)
-		}
+		if properties.Properties != nil {
+			d.Set("enable_non_ssl_port", properties.Properties.EnableNonSslPort)
 
-		// TODO: ensure this parses out correctly once the API is fixed..
-		if properties.ShardCount != nil {
-			d.Set("shard_count", properties.ShardCount)
-		}
+			// TODO: the Get response doesn't contain SKU right now ¯\_(ツ)_/¯
+			if properties.Properties.Sku != nil {
+				d.Set("capacity", properties.Properties.Sku.Capacity)
+				d.Set("family", properties.Properties.Sku.Family)
+				d.Set("sku_name", properties.Properties.Sku.Name)
+			}
 
-		// TODO: ensure this parses out the Redis Configuration correctly
-		d.Set("redis_configuration", properties.RedisConfiguration)
+			// TODO: ensure this parses out correctly once the API is fixed..
+			if properties.Properties.ShardCount != nil {
+				d.Set("shard_count", properties.Properties.ShardCount)
+			}
+
+			// TODO: ensure this parses out the Redis Configuration correctly
+			d.Set("redis_configuration", properties.Properties.RedisConfiguration)
+		}
 	}
 }
 

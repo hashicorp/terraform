@@ -207,7 +207,6 @@ resource "azurerm_redis" "test" {
     name                = "acctestRedis-%d"
     location            = "${azurerm_resource_group.test.location}"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    redis_version       = "3.0"
     capacity            = 1
     family              = "C"
     sku_name            = "Basic"
@@ -225,7 +224,6 @@ resource "azurerm_redis" "test" {
     name                = "acctestRedis-%d"
     location            = "${azurerm_resource_group.test.location}"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    redis_version       = "3.0"
     capacity            = 1
     family              = "C"
     sku_name            = "Standard"
@@ -243,7 +241,6 @@ resource "azurerm_redis" "test" {
     name                = "acctestRedis-%d"
     location            = "${azurerm_resource_group.test.location}"
     resource_group_name = "${azurerm_resource_group.test.name}"
-    redis_version       = "3.0"
     capacity            = 1
     family              = "C"
     sku_name            = "Premium"
