@@ -17,7 +17,7 @@ func resourceArmRedis() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceArmRedisCreate,
 		Read:   resourceArmRedisRead,
-		Update: resourceArmRedisCreate,
+		Update: resourceArmRedisUpdate,
 		Delete: resourceArmRedisDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -142,15 +142,8 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 		parameters.Properties.ShardCount = &shardCount
 	}
 
-	if v, ok := d.GetOk("redis_configuration"); ok {
-		params := v.(map[string]interface{})
-
-		redisConfiguration := make(map[string]*string, len(params))
-		for key, val := range params {
-			str := val.(string)
-			redisConfiguration[key] = &str
-		}
-
+	redisConfiguration := parseRedisConfiguration(d)
+	if redisConfiguration != nil {
 		parameters.Properties.RedisConfiguration = &redisConfiguration
 	}
 
@@ -185,7 +178,71 @@ func resourceArmRedisCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceArmRedisUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*ArmClient).redisClient
+	log.Printf("[INFO] preparing arguments for Azure ARM Redis update.")
 
+	name := d.Get("name").(string)
+	resGroup := d.Get("resource_group_name").(string)
+
+	enableNonSSLPort := d.Get("enable_non_ssl_port").(bool)
+
+	capacity := int32(d.Get("capacity").(int))
+	family := redis.SkuFamily(d.Get("family").(string))
+	sku := redis.SkuName(d.Get("sku_name").(string))
+
+	tags := d.Get("tags").(map[string]interface{})
+	expandedTags := expandTags(tags)
+
+	parameters := redis.UpdateParameters{
+		Properties: &redis.UpdateProperties{
+			EnableNonSslPort: &enableNonSSLPort,
+			Sku: &redis.Sku{
+				Capacity: &capacity,
+				Family:   family,
+				Name:     sku,
+			},
+			Tags: expandedTags,
+		},
+	}
+
+	if v, ok := d.GetOk("shard_count"); ok {
+		shardCount := int32(v.(int))
+		parameters.Properties.ShardCount = &shardCount
+	}
+
+	redisConfiguration := parseRedisConfiguration(d)
+	if redisConfiguration != nil {
+		parameters.Properties.RedisConfiguration = &redisConfiguration
+	}
+
+	_, err := client.Update(resGroup, name, parameters, make(chan struct{}))
+	if err != nil {
+		return err
+	}
+
+	read, err := client.Get(resGroup, name)
+	if err != nil {
+		return err
+	}
+	if read.ID == nil {
+		return fmt.Errorf("Cannot read Redis Instance %s (resource group %s) ID", name, resGroup)
+	}
+
+	log.Printf("[DEBUG] Waiting for Redis Instance (%s) to become available", d.Get("name"))
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"Updating", "Creating"},
+		Target:     []string{"Succeeded"},
+		Refresh:    redisStateRefreshFunc(client, resGroup, name),
+		Timeout:    60 * time.Minute,
+		MinTimeout: 15 * time.Second,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf("Error waiting for Redis Instance (%s) to become available: %s", d.Get("name"), err)
+	}
+
+	d.SetId(*read.ID)
+
+	return resourceArmRedisRead(d, meta)
 }
 
 func resourceArmRedisRead(d *schema.ResourceData, meta interface{}) error {
@@ -261,6 +318,22 @@ func redisStateRefreshFunc(client redis.Client, resourceGroupName string, sgName
 	}
 }
 
+func parseRedisConfiguration(d *schema.ResourceData) map[string]*string {
+	if v, ok := d.GetOk("redis_configuration"); ok {
+		params := v.(map[string]interface{})
+
+		redisConfiguration := make(map[string]*string, len(params))
+		for key, val := range params {
+			str := val.(string)
+			redisConfiguration[key] = &str
+		}
+
+		return redisConfiguration
+	}
+
+	return nil
+}
+
 func parseAzureRMRedisProperties(d *schema.ResourceData, properties *redis.ResourceProperties) {
 	if properties != nil {
 		d.Set("ssl_port", properties.SslPort)
@@ -274,7 +347,6 @@ func parseAzureRMRedisProperties(d *schema.ResourceData, properties *redis.Resou
 		if properties.Properties != nil {
 			d.Set("enable_non_ssl_port", properties.Properties.EnableNonSslPort)
 
-			// TODO: the Get response doesn't contain SKU right now ¯\_(ツ)_/¯
 			if properties.Properties.Sku != nil {
 				d.Set("capacity", properties.Properties.Sku.Capacity)
 				d.Set("family", properties.Properties.Sku.Family)
