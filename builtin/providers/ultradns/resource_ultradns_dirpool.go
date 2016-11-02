@@ -150,7 +150,14 @@ func resourceUltradnsDirpool() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "GEO",
-				// Valid: "GEO", "IP"
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if value != "GEO" && value != "IP" {
+						errors = append(errors, fmt.Errorf(
+							"only 'GEO', and 'IP' are supported values for 'conflict_resolve'"))
+					}
+					return
+				},
 			},
 			"no_response": &schema.Schema{
 				Type:     schema.TypeList,
