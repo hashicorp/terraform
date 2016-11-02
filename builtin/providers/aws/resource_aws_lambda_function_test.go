@@ -320,7 +320,7 @@ func TestAccAWSLambdaFunction_s3Update(t *testing.T) {
 			},
 			// Extra step because of missing ComputedWhen
 			// See https://github.com/hashicorp/terraform/pull/4846 & https://github.com/hashicorp/terraform/pull/5330
-			resource.TestStep{
+			{
 				Config: genAWSLambdaFunctionConfig_s3(bucketName, key, path),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3", "tf_acc_lambda_name_s3", &conf),
