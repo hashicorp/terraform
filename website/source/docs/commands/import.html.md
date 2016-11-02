@@ -35,6 +35,11 @@ The command-line flags are all optional. The list of available flags are:
   the `-state-out` path with the ".backup" extension. Set to "-" to disable
   backups.
 
+* `-config=path` - Path to directory of Terraform configuration files that
+  configure the provider for import. This defaults to your working directory.
+  If this directory contains no Terraform configuration files, the provider
+  must be configured via manual input or environmental variables.
+
 * `-input=true` - Whether to ask for input for provider configuration.
 
 * `-state=path` - The path to read and save state files (unless state-out is
@@ -46,12 +51,35 @@ The command-line flags are all optional. The list of available flags are:
 
 ## Provider Configuration
 
-To access the provider that the resource is being imported from, Terraform
-will ask you for access credentials. If you don't want to be asked for input,
-verify that all environment variables for your provider are set.
+Terraform will attempt to load configuration files that configure the
+provider being used for import. If no configuration files are present or
+no configuration for that specific provider is present, Terraform will
+prompt you for access credentials. You may also specify environmental variables
+to configure the provider.
 
-The import command cannot read provider configuration from a Terraform
-configuration file.
+The only limitation Terraform has when reading the configuration files
+is that the import provider configurations must not depend on non-variable
+inputs. For example, a provider configuration cannot depend on a data
+source.
+
+As a working example, if you're importing AWS resources and you have a
+configuration file with the contents below, then Terraform will configure
+the AWS provider with this file.
+
+```
+variable "access_key" {}
+variable "secret_key" {}
+
+provider "aws" {
+  access_key = "${var.access_key}"
+  secret_key = "${var.secret_key}"
+}
+```
+
+You can force Terraform to explicitly not load your configuration by
+specifying `-config=""` (empty string). This is useful in situations where
+you want to manually configure the provider because your configuration
+may not be valid.
 
 ## Example: AWS Instance
 
