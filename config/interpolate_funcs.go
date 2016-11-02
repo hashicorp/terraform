@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -499,15 +498,25 @@ func interpolationFuncFormatList() ast.Function {
 			varargs := make([]interface{}, len(args)-1)
 			copy(varargs, args[1:])
 
+			// Verify we have some arguments
+			if len(varargs) == 0 {
+				return nil, fmt.Errorf("no arguments to formatlist")
+			}
+
 			// Convert arguments that are lists into slices.
 			// Confirm along the way that all lists have the same length (n).
 			var n int
+			listSeen := false
 			for i := 1; i < len(args); i++ {
 				s, ok := args[i].([]ast.Variable)
 				if !ok {
 					continue
 				}
 
+				// Mark that we've seen at least one list
+				listSeen = true
+
+				// Convert the ast.Variable to a slice of strings
 				parts, err := listVariableValueToStringSlice(s)
 				if err != nil {
 					return nil, err
@@ -527,8 +536,11 @@ func interpolationFuncFormatList() ast.Function {
 				}
 			}
 
-			if n == 0 {
-				return nil, errors.New("no lists in arguments to formatlist")
+			// If we didn't see a list this is an error because we
+			// can't determine the return value length.
+			if !listSeen {
+				return nil, fmt.Errorf(
+					"formatlist requires at least one list argument")
 			}
 
 			// Do the formatting.
