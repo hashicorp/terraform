@@ -4,6 +4,7 @@ FEATURES:
 
 
 IMPROVEMENTS:
+ * provider/aws: Provide the option to skip_destroy on aws_volume_attachment [GH-9792]
  
 
 BUGS:
