@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -34,8 +35,16 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	pwd, err := os.Getwd()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		return 1
+	}
+
 	// Build the context based on the arguments given
 	ctx, _, err := c.Context(contextOpts{
+		Path:        pwd,
+		PathEmptyOk: true,
 		StatePath:   c.Meta.statePath,
 		Parallelism: c.Meta.parallelism,
 	})
