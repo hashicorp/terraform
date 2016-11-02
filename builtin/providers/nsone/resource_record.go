@@ -296,15 +296,14 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 
 func answerToMap(a nsone.Answer) map[string]interface{} {
 	m := make(map[string]interface{})
-	m["meta"] = make([]map[string]interface{}, 0)
 	m["answer"] = strings.Join(a.Answer, " ")
 	if a.Region != "" {
 		m["region"] = a.Region
 	}
+	metas := &schema.Set{
+		F: metaToHash,
+	}
 	if a.Meta != nil {
-		metas := &schema.Set{
-			F: metaToHash,
-		}
 		for k, v := range a.Meta {
 			meta := make(map[string]interface{})
 			meta["field"] = k
@@ -330,8 +329,8 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 			}
 			metas.Add(meta)
 		}
-		m["meta"] = metas
 	}
+	m["meta"] = metas
 	return m
 }
 
