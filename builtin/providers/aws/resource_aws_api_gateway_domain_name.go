@@ -105,7 +105,9 @@ func resourceAwsApiGatewayDomainNameRead(d *schema.ResourceData, meta interface{
 	}
 
 	d.Set("certificate_name", domainName.CertificateName)
-	d.Set("certificate_upload_date", domainName.CertificateUploadDate)
+	if err := d.Set("certificate_upload_date", domainName.CertificateUploadDate.Format(time.RFC3339)); err != nil {
+		log.Printf("[DEBUG] Error setting certificate_upload_date: %s", err)
+	}
 	d.Set("cloudfront_domain_name", domainName.DistributionDomainName)
 	d.Set("domain_name", domainName.DomainName)
 
