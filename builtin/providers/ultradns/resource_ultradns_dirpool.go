@@ -51,6 +51,7 @@ func resourceUltradnsDirpool() *schema.Resource {
 				},
 			},
 			"rdata": &schema.Schema{
+				// UltraDNS API does not respect rdata ordering
 				Type:     schema.TypeSet,
 				Set:      hashRdatas,
 				Required: true,
