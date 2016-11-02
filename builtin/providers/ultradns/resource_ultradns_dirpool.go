@@ -41,7 +41,14 @@ func resourceUltradnsDirpool() *schema.Resource {
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				// 0-255 char
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 255 {
+						errors = append(errors, fmt.Errorf(
+							"'description' too long, must be less than 255 characters"))
+					}
+					return
+				},
 			},
 			"rdata": &schema.Schema{
 				Type:     schema.TypeSet,
