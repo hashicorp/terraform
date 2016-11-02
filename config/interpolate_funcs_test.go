@@ -994,6 +994,18 @@ func TestInterpolateFuncFormatList(t *testing.T) {
 				[]interface{}{"demo-rest-elb.id"},
 				false,
 			},
+			// Works with empty lists [GH-7607]
+			{
+				`${formatlist("%s", var.emptylist)}`,
+				[]interface{}{},
+				false,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.emptylist": {
+				Type:  ast.TypeList,
+				Value: []ast.Variable{},
+			},
 		},
 	})
 }
@@ -1928,7 +1940,6 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 		}
 
 		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
-		t.Logf("err: %v", err)
 		if err != nil != tc.Error {
 			t.Fatalf("Case #%d:\ninput: %#v\nerr: %v", i, tc.Input, err)
 		}
