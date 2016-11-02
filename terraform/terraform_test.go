@@ -501,6 +501,14 @@ Outputs:
 foo = bar
 `
 
+const testTerraformApplyOutputOrphanModuleStr = `
+module.child:
+  <no state>
+  Outputs:
+
+  foo = bar
+`
+
 const testTerraformApplyProvisionerStr = `
 aws_instance.bar:
   ID = foo
