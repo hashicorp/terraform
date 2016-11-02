@@ -20,7 +20,7 @@ func TestAccAWSSNSTopicSubscription_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSNSTopicSubscriptionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSSNSTopicSubscriptionConfig(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSNSTopicExists("aws_sns_topic.test_topic"),
