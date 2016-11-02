@@ -61,7 +61,6 @@ func resourceAwsAlb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
-				ForceNew: true,
 				Optional: true,
 				Set:      schema.HashString,
 			},
@@ -329,6 +328,20 @@ func resourceAwsAlbUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return fmt.Errorf("Failure configuring ALB attributes: %s", err)
 		}
+	}
+
+	if d.HasChange("security_groups") {
+		sgs := expandStringList(d.Get("security_groups").(*schema.Set).List())
+
+		params := &elbv2.SetSecurityGroupsInput{
+			LoadBalancerArn: aws.String(d.Id()),
+			SecurityGroups:  sgs,
+		}
+		_, err := elbconn.SetSecurityGroups(params)
+		if err != nil {
+			return fmt.Errorf("Failure Setting ALB Security Groups: %s", err)
+		}
+
 	}
 
 	return resourceAwsAlbRead(d, meta)
