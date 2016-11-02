@@ -206,7 +206,7 @@ func answersToHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%d-", metahash))
 	}
 	hash := hashcode.String(buf.String())
-	log.Printf("Generated answersToHash %d from %+v\n", hash, a)
+	log.Printf("[DEBUG] Generated answersToHash %d from %+v\n", hash, a)
 	return hash
 }
 
@@ -222,7 +222,7 @@ func metaToHash(v interface{}) int {
 	}
 
 	hash := hashcode.String(buf.String())
-	log.Printf("Generated metaToHash %d from %+v\n", hash, s)
+	log.Printf("[DEBUG] Generated metaToHash %d from %+v\n", hash, s)
 	return hash
 }
 
@@ -254,14 +254,14 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 		ans := &schema.Set{
 			F: answersToHash,
 		}
-		log.Printf("Got back from nsone answers: %+v", r.Answers)
+		log.Printf("[DEBUG] Got back from nsone answers: %+v", r.Answers)
 		for _, answer := range r.Answers {
 			ans.Add(answerToMap(answer))
 		}
-		log.Printf("Setting answers %+v", ans)
+		log.Printf("[DEBUG] Setting answers %+v", ans)
 		err := d.Set("answers", ans)
 		if err != nil {
-			return fmt.Errorf("[DEBUG] Error setting answers for: %s, error: %#v", r.Domain, err)
+			return fmt.Errorf("Error setting answers: %#v error: %#v", ans, err)
 		}
 	}
 	if len(r.Regions) > 0 {
@@ -285,10 +285,10 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 			}
 			regions = append(regions, newRegion)
 		}
-		log.Printf("Setting regions %+v", regions)
+		log.Printf("[DEBUG] Setting regions %+v", regions)
 		err := d.Set("regions", regions)
 		if err != nil {
-			return fmt.Errorf("[DEBUG] Error setting regions for: %s, error: %#v", r.Domain, err)
+			return fmt.Errorf("Error setting regions: %#v error: %#v", regions, err)
 		}
 	}
 	return nil
@@ -296,15 +296,14 @@ func recordToResourceData(d *schema.ResourceData, r *nsone.Record) error {
 
 func answerToMap(a nsone.Answer) map[string]interface{} {
 	m := make(map[string]interface{})
-	m["meta"] = make([]map[string]interface{}, 0)
 	m["answer"] = strings.Join(a.Answer, " ")
 	if a.Region != "" {
 		m["region"] = a.Region
 	}
+	metas := &schema.Set{
+		F: metaToHash,
+	}
 	if a.Meta != nil {
-		metas := &schema.Set{
-			F: metaToHash,
-		}
 		for k, v := range a.Meta {
 			meta := make(map[string]interface{})
 			meta["field"] = k
@@ -330,8 +329,8 @@ func answerToMap(a nsone.Answer) map[string]interface{} {
 			}
 			metas.Add(meta)
 		}
-		m["meta"] = metas
 	}
+	m["meta"] = metas
 	return m
 }
 
