@@ -5,6 +5,7 @@ FEATURES:
 
 IMPROVEMENTS:
  * provider/aws: Provide the option to skip_destroy on aws_volume_attachment [GH-9792]
+ * provider/aws: Allows aws_alb security_groups to be updated [GH-9804]
  
 
 BUGS:
