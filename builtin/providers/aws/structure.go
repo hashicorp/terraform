@@ -614,7 +614,7 @@ func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]in
 	for _, i := range list {
 		result = append(result, map[string]interface{}{
 			"name":  strings.ToLower(*i.ParameterName),
-			"value": strings.ToLower(*i.ParameterValue),
+			"value": *i.ParameterValue,
 		})
 	}
 	return result
