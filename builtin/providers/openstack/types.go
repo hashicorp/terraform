@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
@@ -67,6 +68,27 @@ type RouterCreateOpts struct {
 // It overrides routers.ToRouterCreateMap to add the ValueSpecs field.
 func (opts RouterCreateOpts) ToRouterCreateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "router")
+}
+
+// RuleCreateOpts represents the attributes used when creating a new firewall rule.
+type RuleCreateOpts struct {
+	rules.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToRuleCreateMap casts a CreateOpts struct to a map.
+// It overrides rules.ToRuleCreateMap to add the ValueSpecs field.
+func (opts RuleCreateOpts) ToRuleCreateMap() (map[string]interface{}, error) {
+	b, err := BuildRequest(opts, "firewall_rule")
+	if err != nil {
+		return nil, err
+	}
+
+	if m := b["firewall_rule"].(map[string]interface{}); m["protocol"] == "any" {
+		m["protocol"] = nil
+	}
+
+	return b, nil
 }
 
 // SubnetCreateOpts represents the attributes used when creating a new subnet.
