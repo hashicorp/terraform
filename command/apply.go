@@ -136,6 +136,9 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	}
 
+	// This is going to keep track of shadow errors
+	var shadowErr error
+
 	// Build the context based on the arguments given
 	ctx, planned, err := c.Context(contextOpts{
 		Destroy:     c.Destroy,
@@ -189,6 +192,12 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
 			return 1
 		}
+
+		// Record any shadow errors for later
+		if err := ctx.ShadowError(); err != nil {
+			shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+				err, "input operation:"))
+		}
 	}
 	if !validateContext(ctx, c.Ui) {
 		return 1
@@ -207,6 +216,12 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf(
 				"Error creating plan: %s", err))
 			return 1
+		}
+
+		// Record any shadow errors for later
+		if err := ctx.ShadowError(); err != nil {
+			shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+				err, "plan operation:"))
 		}
 	}
 
@@ -229,6 +244,12 @@ func (c *ApplyCommand) Run(args []string) int {
 	go func() {
 		defer close(doneCh)
 		state, applyErr = ctx.Apply()
+
+		// Record any shadow errors for later
+		if err := ctx.ShadowError(); err != nil {
+			shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+				err, "apply operation:"))
+		}
 	}()
 
 	// Wait for the apply to finish or for us to be interrupted so
@@ -303,6 +324,9 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
+
+	// If we have an error in the shadow graph, let the user know.
+	c.outputShadowError(shadowErr, applyErr == nil)
 
 	return 0
 }
