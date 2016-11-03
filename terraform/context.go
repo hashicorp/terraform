@@ -736,11 +736,14 @@ func (c *Context) walk(
 
 	// If we have a shadow graph, wait for that to complete.
 	if shadowCloser != nil {
-		// Build the graph walker for the shadow.
-		shadowWalker := &ContextGraphWalker{
+		// Build the graph walker for the shadow. We also wrap this in
+		// a panicwrap so that panics are captured. For the shadow graph,
+		// we just want panics to be normal errors rather than to crash
+		// Terraform.
+		shadowWalker := GraphWalkerPanicwrap(&ContextGraphWalker{
 			Context:   shadowCtx,
 			Operation: operation,
-		}
+		})
 
 		// Kick off the shadow walk. This will block on any operations
 		// on the real walk so it is fine to start first.
