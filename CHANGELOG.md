@@ -7,6 +7,7 @@ FEATURES:
 IMPROVEMENTS:
  * provider/aws: Provide the option to skip_destroy on aws_volume_attachment [GH-9792]
  * provider/aws: Allows aws_alb security_groups to be updated [GH-9804]
+ * provider/aws: Add the enable_sni attribute for Route53 health checks. [GH-9822]
  * state/remote/swift: Enable OpenStack Identity/Keystone v3 authentication [GH-9769]
  
 
