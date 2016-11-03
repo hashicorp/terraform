@@ -115,6 +115,11 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"enable_sni": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
 
 			"tags": tagsSchema(),
 		},
@@ -173,6 +178,10 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 		updateHealthCheck.InsufficientDataHealthStatus = aws.String(d.Get("insufficient_data_health_status").(string))
 	}
 
+	if d.HasChange("enable_sni") {
+		updateHealthCheck.EnableSNI = aws.Bool(d.Get("enable_sni").(bool))
+	}
+
 	_, err := conn.UpdateHealthCheck(updateHealthCheck)
 	if err != nil {
 		return err
@@ -228,6 +237,10 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 
 	if v, ok := d.GetOk("invert_healthcheck"); ok {
 		healthConfig.Inverted = aws.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("enable_sni"); ok {
+		healthConfig.EnableSNI = aws.Bool(v.(bool))
 	}
 
 	if *healthConfig.Type == route53.HealthCheckTypeCalculated {
@@ -314,6 +327,7 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	d.Set("child_healthchecks", updated.ChildHealthChecks)
 	d.Set("child_health_threshold", updated.HealthThreshold)
 	d.Set("insufficient_data_health_status", updated.InsufficientDataHealthStatus)
+	d.Set("enable_sni", updated.EnableSNI)
 
 	if updated.AlarmIdentifier != nil {
 		d.Set("cloudwatch_alarm_name", updated.AlarmIdentifier.Name)
