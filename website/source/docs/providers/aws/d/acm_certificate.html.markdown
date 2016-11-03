@@ -19,12 +19,16 @@ them by domain without having to hard code the ARNs as input.
 ```
 data "aws_acm_certificate" "example" {
   domain = "tf.example.com"
+  statuses = ["ISSUED"]
 }
 ```
 
 ## Argument Reference
 
  * `domain` - (Required) The domain of the certificate to look up. If no certificate is found with this name, an error will be returned.
+ * `statuses` - (Optional) A list of statuses on which to filter the returned list. Valid values are `PENDING_VALIDATION`, `ISSUED`,
+   `INACTIVE`, `EXPIRED`, `VALIDATION_TIMED_OUT`, `REVOKED` and `FAILED`. If no value is specified, only certificates in the `ISSUED` state
+   are returned.
 
 ## Attributes Reference
 
