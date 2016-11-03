@@ -1,5 +1,6 @@
 package icinga2
 
+/*
 import (
 	"fmt"
 
@@ -107,3 +108,4 @@ func resourceIcinga2HostGroupDelete(d *schema.ResourceData, meta interface{}) er
 	}
 
 }
+*/

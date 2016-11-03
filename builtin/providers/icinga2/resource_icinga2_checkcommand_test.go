@@ -1,5 +1,6 @@
 package icinga2
 
+/*
 import (
 	"fmt"
 	"testing"
@@ -66,3 +67,4 @@ func TestAccCreateBasicCheckcommand(t *testing.T) {
 //		},
 //	})
 //}
+*/

@@ -1,5 +1,6 @@
 package icinga2
 
+/*
 import (
 	"fmt"
 	"testing"
@@ -148,3 +149,4 @@ func TestAccCreateVariableHost(t *testing.T) {
 		},
 	})
 }
+*/

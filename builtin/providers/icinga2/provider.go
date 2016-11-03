@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/lrsmith/go-icinga2-api/iapi"
 )
 
 // Provider comment
@@ -37,25 +38,21 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"icinga2_host":         resourceIcinga2Host(),
-			"icinga2_hostgroup":    resourceIcinga2HostGroup(),
-			"icinga2_checkcommand": resourceIcinga2Checkcommand(),
+		//			"icinga2_host":         resourceIcinga2Host(),
+		//			"icinga2_hostgroup":    resourceIcinga2HostGroup(),
+		//			"icinga2_checkcommand": resourceIcinga2Checkcommand(),
 		},
 		ConfigureFunc: configureProvider,
 	}
 }
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
-	config := Config{
-		APIURL:      d.Get("api_url").(string),
-		APIUser:     d.Get("api_user").(string),
-		APIPassword: d.Get("api_password").(string),
-		Insecure:    d.Get("insecure").(bool),
-	}
-
-	if err := config.loadAndValidate(); err != nil {
-		return nil, err
-	}
+	config, _ := iapi.New(
+		d.Get("api_user").(string),
+		d.Get("api_password").(string),
+		d.Get("api_url").(string),
+		d.Get("insecure").(bool),
+	)
 
 	return &config, nil
 }

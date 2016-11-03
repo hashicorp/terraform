@@ -1,5 +1,6 @@
 package icinga2
 
+/*
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -45,3 +46,4 @@ func resourceIcinga2DummyDelete(d *schema.ResourceData, meta interface{}) error 
 
 	return nil
 }
+*/

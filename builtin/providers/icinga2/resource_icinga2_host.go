@@ -1,5 +1,6 @@
 package icinga2
 
+/*
 import (
 	"encoding/json"
 	"fmt"
@@ -164,3 +165,4 @@ func resourceIcinga2HostDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 }
+*/

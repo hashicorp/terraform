@@ -1,5 +1,6 @@
 package icinga2
 
+/*
 import (
 	"fmt"
 	"testing"
@@ -46,3 +47,4 @@ func VerifyResourceExists(t *testing.T, resourceName string) resource.TestCheckF
 	}
 
 }
+*/

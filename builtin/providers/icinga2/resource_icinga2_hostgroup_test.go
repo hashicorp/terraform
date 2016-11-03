@@ -1,5 +1,6 @@
 package icinga2
 
+/*
 import (
 	"fmt"
 	"testing"
@@ -30,3 +31,4 @@ func TestAccCreateBasicHostGroup(t *testing.T) {
 		},
 	})
 }
+*/
