@@ -28,7 +28,7 @@ func TestAccAwsAcmCertificateDataSource_basic(t *testing.T) {
 		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckAwsAcmCertificateDataSourceConfig(region, domain),
 				Check:  testAccCheckAcmArnMatches("data.aws_acm_certificate.test", certArn),
 			},
