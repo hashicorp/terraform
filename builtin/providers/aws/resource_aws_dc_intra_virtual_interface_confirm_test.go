@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSDCINTRAVIRTUALINTERFACE_basic(t *testing.T) {
+func TestAccAWSDCINTRAVIRTUALINTERFACECONFIRM_basic(t *testing.T) {
 	var virtualIF directconnect.VirtualInterface
 
 	resource.Test(t, resource.TestCase{
@@ -30,7 +30,7 @@ func TestAccAWSDCINTRAVIRTUALINTERFACE_basic(t *testing.T) {
 	})
 }
 
-func testAccCheckDCIntraVirtualInterfaceDestroy(s *terraform.State) error {
+func testAccCheckDCIntraVirtualInterfaceConfirmDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).dcconn
 
 	for _, rs := range s.RootModule().Resources {
@@ -59,7 +59,7 @@ func testAccCheckDCIntraVirtualInterfaceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDCIntraVirtualInterfaceExists(n string, ng *directconnect.VirtualInterface) resource.TestCheckFunc {
+func testAccCheckDCIntraVirtualInterfaceConfirmExists(n string, ng *directconnect.VirtualInterface) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -88,7 +88,7 @@ func testAccCheckDCIntraVirtualInterfaceExists(n string, ng *directconnect.Virtu
 	}
 }
 
-const testAccDCIntraVirtualInterfaceConfig = `
+const testAccDCIntraVirtualInterfaceConfirmConfig = `
 
 resource "aws_vpc" "vpc" {
     cidr_block = "10.0.0.0/16"
