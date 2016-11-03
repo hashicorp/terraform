@@ -16,6 +16,7 @@ BUG FIXES:
  * provider/aws: Fix issue setting `certificate_upload_date` in `aws_api_gateway_domain_name` [GH-9815]
  * provider/azurerm: allow storage_account resource with name "$root" [GH-9813]
  * provider/google: fix for looking up project image families [GH-9243]
+ * provider/openstack: Don't pass `shared` in FWaaS Policy unless it's set [GH-9830]
 
 ## 0.7.8 (November 1, 2016)
 
