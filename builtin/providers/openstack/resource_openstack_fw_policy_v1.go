@@ -44,7 +44,6 @@ func resourceFWPolicyV1() *schema.Resource {
 			"shared": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -79,15 +78,18 @@ func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	audited := d.Get("audited").(bool)
-	shared := d.Get("shared").(bool)
 
 	opts := policies.CreateOpts{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 		Audited:     &audited,
-		Shared:      &shared,
 		TenantID:    d.Get("tenant_id").(string),
 		Rules:       rules,
+	}
+
+	if r, ok := d.GetOk("shared"); ok {
+		shared := r.(bool)
+		opts.Shared = &shared
 	}
 
 	log.Printf("[DEBUG] Create firewall policy: %#v", opts)
