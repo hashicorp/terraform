@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"runtime/debug"
 	"strings"
 	"sync"
 
@@ -217,10 +218,39 @@ func (g *Graph) walk(walker GraphWalker) error {
 	// Get the path for logs
 	path := strings.Join(ctx.Path(), ".")
 
+	// Determine if our walker is a panic wrapper
+	panicwrap, ok := walker.(GraphWalkerPanicwrapper)
+	if !ok {
+		panicwrap = nil // just to be sure
+	}
+
 	// Walk the graph.
 	var walkFn dag.WalkFunc
 	walkFn = func(v dag.Vertex) (rerr error) {
 		log.Printf("[DEBUG] vertex '%s.%s': walking", path, dag.VertexName(v))
+
+		// If we have a panic wrap GraphWalker and a panic occurs, recover
+		// and call that. We ensure the return value is an error, however,
+		// so that future nodes are not called.
+		defer func() {
+			// If no panicwrap, do nothing
+			if panicwrap == nil {
+				return
+			}
+
+			// If no panic, do nothing
+			err := recover()
+			if err == nil {
+				return
+			}
+
+			// Modify the return value to show the error
+			rerr = fmt.Errorf("vertex %q captured panic: %s\n\n%s",
+				dag.VertexName(v), err, debug.Stack())
+
+			// Call the panic wrapper
+			panicwrap.Panic(v, err)
+		}()
 
 		walker.EnterVertex(v)
 		defer func() { walker.ExitVertex(v, rerr) }()
