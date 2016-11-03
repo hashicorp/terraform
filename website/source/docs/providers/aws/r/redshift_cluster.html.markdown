@@ -33,7 +33,8 @@ string.
 * `database_name` - (Optional) The name of the first database to be created when the cluster is created.
  If you do not provide a name, Amazon Redshift will create a default database called `dev`.
 * `node_type` - (Required) The node type to be provisioned for the cluster.
-* `master_password` - (Optional) Password for the master DB user. Note that this may
+* `cluster_type` - (Optional) The cluster type to use. Either `single-node` or `multi-node`. 
+* `master_password` - (Required) Password for the master DB user. Note that this may
     show up in logs, and it will be stored in the state file. Password must contain at least 8 chars and 
     contain at least one uppercase letter, one lowercase letter, and one number.
 * `master_username` - (Required) Username for the master DB user
@@ -57,6 +58,8 @@ string.
 * `elastic_ip` - (Optional) The Elastic IP (EIP) address for the cluster.
 * `skip_final_snapshot` - (Optional) Determines whether a final snapshot of the cluster is created before Amazon Redshift deletes the cluster. If true , a final cluster snapshot is not created. If false , a final cluster snapshot is created before the cluster is deleted. Default is true.
 * `final_snapshot_identifier` - (Optional) The identifier of the final snapshot that is to be created immediately before deleting the cluster. If this parameter is provided, `skip_final_snapshot` must be false.
+* `snapshot_identifier` - (Optional) The name of the snapshot from which to create the new cluster.
+* `snapshot_cluster_identifier` - (Optional) The name of the cluster the source snapshot was created from.
 * `iam_roles` - (Optional) A list of IAM Role ARNs to associate with the cluster. A Maximum of 10 can be associated to the cluster at any time.
 * `enable_logging` - (Optional) Enables logging information such as queries and connection attempts, for the specified Amazon Redshift cluster. Defaults to `false`.
 * `bucket_name` - (Optional, required when `enable_logging` is `true`) The name of an existing S3 bucket where the log files are to be stored. Must be in the same region as the cluster and the cluster must have read bucket and put object permissions.
