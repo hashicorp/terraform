@@ -87,7 +87,7 @@ The `ingress` block supports:
 * `cidr_blocks` - (Optional) List of CIDR blocks.
 * `from_port` - (Required) The start port (or ICMP type number if protocol is "icmp")
 * `protocol` - (Required) The protocol. If you select a protocol of
-"-1", you must specify a "from_port" and "to_port" equal to 0. If not icmp, tcp, udp, or all use the [protocol number](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)
+"-1" (equivalent to `"all"`), you must specify a "from_port" and "to_port" equal to 0. If not icmp, tcp, udp, or all use the [protocol number](https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)
 * `security_groups` - (Optional) List of security group Group Names if using
     EC2-Classic, or Group IDs if using a VPC.
 * `self` - (Optional) If true, the security group itself will be added as
@@ -123,7 +123,7 @@ be in place, you can use this `egress` block:
 
 ## Usage with prefix list IDs
 
-Prefix list IDs are manged by AWS internally. Prefix list IDs
+Prefix list IDs are managed by AWS internally. Prefix list IDs
 are associated with a prefix list name, or service name, that is linked to a specific region.
 Prefix list IDs are exported on VPC Endpoints, so you can use this format:
 
