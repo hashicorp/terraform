@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"time"
@@ -26,6 +28,9 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 		Update: resourceAwsDirectoryServiceDirectoryUpdate,
 		Delete: resourceAwsDirectoryServiceDirectoryDelete,
 
+		SchemaVersion: 1,
+		MigrateState:  resourceAwsDirectoryServiceDirectoryMigrateState,
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -33,9 +38,13 @@ func resourceAwsDirectoryServiceDirectory() *schema.Resource {
 				ForceNew: true,
 			},
 			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:      schema.TypeString,
+				Required:  true,
+				ForceNew:  true,
+				Sensitive: true,
+				StateFunc: func(v interface{}) string {
+					return directoryServicePasswordHashSha256(v.(string))
+				},
 			},
 			"size": &schema.Schema{
 				Type:     schema.TypeString,
@@ -486,4 +495,10 @@ func resourceAwsDirectoryServiceDirectoryDelete(d *schema.ResourceData, meta int
 	}
 
 	return nil
+}
+
+func directoryServicePasswordHashSha256(password string) string {
+	password_hash := sha256.Sum256([]byte(password))
+	hash_hex := hex.EncodeToString(password_hash[:])
+	return hash_hex
 }
