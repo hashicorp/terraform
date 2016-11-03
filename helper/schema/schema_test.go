@@ -2885,21 +2885,6 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			true,
 		},
 
-		"ConflictsWith cannot be used w/ Computed": {
-			map[string]*Schema{
-				"blacklist": &Schema{
-					Type:     TypeBool,
-					Computed: true,
-				},
-				"whitelist": &Schema{
-					Type:          TypeBool,
-					Optional:      true,
-					ConflictsWith: []string{"blacklist"},
-				},
-			},
-			true,
-		},
-
 		"ConflictsWith cannot be used w/ ComputedWhen": {
 			map[string]*Schema{
 				"blacklist": &Schema{
@@ -2963,7 +2948,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 	}
 
 	for tn, tc := range cases {
-		err := schemaMap(tc.In).InternalValidate(schemaMap{})
+		err := schemaMap(tc.In).InternalValidate(nil)
 		if err != nil != tc.Err {
 			if tc.Err {
 				t.Fatalf("%q: Expected error did not occur:\n\n%#v", tn, tc.In)
@@ -3756,6 +3741,78 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Errors: []error{
 				fmt.Errorf(`"optional_att": conflicts with required_att ("required-val")`),
 			},
+		},
+
+		"Computed + Optional fields conflicting with each other": {
+			Schema: map[string]*Schema{
+				"foo_att": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					Computed:      true,
+					ConflictsWith: []string{"bar_att"},
+				},
+				"bar_att": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					Computed:      true,
+					ConflictsWith: []string{"foo_att"},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"foo_att": "foo-val",
+				"bar_att": "bar-val",
+			},
+
+			Err: true,
+			Errors: []error{
+				fmt.Errorf(`"foo_att": conflicts with bar_att ("bar-val")`),
+				fmt.Errorf(`"bar_att": conflicts with foo_att ("foo-val")`),
+			},
+		},
+
+		"Computed + Optional fields NOT conflicting with each other": {
+			Schema: map[string]*Schema{
+				"foo_att": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					Computed:      true,
+					ConflictsWith: []string{"bar_att"},
+				},
+				"bar_att": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					Computed:      true,
+					ConflictsWith: []string{"foo_att"},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"foo_att": "foo-val",
+			},
+
+			Err: false,
+		},
+
+		"Computed + Optional fields that conflict with none set": {
+			Schema: map[string]*Schema{
+				"foo_att": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					Computed:      true,
+					ConflictsWith: []string{"bar_att"},
+				},
+				"bar_att": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					Computed:      true,
+					ConflictsWith: []string{"foo_att"},
+				},
+			},
+
+			Config: map[string]interface{}{},
+
+			Err: false,
 		},
 
 		"Good with ValidateFunc": {
