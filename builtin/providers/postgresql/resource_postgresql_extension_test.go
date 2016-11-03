@@ -21,7 +21,7 @@ func TestAccPostgresqlExtension_Basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPostgresqlExtensionExists("postgresql_extension.myextension"),
 					resource.TestCheckResourceAttr(
-						"postgresql_role.myextension", "name", "pg_trgm"),
+						"postgresql_extension.myextension", "name", "pg_trgm"),
 				),
 			},
 		},
