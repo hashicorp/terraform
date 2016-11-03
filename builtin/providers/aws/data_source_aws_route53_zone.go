@@ -6,7 +6,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/route53"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -45,6 +44,7 @@ func dataSourceAwsRoute53Zone() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"tags": tagsSchemaComputed(),
 			"resource_record_set_count": {
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -60,6 +60,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 	name = hostedZoneName(name.(string))
 	id, idExists := d.GetOk("zone_id")
 	vpcId, vpcIdExists := d.GetOk("vpc_id")
+	tags := tagsFromMap(d.Get("tags").(map[string]interface{}))
 	if nameExists && idExists {
 		return fmt.Errorf("zone_id and name arguments can't be used together")
 	} else if !nameExists && !idExists {
@@ -78,33 +79,62 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 		resp, err := conn.ListHostedZones(req)
 
 		if err != nil {
-			errwrap.Wrapf("Error finding Route 53 Hosted Zone: {{err}}", err)
+			return fmt.Errorf("Error finding Route 53 Hosted Zone: %v", err)
 		}
 		for _, hostedZone := range resp.HostedZones {
 			hostedZoneId := cleanZoneID(*hostedZone.Id)
 			if idExists && hostedZoneId == id.(string) {
-				fmt.Print("founded !!!")
 				hostedZoneFound = hostedZone
 				break
 				// we check if the name is the same as requested and if private zone field is the same as requested or if there is a vpc_id
 			} else if *hostedZone.Name == name && (*hostedZone.Config.PrivateZone == d.Get("private_zone").(bool) || (*hostedZone.Config.PrivateZone == true && vpcIdExists)) {
-				fmt.Printf("in IF")
+				matchingVPC := false
 				if vpcIdExists {
 					reqHostedZone := &route53.GetHostedZoneInput{}
 					reqHostedZone.Id = aws.String(hostedZoneId)
 
 					respHostedZone, errHostedZone := conn.GetHostedZone(reqHostedZone)
-					if err != nil {
-						errwrap.Wrapf("Error finding Route 53 Hosted Zone: {{err}}", errHostedZone)
+					if errHostedZone != nil {
+						return fmt.Errorf("Error finding Route 53 Hosted Zone: %v", errHostedZone)
 					}
 					// we go through all VPCs
 					for _, vpc := range respHostedZone.VPCs {
 						if *vpc.VPCId == vpcId.(string) {
-							hostedZoneFound = hostedZone
+							matchingVPC = true
 							break
 						}
 					}
 				} else {
+					matchingVPC = true
+				}
+				// we check if tags match
+				matchingTags := true
+				if len(tags) > 0 {
+					reqListTags := &route53.ListTagsForResourceInput{}
+					reqListTags.ResourceId = aws.String(hostedZoneId)
+					reqListTags.ResourceType = aws.String("hostedzone")
+					respListTags, errListTags := conn.ListTagsForResource(reqListTags)
+
+					if errListTags != nil {
+						return fmt.Errorf("Error finding Route 53 Hosted Zone: %v", errListTags)
+					}
+					for _, tag := range tags {
+						found := false
+						for _, tagRequested := range respListTags.ResourceTagSet.Tags {
+							if *tag.Key == *tagRequested.Key && *tag.Value == *tagRequested.Value {
+								found = true
+							}
+						}
+
+						if !found {
+							matchingTags = false
+							break
+						}
+					}
+
+				}
+
+				if matchingTags && matchingVPC {
 					if hostedZoneFound != nil {
 						return fmt.Errorf("multplie Route53Zone found please use vpc_id option to filter")
 					} else {
@@ -112,6 +142,7 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 					}
 				}
 			}
+
 		}
 		if *resp.IsTruncated {
 
@@ -132,7 +163,6 @@ func dataSourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("private_zone", hostedZoneFound.Config.PrivateZone)
 	d.Set("caller_reference", hostedZoneFound.CallerReference)
 	d.Set("resource_record_set_count", hostedZoneFound.ResourceRecordSetCount)
-
 	return nil
 }
 
