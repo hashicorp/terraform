@@ -293,6 +293,28 @@ func TestAccAWSSpotFleetRequest_withWeightedCapacity(t *testing.T) {
 	})
 }
 
+func TestAccAWSSpotFleetRequest_withEBSDisk(t *testing.T) {
+	var config ec2.SpotFleetRequestConfig
+	rName := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSpotFleetRequestDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSpotFleetRequestEBSConfig(rName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSSpotFleetRequestExists(
+						"aws_spot_fleet_request.foo", &config),
+					testAccCheckAWSSpotFleetRequest_EBSAttributes(
+						&config),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSSpotFleetRequest_CannotUseEmptyKeyName(t *testing.T) {
 	_, errors := validateSpotFleetRequestKeyName("", "key_name")
 	if len(errors) == 0 {
@@ -370,6 +392,31 @@ func testAccCheckAWSSpotFleetRequest_LaunchSpecAttributes(
 
 		if *spec.UserData != base64.StdEncoding.EncodeToString([]byte("hello-world")) {
 			return fmt.Errorf("Unexpected launch specification user data: %s", *spec.UserData)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSSpotFleetRequest_EBSAttributes(
+	sfr *ec2.SpotFleetRequestConfig) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if len(sfr.SpotFleetRequestConfig.LaunchSpecifications) == 0 {
+			return fmt.Errorf("Missing launch specification")
+		}
+
+		spec := *sfr.SpotFleetRequestConfig.LaunchSpecifications[0]
+
+		ebs := spec.BlockDeviceMappings
+		if len(ebs) < 2 {
+			return fmt.Errorf("Expected %d block device mappings, got %d", 2, len(ebs))
+		}
+
+		if *ebs[0].DeviceName != "/dev/xvda" {
+			return fmt.Errorf("Expected device 0's name to be %s, got %s", "/dev/xvda", *ebs[0].DeviceName)
+		}
+		if *ebs[1].DeviceName != "/dev/xvdcz" {
+			return fmt.Errorf("Expected device 1's name to be %s, got %s", "/dev/xvdcz", *ebs[1].DeviceName)
 		}
 
 		return nil
@@ -939,4 +986,61 @@ resource "aws_spot_fleet_request" "foo" {
     depends_on = ["aws_iam_policy_attachment.test-attach"]
 }
 `, rName, rName)
+}
+
+func testAccAWSSpotFleetRequestEBSConfig(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_policy_attachment" "test-attach" {
+    name = "test-attachment"
+    roles = ["${aws_iam_role.test-role.name}"]
+    policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetRole"
+}
+
+resource "aws_iam_role" "test-role" {
+    name = "test-role-%s"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": [
+          "spotfleet.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_spot_fleet_request" "foo" {
+    iam_fleet_role = "${aws_iam_role.test-role.arn}"
+    spot_price = "0.005"
+    target_capacity = 1
+    valid_until = "2019-11-04T20:44:20Z"
+    terminate_instances_with_expiration = true
+    launch_specification {
+        instance_type = "m1.small"
+        ami = "ami-d06a90b0"
+
+	ebs_block_device {
+            device_name = "/dev/xvda"
+	    volume_type = "gp2"
+	    volume_size = "8"
+        }
+	
+	ebs_block_device {
+            device_name = "/dev/xvdcz"
+	    volume_type = "gp2"
+	    volume_size = "100"
+        }
+    }
+    depends_on = ["aws_iam_policy_attachment.test-attach"]
+}
+`, rName)
 }
