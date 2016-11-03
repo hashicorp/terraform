@@ -66,8 +66,9 @@ func resourceArtifact() *schema.Resource {
 			},
 
 			"metadata_full": &schema.Schema{
-				Type:     schema.TypeMap,
-				Computed: true,
+				Type:         schema.TypeMap,
+				Computed:     true,
+				ComputedWhen: []string{"name", "build", "version"},
 			},
 
 			"slug": &schema.Schema{

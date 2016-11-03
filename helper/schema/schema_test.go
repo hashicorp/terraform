@@ -1171,7 +1171,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		"#30 ComputedWhen": {
+		"#30 ComputedWhen does nothing when there is no diff on target property": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:         TypeString,
@@ -1201,7 +1201,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		"#31": {
+		"#31 ComputedWhen doesn't interfere with normal Computed behavior": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:         TypeString,
@@ -1236,8 +1236,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		/* TODO
-		{
+		"The ComputedWhen attr should be computed when the target attr changes": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:         TypeString,
@@ -1262,10 +1261,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 				"port": 8080,
 			},
 
-			Diff: &terraform.ResourceDiff{
+			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"availability_zone": &terraform.ResourceAttrDiff{
-						Old:         "foo",
 						NewComputed: true,
 					},
 					"port": &terraform.ResourceAttrDiff{
@@ -1277,9 +1275,126 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
-		*/
 
-		"#32 Maps": {
+		"ComputedWhen properly marks TypeMap as computed when the target attr changes": {
+			Schema: map[string]*Schema{
+				"mapping": &Schema{
+					Type:         TypeMap,
+					Computed:     true,
+					ComputedWhen: []string{"port"},
+				},
+
+				"port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"mapping.#":   "2",
+					"mapping.foo": "123",
+					"mapping.bar": "456",
+					"port":        "80",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"port": 8080,
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"mapping.#": &terraform.ResourceAttrDiff{
+						Old:         "2",
+						NewComputed: true,
+					},
+					"mapping.foo": &terraform.ResourceAttrDiff{
+						Old:         "123",
+						NewComputed: true,
+					},
+					"mapping.bar": &terraform.ResourceAttrDiff{
+						Old:         "456",
+						NewComputed: true,
+					},
+					"port": &terraform.ResourceAttrDiff{
+						Old: "80",
+						New: "8080",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		"ComputedWhen works when target is a complex set": {
+			Schema: map[string]*Schema{
+				"mapping": &Schema{
+					Type:         TypeMap,
+					Computed:     true,
+					ComputedWhen: []string{"config"},
+				},
+
+				"config": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"name": &Schema{
+								Type:     TypeString,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"mapping.#":             "2",
+					"mapping.foo":           "123",
+					"mapping.bar":           "456",
+					"config.#":              "1",
+					"config.965232600.name": "foo",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"config": []map[string]interface{}{
+					map[string]interface{}{
+						"name": "bar",
+					},
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"mapping.#": &terraform.ResourceAttrDiff{
+						Old:         "2",
+						NewComputed: true,
+					},
+					"mapping.foo": &terraform.ResourceAttrDiff{
+						Old:         "123",
+						NewComputed: true,
+					},
+					"mapping.bar": &terraform.ResourceAttrDiff{
+						Old:         "456",
+						NewComputed: true,
+					},
+					"config.965232600.name": &terraform.ResourceAttrDiff{
+						Old:        "foo",
+						NewRemoved: true,
+					},
+					"config.1125683609.name": &terraform.ResourceAttrDiff{
+						New: "bar",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		"Map, config and no state": {
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
 					Type: TypeMap,
@@ -1313,7 +1428,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		"#33 Maps": {
+		"Map, changing keys": {
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
 					Type: TypeMap,
@@ -1350,7 +1465,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		"#34 Maps": {
+		"Computed Map, changing keys": {
 			Schema: map[string]*Schema{
 				"vars": &Schema{
 					Type:     TypeMap,
@@ -1390,7 +1505,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		"#35 Maps": {
+		"Computed Map, no diff": {
 			Schema: map[string]*Schema{
 				"vars": &Schema{
 					Type:     TypeMap,
@@ -1411,7 +1526,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		"#36 Maps": {
+		"List of Maps, changing keys": {
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
 					Type: TypeList,
@@ -1450,7 +1565,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		"#37 Maps": {
+		"List of Maps, removed from config": {
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
 					Type: TypeList,
