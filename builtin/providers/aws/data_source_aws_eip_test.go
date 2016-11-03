@@ -63,8 +63,9 @@ provider "aws" {
   region = "us-west-2"
 }
 
-resource "aws_eip" "test" {
-}
+resource "aws_eip" "wrong1" {}
+resource "aws_eip" "test" {}
+resource "aws_eip" "wrong2" {}
 
 data "aws_eip" "by_id" {
   id = "${aws_eip.test.id}"
