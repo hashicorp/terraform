@@ -34,6 +34,7 @@ data "terraform_remote_state" "foo" {
 The following configuration option is supported:
 
  * `path` - (Required) The path where to store `terraform.tfstate`
+ * `insecure` - (Optional) Allow "insecure" SSL requests. Defaults to `false`.
 
 The following environment variables are supported:
 
@@ -42,3 +43,5 @@ The following environment variables are supported:
  * `OS_PASSWORD` - (Required) The password
  * `OS_REGION_NAME` - (Required) The region
  * `OS_TENANT_NAME` - (Required) The name of the tenant
+ * `OS_DOMAIN_ID` - (Optional) The ID of the domain
+ * `OS_DOMAIN_NAME` - (Optional) The name of the domain
