@@ -522,6 +522,13 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerModuleStr = `
+<no state>
+module.child:
+  aws_instance.bar:
+    ID = foo
+`
+
 const testTerraformApplyProvisionerFailStr = `
 aws_instance.bar: (tainted)
   ID = foo

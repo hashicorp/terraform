@@ -40,14 +40,15 @@ func (t *ProvisionerTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvisionerConsumer); ok {
 			for _, p := range pv.ProvisionedBy() {
-				if m[p] == nil {
+				key := provisionerMapKey(p, pv)
+				if m[key] == nil {
 					err = multierror.Append(err, fmt.Errorf(
 						"%s: provisioner %s couldn't be found",
 						dag.VertexName(v), p))
 					continue
 				}
 
-				g.Connect(dag.BasicEdge(v, m[p]))
+				g.Connect(dag.BasicEdge(v, m[key]))
 			}
 		}
 	}
@@ -80,8 +81,21 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 			continue
 		}
 
+		// If this node has a subpath, then we use that as a prefix
+		// into our map to check for an existing provider.
+		var path []string
+		if sp, ok := pv.(GraphNodeSubPath); ok {
+			raw := normalizeModulePath(sp.Path())
+			if len(raw) > len(rootModulePath) {
+				path = raw
+			}
+		}
+
 		for _, p := range pv.ProvisionedBy() {
-			if _, ok := m[p]; ok {
+			// Build the key for storing in the map
+			key := provisionerMapKey(p, pv)
+
+			if _, ok := m[key]; ok {
 				// This provisioner already exists as a configure node
 				continue
 			}
@@ -92,8 +106,23 @@ func (t *MissingProvisionerTransformer) Transform(g *Graph) error {
 				continue
 			}
 
+			// Build the vertex
+			var newV dag.Vertex = &graphNodeProvisioner{ProvisionerNameValue: p}
+			if len(path) > 0 {
+				// If we have a path, we do the flattening immediately. This
+				// is to support new-style graph nodes that are already
+				// flattened.
+				if fn, ok := newV.(GraphNodeFlattenable); ok {
+					var err error
+					newV, err = fn.Flatten(path)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
 			// Add the missing provisioner node to the graph
-			m[p] = g.Add(&graphNodeProvisioner{ProvisionerNameValue: p})
+			m[key] = g.Add(newV)
 		}
 	}
 
@@ -129,6 +158,20 @@ func (t *CloseProvisionerTransformer) Transform(g *Graph) error {
 	}
 
 	return nil
+}
+
+// provisionerMapKey is a helper that gives us the key to use for the
+// maps returned by things such as provisionerVertexMap.
+func provisionerMapKey(k string, v dag.Vertex) string {
+	pathPrefix := ""
+	if sp, ok := v.(GraphNodeSubPath); ok {
+		raw := normalizeModulePath(sp.Path())
+		if len(raw) > len(rootModulePath) {
+			pathPrefix = modulePrefixStr(raw) + "."
+		}
+	}
+
+	return pathPrefix + k
 }
 
 func provisionerVertexMap(g *Graph) map[string]dag.Vertex {
