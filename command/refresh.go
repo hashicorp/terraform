@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -79,6 +80,9 @@ func (c *RefreshCommand) Run(args []string) int {
 		}
 	}
 
+	// This is going to keep track of shadow errors
+	var shadowErr error
+
 	// Build the context based on the arguments given
 	ctx, _, err := c.Context(contextOpts{
 		Path:        configPath,
@@ -93,6 +97,12 @@ func (c *RefreshCommand) Run(args []string) int {
 	if err := ctx.Input(c.InputMode()); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
 		return 1
+	}
+
+	// Record any shadow errors for later
+	if err := ctx.ShadowError(); err != nil {
+		shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+			err, "input operation:"))
 	}
 
 	if !validateContext(ctx, c.Ui) {
@@ -114,6 +124,15 @@ func (c *RefreshCommand) Run(args []string) int {
 	if outputs := outputsAsString(newState, terraform.RootModulePath, ctx.Module().Config().Outputs, true); outputs != "" {
 		c.Ui.Output(c.Colorize().Color(outputs))
 	}
+
+	// Record any shadow errors for later
+	if err := ctx.ShadowError(); err != nil {
+		shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+			err, "refresh operation:"))
+	}
+
+	// If we have an error in the shadow graph, let the user know.
+	c.outputShadowError(shadowErr, true)
 
 	return 0
 }
