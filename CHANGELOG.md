@@ -5,6 +5,7 @@ FEATURES:
  * **New Resource:** `postgresql_extension` [GH-9210]
 
 IMPROVEMENTS:
+ * core: Improve shadow graph robustness by catching panics during graph evaluation. [GH-9852]
  * provider/aws: Provide the option to skip_destroy on aws_volume_attachment [GH-9792]
  * provider/aws: Allows aws_alb security_groups to be updated [GH-9804]
  * provider/aws: Add the enable_sni attribute for Route53 health checks. [GH-9822]
