@@ -64,9 +64,10 @@ The following arguments are supported:
     firewall policy.
 
 * `shared` - (Optional) Sharing status of the firewall policy (must be "true"
-    or "false" if provided - defaults to "false"). If this is "true" the policy
-    is visible to, and can be used in, firewalls in other tenants. Changing this
-    updates the `shared` status of an existing firewall policy.
+    or "false" if provided). If this is "true" the policy is visible to, and
+    can be used in, firewalls in other tenants. Changing this updates the
+    `shared` status of an existing firewall policy. Only administrative users
+    can specify if the policy should be shared.
 
 ## Attributes Reference
 
