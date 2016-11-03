@@ -9,6 +9,7 @@ IMPROVEMENTS:
  * provider/aws: Allows aws_alb security_groups to be updated [GH-9804]
  * provider/aws: Add the enable_sni attribute for Route53 health checks. [GH-9822]
  * state/remote/swift: Enable OpenStack Identity/Keystone v3 authentication [GH-9769]
+ * state/remote/swift: Now supports all login/config options that the OpenStack Provider supports [GH-9777]
  
 
 BUG FIXES:
