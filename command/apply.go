@@ -430,7 +430,12 @@ func outputsAsString(state *terraform.State, modPath []string, schema []*config.
 		return ""
 	}
 
-	outputs := state.ModuleByPath(modPath).Outputs
+	ms := state.ModuleByPath(modPath)
+	if ms == nil {
+		return ""
+	}
+
+	outputs := ms.Outputs
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
 		schemaMap := make(map[string]*config.Output)
