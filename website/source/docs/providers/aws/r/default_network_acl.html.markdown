@@ -25,6 +25,11 @@ rules in the ACL**. It then proceeds to create any rules specified in the
 configuration. This step is required so that only the rules specified in the 
 configuration are created.
 
+This resource treats it's inline rules as absolute; only the rules defined
+inline are created, and any additions/removals external to this resource will
+result in diff shown. For these reasons, this resource is incompatible with the 
+`aws_network_acl_rule` resource.
+
 For more information about Network ACLs, see the AWS Documentation on 
 [Network ACLs][aws-network-acls].
 

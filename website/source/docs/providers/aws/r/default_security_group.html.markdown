@@ -22,9 +22,14 @@ into management. We can do this because these default security groups cannot be
 destroyed, and are created with a known set of default ingress/egress rules. 
 
 When Terraform first adopts the Default Security Group, it **immediately removes all
-ingress and egress rules in the ACL**. It then proceeds to create any rules specified in the 
+ingress and egress rules in the Security Group**. It then proceeds to create any rules specified in the 
 configuration. This step is required so that only the rules specified in the 
 configuration are created.
+
+This resource treats it's inline rules as absolute; only the rules defined
+inline are created, and any additions/removals external to this resource will
+result in diff shown. For these reasons, this resource is incompatible with the 
+`aws_security_group_rule` resource.
 
 For more information about Default Security Groups, see the AWS Documentation on 
 [Default Security Groups][aws-default-security-groups].
