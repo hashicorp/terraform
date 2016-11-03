@@ -13,6 +13,12 @@ This resource allows you to automatically place messages sent to SNS topics in S
 to a given endpoint, send SMS messages, or notify devices / applications. The most likely use case for Terraform users will
 probably be SQS queues.
 
+~> **NOTE:** If SNS topic and SQS queue are in different AWS regions it is important to place the "aws_sns_topic_subscription" into the terraform configuration of the region with the SQS queue. If "aws_sns_topic_subscription" is placed in the terraform configuration of the region with the SNS topic terraform will fail to create the subscription.
+
+~> **NOTE:** If SNS topic and SQS queue are in different AWS accounts it is important to place the "aws_sns_topic_subscription" into the terraform configuration of the account with the SQS queue. If "aws_sns_topic_subscription" is placed in the terraform configuration of the account with the SNS topic terraform creates the subscriptions but does not keep state and tries to re-create the subscription at every apply.
+
+~> **NOTE:** If SNS topic and SQS queue are in different AWS accounts and different AWS regions it is important to recognize that the subscription needs to be initiated from the account with the SQS queue but in the region of the SNS topic.
+
 ## Example Usage
 
 You can directly supply a topic and ARN by hand in the `topic_arn` property along with the queue ARN:
@@ -42,7 +48,186 @@ resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
     endpoint  = "${aws_sqs_queue.user_updates_queue.arn}"
 }
 ```
+You can subscribe SNS topics to SQS queues in different Amazon accounts and regions:
 
+```
+/*
+#
+# Variables
+#
+*/
+variable "sns" {
+  default = {
+    account-id    = "111111111111"
+    role-name     = "service/service-hashicorp-terraform"
+    name          = "example-sns-topic"
+    display_name  = "example"
+    region        = "us-west-1"
+  }
+}
+
+variable "sqs" {
+  default = {
+    account-id    = "222222222222"
+    role-name     = "service/service-hashicorp-terraform"
+    name          = "example-sqs-queue"
+    region        = "us-east-1"
+  }
+}
+
+data "aws_iam_policy_document" "sns-topic-policy" {
+  policy_id = "__default_policy_ID"
+
+  statement {
+    actions = [
+      "SNS:Subscribe",
+      "SNS:SetTopicAttributes",
+      "SNS:RemovePermission",
+      "SNS:Receive",
+      "SNS:Publish",
+      "SNS:ListSubscriptionsByTopic",
+      "SNS:GetTopicAttributes",
+      "SNS:DeleteTopic",
+      "SNS:AddPermission",
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceOwner"
+
+      values = [
+        "${var.sns["account-id"]}",
+      ]
+    }
+
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+
+    resources = [
+      "arn:aws:sns:${var.sns["region"]}:${var.sns["account-id"]}:${var.sns["name"]}",
+    ]
+
+    sid = "__default_statement_ID"
+  }
+
+  statement {
+    actions = [
+      "SNS:Subscribe",
+      "SNS:Receive",
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "SNS:Endpoint"
+
+      values = [
+        "arn:aws:sqs:${var.sqs["region"]}:${var.sqs["account-id"]}:${var.sqs["name"]}",
+      ]
+    }
+
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+
+    resources = [
+      "arn:aws:sns:${var.sns["region"]}:${var.sns["account-id"]}:${var.sns["name"]}",
+    ]
+
+    sid = "__console_sub_0"
+  }
+}
+
+data "aws_iam_policy_document" "sqs-queue-policy" {
+  policy_id = "arn:aws:sqs:${var.sqs["region"]}:${var.sqs["account-id"]}:${var.sqs["name"]}/SQSDefaultPolicy"
+
+  statement {
+    sid    = "example-sns-topic"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+
+    actions = [
+      "SQS:SendMessage",
+    ]
+
+    resources = [
+      "arn:aws:sqs:${var.sqs["region"]}:${var.sqs["account-id"]}:${var.sqs["name"]}",
+    ]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+
+      values = [
+        "arn:aws:sns:${var.sns["region"]}:${var.sns["account-id"]}:${var.sns["name"]}",
+      ]
+    }
+  }
+}
+
+# provider to manage SNS topics
+provider "aws" {
+  alias  = "sns"
+  region = "${var.sns["region"]}"
+
+  assume_role {
+    role_arn     = "arn:aws:iam::${var.sns["account-id"]}:role/${var.sns["role-name"]}"
+    session_name = "sns-${var.sns["region"]}"
+  }
+}
+
+# provider to manage SQS queues
+provider "aws" {
+  alias  = "sqs"
+  region = "${var.sqs["region"]}"
+
+  assume_role {
+    role_arn     = "arn:aws:iam::${var.sqs["account-id"]}:role/${var.sqs["role-name"]}"
+    session_name = "sqs-${var.sqs["region"]}"
+  }
+}
+
+# provider to subscribe SQS to SNS (using the SQS account but the SNS region)
+provider "aws" {
+  alias  = "sns2sqs"
+  region = "${var.sns["region"]}"
+
+  assume_role {
+    role_arn     = "arn:aws:iam::${var.sqs["account-id"]}:role/${var.sqs["role-name"]}"
+    session_name = "sns2sqs-${var.sns["region"]}"
+  }
+}
+
+resource "aws_sns_topic" "sns-topic" {
+  provider     = "aws.sns"
+  name         = "${var.sns["name"]}"
+  display_name = "${var.sns["display_name"]}"
+  policy       = "${data.aws_iam_policy_document.sns-topic-policy.json}"
+}
+
+resource "aws_sqs_queue" "sqs-queue" {
+  provider = "aws.sqs"
+  name     = "${var.sqs["name"]}"
+  policy   = "${data.aws_iam_policy_document.sqs-queue-policy.json}"
+}
+
+resource "aws_sns_topic_subscription" "sns-topic" {
+  provider  = "aws.sns2sqs"
+  topic_arn = "${aws_sns_topic.sns-topic.arn}"
+  protocol  = "sqs"
+  endpoint  = "${aws_sqs_queue.sqs-queue.arn}"
+}
+```
 
 ## Argument Reference
 
