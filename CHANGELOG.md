@@ -1,7 +1,7 @@
 ## 0.7.9 (Unreleased)
 
 FEATURES:
-
+ * **New Resource:** `postgresql_extension` [GH-9210]
 
 IMPROVEMENTS:
  * provider/aws: Provide the option to skip_destroy on aws_volume_attachment [GH-9792]
