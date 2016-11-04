@@ -1,6 +1,7 @@
 ## 0.7.9 (Unreleased)
 
 FEATURES:
+ * **New Data Source:** `aws_acm_certificate` [GH-8359]
  * **New Resource:** `aws_autoscaling_attachment` [GH-9146]
  * **New Resource:** `postgresql_extension` [GH-9210]
 
