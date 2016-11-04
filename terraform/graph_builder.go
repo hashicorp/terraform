@@ -48,6 +48,10 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 			debugName = b.Name + "-" + debugName
 		}
 
+		log.Printf(
+			"[TRACE] Graph after step %T:\n\n%s",
+			step, g.StringWithNodeTypes())
+
 		dg, _ := NewDebugGraph(debugName, g, nil)
 		dbug.WriteGraph(dg)
 
