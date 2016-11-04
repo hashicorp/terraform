@@ -1,7 +1,9 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/config/module"
 )
@@ -21,6 +23,8 @@ type GraphBuilder interface {
 type BasicGraphBuilder struct {
 	Steps    []GraphTransformer
 	Validate bool
+	// Optional name to add to the graph debug log
+	Name string
 }
 
 func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
@@ -30,13 +34,26 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 			continue
 		}
 
-		if err := step.Transform(g); err != nil {
-			return g, err
+		stepName := fmt.Sprintf("%T", step)
+		dot := strings.LastIndex(stepName, ".")
+		if dot >= 0 {
+			stepName = stepName[dot+1:]
 		}
 
-		log.Printf(
-			"[TRACE] Graph after step %T:\n\n%s",
-			step, g.StringWithNodeTypes())
+		err := step.Transform(g)
+
+		// always log the graph state to see what transformations may have happened
+		debugName := "build-" + stepName
+		if b.Name != "" {
+			debugName = b.Name + "-" + debugName
+		}
+
+		dg, _ := NewDebugGraph(debugName, g, nil)
+		dbug.WriteGraph(dg)
+
+		if err != nil {
+			return g, err
+		}
 	}
 
 	// Validate the graph structure
@@ -97,6 +114,7 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 	basic := &BasicGraphBuilder{
 		Steps:    b.Steps(path),
 		Validate: b.Validate,
+		Name:     "builtin",
 	}
 
 	return basic.Build(path)
