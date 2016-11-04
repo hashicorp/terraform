@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sort"
 	"strconv"
 	"testing"
 
@@ -3978,6 +3979,9 @@ func TestSchemaMap_Validate(t *testing.T) {
 		}
 
 		if tc.Errors != nil {
+			sort.Sort(errorSort(es))
+			sort.Sort(errorSort(tc.Errors))
+
 			if !reflect.DeepEqual(es, tc.Errors) {
 				t.Fatalf("%q: errors:\n\nexpected: %q\ngot: %q", tn, tc.Errors, es)
 			}
@@ -4165,4 +4169,13 @@ func TestSchemaSet_ValidateMinItems(t *testing.T) {
 			}
 		}
 	}
+}
+
+// errorSort implements sort.Interface to sort errors by their error message
+type errorSort []error
+
+func (e errorSort) Len() int      { return len(e) }
+func (e errorSort) Swap(i, j int) { e[i], e[j] = e[j], e[i] }
+func (e errorSort) Less(i, j int) bool {
+	return e[i].Error() < e[j].Error()
 }
