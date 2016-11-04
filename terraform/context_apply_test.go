@@ -2039,6 +2039,74 @@ func TestContext2Apply_multiVar(t *testing.T) {
 	}
 }
 
+// Test that multi-var (splat) access is ordered by count, not by
+// value.
+func TestContext2Apply_multiVarOrder(t *testing.T) {
+	m := testModule(t, "apply-multi-var-order")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// First, apply with a count of 3
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	t.Logf("State: %s", state.String())
+
+	actual := state.RootModule().Outputs["should-be-11"]
+	expected := "index-11"
+	if actual == nil || actual.Value != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+// Test that multi-var (splat) access is ordered by count, not by
+// value, through interpolations.
+func TestContext2Apply_multiVarOrderInterp(t *testing.T) {
+	m := testModule(t, "apply-multi-var-order-interp")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	// First, apply with a count of 3
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	t.Logf("State: %s", state.String())
+
+	actual := state.RootModule().Outputs["should-be-11"]
+	expected := "baz-index-11"
+	if actual == nil || actual.Value != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_nilDiff(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
