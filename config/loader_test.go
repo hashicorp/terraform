@@ -549,6 +549,18 @@ func TestLoadFile_badVariableTypes(t *testing.T) {
 	}
 }
 
+func TestLoadFile_variableNoName(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "variable-no-name.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "'variable' must be followed") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
+	}
+}
+
 func TestLoadFile_provisioners(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "provisioners.tf"))
 	if err != nil {
