@@ -2455,6 +2455,42 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// GH-7715
+		"computed value for boolean field": {
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeBool,
+					ForceNew: true,
+					Computed: true,
+					Optional: true,
+				},
+			},
+
+			State: &terraform.InstanceState{},
+
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": interfaceToVariableSwallowError(
+					config.UnknownVariableValue),
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "false",
+						NewComputed: true,
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for tn, tc := range cases {
