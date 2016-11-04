@@ -43,7 +43,7 @@ func resourceFWFirewallV1() *schema.Resource {
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
+				Default:  true,
 			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
