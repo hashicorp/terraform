@@ -132,6 +132,19 @@ func (g *Graph) String() string {
 	return w.String()
 }
 
+// Returns the DOT representation of this Graph.
+func (g *Graph) Bytes() []byte {
+	w := newGraphWriter()
+
+	g.drawHeader(w)
+	w.Indent()
+	g.drawBody(w)
+	w.Unindent()
+	g.drawFooter(w)
+
+	return w.Bytes()
+}
+
 func (g *Graph) drawHeader(w *graphWriter) {
 	if g.Directed {
 		w.Printf("digraph {\n")

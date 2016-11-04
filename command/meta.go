@@ -300,12 +300,10 @@ func (m *Meta) Input() bool {
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
 	var opts terraform.ContextOpts = *m.ContextOpts
-	opts.Hooks = make(
-		[]terraform.Hook,
-		len(m.ContextOpts.Hooks)+len(m.extraHooks)+1)
-	opts.Hooks[0] = m.uiHook()
-	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
-	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
+
+	opts.Hooks = []terraform.Hook{m.uiHook(), &terraform.DebugHook{}}
+	opts.Hooks = append(opts.Hooks, m.ContextOpts.Hooks...)
+	opts.Hooks = append(opts.Hooks, m.extraHooks...)
 
 	vs := make(map[string]interface{})
 	for k, v := range opts.Variables {
