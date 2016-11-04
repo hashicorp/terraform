@@ -19,12 +19,21 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Provisioners in modules do not crash during `apply` (regression). [GH-9846]
+ * core: Computed bool fields with non-bool values will not crash [GH-9812]
+ * core: `formatlist` interpolation function accepts an empty list [GH-9795]
+ * core: Validate outputs have a name [GH-9823]
+ * core: Validate variables have a name [GH-9818]
+ * command/apply: If a partial set of required variables are provided with `-var`, ask for the remainder [GH-9794]
  * command/fmt: Multiline strings aren't erroneously indented [GH-9859]
  * provider/aws: Fix issue setting `certificate_upload_date` in `aws_api_gateway_domain_name` [GH-9815]
  * provider/azurerm: allow storage_account resource with name "$root" [GH-9813]
  * provider/google: fix for looking up project image families [GH-9243]
  * provider/openstack: Don't pass `shared` in FWaaS Policy unless it's set [GH-9830]
  * provider/openstack: openstack_fw_firewall_v1 `admin_state_up` should default to true [GH-9832]
+
+PLUGIN CHANGES:
+
+  * Fields in resources can now have both `Optional` and `ConflictsWith` [GH-9825]
 
 ## 0.7.8 (November 1, 2016)
 
