@@ -545,7 +545,15 @@
 			"revisionTime": "2016-10-17T19:35:59Z"
 		},
 		{
-			"checksumSHA1": "1GRM9c7nKCaKe8Mx/tTcemGKq/4=",
+			"checksumSHA1": "3lzFHxiUPnQtRo0UIKHRymmFSvk=",
+			"path": "github.com/aws/aws-sdk-go/service/acm",
+			"revision": "35c21ff262580265c1d77095d6f712605fd0c3f4",
+			"revisionTime": "2016-08-16T21:54:33Z",
+			"version": "v1.4.2",
+			"versionExact": "v1.4.2"
+		},
+		{
+			"checksumSHA1": "DXwm+kmVCiuvvGCcUTeZD/L31Kk=",
 			"path": "github.com/aws/aws-sdk-go/service/apigateway",
 			"revision": "09f8dd1eb5e719dc370b432d3d6d8f86e5bf6dbe",
 			"revisionTime": "2016-10-17T19:35:59Z"
