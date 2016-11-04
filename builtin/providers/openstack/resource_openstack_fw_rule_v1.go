@@ -74,6 +74,11 @@ func resourceFWRuleV1() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -90,18 +95,21 @@ func resourceFWRuleV1Create(d *schema.ResourceData, meta interface{}) error {
 	ipVersion := resourceFWRuleV1DetermineIPVersion(d.Get("ip_version").(int))
 	protocol := resourceFWRuleV1DetermineProtocol(d.Get("protocol").(string))
 
-	ruleConfiguration := rules.CreateOpts{
-		Name:                 d.Get("name").(string),
-		Description:          d.Get("description").(string),
-		Protocol:             protocol,
-		Action:               d.Get("action").(string),
-		IPVersion:            ipVersion,
-		SourceIPAddress:      d.Get("source_ip_address").(string),
-		DestinationIPAddress: d.Get("destination_ip_address").(string),
-		SourcePort:           d.Get("source_port").(string),
-		DestinationPort:      d.Get("destination_port").(string),
-		Enabled:              &enabled,
-		TenantID:             d.Get("tenant_id").(string),
+	ruleConfiguration := RuleCreateOpts{
+		rules.CreateOpts{
+			Name:                 d.Get("name").(string),
+			Description:          d.Get("description").(string),
+			Protocol:             protocol,
+			Action:               d.Get("action").(string),
+			IPVersion:            ipVersion,
+			SourceIPAddress:      d.Get("source_ip_address").(string),
+			DestinationIPAddress: d.Get("destination_ip_address").(string),
+			SourcePort:           d.Get("source_port").(string),
+			DestinationPort:      d.Get("destination_port").(string),
+			Enabled:              &enabled,
+			TenantID:             d.Get("tenant_id").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	log.Printf("[DEBUG] Create firewall rule: %#v", ruleConfiguration)
