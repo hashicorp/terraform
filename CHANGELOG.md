@@ -1,11 +1,13 @@
 ## 0.7.9 (Unreleased)
 
 FEATURES:
+
  * **New Data Source:** `aws_acm_certificate` [GH-8359]
  * **New Resource:** `aws_autoscaling_attachment` [GH-9146]
  * **New Resource:** `postgresql_extension` [GH-9210]
 
 IMPROVEMENTS:
+
  * core: Improve shadow graph robustness by catching panics during graph evaluation. [GH-9852]
  * provider/aws: Provide the option to skip_destroy on aws_volume_attachment [GH-9792]
  * provider/aws: Allows aws_alb security_groups to be updated [GH-9804]
@@ -13,9 +15,9 @@ IMPROVEMENTS:
  * provider/openstack: Add `value_specs` to openstack_fw_rule_v1 resource, allowing vendor information [GH-9834]
  * state/remote/swift: Enable OpenStack Identity/Keystone v3 authentication [GH-9769]
  * state/remote/swift: Now supports all login/config options that the OpenStack Provider supports [GH-9777]
- 
 
 BUG FIXES:
+
  * core: Provisioners in modules do not crash during `apply` (regression). [GH-9846]
  * command/fmt: Multiline strings aren't erroneously indented [GH-9859]
  * provider/aws: Fix issue setting `certificate_upload_date` in `aws_api_gateway_domain_name` [GH-9815]
@@ -115,7 +117,7 @@ BUG FIXES:
  * core: `prevent_destroy` prevents decreasing count ([#9707](https://github.com/hashicorp/terraform/issues/9707))
  * core: removed optional items will trigger "requires new" if necessary ([#9699](https://github.com/hashicorp/terraform/issues/9699))
  * command/apply: `-backup` and `-state-out` work with plan files ([#9706](https://github.com/hashicorp/terraform/issues/9706))
- * command/fmt: Cleaner formatting for multiline standalone comments above resources 
+ * command/fmt: Cleaner formatting for multiline standalone comments above resources
  * command/validate: respond to `--help` ([#9660](https://github.com/hashicorp/terraform/issues/9660))
  * provider/archive: Converting to datasource. ([#8492](https://github.com/hashicorp/terraform/issues/8492))
  * provider/aws: Fix issue importing AWS Instances and setting the correct `associate_public_ip_address` value ([#9453](https://github.com/hashicorp/terraform/issues/9453))
