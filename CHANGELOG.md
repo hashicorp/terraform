@@ -1,39 +1,39 @@
-## 0.7.9 (Unreleased)
+## 0.7.9 (November 4, 2016)
 
 FEATURES:
 
- * **New Data Source:** `aws_acm_certificate` [GH-8359]
- * **New Resource:** `aws_autoscaling_attachment` [GH-9146]
- * **New Resource:** `postgresql_extension` [GH-9210]
+ * **New Data Source:** `aws_acm_certificate` ([#8359](https://github.com/hashicorp/terraform/issues/8359))
+ * **New Resource:** `aws_autoscaling_attachment` ([#9146](https://github.com/hashicorp/terraform/issues/9146))
+ * **New Resource:** `postgresql_extension` ([#9210](https://github.com/hashicorp/terraform/issues/9210))
 
 IMPROVEMENTS:
 
- * core: Improve shadow graph robustness by catching panics during graph evaluation. [GH-9852]
- * provider/aws: Provide the option to skip_destroy on aws_volume_attachment [GH-9792]
- * provider/aws: Allows aws_alb security_groups to be updated [GH-9804]
- * provider/aws: Add the enable_sni attribute for Route53 health checks. [GH-9822]
- * provider/openstack: Add `value_specs` to openstack_fw_rule_v1 resource, allowing vendor information [GH-9834]
- * state/remote/swift: Enable OpenStack Identity/Keystone v3 authentication [GH-9769]
- * state/remote/swift: Now supports all login/config options that the OpenStack Provider supports [GH-9777]
+ * core: Improve shadow graph robustness by catching panics during graph evaluation. ([#9852](https://github.com/hashicorp/terraform/issues/9852))
+ * provider/aws: Provide the option to skip_destroy on aws_volume_attachment ([#9792](https://github.com/hashicorp/terraform/issues/9792))
+ * provider/aws: Allows aws_alb security_groups to be updated ([#9804](https://github.com/hashicorp/terraform/issues/9804))
+ * provider/aws: Add the enable_sni attribute for Route53 health checks. ([#9822](https://github.com/hashicorp/terraform/issues/9822))
+ * provider/openstack: Add `value_specs` to openstack_fw_rule_v1 resource, allowing vendor information ([#9834](https://github.com/hashicorp/terraform/issues/9834))
+ * state/remote/swift: Enable OpenStack Identity/Keystone v3 authentication ([#9769](https://github.com/hashicorp/terraform/issues/9769))
+ * state/remote/swift: Now supports all login/config options that the OpenStack Provider supports ([#9777](https://github.com/hashicorp/terraform/issues/9777))
 
 BUG FIXES:
 
- * core: Provisioners in modules do not crash during `apply` (regression). [GH-9846]
- * core: Computed bool fields with non-bool values will not crash [GH-9812]
- * core: `formatlist` interpolation function accepts an empty list [GH-9795]
- * core: Validate outputs have a name [GH-9823]
- * core: Validate variables have a name [GH-9818]
- * command/apply: If a partial set of required variables are provided with `-var`, ask for the remainder [GH-9794]
- * command/fmt: Multiline strings aren't erroneously indented [GH-9859]
- * provider/aws: Fix issue setting `certificate_upload_date` in `aws_api_gateway_domain_name` [GH-9815]
- * provider/azurerm: allow storage_account resource with name "$root" [GH-9813]
- * provider/google: fix for looking up project image families [GH-9243]
- * provider/openstack: Don't pass `shared` in FWaaS Policy unless it's set [GH-9830]
- * provider/openstack: openstack_fw_firewall_v1 `admin_state_up` should default to true [GH-9832]
+ * core: Provisioners in modules do not crash during `apply` (regression). ([#9846](https://github.com/hashicorp/terraform/issues/9846))
+ * core: Computed bool fields with non-bool values will not crash ([#9812](https://github.com/hashicorp/terraform/issues/9812))
+ * core: `formatlist` interpolation function accepts an empty list ([#9795](https://github.com/hashicorp/terraform/issues/9795))
+ * core: Validate outputs have a name ([#9823](https://github.com/hashicorp/terraform/issues/9823))
+ * core: Validate variables have a name ([#9818](https://github.com/hashicorp/terraform/issues/9818))
+ * command/apply: If a partial set of required variables are provided with `-var`, ask for the remainder ([#9794](https://github.com/hashicorp/terraform/issues/9794))
+ * command/fmt: Multiline strings aren't erroneously indented ([#9859](https://github.com/hashicorp/terraform/issues/9859))
+ * provider/aws: Fix issue setting `certificate_upload_date` in `aws_api_gateway_domain_name` ([#9815](https://github.com/hashicorp/terraform/issues/9815))
+ * provider/azurerm: allow storage_account resource with name "$root" ([#9813](https://github.com/hashicorp/terraform/issues/9813))
+ * provider/google: fix for looking up project image families ([#9243](https://github.com/hashicorp/terraform/issues/9243))
+ * provider/openstack: Don't pass `shared` in FWaaS Policy unless it's set ([#9830](https://github.com/hashicorp/terraform/issues/9830))
+ * provider/openstack: openstack_fw_firewall_v1 `admin_state_up` should default to true ([#9832](https://github.com/hashicorp/terraform/issues/9832))
 
 PLUGIN CHANGES:
 
-  * Fields in resources can now have both `Optional` and `ConflictsWith` [GH-9825]
+  * Fields in resources can now have both `Optional` and `ConflictsWith` ([#9825](https://github.com/hashicorp/terraform/issues/9825))
 
 ## 0.7.8 (November 1, 2016)
 
