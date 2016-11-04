@@ -22,7 +22,8 @@ const (
 	// InputModeVar asks for all variables
 	InputModeVar InputMode = 1 << iota
 
-	// InputModeVarUnset asks for variables which are not set yet
+	// InputModeVarUnset asks for variables which are not set yet.
+	// InputModeVar must be set for this to have an effect.
 	InputModeVarUnset
 
 	// InputModeProvider asks for provider variables
