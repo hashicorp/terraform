@@ -216,6 +216,60 @@ func TestContext2Apply_providerAlias(t *testing.T) {
 	}
 }
 
+// Two providers that are configured should both be configured prior to apply
+func TestContext2Apply_providerAliasConfigure(t *testing.T) {
+	m := testModule(t, "apply-provider-alias-configure")
+
+	p2 := testProvider("another")
+	p2.ApplyFn = testApplyFn
+	p2.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"another": testProviderFuncFixed(p2),
+		},
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	// Configure to record calls AFTER Plan above
+	var configCount int32
+	p2.ConfigureFn = func(c *ResourceConfig) error {
+		atomic.AddInt32(&configCount, 1)
+
+		foo, ok := c.Get("foo")
+		if !ok {
+			return fmt.Errorf("foo is not found")
+		}
+
+		if foo != "bar" {
+			return fmt.Errorf("foo: %#v", foo)
+		}
+
+		return nil
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if configCount != 2 {
+		t.Fatalf("provider config expected 2 calls, got: %d", configCount)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProviderAliasConfigStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 // GH-2870
 func TestContext2Apply_providerWarning(t *testing.T) {
 	m := testModule(t, "apply-provider-warning")
