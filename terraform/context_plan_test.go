@@ -2703,3 +2703,39 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 		t.Fatalf("bad:\n%s\n\nexpected\n\n%s", actual, expected)
 	}
 }
+
+func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
+	m := testModule(t, "plan-cdb-depends-datasource")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if got := len(plan.Diff.Modules); got != 1 {
+		t.Fatalf("got %d modules; want 1", got)
+	}
+
+	moduleDiff := plan.Diff.Modules[0]
+
+	if _, ok := moduleDiff.Resources["aws_instance.foo.0"]; !ok {
+		t.Fatalf("missing diff for aws_instance.foo.0")
+	}
+	if _, ok := moduleDiff.Resources["aws_instance.foo.1"]; !ok {
+		t.Fatalf("missing diff for aws_instance.foo.1")
+	}
+	if _, ok := moduleDiff.Resources["data.aws_vpc.bar.0"]; !ok {
+		t.Fatalf("missing diff for data.aws_vpc.bar.0")
+	}
+	if _, ok := moduleDiff.Resources["data.aws_vpc.bar.1"]; !ok {
+		t.Fatalf("missing diff for data.aws_vpc.bar.1")
+	}
+}

@@ -173,6 +173,7 @@ func TestBuiltinGraphBuilder_cbdDepNonCbd(t *testing.T) {
 	}
 }
 
+// This now returns no errors due to a general fix while building the graph
 func TestBuiltinGraphBuilder_cbdDepNonCbd_errorsWhenVerbose(t *testing.T) {
 	b := &BuiltinGraphBuilder{
 		Root:     testModule(t, "graph-builder-cbd-non-cbd"),
@@ -181,8 +182,8 @@ func TestBuiltinGraphBuilder_cbdDepNonCbd_errorsWhenVerbose(t *testing.T) {
 	}
 
 	_, err := b.Build(RootModulePath)
-	if err == nil {
-		t.Fatalf("expected err, got none")
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 
