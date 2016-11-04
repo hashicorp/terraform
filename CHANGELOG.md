@@ -15,6 +15,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
  * core: Provisioners in modules do not crash during `apply` (regression). [GH-9846]
+ * command/fmt: Multiline strings aren't erroneously indented [GH-9859]
  * provider/aws: Fix issue setting `certificate_upload_date` in `aws_api_gateway_domain_name` [GH-9815]
  * provider/azurerm: allow storage_account resource with name "$root" [GH-9813]
  * provider/google: fix for looking up project image families [GH-9243]
