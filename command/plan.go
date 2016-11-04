@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -57,6 +58,9 @@ func (c *PlanCommand) Run(args []string) int {
 	countHook := new(CountHook)
 	c.Meta.extraHooks = []terraform.Hook{countHook}
 
+	// This is going to keep track of shadow errors
+	var shadowErr error
+
 	ctx, _, err := c.Context(contextOpts{
 		Destroy:     destroy,
 		Path:        path,
@@ -71,6 +75,12 @@ func (c *PlanCommand) Run(args []string) int {
 	if err := ctx.Input(c.InputMode()); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
 		return 1
+	}
+
+	// Record any shadow errors for later
+	if err := ctx.ShadowError(); err != nil {
+		shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+			err, "input operation:"))
 	}
 
 	if !validateContext(ctx, c.Ui) {
@@ -137,6 +147,15 @@ func (c *PlanCommand) Run(args []string) int {
 		countHook.ToAdd+countHook.ToRemoveAndAdd,
 		countHook.ToChange,
 		countHook.ToRemove+countHook.ToRemoveAndAdd)))
+
+	// Record any shadow errors for later
+	if err := ctx.ShadowError(); err != nil {
+		shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+			err, "plan operation:"))
+	}
+
+	// If we have an error in the shadow graph, let the user know.
+	c.outputShadowError(shadowErr, true)
 
 	if detailed {
 		return 2
