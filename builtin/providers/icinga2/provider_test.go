@@ -20,7 +20,7 @@ func init() {
 
 // Environment variable to export and for testig using Icinga2 Vagrant Image
 //   available from https://github.com/Icinga/icinga-vagrant
-// export ICINGA2_API_URL=https://192.168.33.5:5665
+// export ICINGA2_API_URL=https://192.168.33.5:5665/v1
 // export ICINGA2_API_USER=root
 // export ICINGA2_API_PASSWORD=icinga
 // export ICINGA2_INSECURE_SKIP_TLS_VERIFY=true

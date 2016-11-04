@@ -38,15 +38,16 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-		//			"icinga2_host":         resourceIcinga2Host(),
-		//			"icinga2_hostgroup":    resourceIcinga2HostGroup(),
-		//			"icinga2_checkcommand": resourceIcinga2Checkcommand(),
+			"icinga2_host": resourceIcinga2Host(),
+			//			"icinga2_hostgroup":    resourceIcinga2HostGroup(),
+			//			"icinga2_checkcommand": resourceIcinga2Checkcommand(),
 		},
 		ConfigureFunc: configureProvider,
 	}
 }
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
+
 	config, _ := iapi.New(
 		d.Get("api_user").(string),
 		d.Get("api_password").(string),
@@ -54,7 +55,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		d.Get("insecure").(bool),
 	)
 
-	return &config, nil
+	return config, nil
 }
 
 var descriptions map[string]string
