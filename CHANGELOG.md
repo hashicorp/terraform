@@ -19,6 +19,7 @@ BUG FIXES:
  * provider/azurerm: allow storage_account resource with name "$root" [GH-9813]
  * provider/google: fix for looking up project image families [GH-9243]
  * provider/openstack: Don't pass `shared` in FWaaS Policy unless it's set [GH-9830]
+ * provider/openstack: openstack_fw_firewall_v1 `admin_state_up` should default to true [GH-9832]
 
 ## 0.7.8 (November 1, 2016)
 
