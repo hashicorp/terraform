@@ -1055,7 +1055,115 @@ aws_instance.foo.0:
   foo = foo
   type = aws_instance
 `
+const testTerraformPlanCountIndexListStr = `
+DIFF:
 
+CREATE: aws_ebs_volume.foo.0
+  foo:  "" => "foo"
+  type: "" => "aws_ebs_volume"
+CREATE: aws_ebs_volume.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_ebs_volume"
+CREATE: aws_instance.bar.0
+  foo:  "" => "foo-bar"
+  type: "" => "aws_instance"
+CREATE: aws_instance.bar.1
+  foo:  "" => "foo-bar"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.0
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+CREATE: aws_volume_attachment.foo.0
+  instance_id: "" => "<computed>"
+  type:        "" => "aws_volume_attachment"
+  volume_id:   "" => "<computed>"
+CREATE: aws_volume_attachment.foo.1
+  instance_id: "" => "<computed>"
+  type:        "" => "aws_volume_attachment"
+  volume_id:   "" => "<computed>"
+
+STATE:
+
+<no state>
+`
+const testTerraformPlanCountIncreaseIndexListStr = `
+DIFF:
+
+CREATE: aws_ebs_volume.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_ebs_volume"
+CREATE: aws_instance.bar.1
+  foo:  "" => "foo-bar"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+CREATE: aws_volume_attachment.foo.1
+  instance_id: "" => "<computed>"
+  type:        "" => "aws_volume_attachment"
+  volume_id:   "" => "<computed>"
+
+STATE:
+
+aws_ebs_volume.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_ebs_volume
+aws_instance.bar.0:
+  ID = bar
+  foo = foo-bar
+  type = aws_instance
+aws_instance.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_instance
+aws_volume_attachment.foo.0:
+  ID = quux
+  foo = foo
+  instance_id = bar-baz
+  type = aws_volume_attachment
+  volume_id = bar-baz
+`
+const testTerraformPlanCountIncreaseIndexListStrCrossModule = `
+DIFF:
+
+CREATE: aws_ebs_volume.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_ebs_volume"
+CREATE: aws_volume_attachment.foo.1
+  instance_id: "" => "<computed>"
+  type:        "" => "aws_volume_attachment"
+  volume_id:   "" => "<computed>"
+
+module.foo:
+  CREATE: aws_instance.foo.1
+    foo:  "" => "foo"
+    type: "" => "aws_instance"
+
+STATE:
+
+aws_ebs_volume.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_ebs_volume
+aws_volume_attachment.foo.0:
+  ID = quux
+  foo = foo
+  instance_id = bar-baz
+  type = aws_volume_attachment
+  volume_id = bar-baz
+
+module.foo:
+  aws_instance.foo.0:
+    ID = bar
+    foo = foo
+    type = aws_instance
+
+  Outputs:
+`
 const testTerraformPlanDestroyStr = `
 DIFF:
 
