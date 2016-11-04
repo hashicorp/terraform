@@ -73,6 +73,8 @@ The following arguments are supported:
     wants to create a firewall rule for another tenant. Changing this creates a
     new firewall rule.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Attributes Reference
 
 The following attributes are exported:
