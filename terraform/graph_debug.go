@@ -24,8 +24,8 @@ type DebugGraph struct {
 	sync.Mutex
 	Name string
 
-	step int
-	buf  bytes.Buffer
+	ord int
+	buf bytes.Buffer
 
 	Dot     *dot.Graph
 	dotOpts *GraphDotOpts
@@ -93,6 +93,10 @@ func (dg *DebugGraph) DebugNode(v interface{}) {
 	}
 	dg.Lock()
 	defer dg.Unlock()
+
+	// record the ordinal value for each node
+	ord := dg.ord
+	dg.ord++
 
 	name := graphDotNodeName("root", v)
 
