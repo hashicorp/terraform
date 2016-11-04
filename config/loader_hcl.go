@@ -324,7 +324,8 @@ func loadModulesHcl(list *ast.ObjectList) ([]*Module, error) {
 func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 	list = list.Children()
 	if len(list.Items) == 0 {
-		return nil, nil
+		return nil, fmt.Errorf(
+			"'output' must be followed by exactly one string: a name")
 	}
 
 	// Go through each object and turn it into an actual result.
