@@ -1,6 +1,8 @@
 ## 0.8.0 (unreleased)
 
+BUG FIXES:
 
+ * provider/aws: Fix crash when adding EBS volumes to spot fleet request. [GH-9857]
 
 ## 0.7.9 (November 4, 2016)
 
