@@ -43,7 +43,8 @@ Hosted Zone. If you use `name` field for private Hosted Zone, you need to add `p
 * `name` - (Optional) The Hosted Zone name of the desired Hosted Zone.
 * `private_zone` - (Optional) Used with `name` field to get a private Hosted Zone.
 * `vpc_id` - (Optional) Used with `name` field to get a private Hosted Zone associated with the vpc_id (in this case, private_zone is not mandatory).
-
+* `tags` - (Optional) Used with `name` field. A mapping of tags, each pair of which must exactly match
+a pair on the desired security group.
 ## Attributes Reference
 
 All of the argument attributes are also exported as
