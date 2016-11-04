@@ -68,6 +68,12 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
+	err = terraform.SetDebugInfo(DefaultDataDir)
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
 	if err := ctx.Input(c.InputMode()); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
 		return 1

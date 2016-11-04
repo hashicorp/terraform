@@ -37,7 +37,7 @@ type ImportTarget struct {
 // imported.
 func (c *Context) Import(opts *ImportOpts) (*State, error) {
 	// Hold a lock since we can modify our own state here
-	v := c.acquireRun()
+	v := c.acquireRun("import")
 	defer c.releaseRun(v)
 
 	// Copy our own state
