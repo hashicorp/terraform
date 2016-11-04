@@ -135,7 +135,10 @@ type Schema struct {
 	// NOTE: This currently does not work.
 	ComputedWhen []string
 
-	// ConflictsWith is a set of schema keys that conflict with this schema
+	// ConflictsWith is a set of schema keys that conflict with this schema.
+	// This will only check that they're set in the _config_. This will not
+	// raise an error for a malfunctioning resource that sets a conflicting
+	// key.
 	ConflictsWith []string
 
 	// When Deprecated is set, this attribute is deprecated.
@@ -571,7 +574,7 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 					return fmt.Errorf("%s: ConflictsWith cannot contain Required attribute (%s)", k, key)
 				}
 
-				if target.Computed || len(target.ComputedWhen) > 0 {
+				if len(target.ComputedWhen) > 0 {
 					return fmt.Errorf("%s: ConflictsWith cannot contain Computed(When) attribute (%s)", k, key)
 				}
 			}
