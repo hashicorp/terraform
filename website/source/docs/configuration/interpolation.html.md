@@ -54,7 +54,7 @@ provisioners.
 
 The syntax is `TYPE.NAME.ATTRIBUTE`. For example,
 `${aws_instance.web.id}` will interpolate the ID attribute from the
-`aws\_instance` resource named `web`. If the resource has a `count`
+`aws_instance` resource named `web`. If the resource has a `count`
 attribute set, you can access individual attributes with a zero-based
 index, such as `${aws_instance.web.0.id}`. You can also use the splat
 syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
