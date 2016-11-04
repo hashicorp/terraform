@@ -232,7 +232,7 @@ func (c *Context) ShadowError() error {
 // This modifies the configuration in-place, so asking for Input twice
 // may result in different UI output showing different current values.
 func (c *Context) Input(mode InputMode) error {
-	v := c.acquireRun()
+	v := c.acquireRun("input")
 	defer c.releaseRun(v)
 
 	if mode&InputModeVar != 0 {
@@ -352,7 +352,7 @@ func (c *Context) Input(mode InputMode) error {
 // In addition to returning the resulting state, this context is updated
 // with the latest state.
 func (c *Context) Apply() (*State, error) {
-	v := c.acquireRun()
+	v := c.acquireRun("apply")
 	defer c.releaseRun(v)
 
 	// Copy our own state
@@ -449,7 +449,7 @@ func (c *Context) Apply() (*State, error) {
 // Plan also updates the diff of this context to be the diff generated
 // by the plan, so Apply can be called after.
 func (c *Context) Plan() (*Plan, error) {
-	v := c.acquireRun()
+	v := c.acquireRun("plan")
 	defer c.releaseRun(v)
 
 	p := &Plan{
@@ -549,7 +549,7 @@ func (c *Context) Plan() (*Plan, error) {
 // Even in the case an error is returned, the state will be returned and
 // will potentially be partially updated.
 func (c *Context) Refresh() (*State, error) {
-	v := c.acquireRun()
+	v := c.acquireRun("refresh")
 	defer c.releaseRun(v)
 
 	// Copy our own state
@@ -595,7 +595,7 @@ func (c *Context) Stop() {
 
 // Validate validates the configuration and returns any warnings or errors.
 func (c *Context) Validate() ([]string, []error) {
-	v := c.acquireRun()
+	v := c.acquireRun("validate")
 	defer c.releaseRun(v)
 
 	var errs error
@@ -657,9 +657,11 @@ func (c *Context) SetVariable(k string, v interface{}) {
 	c.variables[k] = v
 }
 
-func (c *Context) acquireRun() chan<- struct{} {
+func (c *Context) acquireRun(phase string) chan<- struct{} {
 	c.l.Lock()
 	defer c.l.Unlock()
+
+	dbug.SetPhase(phase)
 
 	// Wait for no channel to exist
 	for c.runCh != nil {
@@ -685,6 +687,11 @@ func (c *Context) acquireRun() chan<- struct{} {
 func (c *Context) releaseRun(ch chan<- struct{}) {
 	c.l.Lock()
 	defer c.l.Unlock()
+
+	// setting the phase to "INVALID" lets us easily detect if we have
+	// operations happening outside of a run, or we missed setting the proper
+	// phase
+	dbug.SetPhase("INVALID")
 
 	close(ch)
 	c.runCh = nil
@@ -716,9 +723,14 @@ func (c *Context) walk(
 		log.Printf("[WARN] terraform: shadow graph disabled")
 	}
 
-	// Build the real graph walker
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
-	walker := &ContextGraphWalker{Context: realCtx, Operation: operation}
+
+	dg, _ := NewDebugGraph("walk", graph, nil)
+	walker := &ContextGraphWalker{
+		Context:    realCtx,
+		Operation:  operation,
+		DebugGraph: dg,
+	}
 
 	// Walk the real graph, this will block until it completes
 	realErr := graph.Walk(walker)
@@ -737,13 +749,20 @@ func (c *Context) walk(
 
 	// If we have a shadow graph, wait for that to complete.
 	if shadowCloser != nil {
+		// create a debug graph for this walk
+		dg, err := NewDebugGraph("walk-shadow", shadow, nil)
+		if err != nil {
+			log.Printf("[ERROR] %v", err)
+		}
+
 		// Build the graph walker for the shadow. We also wrap this in
 		// a panicwrap so that panics are captured. For the shadow graph,
 		// we just want panics to be normal errors rather than to crash
 		// Terraform.
 		shadowWalker := GraphWalkerPanicwrap(&ContextGraphWalker{
-			Context:   shadowCtx,
-			Operation: operation,
+			Context:    shadowCtx,
+			Operation:  operation,
+			DebugGraph: dg,
 		})
 
 		// Kick off the shadow walk. This will block on any operations
