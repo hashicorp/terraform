@@ -10,6 +10,7 @@ IMPROVEMENTS:
  * provider/aws: Provide the option to skip_destroy on aws_volume_attachment [GH-9792]
  * provider/aws: Allows aws_alb security_groups to be updated [GH-9804]
  * provider/aws: Add the enable_sni attribute for Route53 health checks. [GH-9822]
+ * provider/openstack: Add `value_specs` to openstack_fw_rule_v1 resource, allowing vendor information [GH-9834]
  * state/remote/swift: Enable OpenStack Identity/Keystone v3 authentication [GH-9769]
  * state/remote/swift: Now supports all login/config options that the OpenStack Provider supports [GH-9777]
  
