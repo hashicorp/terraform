@@ -88,7 +88,7 @@ func TestAccAzureRMRedisSku_validation(t *testing.T) {
 
 func TestAccAzureRMRedis_basic(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMRedis_basic, ri)
+	config := fmt.Sprintf(testAccAzureRMRedis_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -107,7 +107,7 @@ func TestAccAzureRMRedis_basic(t *testing.T) {
 
 func TestAccAzureRMRedis_standard(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMRedis_standard, ri)
+	config := fmt.Sprintf(testAccAzureRMRedis_standard, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -126,7 +126,7 @@ func TestAccAzureRMRedis_standard(t *testing.T) {
 
 func TestAccAzureRMRedis_premium(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMRedis_premium, ri)
+	config := fmt.Sprintf(testAccAzureRMRedis_premium, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -135,6 +135,51 @@ func TestAccAzureRMRedis_premium(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMRedisExists("azurerm_redis.test"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMRedis_sharding(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMRedis_premiumSharded, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMRedisDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMRedisExists("azurerm_redis.test"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMRedis_scaling(t *testing.T) {
+	ri := acctest.RandInt()
+	standardConfig := fmt.Sprintf(testAccAzureRMRedis_standard, ri, ri)
+	premiumConfig := fmt.Sprintf(testAccAzureRMRedis_premium, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMRedisDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: standardConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMRedisExists("azurerm_redis.test"),
+				),
+			},
+			{
+				Config: premiumConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMRedisExists("azurerm_redis.test"),
 				),
@@ -232,6 +277,29 @@ resource "azurerm_redis" "test" {
 `
 
 var testAccAzureRMRedis_premium = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_redis" "test" {
+    name                = "acctestRedis-%d"
+    location            = "${azurerm_resource_group.test.location}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    capacity            = 1
+    family              = "C"
+    sku_name            = "Premium"
+    enable_non_ssl_port = false
+    redis_configuration {
+      "maxclients"         = "256",
+      "maxmemory-reserved" = "2",
+      "maxmemory-delta"    = "2"
+      "maxmemory-policy"   = "allkeys-lru"
+    }
+}
+`
+
+var testAccAzureRMRedis_premiumSharded = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
