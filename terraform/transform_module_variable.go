@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/dag"
 )
 
 // ModuleVariableTransformer is a GraphTransformer that adds all the variables
@@ -68,9 +67,6 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, m *module.
 		return nil
 	}
 
-	// Build the reference map so we can determine if we're referencing things.
-	refMap := NewReferenceMap(g.Vertices())
-
 	// Add all variables here
 	for _, v := range vars {
 		// Determine the value of the variable. If it isn't in the
@@ -98,20 +94,6 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, m *module.
 			Config:    v,
 			Value:     value,
 			Module:    t.Module,
-		}
-
-		// If the node references something, then we check to make sure
-		// that the thing it references is in the graph. If it isn't, then
-		// we don't add it because we may not be able to compute the output.
-		//
-		// If the node references nothing, we always include it since there
-		// is no other clear time to compute it.
-		matches, missing := refMap.References(node)
-		if len(missing) > 0 {
-			log.Printf(
-				"[INFO] Not including %q in graph, matches: %v, missing: %s",
-				dag.VertexName(node), matches, missing)
-			continue
 		}
 
 		// Add it!

@@ -494,6 +494,18 @@ module.child:
     provider = aws.eu
 `
 
+const testTerraformApplyModuleVarRefExistingStr = `
+aws_instance.foo:
+  ID = foo
+  foo = bar
+
+module.child:
+  aws_instance.foo:
+    ID = foo
+    type = aws_instance
+    value = bar
+`
+
 const testTerraformApplyOutputOrphanStr = `
 <no state>
 Outputs:
