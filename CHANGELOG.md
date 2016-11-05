@@ -7,6 +7,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * provider/aws: Fix crash when adding EBS volumes to spot fleet request. [GH-9857]
+ * provider/scaleway: fix `scaleway_image` datasource returning unknown images [GH-9899]
 
 ## 0.7.9 (November 4, 2016)
 
