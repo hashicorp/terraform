@@ -1,8 +1,6 @@
 package icinga2
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lrsmith/go-icinga2-api/iapi"
 )
@@ -47,18 +45,22 @@ func resourceIcinga2Host() *schema.Resource {
 
 func resourceIcinga2HostCreate(d *schema.ResourceData, meta interface{}) error {
 
-	fmt.Printf("Entering resourceIcinga2HostCreate\n")
 	client := meta.(*iapi.Server)
 
 	hostname := d.Get("hostname").(string)
 	address := d.Get("address").(string)
 	checkCommand := d.Get("check_command").(string)
 
-	//	attrs := make(map[string]interface{})
-	//	vars := make(map[string]interface{})
-	//	vars = d.Get("vars").(map[string]interface{})
+	vars := make(map[string]string)
 
-	err := client.CreateHost(hostname, address, checkCommand, nil)
+	// Normalize from map[string]interface{} to map[string]string
+	iterator := d.Get("vars").(map[string]interface{})
+	for key, value := range iterator {
+		vars[key] = value.(string)
+	}
+
+	// Call CreateHost with normalized data
+	err := client.CreateHost(hostname, address, checkCommand, vars)
 	if err != nil {
 		return err
 	}
@@ -90,7 +92,6 @@ func resourceIcinga2HostUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceIcinga2HostDelete(d *schema.ResourceData, meta interface{}) error {
 
-	fmt.Printf("Entering resourceIcinga2HostDelete\n")
 	client := meta.(*iapi.Server)
 	hostname := d.Get("hostname").(string)
 
