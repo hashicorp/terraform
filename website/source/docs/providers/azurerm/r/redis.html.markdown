@@ -22,7 +22,6 @@ resource "azurerm_redis" "test" {
   name                = "test"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  redis_version       = "3.0"
   capacity            = 0
   family              = "C"
   sku_name            = "Basic"
@@ -43,7 +42,6 @@ resource "azurerm_redis" "test" {
   name                = "test"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  redis_version       = "3.0"
   capacity            = 1
   family              = "C"
   sku_name            = "Standard"
@@ -63,7 +61,6 @@ resource "azurerm_redis" "test" {
   name                = "clustered-test"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  redis_version       = "3.0"
   capacity            = 1
   family              = "C"
   sku_name            = "Premium"
@@ -90,9 +87,7 @@ The following arguments are supported:
 * `resource_group_name` - (Required) The name of the resource group in which to
     create the Redis instance.
 
-* `redis_version` - (Required) The version of Redis to use.
-
-* `capacity` - (Required) The amount of Redis Capacity / Storage required in GB. If you're using the Basic (250mb) tier, this value should be `0`.
+* `capacity` - (Required) This corresponds to the size of the Redis instance you wish to use (e.g. a C0 would be 0, P3 would be 3 etc).
 
 * `family` - (Required) The pricing group for the Redis Family - either "C" or "P" at present.
 
