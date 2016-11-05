@@ -97,7 +97,7 @@ func TestAccAzureRMEventHubMessageRetentionCount_validation(t *testing.T) {
 func TestAccAzureRMEventHub_basic(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMEventHub_basic, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMEventHub_basic, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -117,27 +117,7 @@ func TestAccAzureRMEventHub_basic(t *testing.T) {
 func TestAccAzureRMEventHub_standard(t *testing.T) {
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMEventHub_standard, ri, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMEventHubExists("azurerm_eventhub.test"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccAzureRMEventHub_premium(t *testing.T) {
-
-	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMEventHub_premium, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMEventHub_standard, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -227,7 +207,7 @@ resource "azurerm_eventhub" "test" {
   namespace_name      = "${azurerm_eventhub_namespace.test.name}"
   location            = "${azurerm_resource_group.test.location}"
   resource_group_name = "${azurerm_resource_group.test.name}"
-  partition_count     = 1
+  partition_count     = 2
   message_retention   = 1
 }
 `
@@ -242,28 +222,6 @@ resource "azurerm_eventhub_namespace" "test" {
     location = "${azurerm_resource_group.test.location}"
     resource_group_name = "${azurerm_resource_group.test.name}"
     sku = "Standard"
-}
-
-resource "azurerm_eventhub" "test" {
-  name                = "acctesteventhub-%d"
-  namespace_name      = "${azurerm_eventhub_namespace.test.name}"
-  location            = "${azurerm_resource_group.test.location}"
-  resource_group_name = "${azurerm_resource_group.test.name}"
-  partition_count     = 2
-  message_retention   = 7
-}
-`
-
-var testAccAzureRMEventHub_premium = `
-resource "azurerm_resource_group" "test" {
-    name = "acctestRG-%d"
-    location = "West US"
-}
-resource "azurerm_eventhub_namespace" "test" {
-    name = "acctesteventhubnamespace-%d"
-    location = "${azurerm_resource_group.test.location}"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Premium"
 }
 
 resource "azurerm_eventhub" "test" {

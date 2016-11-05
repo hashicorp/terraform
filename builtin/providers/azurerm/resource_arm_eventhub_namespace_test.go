@@ -119,26 +119,6 @@ func TestAccAzureRMEventHubNamespace_standard(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMEventHubNamespace_premium(t *testing.T) {
-
-	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMEventHubNamespace_premium, ri, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMEventHubNamespaceExists("azurerm_eventhub_namespace.test"),
-				),
-			},
-		},
-	})
-}
-
 func TestAccAzureRMEventHubNamespace_readDefaultKeys(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMEventHubNamespace_basic, ri, ri)
@@ -244,19 +224,5 @@ resource "azurerm_eventhub_namespace" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     sku = "Standard"
     capacity = "2"
-}
-`
-
-var testAccAzureRMEventHubNamespace_premium = `
-resource "azurerm_resource_group" "test" {
-    name = "acctestRG-%d"
-    location = "West US"
-}
-resource "azurerm_eventhub_namespace" "test" {
-    name = "acctesteventhubnamespace-%d"
-    location = "${azurerm_resource_group.test.location}"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Premium"
-    capacity = "4"
 }
 `
