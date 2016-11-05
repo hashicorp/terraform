@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
@@ -44,6 +45,18 @@ type NetworkCreateOpts struct {
 // It overrides networks.ToNetworkCreateMap to add the ValueSpecs field.
 func (opts NetworkCreateOpts) ToNetworkCreateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "network")
+}
+
+// PolicyCreateOpts represents the attributes used when creating a new firewall policy.
+type PolicyCreateOpts struct {
+	policies.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToPolicyCreateMap casts a CreateOpts struct to a map.
+// It overrides policies.ToFirewallPolicyCreateMap to add the ValueSpecs field.
+func (opts PolicyCreateOpts) ToFirewallPolicyCreateMap() (map[string]interface{}, error) {
+	return BuildRequest(opts, "firewall_policy")
 }
 
 // PortCreateOpts represents the attributes used when creating a new port.
