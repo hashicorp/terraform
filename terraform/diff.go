@@ -32,6 +32,30 @@ type Diff struct {
 	Modules []*ModuleDiff
 }
 
+// Prune cleans out unused structures in the diff without affecting
+// the behavior of the diff at all.
+//
+// This is not safe to call concurrently. This is safe to call on a
+// nil Diff.
+func (d *Diff) Prune() {
+	if d == nil {
+		return
+	}
+
+	// Prune all empty modules
+	newModules := make([]*ModuleDiff, 0, len(d.Modules))
+	for _, m := range d.Modules {
+		// If the module isn't empty, we keep it
+		if !m.Empty() {
+			newModules = append(newModules, m)
+		}
+	}
+	if len(newModules) == 0 {
+		newModules = nil
+	}
+	d.Modules = newModules
+}
+
 // AddModule adds the module with the given path to the diff.
 //
 // This should be the preferred method to add module diffs since it
@@ -212,6 +236,10 @@ func (d *ModuleDiff) ChangeType() DiffChangeType {
 
 // Empty returns true if the diff has no changes within this module.
 func (d *ModuleDiff) Empty() bool {
+	if d.Destroy {
+		return false
+	}
+
 	if len(d.Resources) == 0 {
 		return true
 	}
