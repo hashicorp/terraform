@@ -26,7 +26,7 @@ func TestGraphNodeConfigModuleExpand(t *testing.T) {
 
 	g, err := node.Expand(&BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&ConfigTransformer{Module: mod},
+			&ConfigTransformerOld{Module: mod},
 		},
 	})
 	if err != nil {
@@ -51,7 +51,7 @@ func TestGraphNodeConfigModuleExpandFlatten(t *testing.T) {
 
 	g, err := node.Expand(&BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&ConfigTransformer{Module: mod},
+			&ConfigTransformerOld{Module: mod},
 		},
 	})
 	if err != nil {

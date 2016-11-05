@@ -9,30 +9,21 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
-// ConfigTransformer is a GraphTransformer that adds all the resources
-// from the configuration to the graph.
-//
-// The module used to configure this transformer must be the root module.
-//
-// Only resources are added to the graph. Variables, outputs, and
-// providers must be added via other transforms.
-//
-// Unlike ConfigTransformerOld, this transformer creates a graph with
-// all resources including module resources, rather than creating module
-// nodes that are then "flattened".
-type ConfigTransformer struct {
+// ConfigTransformerOld is a GraphTransformer that adds the configuration
+// to the graph. The module used to configure this transformer must be
+// the root module. We'll look up the child module by the Path in the
+// Graph.
+type ConfigTransformerOld struct {
 	Module *module.Tree
 }
 
-func (t *ConfigTransformer) Transform(g *Graph) error {
-	// If no module is given, we don't do anything
+func (t *ConfigTransformerOld) Transform(g *Graph) error {
+	// A module is required and also must be completely loaded.
 	if t.Module == nil {
-		return nil
+		return errors.New("module must not be nil")
 	}
-
-	// If the module isn't loaded, that is simply an error
 	if !t.Module.Loaded() {
-		return errors.New("module must be loaded for ConfigTransformer")
+		return errors.New("module must be loaded")
 	}
 
 	// Get the module we care about
@@ -113,4 +104,20 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 	}
 
 	return err
+}
+
+// varNameForVar returns the VarName value for an interpolated variable.
+// This value is compared to the VarName() value for the nodes within the
+// graph to build the graph edges.
+func varNameForVar(raw config.InterpolatedVariable) string {
+	switch v := raw.(type) {
+	case *config.ModuleVariable:
+		return fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)
+	case *config.ResourceVariable:
+		return v.ResourceId()
+	case *config.UserVariable:
+		return fmt.Sprintf("var.%s", v.Name)
+	default:
+		return ""
+	}
 }

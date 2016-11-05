@@ -8,15 +8,15 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
-func TestConfigTransformer_nilModule(t *testing.T) {
+func TestConfigTransformerOld_nilModule(t *testing.T) {
 	g := Graph{Path: RootModulePath}
-	tf := &ConfigTransformer{}
+	tf := &ConfigTransformerOld{}
 	if err := tf.Transform(&g); err == nil {
 		t.Fatal("should error")
 	}
 }
 
-func TestConfigTransformer_unloadedModule(t *testing.T) {
+func TestConfigTransformerOld_unloadedModule(t *testing.T) {
 	mod, err := module.NewTreeModule(
 		"", filepath.Join(fixtureDir, "graph-basic"))
 	if err != nil {
@@ -24,15 +24,15 @@ func TestConfigTransformer_unloadedModule(t *testing.T) {
 	}
 
 	g := Graph{Path: RootModulePath}
-	tf := &ConfigTransformer{Module: mod}
+	tf := &ConfigTransformerOld{Module: mod}
 	if err := tf.Transform(&g); err == nil {
 		t.Fatal("should error")
 	}
 }
 
-func TestConfigTransformer(t *testing.T) {
+func TestConfigTransformerOld(t *testing.T) {
 	g := Graph{Path: RootModulePath}
-	tf := &ConfigTransformer{Module: testModule(t, "graph-basic")}
+	tf := &ConfigTransformerOld{Module: testModule(t, "graph-basic")}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -44,9 +44,9 @@ func TestConfigTransformer(t *testing.T) {
 	}
 }
 
-func TestConfigTransformer_dependsOn(t *testing.T) {
+func TestConfigTransformerOld_dependsOn(t *testing.T) {
 	g := Graph{Path: RootModulePath}
-	tf := &ConfigTransformer{Module: testModule(t, "graph-depends-on")}
+	tf := &ConfigTransformerOld{Module: testModule(t, "graph-depends-on")}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -58,9 +58,9 @@ func TestConfigTransformer_dependsOn(t *testing.T) {
 	}
 }
 
-func TestConfigTransformer_modules(t *testing.T) {
+func TestConfigTransformerOld_modules(t *testing.T) {
 	g := Graph{Path: RootModulePath}
-	tf := &ConfigTransformer{Module: testModule(t, "graph-modules")}
+	tf := &ConfigTransformerOld{Module: testModule(t, "graph-modules")}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -72,9 +72,9 @@ func TestConfigTransformer_modules(t *testing.T) {
 	}
 }
 
-func TestConfigTransformer_outputs(t *testing.T) {
+func TestConfigTransformerOld_outputs(t *testing.T) {
 	g := Graph{Path: RootModulePath}
-	tf := &ConfigTransformer{Module: testModule(t, "graph-outputs")}
+	tf := &ConfigTransformerOld{Module: testModule(t, "graph-outputs")}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -86,9 +86,9 @@ func TestConfigTransformer_outputs(t *testing.T) {
 	}
 }
 
-func TestConfigTransformer_providerAlias(t *testing.T) {
+func TestConfigTransformerOld_providerAlias(t *testing.T) {
 	g := Graph{Path: RootModulePath}
-	tf := &ConfigTransformer{Module: testModule(t, "graph-provider-alias")}
+	tf := &ConfigTransformerOld{Module: testModule(t, "graph-provider-alias")}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -100,9 +100,9 @@ func TestConfigTransformer_providerAlias(t *testing.T) {
 	}
 }
 
-func TestConfigTransformer_errMissingDeps(t *testing.T) {
+func TestConfigTransformerOld_errMissingDeps(t *testing.T) {
 	g := Graph{Path: RootModulePath}
-	tf := &ConfigTransformer{Module: testModule(t, "graph-missing-deps")}
+	tf := &ConfigTransformerOld{Module: testModule(t, "graph-missing-deps")}
 	if err := tf.Transform(&g); err == nil {
 		t.Fatalf("err: %s", err)
 	}
