@@ -39,13 +39,13 @@ The following arguments are supported:
     new resource to be created.
 
 * `resource_group_name` - (Required) The name of the resource group in which to
-    create the namespace.
+    create the namespace. Changing this forces a new resource to be created.
 
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 
-* `sku` - (Required) Defines which tier to use. Options are basic or standard.
+* `sku` - (Required) Defines which tier to use. Options are Basic or Standard.
 
-* `capacity` - (Optional) Specifies the capacity of a premium namespace. Can be 1, 2 or 4
+* `capacity` - (Optional) Specifies the capacity of a Standard namespace. Can be 1, 2 or 4
 
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
