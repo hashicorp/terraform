@@ -52,7 +52,7 @@ func TestAccAzureRMEventHubPartitionCount_validation(t *testing.T) {
 
 func TestAccAzureRMEventHubMessageRetentionCount_validation(t *testing.T) {
 	cases := []struct {
-		Value    string
+		Value    int
 		ErrCount int
 	}{
 		{
