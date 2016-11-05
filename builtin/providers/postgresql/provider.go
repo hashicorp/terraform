@@ -14,7 +14,7 @@ func Provider() terraform.ResourceProvider {
 				Type:     schema.TypeString,
 				Optional: true,
 				// TODO(sean@): Remove POSTGRESQL_HOST in 0.8
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOST", "POSTGRESQL_HOST"}, nil),
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOSTADDR", "PGHOST", "POSTGRESQL_HOST"}, nil),
 				Description: "Name of PostgreSQL server address to connect to",
 			},
 			"port": {
