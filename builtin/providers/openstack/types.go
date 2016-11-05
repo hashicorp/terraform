@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
@@ -11,7 +12,19 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 )
 
-// FloatingIPCreateOpts represents the attributes used when creating a new port.
+// FirewallCreateOpts represents the attributes used when creating a new firewall.
+type FirewallCreateOpts struct {
+	firewalls.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToFirewallCreateMap casts a CreateOpts struct to a map.
+// It overrides firewalls.ToFirewallCreateMap to add the ValueSpecs field.
+func (opts FirewallCreateOpts) ToFirewallCreateMap() (map[string]interface{}, error) {
+	return BuildRequest(opts, "firewall")
+}
+
+// FloatingIPCreateOpts represents the attributes used when creating a new floating ip.
 type FloatingIPCreateOpts struct {
 	floatingips.CreateOpts
 	ValueSpecs map[string]string `json:"value_specs,omitempty"`
