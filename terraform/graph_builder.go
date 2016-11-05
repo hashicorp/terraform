@@ -129,7 +129,7 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 	steps := []GraphTransformer{
 		// Create all our resources from the configuration and state
-		&ConfigTransformer{Module: b.Root},
+		&ConfigTransformerOld{Module: b.Root},
 		&OrphanTransformer{
 			State:  b.State,
 			Module: b.Root,
