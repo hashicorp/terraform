@@ -51,6 +51,11 @@ func resourceFWFirewallV1() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -65,12 +70,15 @@ func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error 
 
 	adminStateUp := d.Get("admin_state_up").(bool)
 
-	firewallConfiguration := firewalls.CreateOpts{
-		Name:         d.Get("name").(string),
-		Description:  d.Get("description").(string),
-		PolicyID:     d.Get("policy_id").(string),
-		AdminStateUp: &adminStateUp,
-		TenantID:     d.Get("tenant_id").(string),
+	firewallConfiguration := FirewallCreateOpts{
+		firewalls.CreateOpts{
+			Name:         d.Get("name").(string),
+			Description:  d.Get("description").(string),
+			PolicyID:     d.Get("policy_id").(string),
+			AdminStateUp: &adminStateUp,
+			TenantID:     d.Get("tenant_id").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	log.Printf("[DEBUG] Create firewall: %#v", firewallConfiguration)
