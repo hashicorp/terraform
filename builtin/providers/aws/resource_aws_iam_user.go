@@ -197,10 +197,9 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 			UserName: aws.String(d.Id()),
 		})
 		if err != nil {
-			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
-				return nil
+			if iamerr, ok := err.(awserr.Error); !ok || iamerr.Code() != "NoSuchEntity" {
+				return fmt.Errorf("Error deleting Account Login Profile: %s", err)
 			}
-			return fmt.Errorf("Error deleting Account Login Profile: %s", err)
 		}
 	}
 
