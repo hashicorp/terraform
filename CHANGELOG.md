@@ -1,5 +1,9 @@
 ## 0.8.0 (unreleased)
 
+IMPROVEMENTS:
+
+ * provider/openstack: Add `value_specs` to `openstack_fw_policy_v1` resource, allowing vendor information [GH-9835]
+
 BUG FIXES:
 
  * provider/aws: Fix crash when adding EBS volumes to spot fleet request. [GH-9857]
