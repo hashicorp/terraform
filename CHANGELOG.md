@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
  * provider/openstack: Add `value_specs` to `openstack_fw_policy_v1` resource, allowing vendor information [GH-9835]
+ * provider/openstack: Add `value_specs` to `openstack_fw_firewall_v1` resource, allowing vendor information [GH-9836]
 
 BUG FIXES:
 
