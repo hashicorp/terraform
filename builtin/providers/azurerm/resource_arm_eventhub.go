@@ -151,7 +151,7 @@ func resourceArmEventHubDelete(d *schema.ResourceData, meta interface{}) error {
 
 	resp, err := eventhubClient.Delete(resGroup, namespaceName, name)
 
-	if resp.StatusCode != http.StatusNotFound {
+	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Error issuing Azure ARM delete request of EventHub'%s': %s", name, err)
 	}
 
