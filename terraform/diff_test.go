@@ -103,6 +103,53 @@ func TestDiffEqual(t *testing.T) {
 	}
 }
 
+func TestDiffPrune(t *testing.T) {
+	cases := map[string]struct {
+		D1, D2 *Diff
+	}{
+		"nil": {
+			nil,
+			nil,
+		},
+
+		"empty": {
+			new(Diff),
+			new(Diff),
+		},
+
+		"empty module": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}},
+				},
+			},
+			&Diff{},
+		},
+
+		"destroy module": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			tc.D1.Prune()
+			if !tc.D1.Equal(tc.D2) {
+				t.Fatalf("bad:\n\n%#v\n\n%#v", tc.D1, tc.D2)
+			}
+		})
+	}
+}
+
 func TestModuleDiff_ChangeType(t *testing.T) {
 	cases := []struct {
 		Diff   *ModuleDiff
