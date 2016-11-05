@@ -206,13 +206,17 @@ func resourceArmRedisUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("shard_count"); ok {
-		shardCount := int32(v.(int))
-		parameters.Properties.ShardCount = &shardCount
+		if d.HasChange("shard_count") {
+			shardCount := int32(v.(int))
+			parameters.Properties.ShardCount = &shardCount
+		}
 	}
 
-	redisConfiguration := parseRedisConfiguration(d)
-	if redisConfiguration != nil {
-		parameters.Properties.RedisConfiguration = &redisConfiguration
+	if d.HasChange("redis_configuration") {
+		redisConfiguration := parseRedisConfiguration(d)
+		if redisConfiguration != nil {
+			parameters.Properties.RedisConfiguration = &redisConfiguration
+		}
 	}
 
 	_, err := client.Update(resGroup, name, parameters, make(chan struct{}))
