@@ -105,11 +105,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
 
-		// Add module variables
-		&ModuleVariableTransformer{Module: b.Module},
-
 		// Add the outputs
 		&OutputTransformer{Module: b.Module},
+
+		// Add module variables
+		&ModuleVariableTransformer{Module: b.Module},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

@@ -5,16 +5,18 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // ModuleVariableTransformer is a GraphTransformer that adds all the variables
 // in the configuration to the graph.
 //
-// This only adds variables that either have no dependencies (and therefore
-// always succeed) or has dependencies that are 100% represented in the
-// graph.
+// This only adds variables that are referenced by other thigns in the graph.
+// If a module variable is not referenced, it won't be added to the graph.
 type ModuleVariableTransformer struct {
 	Module *module.Tree
+
+	DisablePrune bool // True if pruning unreferenced should be disabled
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
@@ -27,18 +29,18 @@ func (t *ModuleVariableTransformer) transform(g *Graph, parent, m *module.Tree) 
 		return nil
 	}
 
-	// If we have a parent, we can determine if a module variable is being
-	// used, so we transform this.
-	if parent != nil {
-		if err := t.transformSingle(g, parent, m); err != nil {
+	// Transform all the children. This must be done BEFORE the transform
+	// above since child module variables can reference parent module variables.
+	for _, c := range m.Children() {
+		if err := t.transform(g, m, c); err != nil {
 			return err
 		}
 	}
 
-	// Transform all the children. This must be done AFTER the transform
-	// above since child module variables can reference parent module variables.
-	for _, c := range m.Children() {
-		if err := t.transform(g, m, c); err != nil {
+	// If we have a parent, we can determine if a module variable is being
+	// used, so we transform this.
+	if parent != nil {
+		if err := t.transformSingle(g, parent, m); err != nil {
 			return err
 		}
 	}
@@ -67,6 +69,9 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, m *module.
 		return nil
 	}
 
+	// Build the reference map so we can determine if we're referencing things.
+	refMap := NewReferenceMap(g.Vertices())
+
 	// Add all variables here
 	for _, v := range vars {
 		// Determine the value of the variable. If it isn't in the
@@ -94,6 +99,17 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, m *module.
 			Config:    v,
 			Value:     value,
 			Module:    t.Module,
+		}
+
+		if !t.DisablePrune {
+			// If the node is not referenced by anything, then we don't need
+			// to include it since it won't be used.
+			if matches := refMap.ReferencedBy(node); len(matches) == 0 {
+				log.Printf(
+					"[INFO] Not including %q in graph, nothing depends on it",
+					dag.VertexName(node))
+				continue
+			}
 		}
 
 		// Add it!
