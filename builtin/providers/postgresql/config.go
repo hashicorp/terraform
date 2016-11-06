@@ -15,7 +15,7 @@ type Config struct {
 	Database        string
 	Username        string
 	Password        string
-	SslMode         string
+	SSLMode         string
 	Timeout         int
 	ApplicationName string
 }
