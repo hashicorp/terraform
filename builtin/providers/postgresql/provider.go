@@ -64,6 +64,13 @@ func Provider() terraform.ResourceProvider {
 				Optional:   true,
 				Deprecated: "Rename PostgreSQL provider `ssl_mode` attribute to `sslmode`",
 			},
+			"connect_timeout": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				DefaultFunc:  schema.EnvDefaultFunc("PGCONNECT_TIMEOUT", 180),
+				Description:  "Maximum wait for connection, in seconds. Zero or not specified means wait indefinitely.",
+				ValidateFunc: validateConnTimeout,
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -76,6 +83,14 @@ func Provider() terraform.ResourceProvider {
 	}
 }
 
+func validateConnTimeout(v interface{}, key string) (warnings []string, errors []error) {
+	value := v.(int)
+	if value < 0 {
+		errors = append(errors, fmt.Errorf("%d can not be less than 0", key))
+	}
+	return
+}
+
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	var sslMode string
 	var ok bool
@@ -83,14 +98,14 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		sslMode = d.Get("ssl_mode").(string)
 	}
 	config := Config{
-		Host:            d.Get("host").(string),
-		Port:            d.Get("port").(int),
-		Database:        d.Get("database").(string),
-		Username:        d.Get("username").(string),
-		Password:        d.Get("password").(string),
-		SSLMode:         sslMode,
-		Timeout:         d.Get("connect_timeout").(int),
-		ApplicationName: tfAppName(),
+		Host:              d.Get("host").(string),
+		Port:              d.Get("port").(int),
+		Database:          d.Get("database").(string),
+		Username:          d.Get("username").(string),
+		Password:          d.Get("password").(string),
+		SSLMode:           sslMode,
+		ApplicationName:   tfAppName(),
+		ConnectTimeoutSec: d.Get("connect_timeout").(int),
 	}
 
 	client, err := config.NewClient()
