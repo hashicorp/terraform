@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
  * provider/openstack: Add `value_specs` to `openstack_fw_policy_v1` resource, allowing vendor information [GH-9835]
  * provider/openstack: Add `value_specs` to `openstack_fw_firewall_v1` resource, allowing vendor information [GH-9836]
+ * provider/random: The `b64` attribute on `random_id` resources is deprecated, replaced by `b64_url` and `b64_std` [GH-9903]
 
 BUG FIXES:
 
