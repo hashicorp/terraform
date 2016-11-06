@@ -324,7 +324,6 @@ func resourcePostgreSQLDatabaseRead(d *schema.ResourceData, meta interface{}) er
 			dbTemplate = "template0"
 		}
 		d.Set(dbTemplateAttr, dbTemplate)
-		d.SetId(dbName)
 		return nil
 	}
 }
