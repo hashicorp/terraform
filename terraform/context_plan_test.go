@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestContext2Plan(t *testing.T) {
+func TestContext2Plan_basic(t *testing.T) {
 	m := testModule(t, "plan-good")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
