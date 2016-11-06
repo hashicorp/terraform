@@ -1,5 +1,9 @@
 package terraform
 
+import (
+	"github.com/hashicorp/terraform/dag"
+)
+
 // NodePlannableResource represents a resource that is "plannable":
 // it is ready to be planned in order to create a diff.
 type NodePlannableResource struct {
@@ -21,21 +25,33 @@ func (n *NodePlannableResource) EvalTree() EvalNode {
 	}
 }
 
-/*
 // GraphNodeDynamicExpandable
 func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	state, lock := ctx.State()
-	lock.RLock()
-	defer lock.RUnlock()
+	// Expand the resource count which must be available by now from EvalTree
+	count, err := n.Config.Count()
+	if err != nil {
+		return nil, err
+	}
+
+	// The concrete resource factory we'll use
+	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+		// Add the config and state since we don't do that via transforms
+		a.Config = n.Config
+		a.ResourceState = n.ResourceState
+
+		return &NodePlannableResourceInstance{
+			NodeAbstractResource: a,
+		}
+	}
 
 	// Start creating the steps
 	steps := make([]GraphTransformer, 0, 5)
 
 	// Expand counts.
 	steps = append(steps, &ResourceCountTransformer{
-		Resource: n.Resource,
-		Destroy:  n.Destroy,
-		Targets:  n.Targets,
+		Concrete: concreteResource,
+		Count:    count,
+		Addr:     n.ResourceAddr(),
 	})
 
 	// Always end with the root being added
@@ -45,4 +61,3 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	b := &BasicGraphBuilder{Steps: steps, Validate: true}
 	return b.Build(ctx.Path())
 }
-*/
