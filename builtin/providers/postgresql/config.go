@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Host            string
 	Port            int
+	Database        string
 	Username        string
 	Password        string
 	SslMode         string
@@ -27,12 +28,14 @@ type Client struct {
 
 // NewClient returns new client config
 func (c *Config) NewClient() (*Client, error) {
-	const dsnFmt = "host=%s port=%d user=%s password=%s sslmode=%s fallback_application_name=%s connect_timeout=%d"
+	// NOTE: dbname must come before user otherwise dbname will be set to
+	// user.
+	const dsnFmt = "host=%s port=%d dbname=%s user=%s password=%s sslmode=%s fallback_application_name=%s connect_timeout=%d"
 
-	logDSN := fmt.Sprintf(dsnFmt, c.Host, c.Port, c.Username, "<redacted>", c.SSLMode, c.ApplicationName)
+	logDSN := fmt.Sprintf(dsnFmt, c.Host, c.Port, c.Database, c.Username, "<redacted>", c.SSLMode, c.ApplicationName)
 	log.Printf("[INFO] PostgreSQL DSN: `%s`", logDSN)
 
-	connStr := fmt.Sprintf(dsnFmt, c.Host, c.Port, c.Username, c.Password, c.SSLMode, c.ApplicationName, c.Timeout)
+	connStr := fmt.Sprintf(dsnFmt, c.Host, c.Port, c.Database, c.Username, c.Password, c.SSLMode, c.ApplicationName, c.Timeout)
 	client := Client{
 		connStr:  connStr,
 		username: c.Username,

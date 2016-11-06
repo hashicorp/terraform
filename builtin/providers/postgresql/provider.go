@@ -26,6 +26,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("PGPORT", 5432),
 				Description: "The PostgreSQL port number to connect to at the server host, or socket file name extension for Unix-domain connections",
 			},
+			"database": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The name of the database to connect to in order to conenct to (defaults to `postgres`).",
+				DefaultFunc: schema.EnvDefaultFunc("PGDATABASE", "postgres"),
+			},
 			"username": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -69,6 +75,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Host:            d.Get("host").(string),
 		Port:            d.Get("port").(int),
+		Database:        d.Get("database").(string),
 		Username:        d.Get("username").(string),
 		Password:        d.Get("password").(string),
 		Timeout:         d.Get("connect_timeout").(int),
