@@ -3,10 +3,10 @@ package terraform
 import (
 	"errors"
 	"fmt"
+	"log"
 
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // ConfigTransformer is a GraphTransformer that adds all the resources
@@ -21,6 +21,8 @@ import (
 // all resources including module resources, rather than creating module
 // nodes that are then "flattened".
 type ConfigTransformer struct {
+	Concrete ConcreteResourceNodeFunc
+
 	Module *module.Tree
 }
 
@@ -35,82 +37,60 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 		return errors.New("module must be loaded for ConfigTransformer")
 	}
 
-	// Get the module we care about
-	module := t.Module.Child(g.Path[1:])
-	if module == nil {
+	// Start the transformation process
+	return t.transform(g, t.Module)
+}
+
+func (t *ConfigTransformer) transform(g *Graph, m *module.Tree) error {
+	// If no config, do nothing
+	if m == nil {
 		return nil
 	}
 
-	// Get the configuration for this module
-	config := module.Config()
-
-	// Create the node list we'll use for the graph
-	nodes := make([]graphNodeConfig, 0,
-		(len(config.Variables)+
-			len(config.ProviderConfigs)+
-			len(config.Modules)+
-			len(config.Resources)+
-			len(config.Outputs))*2)
-
-	// Write all the variables out
-	for _, v := range config.Variables {
-		nodes = append(nodes, &GraphNodeConfigVariable{
-			Variable:   v,
-			ModuleTree: t.Module,
-			ModulePath: g.Path,
-		})
+	// Add our resources
+	if err := t.transformSingle(g, m); err != nil {
+		return err
 	}
 
-	// Write all the provider configs out
-	for _, pc := range config.ProviderConfigs {
-		nodes = append(nodes, &GraphNodeConfigProvider{Provider: pc})
-	}
-
-	// Write all the resources out
-	for _, r := range config.Resources {
-		nodes = append(nodes, &GraphNodeConfigResource{
-			Resource: r,
-			Path:     g.Path,
-		})
-	}
-
-	// Write all the modules out
-	children := module.Children()
-	for _, m := range config.Modules {
-		path := make([]string, len(g.Path), len(g.Path)+1)
-		copy(path, g.Path)
-		path = append(path, m.Name)
-
-		nodes = append(nodes, &GraphNodeConfigModule{
-			Path:   path,
-			Module: m,
-			Tree:   children[m.Name],
-		})
-	}
-
-	// Write all the outputs out
-	for _, o := range config.Outputs {
-		nodes = append(nodes, &GraphNodeConfigOutput{Output: o})
-	}
-
-	// Err is where the final error value will go if there is one
-	var err error
-
-	// Build the graph vertices
-	for _, n := range nodes {
-		g.Add(n)
-	}
-
-	// Build up the dependencies. We have to do this outside of the above
-	// loop since the nodes need to be in place for us to build the deps.
-	for _, n := range nodes {
-		if missing := g.ConnectDependent(n); len(missing) > 0 {
-			for _, m := range missing {
-				err = multierror.Append(err, fmt.Errorf(
-					"%s: missing dependency: %s", n.Name(), m))
-			}
+	// Transform all the children.
+	for _, c := range m.Children() {
+		if err := t.transform(g, c); err != nil {
+			return err
 		}
 	}
 
-	return err
+	return nil
+}
+
+func (t *ConfigTransformer) transformSingle(g *Graph, m *module.Tree) error {
+	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", m.Path())
+
+	// Get the configuration for this module
+	config := m.Config()
+
+	// Build the path we're at
+	path := m.Path()
+
+	// Write all the resources out
+	for _, r := range config.Resources {
+		// Build the resource address
+		addr, err := parseResourceAddressConfig(r)
+		if err != nil {
+			panic(fmt.Sprintf(
+				"Error parsing config address, this is a bug: %#v", r))
+		}
+		addr.Path = path
+
+		// Build the abstract node and the concrete one
+		abstract := &NodeAbstractResource{Addr: addr}
+		var node dag.Vertex = abstract
+		if f := t.Concrete; f != nil {
+			node = f(abstract)
+		}
+
+		// Add it to the graph
+		g.Add(node)
+	}
+
+	return nil
 }
