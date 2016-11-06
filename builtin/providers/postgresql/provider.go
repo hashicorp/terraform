@@ -93,8 +93,9 @@ func validateConnTimeout(v interface{}, key string) (warnings []string, errors [
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	var sslMode string
-	var ok bool
-	if sslMode, ok = d.GetOk("sslmode").(string); !ok {
+	if sslModeRaw, ok := d.GetOk("sslmode"); ok {
+		sslMode = sslModeRaw.(string)
+	} else {
 		sslMode = d.Get("ssl_mode").(string)
 	}
 	config := Config{
