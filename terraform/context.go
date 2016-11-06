@@ -487,7 +487,7 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diffLock.Unlock()
 
 	// Used throughout below
-	X_newApply := experiment.Enabled(experiment.X_newDestroy)
+	X_newApply := experiment.Enabled(experiment.X_newApply)
 	X_newDestroy := experiment.Enabled(experiment.X_newDestroy)
 	newGraphEnabled := (c.destroy && X_newDestroy) || (!c.destroy && X_newApply)
 
@@ -515,8 +515,11 @@ func (c *Context) Plan() (*Plan, error) {
 			Targets: c.targets,
 		}).Build(RootModulePath)
 	} else {
-		// TODO: new plan graph when its ready
-		newGraph = nil
+		newGraph, err = (&PlanGraphBuilder{
+			Module:    c.module,
+			State:     c.state,
+			Providers: c.components.ResourceProviders(),
+		}).Build(RootModulePath)
 	}
 	if err != nil && !newGraphEnabled {
 		// If we had an error graphing but we're not using this graph, just
@@ -554,6 +557,9 @@ func (c *Context) Plan() (*Plan, error) {
 		shadow = nil
 	}
 
+	// TODO: remove when we're ready
+	shadow = nil
+
 	// Do the walk
 	walker, err := c.walk(real, shadow, operation)
 	if err != nil {
@@ -574,7 +580,7 @@ func (c *Context) Plan() (*Plan, error) {
 
 	// We don't do the reverification during the new destroy plan because
 	// it will use a different apply process.
-	if !(c.destroy && X_newDestroy) {
+	if !newGraphEnabled {
 		// Now that we have a diff, we can build the exact graph that Apply will use
 		// and catch any possible cycles during the Plan phase.
 		if _, err := c.Graph(&ContextGraphOpts{Validate: true}); err != nil {
