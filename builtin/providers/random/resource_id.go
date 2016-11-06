@@ -14,7 +14,7 @@ import (
 func resourceId() *schema.Resource {
 	return &schema.Resource{
 		Create: CreateID,
-		Read:   schema.Noop,
+		Read:   RepopulateEncodings,
 		Delete: schema.RemoveFromState,
 
 		Schema: map[string]*schema.Schema{
@@ -59,8 +59,7 @@ func resourceId() *schema.Resource {
 	}
 }
 
-func CreateID(d *schema.ResourceData, _ interface{}) error {
-
+func CreateID(d *schema.ResourceData, meta interface{}) error {
 	byteLength := d.Get("byte_length").(int)
 	bytes := make([]byte, byteLength)
 
@@ -73,6 +72,19 @@ func CreateID(d *schema.ResourceData, _ interface{}) error {
 	}
 
 	b64Str := base64.RawURLEncoding.EncodeToString(bytes)
+	d.SetId(b64Str)
+
+	return RepopulateEncodings(d, meta)
+}
+
+func RepopulateEncodings(d *schema.ResourceData, _ interface{}) error {
+	base64Str := d.Id()
+
+	bytes, err := base64.RawURLEncoding.DecodeString(base64Str)
+	if err != nil {
+		return errwrap.Wrapf("Error decoding ID: {{err}}", err)
+	}
+
 	b64StdStr := base64.StdEncoding.EncodeToString(bytes)
 	hexStr := hex.EncodeToString(bytes)
 
@@ -80,10 +92,8 @@ func CreateID(d *schema.ResourceData, _ interface{}) error {
 	bigInt.SetBytes(bytes)
 	decStr := bigInt.String()
 
-	d.SetId(b64Str)
-
-	d.Set("b64", b64Str)
-	d.Set("b64_url", b64Str)
+	d.Set("b64", base64Str)
+	d.Set("b64_url", base64Str)
 	d.Set("b64_std", b64StdStr)
 
 	d.Set("hex", hexStr)
