@@ -42,8 +42,8 @@ resource "postgresql_database" "my_db" {
   tablespace.  This tablespace will be the default tablespace used for objects
   created in this database.
 
-* `connection_limit` - (Optional) How many concurrent connections can be made to
-  this database. `-1` (the default) means no limit.
+* `connection_limit` - (Optional) How many concurrent connections can be
+  established to this database. `-1` (the default) means no limit.
 
 * `allow_connections` - (Optional) If `false` then no one can connect to this
   database. The default is `true`, allowing connections (except as restricted by
@@ -95,7 +95,7 @@ provider "postgresql" {
 resource "postgresql_database" "db1" {
   provider = "postgresql.admindb"
 
-  name = "db1"
+  name = "testdb1"
 }
 ```
 
@@ -103,5 +103,9 @@ It is possible to import a `postgresql_database` resource with the following
 command:
 
 ```
-$ terraform import postgresql_database.testdb1 testdb1
+$ terraform import postgresql_database.db1 testdb1
 ```
+
+Where `testdb1` is the name of the database to import and
+`postgresql_database.db1` is the name of the resource whose state will be
+populated as a result of the command.
