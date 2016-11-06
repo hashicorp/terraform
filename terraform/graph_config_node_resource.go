@@ -156,7 +156,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	steps := make([]GraphTransformer, 0, 5)
 
 	// Expand counts.
-	steps = append(steps, &ResourceCountTransformer{
+	steps = append(steps, &ResourceCountTransformerOld{
 		Resource: n.Resource,
 		Destroy:  n.Destroy,
 		Targets:  n.Targets,
