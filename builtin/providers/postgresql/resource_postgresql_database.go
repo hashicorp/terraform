@@ -91,7 +91,7 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 			dbAllowConnsAttr: {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Computed:    true,
+				Default:     true,
 				Description: "If false then no one can connect to this database",
 			},
 			dbIsTemplateAttr: {
@@ -226,10 +226,7 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	for _, opt := range boolOpts {
-		v, ok := d.GetOk(opt.hclKey)
-		if !ok {
-			continue
-		}
+		v := d.Get(opt.hclKey)
 
 		valStr := "FALSE"
 		if val := v.(bool); val {
@@ -263,6 +260,19 @@ func resourcePostgreSQLDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 	defer conn.Close()
 
 	dbName := d.Get(dbNameAttr).(string)
+
+	if isTemplate := d.Get(dbIsTemplateAttr).(bool); isTemplate {
+		// Template databases must have this attribute cleared before
+		// they can be dropped.
+		if err := doSetDBIsTemplate(conn, dbName, false); err != nil {
+			return errwrap.Wrapf("Error updating database IS_TEMPLATE during DROP DATABASE: {{err}}", err)
+		}
+	}
+
+	if err := setDBIsTemplate(conn, d); err != nil {
+		return err
+	}
+
 	query := fmt.Sprintf("DROP DATABASE %s", pq.QuoteIdentifier(dbName))
 	_, err = conn.Query(query)
 	if err != nil {
@@ -476,8 +486,14 @@ func setDBIsTemplate(conn *sql.DB, d *schema.ResourceData) error {
 		return nil
 	}
 
-	isTemplate := d.Get(dbIsTemplateAttr).(bool)
-	dbName := d.Get(dbNameAttr).(string)
+	if err := doSetDBIsTemplate(conn, d.Get(dbNameAttr).(string), d.Get(dbIsTemplateAttr).(bool)); err != nil {
+		return errwrap.Wrapf("Error updating database IS_TEMPLATE: {{err}}", err)
+	}
+
+	return nil
+}
+
+func doSetDBIsTemplate(conn *sql.DB, dbName string, isTemplate bool) error {
 	query := fmt.Sprintf("ALTER DATABASE %s IS_TEMPLATE %t", pq.QuoteIdentifier(dbName), isTemplate)
 	if _, err := conn.Query(query); err != nil {
 		return errwrap.Wrapf("Error updating database IS_TEMPLATE: {{err}}", err)
