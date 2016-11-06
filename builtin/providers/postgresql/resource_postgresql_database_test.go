@@ -26,25 +26,67 @@ func TestAccPostgresqlDatabase_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"postgresql_database.mydb", "owner", "myrole"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "owner", "myrole"),
+						"postgresql_database.default_opts", "owner", "myrole"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "name", "all_opts_name"),
+						"postgresql_database.default_opts", "name", "default_opts_name"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "template", "template0"),
+						"postgresql_database.default_opts", "template", "template0"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "encoding", "UTF8"),
+						"postgresql_database.default_opts", "encoding", "UTF8"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "lc_collate", "C"),
+						"postgresql_database.default_opts", "lc_collate", "C"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "lc_ctype", "C"),
+						"postgresql_database.default_opts", "lc_ctype", "C"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "tablespace_name", "pg_default"),
+						"postgresql_database.default_opts", "tablespace_name", "pg_default"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "connection_limit", "-1"),
+						"postgresql_database.default_opts", "connection_limit", "-1"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "allow_connections", "false"),
+						"postgresql_database.default_opts", "allow_connections", "true"),
 					resource.TestCheckResourceAttr(
-						"postgresql_database.all_opts", "is_template", "false"),
+						"postgresql_database.default_opts", "is_template", "false"),
+
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "owner", "myrole"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "name", "custom_template_db"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "template", "template0"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "encoding", "UTF8"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "lc_collate", "en_US.UTF-8"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "lc_ctype", "en_US.UTF-8"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "tablespace_name", "pg_default"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "connection_limit", "10"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "allow_connections", "false"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.modified_opts", "is_template", "true"),
+
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "owner", "myrole"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "name", "bad_template_db"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "template", "template0"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "encoding", "LATIN1"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "lc_collate", "C"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "lc_ctype", "C"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "tablespace_name", "pg_default"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "connection_limit", "0"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "allow_connections", "true"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.pathological_opts", "is_template", "true"),
 				),
 			},
 		},
@@ -154,8 +196,8 @@ resource "postgresql_database" "mydb2" {
    owner = "${postgresql_role.myrole.name}"
 }
 
-resource "postgresql_database" "all_opts" {
-   name = "all_opts_name"
+resource "postgresql_database" "default_opts" {
+   name = "default_opts_name"
    owner = "${postgresql_role.myrole.name}"
    template = "template0"
    encoding = "UTF8"
@@ -163,8 +205,34 @@ resource "postgresql_database" "all_opts" {
    lc_ctype = "C"
    tablespace_name = "pg_default"
    connection_limit = -1
-   allow_connections = false
+   allow_connections = true
    is_template = false
+}
+
+resource "postgresql_database" "modified_opts" {
+   name = "custom_template_db"
+   owner = "${postgresql_role.myrole.name}"
+   template = "template0"
+   encoding = "UTF8"
+   lc_collate = "en_US.UTF-8"
+   lc_ctype = "en_US.UTF-8"
+   tablespace_name = "pg_default"
+   connection_limit = 10
+   allow_connections = false
+   is_template = true
+}
+
+resource "postgresql_database" "pathological_opts" {
+   name = "bad_template_db"
+   owner = "${postgresql_role.myrole.name}"
+   template = "template0"
+   encoding = "LATIN1"
+   lc_collate = "C"
+   lc_ctype = "C"
+   tablespace_name = "pg_default"
+   connection_limit = 0
+   allow_connections = true
+   is_template = true
 }
 
 resource "postgresql_database" "mydb_default_owner" {

@@ -181,32 +181,44 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 			val = "pg_default"
 			d.Set(dbTablespaceAttr, val)
 		case opt.hclKey == dbTemplateAttr:
-			if val == "" {
+			switch {
+			case val == "":
 				val = "template0"
 				d.Set(dbTemplateAttr, val)
-			} else if strings.ToUpper(val) == "DEFAULT" {
+			case strings.ToUpper(val) == "DEFAULT":
 				val = ""
+			default:
+				d.Set(dbTemplateAttr, val)
 			}
 		case opt.hclKey == dbEncodingAttr:
-			if val == "" {
+			switch {
+			case val == "":
 				val = "UTF8"
 				d.Set(dbEncodingAttr, val)
-			} else if strings.ToUpper(val) == "DEFAULT" {
+			case strings.ToUpper(val) == "DEFAULT":
 				val = ""
+			default:
+				d.Set(dbEncodingAttr, val)
 			}
 		case opt.hclKey == dbCollationAttr:
-			if val == "" {
+			switch {
+			case val == "":
 				val = "C"
 				d.Set(dbCollationAttr, val)
-			} else if strings.ToUpper(val) == "DEFAULT" {
+			case strings.ToUpper(val) == "DEFAULT":
 				val = ""
+			default:
+				d.Set(dbCollationAttr, val)
 			}
 		case opt.hclKey == dbCTypeAttr:
-			if val == "" {
+			switch {
+			case val == "":
 				val = "C"
 				d.Set(dbCTypeAttr, val)
-			} else if strings.ToUpper(val) == "DEFAULT" {
+			case strings.ToUpper(val) == "DEFAULT":
 				val = ""
+			default:
+				d.Set(dbCTypeAttr, val)
 			}
 		}
 
@@ -216,12 +228,7 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	for _, opt := range intOpts {
-		v, ok := d.GetOk(opt.hclKey)
-		if !ok {
-			continue
-		}
-
-		val := v.(int)
+		val := d.Get(opt.hclKey).(int)
 		createOpts = append(createOpts, fmt.Sprintf("%s=%d", opt.sqlKey, val))
 	}
 
