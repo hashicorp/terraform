@@ -25,6 +25,26 @@ func TestAccPostgresqlDatabase_Basic(t *testing.T) {
 						"postgresql_database.mydb", "name", "mydb"),
 					resource.TestCheckResourceAttr(
 						"postgresql_database.mydb", "owner", "myrole"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "owner", "myrole"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "name", "all_opts_name"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "template", "template0"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "encoding", "UTF8"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "lc_collate", "C"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "lc_ctype", "C"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "tablespace_name", "pg_default"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "connection_limit", "-1"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "allow_connections", "false"),
+					resource.TestCheckResourceAttr(
+						"postgresql_database.all_opts", "is_template", "false"),
 				),
 			},
 		},
@@ -134,11 +154,11 @@ resource "postgresql_database" "mydb2" {
    owner = "${postgresql_role.myrole.name}"
 }
 
-resource "postgresql_database" "mydb3" {
-   name = "mydb3"
+resource "postgresql_database" "all_opts" {
+   name = "all_opts_name"
    owner = "${postgresql_role.myrole.name}"
-   template = "template1"
-   encoding = "SQL_ASCII"
+   template = "template0"
+   encoding = "UTF8"
    lc_collate = "C"
    lc_ctype = "C"
    tablespace_name = "pg_default"

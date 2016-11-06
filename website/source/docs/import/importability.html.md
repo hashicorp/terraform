@@ -159,6 +159,9 @@ To make a resource importable, please see the
 * openstack_networking_secgroup_v2
 * openstack_networking_subnet_v2
 
+### PostgreSQL
+
+* postgresql_database
 
 ### Triton
 
