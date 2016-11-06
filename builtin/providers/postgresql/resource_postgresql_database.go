@@ -225,10 +225,10 @@ func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	for _, opt := range boolOpts {
-		v := d.Get(opt.hclKey)
+		val := d.Get(opt.hclKey).(bool)
 
 		valStr := "FALSE"
-		if val := v.(bool); val {
+		if val {
 			valStr = "TRUE"
 		}
 		createOpts = append(createOpts, fmt.Sprintf("%s=%s", opt.sqlKey, valStr))
