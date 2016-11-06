@@ -382,21 +382,6 @@ func resourcePostgreSQLDatabaseUpdate(d *schema.ResourceData, meta interface{}) 
 	return resourcePostgreSQLDatabaseRead(d, meta)
 }
 
-func grantRoleMembership(conn *sql.DB, dbOwner string, connUsername string) error {
-	if dbOwner != "" && dbOwner != connUsername {
-		query := fmt.Sprintf("GRANT %s TO %s", pq.QuoteIdentifier(dbOwner), pq.QuoteIdentifier(connUsername))
-		_, err := conn.Query(query)
-		if err != nil {
-			// is already member or role
-			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-				return nil
-			}
-			return errwrap.Wrapf("Error granting membership: {{err}}", err)
-		}
-	}
-	return nil
-}
-
 func setDBName(conn *sql.DB, d *schema.ResourceData) error {
 	if !d.HasChange(dbNameAttr) {
 		return nil
