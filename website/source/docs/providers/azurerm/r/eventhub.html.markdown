@@ -6,7 +6,7 @@ description: |-
   Creates a new Event Hub as a nested resource within an Event Hub Namespace.
 ---
 
-# azurerm\_eventhub\_namespace
+# azurerm\_eventhub
 
 Creates a new Event Hub as a nested resource within a Event Hub Namespace.
 
