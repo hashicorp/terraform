@@ -75,8 +75,8 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"postgresql_database":  resourcePostgreSQLDatabase(),
-			"postgresql_role":      resourcePostgreSQLRole(),
 			"postgresql_extension": resourcePostgreSQLExtension(),
+			"postgresql_role":      resourcePostgreSQLRole(),
 		},
 
 		ConfigureFunc: providerConfigure,
