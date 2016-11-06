@@ -1839,10 +1839,6 @@
 			"revision": "5578a8c15e33958c61cf7db720b6181af65f4a9e"
 		},
 		{
-			"path": "github.com/sthulb/mime/multipart",
-			"revision": "698462dc9685d7743511c26da726c1b0c1cfb111"
-		},
-		{
 			"path": "github.com/tent/http-link-go",
 			"revision": "ac974c61c2f990f4115b119354b5e0b47550e888"
 		},
