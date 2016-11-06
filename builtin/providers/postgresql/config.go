@@ -3,18 +3,20 @@ package postgresql
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	_ "github.com/lib/pq" //PostgreSQL db
 )
 
 // Config - provider config
 type Config struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	SslMode  string
-	Timeout  int
+	Host            string
+	Port            int
+	Username        string
+	Password        string
+	SslMode         string
+	Timeout         int
+	ApplicationName string
 }
 
 // Client struct holding connection string
@@ -25,8 +27,12 @@ type Client struct {
 
 // NewClient returns new client config
 func (c *Config) NewClient() (*Client, error) {
-	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s connect_timeout=%d", c.Host, c.Port, c.Username, c.Password, c.SslMode, c.Timeout)
+	const dsnFmt = "host=%s port=%d user=%s password=%s sslmode=%s fallback_application_name=%s connect_timeout=%d"
 
+	logDSN := fmt.Sprintf(dsnFmt, c.Host, c.Port, c.Username, "<redacted>", c.SSLMode, c.ApplicationName)
+	log.Printf("[INFO] PostgreSQL DSN: `%s`", logDSN)
+
+	connStr := fmt.Sprintf(dsnFmt, c.Host, c.Port, c.Username, c.Password, c.SSLMode, c.ApplicationName, c.Timeout)
 	client := Client{
 		connStr:  connStr,
 		username: c.Username,
