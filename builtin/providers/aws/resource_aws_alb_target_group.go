@@ -478,7 +478,7 @@ func albTargetGroupSuffixFromARN(arn *string) string {
 
 	if arnComponents := regexp.MustCompile(`arn:.*:targetgroup/(.*)`).FindAllStringSubmatch(*arn, -1); len(arnComponents) == 1 {
 		if len(arnComponents[0]) == 2 {
-			return arnComponents[0][1]
+			return fmt.Sprintf("targetgroup/%s", arnComponents[0][1])
 		}
 	}
 
