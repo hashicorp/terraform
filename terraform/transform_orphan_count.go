@@ -31,6 +31,11 @@ func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
+	orphanIndex := -1
+	if t.Count == 1 {
+		orphanIndex = 0
+	}
+
 	// Go through the orphans and add them all to the state
 	for key, _ := range ms.Resources {
 		// Build the address
@@ -63,18 +68,24 @@ func (t *OrphanResourceCountTransformer) Transform(g *Graph) error {
 		// we do a special case check to see if our state also has a
 		// -1 index value. If so, this is an orphan because our rules are
 		// that if both a -1 and 0 are in the state, the 0 is destroyed.
-		if t.Count > 0 && idx == -1 {
+		if t.Count > 0 && idx == orphanIndex {
+			// This is a piece of cleverness (beware), but its simple:
+			// if orphanIndex is 0, then check -1, else check 0.
+			checkIndex := (orphanIndex + 1) * -1
+
 			key := &ResourceStateKey{
 				Name:  addr.Name,
 				Type:  addr.Type,
 				Mode:  addr.Mode,
-				Index: 0,
+				Index: checkIndex,
 			}
 
 			if _, ok := ms.Resources[key.String()]; ok {
 				// We have a -1 index, too. Make an arbitrarily high
 				// index so that we always mark this as an orphan.
-				log.Printf("[WARN] OrphanResourceCount: %q both -1 and 0 index found, orphaning -1", addr)
+				log.Printf(
+					"[WARN] OrphanResourceCount: %q both -1 and 0 index found, orphaning %d",
+					addr, orphanIndex)
 				idx = t.Count + 1
 			}
 		}
