@@ -1,8 +1,12 @@
 package terraform
 
 import (
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/dag"
 )
 
 func TestReferenceTransformer_simple(t *testing.T) {
@@ -81,6 +85,94 @@ func TestReferenceTransformer_path(t *testing.T) {
 	expected := strings.TrimSpace(testTransformRefPathStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestReferenceMapReferences(t *testing.T) {
+	cases := map[string]struct {
+		Nodes  []dag.Vertex
+		Check  dag.Vertex
+		Result []string
+	}{
+		"simple": {
+			Nodes: []dag.Vertex{
+				&graphNodeRefParentTest{
+					NameValue: "A",
+					Names:     []string{"A"},
+				},
+			},
+			Check: &graphNodeRefChildTest{
+				NameValue: "foo",
+				Refs:      []string{"A"},
+			},
+			Result: []string{"A"},
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			rm := NewReferenceMap(tc.Nodes)
+			result, _ := rm.References(tc.Check)
+
+			var resultStr []string
+			for _, v := range result {
+				resultStr = append(resultStr, dag.VertexName(v))
+			}
+
+			sort.Strings(resultStr)
+			sort.Strings(tc.Result)
+			if !reflect.DeepEqual(resultStr, tc.Result) {
+				t.Fatalf("bad: %#v", resultStr)
+			}
+		})
+	}
+}
+
+func TestReferenceMapReferencedBy(t *testing.T) {
+	cases := map[string]struct {
+		Nodes  []dag.Vertex
+		Check  dag.Vertex
+		Result []string
+	}{
+		"simple": {
+			Nodes: []dag.Vertex{
+				&graphNodeRefChildTest{
+					NameValue: "A",
+					Refs:      []string{"A"},
+				},
+				&graphNodeRefChildTest{
+					NameValue: "B",
+					Refs:      []string{"A"},
+				},
+				&graphNodeRefChildTest{
+					NameValue: "C",
+					Refs:      []string{"B"},
+				},
+			},
+			Check: &graphNodeRefParentTest{
+				NameValue: "foo",
+				Names:     []string{"A"},
+			},
+			Result: []string{"A", "B"},
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			rm := NewReferenceMap(tc.Nodes)
+			result := rm.ReferencedBy(tc.Check)
+
+			var resultStr []string
+			for _, v := range result {
+				resultStr = append(resultStr, dag.VertexName(v))
+			}
+
+			sort.Strings(resultStr)
+			sort.Strings(tc.Result)
+			if !reflect.DeepEqual(resultStr, tc.Result) {
+				t.Fatalf("bad: %#v", resultStr)
+			}
+		})
 	}
 }
 
