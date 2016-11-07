@@ -299,7 +299,7 @@ A template data source looks like:
 
 ```
 data "template_file" "example" {
-  template = "${hello} ${world}!"
+  template = "$${hello} $${world}!"
   vars {
     hello = "goodnight"
     world = "moon"
@@ -313,7 +313,9 @@ output "rendered" {
 
 Then the rendered value would be `goodnight moon!`.
 
-You may use any of the built-in functions in your template.
+You may use any of the built-in functions in your template. For more
+details on template usage, please see the
+[template_file documentation](/docs/providers/template/d/file.html).
 
 ### Using Templates with Count
 
