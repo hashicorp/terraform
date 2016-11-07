@@ -89,7 +89,27 @@ func TestAccAzureRMEventHubNamespace_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMEventHubNamespaceExists("azurerm_eventhub_namespace.test"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMEventHubNamespace_standard(t *testing.T) {
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMEventHubNamespace_standard, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
+		Steps: []resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMEventHubNamespaceExists("azurerm_eventhub_namespace.test"),
@@ -108,7 +128,7 @@ func TestAccAzureRMEventHubNamespace_readDefaultKeys(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMEventHubNamespaceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMEventHubNamespaceExists("azurerm_eventhub_namespace.test"),
@@ -187,8 +207,22 @@ resource "azurerm_resource_group" "test" {
 }
 resource "azurerm_eventhub_namespace" "test" {
     name = "acctesteventhubnamespace-%d"
-    location = "West US"
+    location = "${azurerm_resource_group.test.location}"
     resource_group_name = "${azurerm_resource_group.test.name}"
     sku = "Basic"
+}
+`
+
+var testAccAzureRMEventHubNamespace_standard = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+resource "azurerm_eventhub_namespace" "test" {
+    name = "acctesteventhubnamespace-%d"
+    location = "${azurerm_resource_group.test.location}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    sku = "Standard"
+    capacity = "2"
 }
 `
