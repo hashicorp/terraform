@@ -66,7 +66,8 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 type ReferenceMap struct {
 	// m is the mapping of referenceable name to list of verticies that
 	// implement that name. This is built on initialization.
-	m map[string][]dag.Vertex
+	references   map[string][]dag.Vertex
+	referencedBy map[string][]dag.Vertex
 }
 
 // References returns the list of vertices that this vertex
@@ -82,7 +83,7 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 	prefix := m.prefix(v)
 	for _, n := range rn.References() {
 		n = prefix + n
-		parents, ok := m.m[n]
+		parents, ok := m.references[n]
 		if !ok {
 			missing = append(missing, n)
 			continue
@@ -104,6 +105,41 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 	}
 
 	return matches, missing
+}
+
+// ReferencedBy returns the list of vertices that reference the
+// vertex passed in.
+func (m *ReferenceMap) ReferencedBy(v dag.Vertex) []dag.Vertex {
+	rn, ok := v.(GraphNodeReferenceable)
+	if !ok {
+		return nil
+	}
+
+	var matches []dag.Vertex
+	prefix := m.prefix(v)
+	for _, n := range rn.ReferenceableName() {
+		n = prefix + n
+		children, ok := m.referencedBy[n]
+		if !ok {
+			continue
+		}
+
+		// Make sure this isn't a self reference, which isn't included
+		selfRef := false
+		for _, p := range children {
+			if p == v {
+				selfRef = true
+				break
+			}
+		}
+		if selfRef {
+			continue
+		}
+
+		matches = append(matches, children...)
+	}
+
+	return matches
 }
 
 func (m *ReferenceMap) prefix(v dag.Vertex) string {
@@ -146,7 +182,25 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 		}
 	}
 
-	m.m = refMap
+	// Build the lookup table for referenced by
+	refByMap := make(map[string][]dag.Vertex)
+	for _, v := range vs {
+		// We're only looking for referenceable nodes
+		rn, ok := v.(GraphNodeReferencer)
+		if !ok {
+			continue
+		}
+
+		// Go through and cache them
+		prefix := m.prefix(v)
+		for _, n := range rn.References() {
+			n = prefix + n
+			refByMap[n] = append(refByMap[n], v)
+		}
+	}
+
+	m.references = refMap
+	m.referencedBy = refByMap
 	return &m
 }
 
