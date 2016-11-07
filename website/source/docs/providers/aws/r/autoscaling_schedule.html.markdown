@@ -47,10 +47,10 @@ The following arguments are supported:
                           If you try to schedule your action in the past, Auto Scaling returns an error message.
 * `recurrence` - (Optional) The time when recurring future actions will start. Start time is specified by the user following the Unix cron syntax format.
 * `min_size` - (Optional) The minimum size for the Auto Scaling group. Default
-0.
+0. Set to -1 if you don't want to change the minimum size at the scheduled time.
 * `max_size` - (Optional) The maximum size for the Auto Scaling group. Default
-0.
-* `desired_capacity` - (Optional) The number of EC2 instances that should be running in the group. Default 0.
+0. Set to -1 if you don't want to change the maximum size at the scheduled time.
+* `desired_capacity` - (Optional) The number of EC2 instances that should be running in the group. Default 0.  Set to -1 if you don't want to change the desired capacity at the scheduled time.
 
 ~> **NOTE:** When `start_time` and `end_time` are specified with `recurrence` , they form the boundaries of when the recurring action will start and stop.
 
