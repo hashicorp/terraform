@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
@@ -53,6 +54,14 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 	// Find the things that reference things and connect them
 	for _, v := range vs {
 		parents, _ := m.References(v)
+		parentsDbg := make([]string, len(parents))
+		for i, v := range parents {
+			parentsDbg[i] = dag.VertexName(v)
+		}
+		log.Printf(
+			"[DEBUG] ReferenceTransformer: %q references: %v",
+			dag.VertexName(v), parentsDbg)
+
 		for _, parent := range parents {
 			g.Connect(dag.BasicEdge(v, parent))
 		}
@@ -209,10 +218,9 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 func ReferencesFromConfig(c *config.RawConfig) []string {
 	var result []string
 	for _, v := range c.Variables {
-		if r := ReferenceFromInterpolatedVar(v); r != "" {
-			result = append(result, r)
+		if r := ReferenceFromInterpolatedVar(v); len(r) > 0 {
+			result = append(result, r...)
 		}
-
 	}
 
 	return result
@@ -220,15 +228,16 @@ func ReferencesFromConfig(c *config.RawConfig) []string {
 
 // ReferenceFromInterpolatedVar returns the reference from this variable,
 // or an empty string if there is no reference.
-func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) string {
+func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) []string {
 	switch v := v.(type) {
 	case *config.ModuleVariable:
-		return fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)
+		return []string{fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)}
 	case *config.ResourceVariable:
-		return v.ResourceId()
+		result := []string{v.ResourceId()}
+		return result
 	case *config.UserVariable:
-		return fmt.Sprintf("var.%s", v.Name)
+		return []string{fmt.Sprintf("var.%s", v.Name)}
 	default:
-		return ""
+		return nil
 	}
 }
