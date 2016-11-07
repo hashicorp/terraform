@@ -55,7 +55,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_cdn_endpoint":     resourceArmCdnEndpoint(),
 			"azurerm_cdn_profile":      resourceArmCdnProfile(),
 
-			"azurerm_eventhub":           		 resourceArmEventHub(),
+			"azurerm_eventhub":                resourceArmEventHub(),
 			"azurerm_eventhub_consumer_group": resourceArmEventHubConsumerGroup(),
 			"azurerm_eventhub_namespace":      resourceArmEventHubNamespace(),
 

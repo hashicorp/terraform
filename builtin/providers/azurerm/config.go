@@ -63,9 +63,9 @@ type ArmClient struct {
 	cdnProfilesClient  cdn.ProfilesClient
 	cdnEndpointsClient cdn.EndpointsClient
 
-	eventHubClient           eventhub.EventHubsClient
+	eventHubClient              eventhub.EventHubsClient
 	eventHubConsumerGroupClient eventhub.ConsumerGroupsClient
-	eventHubNamespacesClient eventhub.NamespacesClient
+	eventHubNamespacesClient    eventhub.NamespacesClient
 
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
