@@ -47,8 +47,9 @@ func (n *NodePlannableResourceOrphan) EvalTree() EvalNode {
 				Output: &diff,
 			},
 			&EvalCheckPreventDestroy{
-				Resource: n.Config,
-				Diff:     &diff,
+				Resource:   n.Config,
+				ResourceId: stateId,
+				Diff:       &diff,
 			},
 			&EvalWriteDiff{
 				Name: stateId,
