@@ -22,7 +22,7 @@ func TestALBTargetGroupCloudwatchSuffixFromARN(t *testing.T) {
 		{
 			name:   "valid suffix",
 			arn:    aws.String(`arn:aws:elasticloadbalancing:us-east-1:123456:targetgroup/my-targets/73e2d6bc24d8a067`),
-			suffix: `my-targets/73e2d6bc24d8a067`,
+			suffix: `targetgroup/my-targets/73e2d6bc24d8a067`,
 		},
 		{
 			name:   "no suffix",
