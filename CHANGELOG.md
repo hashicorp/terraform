@@ -1,5 +1,8 @@
 ## 0.8.0 (unreleased)
 
+FEATURES:
+ * **New Resource:** `azurerm_eventhub` [GH-9889]
+
 IMPROVEMENTS:
 
  * provider/openstack: Add `value_specs` to `openstack_fw_policy_v1` resource, allowing vendor information [GH-9835]
