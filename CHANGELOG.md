@@ -11,6 +11,9 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * core: Splat variables (`foo.*.bar`) are now ordered by count index for deterministic ordering. [GH-9883]
+ * core: New apply graph doesn't prune module variables as aggressively. [GH-9898]
+ * core: New apply graph properly configures providers with aliases. [GH-9894]
  * provider/aws: Fix crash when adding EBS volumes to spot fleet request. [GH-9857]
  * provider/aws: Ignore NoSuchEntity error when IAM user does not have login profile [GH-9900]
  * provider/scaleway: fix `scaleway_image` datasource returning unknown images [GH-9899]
