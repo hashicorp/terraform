@@ -55,6 +55,12 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	concreteResourceOrphan := func(a *NodeAbstractResource) dag.Vertex {
+		return &NodePlannableResourceOrphan{
+			NodeAbstractResource: a,
+		}
+	}
+
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
@@ -64,6 +70,13 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Add the outputs
 		&OutputTransformer{Module: b.Module},
+
+		// Add orphan resources
+		&OrphanResourceTransformer{
+			Concrete: concreteResourceOrphan,
+			State:    b.State,
+			Module:   b.Module,
+		},
 
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Module: b.Module},
