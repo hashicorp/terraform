@@ -29,6 +29,11 @@ func (n *NodePlannableResource) EvalTree() EvalNode {
 
 // GraphNodeDynamicExpandable
 func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	// Grab the state which we read
+	state, lock := ctx.State()
+	lock.RLock()
+	defer lock.RUnlock()
+
 	// Expand the resource count which must be available by now from EvalTree
 	count, err := n.Config.Count()
 	if err != nil {
@@ -39,25 +44,45 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
-		a.ResourceState = n.ResourceState
 
 		return &NodePlannableResourceInstance{
 			NodeAbstractResource: a,
 		}
 	}
 
+	// The concrete resource factory we'll use for oprhans
+	concreteResourceOrphan := func(a *NodeAbstractResource) dag.Vertex {
+		return &NodePlannableResourceOrphan{
+			NodeAbstractResource: a,
+		}
+	}
+
 	// Start creating the steps
-	steps := make([]GraphTransformer, 0, 5)
+	steps := []GraphTransformer{
+		// Expand the count.
+		&ResourceCountTransformer{
+			Concrete: concreteResource,
+			Count:    count,
+			Addr:     n.ResourceAddr(),
+		},
 
-	// Expand counts.
-	steps = append(steps, &ResourceCountTransformer{
-		Concrete: concreteResource,
-		Count:    count,
-		Addr:     n.ResourceAddr(),
-	})
+		// Add the count orphans
+		&OrphanResourceCountTransformer{
+			Concrete: concreteResourceOrphan,
+			Count:    count,
+			Addr:     n.ResourceAddr(),
+			State:    state,
+		},
 
-	// Always end with the root being added
-	steps = append(steps, &RootTransformer{})
+		// TODO: deposed
+		// TODO: targeting
+
+		// Attach the state
+		&AttachStateTransformer{State: state},
+
+		// Make sure there is a single root
+		&RootTransformer{},
+	}
 
 	// Build the graph
 	b := &BasicGraphBuilder{Steps: steps, Validate: true}
