@@ -16,6 +16,7 @@ BUG FIXES:
  * core: New apply graph properly configures providers with aliases. [GH-9894]
  * provider/aws: Fix crash when adding EBS volumes to spot fleet request. [GH-9857]
  * provider/aws: Ignore NoSuchEntity error when IAM user does not have login profile [GH-9900]
+ * provider/aws: Setting static_routes_only on import of vpn_connection [GH-9802]
  * provider/scaleway: fix `scaleway_image` datasource returning unknown images [GH-9899]
 
 ## 0.7.9 (November 4, 2016)
