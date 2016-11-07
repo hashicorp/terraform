@@ -80,6 +80,9 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		// Attach the state
 		&AttachStateTransformer{State: state},
 
+		// Connect references so ordering is correct
+		&ReferenceTransformer{},
+
 		// Make sure there is a single root
 		&RootTransformer{},
 	}
