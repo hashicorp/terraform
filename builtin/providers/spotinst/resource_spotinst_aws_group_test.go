@@ -153,6 +153,7 @@ resource "spotinst_aws_group" "foo" {
 
 	launch_specification {
 		monitoring = false
+		ebs_optimized = true
 		image_id = "ami-f0091d91"
 		key_pair = "east"
 		security_group_ids = ["default"]
@@ -313,6 +314,7 @@ resource "spotinst_aws_group" "foo" {
 
 	launch_specification {
 		monitoring = false
+		ebs_optimized = true
 		image_id = "ami-f0091d91"
 		key_pair = "east"
 		security_group_ids = ["default"]

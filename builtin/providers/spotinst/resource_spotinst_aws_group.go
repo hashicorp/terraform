@@ -271,6 +271,11 @@ func resourceSpotinstAwsGroup() *schema.Resource {
 							Default:  false,
 						},
 
+						"ebs_optimized": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
 						"image_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -1165,6 +1170,7 @@ func flattenAwsGroupLaunchSpecification(lspec *spotinst.AwsGroupComputeLaunchSpe
 	result["key_pair"] = spotinst.StringValue(lspec.KeyPair)
 	result["user_data"] = spotinst.StringValue(lspec.UserData)
 	result["monitoring"] = spotinst.BoolValue(lspec.Monitoring)
+	result["ebs_optimized"] = spotinst.BoolValue(lspec.EBSOptimized)
 	result["load_balancer_names"] = lspec.LoadBalancerNames
 	result["security_group_ids"] = lspec.SecurityGroupIDs
 
@@ -1988,6 +1994,10 @@ func expandAwsGroupLaunchSpecification(data interface{}) (*spotinst.AwsGroupComp
 
 		if v, ok := m["monitoring"].(bool); ok {
 			lc.Monitoring = spotinst.Bool(v)
+		}
+
+		if v, ok := m["ebs_optimized"].(bool); ok {
+			lc.EBSOptimized = spotinst.Bool(v)
 		}
 
 		if v, ok := m["image_id"].(string); ok && v != "" {
