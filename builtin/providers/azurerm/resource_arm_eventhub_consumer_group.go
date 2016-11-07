@@ -57,7 +57,8 @@ func resourceArmEventHubConsumerGroup() *schema.Resource {
 			},
 
 			"user_metadata": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
