@@ -52,6 +52,9 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 	// The concrete resource factory we'll use for oprhans
 	concreteResourceOrphan := func(a *NodeAbstractResource) dag.Vertex {
+		// Add the config and state since we don't do that via transforms
+		a.Config = n.Config
+
 		return &NodePlannableResourceOrphan{
 			NodeAbstractResource: a,
 		}
