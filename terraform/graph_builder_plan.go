@@ -26,6 +26,9 @@ type PlanGraphBuilder struct {
 	// Providers is the list of providers supported.
 	Providers []string
 
+	// Targets are resources to target
+	Targets []string
+
 	// DisableReduce, if true, will not reduce the graph. Great for testing.
 	DisableReduce bool
 }
@@ -77,6 +80,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			State:    b.State,
 			Module:   b.Module,
 		},
+
+		// Target
+		&TargetsTransformer{Targets: b.Targets},
 
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Module: b.Module},

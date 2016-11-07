@@ -519,6 +519,7 @@ func (c *Context) Plan() (*Plan, error) {
 			Module:    c.module,
 			State:     c.state,
 			Providers: c.components.ResourceProviders(),
+			Targets:   c.targets,
 		}).Build(RootModulePath)
 	}
 	if err != nil && !newGraphEnabled {
