@@ -152,6 +152,7 @@ type AwsGroupComputeLaunchSpecification struct {
 	KeyPair                *string                             `json:"keyPair,omitempty"`
 	UserData               *string                             `json:"userData,omitempty"`
 	Monitoring             *bool                               `json:"monitoring,omitempty"`
+	EBSOptimized           *bool                               `json:"ebsOptimized,omitempty"`
 	IamInstanceProfile     *AwsGroupComputeIamInstanceProfile  `json:"iamRole,omitempty"`
 	BlockDevices           []*AwsGroupComputeBlockDevice       `json:"blockDeviceMappings,omitempty"`
 	NetworkInterfaces      []*AwsGroupComputeNetworkInterface  `json:"networkInterfaces,omitempty"`
