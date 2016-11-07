@@ -21,6 +21,8 @@ func (n *NodePlannableResource) EvalTree() EvalNode {
 			// With the interpolated count, we can then DynamicExpand
 			// into the proper number of instances.
 			&EvalInterpolate{Config: n.Config.RawCount},
+
+			&EvalCountFixZeroOneBoundary{Resource: n.Config},
 		},
 	}
 }
