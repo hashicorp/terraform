@@ -7,6 +7,7 @@ import (
 
 type Archiver interface {
 	ArchiveContent(content []byte, infilename string) error
+	CopyArchive(archivename string) error
 	ArchiveFile(infilename string) error
 	ArchiveDir(indirname string) error
 }

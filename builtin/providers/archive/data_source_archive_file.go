@@ -47,6 +47,11 @@ func dataSourceFile() *schema.Resource {
 				ForceNew:      true,
 				ConflictsWith: []string{"source_content", "source_content_filename", "source_file"},
 			},
+			"base_archive": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"output_path": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -115,6 +120,12 @@ func archive(d *schema.ResourceData) error {
 	archiver := getArchiver(archiveType, outputPath)
 	if archiver == nil {
 		return fmt.Errorf("archive type not supported: %s", archiveType)
+	}
+
+	if archive, ok := d.GetOk("base_archive"); ok {
+		if err := archiver.CopyArchive(archive.(string)); err != nil {
+			return fmt.Errorf("error copying archive: %s", err)
+		}
 	}
 
 	if dir, ok := d.GetOk("source_dir"); ok {

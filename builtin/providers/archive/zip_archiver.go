@@ -3,6 +3,7 @@ package archive
 import (
 	"archive/zip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -85,7 +86,41 @@ func (a *ZipArchiver) ArchiveDir(indirname string) error {
 
 }
 
+func (a *ZipArchiver) CopyArchive(archivename string) error {
+	if err := a.open(); err != nil {
+		return err
+	}
+
+	r, err := zip.OpenReader(archivename)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+
+		w, err := a.writer.Create(f.Name)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(w, rc)
+		if err != nil {
+			return err
+		}
+		rc.Close()
+	}
+	return nil
+}
+
 func (a *ZipArchiver) open() error {
+	if a.writer != nil {
+		return nil
+	}
 	f, err := os.Create(a.filepath)
 	if err != nil {
 		return err

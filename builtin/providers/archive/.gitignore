@@ -1,1 +1,2 @@
 *.zip
+!test-fixtures/archive.zip

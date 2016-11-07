@@ -31,6 +31,8 @@ NOTE: One of `source_content_filename` (with `source_content`), `source_file`, o
 
 * `output_path` - (required) The output of the archive file.
 
+* `base_archive` - (optional) Add contents of this archive file before adding `source_content`, `source_file` or `source_dir`.
+
 * `source_content` - (optional) Add only this content to the archive with `source_content_filename` as the filename.
 
 * `source_content_filename` - (optional) Set this as the filename when using `source_content`.
