@@ -86,8 +86,6 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 			State:    state,
 		},
 
-		// TODO: deposed
-
 		// Attach the state
 		&AttachStateTransformer{State: state},
 
