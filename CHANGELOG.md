@@ -1,5 +1,15 @@
 ## 0.8.0 (unreleased)
 
+NOTE FOR COMMITTERS UNTIL RELEASE: Only changes that are definitely only going
+to be in 0.8 should be placed here. If the change is cherry picked over to
+maint-0.7 for a 0.7.x release, put it in a 0.7 heading.
+
+FEATURES:
+
+ * **New provider:** `vault` [GH-9158]
+
+## 0.7.10 (unreleased)
+
 FEATURES:
  * **New Resource:** `azurerm_eventhub` [GH-9889]
 
