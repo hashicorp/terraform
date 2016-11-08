@@ -1,6 +1,7 @@
 package azurerm
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -29,6 +30,8 @@ type ArmClient struct {
 	clientId       string
 	tenantId       string
 	subscriptionId string
+
+	StopContext context.Context
 
 	rivieraClient *riviera.Client
 
