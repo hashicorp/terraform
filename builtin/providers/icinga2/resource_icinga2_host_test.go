@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/lrsmith/terraform/helper/resource"
-	"github.com/lrsmith/terraform/terraform"
 )
 
 func TestAccCreateBasicHost(t *testing.T) {
@@ -152,8 +151,8 @@ func TestAccCreateVariableHost(t *testing.T) {
 	})
 }
 
-func testAccHostExists(n string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		return nil
-	}
-}
+//func testAccHostExists(n string) resource.TestCheckFunc {
+//	return func(s *terraform.State) error {
+//		return nil
+//	}
+//}
