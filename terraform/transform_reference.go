@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
@@ -90,27 +91,37 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 	var matches []dag.Vertex
 	var missing []string
 	prefix := m.prefix(v)
-	for _, n := range rn.References() {
-		n = prefix + n
-		parents, ok := m.references[n]
-		if !ok {
-			missing = append(missing, n)
-			continue
-		}
-
-		// Make sure this isn't a self reference, which isn't included
-		selfRef := false
-		for _, p := range parents {
-			if p == v {
-				selfRef = true
-				break
+	for _, ns := range rn.References() {
+		found := false
+		for _, n := range strings.Split(ns, "/") {
+			n = prefix + n
+			parents, ok := m.references[n]
+			if !ok {
+				continue
 			}
-		}
-		if selfRef {
-			continue
+
+			// Mark that we found a match
+			found = true
+
+			// Make sure this isn't a self reference, which isn't included
+			selfRef := false
+			for _, p := range parents {
+				if p == v {
+					selfRef = true
+					break
+				}
+			}
+			if selfRef {
+				continue
+			}
+
+			matches = append(matches, parents...)
+			break
 		}
 
-		matches = append(matches, parents...)
+		if !found {
+			missing = append(missing, ns)
+		}
 	}
 
 	return matches, missing
@@ -233,8 +244,23 @@ func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) []string {
 	case *config.ModuleVariable:
 		return []string{fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)}
 	case *config.ResourceVariable:
-		result := []string{v.ResourceId()}
-		return result
+		id := v.ResourceId()
+
+		// If we have a multi-reference (splat), then we depend on ALL
+		// resources with this type/name.
+		if v.Multi && v.Index == -1 {
+			return []string{fmt.Sprintf("%s.*", id)}
+		}
+
+		// Otherwise, we depend on a specific index.
+		idx := v.Index
+		if !v.Multi || v.Index == -1 {
+			idx = 0
+		}
+
+		// Depend on the index, as well as "N" which represents the
+		// un-expanded set of resources.
+		return []string{fmt.Sprintf("%s.%d/%s.N", id, idx, id)}
 	case *config.UserVariable:
 		return []string{fmt.Sprintf("var.%s", v.Name)}
 	default:
