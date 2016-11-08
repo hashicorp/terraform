@@ -5121,8 +5121,10 @@ func TestContext2Apply_targetedModuleDep(t *testing.T) {
 		Targets: []string{"aws_instance.foo"},
 	})
 
-	if _, err := ctx.Plan(); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf("Diff: %s", p)
 	}
 
 	state, err := ctx.Apply()
