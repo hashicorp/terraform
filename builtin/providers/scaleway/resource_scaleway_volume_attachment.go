@@ -3,7 +3,9 @@ package scaleway
 import (
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/scaleway/scaleway-cli/pkg/api"
 )
@@ -80,11 +82,27 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 		volumes[k] = v
 	}
 
-	var req = api.ScalewayServerPatchDefinition{
-		Volumes: &volumes,
-	}
-	if err := scaleway.PatchServer(serverID, req); err != nil {
-		return fmt.Errorf("Failed attaching volume to server: %q", err)
+	if err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		var req = api.ScalewayServerPatchDefinition{
+			Volumes: &volumes,
+		}
+		err := scaleway.PatchServer(serverID, req)
+
+		if err == nil {
+			return nil
+		}
+
+		if serr, ok := err.(api.ScalewayAPIError); ok {
+			log.Printf("[DEBUG] Error patching server: %q\n", serr.APIMessage)
+
+			if serr.StatusCode == 400 {
+				return resource.RetryableError(fmt.Errorf("Waiting for server update to succeed: %q", serr.APIMessage))
+			}
+		}
+
+		return resource.NonRetryableError(err)
+	}); err != nil {
+		return err
 	}
 
 	if startServerAgain {
@@ -185,10 +203,26 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 		volumes[k] = v
 	}
 
-	var req = api.ScalewayServerPatchDefinition{
-		Volumes: &volumes,
-	}
-	if err := scaleway.PatchServer(serverID, req); err != nil {
+	if err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		var req = api.ScalewayServerPatchDefinition{
+			Volumes: &volumes,
+		}
+		err := scaleway.PatchServer(serverID, req)
+
+		if err == nil {
+			return nil
+		}
+
+		if serr, ok := err.(api.ScalewayAPIError); ok {
+			log.Printf("[DEBUG] Error patching server: %q\n", serr.APIMessage)
+
+			if serr.StatusCode == 400 {
+				return resource.RetryableError(fmt.Errorf("Waiting for server update to succeed: %q", serr.APIMessage))
+			}
+		}
+
+		return resource.NonRetryableError(err)
+	}); err != nil {
 		return err
 	}
 
