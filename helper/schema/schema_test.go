@@ -2341,9 +2341,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 						RequiresNew: true,
 					},
 					"instances.3": &terraform.ResourceAttrDiff{
-						Old:         "333",
-						New:         "333",
-						RequiresNew: true,
+						Old: "333",
+						New: "333",
 					},
 					"instances.4": &terraform.ResourceAttrDiff{
 						Old:         "",
@@ -2426,6 +2425,61 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
+		"Set ForceNew only marks the changing element as ForceNew": {
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					ForceNew: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.1": "1",
+					"ports.2": "2",
+					"ports.4": "4",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{5, 2, 1},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "3",
+						New: "3",
+					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old: "1",
+						New: "1",
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old: "2",
+						New: "2",
+					},
+					"ports.5": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "5",
+						RequiresNew: true,
+					},
+					"ports.4": &terraform.ResourceAttrDiff{
+						Old:         "4",
+						New:         "0",
+						NewRemoved:  true,
+						RequiresNew: true,
+					},
+				},
+			},
+		},
+
 		"removed optional items should trigger ForceNew": {
 			Schema: map[string]*Schema{
 				"description": &Schema{
@@ -2495,26 +2549,28 @@ func TestSchemaMap_Diff(t *testing.T) {
 	}
 
 	for tn, tc := range cases {
-		c, err := config.NewRawConfig(tc.Config)
-		if err != nil {
-			t.Fatalf("#%q err: %s", tn, err)
-		}
-
-		if len(tc.ConfigVariables) > 0 {
-			if err := c.Interpolate(tc.ConfigVariables); err != nil {
+		t.Run(tn, func(t *testing.T) {
+			c, err := config.NewRawConfig(tc.Config)
+			if err != nil {
 				t.Fatalf("#%q err: %s", tn, err)
 			}
-		}
 
-		d, err := schemaMap(tc.Schema).Diff(
-			tc.State, terraform.NewResourceConfig(c))
-		if err != nil != tc.Err {
-			t.Fatalf("#%q err: %s", tn, err)
-		}
+			if len(tc.ConfigVariables) > 0 {
+				if err := c.Interpolate(tc.ConfigVariables); err != nil {
+					t.Fatalf("#%q err: %s", tn, err)
+				}
+			}
 
-		if !reflect.DeepEqual(tc.Diff, d) {
-			t.Fatalf("#%q:\n\nexpected:\n%#v\n\ngot:\n%#v", tn, tc.Diff, d)
-		}
+			d, err := schemaMap(tc.Schema).Diff(
+				tc.State, terraform.NewResourceConfig(c))
+			if err != nil != tc.Err {
+				t.Fatalf("#%q err: %s", tn, err)
+			}
+
+			if !reflect.DeepEqual(tc.Diff, d) {
+				t.Fatalf("#%q:\n\nexpected:\n%#v\n\ngot:\n%#v", tn, tc.Diff, d)
+			}
+		})
 	}
 }
 
