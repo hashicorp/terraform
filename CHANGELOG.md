@@ -16,6 +16,7 @@ BUG FIXES:
  * core: Splat variables (`foo.*.bar`) are now ordered by count index for deterministic ordering. [GH-9883]
  * core: New apply graph doesn't prune module variables as aggressively. [GH-9898]
  * core: New apply graph properly configures providers with aliases. [GH-9894]
+ * core: New destroy graph doesn't create edge loops to destroy nodes that reference themselves. [GH-9968]
  * provider/aws: Fix crash when adding EBS volumes to spot fleet request. [GH-9857]
  * provider/aws: Ignore NoSuchEntity error when IAM user does not have login profile [GH-9900]
  * provider/aws: Setting static_routes_only on import of vpn_connection [GH-9802]
