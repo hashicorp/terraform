@@ -26,8 +26,9 @@ func (n *NodePlannableResourceOrphan) EvalTree() EvalNode {
 
 	// Build the instance info. More of this will be populated during eval
 	info := &InstanceInfo{
-		Id:   stateId,
-		Type: addr.Type,
+		Id:         stateId,
+		Type:       addr.Type,
+		ModulePath: normalizeModulePath(addr.Path),
 	}
 
 	// Declare a bunch of variables that are used for state during
