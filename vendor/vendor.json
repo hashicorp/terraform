@@ -1816,6 +1816,12 @@
 			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
+			"checksumSHA1": "8432TFr6gjNbv0yV1o14M7zqOSo=",
+			"path": "github.com/scaleway/scaleway-cli",
+			"revision": "790f00aee05c9264248f1090c062ac0513e5a191",
+			"revisionTime": "2016-11-07T15:30:35Z"
+		},
+		{
 			"checksumSHA1": "YF6baE6Sl76/nVYo0JwJXCkJmGw=",
 			"path": "github.com/scaleway/scaleway-cli/pkg/api",
 			"revision": "88132ecdd39da62f7c73c5a8e1a383d7da5e0e09",
