@@ -29,6 +29,10 @@ type ResourceAddress struct {
 
 // Copy returns a copy of this ResourceAddress
 func (r *ResourceAddress) Copy() *ResourceAddress {
+	if r == nil {
+		return nil
+	}
+
 	n := &ResourceAddress{
 		Path:         make([]string, 0, len(r.Path)),
 		Index:        r.Index,
