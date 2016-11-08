@@ -14,6 +14,11 @@ FEATURES:
 
  * **New provider:** `vault` [GH-9158]
 
+IMPROVEMENTS:
+
+  * helper/schema: only map, list, and set elements that are actually causing
+      a resource to destroy/create are marked as "requires new". [GH-9613]
+
 ## 0.7.10 (unreleased)
 
 FEATURES:
