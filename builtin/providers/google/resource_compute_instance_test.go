@@ -2,6 +2,7 @@ package google
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -477,6 +478,23 @@ func TestAccComputeInstance_private_image_family(t *testing.T) {
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
 				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_invalid_disk(t *testing.T) {
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var diskName = fmt.Sprintf("instance-testd-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config:      testAccComputeInstance_invalid_disk(diskName, instanceName),
+				ExpectError: regexp.MustCompile("Error: cannot define both disk and type."),
 			},
 		},
 	})
@@ -1151,4 +1169,35 @@ func testAccComputeInstance_private_image_family(disk, image, family, instance s
 				foo = "bar"
 			}
 		}`, disk, image, family, instance)
+}
+
+func testAccComputeInstance_invalid_disk(disk, instance string) string {
+	return fmt.Sprintf(`
+		resource "google_compute_instance" "foobar" {
+		  name         = "%s"
+		  machine_type = "f1-micro"
+		  zone         = "us-central1-a"
+
+		  disk {
+		    image = "ubuntu-os-cloud/ubuntu-1604-lts"
+		    type  = "pd-standard"
+		  }
+
+		  disk {
+		    disk        = "${google_compute_disk.foobar.name}"
+		    type        = "pd-standard"
+		    device_name = "xvdb"
+		  }
+
+		  network_interface {
+		    network = "default"
+		  }
+		}
+
+		resource "google_compute_disk" "foobar" {
+		  name = "%s"
+		  zone = "us-central1-a"
+		  type = "pd-standard"
+		  size = "1"
+		}`, instance, disk)
 }
