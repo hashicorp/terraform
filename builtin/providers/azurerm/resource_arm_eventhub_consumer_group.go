@@ -51,11 +51,6 @@ func resourceArmEventHubConsumerGroup() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"eventhub_path": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
 			"user_metadata": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -74,13 +69,11 @@ func resourceArmEventHubConsumerGroupCreate(d *schema.ResourceData, meta interfa
 	eventHubName := d.Get("eventhub_name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
-	eventHubPath := d.Get("eventhub_path").(string)
 	userMetaData := d.Get("user_metadata").(string)
 
 	parameters := eventhub.ConsumerGroupCreateOrUpdateParameters{
 		Location: &location,
 		Properties: &eventhub.ConsumerGroupProperties{
-			EventHubPath: &eventHubPath,
 			UserMetadata: &userMetaData,
 		},
 	}
@@ -131,7 +124,6 @@ func resourceArmEventHubConsumerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
-	d.Set("eventhub_path", resp.Properties.EventHubPath)
 	d.Set("user_metadata", resp.Properties.UserMetadata)
 
 	return nil

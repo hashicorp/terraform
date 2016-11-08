@@ -46,7 +46,6 @@ resource "azurermeventhub_consumer_group" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     location = "${azurerm_resource_group.test.location}"
 
-    eventhub_path = "some-event-path"
     user_metadata = "some-meta-data"
 }
 ```
@@ -62,8 +61,6 @@ The following arguments are supported:
 * `resource_group_name` - (Required) The name of the resource group in which the EventHub Consumer Group's grandparent Namespace exists. Changing this forces a new resource to be created.
 
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
-
-* `eventhub_path` - (Required) Specifies the path of the event hub.
 
 * `user_metadata` - (Optional) Specifies the user metadata.
 
