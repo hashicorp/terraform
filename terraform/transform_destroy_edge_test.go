@@ -61,6 +61,23 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 	}
 }
 
+func TestDestroyEdgeTransformer_selfRef(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	g.Add(&graphNodeDestroyerTest{AddrString: "test.A"})
+	tf := &DestroyEdgeTransformer{
+		Module: testModule(t, "transform-destroy-edge-self-ref"),
+	}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformDestroyEdgeSelfRefStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 type graphNodeCreatorTest struct {
 	AddrString string
 }
@@ -111,4 +128,8 @@ test.A (destroy)
 test.B (destroy)
   test.C (destroy)
 test.C (destroy)
+`
+
+const testTransformDestroyEdgeSelfRefStr = `
+test.A (destroy)
 `
