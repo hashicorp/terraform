@@ -558,9 +558,6 @@ func (c *Context) Plan() (*Plan, error) {
 		shadow = nil
 	}
 
-	// TODO: remove when we're ready
-	shadow = nil
-
 	// Do the walk
 	walker, err := c.walk(real, shadow, operation)
 	if err != nil {
@@ -853,7 +850,12 @@ func (c *Context) walk(
 		//
 		// This must be done BEFORE appending shadowWalkErr since the
 		// shadowWalkErr may include expected errors.
-		if c.shadowErr != nil && contextFailOnShadowError {
+		//
+		// We only do this if we don't have a real error. In the case of
+		// a real error, we can't guarantee what nodes were and weren't
+		// traversed in parallel scenarios so we can't guarantee no
+		// shadow errors.
+		if c.shadowErr != nil && contextFailOnShadowError && realErr == nil {
 			panic(multierror.Prefix(c.shadowErr, "shadow graph:"))
 		}
 
