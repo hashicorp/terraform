@@ -13,7 +13,7 @@ func TestAccAzureRMEventHubConsumerGroup_importBasic(t *testing.T) {
 	resourceName := "azurerm_eventhub_consumer_group.test"
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMEventHubConsumerGroup_basic, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMEventHubConsumerGroup_basic, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

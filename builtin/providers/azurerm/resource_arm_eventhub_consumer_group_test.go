@@ -130,9 +130,9 @@ resource "azurerm_eventhub" "test" {
   message_retention   = 7
 }
 
-resource "azurermeventhub_consumer_group" "test" {
+resource "azurerm_eventhub_consumer_group" "test" {
     name = "acctesteventhubcg-%d"
-    namespace_name = "${azurerm_eventhub_namespace.test.name"
+    namespace_name = "${azurerm_eventhub_namespace.test.name}"
     eventhub_name = "${azurerm_eventhub.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
     location = "${azurerm_resource_group.test.location}"
@@ -162,9 +162,9 @@ resource "azurerm_eventhub" "test" {
   message_retention   = 7
 }
 
-resource "azurermeventhub_consumer_group" "test" {
+resource "azurerm_eventhub_consumer_group" "test" {
     name = "acctesteventhubcg-%d"
-    namespace_name = "${azurerm_eventhub_namespace.test.name"
+    namespace_name = "${azurerm_eventhub_namespace.test.name}"
     eventhub_name = "${azurerm_eventhub.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
     location = "${azurerm_resource_group.test.location}"
