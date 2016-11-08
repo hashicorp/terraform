@@ -468,5 +468,4 @@ data "google_iam_policy" "admin" {
       "user:evandbrown@gmail.com",
     ]
   }
-
 }`
