@@ -63,7 +63,7 @@ The following arguments are supported:
 
 * `service` - (Required) The name of the service to query.
 
-* `only_passing` - (Optional) When true, the prepared query will only
+* `only_passing` - (Optional) When `true`, the prepared query will only
   return nodes with passing health checks in the result.
 
 * `near` - (Optional) Allows specifying the name of a node to sort results

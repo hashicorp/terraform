@@ -3,12 +3,13 @@ layout: "consul"
 page_title: "Consul: consul_service"
 sidebar_current: "docs-consul-resource-service"
 description: |-
-  A high-level resource for creating a Service in Consul. Since Consul requires clients to register services with either the catalog or an agent, `consul_service` may register with either the catalog or an agent, depending on the configuration of `consul_service`. For now, `consul_service` always registers services with the agent running at the address defined in the `consul` resource. Health checks are not currently supported. 
+  A high-level resource for creating a Service in Consul. Since Consul requires clients to register services with either the catalog or an agent, `consul_service` may register with either the catalog or an agent, depending on the configuration of `consul_service`. For now, `consul_service` always registers services with the agent running at the address defined in the `consul` resource. Health checks are not currently supported.
 ---
 
 # consul\_service
 
-A high-level resource for creating a Service in Consul. Currently, defining health checks for a service is not supported.
+A high-level resource for creating a Service in Consul. Currently,
+defining health checks for a service is not supported.
 
 ## Example Usage
 
@@ -25,7 +26,8 @@ resource "consul_service" "google" {
 
 The following arguments are supported:
 
-* `service_id` - (Optional, string) The id of the service, defaults to the value of `name` if not supplied.
+* `service_id` - (Optional, string) The ID of the service, defaults to the value of `name`
+  if not supplied.
 
 * `address` - (Optional, string) The address of the service. Defaults to the
   address of the agent.
