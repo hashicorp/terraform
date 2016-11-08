@@ -1060,10 +1060,10 @@
 			"revisionTime": "2016-10-25T18:03:21Z"
 		},
 		{
-			"checksumSHA1": "8QsTL/u0QRMoQE9lJSE55/3YKvg=",
+			"checksumSHA1": "8rOLNDSqwz/DSKL1BoPqjtWSWAE=",
 			"path": "github.com/gophercloud/gophercloud/openstack/compute/v2/servers",
-			"revision": "e3d6384a3714b335d075862e6eb0a681180643df",
-			"revisionTime": "2016-10-25T18:03:21Z"
+			"revision": "21a44e132331d6d46ab4187411c85ced6b1a9963",
+			"revisionTime": "2016-11-08T07:34:31Z"
 		},
 		{
 			"checksumSHA1": "1sVqsZBZBNhDXLY9XzjMkcOkcbg=",
