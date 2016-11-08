@@ -182,7 +182,9 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		// names "a_d" and "b_d" to reference our example.
 		for _, a_d := range dns {
 			for _, b_d := range depDestroyers {
-				g.Connect(dag.BasicEdge(b_d, a_d))
+				if b_d != a_d {
+					g.Connect(dag.BasicEdge(b_d, a_d))
+				}
 			}
 		}
 	}

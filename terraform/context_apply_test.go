@@ -3123,6 +3123,76 @@ func TestContext2Apply_provisionerMultiSelfRefCount(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_provisionerExplicitSelfRef(t *testing.T) {
+	m := testModule(t, "apply-provisioner-explicit-self-ref")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		val, ok := c.Config["command"]
+		if !ok || val != "bar" {
+			t.Fatalf("bad value for command: %v %#v", val, c)
+		}
+
+		return nil
+	}
+
+	var state *State
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Provisioners: map[string]ResourceProvisionerFactory{
+				"shell": testProvisionerFuncFixed(pr),
+			},
+		})
+
+		_, err := ctx.Plan()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// Verify apply was invoked
+		if !pr.ApplyCalled {
+			t.Fatalf("provisioner not invoked")
+		}
+	}
+
+	{
+		ctx := testContext2(t, &ContextOpts{
+			Module:  m,
+			Destroy: true,
+			State:   state,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Provisioners: map[string]ResourceProvisionerFactory{
+				"shell": testProvisionerFuncFixed(pr),
+			},
+		})
+
+		_, err := ctx.Plan()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err = ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		checkStateString(t, state, `<no state>`)
+	}
+}
+
 // Provisioner should NOT run on a diff, only create
 func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	m := testModule(t, "apply-provisioner-diff")
