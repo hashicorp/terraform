@@ -25,13 +25,13 @@ func init() {
 // export ICINGA2_API_PASSWORD=icinga
 // export ICINGA2_INSECURE_SKIP_TLS_VERIFY=true
 
-func Test_provider(t *testing.T) {
+func TestProvider(t *testing.T) {
 	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
 
-func TestProvider_impl(t *testing.T) {
+func TestProviderImpl(t *testing.T) {
 	var _ terraform.ResourceProvider = Provider()
 }
 
