@@ -172,6 +172,9 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 			// their dependencies.
 			&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
 
+			// Create orphan output nodes
+			&OrphanOutputTransformer{Module: b.Root, State: b.State},
+
 			// Prune the providers. This must happen only once because flattened
 			// modules might depend on empty providers.
 			&PruneProviderTransformer{},
