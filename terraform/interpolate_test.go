@@ -13,6 +13,12 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+func TestInterpolater_simpleVar(t *testing.T) {
+	i := &Interpolater{}
+	scope := &InterpolationScope{}
+	testInterpolateErr(t, i, scope, "simple")
+}
+
 func TestInterpolater_countIndex(t *testing.T) {
 	i := &Interpolater{}
 
