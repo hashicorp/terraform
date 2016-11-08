@@ -8,6 +8,15 @@ import (
 // it is ready to be planned in order to create a diff.
 type NodePlannableResource struct {
 	*NodeAbstractResource
+
+	// Set by GraphNodeTargetable and used during DynamicExpand to
+	// forward targets downwards.
+	targets []ResourceAddress
+}
+
+// GraphNodeTargetable
+func (n *NodePlannableResource) SetTargets(targets []ResourceAddress) {
+	n.targets = targets
 }
 
 // GraphNodeEvalable
@@ -82,6 +91,9 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		// Attach the state
 		&AttachStateTransformer{State: state},
+
+		// Targeting
+		&TargetsTransformer{ParsedTargets: n.targets},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
