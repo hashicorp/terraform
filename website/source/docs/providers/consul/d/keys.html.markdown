@@ -9,8 +9,7 @@ description: |-
 # consul\_keys
 
 The `consul_keys` resource reads values from the Consul key/value store.
-This is a powerful way to  This is a powerful way dynamically set values
-in templates.dynamically set values in templates.
+This is a powerful way dynamically set values in templates.
 
 ## Example Usage
 
