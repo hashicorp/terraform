@@ -103,7 +103,7 @@ func (a *ZipArchiver) CopyArchive(archivename string) error {
 			return err
 		}
 
-		w, err := a.writer.Create(f.Name)
+		w, err := a.writer.CreateHeader(&f.FileHeader)
 		if err != nil {
 			return err
 		}
