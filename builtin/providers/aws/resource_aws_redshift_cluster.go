@@ -159,6 +159,12 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"enhanced_vpc_routing": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+
 			"kms_key_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -302,6 +308,10 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 			restoreOpts.ElasticIp = aws.String(v.(string))
 		}
 
+		if v, ok := d.GetOk("enhanced_vpc_routing"); ok {
+			restoreOpts.EnhancedVpcRouting = aws.Bool(v.(bool))
+		}
+
 		if v, ok := d.GetOk("iam_roles"); ok {
 			restoreOpts.IamRoles = expandStringList(v.(*schema.Set).List())
 		}
@@ -364,6 +374,10 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 
 		if v, ok := d.GetOk("encrypted"); ok {
 			createOpts.Encrypted = aws.Bool(v.(bool))
+		}
+
+		if v, ok := d.GetOk("enhanced_vpc_routing"); ok {
+			createOpts.EnhancedVpcRouting = aws.Bool(v.(bool))
 		}
 
 		if v, ok := d.GetOk("kms_key_id"); ok {
