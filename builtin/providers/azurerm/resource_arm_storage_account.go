@@ -1,6 +1,7 @@
 package azurerm
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/signalwrapper"
 	"github.com/hashicorp/terraform/helper/validation"
 )
 
@@ -192,24 +192,11 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		opts.Properties.AccessTier = storage.AccessTier(accessTier.(string))
 	}
 
-	// Create the storage account. We wrap this so that it is cancellable
-	// with a Ctrl-C since this can take a LONG time.
-	wrap := signalwrapper.Run(func(cancelCh <-chan struct{}) error {
-		_, err := storageClient.Create(resourceGroupName, storageAccountName, opts, cancelCh)
-		return err
-	})
-
-	// Check the result of the wrapped function.
-	var createErr error
-	select {
-	case <-time.After(1 * time.Hour):
-		// An hour is way above the expected P99 for this API call so
-		// we premature cancel and error here.
-		createErr = wrap.Cancel()
-	case createErr = <-wrap.ErrCh:
-		// Successfully ran (but perhaps not successfully completed)
-		// the function.
-	}
+	// Create
+	cancelCtx, cancelFunc := context.WithTimeout(client.StopContext, 1*time.Hour)
+	_, createErr := storageClient.Create(
+		resourceGroupName, storageAccountName, opts, cancelCtx.Done())
+	cancelFunc()
 
 	// The only way to get the ID back apparently is to read the resource again
 	read, err := storageClient.GetProperties(resourceGroupName, storageAccountName)

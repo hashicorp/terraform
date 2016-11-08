@@ -107,6 +107,10 @@ func (p *shadowResourceProviderReal) Configure(c *ResourceConfig) error {
 	return err
 }
 
+func (p *shadowResourceProviderReal) Stop() error {
+	return p.ResourceProvider.Stop()
+}
+
 func (p *shadowResourceProviderReal) ValidateResource(
 	t string, c *ResourceConfig) ([]string, []error) {
 	key := t
@@ -439,6 +443,11 @@ func (p *shadowResourceProviderShadow) Configure(c *ResourceConfig) error {
 
 	// Return the results
 	return result.Result
+}
+
+// Stop returns immediately.
+func (p *shadowResourceProviderShadow) Stop() error {
+	return nil
 }
 
 func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
