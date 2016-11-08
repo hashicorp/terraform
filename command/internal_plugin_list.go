@@ -52,6 +52,7 @@ import (
 	tlsprovider "github.com/hashicorp/terraform/builtin/providers/tls"
 	tritonprovider "github.com/hashicorp/terraform/builtin/providers/triton"
 	ultradnsprovider "github.com/hashicorp/terraform/builtin/providers/ultradns"
+	vaultprovider "github.com/hashicorp/terraform/builtin/providers/vault"
 	vcdprovider "github.com/hashicorp/terraform/builtin/providers/vcd"
 	vsphereprovider "github.com/hashicorp/terraform/builtin/providers/vsphere"
 	chefresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
@@ -110,6 +111,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"tls":          tlsprovider.Provider,
 	"triton":       tritonprovider.Provider,
 	"ultradns":     ultradnsprovider.Provider,
+	"vault":        vaultprovider.Provider,
 	"vcd":          vcdprovider.Provider,
 	"vsphere":      vsphereprovider.Provider,
 }
