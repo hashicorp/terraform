@@ -34,7 +34,7 @@ The following arguments are supported:
 * `address` - (Required) The address of the node being added to,
   or referenced in the catalog.
 
-* `node` - (Required) The name of the node being added to or,
+* `node` - (Required) The name of the node being added to, or
   referenced in the catalog.
 
 * `service` - (Optional) A service to optionally associated with
