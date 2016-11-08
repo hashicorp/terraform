@@ -20,6 +20,7 @@ BUG FIXES:
  * provider/aws: aws_alb_target_group arn_suffix missing the targetgroup [GH-9911]
  * provider/aws: Fix the validateFunc of aws_elasticache_replication_group [GH-9918]
  * provider/scaleway: fix `scaleway_image` datasource returning unknown images [GH-9899]
+ * provider/google: fix crash when mistakenly configuring disks [GH-9942]
 
 ## 0.7.9 (November 4, 2016)
 
