@@ -4,6 +4,12 @@ NOTE FOR COMMITTERS UNTIL RELEASE: Only changes that are definitely only going
 to be in 0.8 should be placed here. If the change is cherry picked over to
 maint-0.7 for a 0.7.x release, put it in a 0.7 heading.
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * `template_file` _inline_ templates must escape their variable usage. What
+      was previously `${foo}` must now be `$${foo}`. Note that this is only
+      for _inline_ templates. Templates read from files are unchanged. [GH-9698]
+
 FEATURES:
 
  * **New provider:** `vault` [GH-9158]
