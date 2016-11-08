@@ -5,10 +5,11 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * provider/aws: Add support for Service Access Security Group in `aws_emr_cluster` [GH-9600]
+ * provider/aws: Add Enhanced VPC routing to Redshift [GH-9950]
  * provider/openstack: Add `value_specs` to `openstack_fw_policy_v1` resource, allowing vendor information [GH-9835]
  * provider/openstack: Add `value_specs` to `openstack_fw_firewall_v1` resource, allowing vendor information [GH-9836]
  * provider/random: The `b64` attribute on `random_id` resources is deprecated, replaced by `b64_url` and `b64_std` [GH-9903]
- * provider/aws: Add Enhanced VPC routing to Redshift [GH-9950]
 
 BUG FIXES:
 
