@@ -481,6 +481,7 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("cluster_subnet_group_name", rsc.ClusterSubnetGroupName)
 	d.Set("availability_zone", rsc.AvailabilityZone)
 	d.Set("encrypted", rsc.Encrypted)
+	d.Set("enhanced_vpc_routing", rsc.EnhancedVpcRouting)
 	d.Set("kms_key_id", rsc.KmsKeyId)
 	d.Set("automated_snapshot_retention_period", rsc.AutomatedSnapshotRetentionPeriod)
 	d.Set("preferred_maintenance_window", rsc.PreferredMaintenanceWindow)
@@ -621,6 +622,11 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 
 	if d.HasChange("publicly_accessible") {
 		req.PubliclyAccessible = aws.Bool(d.Get("publicly_accessible").(bool))
+		requestUpdate = true
+	}
+
+	if d.HasChange("enhanced_vpc_routing") {
+		req.EnhancedVpcRouting = aws.Bool(d.Get("enhanced_vpc_routing").(bool))
 		requestUpdate = true
 	}
 
