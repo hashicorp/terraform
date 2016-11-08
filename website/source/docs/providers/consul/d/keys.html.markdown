@@ -8,8 +8,9 @@ description: |-
 
 # consul\_keys
 
-`consul_keys` reads values from the Consul key/value store.
-This is a powerful way dynamically set values in templates.
+The `consul_keys` resource reads values from the Consul key/value store.
+This is a powerful way to  This is a powerful way dynamically set values
+in templates.dynamically set values in templates.
 
 ## Example Usage
 
@@ -56,7 +57,7 @@ The `key` block supports the following:
   or written to.
 
 * `default` - (Optional) This is the default value to set for `var.<name>`
-  if the key does not exist in Consul. Defaults to the empty string.
+  if the key does not exist in Consul. Defaults to an empty string.
 
 ## Attributes Reference
 
