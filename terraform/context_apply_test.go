@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/helper/experiment"
 )
 
 func TestContext2Apply_basic(t *testing.T) {
@@ -2295,10 +2294,6 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 }
 
 func TestContext2Apply_outputOrphanModule(t *testing.T) {
-	if !experiment.Enabled(experiment.X_newApply) {
-		t.SkipNow()
-	}
-
 	m := testModule(t, "apply-output-orphan-module")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn

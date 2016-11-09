@@ -26,7 +26,10 @@ func (n *NodeOutputOrphan) Path() []string {
 
 // GraphNodeEvalable
 func (n *NodeOutputOrphan) EvalTree() EvalNode {
-	return &EvalDeleteOutput{
-		Name: n.OutputName,
+	return &EvalOpFilter{
+		Ops: []walkOperation{walkRefresh, walkApply, walkDestroy},
+		Node: &EvalDeleteOutput{
+			Name: n.OutputName,
+		},
 	}
 }
