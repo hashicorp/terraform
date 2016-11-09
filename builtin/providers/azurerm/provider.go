@@ -107,8 +107,9 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_sql_firewall_rule": resourceArmSqlFirewallRule(),
 			"azurerm_sql_server":        resourceArmSqlServer(),
 		},
-		ConfigureFunc: providerConfigure(p),
 	}
+
+	p.ConfigureFunc = providerConfigure(p)
 
 	return p
 }
