@@ -28,14 +28,14 @@ type DebugGraph struct {
 	buf bytes.Buffer
 
 	Dot     *dot.Graph
-	dotOpts *GraphDotOpts
+	dotOpts *dag.DotOpts
 }
 
 // DebugGraph holds a dot representation of the Terraform graph, and can be
 // written out to the DebugInfo log with DebugInfo.WriteGraph. A DebugGraph can
 // log data to it's internal buffer via the Printf and Write methods, which
 // will be also be written out to the DebugInfo archive.
-func NewDebugGraph(name string, g *Graph, opts *GraphDotOpts) (*DebugGraph, error) {
+func NewDebugGraph(name string, g *Graph, opts *dag.DotOpts) (*DebugGraph, error) {
 	dg := &DebugGraph{
 		Name:    name,
 		dotOpts: opts,
@@ -142,7 +142,7 @@ func (dg *DebugGraph) build(g *Graph) error {
 	dg.Dot.Directed = true
 
 	if dg.dotOpts == nil {
-		dg.dotOpts = &GraphDotOpts{
+		dg.dotOpts = &dag.DotOpts{
 			DrawCycles: true,
 			MaxDepth:   -1,
 			Verbose:    true,
@@ -181,6 +181,12 @@ func (dg *DebugGraph) buildSubgraph(modName string, g *Graph, modDepth int) erro
 	drawableVertices := make(map[dag.Vertex]struct{})
 	toDraw := make([]dag.Vertex, 0, len(g.Vertices()))
 	subgraphVertices := make(map[dag.Vertex]*Graph)
+
+	for _, v := range g.Vertices() {
+		if sn, ok := v.(GraphNodeSubgraph); ok {
+			subgraphVertices[v] = sn.Subgraph()
+		}
+	}
 
 	walk := func(v dag.Vertex, depth int) error {
 		// We only care about nodes that yield non-empty Dot strings.

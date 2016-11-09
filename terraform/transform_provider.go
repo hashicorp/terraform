@@ -355,7 +355,7 @@ func (n *graphNodeCloseProvider) CloseProviderName() string {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeCloseProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+func (n *graphNodeCloseProvider) DotNode(name string, opts *dag.DotOpts) *dot.Node {
 	if !opts.Verbose {
 		return nil
 	}
@@ -393,7 +393,7 @@ func (n *graphNodeProvider) ProviderConfig() *config.RawConfig {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+func (n *graphNodeProvider) DotNode(name string, opts *dag.DotOpts) *dot.Node {
 	return dot.NewNode(name, map[string]string{
 		"label": n.Name(),
 		"shape": "diamond",

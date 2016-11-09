@@ -102,7 +102,7 @@ func (n *graphNodeDisabledProvider) Name() string {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeDisabledProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+func (n *graphNodeDisabledProvider) DotNode(name string, opts *dag.DotOpts) *dot.Node {
 	return dot.NewNode(name, map[string]string{
 		"label": n.Name(),
 		"shape": "diamond",
