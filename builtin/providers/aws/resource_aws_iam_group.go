@@ -132,9 +132,9 @@ func resourceAwsIamGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 func validateAwsIamGroupName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9A-Za-z=,.@\-_]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9A-Za-z=,.@\-_+]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters, hyphens, underscores, commas, periods, @ symbols and equals signs allowed in %q: %q",
+			"only alphanumeric characters, hyphens, underscores, commas, periods, @ symbols, plus and equals signs allowed in %q: %q",
 			k, value))
 	}
 	return
