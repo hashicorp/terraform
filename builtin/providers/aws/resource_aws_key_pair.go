@@ -31,6 +31,20 @@ func resourceAwsKeyPair() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+				ConflictsWith: []string{"key_name_prefix"},
+			},
+			"key_name_prefix": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 100 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 100 characters, name is limited to 255", k))
+					}
+					return
+				},
 			},
 			"public_key": &schema.Schema{
 				Type:     schema.TypeString,
