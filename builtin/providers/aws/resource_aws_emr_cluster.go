@@ -48,7 +48,7 @@ func resourceAwsEMRCluster() *schema.Resource {
 			"core_instance_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  0,
+				Default:  1,
 			},
 			"cluster_state": &schema.Schema{
 				Type:     schema.TypeString,
