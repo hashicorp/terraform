@@ -1,9 +1,10 @@
 package scaleway
 
 import (
-	"log"
+	"fmt"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/scaleway/scaleway-cli/pkg/api"
 )
 
@@ -17,56 +18,83 @@ func String(val string) *string {
 	return &val
 }
 
-// NOTE copied from github.com/scaleway/scaleway-cli/pkg/api/helpers.go
-// the helpers.go file pulls in quite a lot dependencies, and they're just convenience wrappers anyway
+func validateVolumeType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "l_ssd" {
+		errors = append(errors, fmt.Errorf("%q must be l_ssd", k))
+	}
+	return
+}
 
-func deleteServerSafe(s *api.ScalewayAPI, serverID string) error {
-	server, err := s.GetServer(serverID)
+func validateVolumeSize(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+	if value < 1 || value > 150 {
+		errors = append(errors, fmt.Errorf("%q be more than 1 and less than 150", k))
+	}
+	return
+}
+
+// deleteRunningServer terminates the server and waits until it is removed.
+func deleteRunningServer(scaleway *api.ScalewayAPI, server *api.ScalewayServer) error {
+	err := scaleway.PostServerAction(server.Identifier, "terminate")
+
 	if err != nil {
+		if serr, ok := err.(api.ScalewayAPIError); ok {
+			if serr.StatusCode == 404 {
+				return nil
+			}
+		}
+
 		return err
 	}
 
-	if server.State != "stopped" {
-		if err := s.PostServerAction(serverID, "poweroff"); err != nil {
-			return err
-		}
-		if err := waitForServerState(s, serverID, "stopped"); err != nil {
-			return err
-		}
-	}
+	return resource.Retry(20*time.Minute, func() *resource.RetryError {
+		_, err := scaleway.GetServer(server.Identifier)
 
-	if err := s.DeleteServer(serverID); err != nil {
+		if err == nil {
+			return resource.RetryableError(fmt.Errorf("Waiting for server %q to be deleted", server.Identifier))
+		}
+
+		if serr, ok := err.(api.ScalewayAPIError); ok {
+			if serr.StatusCode == 404 {
+				return nil
+			}
+		}
+
+		return resource.RetryableError(err)
+	})
+}
+
+// deleteStoppedServer needs to cleanup attached root volumes. this is not done
+// automatically by Scaleway
+func deleteStoppedServer(scaleway *api.ScalewayAPI, server *api.ScalewayServer) error {
+	if err := scaleway.DeleteServer(server.Identifier); err != nil {
 		return err
 	}
+
 	if rootVolume, ok := server.Volumes["0"]; ok {
-		if err := s.DeleteVolume(rootVolume.Identifier); err != nil {
+		if err := scaleway.DeleteVolume(rootVolume.Identifier); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
-func waitForServerState(s *api.ScalewayAPI, serverID string, targetState string) error {
-	var server *api.ScalewayServer
-	var err error
+// NOTE copied from github.com/scaleway/scaleway-cli/pkg/api/helpers.go
+// the helpers.go file pulls in quite a lot dependencies, and they're just convenience wrappers anyway
 
-	var currentState string
+func waitForServerState(scaleway *api.ScalewayAPI, serverID, targetState string) error {
+	return resource.Retry(20*time.Minute, func() *resource.RetryError {
+		s, err := scaleway.GetServer(serverID)
 
-	for {
-		server, err = s.GetServer(serverID)
 		if err != nil {
-			return err
+			return resource.NonRetryableError(err)
 		}
-		if currentState != server.State {
-			log.Printf("[DEBUG] Server changed state to %q\n", server.State)
-			currentState = server.State
-		}
-		if server.State == targetState {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
 
-	return nil
+		if s.State != targetState {
+			return resource.RetryableError(fmt.Errorf("Waiting for server to enter %q state", targetState))
+		}
+
+		return nil
+	})
 }

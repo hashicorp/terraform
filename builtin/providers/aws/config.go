@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/applicationautoscaling"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -110,6 +111,7 @@ type AWSClient struct {
 	elbv2conn             *elbv2.ELBV2
 	emrconn               *emr.EMR
 	esconn                *elasticsearch.ElasticsearchService
+	acmconn               *acm.ACM
 	apigateway            *apigateway.APIGateway
 	appautoscalingconn    *applicationautoscaling.ApplicationAutoScaling
 	autoscalingconn       *autoscaling.AutoScaling
@@ -201,6 +203,10 @@ func (c *Config) Client() (interface{}, error) {
 	if err != nil {
 		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 	}
+
+	// Removes the SDK Version handler, so we only have the provider User-Agent
+	// Ex: "User-Agent: APN/1.0 HashiCorp/1.0 Terraform/0.7.9-dev"
+	sess.Handlers.Build.Remove(request.NamedHandler{Name: "core.SDKVersionUserAgentHandler"})
 	sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
 
 	if extraDebug := os.Getenv("TERRAFORM_AWS_AUTHFAILURE_DEBUG"); extraDebug != "" {
@@ -246,6 +252,7 @@ func (c *Config) Client() (interface{}, error) {
 		return nil, authErr
 	}
 
+	client.acmconn = acm.New(sess)
 	client.apigateway = apigateway.New(sess)
 	client.appautoscalingconn = applicationautoscaling.New(sess)
 	client.autoscalingconn = autoscaling.New(sess)
@@ -358,7 +365,7 @@ func (c *Config) ValidateAccountId(accountId string) error {
 var addTerraformVersionToUserAgent = request.NamedHandler{
 	Name: "terraform.TerraformVersionUserAgentHandler",
 	Fn: request.MakeAddToUserAgentHandler(
-		"terraform", terraform.VersionString()),
+		"APN/1.0 HashiCorp/1.0 Terraform", terraform.VersionString()),
 }
 
 var debugAuthFailure = request.NamedHandler{

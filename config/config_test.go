@@ -265,6 +265,13 @@ func TestConfigValidate_ignoreChangesBad(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_ignoreChangesInterpolate(t *testing.T) {
+	c := testConfig(t, "validate-ignore-changes-interpolate")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_moduleNameBad(t *testing.T) {
 	c := testConfig(t, "validate-module-name-bad")
 	if err := c.Validate(); err == nil {

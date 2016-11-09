@@ -6,12 +6,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/blockstorage/v2/volumes"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 )
 
 func resourceBlockStorageVolumeV2() *schema.Resource {
@@ -181,7 +181,7 @@ func resourceBlockStorageVolumeV2Read(d *schema.ResourceData, meta interface{}) 
 		return CheckDeleted(d, err, "volume")
 	}
 
-	log.Printf("[DEBUG] Retreived volume %s: %+v", d.Id(), v)
+	log.Printf("[DEBUG] Retrieved volume %s: %+v", d.Id(), v)
 
 	d.Set("size", v.Size)
 	d.Set("description", v.Description)
@@ -195,9 +195,9 @@ func resourceBlockStorageVolumeV2Read(d *schema.ResourceData, meta interface{}) 
 	attachments := make([]map[string]interface{}, len(v.Attachments))
 	for i, attachment := range v.Attachments {
 		attachments[i] = make(map[string]interface{})
-		attachments[i]["id"] = attachment["id"]
-		attachments[i]["instance_id"] = attachment["server_id"]
-		attachments[i]["device"] = attachment["device"]
+		attachments[i]["id"] = attachment.ID
+		attachments[i]["instance_id"] = attachment.ServerID
+		attachments[i]["device"] = attachment.Device
 		log.Printf("[DEBUG] attachment: %v", attachment)
 	}
 	d.Set("attachment", attachments)
@@ -249,7 +249,7 @@ func resourceBlockStorageVolumeV2Delete(d *schema.ResourceData, meta interface{}
 		} else {
 			for _, volumeAttachment := range v.Attachments {
 				log.Printf("[DEBUG] Attachment: %v", volumeAttachment)
-				if err := volumeattach.Delete(computeClient, volumeAttachment["server_id"].(string), volumeAttachment["id"].(string)).ExtractErr(); err != nil {
+				if err := volumeattach.Delete(computeClient, volumeAttachment.ServerID, volumeAttachment.ID).ExtractErr(); err != nil {
 					return err
 				}
 			}
@@ -318,11 +318,7 @@ func VolumeV2StateRefreshFunc(client *gophercloud.ServiceClient, volumeID string
 	return func() (interface{}, string, error) {
 		v, err := volumes.Get(client, volumeID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return nil, "", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				return v, "deleted", nil
 			}
 			return nil, "", err

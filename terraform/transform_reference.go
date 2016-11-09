@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
@@ -53,6 +55,14 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 	// Find the things that reference things and connect them
 	for _, v := range vs {
 		parents, _ := m.References(v)
+		parentsDbg := make([]string, len(parents))
+		for i, v := range parents {
+			parentsDbg[i] = dag.VertexName(v)
+		}
+		log.Printf(
+			"[DEBUG] ReferenceTransformer: %q references: %v",
+			dag.VertexName(v), parentsDbg)
+
 		for _, parent := range parents {
 			g.Connect(dag.BasicEdge(v, parent))
 		}
@@ -66,7 +76,8 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 type ReferenceMap struct {
 	// m is the mapping of referenceable name to list of verticies that
 	// implement that name. This is built on initialization.
-	m map[string][]dag.Vertex
+	references   map[string][]dag.Vertex
+	referencedBy map[string][]dag.Vertex
 }
 
 // References returns the list of vertices that this vertex
@@ -80,17 +91,62 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 	var matches []dag.Vertex
 	var missing []string
 	prefix := m.prefix(v)
-	for _, n := range rn.References() {
+	for _, ns := range rn.References() {
+		found := false
+		for _, n := range strings.Split(ns, "/") {
+			n = prefix + n
+			parents, ok := m.references[n]
+			if !ok {
+				continue
+			}
+
+			// Mark that we found a match
+			found = true
+
+			// Make sure this isn't a self reference, which isn't included
+			selfRef := false
+			for _, p := range parents {
+				if p == v {
+					selfRef = true
+					break
+				}
+			}
+			if selfRef {
+				continue
+			}
+
+			matches = append(matches, parents...)
+			break
+		}
+
+		if !found {
+			missing = append(missing, ns)
+		}
+	}
+
+	return matches, missing
+}
+
+// ReferencedBy returns the list of vertices that reference the
+// vertex passed in.
+func (m *ReferenceMap) ReferencedBy(v dag.Vertex) []dag.Vertex {
+	rn, ok := v.(GraphNodeReferenceable)
+	if !ok {
+		return nil
+	}
+
+	var matches []dag.Vertex
+	prefix := m.prefix(v)
+	for _, n := range rn.ReferenceableName() {
 		n = prefix + n
-		parents, ok := m.m[n]
+		children, ok := m.referencedBy[n]
 		if !ok {
-			missing = append(missing, n)
 			continue
 		}
 
 		// Make sure this isn't a self reference, which isn't included
 		selfRef := false
-		for _, p := range parents {
+		for _, p := range children {
 			if p == v {
 				selfRef = true
 				break
@@ -100,10 +156,10 @@ func (m *ReferenceMap) References(v dag.Vertex) ([]dag.Vertex, []string) {
 			continue
 		}
 
-		matches = append(matches, parents...)
+		matches = append(matches, children...)
 	}
 
-	return matches, missing
+	return matches
 }
 
 func (m *ReferenceMap) prefix(v dag.Vertex) string {
@@ -146,7 +202,25 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 		}
 	}
 
-	m.m = refMap
+	// Build the lookup table for referenced by
+	refByMap := make(map[string][]dag.Vertex)
+	for _, v := range vs {
+		// We're only looking for referenceable nodes
+		rn, ok := v.(GraphNodeReferencer)
+		if !ok {
+			continue
+		}
+
+		// Go through and cache them
+		prefix := m.prefix(v)
+		for _, n := range rn.References() {
+			n = prefix + n
+			refByMap[n] = append(refByMap[n], v)
+		}
+	}
+
+	m.references = refMap
+	m.referencedBy = refByMap
 	return &m
 }
 
@@ -155,10 +229,9 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 func ReferencesFromConfig(c *config.RawConfig) []string {
 	var result []string
 	for _, v := range c.Variables {
-		if r := ReferenceFromInterpolatedVar(v); r != "" {
-			result = append(result, r)
+		if r := ReferenceFromInterpolatedVar(v); len(r) > 0 {
+			result = append(result, r...)
 		}
-
 	}
 
 	return result
@@ -166,15 +239,31 @@ func ReferencesFromConfig(c *config.RawConfig) []string {
 
 // ReferenceFromInterpolatedVar returns the reference from this variable,
 // or an empty string if there is no reference.
-func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) string {
+func ReferenceFromInterpolatedVar(v config.InterpolatedVariable) []string {
 	switch v := v.(type) {
 	case *config.ModuleVariable:
-		return fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)
+		return []string{fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)}
 	case *config.ResourceVariable:
-		return v.ResourceId()
+		id := v.ResourceId()
+
+		// If we have a multi-reference (splat), then we depend on ALL
+		// resources with this type/name.
+		if v.Multi && v.Index == -1 {
+			return []string{fmt.Sprintf("%s.*", id)}
+		}
+
+		// Otherwise, we depend on a specific index.
+		idx := v.Index
+		if !v.Multi || v.Index == -1 {
+			idx = 0
+		}
+
+		// Depend on the index, as well as "N" which represents the
+		// un-expanded set of resources.
+		return []string{fmt.Sprintf("%s.%d/%s.N", id, idx, id)}
 	case *config.UserVariable:
-		return fmt.Sprintf("var.%s", v.Name)
+		return []string{fmt.Sprintf("var.%s", v.Name)}
 	default:
-		return ""
+		return nil
 	}
 }

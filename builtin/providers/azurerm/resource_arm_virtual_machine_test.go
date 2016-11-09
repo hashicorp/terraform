@@ -248,8 +248,8 @@ func TestAccAzureRMVirtualMachine_deleteVHDOptOut(t *testing.T) {
 func TestAccAzureRMVirtualMachine_deleteVHDOptIn(t *testing.T) {
 	var vm compute.VirtualMachine
 	ri := acctest.RandInt()
-	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisks, ri, ri, ri, ri, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDeleteVM, ri, ri, ri, ri, ri)
+	preConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksBefore, ri, ri, ri, ri, ri, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksAfter, ri, ri, ri, ri, ri, ri)
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -524,6 +524,7 @@ resource "azurerm_virtual_machine" "test" {
         vhd_uri = "${azurerm_storage_account.test.primary_blob_endpoint}${azurerm_storage_container.test.name}/myosdisk1.vhd"
         caching = "ReadWrite"
         create_option = "FromImage"
+        disk_size_gb = "45"
     }
 
     os_profile {
@@ -632,9 +633,14 @@ resource "azurerm_virtual_machine" "test" {
 }
 `
 
-var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisks = `
+var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksBefore = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_resource_group" "test-sa" {
+    name = "acctestRG-sa-%d"
     location = "West US"
 }
 
@@ -666,7 +672,7 @@ resource "azurerm_network_interface" "test" {
 
 resource "azurerm_storage_account" "test" {
     name = "accsa%d"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+    resource_group_name = "${azurerm_resource_group.test-sa.name}"
     location = "westus"
     account_type = "Standard_LRS"
 
@@ -677,7 +683,7 @@ resource "azurerm_storage_account" "test" {
 
 resource "azurerm_storage_container" "test" {
     name = "vhds"
-    resource_group_name = "${azurerm_resource_group.test.name}"
+    resource_group_name = "${azurerm_resource_group.test-sa.name}"
     storage_account_name = "${azurerm_storage_account.test.name}"
     container_access_type = "private"
 }
@@ -729,6 +735,62 @@ resource "azurerm_virtual_machine" "test" {
     	environment = "Production"
     	cost-center = "Ops"
     }
+}
+`
+
+var testAccAzureRMVirtualMachine_basicLinuxMachineDestroyDisksAfter = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_resource_group" "test-sa" {
+    name = "acctestRG-sa-%d"
+    location = "West US"
+}
+
+resource "azurerm_virtual_network" "test" {
+    name = "acctvn-%d"
+    address_space = ["10.0.0.0/16"]
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_subnet" "test" {
+    name = "acctsub-%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    virtual_network_name = "${azurerm_virtual_network.test.name}"
+    address_prefix = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "test" {
+    name = "acctni-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+
+    ip_configuration {
+    	name = "testconfiguration1"
+    	subnet_id = "${azurerm_subnet.test.id}"
+    	private_ip_address_allocation = "dynamic"
+    }
+}
+
+resource "azurerm_storage_account" "test" {
+    name = "accsa%d"
+    resource_group_name = "${azurerm_resource_group.test-sa.name}"
+    location = "westus"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "staging"
+    }
+}
+
+resource "azurerm_storage_container" "test" {
+    name = "vhds"
+    resource_group_name = "${azurerm_resource_group.test-sa.name}"
+    storage_account_name = "${azurerm_storage_account.test.name}"
+    container_access_type = "private"
 }
 `
 

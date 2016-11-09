@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -110,6 +110,16 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"reference_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"enable_sni": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
 
 			"tags": tagsSchema(),
 		},
@@ -166,6 +176,10 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 
 	if d.HasChange("insufficient_data_health_status") {
 		updateHealthCheck.InsufficientDataHealthStatus = aws.String(d.Get("insufficient_data_health_status").(string))
+	}
+
+	if d.HasChange("enable_sni") {
+		updateHealthCheck.EnableSNI = aws.Bool(d.Get("enable_sni").(bool))
 	}
 
 	_, err := conn.UpdateHealthCheck(updateHealthCheck)
@@ -225,6 +239,10 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		healthConfig.Inverted = aws.Bool(v.(bool))
 	}
 
+	if v, ok := d.GetOk("enable_sni"); ok {
+		healthConfig.EnableSNI = aws.Bool(v.(bool))
+	}
+
 	if *healthConfig.Type == route53.HealthCheckTypeCalculated {
 		if v, ok := d.GetOk("child_healthchecks"); ok {
 			healthConfig.ChildHealthChecks = expandStringList(v.(*schema.Set).List())
@@ -253,8 +271,13 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		}
 	}
 
+	callerRef := resource.UniqueId()
+	if v, ok := d.GetOk("reference_name"); ok {
+		callerRef = fmt.Sprintf("%s-%s", v.(string), callerRef)
+	}
+
 	input := &route53.CreateHealthCheckInput{
-		CallerReference:   aws.String(time.Now().Format(time.RFC3339Nano)),
+		CallerReference:   aws.String(callerRef),
 		HealthCheckConfig: healthConfig,
 	}
 
@@ -304,6 +327,7 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	d.Set("child_healthchecks", updated.ChildHealthChecks)
 	d.Set("child_health_threshold", updated.HealthThreshold)
 	d.Set("insufficient_data_health_status", updated.InsufficientDataHealthStatus)
+	d.Set("enable_sni", updated.EnableSNI)
 
 	if updated.AlarmIdentifier != nil {
 		d.Set("cloudwatch_alarm_name", updated.AlarmIdentifier.Name)

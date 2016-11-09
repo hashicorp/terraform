@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -143,6 +144,10 @@ func (c *ResourceConfig) Equal(c2 *ResourceConfig) bool {
 	if c == nil || c2 == nil {
 		return c == c2
 	}
+
+	// Sort the computed keys so they're deterministic
+	sort.Strings(c.ComputedKeys)
+	sort.Strings(c2.ComputedKeys)
 
 	// Two resource configs if their exported properties are equal.
 	// We don't compare "raw" because it is never used again after

@@ -8,14 +8,12 @@
 }*/
 
 body {
-    -webkit-font-smoothing: subpixel-antialiased;
+    // -webkit-font-smoothing: subpixel-antialiased;
     color: $black;
-    background-color: $black;
     font-size: 15px;
     font-family: $font-family-lato;
     font-weight: 500;
 }
-
 
 h1, h2, h3, h4, h5 {
     -webkit-font-smoothing: antialiased;

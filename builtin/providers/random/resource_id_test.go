@@ -13,7 +13,7 @@ func TestAccResourceID(t *testing.T) {
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccResourceIDConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccResourceIDCheck("random_id.foo"),
@@ -34,11 +34,19 @@ func testAccResourceIDCheck(id string) resource.TestCheckFunc {
 		}
 
 		b64Str := rs.Primary.Attributes["b64"]
+		b64UrlStr := rs.Primary.Attributes["b64_url"]
+		b64StdStr := rs.Primary.Attributes["b64_std"]
 		hexStr := rs.Primary.Attributes["hex"]
 		decStr := rs.Primary.Attributes["dec"]
 
 		if got, want := len(b64Str), 6; got != want {
 			return fmt.Errorf("base64 string length is %d; want %d", got, want)
+		}
+		if got, want := len(b64UrlStr), 6; got != want {
+			return fmt.Errorf("base64 URL string length is %d; want %d", got, want)
+		}
+		if got, want := len(b64StdStr), 8; got != want {
+			return fmt.Errorf("base64 STD string length is %d; want %d", got, want)
 		}
 		if got, want := len(hexStr), 8; got != want {
 			return fmt.Errorf("hex string length is %d; want %d", got, want)

@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 )
 
 func resourceNetworkingPortV2() *schema.Resource {
@@ -115,6 +115,11 @@ func resourceNetworkingPortV2() *schema.Resource {
 					},
 				},
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -126,17 +131,20 @@ func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	createOpts := ports.CreateOpts{
-		Name:                d.Get("name").(string),
-		AdminStateUp:        resourcePortAdminStateUpV2(d),
-		NetworkID:           d.Get("network_id").(string),
-		MACAddress:          d.Get("mac_address").(string),
-		TenantID:            d.Get("tenant_id").(string),
-		DeviceOwner:         d.Get("device_owner").(string),
-		SecurityGroups:      resourcePortSecurityGroupsV2(d),
-		DeviceID:            d.Get("device_id").(string),
-		FixedIPs:            resourcePortFixedIpsV2(d),
-		AllowedAddressPairs: resourceAllowedAddressPairsV2(d),
+	createOpts := PortCreateOpts{
+		ports.CreateOpts{
+			Name:                d.Get("name").(string),
+			AdminStateUp:        resourcePortAdminStateUpV2(d),
+			NetworkID:           d.Get("network_id").(string),
+			MACAddress:          d.Get("mac_address").(string),
+			TenantID:            d.Get("tenant_id").(string),
+			DeviceOwner:         d.Get("device_owner").(string),
+			SecurityGroups:      resourcePortSecurityGroupsV2(d),
+			DeviceID:            d.Get("device_id").(string),
+			FixedIPs:            resourcePortFixedIpsV2(d),
+			AllowedAddressPairs: resourceAllowedAddressPairsV2(d),
+		},
+		MapValueSpecs(d),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -175,7 +183,7 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 		return CheckDeleted(d, err, "port")
 	}
 
-	log.Printf("[DEBUG] Retreived Port %s: %+v", d.Id(), p)
+	log.Printf("[DEBUG] Retrieved Port %s: %+v", d.Id(), p)
 
 	d.Set("name", p.Name)
 	d.Set("admin_state_up", p.AdminStateUp)
@@ -359,26 +367,20 @@ func waitForNetworkPortDelete(networkingClient *gophercloud.ServiceClient, portI
 
 		p, err := ports.Get(networkingClient, portId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		err = ports.Delete(networkingClient, portId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Port %s still active.\n", portId)

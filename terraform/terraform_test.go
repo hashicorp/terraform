@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/logging"
 )
 
@@ -22,16 +23,8 @@ import (
 const fixtureDir = "./test-fixtures"
 
 func TestMain(m *testing.M) {
-	// Experimental features
-	xNewApply := flag.Bool("Xnew-apply", false, "Experiment: new apply graph")
-
-	// Normal features
-	shadow := flag.Bool("shadow", true, "Enable shadow graph")
-
+	experiment.Flag(flag.CommandLine)
 	flag.Parse()
-
-	// Setup experimental features
-	X_newApply = *xNewApply
 
 	if testing.Verbose() {
 		// if we're verbose, use the logging requested by TF_LOG
@@ -46,9 +39,6 @@ func TestMain(m *testing.M) {
 
 	// Always DeepCopy the Diff on every Plan during a test
 	contextTestDeepCopyOnPlan = true
-
-	// Shadow the new graphs
-	contextTestShadow = *shadow
 
 	os.Exit(m.Run())
 }
@@ -69,9 +59,15 @@ func tempDir(t *testing.T) string {
 // a function to defer to reset the old value.
 // the old value that should be set via a defer.
 func tempEnv(t *testing.T, k string, v string) func() {
-	old := os.Getenv(k)
+	old, oldOk := os.LookupEnv(k)
 	os.Setenv(k, v)
-	return func() { os.Setenv(k, old) }
+	return func() {
+		if !oldOk {
+			os.Unsetenv(k)
+		} else {
+			os.Setenv(k, old)
+		}
+	}
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
@@ -290,6 +286,14 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyProviderAliasConfigStr = `
+another_instance.bar:
+  ID = foo
+  provider = another.two
+another_instance.foo:
+  ID = foo
+`
+
 const testTerraformApplyEmptyModuleStr = `
 <no state>
 Outputs:
@@ -498,11 +502,31 @@ module.child:
     provider = aws.eu
 `
 
+const testTerraformApplyModuleVarRefExistingStr = `
+aws_instance.foo:
+  ID = foo
+  foo = bar
+
+module.child:
+  aws_instance.foo:
+    ID = foo
+    type = aws_instance
+    value = bar
+`
+
 const testTerraformApplyOutputOrphanStr = `
 <no state>
 Outputs:
 
 foo = bar
+`
+
+const testTerraformApplyOutputOrphanModuleStr = `
+module.child:
+  <no state>
+  Outputs:
+
+  foo = bar
 `
 
 const testTerraformApplyProvisionerStr = `
@@ -516,6 +540,13 @@ aws_instance.foo:
   dynamical = computed_dynamical
   num = 2
   type = aws_instance
+`
+
+const testTerraformApplyProvisionerModuleStr = `
+<no state>
+module.child:
+  aws_instance.bar:
+    ID = foo
 `
 
 const testTerraformApplyProvisionerFailStr = `
@@ -1137,7 +1168,6 @@ DIFF:
 DESTROY: aws_instance.foo
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo
 
 STATE:
@@ -1154,10 +1184,8 @@ const testTerraformPlanModuleDestroyCycleStr = `
 DIFF:
 
 module.a_module:
-  DESTROY MODULE
   DESTROY: aws_instance.a
 module.b_module:
-  DESTROY MODULE
   DESTROY: aws_instance.b
 
 STATE:
@@ -1174,7 +1202,6 @@ const testTerraformPlanModuleDestroyMultivarStr = `
 DIFF:
 
 module.child:
-  DESTROY MODULE
   DESTROY: aws_instance.foo.0
   DESTROY: aws_instance.foo.1
 
@@ -1371,6 +1398,21 @@ aws_instance.foo:
   num = 2
 `
 
+const testTerraformPlanTaintIgnoreChangesStr = `
+DIFF:
+
+DESTROY/CREATE: aws_instance.foo
+  type: "" => "aws_instance"
+  vars: "" => "foo"
+
+STATE:
+
+aws_instance.foo: (tainted)
+  ID = foo
+  type = aws_instance
+  vars = foo
+`
+
 const testTerraformPlanMultipleTaintStr = `
 DIFF:
 
@@ -1491,4 +1533,18 @@ hcl_instance.hcltest:
   foo.0 = a
   foo.1 = b
   type = hcl_instance
+`
+
+const testTerraformRefreshDataRefDataStr = `
+data.null_data_source.bar:
+  ID = foo
+  bar = yes
+  type = null_data_source
+
+  Dependencies:
+    data.null_data_source.foo
+data.null_data_source.foo:
+  ID = foo
+  foo = yes
+  type = null_data_source
 `

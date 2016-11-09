@@ -805,7 +805,7 @@ func launchSpecToMap(
 }
 
 func ebsBlockDevicesToSet(bdm []*ec2.BlockDeviceMapping, rootDevName *string) *schema.Set {
-	set := &schema.Set{F: hashEphemeralBlockDevice}
+	set := &schema.Set{F: hashEbsBlockDevice}
 
 	for _, val := range bdm {
 		if val.Ebs != nil {
@@ -1009,7 +1009,11 @@ func hashLaunchSpecification(v interface{}) int {
 func hashEbsBlockDevice(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
+	if name, ok := m["device_name"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", name.(string)))
+	}
+	if id, ok := m["snapshot_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", id.(string)))
+	}
 	return hashcode.String(buf.String())
 }

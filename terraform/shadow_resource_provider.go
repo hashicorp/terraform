@@ -107,6 +107,10 @@ func (p *shadowResourceProviderReal) Configure(c *ResourceConfig) error {
 	return err
 }
 
+func (p *shadowResourceProviderReal) Stop() error {
+	return p.ResourceProvider.Stop()
+}
+
 func (p *shadowResourceProviderReal) ValidateResource(
 	t string, c *ResourceConfig) ([]string, []error) {
 	key := t
@@ -139,6 +143,9 @@ func (p *shadowResourceProviderReal) ValidateResource(
 		Warns:  warns,
 		Errors: errs,
 	})
+
+	// With it locked, call SetValue again so that it triggers WaitForChange
+	p.Shared.ValidateResource.SetValue(key, wrapper)
 
 	// Return the result
 	return warns, errs
@@ -438,6 +445,11 @@ func (p *shadowResourceProviderShadow) Configure(c *ResourceConfig) error {
 	return result.Result
 }
 
+// Stop returns immediately.
+func (p *shadowResourceProviderShadow) Stop() error {
+	return nil
+}
+
 func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
 	// Unique key
 	key := t
@@ -463,7 +475,7 @@ func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceCon
 			p.ErrorLock.Lock()
 			defer p.ErrorLock.Unlock()
 			p.Error = multierror.Append(p.Error, fmt.Errorf(
-				"Unknown 'ValidateResource' shadow value: %#v", raw))
+				"Unknown 'ValidateResource' shadow value for %q: %#v", key, raw))
 			return nil, nil
 		}
 
@@ -555,7 +567,7 @@ func (p *shadowResourceProviderShadow) Diff(
 		p.ErrorLock.Lock()
 		defer p.ErrorLock.Unlock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Unknown 'diff' shadow value: %#v", raw))
+			"Unknown 'diff' shadow value for %q: %#v", key, raw))
 		return nil, nil
 	}
 

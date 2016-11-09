@@ -31,8 +31,9 @@ resource "aws_key_pair" "deployer" {
 
 The following arguments are supported:
 
-* `key_name` - (Required) The name for the key pair.
-* `public_key` - (Required) The public key material. 
+* `key_name` - (Optional) The name for the key pair.
+* `key_name_prefix` - (Optional) Creates a unique name beginning with the specified prefix. Conflicts with `key_name`.
+* `public_key` - (Required) The public key material.
 
 ## Attributes Reference
 

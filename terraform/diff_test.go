@@ -77,6 +77,20 @@ func TestDiffEqual(t *testing.T) {
 			},
 			true,
 		},
+
+		"different module diff destroys": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: false},
+				},
+			},
+			true,
+		},
 	}
 
 	for name, tc := range cases {
@@ -84,6 +98,53 @@ func TestDiffEqual(t *testing.T) {
 			actual := tc.D1.Equal(tc.D2)
 			if actual != tc.Equal {
 				t.Fatalf("expected: %v\n\n%#v\n\n%#v", tc.Equal, tc.D1, tc.D2)
+			}
+		})
+	}
+}
+
+func TestDiffPrune(t *testing.T) {
+	cases := map[string]struct {
+		D1, D2 *Diff
+	}{
+		"nil": {
+			nil,
+			nil,
+		},
+
+		"empty": {
+			new(Diff),
+			new(Diff),
+		},
+
+		"empty module": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}},
+				},
+			},
+			&Diff{},
+		},
+
+		"destroy module": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			tc.D1.Prune()
+			if !tc.D1.Equal(tc.D2) {
+				t.Fatalf("bad:\n\n%#v\n\n%#v", tc.D1, tc.D2)
 			}
 		})
 	}
@@ -551,6 +612,75 @@ func TestInstanceDiffSame(t *testing.T) {
 			},
 			false,
 			"diff RequiresNew; old: true, new: false",
+		},
+
+		// NewComputed on primitive
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// NewComputed on primitive, removed
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{},
+			},
+			true,
+			"",
+		},
+
+		// NewComputed on set, removed
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.1": &ResourceAttrDiff{
+						Old:        "foo",
+						New:        "",
+						NewRemoved: true,
+					},
+					"foo.2": &ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+				},
+			},
+			true,
+			"",
 		},
 
 		{

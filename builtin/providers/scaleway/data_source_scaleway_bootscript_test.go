@@ -20,7 +20,7 @@ func TestAccScalewayDataSourceBootscript_Basic(t *testing.T) {
 					testAccCheckBootscriptID("data.scaleway_bootscript.debug"),
 					resource.TestCheckResourceAttr("data.scaleway_bootscript.debug", "architecture", "x86_64"),
 					resource.TestCheckResourceAttr("data.scaleway_bootscript.debug", "public", "true"),
-					resource.TestMatchResourceAttr("data.scaleway_bootscript.debug", "kernel", regexp.MustCompile("4.5.7")),
+					resource.TestMatchResourceAttr("data.scaleway_bootscript.debug", "kernel", regexp.MustCompile("4.8.3")),
 				),
 			},
 		},
@@ -54,13 +54,20 @@ func testAccCheckBootscriptID(n string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("bootscript data source ID not set")
 		}
+
+		scaleway := testAccProvider.Meta().(*Client).scaleway
+		_, err := scaleway.GetBootscript(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 }
 
 const testAccCheckScalewayBootscriptConfig = `
 data "scaleway_bootscript" "debug" {
-  name = "x86_64 4.5.7 debug #3"
+  name = "x86_64 4.8.3 debug #1"
 }
 `
 

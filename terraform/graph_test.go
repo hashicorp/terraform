@@ -69,6 +69,29 @@ func TestGraphReplace_DependableWithNonDependable(t *testing.T) {
 	}
 }
 
+func TestGraphWalk_panicWrap(t *testing.T) {
+	var g Graph
+
+	// Add our crasher
+	v := &testGraphSubPath{
+		PathFn: func() []string {
+			panic("yo")
+		},
+	}
+	g.Add(v)
+
+	err := g.Walk(GraphWalkerPanicwrap(new(NullGraphWalker)))
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
+type testGraphSubPath struct {
+	PathFn func() []string
+}
+
+func (v *testGraphSubPath) Path() []string { return v.PathFn() }
+
 type testGraphDependable struct {
 	VertexName      string
 	DependentOnMock []string

@@ -41,7 +41,9 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 
 		// Determine what we're looking for
 		addr := arn.ResourceAddr()
-		log.Printf("[TRACE] AttachResourceConfigTransformer: Attach resource request: %s", addr)
+		log.Printf(
+			"[TRACE] AttachResourceConfigTransformer: Attach resource "+
+				"config request: %s", addr)
 
 		// Get the configuration.
 		path := normalizeModulePath(addr.Path)

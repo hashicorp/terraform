@@ -24,6 +24,25 @@ import (
 	"net/http"
 )
 
+// ApplicationGatewayBackendHealthServerHealth enumerates the values for
+// application gateway backend health server health.
+type ApplicationGatewayBackendHealthServerHealth string
+
+const (
+	// Down specifies the down state for application gateway backend health
+	// server health.
+	Down ApplicationGatewayBackendHealthServerHealth = "Down"
+	// Partial specifies the partial state for application gateway backend
+	// health server health.
+	Partial ApplicationGatewayBackendHealthServerHealth = "Partial"
+	// Unknown specifies the unknown state for application gateway backend
+	// health server health.
+	Unknown ApplicationGatewayBackendHealthServerHealth = "Unknown"
+	// Up specifies the up state for application gateway backend health server
+	// health.
+	Up ApplicationGatewayBackendHealthServerHealth = "Up"
+)
+
 // ApplicationGatewayCookieBasedAffinity enumerates the values for application
 // gateway cookie based affinity.
 type ApplicationGatewayCookieBasedAffinity string
@@ -35,6 +54,19 @@ const (
 	// Enabled specifies the enabled state for application gateway cookie
 	// based affinity.
 	Enabled ApplicationGatewayCookieBasedAffinity = "Enabled"
+)
+
+// ApplicationGatewayFirewallMode enumerates the values for application
+// gateway firewall mode.
+type ApplicationGatewayFirewallMode string
+
+const (
+	// Detection specifies the detection state for application gateway
+	// firewall mode.
+	Detection ApplicationGatewayFirewallMode = "Detection"
+	// Prevention specifies the prevention state for application gateway
+	// firewall mode.
+	Prevention ApplicationGatewayFirewallMode = "Prevention"
 )
 
 // ApplicationGatewayOperationalState enumerates the values for application
@@ -94,6 +126,11 @@ const (
 	// StandardSmall specifies the standard small state for application
 	// gateway sku name.
 	StandardSmall ApplicationGatewaySkuName = "Standard_Small"
+	// WAFLarge specifies the waf large state for application gateway sku name.
+	WAFLarge ApplicationGatewaySkuName = "WAF_Large"
+	// WAFMedium specifies the waf medium state for application gateway sku
+	// name.
+	WAFMedium ApplicationGatewaySkuName = "WAF_Medium"
 )
 
 // ApplicationGatewaySslProtocol enumerates the values for application gateway
@@ -118,6 +155,8 @@ type ApplicationGatewayTier string
 const (
 	// Standard specifies the standard state for application gateway tier.
 	Standard ApplicationGatewayTier = "Standard"
+	// WAF specifies the waf state for application gateway tier.
+	WAF ApplicationGatewayTier = "WAF"
 )
 
 // AuthorizationUseStatus enumerates the values for authorization use status.
@@ -390,18 +429,22 @@ const (
 type VirtualNetworkGatewayConnectionStatus string
 
 const (
-	// Connected specifies the connected state for virtual network gateway
-	// connection status.
-	Connected VirtualNetworkGatewayConnectionStatus = "Connected"
-	// Connecting specifies the connecting state for virtual network gateway
-	// connection status.
-	Connecting VirtualNetworkGatewayConnectionStatus = "Connecting"
-	// NotConnected specifies the not connected state for virtual network
+	// VirtualNetworkGatewayConnectionStatusConnected specifies the virtual
+	// network gateway connection status connected state for virtual network
 	// gateway connection status.
-	NotConnected VirtualNetworkGatewayConnectionStatus = "NotConnected"
-	// Unknown specifies the unknown state for virtual network gateway
-	// connection status.
-	Unknown VirtualNetworkGatewayConnectionStatus = "Unknown"
+	VirtualNetworkGatewayConnectionStatusConnected VirtualNetworkGatewayConnectionStatus = "Connected"
+	// VirtualNetworkGatewayConnectionStatusConnecting specifies the virtual
+	// network gateway connection status connecting state for virtual network
+	// gateway connection status.
+	VirtualNetworkGatewayConnectionStatusConnecting VirtualNetworkGatewayConnectionStatus = "Connecting"
+	// VirtualNetworkGatewayConnectionStatusNotConnected specifies the virtual
+	// network gateway connection status not connected state for virtual
+	// network gateway connection status.
+	VirtualNetworkGatewayConnectionStatusNotConnected VirtualNetworkGatewayConnectionStatus = "NotConnected"
+	// VirtualNetworkGatewayConnectionStatusUnknown specifies the virtual
+	// network gateway connection status unknown state for virtual network
+	// gateway connection status.
+	VirtualNetworkGatewayConnectionStatusUnknown VirtualNetworkGatewayConnectionStatus = "Unknown"
 )
 
 // VirtualNetworkGatewayConnectionType enumerates the values for virtual
@@ -483,15 +526,15 @@ const (
 type VirtualNetworkPeeringState string
 
 const (
-	// VirtualNetworkPeeringStateConnected specifies the virtual network
-	// peering state connected state for virtual network peering state.
-	VirtualNetworkPeeringStateConnected VirtualNetworkPeeringState = "Connected"
-	// VirtualNetworkPeeringStateDisconnected specifies the virtual network
-	// peering state disconnected state for virtual network peering state.
-	VirtualNetworkPeeringStateDisconnected VirtualNetworkPeeringState = "Disconnected"
-	// VirtualNetworkPeeringStateInitiated specifies the virtual network
-	// peering state initiated state for virtual network peering state.
-	VirtualNetworkPeeringStateInitiated VirtualNetworkPeeringState = "Initiated"
+	// Connected specifies the connected state for virtual network peering
+	// state.
+	Connected VirtualNetworkPeeringState = "Connected"
+	// Disconnected specifies the disconnected state for virtual network
+	// peering state.
+	Disconnected VirtualNetworkPeeringState = "Disconnected"
+	// Initiated specifies the initiated state for virtual network peering
+	// state.
+	Initiated VirtualNetworkPeeringState = "Initiated"
 )
 
 // VpnType enumerates the values for vpn type.
@@ -559,6 +602,34 @@ type ApplicationGatewayBackendAddressPoolPropertiesFormat struct {
 	BackendIPConfigurations *[]InterfaceIPConfiguration         `json:"backendIPConfigurations,omitempty"`
 	BackendAddresses        *[]ApplicationGatewayBackendAddress `json:"backendAddresses,omitempty"`
 	ProvisioningState       *string                             `json:"provisioningState,omitempty"`
+}
+
+// ApplicationGatewayBackendHealth is list of backendhealth pools.
+type ApplicationGatewayBackendHealth struct {
+	autorest.Response   `json:"-"`
+	BackendAddressPools *[]ApplicationGatewayBackendHealthPool `json:"backendAddressPools,omitempty"`
+}
+
+// ApplicationGatewayBackendHealthHTTPSettings is application gateway
+// backendhealth http settings.
+type ApplicationGatewayBackendHealthHTTPSettings struct {
+	BackendHTTPSettings *ApplicationGatewayBackendHTTPSettings   `json:"backendHttpSettings,omitempty"`
+	Servers             *[]ApplicationGatewayBackendHealthServer `json:"servers,omitempty"`
+}
+
+// ApplicationGatewayBackendHealthPool is application gateway backendhealth
+// pool.
+type ApplicationGatewayBackendHealthPool struct {
+	BackendAddressPool            *ApplicationGatewayBackendAddressPool          `json:"backendAddressPool,omitempty"`
+	BackendHTTPSettingsCollection *[]ApplicationGatewayBackendHealthHTTPSettings `json:"backendHttpSettingsCollection,omitempty"`
+}
+
+// ApplicationGatewayBackendHealthServer is application gateway backendhealth
+// http settings.
+type ApplicationGatewayBackendHealthServer struct {
+	Address         *string                                     `json:"address,omitempty"`
+	IPConfiguration *SubResource                                `json:"ipConfiguration,omitempty"`
+	Health          ApplicationGatewayBackendHealthServerHealth `json:"health,omitempty"`
 }
 
 // ApplicationGatewayBackendHTTPSettings is backend address pool settings of
@@ -711,22 +782,23 @@ type ApplicationGatewayProbePropertiesFormat struct {
 
 // ApplicationGatewayPropertiesFormat is properties of Application Gateway
 type ApplicationGatewayPropertiesFormat struct {
-	Sku                           *ApplicationGatewaySku                         `json:"sku,omitempty"`
-	SslPolicy                     *ApplicationGatewaySslPolicy                   `json:"sslPolicy,omitempty"`
-	OperationalState              ApplicationGatewayOperationalState             `json:"operationalState,omitempty"`
-	GatewayIPConfigurations       *[]ApplicationGatewayIPConfiguration           `json:"gatewayIPConfigurations,omitempty"`
-	AuthenticationCertificates    *[]ApplicationGatewayAuthenticationCertificate `json:"authenticationCertificates,omitempty"`
-	SslCertificates               *[]ApplicationGatewaySslCertificate            `json:"sslCertificates,omitempty"`
-	FrontendIPConfigurations      *[]ApplicationGatewayFrontendIPConfiguration   `json:"frontendIPConfigurations,omitempty"`
-	FrontendPorts                 *[]ApplicationGatewayFrontendPort              `json:"frontendPorts,omitempty"`
-	Probes                        *[]ApplicationGatewayProbe                     `json:"probes,omitempty"`
-	BackendAddressPools           *[]ApplicationGatewayBackendAddressPool        `json:"backendAddressPools,omitempty"`
-	BackendHTTPSettingsCollection *[]ApplicationGatewayBackendHTTPSettings       `json:"backendHttpSettingsCollection,omitempty"`
-	HTTPListeners                 *[]ApplicationGatewayHTTPListener              `json:"httpListeners,omitempty"`
-	URLPathMaps                   *[]ApplicationGatewayURLPathMap                `json:"urlPathMaps,omitempty"`
-	RequestRoutingRules           *[]ApplicationGatewayRequestRoutingRule        `json:"requestRoutingRules,omitempty"`
-	ResourceGUID                  *string                                        `json:"resourceGuid,omitempty"`
-	ProvisioningState             *string                                        `json:"provisioningState,omitempty"`
+	Sku                                 *ApplicationGatewaySku                                 `json:"sku,omitempty"`
+	SslPolicy                           *ApplicationGatewaySslPolicy                           `json:"sslPolicy,omitempty"`
+	OperationalState                    ApplicationGatewayOperationalState                     `json:"operationalState,omitempty"`
+	GatewayIPConfigurations             *[]ApplicationGatewayIPConfiguration                   `json:"gatewayIPConfigurations,omitempty"`
+	AuthenticationCertificates          *[]ApplicationGatewayAuthenticationCertificate         `json:"authenticationCertificates,omitempty"`
+	SslCertificates                     *[]ApplicationGatewaySslCertificate                    `json:"sslCertificates,omitempty"`
+	FrontendIPConfigurations            *[]ApplicationGatewayFrontendIPConfiguration           `json:"frontendIPConfigurations,omitempty"`
+	FrontendPorts                       *[]ApplicationGatewayFrontendPort                      `json:"frontendPorts,omitempty"`
+	Probes                              *[]ApplicationGatewayProbe                             `json:"probes,omitempty"`
+	BackendAddressPools                 *[]ApplicationGatewayBackendAddressPool                `json:"backendAddressPools,omitempty"`
+	BackendHTTPSettingsCollection       *[]ApplicationGatewayBackendHTTPSettings               `json:"backendHttpSettingsCollection,omitempty"`
+	HTTPListeners                       *[]ApplicationGatewayHTTPListener                      `json:"httpListeners,omitempty"`
+	URLPathMaps                         *[]ApplicationGatewayURLPathMap                        `json:"urlPathMaps,omitempty"`
+	RequestRoutingRules                 *[]ApplicationGatewayRequestRoutingRule                `json:"requestRoutingRules,omitempty"`
+	WebApplicationFirewallConfiguration *ApplicationGatewayWebApplicationFirewallConfiguration `json:"webApplicationFirewallConfiguration,omitempty"`
+	ResourceGUID                        *string                                                `json:"resourceGuid,omitempty"`
+	ProvisioningState                   *string                                                `json:"provisioningState,omitempty"`
 }
 
 // ApplicationGatewayRequestRoutingRule is request routing rule of application
@@ -793,6 +865,13 @@ type ApplicationGatewayURLPathMapPropertiesFormat struct {
 	DefaultBackendHTTPSettings *SubResource                  `json:"defaultBackendHttpSettings,omitempty"`
 	PathRules                  *[]ApplicationGatewayPathRule `json:"pathRules,omitempty"`
 	ProvisioningState          *string                       `json:"provisioningState,omitempty"`
+}
+
+// ApplicationGatewayWebApplicationFirewallConfiguration is application
+// gateway web application firewall configuration
+type ApplicationGatewayWebApplicationFirewallConfiguration struct {
+	Enabled      *bool                          `json:"enabled,omitempty"`
+	FirewallMode ApplicationGatewayFirewallMode `json:"firewallMode,omitempty"`
 }
 
 // AuthorizationListResult is response for ListAuthorizations Api service
@@ -1321,16 +1400,16 @@ func (client InterfaceListResult) InterfaceListResultPreparer() (*http.Request, 
 
 // InterfacePropertiesFormat is networkInterface properties.
 type InterfacePropertiesFormat struct {
-	VirtualMachine               *SubResource                `json:"virtualMachine,omitempty"`
-	NetworkSecurityGroup         *SecurityGroup              `json:"networkSecurityGroup,omitempty"`
-	IPConfigurations             *[]InterfaceIPConfiguration `json:"ipConfigurations,omitempty"`
-	DNSSettings                  *InterfaceDNSSettings       `json:"dnsSettings,omitempty"`
-	MacAddress                   *string                     `json:"macAddress,omitempty"`
-	Primary                      *bool                       `json:"primary,omitempty"`
-	AcceleratedNetworkingEnabled *bool                       `json:"acceleratedNetworkingEnabled,omitempty"`
-	EnableIPForwarding           *bool                       `json:"enableIPForwarding,omitempty"`
-	ResourceGUID                 *string                     `json:"resourceGuid,omitempty"`
-	ProvisioningState            *string                     `json:"provisioningState,omitempty"`
+	VirtualMachine              *SubResource                `json:"virtualMachine,omitempty"`
+	NetworkSecurityGroup        *SecurityGroup              `json:"networkSecurityGroup,omitempty"`
+	IPConfigurations            *[]InterfaceIPConfiguration `json:"ipConfigurations,omitempty"`
+	DNSSettings                 *InterfaceDNSSettings       `json:"dnsSettings,omitempty"`
+	MacAddress                  *string                     `json:"macAddress,omitempty"`
+	Primary                     *bool                       `json:"primary,omitempty"`
+	EnableAcceleratedNetworking *bool                       `json:"enableAcceleratedNetworking,omitempty"`
+	EnableIPForwarding          *bool                       `json:"enableIPForwarding,omitempty"`
+	ResourceGUID                *string                     `json:"resourceGuid,omitempty"`
+	ProvisioningState           *string                     `json:"provisioningState,omitempty"`
 }
 
 // IPAddressAvailabilityResult is response for CheckIPAddressAvailability Api

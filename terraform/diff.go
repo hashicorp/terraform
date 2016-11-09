@@ -32,6 +32,30 @@ type Diff struct {
 	Modules []*ModuleDiff
 }
 
+// Prune cleans out unused structures in the diff without affecting
+// the behavior of the diff at all.
+//
+// This is not safe to call concurrently. This is safe to call on a
+// nil Diff.
+func (d *Diff) Prune() {
+	if d == nil {
+		return
+	}
+
+	// Prune all empty modules
+	newModules := make([]*ModuleDiff, 0, len(d.Modules))
+	for _, m := range d.Modules {
+		// If the module isn't empty, we keep it
+		if !m.Empty() {
+			newModules = append(newModules, m)
+		}
+	}
+	if len(newModules) == 0 {
+		newModules = nil
+	}
+	d.Modules = newModules
+}
+
 // AddModule adds the module with the given path to the diff.
 //
 // This should be the preferred method to add module diffs since it
@@ -100,8 +124,20 @@ func (d *Diff) Equal(d2 *Diff) bool {
 	sort.Sort(moduleDiffSort(d.Modules))
 	sort.Sort(moduleDiffSort(d2.Modules))
 
+	// Copy since we have to modify the module destroy flag to false so
+	// we don't compare that. TODO: delete this when we get rid of the
+	// destroy flag on modules.
+	dCopy := d.DeepCopy()
+	d2Copy := d2.DeepCopy()
+	for _, m := range dCopy.Modules {
+		m.Destroy = false
+	}
+	for _, m := range d2Copy.Modules {
+		m.Destroy = false
+	}
+
 	// Use DeepEqual
-	return reflect.DeepEqual(d, d2)
+	return reflect.DeepEqual(dCopy, d2Copy)
 }
 
 // DeepCopy performs a deep copy of all parts of the Diff, making the
@@ -200,6 +236,10 @@ func (d *ModuleDiff) ChangeType() DiffChangeType {
 
 // Empty returns true if the diff has no changes within this module.
 func (d *ModuleDiff) Empty() bool {
+	if d.Destroy {
+		return false
+	}
+
 	if len(d.Resources) == 0 {
 		return true
 	}
@@ -237,10 +277,6 @@ func (d *ModuleDiff) IsRoot() bool {
 // format that users can read to quickly inspect a diff.
 func (d *ModuleDiff) String() string {
 	var buf bytes.Buffer
-
-	if d.Destroy {
-		buf.WriteString("DESTROY MODULE\n")
-	}
 
 	names := make([]string, 0, len(d.Resources))
 	for name, _ := range d.Resources {
@@ -323,6 +359,9 @@ type InstanceDiff struct {
 	DestroyTainted bool
 }
 
+func (d *InstanceDiff) Lock()   { d.mu.Lock() }
+func (d *InstanceDiff) Unlock() { d.mu.Unlock() }
+
 // ResourceAttrDiff is the diff of a single attribute of a resource.
 type ResourceAttrDiff struct {
 	Old         string      // Old Value
@@ -365,6 +404,19 @@ func (d *InstanceDiff) init() {
 
 func NewInstanceDiff() *InstanceDiff {
 	return &InstanceDiff{Attributes: make(map[string]*ResourceAttrDiff)}
+}
+
+func (d *InstanceDiff) Copy() (*InstanceDiff, error) {
+	if d == nil {
+		return nil, nil
+	}
+
+	dCopy, err := copystructure.Config{Lock: true}.Copy(d)
+	if err != nil {
+		return nil, err
+	}
+
+	return dCopy.(*InstanceDiff), nil
 }
 
 // ChangeType returns the DiffChangeType represented by the diff
@@ -601,6 +653,13 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 			// to be removed, that's just fine.
 			if diffOld.NewRemoved {
 				continue
+			}
+
+			// If the last diff was a computed value then the absense of
+			// that value is allowed since it may mean the value ended up
+			// being the same.
+			if diffOld.NewComputed {
+				ok = true
 			}
 
 			// No exact match, but maybe this is a set containing computed

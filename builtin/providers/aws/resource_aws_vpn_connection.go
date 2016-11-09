@@ -57,78 +57,79 @@ func resourceAwsVpnConnection() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"vpn_gateway_id": &schema.Schema{
+			"vpn_gateway_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"customer_gateway_id": &schema.Schema{
+			"customer_gateway_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"static_routes_only": &schema.Schema{
+			"static_routes_only": {
 				Type:     schema.TypeBool,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
 			"tags": tagsSchema(),
 
 			// Begin read only attributes
-			"customer_gateway_configuration": &schema.Schema{
+			"customer_gateway_configuration": {
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 			},
 
-			"tunnel1_address": &schema.Schema{
+			"tunnel1_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"tunnel1_preshared_key": &schema.Schema{
+			"tunnel1_preshared_key": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"tunnel2_address": &schema.Schema{
+			"tunnel2_address": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"tunnel2_preshared_key": &schema.Schema{
+			"tunnel2_preshared_key": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"routes": &schema.Schema{
+			"routes": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"destination_cidr_block": &schema.Schema{
+						"destination_cidr_block": {
 							Type:     schema.TypeString,
 							Computed: true,
 							Optional: true,
 						},
 
-						"source": &schema.Schema{
+						"source": {
 							Type:     schema.TypeString,
 							Computed: true,
 							Optional: true,
 						},
 
-						"state": &schema.Schema{
+						"state": {
 							Type:     schema.TypeString,
 							Computed: true,
 							Optional: true,
@@ -145,37 +146,37 @@ func resourceAwsVpnConnection() *schema.Resource {
 				},
 			},
 
-			"vgw_telemetry": &schema.Schema{
+			"vgw_telemetry": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"accepted_route_count": &schema.Schema{
+						"accepted_route_count": {
 							Type:     schema.TypeInt,
 							Computed: true,
 							Optional: true,
 						},
 
-						"last_status_change": &schema.Schema{
+						"last_status_change": {
 							Type:     schema.TypeString,
 							Computed: true,
 							Optional: true,
 						},
 
-						"outside_ip_address": &schema.Schema{
+						"outside_ip_address": {
 							Type:     schema.TypeString,
 							Computed: true,
 							Optional: true,
 						},
 
-						"status": &schema.Schema{
+						"status": {
 							Type:     schema.TypeString,
 							Computed: true,
 							Optional: true,
 						},
 
-						"status_message": &schema.Schema{
+						"status_message": {
 							Type:     schema.TypeString,
 							Computed: true,
 							Optional: true,
@@ -304,6 +305,9 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 		if err := d.Set("static_routes_only", vpnConnection.Options.StaticRoutesOnly); err != nil {
 			return err
 		}
+	} else {
+		//If there no Options on the connection then we do not support *static_routes*
+		d.Set("static_routes_only", false)
 	}
 
 	// Set read only attributes.

@@ -155,6 +155,57 @@ func TestAccAWSAmiDataSource_localNameFilter(t *testing.T) {
 	})
 }
 
+func TestResourceValidateNameRegex(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `\`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `**`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `(.+`,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateNameRegex(tc.Value, "name_regex")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    `\/`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `.*`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `\b(?:\d{1,3}\.){3}\d{1,3}\b`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateNameRegex(tc.Value, "name_regex")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
 func testAccCheckAwsAmiDataSourceDestroy(s *terraform.State) error {
 	return nil
 }

@@ -316,3 +316,62 @@ resource "aws_autoscaling_policy" "foobar_simple" {
 }
 `, name, name, name)
 }
+
+func TestAccAWSAutoscalingPolicy_SimpleScalingStepAdjustment(t *testing.T) {
+	var policy autoscaling.ScalingPolicy
+
+	name := acctest.RandString(5)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoscalingPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoscalingPolicyConfig_SimpleScalingStepAdjustment(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalingPolicyExists("aws_autoscaling_policy.foobar_simple", &policy),
+					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar_simple", "adjustment_type", "ExactCapacity"),
+					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar_simple", "scaling_adjustment", "0"),
+				),
+			},
+		},
+	})
+}
+
+func testAccAWSAutoscalingPolicyConfig_SimpleScalingStepAdjustment(name string) string {
+	return fmt.Sprintf(`
+resource "aws_launch_configuration" "foobar" {
+  name          = "tf-test-%s"
+  image_id      = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "foobar" {
+  availability_zones        = ["us-west-2a"]
+  name                      = "terraform-test-%s"
+  max_size                  = 5
+  min_size                  = 0
+  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  force_delete              = true
+  termination_policies      = ["OldestInstance"]
+  launch_configuration      = "${aws_launch_configuration.foobar.name}"
+
+  tag {
+    key                 = "Foo"
+    value               = "foo-bar"
+    propagate_at_launch = true
+  }
+}
+
+resource "aws_autoscaling_policy" "foobar_simple" {
+  name                     = "foobar_simple_%s"
+  adjustment_type          = "ExactCapacity"
+  cooldown                 = 300
+  policy_type              = "SimpleScaling"
+  scaling_adjustment       = 0
+  autoscaling_group_name   = "${aws_autoscaling_group.foobar.name}"
+}
+`, name, name, name)
+}

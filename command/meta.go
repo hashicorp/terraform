@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -63,10 +64,13 @@ type Meta struct {
 	//
 	// parallelism is used to control the number of concurrent operations
 	// allowed when walking the graph
+	//
+	// shadow is used to enable/disable the shadow graph
 	statePath    string
 	stateOutPath string
 	backupPath   string
 	parallelism  int
+	shadow       bool
 }
 
 // initStatePaths is used to initialize the default values for
@@ -108,18 +112,24 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
-			// Setup our state
-			state, statePath, err := StateFromPlan(m.statePath, m.stateOutPath, plan)
+			// Setup our state, force it to use our plan's state
+			stateOpts := m.StateOpts()
+			if plan != nil {
+				stateOpts.ForceState = plan.State
+			}
+
+			// Get the state
+			result, err := State(stateOpts)
 			if err != nil {
 				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
 
 			// Set our state
-			m.state = state
+			m.state = result.State
 
 			// this is used for printing the saved location later
 			if m.stateOutPath == "" {
-				m.stateOutPath = statePath
+				m.stateOutPath = result.StatePath
 			}
 
 			if len(m.variables) > 0 {
@@ -211,10 +221,8 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 	var mode terraform.InputMode
 	mode |= terraform.InputModeProvider
-	if len(m.variables) == 0 {
-		mode |= terraform.InputModeVar
-		mode |= terraform.InputModeVarUnset
-	}
+	mode |= terraform.InputModeVar
+	mode |= terraform.InputModeVarUnset
 
 	return mode
 }
@@ -292,12 +300,10 @@ func (m *Meta) Input() bool {
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
 	var opts terraform.ContextOpts = *m.ContextOpts
-	opts.Hooks = make(
-		[]terraform.Hook,
-		len(m.ContextOpts.Hooks)+len(m.extraHooks)+1)
-	opts.Hooks[0] = m.uiHook()
-	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
-	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
+
+	opts.Hooks = []terraform.Hook{m.uiHook(), &terraform.DebugHook{}}
+	opts.Hooks = append(opts.Hooks, m.ContextOpts.Hooks...)
+	opts.Hooks = append(opts.Hooks, m.extraHooks...)
 
 	vs := make(map[string]interface{})
 	for k, v := range opts.Variables {
@@ -312,6 +318,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.Variables = vs
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
+	opts.Shadow = m.shadow
 
 	return &opts
 }
@@ -328,8 +335,11 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 		f.Var((*FlagKVFile)(&m.autoVariables), m.autoKey, "variable file")
 	}
 
+	// Advanced (don't need documentation, or unlikely to be set)
+	f.BoolVar(&m.shadow, "shadow", true, "shadow graph")
+
 	// Experimental features
-	f.BoolVar(&terraform.X_newApply, "Xnew-apply", false, "experiment: new apply")
+	experiment.Flag(f)
 
 	// Create an io.Writer that writes to our Ui properly for errors.
 	// This is kind of a hack, but it does the job. Basically: create
@@ -444,6 +454,42 @@ func (m *Meta) addModuleDepthFlag(flags *flag.FlagSet, moduleDepth *int) {
 			*moduleDepth = md
 		}
 	}
+}
+
+// outputShadowError outputs the error from ctx.ShadowError. If the
+// error is nil then nothing happens. If output is false then it isn't
+// outputted to the user (you can define logic to guard against outputting).
+func (m *Meta) outputShadowError(err error, output bool) bool {
+	// Do nothing if no error
+	if err == nil {
+		return false
+	}
+
+	// If not outputting, do nothing
+	if !output {
+		return false
+	}
+
+	// Output!
+	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+		"[reset][bold][yellow]\nExperimental feature failure! Please report a bug.\n\n"+
+			"This is not an error. Your Terraform operation completed successfully.\n"+
+			"Your real infrastructure is unaffected by this message.\n\n"+
+			"[reset][yellow]While running, Terraform sometimes tests experimental features in the\n"+
+			"background. These features cannot affect real state and never touch\n"+
+			"real infrastructure. If the features work properly, you see nothing.\n"+
+			"If the features fail, this message appears.\n\n"+
+			"The following failures happened while running experimental features.\n"+
+			"Please report a Terraform bug so that future Terraform versions that\n"+
+			"enable these features can be improved!\n\n"+
+			"You can report an issue at: https://github.com/hashicorp/terraform/issues\n\n"+
+			"%s\n\n"+
+			"This is not an error. Your terraform operation completed successfully\n"+
+			"and your real infrastructure is unaffected by this message.",
+		err,
+	)))
+
+	return true
 }
 
 // contextOpts are the options used to load a context from a command.

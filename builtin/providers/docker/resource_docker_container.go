@@ -229,13 +229,13 @@ func resourceDockerContainer() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"ip": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ForceNew: true,
 						},
 
 						"host": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ForceNew: true,
 						},
 					},

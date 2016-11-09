@@ -35,56 +35,56 @@ resource "openstack_compute_instance_v2" "test-server" {
 
 The following arguments are supported:
 
-* `auth_url` - (Required) If omitted, the `OS_AUTH_URL` environment
-    variable is used.
+* `auth_url` - (Required) The Identity authentication URL. If omitted, the
+  `OS_AUTH_URL` environment variable is used.
 
-* `user_name` - (Optional; Required for Identity V2) If omitted, the
-    `OS_USERNAME` environment variable is used.
+* `user_name` - (Optional) The Username to login with. If omitted, the
+  `OS_USERNAME` environment variable is used.
 
-* `user_id` - (Optional)
+* `user_id` - (Optional) The User ID to login with. If omitted, the
+  `OS_USER_ID` environment variable is used.
 
-* `password` - (Optional; Required if not using `api_key`) If omitted, the
-    `OS_PASSWORD` environment variable is used.
+* `tenant_id` - (Optional) The ID of the Tenant (Identity v2) or Project
+  (Identity v3) to login with. If omitted, the `OS_TENANT_ID` or
+  `OS_PROJECT_ID` environment variables are used.
+
+* `tenant_name` - (Optional) The Name of the Tenant (Identity v2) or Project
+  (Identity v3) to login with. If omitted, the `OS_TENANT_NAME` or
+  `OS_PROJECT_NAME` environment variable are used.
+
+* `password` - (Optional) The Password to login with. If omitted, the
+  `OS_PASSWORD` environment variable is used.
 
 * `token` - (Optional; Required if not using `user_name` and `password`)
-    A token is an expiring, temporary means of access issued via the
-    Keystone service. By specifying a token, you do not have to
-    specify a username/password combination, since the token was
-    already created by a username/password out of band of Terraform.
-    If omitted, the `OS_AUTH_TOKEN` environment variable is used.
+  A token is an expiring, temporary means of access issued via the Keystone
+  service. By specifying a token, you do not have to specify a username/password
+  combination, since the token was already created by a username/password out of
+  band of Terraform. If omitted, the `OS_AUTH_TOKEN` environment variable is used.
 
-* `api_key` - (Optional; Required if not using `password`) An API Key
-    is issued by a cloud provider as alternative password. Unless
-    your cloud provider has documentation referencing an API Key,
-    you can safely ignore this argument. If omitted, the `OS_API_KEY`
-    environment variable is used.
+* `domain_id` - (Optional) The ID of the Domain to scope to (Identity v3). If
+  If omitted, the following environment variables are checked (in this order):
+  `OS_USER_DOMAIN_ID`, `OS_PROJECT_DOMAIN_ID`, `OS_DOMAIN_ID`.
 
-* `domain_id` - (Optional) If omitted, the `OS_DOMAIN_ID` environment
-    variable is used.
+* `domain_name` - (Optional) The Name of the Domain to scope to (Identity v3).
+  If omitted, the following environment variables are checked (in this order):
+  `OS_USER_DOMAIN_NAME`, `OS_PROJECT_DOMAIN_NAME`, `OS_DOMAIN_NAME`,
+  `DEFAULT_DOMAIN`.
 
-* `domain_name` - (Optional) If omitted, the `OS_DOMAIN_NAME`
-    environment variable is used.
-
-* `tenant_id` - (Optional)
-
-* `tenant_name` - (Optional) If omitted, the `OS_TENANT_NAME` environment
-    variable is used.
-
-* `insecure` - (Optional) Explicitly allow the provider to perform
-    "insecure" SSL requests. If omitted, default value is `false`
+* `insecure` - (Optional) Trust self-signed SSL certificates. If omitted, the
+  `OS_INSECURE` environment variable is used.
 
 * `cacert_file` - (Optional) Specify a custom CA certificate when communicating
-    over SSL. If omitted, the `OS_CACERT` environment variable is used.
+  over SSL. If omitted, the `OS_CACERT` environment variable is used.
 
 * `cert` - (Optional) Specify client certificate file for SSL client
-    authentication. If omitted the `OS_CERT` environment variable is used.
+  authentication. If omitted the `OS_CERT` environment variable is used.
 
 * `key` - (Optional) Specify client private key file for SSL client
-    authentication. If omitted the `OS_KEY` environment variable is used.
+  authentication. If omitted the `OS_KEY` environment variable is used.
 
 * `endpoint_type` - (Optional) Specify which type of endpoint to use from the
-    service catalog. It can be set using the OS_ENDPOINT_TYPE environment
-    variable. If not set, public endpoints is used.
+  service catalog. It can be set using the OS_ENDPOINT_TYPE environment
+  variable. If not set, public endpoints is used.
 
 ## Rackspace Compatibility
 

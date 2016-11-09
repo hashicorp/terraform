@@ -549,6 +549,18 @@ func TestLoadFile_badVariableTypes(t *testing.T) {
 	}
 }
 
+func TestLoadFile_variableNoName(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "variable-no-name.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "'variable' must be followed") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
+	}
+}
+
 func TestLoadFile_provisioners(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "provisioners.tf"))
 	if err != nil {
@@ -562,6 +574,18 @@ func TestLoadFile_provisioners(t *testing.T) {
 	actual := resourcesStr(c.Resources)
 	if actual != strings.TrimSpace(provisionerResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestLoadFile_unnamedOutput(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "output-unnamed.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "'output' must be followed") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
 	}
 }
 
