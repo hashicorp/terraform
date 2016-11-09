@@ -299,7 +299,7 @@ type testDrawableSubgraph struct {
 func (node *testDrawableSubgraph) Name() string {
 	return node.VertexName
 }
-func (node *testDrawableSubgraph) Subgraph() *Graph {
+func (node *testDrawableSubgraph) Subgraph() dag.Grapher {
 	return node.SubgraphMock
 }
 func (node *testDrawableSubgraph) DotNode(n string, opts *dag.DotOpts) *dot.Node {

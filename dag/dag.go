@@ -24,6 +24,10 @@ type WalkFunc func(Vertex) error
 // walk as an argument
 type DepthWalkFunc func(Vertex, int) error
 
+func (g *AcyclicGraph) DirectedGraph() Grapher {
+	return g
+}
+
 // Returns a Set that includes every Vertex yielded by walking down from the
 // provided starting Vertex v.
 func (g *AcyclicGraph) Ancestors(v Vertex) (*Set, error) {

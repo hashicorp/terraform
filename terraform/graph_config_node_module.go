@@ -156,7 +156,7 @@ func (n *graphNodeModuleExpanded) EvalTree() EvalNode {
 
 // GraphNodeFlattenable impl.
 func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
-	graph := n.Subgraph()
+	graph := n.Subgraph().(*Graph)
 	input := n.Original.Module.RawConfig
 
 	// Go over each vertex and do some modifications to the graph for
@@ -189,7 +189,7 @@ func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 }
 
 // GraphNodeSubgraph impl.
-func (n *graphNodeModuleExpanded) Subgraph() *Graph {
+func (n *graphNodeModuleExpanded) Subgraph() dag.Grapher {
 	return n.Graph
 }
 

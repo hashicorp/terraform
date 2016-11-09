@@ -60,7 +60,7 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 
 	for _, v := range g.Vertices() {
 		id := marshalVertexID(v)
-		if sg, ok := marshalSubgraph(v); ok {
+		if sg, ok := marshalSubgrapher(v); ok {
 
 			sdg := newMarshalGraph(VertexName(v), sg)
 			sdg.ID = id
@@ -129,22 +129,19 @@ func marshalVertexID(v Vertex) string {
 	panic("unhashable value in graph")
 }
 
-func debugSubgraph(v Vertex) (*Graph, bool) {
-	val := reflect.ValueOf(v)
-	m, ok := val.Type().MethodByName("Subgraph")
+// check for a Subgrapher, and return the underlying *Graph.
+func marshalSubgrapher(v Vertex) (*Graph, bool) {
+	sg, ok := v.(Subgrapher)
 	if !ok {
 		return nil, false
 	}
 
-	if m.Type.NumOut() != 1 {
-		return nil, false
+	switch g := sg.Subgraph().DirectedGraph().(type) {
+	case *Graph:
+		return g, true
+	case *AcyclicGraph:
+		return &g.Graph, true
 	}
 
-	// can't check for the subgraph type, because we can't import terraform, so
-	// we assume this is the correct method.
-	// TODO: create a dag interface type that we can satisfy
-
-	sg := val.MethodByName("Subgraph").Call(nil)[0]
-	ag := sg.Elem().FieldByName("AcyclicGraph").Interface().(AcyclicGraph)
-	return &ag.Graph, true
+	return nil, false
 }
