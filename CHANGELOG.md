@@ -42,6 +42,7 @@ IMPROVEMENTS:
 
  * provider/aws: Add support for Service Access Security Group in `aws_emr_cluster` [GH-9600]
  * provider/aws: Add Enhanced VPC routing to Redshift [GH-9950]
+ * provider/aws: Add key_name_prefix argument to aws_key_pair resource [GH-9993]
  * provider/openstack: Add `value_specs` to `openstack_fw_policy_v1` resource, allowing vendor information [GH-9835]
  * provider/openstack: Add `value_specs` to `openstack_fw_firewall_v1` resource, allowing vendor information [GH-9836]
  * provider/openstack: Instance `user_data` will now detect if the incoming data is already Base64 encoded [GH-9966]
