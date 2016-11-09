@@ -43,6 +43,7 @@ IMPROVEMENTS:
  * provider/aws: Add Enhanced VPC routing to Redshift [GH-9950]
  * provider/openstack: Add `value_specs` to `openstack_fw_policy_v1` resource, allowing vendor information [GH-9835]
  * provider/openstack: Add `value_specs` to `openstack_fw_firewall_v1` resource, allowing vendor information [GH-9836]
+ * provider/openstack: Instance `user_data` will now detect if the incoming data is already Base64 encoded [GH-9966]
  * provider/random: The `b64` attribute on `random_id` resources is deprecated, replaced by `b64_url` and `b64_std` [GH-9903]
 
 BUG FIXES:
