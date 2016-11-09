@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestContext2Plan(t *testing.T) {
+func TestContext2Plan_basic(t *testing.T) {
 	m := testModule(t, "plan-good")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -626,7 +626,7 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_moduleVarWrongType(t *testing.T) {
+func TestContext2Plan_moduleVarWrongTypeBasic(t *testing.T) {
 	m := testModule(t, "plan-module-wrong-var-type")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn

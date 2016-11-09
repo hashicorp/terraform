@@ -120,10 +120,14 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		&AttachStateTransformer{State: t.State},
 	}
 
-	// Go through the all destroyers and find what they're destroying.
-	// Use this to find the dependencies, look up if any of them are being
-	// destroyed, and to make the proper edge.
-	for d, dns := range destroyers {
+	// Go through all the nodes being destroyed and create a graph.
+	// The resulting graph is only of things being CREATED. For example,
+	// following our example, the resulting graph would be:
+	//
+	//   A, B (with no edges)
+	//
+	var tempG Graph
+	for d, _ := range destroyers {
 		// d is what is being destroyed. We parse the resource address
 		// which it came from it is a panic if this fails.
 		addr, err := ParseResourceAddress(d)
@@ -135,26 +139,47 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		// find the dependencies we need to: build a graph and use the
 		// attach config and state transformers then ask for references.
 		node := &NodeAbstractResource{Addr: addr}
-		{
-			var g Graph
-			g.Add(node)
-			for _, s := range steps {
-				if err := s.Transform(&g); err != nil {
-					return err
-				}
-			}
-		}
+		tempG.Add(node)
+	}
 
-		// Get the references of the creation node. If it has none,
-		// then there are no edges to make here.
-		prefix := modulePrefixStr(normalizeModulePath(addr.Path))
-		deps := modulePrefixList(node.References(), prefix)
+	// Run the graph transforms so we have the information we need to
+	// build references.
+	for _, s := range steps {
+		if err := s.Transform(&tempG); err != nil {
+			return err
+		}
+	}
+
+	// Create a reference map for easy lookup
+	refMap := NewReferenceMap(tempG.Vertices())
+
+	// Go through all the nodes in the graph and determine what they
+	// depend on.
+	for _, v := range tempG.Vertices() {
+		// Find all the references
+		refs, _ := refMap.References(v)
 		log.Printf(
-			"[TRACE] DestroyEdgeTransformer: creation of %q depends on %#v",
-			d, deps)
-		if len(deps) == 0 {
+			"[TRACE] DestroyEdgeTransformer: creation node %q references %v",
+			dag.VertexName(v), refs)
+
+		// If we have no references, then we won't need to do anything
+		if len(refs) == 0 {
 			continue
 		}
+
+		// Get the destroy node for this. In the example of our struct,
+		// we are currently at B and we're looking for B_d.
+		rn, ok := v.(GraphNodeResource)
+		if !ok {
+			continue
+		}
+
+		addr := rn.ResourceAddr()
+		if addr == nil {
+			continue
+		}
+
+		dns := destroyers[addr.String()]
 
 		// We have dependencies, check if any are being destroyed
 		// to build the list of things that we must depend on!
@@ -163,17 +188,28 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		//
 		//   B_d => A_d => A => B
 		//
-		// Then at this point in the algorithm we started with A_d,
-		// we built A (to get dependencies), and we found B. We're now looking
-		// to see if B_d exists.
+		// Then at this point in the algorithm we started with B_d,
+		// we built B (to get dependencies), and we found A. We're now looking
+		// to see if A_d exists.
 		var depDestroyers []dag.Vertex
-		for _, d := range deps {
-			if ds, ok := destroyers[d]; ok {
+		for _, v := range refs {
+			rn, ok := v.(GraphNodeResource)
+			if !ok {
+				continue
+			}
+
+			addr := rn.ResourceAddr()
+			if addr == nil {
+				continue
+			}
+
+			key := addr.String()
+			if ds, ok := destroyers[key]; ok {
 				for _, d := range ds {
 					depDestroyers = append(depDestroyers, d.(dag.Vertex))
 					log.Printf(
 						"[TRACE] DestroyEdgeTransformer: destruction of %q depends on %s",
-						addr.String(), dag.VertexName(d))
+						key, dag.VertexName(d))
 				}
 			}
 		}

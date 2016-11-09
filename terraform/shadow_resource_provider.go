@@ -475,7 +475,7 @@ func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceCon
 			p.ErrorLock.Lock()
 			defer p.ErrorLock.Unlock()
 			p.Error = multierror.Append(p.Error, fmt.Errorf(
-				"Unknown 'ValidateResource' shadow value: %#v", raw))
+				"Unknown 'ValidateResource' shadow value for %q: %#v", key, raw))
 			return nil, nil
 		}
 
@@ -567,7 +567,7 @@ func (p *shadowResourceProviderShadow) Diff(
 		p.ErrorLock.Lock()
 		defer p.ErrorLock.Unlock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Unknown 'diff' shadow value: %#v", raw))
+			"Unknown 'diff' shadow value for %q: %#v", key, raw))
 		return nil, nil
 	}
 

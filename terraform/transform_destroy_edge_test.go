@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestDestroyEdgeTransformer(t *testing.T) {
+func TestDestroyEdgeTransformer_basic(t *testing.T) {
 	g := Graph{Path: RootModulePath}
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.A"})
 	g.Add(&graphNodeDestroyerTest{AddrString: "test.B"})
