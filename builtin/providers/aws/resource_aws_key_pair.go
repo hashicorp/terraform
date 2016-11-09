@@ -70,8 +70,12 @@ func resourceAwsKeyPair() *schema.Resource {
 func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	keyName := d.Get("key_name").(string)
-	if keyName == "" {
+	var keyName string
+	if v, ok := d.GetOk("key_name"); ok {
+		keyName = v.(string)
+	} else if v, ok := d.GetOk("key_name_prefix"); ok {
+		keyName = resource.PrefixedUniqueId(v.(string))
+	} else {
 		keyName = resource.UniqueId()
 	}
 
