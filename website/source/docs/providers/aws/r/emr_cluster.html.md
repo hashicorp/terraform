@@ -64,16 +64,16 @@ The following arguments are supported:
 * `release_label` - (Required) The release label for the Amazon EMR release
 * `master_instance_type` - (Required) The EC2 instance type of the master node
 * `core_instance_type` - (Optional) The EC2 instance type of the slave nodes
-* `core_instance_count` - (Optional) number of Amazon EC2 instances used to execute the job flow. Default `0`
+* `core_instance_count` - (Optional) Number of Amazon EC2 instances used to execute the job flow. EMR will use one node as the cluster's master node and use the remainder of the nodes (`core_instance_count`-1) as core nodes. Default `1`
 * `log_uri` - (Optional) S3 bucket to write the log files of the job flow. If a value
 	is not provided, logs are not created
 * `applications` - (Optional) A list of applications for the cluster. Valid values are: `Hadoop`, `Hive`,
 	`Mahout`, `Pig`, and `Spark.` Case insensitive
-* `ec2_attributes` - (Optional) attributes for the EC2 instances running the job
+* `ec2_attributes` - (Optional) Attributes for the EC2 instances running the job
 flow. Defined below
-* `bootstrap_action` - (Optional) list of bootstrap actions that will be run before Hadoop is started on
+* `bootstrap_action` - (Optional) List of bootstrap actions that will be run before Hadoop is started on
 	the cluster nodes. Defined below
-* `configurations` - (Optional) list of configurations supplied for the EMR cluster you are creating
+* `configurations` - (Optional) List of configurations supplied for the EMR cluster you are creating
 * `service_role` - (Optional) IAM role that will be assumed by the Amazon EMR service to access AWS resources
 * `visible_to_all_users` - (Optional) Whether the job flow is visible to all IAM users of the AWS account associated with the job flow. Default `true`
 * `tags` - (Optional) list of tags to apply to the EMR Cluster
@@ -88,19 +88,19 @@ Attributes for the Amazon EC2 instances running the job flow
 	node as the user called `hadoop`
 * `subnet_id` - (Optional) VPC subnet id where you want the job flow to launch.
 Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched in a Amazon VPC
-* `additional_master_security_groups` - (Optional) list of additional Amazon EC2 security group IDs for the master node
-* `additional_slave_security_groups` - (Optional) list of additional Amazon EC2 security group IDs for the slave nodes
-* `emr_managed_master_security_group` - (Optional) identifier of the Amazon EC2 security group for the master node
-* `emr_managed_slave_security_group` - (Optional) identifier of the Amazon EC2 security group for the slave nodes
-* `service_access_security_group` - (Optional) identifier of the Amazon EC2 service-access security group - required when the cluster runs on a private subnet
+* `additional_master_security_groups` - (Optional) List of additional Amazon EC2 security group IDs for the master node
+* `additional_slave_security_groups` - (Optional) List of additional Amazon EC2 security group IDs for the slave nodes
+* `emr_managed_master_security_group` - (Optional) Identifier of the Amazon EC2 security group for the master node
+* `emr_managed_slave_security_group` - (Optional) Identifier of the Amazon EC2 security group for the slave nodes
+* `service_access_security_group` - (Optional) Identifier of the Amazon EC2 service-access security group - required when the cluster runs on a private subnet
 * `instance_profile` - (Optional) Instance Profile for EC2 instances of the cluster assume this role
 
 
 ## bootstrap\_action
 
-* `name` - (Required) name of the bootstrap action
-* `path` - (Required) location of the script to run during a bootstrap action. Can be either a location in Amazon S3 or on a local file system
-* `args` - (Optional) list of command line arguments to pass to the bootstrap action script
+* `name` - (Required) Name of the bootstrap action
+* `path` - (Required) Location of the script to run during a bootstrap action. Can be either a location in Amazon S3 or on a local file system
+* `args` - (Optional) List of command line arguments to pass to the bootstrap action script
 
 ## Attributes Reference
 
