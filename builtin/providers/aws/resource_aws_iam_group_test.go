@@ -21,6 +21,7 @@ func TestValidateIamGroupName(t *testing.T) {
 		"test.group",
 		"test.123,group",
 		"testgroup@hashicorp",
+		"test+group@hashicorp.com",
 	}
 	for _, v := range validNames {
 		_, errors := validateAwsIamGroupName(v, "name")
