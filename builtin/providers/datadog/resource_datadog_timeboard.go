@@ -137,8 +137,9 @@ func appendRequests(datadogGraph *datadog.Graph, terraformRequests *[]interface{
 		}
 		if style, ok := t["style"]; ok {
 			s, _ := style.(map[string]interface{})
-			if palette, ok := s["palette"]; ok {
-				d.Style.Palette = palette.(string)
+			if palette_, ok := s["palette"]; ok {
+				palette := palette_.(string)
+				d.Style.Palette = &palette
 			}
 		}
 		datadogGraph.Definition.Requests = append(datadogGraph.Definition.Requests, d)
