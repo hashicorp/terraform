@@ -17,6 +17,18 @@ type Graph struct {
 	once      sync.Once
 }
 
+// Subgrapher allows a Vertex to be a Graph itself, by returning a Grapher.
+type Subgrapher interface {
+	Subgraph() Grapher
+}
+
+// A Grapher is any type that returns a Grapher, mainly used to identify
+// dag.Graph and dag.AcyclicGraph.  In the case of Graph and AcyclicGraph, they
+// return themselves.
+type Grapher interface {
+	DirectedGraph() Grapher
+}
+
 // Vertex of the graph.
 type Vertex interface{}
 
@@ -25,6 +37,10 @@ type Vertex interface{}
 type NamedVertex interface {
 	Vertex
 	Name() string
+}
+
+func (g *Graph) DirectedGraph() Grapher {
+	return g
 }
 
 // Vertices returns the list of all the vertices in the graph.

@@ -184,7 +184,7 @@ func (dg *DebugGraph) buildSubgraph(modName string, g *Graph, modDepth int) erro
 
 	for _, v := range g.Vertices() {
 		if sn, ok := v.(GraphNodeSubgraph); ok {
-			subgraphVertices[v] = sn.Subgraph()
+			subgraphVertices[v] = sn.Subgraph().(*Graph)
 		}
 	}
 
@@ -200,7 +200,7 @@ func (dg *DebugGraph) buildSubgraph(modName string, g *Graph, modDepth int) erro
 		toDraw = append(toDraw, v)
 
 		if sn, ok := v.(GraphNodeSubgraph); ok {
-			subgraphVertices[v] = sn.Subgraph()
+			subgraphVertices[v] = sn.Subgraph().(*Graph)
 		}
 		return nil
 	}

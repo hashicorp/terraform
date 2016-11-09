@@ -43,6 +43,10 @@ type Graph struct {
 	once sync.Once
 }
 
+func (g *Graph) DirectedGraph() dag.Grapher {
+	return &g.AcyclicGraph
+}
+
 // Annotations returns the annotations that are configured for the
 // given vertex. The map is guaranteed to be non-nil but may be empty.
 //
@@ -317,7 +321,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 			walker.Debug().Printf(
 				"[DEBUG] vertex %T(%s.%s): subgraph\n", v, path, dag.VertexName(v))
 
-			if rerr = sn.Subgraph().walk(walker); rerr != nil {
+			if rerr = sn.Subgraph().(*Graph).walk(walker); rerr != nil {
 				return
 			}
 		}
