@@ -130,6 +130,46 @@ func testAccCheckAWSKeyPairExists(n string, res *ec2.KeyPairInfo) resource.TestC
 	}
 }
 
+func testAccCheckAWSKeyPair_namePrefix(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:        func() { testAccPreCheck(t) },
+		IDRefreshName:   "aws_security_group.baz",
+		IDRefreshIgnore: []string{"name_prefix"},
+		Providers:       testAccProviders,
+		CheckDestroy:    testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckAWSKeyPairPrefixNameConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.baz", &group),
+					testAccCheckAWSSecurityGroupGeneratedNamePrefix(
+						"aws_security_group.baz", "baz-"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckAWSSecurityGroupGeneratedNamePrefix(
+	resource, prefix string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		r, ok := s.RootModule().Resources[resource]
+		if !ok {
+			return fmt.Errorf("Resource not found")
+		}
+		name, ok := r.Primary.Attributes["name"]
+		if !ok {
+			return fmt.Errorf("Name attr not found: %#v", r.Primary.Attributes)
+		}
+		if !strings.HasPrefix(name, prefix) {
+			return fmt.Errorf("Name: %q, does not have prefix: %q", name, prefix)
+		}
+		return nil
+	}
+}
+
 const testAccAWSKeyPairConfig = `
 resource "aws_key_pair" "a_key_pair" {
 	key_name   = "tf-acc-key-pair"
