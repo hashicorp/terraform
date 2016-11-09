@@ -36,6 +36,7 @@ BUG FIXES:
 
 FEATURES:
  * **New Resource:** `azurerm_eventhub` [GH-9889]
+ * **New Resource:** `azurerm_virtual_machine_extension` [GH-9962]
 
 IMPROVEMENTS:
 
