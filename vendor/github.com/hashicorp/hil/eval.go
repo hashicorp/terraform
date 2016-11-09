@@ -2,6 +2,7 @@ package hil
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -42,6 +43,10 @@ type EvaluationResult struct {
 // The error is described out of band in the accompanying error return value.
 var InvalidResult = EvaluationResult{Type: TypeInvalid, Value: nil}
 
+// errExitUnknown is an internal error that when returned means the result
+// is an unknown value. We use this for early exit.
+var errExitUnknown = errors.New("unknown value")
+
 func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 	output, outputType, err := internalEval(root, config)
 	if err != nil {
@@ -71,6 +76,11 @@ func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 		return EvaluationResult{
 			Type:  TypeString,
 			Value: output,
+		}, nil
+	case ast.TypeUnknown:
+		return EvaluationResult{
+			Type:  TypeUnknown,
+			Value: UnknownValue,
 		}, nil
 	default:
 		return InvalidResult, fmt.Errorf("unknown type %s as interpolation output", outputType)
@@ -154,6 +164,12 @@ func (v *evalVisitor) Visit(root ast.Node) (interface{}, ast.Type, error) {
 		result = new(ast.LiteralNode)
 	}
 	resultErr := v.err
+	if resultErr == errExitUnknown {
+		// This means the return value is unknown and we used the error
+		// as an early exit mechanism. Reset since the value on the stack
+		// should be the unknown value.
+		resultErr = nil
+	}
 
 	// Clear everything else so we aren't just dangling
 	v.Stack.Reset()
@@ -188,6 +204,13 @@ func (v *evalVisitor) visit(raw ast.Node) ast.Node {
 		Value: out,
 		Typex: outType,
 	})
+
+	if outType == ast.TypeUnknown {
+		// Halt immediately
+		v.err = errExitUnknown
+		return raw
+	}
+
 	return raw
 }
 
@@ -330,11 +353,15 @@ func (v *evalOutput) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type,
 	}
 
 	// Special case the single list and map
-	if len(nodes) == 1 && nodes[0].Typex == ast.TypeList {
-		return nodes[0].Value, ast.TypeList, nil
-	}
-	if len(nodes) == 1 && nodes[0].Typex == ast.TypeMap {
-		return nodes[0].Value, ast.TypeMap, nil
+	if len(nodes) == 1 {
+		switch t := nodes[0].Typex; t {
+		case ast.TypeList:
+			fallthrough
+		case ast.TypeMap:
+			fallthrough
+		case ast.TypeUnknown:
+			return nodes[0].Value, t, nil
+		}
 	}
 
 	// Otherwise concatenate the strings
@@ -360,6 +387,12 @@ func (v *evalVariableAccess) Eval(scope ast.Scope, _ *ast.Stack) (interface{}, a
 	if !ok {
 		return nil, ast.TypeInvalid, fmt.Errorf(
 			"unknown variable accessed: %s", v.Name)
+	}
+
+	// Check if the variable contains any unknown types. If so, then
+	// mark it as unknown and return that type.
+	if ast.IsUnknown(variable) {
+		return nil, ast.TypeUnknown, nil
 	}
 
 	return variable.Value, variable.Type, nil

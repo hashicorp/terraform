@@ -121,9 +121,13 @@ func (i *Interpolater) valueCountVar(
 
 func unknownVariable() ast.Variable {
 	return ast.Variable{
-		Type:  ast.TypeString,
+		Type:  ast.TypeUnknown,
 		Value: config.UnknownVariableValue,
 	}
+}
+
+func unknownValue() string {
+	return hil.UnknownValue
 }
 
 func (i *Interpolater) valueModuleVar(
@@ -215,10 +219,7 @@ func (i *Interpolater) valueResourceVar(
 	// If we're computing all dynamic fields, then module vars count
 	// and we mark it as computed.
 	if i.Operation == walkValidate {
-		result[n] = ast.Variable{
-			Value: config.UnknownVariableValue,
-			Type:  ast.TypeString,
-		}
+		result[n] = unknownVariable()
 		return nil
 	}
 
@@ -243,10 +244,7 @@ func (i *Interpolater) valueResourceVar(
 		// This applies only to graph nodes that interpolate during the
 		// config walk, e.g. providers.
 		if i.Operation == walkInput {
-			result[n] = ast.Variable{
-				Value: config.UnknownVariableValue,
-				Type:  ast.TypeString,
-			}
+			result[n] = unknownVariable()
 			return nil
 		}
 
