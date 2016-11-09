@@ -51,6 +51,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Splat variables (`foo.*.bar`) are now ordered by count index for deterministic ordering. [GH-9883]
+ * core: Prune orphan outputs (in the config but not in the state). [GH-9971]
  * core: New apply graph doesn't prune module variables as aggressively. [GH-9898]
  * core: New apply graph properly configures providers with aliases. [GH-9894]
  * core: New destroy graph doesn't create edge loops to destroy nodes that reference themselves. [GH-9968]
