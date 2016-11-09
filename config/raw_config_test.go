@@ -304,6 +304,41 @@ func TestRawConfig_unknownPartial(t *testing.T) {
 	}
 }
 
+func TestRawConfig_unknownPartialList(t *testing.T) {
+	raw := map[string]interface{}{
+		"foo": []interface{}{
+			"${var.bar}/32",
+		},
+	}
+
+	rc, err := NewRawConfig(raw)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
+			Value: UnknownVariableValue,
+			Type:  ast.TypeUnknown,
+		},
+	}
+	if err := rc.Interpolate(vars); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := rc.Config()
+	expected := map[string]interface{}{"foo": []interface{}{UnknownVariableValue}}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	expectedKeys := []string{"foo"}
+	if !reflect.DeepEqual(rc.UnknownKeys(), expectedKeys) {
+		t.Fatalf("bad: %#v", rc.UnknownKeys())
+	}
+}
+
 func TestRawConfigValue(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var.bar}",
