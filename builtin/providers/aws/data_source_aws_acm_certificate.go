@@ -40,10 +40,10 @@ func dataSourceAwsAcmCertificateRead(d *schema.ResourceData, meta interface{}) e
 
 	statuses, ok := d.GetOk("statuses")
 	if ok {
-		statusStrings := statuses.([]string)
+		statusStrings := statuses.([]interface{})
 		statusList := make([]*string, len(statusStrings))
 		for i, status := range statusStrings {
-			statusList[i] = aws.String(strings.ToUpper(status))
+			statusList[i] = aws.String(strings.ToUpper(status.(string)))
 		}
 		params.CertificateStatuses = statusList
 	} else {
