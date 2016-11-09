@@ -131,7 +131,7 @@ func testAccCheckAWSKeyPairExists(n string, res *ec2.KeyPairInfo) resource.TestC
 }
 
 func testAccCheckAWSKeyPair_namePrefix(t *testing.T) {
-	var group ec2.SecurityGroup
+	var conf ec2.KeyPairInfo
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:        func() { testAccPreCheck(t) },
