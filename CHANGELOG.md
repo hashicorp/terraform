@@ -53,6 +53,7 @@ BUG FIXES:
  * core: New apply graph properly configures providers with aliases. [GH-9894]
  * core: New destroy graph doesn't create edge loops to destroy nodes that reference themselves. [GH-9968]
  * provider/aws: Fix crash when adding EBS volumes to spot fleet request. [GH-9857]
+ * provider/aws: Fix issue with incorrect `core_instance_count` configuration in EMR Cluster [GH-9683]
  * provider/aws: Ignore NoSuchEntity error when IAM user does not have login profile [GH-9900]
  * provider/aws: Setting static_routes_only on import of vpn_connection [GH-9802]
  * provider/aws: aws_alb_target_group arn_suffix missing the targetgroup [GH-9911]
