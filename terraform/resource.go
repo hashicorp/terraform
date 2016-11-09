@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/mitchellh/copystructure"
+	"github.com/mitchellh/reflectwalk"
 )
 
 // ResourceProvisionerConfig is used to pair a provisioner
@@ -186,16 +187,17 @@ func (c *ResourceConfig) CheckSet(keys []string) []error {
 // Get looks up a configuration value by key and returns the value.
 //
 // The second return value is true if the get was successful. Get will
-// not succeed if the value is being computed.
+// return the raw value if the key is computed, so you should pair this
+// with IsComputed.
 func (c *ResourceConfig) Get(k string) (interface{}, bool) {
-	// First try to get it from c.Config since that has interpolated values
-	result, ok := c.get(k, c.Config)
-	if ok {
-		return result, ok
+	// We aim to get a value from the configuration. If it is computed,
+	// then we return the pure raw value.
+	source := c.Config
+	if c.IsComputed(k) {
+		source = c.Raw
 	}
 
-	// Otherwise, just get it from the raw config
-	return c.get(k, c.Raw)
+	return c.get(k, source)
 }
 
 // GetRaw looks up a configuration value by key and returns the value,
@@ -209,22 +211,25 @@ func (c *ResourceConfig) GetRaw(k string) (interface{}, bool) {
 
 // IsComputed returns whether the given key is computed or not.
 func (c *ResourceConfig) IsComputed(k string) bool {
-	// First, check for pure computed key equality since that is fast
-	for _, ck := range c.ComputedKeys {
-		if ck == k {
-			return true
-		}
-	}
-
 	// The next thing we do is check the config if we get a computed
 	// value out of it.
 	v, ok := c.get(k, c.Config)
-	_, okRaw := c.get(k, c.Raw)
+	if !ok {
+		return false
+	}
 
-	// Both tests probably aren't needed anymore since we don't remove
-	// values any longer. The latter is probably good enough since we
-	// thread through that value now.
-	return (!ok && okRaw) || v == config.UnknownVariableValue
+	// If value is nil, then it isn't computed
+	if v == nil {
+		return false
+	}
+
+	// Test if the value contains an unknown value
+	var w unknownCheckWalker
+	if err := reflectwalk.Walk(v, &w); err != nil {
+		panic(err)
+	}
+
+	return w.Unknown
 }
 
 // IsSet checks if the key in the configuration is set. A key is set if
@@ -238,10 +243,8 @@ func (c *ResourceConfig) IsSet(k string) bool {
 		return false
 	}
 
-	for _, ck := range c.ComputedKeys {
-		if ck == k {
-			return true
-		}
+	if c.IsComputed(k) {
+		return true
 	}
 
 	if _, ok := c.Get(k); ok {
@@ -261,7 +264,6 @@ func (c *ResourceConfig) get(
 	var current interface{} = raw
 	var previous interface{} = nil
 	for i, part := range parts {
-		println(fmt.Sprintf("%#v: %#v %T", part, current, current))
 		if current == nil {
 			return nil, false
 		}
@@ -289,15 +291,15 @@ func (c *ResourceConfig) get(
 		case reflect.Slice:
 			previous = current
 
-			// If any value in a list is computed, this whole thing
-			// is computed and we can't read any part of it.
-			for i := 0; i < cv.Len(); i++ {
-				if v := cv.Index(i).Interface(); v == unknownValue() {
-					return v, false
-				}
-			}
-
 			if part == "#" {
+				// If any value in a list is computed, this whole thing
+				// is computed and we can't read any part of it.
+				for i := 0; i < cv.Len(); i++ {
+					if v := cv.Index(i).Interface(); v == unknownValue() {
+						return v, true
+					}
+				}
+
 				current = cv.Len()
 			} else {
 				i, err := strconv.ParseInt(part, 0, 0)
@@ -310,11 +312,6 @@ func (c *ResourceConfig) get(
 				current = cv.Index(int(i)).Interface()
 			}
 		case reflect.String:
-			// If we get the unknown value, return that
-			if current == unknownValue() {
-				return current, false
-			}
-
 			// This happens when map keys contain "." and have a common
 			// prefix so were split as path components above.
 			actualKey := strings.Join(parts[i-1:], ".")
@@ -325,23 +322,6 @@ func (c *ResourceConfig) get(
 			return nil, false
 		default:
 			panic(fmt.Sprintf("Unknown kind: %s", cv.Kind()))
-		}
-	}
-
-	switch cv := reflect.ValueOf(current); cv.Kind() {
-	case reflect.Slice:
-		// If any value in a list is computed, this whole thing
-		// is computed and we can't read any part of it.
-		for i := 0; i < cv.Len(); i++ {
-			if v := cv.Index(i).Interface(); v == unknownValue() {
-				return v, false
-			}
-		}
-	default:
-		// If the value is just the unknown value, then we don't
-		// know anything beyond here.
-		if current == unknownValue() {
-			return current, false
 		}
 	}
 
@@ -363,4 +343,17 @@ func (c *ResourceConfig) interpolateForce() {
 	c.ComputedKeys = c.raw.UnknownKeys()
 	c.Raw = c.raw.RawMap()
 	c.Config = c.raw.Config()
+}
+
+// unknownCheckWalker
+type unknownCheckWalker struct {
+	Unknown bool
+}
+
+func (w *unknownCheckWalker) Primitive(v reflect.Value) error {
+	if v.Interface() == unknownValue() {
+		w.Unknown = true
+	}
+
+	return nil
 }
