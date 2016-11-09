@@ -273,6 +273,7 @@ func (c *ResourceConfig) get(
 
 				return nil, false
 			}
+
 			current = v.Interface()
 		case reflect.Slice:
 			previous = current
@@ -298,12 +299,6 @@ func (c *ResourceConfig) get(
 				current = cv.Index(int(i)).Interface()
 			}
 		case reflect.String:
-			// If the value is just the unknown value, then we don't
-			// know anything beyond here.
-			if current == unknownValue() {
-				return current, false
-			}
-
 			// This happens when map keys contain "." and have a common
 			// prefix so were split as path components above.
 			actualKey := strings.Join(parts[i-1:], ".")
@@ -314,6 +309,12 @@ func (c *ResourceConfig) get(
 		default:
 			panic(fmt.Sprintf("Unknown kind: %s", cv.Kind()))
 		}
+	}
+
+	// If the value is just the unknown value, then we don't
+	// know anything beyond here.
+	if current == unknownValue() {
+		return current, false
 	}
 
 	return current, true
