@@ -48,7 +48,7 @@ func TestInstanceInfo(t *testing.T) {
 func TestResourceConfigGet(t *testing.T) {
 	cases := []struct {
 		Config map[string]interface{}
-		Vars   map[string]string
+		Vars   map[string]interface{}
 		Key    string
 		Value  interface{}
 	}{
@@ -70,9 +70,9 @@ func TestResourceConfigGet(t *testing.T) {
 			Config: map[string]interface{}{
 				"foo": "${var.foo}",
 			},
-			Vars:  map[string]string{"foo": "bar"},
+			Vars:  map[string]interface{}{"foo": unknownValue()},
 			Key:   "foo",
-			Value: "bar",
+			Value: "${var.foo}",
 		},
 
 		{
@@ -199,7 +199,12 @@ func TestResourceConfigGet(t *testing.T) {
 		if tc.Vars != nil {
 			vs := make(map[string]ast.Variable)
 			for k, v := range tc.Vars {
-				vs["var."+k] = ast.Variable{Value: v, Type: ast.TypeString}
+				hilVar, err := hil.InterfaceToVariable(v)
+				if err != nil {
+					t.Fatalf("%#v to var: %s", v, err)
+				}
+
+				vs["var."+k] = hilVar
 			}
 
 			if err := rawC.Interpolate(vs); err != nil {
@@ -212,6 +217,8 @@ func TestResourceConfigGet(t *testing.T) {
 
 		// Test getting a key
 		t.Run(fmt.Sprintf("get-%d", i), func(t *testing.T) {
+			t.Logf("Config: %#v", rc)
+
 			v, _ := rc.Get(tc.Key)
 			if !reflect.DeepEqual(v, tc.Value) {
 				t.Fatalf("%d bad: %#v", i, v)
