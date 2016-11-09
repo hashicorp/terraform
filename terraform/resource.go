@@ -209,6 +209,15 @@ func (c *ResourceConfig) GetRaw(k string) (interface{}, bool) {
 
 // IsComputed returns whether the given key is computed or not.
 func (c *ResourceConfig) IsComputed(k string) bool {
+	// First, check for pure computed key equality since that is fast
+	for _, ck := range c.ComputedKeys {
+		if ck == k {
+			return true
+		}
+	}
+
+	// The next thing we do is check the config if we get a computed
+	// value out of it.
 	v, ok := c.get(k, c.Config)
 	_, okRaw := c.get(k, c.Raw)
 
@@ -252,6 +261,7 @@ func (c *ResourceConfig) get(
 	var current interface{} = raw
 	var previous interface{} = nil
 	for i, part := range parts {
+		println(fmt.Sprintf("%#v: %#v %T", part, current, current))
 		if current == nil {
 			return nil, false
 		}
@@ -268,6 +278,7 @@ func (c *ResourceConfig) get(
 					if !v.IsValid() {
 						return nil, false
 					}
+
 					return v.Interface(), true
 				}
 
@@ -299,22 +310,39 @@ func (c *ResourceConfig) get(
 				current = cv.Index(int(i)).Interface()
 			}
 		case reflect.String:
+			// If we get the unknown value, return that
+			if current == unknownValue() {
+				return current, false
+			}
+
 			// This happens when map keys contain "." and have a common
 			// prefix so were split as path components above.
 			actualKey := strings.Join(parts[i-1:], ".")
 			if prevMap, ok := previous.(map[string]interface{}); ok {
 				return prevMap[actualKey], true
 			}
+
 			return nil, false
 		default:
 			panic(fmt.Sprintf("Unknown kind: %s", cv.Kind()))
 		}
 	}
 
-	// If the value is just the unknown value, then we don't
-	// know anything beyond here.
-	if current == unknownValue() {
-		return current, false
+	switch cv := reflect.ValueOf(current); cv.Kind() {
+	case reflect.Slice:
+		// If any value in a list is computed, this whole thing
+		// is computed and we can't read any part of it.
+		for i := 0; i < cv.Len(); i++ {
+			if v := cv.Index(i).Interface(); v == unknownValue() {
+				return v, false
+			}
+		}
+	default:
+		// If the value is just the unknown value, then we don't
+		// know anything beyond here.
+		if current == unknownValue() {
+			return current, false
+		}
 	}
 
 	return current, true
