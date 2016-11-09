@@ -135,24 +135,24 @@ func testAccCheckAWSKeyPair_namePrefix(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:        func() { testAccPreCheck(t) },
-		IDRefreshName:   "aws_security_group.baz",
-		IDRefreshIgnore: []string{"name_prefix"},
+		IDRefreshName:   "aws_key_pair.a_key_pair",
+		IDRefreshIgnore: []string{"key_name_prefix"},
 		Providers:       testAccProviders,
-		CheckDestroy:    testAccCheckAWSSecurityGroupDestroy,
+		CheckDestroy:    testAccCheckAWSKeyPairDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCheckAWSKeyPairPrefixNameConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSecurityGroupExists("aws_security_group.baz", &group),
-					testAccCheckAWSSecurityGroupGeneratedNamePrefix(
-						"aws_security_group.baz", "baz-"),
+					testAccCheckAWSKeyPairExists("aws_key_pair.a_key_pair", &conf),
+					testAccCheckAWSKeyPairGeneratedNamePrefix(
+						"aws_key_pair.a_key_pair", "baz-"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckAWSSecurityGroupGeneratedNamePrefix(
+func testAccCheckAWSKeyPairGeneratedNamePrefix(
 	resource, prefix string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		r, ok := s.RootModule().Resources[resource]
@@ -185,7 +185,7 @@ resource "aws_key_pair" "a_key_pair" {
 
 const testAccCheckAWSKeyPairPrefixNameConfig = `
 resource "aws_key_pair" "a_key_pair" {
-	key_name_prefix   = "tf-acc-key-pair-prefix-"
+	key_name_prefix   = "baz-"
 	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
 }
 `
