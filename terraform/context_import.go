@@ -43,10 +43,17 @@ func (c *Context) Import(opts *ImportOpts) (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
+	// If no module is given, default to the module configured with
+	// the Context.
+	module := opts.Module
+	if module == nil {
+		module = c.module
+	}
+
 	// Initialize our graph builder
 	builder := &ImportGraphBuilder{
 		ImportTargets: opts.Targets,
-		Module:        opts.Module,
+		Module:        module,
 		Providers:     c.components.ResourceProviders(),
 	}
 
