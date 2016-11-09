@@ -9,13 +9,28 @@ import (
 
 // the marshal* structs are for serialization of the graph data.
 type marshalGraph struct {
-	ID        string             `json:",omitempty"`
-	Name      string             `json:",omitempty"`
-	Attrs     map[string]string  `json:",omitempty"`
-	Vertices  []*marshalVertex   `json:",omitempty"`
-	Edges     []*marshalEdge     `json:",omitempty"`
-	Subgraphs []*marshalGraph    `json:",omitempty"`
-	Cycles    [][]*marshalVertex `json:",omitempty"`
+	// Each marshal structure require a unique ID so that it can be references
+	// by other structures.
+	ID string `json:",omitempty"`
+
+	// Human readable name for this graph.
+	Name string `json:",omitempty"`
+
+	// Arbitrary attributes that can be added to the output.
+	Attrs map[string]string `json:",omitempty"`
+
+	// List of graph vertices, sorted by ID.
+	Vertices []*marshalVertex `json:",omitempty"`
+
+	// List of edges, sorted by Source ID.
+	Edges []*marshalEdge `json:",omitempty"`
+
+	// Any number of subgraphs. A subgraph itself is considered a vertex, and
+	// may be referenced by either end of an edge.
+	Subgraphs []*marshalGraph `json:",omitempty"`
+
+	// Any lists of vertices that are included in cycles.
+	Cycles [][]*marshalVertex `json:",omitempty"`
 }
 
 func (g *marshalGraph) vertexByID(id string) *marshalVertex {
@@ -28,11 +43,21 @@ func (g *marshalGraph) vertexByID(id string) *marshalVertex {
 }
 
 type marshalVertex struct {
-	ID    string
-	Name  string            `json:",omitempty"`
+	// Unique ID, used to reference this vertex from other structures.
+	ID string
+
+	// Human readable name
+	Name string `json:",omitempty"`
+
 	Attrs map[string]string `json:",omitempty"`
+
+	// This is to help transition from the old Dot interfaces. We record if the
+	// node was a GraphNodeDotter here, so know if it should be included in the
+	// dot output
+	graphNodeDotter bool
 }
 
+// vertices is a sort.Interface implementation for sorting vertices by ID
 type vertices []*marshalVertex
 
 func (v vertices) Less(i, j int) bool { return v[i].Name < v[j].Name }
@@ -40,18 +65,24 @@ func (v vertices) Len() int           { return len(v) }
 func (v vertices) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
 
 type marshalEdge struct {
-	Name   string
+	// Human readable name
+	Name string
+
+	// Source and Target Vertices by ID
 	Source string
 	Target string
-	Attrs  map[string]string `json:",omitempty"`
+
+	Attrs map[string]string `json:",omitempty"`
 }
 
+// edges is a sort.Interface implementation for sorting edges by Source ID
 type edges []*marshalEdge
 
 func (e edges) Less(i, j int) bool { return e[i].Name < e[j].Name }
 func (e edges) Len() int           { return len(e) }
 func (e edges) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
 
+// build a marshalGraph structure from a *Graph
 func newMarshalGraph(name string, g *Graph) *marshalGraph {
 	dg := &marshalGraph{
 		Name:  name,
@@ -59,6 +90,16 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 	}
 
 	for _, v := range g.Vertices() {
+		// We only care about nodes that yield non-empty Dot strings.
+		dn, isDotter := v.(GraphNodeDotter)
+		dotOpts := &DotOpts{
+			Verbose:    true,
+			DrawCycles: true,
+		}
+		if isDotter && dn.DotNode("fake", dotOpts) == nil {
+			isDotter = false
+		}
+
 		id := marshalVertexID(v)
 		if sg, ok := marshalSubgrapher(v); ok {
 
@@ -68,9 +109,10 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 		}
 
 		dv := &marshalVertex{
-			ID:    id,
-			Name:  VertexName(v),
-			Attrs: make(map[string]string),
+			ID:              id,
+			Name:            VertexName(v),
+			Attrs:           make(map[string]string),
+			graphNodeDotter: isDotter,
 		}
 
 		dg.Vertices = append(dg.Vertices, dv)
@@ -124,9 +166,11 @@ func marshalVertexID(v Vertex) string {
 		}
 	}
 
+	// fallback to a name, which we hope is unique.
+	return VertexName(v)
+
 	// we could try harder by attempting to read the arbitrary value from the
 	// interface, but we shouldn't get here from terraform right now.
-	panic("unhashable value in graph")
 }
 
 // check for a Subgrapher, and return the underlying *Graph.
