@@ -344,7 +344,7 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
 					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
+					Type:  ast.TypeUnknown,
 				},
 			}),
 			false,
@@ -362,7 +362,7 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
 					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
+					Type:  ast.TypeUnknown,
 				},
 			}),
 			false,
