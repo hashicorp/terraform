@@ -1,8 +1,13 @@
-## 0.8.0 (unreleased)
+## 0.7.10 (unreleased)
 
 FEATURES:
+
  * **New Resource:** `azurerm_eventhub` [GH-9889]
  * **New Resource:** `azurerm_virtual_machine_extension` [GH-9962]
+ * **Experimental new plan graph:** `terraform plan` is getting a new graph
+   creation process for 0.8. This is now available behind a flag `-Xnew-apply`
+   (on any command). This will become the default in 0.8. There may still be
+   bugs. [GH-9973]
 
 IMPROVEMENTS:
 
