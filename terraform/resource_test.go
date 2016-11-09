@@ -326,6 +326,23 @@ func TestResourceConfigIsComputed(t *testing.T) {
 			Key:    "foo.#",
 			Result: true,
 		},
+
+		{
+			Name: "nested set with computed elements",
+			Config: map[string]interface{}{
+				"route": []map[string]interface{}{
+					map[string]interface{}{
+						"index":   "1",
+						"gateway": []interface{}{"${var.foo}"},
+					},
+				},
+			},
+			Vars: map[string]interface{}{
+				"foo": unknownValue(),
+			},
+			Key:    "route.0.gateway",
+			Result: true,
+		},
 	}
 
 	for i, tc := range cases {
