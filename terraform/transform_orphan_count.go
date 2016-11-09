@@ -11,7 +11,7 @@ import (
 // on the count argument given.
 //
 // Orphans are found by comparing the count to what is found in the state.
-// This tranform assumes that if an element in the state is within the count
+// This transform assumes that if an element in the state is within the count
 // bounds given, that it is not an orphan.
 type OrphanResourceCountTransformer struct {
 	Concrete ConcreteResourceNodeFunc
