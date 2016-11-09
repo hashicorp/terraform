@@ -488,28 +488,79 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diffLock.Unlock()
 
 	// Used throughout below
+	X_newApply := experiment.Enabled(experiment.X_newApply)
 	X_newDestroy := experiment.Enabled(experiment.X_newDestroy)
+	newGraphEnabled := (c.destroy && X_newDestroy) || (!c.destroy && X_newApply)
 
-	// Build the graph. We have a branch here since for the pure-destroy
-	// plan (c.destroy) we use a much simpler graph builder that simply
-	// walks the state and reverses edges.
-	var graph *Graph
-	var err error
-	if c.destroy && X_newDestroy {
-		graph, err = (&DestroyPlanGraphBuilder{
-			Module:  c.module,
-			State:   c.state,
-			Targets: c.targets,
-		}).Build(RootModulePath)
-	} else {
-		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
+	// Build the original graph. This is before the new graph builders
+	// coming in 0.8. We do this for shadow graphing.
+	oldGraph, err := c.Graph(&ContextGraphOpts{Validate: true})
+	if err != nil && newGraphEnabled {
+		// If we had an error graphing but we're using the new graph,
+		// just set it to nil and let it go. There are some features that
+		// may work with the new graph that don't with the old.
+		oldGraph = nil
+		err = nil
 	}
 	if err != nil {
 		return nil, err
 	}
 
+	// Build the new graph. We do this no matter wht so we can shadow it.
+	var newGraph *Graph
+	err = nil
+	if c.destroy {
+		newGraph, err = (&DestroyPlanGraphBuilder{
+			Module:  c.module,
+			State:   c.state,
+			Targets: c.targets,
+		}).Build(RootModulePath)
+	} else {
+		newGraph, err = (&PlanGraphBuilder{
+			Module:    c.module,
+			State:     c.state,
+			Providers: c.components.ResourceProviders(),
+			Targets:   c.targets,
+		}).Build(RootModulePath)
+	}
+	if err != nil && !newGraphEnabled {
+		// If we had an error graphing but we're not using this graph, just
+		// set it to nil and record it as a shadow error.
+		c.shadowErr = multierror.Append(c.shadowErr, fmt.Errorf(
+			"Error building new graph: %s", err))
+
+		newGraph = nil
+		err = nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine what is the real and what is the shadow. The logic here
+	// is straightforward though the if statements are not:
+	//
+	//  * If the new graph, shadow with experiment in both because the
+	//    experiment has less nodes so the original can't shadow.
+	//  * If not the new graph, shadow with the experiment
+	//
+	real := oldGraph
+	shadow := newGraph
+	if newGraphEnabled {
+		log.Printf("[WARN] terraform: real graph is experiment, shadow is experiment")
+		real = shadow
+	} else {
+		log.Printf("[WARN] terraform: real graph is original, shadow is experiment")
+	}
+
+	// Special case here: if we're using destroy don't shadow it because
+	// the new destroy graph behaves a bit differently on purpose by not
+	// setting the module destroy flag.
+	if c.destroy && !newGraphEnabled {
+		shadow = nil
+	}
+
 	// Do the walk
-	walker, err := c.walk(graph, graph, operation)
+	walker, err := c.walk(real, shadow, operation)
 	if err != nil {
 		return nil, err
 	}
@@ -528,7 +579,7 @@ func (c *Context) Plan() (*Plan, error) {
 
 	// We don't do the reverification during the new destroy plan because
 	// it will use a different apply process.
-	if !(c.destroy && X_newDestroy) {
+	if !newGraphEnabled {
 		// Now that we have a diff, we can build the exact graph that Apply will use
 		// and catch any possible cycles during the Plan phase.
 		if _, err := c.Graph(&ContextGraphOpts{Validate: true}); err != nil {
@@ -814,7 +865,12 @@ func (c *Context) walk(
 		//
 		// This must be done BEFORE appending shadowWalkErr since the
 		// shadowWalkErr may include expected errors.
-		if c.shadowErr != nil && contextFailOnShadowError {
+		//
+		// We only do this if we don't have a real error. In the case of
+		// a real error, we can't guarantee what nodes were and weren't
+		// traversed in parallel scenarios so we can't guarantee no
+		// shadow errors.
+		if c.shadowErr != nil && contextFailOnShadowError && realErr == nil {
 			panic(multierror.Prefix(c.shadowErr, "shadow graph:"))
 		}
 
