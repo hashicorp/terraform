@@ -241,7 +241,6 @@ func (c *Config) Client() (interface{}, error) {
 		}
 	}
 
-<<<<<<< HEAD
 	if !c.SkipRequestingAccountId {
 		partition, accountId, err := GetAccountInfo(client.iamconn, client.stsconn, cp.ProviderName)
 		if err == nil {
@@ -267,6 +266,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.cloudwatchlogsconn = cloudwatchlogs.New(sess)
 	client.codecommitconn = codecommit.New(usEast1Sess)
 	client.codedeployconn = codedeploy.New(sess)
+	client.configserviceconn = configservice.New(sess)
 	client.dsconn = directoryservice.New(sess)
 	client.dynamodbconn = dynamodb.New(dynamoSess)
 	client.ec2conn = ec2.New(awsEc2Sess)

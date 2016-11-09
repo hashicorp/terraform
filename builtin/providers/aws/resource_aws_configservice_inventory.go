@@ -2,11 +2,15 @@ package aws
 
 import (
 	"fmt"
-
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/configservice"
+
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -15,32 +19,33 @@ func resourceAwsConfigServiceInventory() *schema.Resource {
 		Create: resourceAwsConfigServiceInventoryCreate,
 		Read:   resourceAwsConfigServiceInventoryRead,
 		Update: resourceAwsConfigServiceInventoryUpdate,
+		Delete: resourceAwsConfigServiceInventoryDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"role_arn": &schema.Schema{
+			"role_arn": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"delivery_channel": &schema.Schema{
+			"delivery_channel": {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"sns_topic_arn": &schema.Schema{
+						"sns_topic_arn": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"s3_bucket_name": &schema.Schema{
+						"s3_bucket_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"s3_bucket_prefix": &schema.Schema{
+						"s3_bucket_prefix": {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -48,18 +53,19 @@ func resourceAwsConfigServiceInventory() *schema.Resource {
 				},
 			},
 
-			"configuration_recorder": &schema.Schema{
+			"configuration_recorder": {
 				Type:     schema.TypeList,
 				Required: true,
+				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"resource_types": &schema.Schema{
+						"resource_types": {
 							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 							Set:      schema.HashString,
 						},
-						"all_supported": &schema.Schema{
+						"all_supported": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
@@ -67,8 +73,7 @@ func resourceAwsConfigServiceInventory() *schema.Resource {
 					},
 				},
 			},
-
-			"start_recording": &schema.Schema{
+			"start_recording": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -80,21 +85,19 @@ func resourceAwsConfigServiceInventory() *schema.Resource {
 func resourceAwsConfigServiceInventoryCreate(d *schema.ResourceData, meta interface{}) error {
 	configserviceconn := meta.(*AWSClient).configserviceconn
 
-	configurationRecorder := &configservice.ConfigurationRecorder{
-		Name:    aws.String(d.Get("name").(string)),
-		RoleARN: aws.String(d.Get("role_arn").(string)),
-		RecordingGroup: &configservice.RecordingGroup{
-			AllSupported: aws.Bool(true),
+	log.Printf("[INFO] Creating Cofig Inventory: %s", d.Get("name").(string))
+
+	input := &configservice.PutConfigurationRecorderInput{
+		ConfigurationRecorder: &configservice.ConfigurationRecorder{
+			Name:    aws.String(d.Get("name").(string)),
+			RoleARN: aws.String(d.Get("role_arn").(string)),
 		},
 	}
 
-	input := &configservice.PutConfigurationRecorderInput{
-		ConfigurationRecorder: configurationRecorder,
-	}
-
 	_, err := configserviceconn.PutConfigurationRecorder(input)
+
 	if err != nil {
-		return fmt.Errorf("Error Creating ConfigService Configuration Recorder: %s", err.Error())
+		return errwrap.Wrapf("[ERROR] Error Creating ConfigService Configuration Recorder: {{err}}", err)
 	}
 
 	d.SetId(d.Get("name").(string))
@@ -105,12 +108,29 @@ func resourceAwsConfigServiceInventoryCreate(d *schema.ResourceData, meta interf
 func resourceAwsConfigServiceInventoryRead(d *schema.ResourceData, meta interface{}) error {
 	configserviceconn := meta.(*AWSClient).configserviceconn
 
-	out, err := configserviceconn.DescribeConfigurationRecorders(nil)
+	params := &configservice.DescribeConfigurationRecordersInput{
+		ConfigurationRecorderNames: []*string{
+			aws.String(d.Get("name").(string)),
+		},
+	}
+
+	resp, err := configserviceconn.DescribeConfigurationRecorders(params)
 	if err != nil {
 		log.Printf("Error")
 	}
-	log.Printf("Got the ARN %s", *out.ConfigurationRecorders[0].RoleARN)
-	log.Printf("Got the Name %s", *out.ConfigurationRecorders[0].Name)
+
+	d.Set("role_arn", *resp.ConfigurationRecorders[0].RoleARN)
+	d.Set("name", *resp.ConfigurationRecorders[0].Name)
+
+	recorders := resp.ConfigurationRecorders[0]
+	recorder := make(map[string]interface{})
+
+	recorder["resource_types"] = recorders.RecordingGroup.ResourceTypes
+	recorder["all_supported"] = recorders.RecordingGroup.AllSupported
+
+	if err := d.Set("configuration_recorder", []interface{}{recorder}); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -171,6 +191,49 @@ func resourceAwsConfigServiceUpdateRecordingStatus(configserviceconn *configserv
 			return err
 		}
 	}
+
+	return nil
+}
+
+func resourceAwsConfigServiceInventoryDelete(d *schema.ResourceData, meta interface{}) error {
+	configserviceconn := meta.(*AWSClient).configserviceconn
+
+	log.Printf("[INFO] Deleting ConfigService Inventory: %s", d.Id())
+
+	params := &configservice.DeleteConfigurationRecorderInput{
+		ConfigurationRecorderName: aws.String(d.Get("name").(string)),
+	}
+
+	_, err := configserviceconn.DeleteConfigurationRecorder(params)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] Waiting for ConfigService Inventory %q to be deleted", d.Get("name").(string))
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		_, err := configserviceconn.DescribeConfigurationRecorders(&configservice.DescribeConfigurationRecordersInput{
+			ConfigurationRecorderNames: []*string{
+				aws.String(d.Get("name").(string)),
+			},
+		})
+
+		if err != nil {
+			_, ok := err.(awserr.Error)
+			if !ok {
+				return resource.NonRetryableError(err)
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		return resource.RetryableError(
+			fmt.Errorf("%q: Timeout while waiting for the inventory to be deleted", d.Id()))
+	})
+	if err != nil {
+		return err
+	}
+
+	d.SetId("")
 
 	return nil
 }
