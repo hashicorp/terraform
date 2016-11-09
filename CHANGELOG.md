@@ -9,6 +9,12 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * `template_file` _inline_ templates must escape their variable usage. What
       was previously `${foo}` must now be `$${foo}`. Note that this is only
       for _inline_ templates. Templates read from files are unchanged. [GH-9698]
+ * Escape sequences used to require double-escaping when used within interpolations.
+      You now must only escape once (which is the expected/typical behavior).
+      For example: `${replace(var.foo, "\\", "\\\\")}` is correct. Before,
+      that would cause very strange behavior. However, this may break existing
+      configurations which found a level of escape sequences to work. Check
+      `terraform plan` for incorrect output.
 
 FEATURES:
 
@@ -21,6 +27,10 @@ IMPROVEMENTS:
 
   * helper/schema: only map, list, and set elements that are actually causing
       a resource to destroy/create are marked as "requires new". [GH-9613]
+
+BUG FIXES:
+
+  * core: Escape sequences in interpolations work in every case. [GH-8709]
 
 ## 0.7.10 (unreleased)
 
