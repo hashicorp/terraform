@@ -62,6 +62,8 @@ BUG FIXES:
  * provider/aws: aws_alb_target_group arn_suffix missing the targetgroup [GH-9911]
  * provider/aws: Fix the validateFunc of aws_elasticache_replication_group [GH-9918]
  * provider/aws: removing toLower when setting aws_db_parameter_group options [GH-9820]
+ * provider/aws: Fix panic when passing statuses to aws_acm_certificate [GH-9990]
+ * provider/aws: AWS IAM, User and Role allow + in the name [GH-9991]
  * provider/scaleway: retry volume attachment [GH-9972]
  * provider/scaleway: fix `scaleway_image` datasource returning unknown images [GH-9899]
  * provider/google: fix crash when mistakenly configuring disks [GH-9942]
