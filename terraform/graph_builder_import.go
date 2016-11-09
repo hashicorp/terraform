@@ -36,6 +36,14 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		mod = module.NewEmptyTree()
 	}
 
+	// Custom factory for creating providers.
+	providerFactory := func(name string, path []string) GraphNodeProvider {
+		return &NodeApplyableProvider{
+			NameValue: name,
+			PathValue: path,
+		}
+	}
+
 	steps := []GraphTransformer{
 		// Create all our resources from the configuration and state
 		&ConfigTransformerOld{Module: mod},
@@ -44,16 +52,17 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		&ImportStateTransformer{Targets: b.ImportTargets},
 
 		// Provider-related transformations
-		&MissingProviderTransformer{Providers: b.Providers},
+		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},
 		&ProviderTransformer{},
 		&DisableProviderTransformerOld{},
 		&PruneProviderTransformer{},
+		&AttachProviderConfigTransformer{Module: mod},
+
+		// This validates that the providers only depend on variables
+		&ImportProviderValidateTransformer{},
 
 		// Single root
 		&RootTransformer{},
-
-		// Insert nodes to close opened plugin connections
-		&CloseProviderTransformer{},
 
 		// Optimize
 		&TransitiveReductionTransformer{},

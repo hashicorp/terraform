@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+func TestErrNoConfigsFound_impl(t *testing.T) {
+	var _ error = new(ErrNoConfigsFound)
+}
+
 func TestIsEmptyDir(t *testing.T) {
 	val, err := IsEmptyDir(fixtureDir)
 	if err != nil {
