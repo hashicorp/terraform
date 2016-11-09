@@ -57,6 +57,7 @@ BUG FIXES:
  * provider/aws: Setting static_routes_only on import of vpn_connection [GH-9802]
  * provider/aws: aws_alb_target_group arn_suffix missing the targetgroup [GH-9911]
  * provider/aws: Fix the validateFunc of aws_elasticache_replication_group [GH-9918]
+ * provider/aws: removing toLower when setting aws_db_parameter_group options [GH-9820]
  * provider/scaleway: retry volume attachment [GH-9972]
  * provider/scaleway: fix `scaleway_image` datasource returning unknown images [GH-9899]
  * provider/google: fix crash when mistakenly configuring disks [GH-9942]
