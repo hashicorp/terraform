@@ -276,6 +276,15 @@ func (c *ResourceConfig) get(
 			current = v.Interface()
 		case reflect.Slice:
 			previous = current
+
+			// If any value in a list is computed, this whole thing
+			// is computed and we can't read any part of it.
+			for i := 0; i < cv.Len(); i++ {
+				if v := cv.Index(i).Interface(); v == unknownValue() {
+					return v, false
+				}
+			}
+
 			if part == "#" {
 				current = cv.Len()
 			} else {
@@ -289,6 +298,12 @@ func (c *ResourceConfig) get(
 				current = cv.Index(int(i)).Interface()
 			}
 		case reflect.String:
+			// If the value is just the unknown value, then we don't
+			// know anything beyond here.
+			if current == unknownValue() {
+				return current, false
+			}
+
 			// This happens when map keys contain "." and have a common
 			// prefix so were split as path components above.
 			actualKey := strings.Join(parts[i-1:], ".")

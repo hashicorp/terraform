@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
 )
@@ -234,6 +235,127 @@ func TestResourceConfigGet(t *testing.T) {
 			}
 			if !rc.Equal(copy) {
 				t.Fatalf("rc != copy:\n\n%#v\n\n%#v", copy, rc)
+			}
+		})
+	}
+}
+
+func TestResourceConfigIsComputed(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Config map[string]interface{}
+		Vars   map[string]interface{}
+		Key    string
+		Result bool
+	}{
+		{
+			Name: "basic value",
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Vars: map[string]interface{}{
+				"foo": unknownValue(),
+			},
+			Key:    "foo",
+			Result: true,
+		},
+
+		{
+			Name: "set with a computed element",
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Vars: map[string]interface{}{
+				"foo": []string{
+					"a",
+					unknownValue(),
+				},
+			},
+			Key:    "foo",
+			Result: true,
+		},
+
+		{
+			Name: "set with no computed elements",
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Vars: map[string]interface{}{
+				"foo": []string{
+					"a",
+					"b",
+				},
+			},
+			Key:    "foo",
+			Result: false,
+		},
+
+		{
+			Name: "set count with computed elements",
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Vars: map[string]interface{}{
+				"foo": []string{
+					"a",
+					unknownValue(),
+				},
+			},
+			Key:    "foo.#",
+			Result: true,
+		},
+
+		{
+			Name: "set count with computed elements",
+			Config: map[string]interface{}{
+				"foo": []interface{}{"${var.foo}"},
+			},
+			Vars: map[string]interface{}{
+				"foo": []string{
+					"a",
+					unknownValue(),
+				},
+			},
+			Key:    "foo.#",
+			Result: true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			var rawC *config.RawConfig
+			if tc.Config != nil {
+				var err error
+				rawC, err = config.NewRawConfig(tc.Config)
+				if err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			}
+
+			if tc.Vars != nil {
+				vs := make(map[string]ast.Variable)
+				for k, v := range tc.Vars {
+					hilVar, err := hil.InterfaceToVariable(v)
+					if err != nil {
+						t.Fatalf("%#v to var: %s", v, err)
+					}
+
+					vs["var."+k] = hilVar
+				}
+
+				if err := rawC.Interpolate(vs); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			}
+
+			rc := NewResourceConfig(rawC)
+			rc.interpolateForce()
+
+			t.Logf("Config: %#v", rc)
+
+			actual := rc.IsComputed(tc.Key)
+			if actual != tc.Result {
+				t.Fatalf("bad: %#v", actual)
 			}
 		})
 	}

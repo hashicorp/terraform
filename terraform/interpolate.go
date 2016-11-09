@@ -126,6 +126,10 @@ func unknownVariable() ast.Variable {
 	}
 }
 
+func unknownValue() string {
+	return hil.UnknownValue
+}
+
 func (i *Interpolater) valueModuleVar(
 	scope *InterpolationScope,
 	n string,
