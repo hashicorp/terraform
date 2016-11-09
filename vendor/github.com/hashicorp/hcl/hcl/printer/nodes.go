@@ -288,7 +288,7 @@ func (p *printer) objectType(o *ast.ObjectType) []byte {
 						buf.WriteByte(newline)
 					}
 
-					buf.Write(p.indent([]byte(comment.Text)))
+					buf.Write(p.indent(p.heredocIndent([]byte(comment.Text))))
 					buf.WriteByte(newline)
 					if index != len(o.List.Items) {
 						buf.WriteByte(newline) // do not print on the end
