@@ -19,6 +19,8 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
  * **New provider:** `vault` [GH-9158]
+ * The `import` command will now read provider configuration from Terraform
+   configuration files (including loading tfvars files and so on). [GH-9809]
  * Providers and resources are now notified by Terraform core to "stop" when
    an interrupt is received, allowing resources to gracefully exit much, much
    faster. [GH-9607]
