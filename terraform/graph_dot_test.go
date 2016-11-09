@@ -4,21 +4,31 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/dot"
 )
 
 func TestGraphDot(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		Name   string
 		Graph  testGraphFunc
-		Opts   GraphDotOpts
+		Opts   dag.DotOpts
 		Expect string
 		Error  string
 	}{
-		"empty": {
+		{
+			Name:  "empty",
 			Graph: func() *Graph { return &Graph{} },
-			Error: "No DOT origin nodes found",
+			Expect: `
+digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+	}
+}`,
 		},
-		"three-level": {
+		{
+			Name: "three-level",
 			Graph: func() *Graph {
 				var g Graph
 				root := &testDrawableOrigin{"root"}
@@ -61,8 +71,10 @@ digraph {
 }
 			`,
 		},
-		"cycle": {
-			Opts: GraphDotOpts{
+
+		{
+			Name: "cycle",
+			Opts: dag.DotOpts{
 				DrawCycles: true,
 			},
 			Graph: func() *Graph {
@@ -108,8 +120,10 @@ digraph {
 }
 			`,
 		},
-		"subgraphs, no depth restriction": {
-			Opts: GraphDotOpts{
+
+		{
+			Name: "subgraphs, no depth restriction",
+			Opts: dag.DotOpts{
 				MaxDepth: -1,
 			},
 			Graph: func() *Graph {
@@ -159,8 +173,10 @@ digraph {
 }
 			`,
 		},
-		"subgraphs, with depth restriction": {
-			Opts: GraphDotOpts{
+
+		{
+			Name: "subgraphs, with depth restriction",
+			Opts: dag.DotOpts{
 				MaxDepth: 1,
 			},
 			Graph: func() *Graph {
@@ -208,25 +224,32 @@ digraph {
 		},
 	}
 
-	for tn, tc := range cases {
-		actual, err := GraphDot(tc.Graph(), &tc.Opts)
-		if err == nil && tc.Error != "" {
-			t.Fatalf("%s: expected err: %s, got none", tn, tc.Error)
-		}
-		if err != nil && tc.Error == "" {
-			t.Fatalf("%s: unexpected err: %s", tn, err)
-		}
-		if err != nil && tc.Error != "" {
-			if !strings.Contains(err.Error(), tc.Error) {
-				t.Fatalf("%s: expected err: %s\nto contain: %s", tn, err, tc.Error)
-			}
-			continue
-		}
+	for _, tc := range cases {
+		tn := tc.Name
+		t.Run(tn, func(t *testing.T) {
+			g := tc.Graph()
+			var err error
+			//actual, err := GraphDot(g, &tc.Opts)
+			actual := string(g.Dot(&tc.Opts))
 
-		expected := strings.TrimSpace(tc.Expect) + "\n"
-		if actual != expected {
-			t.Fatalf("%s:\n\nexpected:\n%s\n\ngot:\n%s", tn, expected, actual)
-		}
+			if err == nil && tc.Error != "" {
+				t.Fatalf("%s: expected err: %s, got none", tn, tc.Error)
+			}
+			if err != nil && tc.Error == "" {
+				t.Fatalf("%s: unexpected err: %s", tn, err)
+			}
+			if err != nil && tc.Error != "" {
+				if !strings.Contains(err.Error(), tc.Error) {
+					t.Fatalf("%s: expected err: %s\nto contain: %s", tn, err, tc.Error)
+				}
+				return
+			}
+
+			expected := strings.TrimSpace(tc.Expect) + "\n"
+			if actual != expected {
+				t.Fatalf("%s:\n\nexpected:\n%s\n\ngot:\n%s", tn, expected, actual)
+			}
+		})
 	}
 }
 
@@ -240,7 +263,7 @@ type testDrawable struct {
 func (node *testDrawable) Name() string {
 	return node.VertexName
 }
-func (node *testDrawable) DotNode(n string, opts *GraphDotOpts) *dot.Node {
+func (node *testDrawable) DotNode(n string, opts *dag.DotOpts) *dot.Node {
 	return dot.NewNode(n, map[string]string{})
 }
 func (node *testDrawable) DependableName() []string {
@@ -257,7 +280,7 @@ type testDrawableOrigin struct {
 func (node *testDrawableOrigin) Name() string {
 	return node.VertexName
 }
-func (node *testDrawableOrigin) DotNode(n string, opts *GraphDotOpts) *dot.Node {
+func (node *testDrawableOrigin) DotNode(n string, opts *dag.DotOpts) *dot.Node {
 	return dot.NewNode(n, map[string]string{})
 }
 func (node *testDrawableOrigin) DotOrigin() bool {
@@ -279,7 +302,7 @@ func (node *testDrawableSubgraph) Name() string {
 func (node *testDrawableSubgraph) Subgraph() *Graph {
 	return node.SubgraphMock
 }
-func (node *testDrawableSubgraph) DotNode(n string, opts *GraphDotOpts) *dot.Node {
+func (node *testDrawableSubgraph) DotNode(n string, opts *dag.DotOpts) *dot.Node {
 	return dot.NewNode(n, map[string]string{})
 }
 func (node *testDrawableSubgraph) DependentOn() []string {

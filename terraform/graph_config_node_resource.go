@@ -128,7 +128,7 @@ func (n *GraphNodeConfigResource) Name() string {
 }
 
 // GraphNodeDotter impl.
-func (n *GraphNodeConfigResource) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+func (n *GraphNodeConfigResource) DotNode(name string, opts *dag.DotOpts) *dot.Node {
 	if n.Destroy && !opts.Verbose {
 		return nil
 	}

@@ -129,7 +129,7 @@ func (n *graphNodeModuleExpanded) DependentOn() []string {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeModuleExpanded) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+func (n *graphNodeModuleExpanded) DotNode(name string, opts *dag.DotOpts) *dot.Node {
 	return dot.NewNode(name, map[string]string{
 		"label": dag.VertexName(n.Original),
 		"shape": "component",
