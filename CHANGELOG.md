@@ -43,6 +43,7 @@ FEATURES:
 
 IMPROVEMENTS:
  * provider/aws: Expose RDS DB Instance HostedZoneId attribute [GH-10000]
+ * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode [GH-9966]
 
 BUG FIXES:
 
