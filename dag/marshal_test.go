@@ -175,7 +175,7 @@ func TestGraphJSON_annotations(t *testing.T) {
 				}
 				found3 = true
 			default:
-				t.Fatalf("unexpected annotation:", va)
+				t.Fatalf("unexpected annotation: %#v", va)
 			}
 		case "EdgeAnnotation":
 			ea := &edgeAnnotation{}
