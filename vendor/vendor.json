@@ -862,6 +862,18 @@
 			"revisionTime": "2016-06-27T19:55:12Z"
 		},
 		{
+			"checksumSHA1": "Qk4+xBppOaeKObZoN98MalFuw6g=",
+			"path": "github.com/docker/docker/api/types/mount",
+			"revision": "96efb2cf25394b1589aced296e27f3928dc9c229",
+			"revisionTime": "2016-10-24T15:05:04Z"
+		},
+		{
+			"checksumSHA1": "n6s24irCknwXoopadvD3Ei4jQUA=",
+			"path": "github.com/docker/docker/api/types/swarm",
+			"revision": "96efb2cf25394b1589aced296e27f3928dc9c229",
+			"revisionTime": "2016-10-24T15:05:04Z"
+		},
+		{
 			"path": "github.com/dylanmei/iso8601",
 			"revision": "2075bf119b58e5576c6ed9f867b8f3d17f2e54d4"
 		},
@@ -874,8 +886,10 @@
 			"revision": "73c4e3dc02a78deaba8640d5f3a8c236ec1352bf"
 		},
 		{
+			"checksumSHA1": "f2PcX9lM3DK0GgmS79mHe11BE2U=",
 			"path": "github.com/fsouza/go-dockerclient",
-			"revision": "bf97c77db7c945cbcdbf09d56c6f87a66f54537b"
+			"revision": "b21e1152923f46354476a3befa5b7aab0f441b4c",
+			"revisionTime": "2016-10-24T15:28:06Z"
 		},
 		{
 			"path": "github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus",
@@ -1222,6 +1236,12 @@
 			"revisionTime": "2016-10-25T18:03:21Z"
 		},
 		{
+			"checksumSHA1": "6tvhO5ieOvX9R6o0vtl19s0lr8E=",
+			"path": "github.com/gorhill/cronexpr",
+			"revision": "f0984319b44273e83de132089ae42b1810f4933b",
+			"revisionTime": "2016-03-18T12:17:24Z"
+		},
+		{
 			"path": "github.com/gosimple/slug",
 			"revision": "ea39c588e0a5b1064e0f98d7307e6c2f286f32e8"
 		},
@@ -1292,6 +1312,12 @@
 		{
 			"path": "github.com/hashicorp/go-getter/helper/url",
 			"revision": "2822987a64e0df1236ac29dd277ddf79f4871f9a"
+		},
+		{
+			"checksumSHA1": "TNlVzNR1OaajcNi3CbQ3bGbaLGU=",
+			"path": "github.com/hashicorp/go-msgpack/codec",
+			"revision": "fa3f63826f7c23912c15263591e65d54d080b458",
+			"revisionTime": "2015-05-18T23:42:57Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-multierror",
@@ -1400,6 +1426,139 @@
 		{
 			"path": "github.com/hashicorp/logutils",
 			"revision": "0dc08b1671f34c4250ce212759ebd880f743d883"
+		},
+		{
+			"checksumSHA1": "i6mfjvpzNX/4aHFVVRLq3YrFj+c=",
+			"path": "github.com/hashicorp/nomad",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z",
+			"tree": true
+		},
+		{
+			"checksumSHA1": "saggpFOsmKtEMYIj0kWW6OhfKoU=",
+			"path": "github.com/hashicorp/nomad/api",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "P8iGYykI8LXyBytMV2rNYlpU0QA=",
+			"path": "github.com/hashicorp/nomad/client/allocdir",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "FjflehhhUWeo72pkCLzzgyQ5VNQ=",
+			"path": "github.com/hashicorp/nomad/client/config",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "tb4AIN8/oyQlWwCPQXrwdw3zWF0=",
+			"path": "github.com/hashicorp/nomad/client/driver",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "eoieLd+y/Gqr8xCv3yidOO32vO0=",
+			"path": "github.com/hashicorp/nomad/client/driver/env",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "cuzGtcIlTSE38kDvNYCJnYUO6Ok=",
+			"path": "github.com/hashicorp/nomad/client/driver/executor",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "hiQX7lw0RfrGiqxUVqHY/TokFoQ=",
+			"path": "github.com/hashicorp/nomad/client/driver/logging",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "kshKmgm/TBRVTzJhowL00FXNaBc=",
+			"path": "github.com/hashicorp/nomad/client/driver/structs",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "1/UHWfnp4fzxHCI/CYVQ1W4fE2s=",
+			"path": "github.com/hashicorp/nomad/client/fingerprint",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "qbJWUr1kAqkNxGyWJwuEvcJZ2TQ=",
+			"path": "github.com/hashicorp/nomad/client/stats",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "ZVIe+emCimm3c0FC3wYpWlBAX6w=",
+			"path": "github.com/hashicorp/nomad/client/structs",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "xK1wtKpdyQQBc298QgiGtQSY1No=",
+			"path": "github.com/hashicorp/nomad/command/agent/consul",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "UOuTIv1Ef6r3cN9fImCq1SNQnCs=",
+			"path": "github.com/hashicorp/nomad/helper/args",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "xHzxKelZY3IGFMQvuD4ATi7LgCM=",
+			"path": "github.com/hashicorp/nomad/helper/discover",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "Xl6MvUmcf7sYI+z+fo9dJh2ux5E=",
+			"path": "github.com/hashicorp/nomad/helper/fields",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "J7j/5Jtk8la/xEAtu4e/6KIiqzs=",
+			"path": "github.com/hashicorp/nomad/helper/flatmap",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "g8cxV0OVSzVCxKDreir54dDAulY=",
+			"path": "github.com/hashicorp/nomad/helper/stats",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "ram9peUVU+QonmgPmMFMLz24wsQ=",
+			"path": "github.com/hashicorp/nomad/jobspec",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "Fwhx/DzNN/jsFJtfIuWn9VKqUTQ=",
+			"path": "github.com/hashicorp/nomad/nomad/structs",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "/igEhkMAxgSkqzvkMA1/GcC1kl0=",
+			"path": "github.com/hashicorp/nomad/nomad/structs/config",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
+		},
+		{
+			"checksumSHA1": "XihViBWoHbBMhHVdJCXJKli77Fo=",
+			"path": "github.com/hashicorp/nomad/nomad/types",
+			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
+			"revisionTime": "2016-08-17T23:09:46Z"
 		},
 		{
 			"comment": "v0.7.0-12-ge4ec8cc",
@@ -1847,6 +2006,12 @@
 		{
 			"path": "github.com/tent/http-link-go",
 			"revision": "ac974c61c2f990f4115b119354b5e0b47550e888"
+		},
+		{
+			"checksumSHA1": "jfIUoeCY4uLz1zCgnCxndi5/UNE=",
+			"path": "github.com/ugorji/go/codec",
+			"revision": "faddd6128c66c4708f45fdc007f575f75e592a3c",
+			"revisionTime": "2016-09-28T01:52:44Z"
 		},
 		{
 			"comment": "v0.6.2",

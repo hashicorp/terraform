@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="<%= current_page.data.description %>">
+
+    <link rel="shortcut icon" href="<%= image_path('favicon.png') %>">
+
+    <title><%= [current_page.data.page_title, "Nomad by HashiCorp"].compact.join(" - ") %></title>
+
+    <%= stylesheet_link_tag "application" %>
+
+    <!--[if lt IE 9]>
+      <%= javascript_include_tag "ie-compat" %>
+    <![endif]-->
+
+    <%= yield_content :head %>
+  </head>
+
+  <body id="page-<%= current_page.data.page_title ? "#{current_page.data.page_title}" : "home" %>" class="<%= yield_content(:body_class) %> page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %>  -displaying-bnr">

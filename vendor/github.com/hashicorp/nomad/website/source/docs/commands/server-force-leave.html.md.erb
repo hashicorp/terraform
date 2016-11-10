@@ -1,0 +1,35 @@
+---
+layout: "docs"
+page_title: "Commands: server-force-leave"
+sidebar_current: "docs-commands-server-force-leave"
+description: >
+  Force a server into the "left" state.
+---
+
+# Command: server-force-leave
+
+The `server-force-leave` command forces a server to enter the "left" state.
+This can be used to eject server nodes which have failed and will not rejoin
+the cluster. Note that if the server is actually still alive, it will
+eventually rejoin the cluster again.
+
+## Usage
+
+```
+nomad server-force-leave [options] <node>
+```
+
+This command expects only one argument - the node which should be forced
+to enter the "left" state.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Examples
+
+Force-leave the server "node1":
+
+```
+$ nomad server-force-leave node1
+```

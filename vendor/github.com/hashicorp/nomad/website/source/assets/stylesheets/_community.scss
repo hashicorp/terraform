@@ -1,0 +1,21 @@
+.people {
+  margin-top: 30px;
+
+  .person {
+    margin-bottom: 40px;
+
+    h3 {
+      color: $blue-dark;
+      text-transform: none;
+    }
+
+    img {
+      width: 125px;
+      margin: auto auto;
+    }
+
+    .bio {
+      padding-left: 150px;
+    }
+  }
+}
