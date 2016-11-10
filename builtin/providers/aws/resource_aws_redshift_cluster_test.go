@@ -374,42 +374,6 @@ func TestResourceAWSRedshiftClusterIdentifierValidation(t *testing.T) {
 	}
 }
 
-func TestResourceAWSRedshiftClusterDbNameValidation(t *testing.T) {
-	cases := []struct {
-		Value    string
-		ErrCount int
-	}{
-		{
-			Value:    "tEsting",
-			ErrCount: 1,
-		},
-		{
-			Value:    "testing1",
-			ErrCount: 0,
-		},
-		{
-			Value:    "testing-",
-			ErrCount: 1,
-		},
-		{
-			Value:    "",
-			ErrCount: 2,
-		},
-		{
-			Value:    randomString(65),
-			ErrCount: 1,
-		},
-	}
-
-	for _, tc := range cases {
-		_, errors := validateRedshiftClusterDbName(tc.Value, "aws_redshift_cluster_database_name")
-
-		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Redshift Cluster database_name to trigger a validation error")
-		}
-	}
-}
-
 func TestResourceAWSRedshiftClusterFinalSnapshotIdentifierValidation(t *testing.T) {
 	cases := []struct {
 		Value    string
