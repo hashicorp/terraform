@@ -337,6 +337,16 @@ func (g *Graph) SetDebugWriter(w io.Writer) {
 	g.debug.Encode(newMarshalGraph("root", g))
 }
 
+func (g *Graph) AnnotateVertex(v Vertex, info string) {
+	va := newVertexAnnotation(v, info)
+	g.debug.Encode(va)
+}
+
+func (g *Graph) AnnotateEdge(e Edge, info string) {
+	ea := newEdgeAnnotation(e, info)
+	g.debug.Encode(ea)
+}
+
 // VertexName returns the name of a vertex.
 func VertexName(raw Vertex) string {
 	switch v := raw.(type) {
