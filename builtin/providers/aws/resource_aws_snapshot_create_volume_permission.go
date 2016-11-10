@@ -2,8 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -53,10 +56,26 @@ func resourceAwsSnapshotCreateVolumePermissionCreate(d *schema.ResourceData, met
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("error creating snapshot volume permission: %s", err)
+		return fmt.Errorf("Error adding snapshot createVolumePermission: %s", err)
 	}
 
 	d.SetId(fmt.Sprintf("%s-%s", snapshot_id, account_id))
+
+	// Wait for the account to appear in the permission list
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"denied"},
+		Target:     []string{"granted"},
+		Refresh:    resourceAwsSnapshotCreateVolumePermissionStateRefreshFunc(conn, snapshot_id, account_id),
+		Timeout:    5 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 10 * time.Second,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf(
+			"Error waiting for snapshot createVolumePermission (%s) to be added: %s",
+			d.Id(), err)
+	}
+
 	return nil
 }
 
@@ -80,25 +99,54 @@ func resourceAwsSnapshotCreateVolumePermissionDelete(d *schema.ResourceData, met
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("error removing snapshot volume permission: %s", err)
+		return fmt.Errorf("Error removing snapshot createVolumePermission: %s", err)
+	}
+
+	// Wait for the account to disappear from the permission list
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"granted"},
+		Target:     []string{"denied"},
+		Refresh:    resourceAwsSnapshotCreateVolumePermissionStateRefreshFunc(conn, snapshot_id, account_id),
+		Timeout:    5 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 10 * time.Second,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf(
+			"Error waiting for snapshot createVolumePermission (%s) to be removed: %s",
+			d.Id(), err)
 	}
 
 	return nil
 }
 
 func hasCreateVolumePermission(conn *ec2.EC2, snapshot_id string, account_id string) (bool, error) {
-	attrs, err := conn.DescribeSnapshotAttribute(&ec2.DescribeSnapshotAttributeInput{
-		SnapshotId: aws.String(snapshot_id),
-		Attribute:  aws.String("createVolumePermission"),
-	})
+	_, state, err := resourceAwsSnapshotCreateVolumePermissionStateRefreshFunc(conn, snapshot_id, account_id)()
 	if err != nil {
 		return false, err
 	}
-
-	for _, vp := range attrs.CreateVolumePermissions {
-		if *vp.UserId == account_id {
-			return true, nil
-		}
+	if state == "granted" {
+		return true, nil
+	} else {
+		return false, nil
 	}
-	return false, nil
+}
+
+func resourceAwsSnapshotCreateVolumePermissionStateRefreshFunc(conn *ec2.EC2, snapshot_id string, account_id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		attrs, err := conn.DescribeSnapshotAttribute(&ec2.DescribeSnapshotAttributeInput{
+			SnapshotId: aws.String(snapshot_id),
+			Attribute:  aws.String("createVolumePermission"),
+		})
+		if err != nil {
+			return nil, "", fmt.Errorf("Error refreshing snapshot createVolumePermission state: %s", err)
+		}
+
+		for _, vp := range attrs.CreateVolumePermissions {
+			if *vp.UserId == account_id {
+				return attrs, "granted", nil
+			}
+		}
+		return attrs, "denied", nil
+	}
 }
