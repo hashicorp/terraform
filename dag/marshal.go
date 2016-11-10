@@ -9,7 +9,7 @@ import (
 
 // the marshal* structs are for serialization of the graph data.
 type marshalGraph struct {
-	// Each marshal structure require a unique ID so that it can be references
+	// Each marshal structure requires a unique ID so that it can be referenced
 	// by other structures.
 	ID string `json:",omitempty"`
 
@@ -52,7 +52,7 @@ type marshalVertex struct {
 	Attrs map[string]string `json:",omitempty"`
 
 	// This is to help transition from the old Dot interfaces. We record if the
-	// node was a GraphNodeDotter here, so know if it should be included in the
+	// node was a GraphNodeDotter here, so we know if it should be included in the
 	// dot output
 	graphNodeDotter bool
 }
