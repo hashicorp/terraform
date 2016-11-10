@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"sort"
 	"sync"
 )
@@ -15,6 +16,9 @@ type Graph struct {
 	downEdges map[interface{}]*Set
 	upEdges   map[interface{}]*Set
 	once      sync.Once
+
+	// JSON encoder for recording debug information
+	debug *encoder
 }
 
 // Subgrapher allows a Vertex to be a Graph itself, by returning a Grapher.
@@ -106,6 +110,7 @@ func (g *Graph) HasEdge(e Edge) bool {
 func (g *Graph) Add(v Vertex) Vertex {
 	g.once.Do(g.init)
 	g.vertices.Add(v)
+	g.debug.Add(v)
 	return v
 }
 
@@ -114,6 +119,7 @@ func (g *Graph) Add(v Vertex) Vertex {
 func (g *Graph) Remove(v Vertex) Vertex {
 	// Delete the vertex itself
 	g.vertices.Delete(v)
+	g.debug.Remove(v)
 
 	// Delete the edges to non-existent things
 	for _, target := range g.DownEdges(v).List() {
@@ -134,6 +140,8 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 	if !g.vertices.Include(original) {
 		return false
 	}
+
+	defer g.debug.BeginReplace().End()
 
 	// If they're the same, then don't do anything
 	if original == replacement {
@@ -158,6 +166,7 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 // RemoveEdge removes an edge from the graph.
 func (g *Graph) RemoveEdge(edge Edge) {
 	g.once.Do(g.init)
+	g.debug.RemoveEdge(edge)
 
 	// Delete the edge from the set
 	g.edges.Delete(edge)
@@ -189,6 +198,7 @@ func (g *Graph) UpEdges(v Vertex) *Set {
 // value of the edge itself.
 func (g *Graph) Connect(edge Edge) {
 	g.once.Do(g.init)
+	g.debug.Connect(edge)
 
 	source := edge.Source()
 	target := edge.Target()
@@ -301,20 +311,30 @@ func (g *Graph) String() string {
 	return buf.String()
 }
 
-func (g *Graph) Dot(opts *DotOpts) []byte {
-	return newMarshalGraph("", g).Dot(opts)
-}
-
-func (g *Graph) MarshalJSON() ([]byte, error) {
-	dg := newMarshalGraph("", g)
-	return json.MarshalIndent(dg, "", "  ")
-}
-
 func (g *Graph) init() {
 	g.vertices = new(Set)
 	g.edges = new(Set)
 	g.downEdges = make(map[interface{}]*Set)
 	g.upEdges = make(map[interface{}]*Set)
+}
+
+// Dot returns a dot-formatted representation of the Graph.
+func (g *Graph) Dot(opts *DotOpts) []byte {
+	return newMarshalGraph("", g).Dot(opts)
+}
+
+// MarshalJSON returns a JSON representation of the entire Graph.
+func (g *Graph) MarshalJSON() ([]byte, error) {
+	dg := newMarshalGraph("root", g)
+	return json.MarshalIndent(dg, "", "  ")
+}
+
+// SetDebugWriter sets the io.Writer where the Graph will record debug
+// information. After this is set, the graph will immediately encode itself to
+// the stream, and continue to record all subsequent operations.
+func (g *Graph) SetDebugWriter(w io.Writer) {
+	g.debug = &encoder{w}
+	g.debug.Encode(newMarshalGraph("root", g))
 }
 
 // VertexName returns the name of a vertex.
