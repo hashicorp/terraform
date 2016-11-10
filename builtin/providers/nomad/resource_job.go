@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/nomad/api"
@@ -23,9 +24,10 @@ func resourceJob() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"jobspec": {
-				Description: "Job specification. If you want to point to a file use the file() function.",
-				Required:    true,
-				Type:        schema.TypeString,
+				Description:      "Job specification. If you want to point to a file use the file() function.",
+				Required:         true,
+				Type:             schema.TypeString,
+				DiffSuppressFunc: jobspecDiffSuppress,
 			},
 
 			"deregister_on_destroy": {
@@ -168,4 +170,27 @@ func convertStructJob(in *structs.Job) (*api.Job, error) {
 		return nil, err
 	}
 	return apiJob, nil
+}
+
+// jobspecDiffSuppress is the DiffSuppressFunc used by the schema to
+// check if two jobspecs are equal.
+func jobspecDiffSuppress(k, old, new string, d *schema.ResourceData) bool {
+	// Parse the old job
+	oldJob, err := jobspec.Parse(strings.NewReader(old))
+	if err != nil {
+		return false
+	}
+
+	// Parse the new job
+	newJob, err := jobspec.Parse(strings.NewReader(new))
+	if err != nil {
+		return false
+	}
+
+	// Init
+	oldJob.Canonicalize()
+	newJob.Canonicalize()
+
+	// Check for jobspec equality
+	return reflect.DeepEqual(oldJob, newJob)
 }
