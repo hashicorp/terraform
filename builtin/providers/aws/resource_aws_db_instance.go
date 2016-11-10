@@ -236,6 +236,11 @@ func resourceAwsDbInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"hosted_zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"status": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -669,7 +674,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	if v.Endpoint != nil {
 		d.Set("port", v.Endpoint.Port)
 		d.Set("address", v.Endpoint.Address)
-
+		d.Set("hosted_zone_id", v.Endpoint.HostedZoneId)
 		if v.Endpoint.Address != nil && v.Endpoint.Port != nil {
 			d.Set("endpoint",
 				fmt.Sprintf("%s:%d", *v.Endpoint.Address, *v.Endpoint.Port))
