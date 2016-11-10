@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"github.com/hashicorp/terraform/dot"
 )
 
 // DotOpts are the options for generating a dot formatted Graph.
@@ -28,13 +26,19 @@ type DotOpts struct {
 // GraphNodeDotter can be implemented by a node to cause it to be included
 // in the dot graph. The Dot method will be called which is expected to
 // return a representation of this node.
-// TODO remove the dot package dependency
 type GraphNodeDotter interface {
 	// Dot is called to return the dot formatting for the node.
 	// The first parameter is the title of the node.
 	// The second parameter includes user-specified options that affect the dot
 	// graph. See GraphDotOpts below for details.
-	DotNode(string, *DotOpts) *dot.Node
+	DotNode(string, *DotOpts) *DotNode
+}
+
+// DotNode provides a structure for Vertices to return in order to specify their
+// dot format.
+type DotNode struct {
+	Name  string
+	Attrs map[string]string
 }
 
 // Returns the DOT representation of this Graph.

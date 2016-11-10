@@ -301,11 +301,6 @@ func (g *Graph) String() string {
 	return buf.String()
 }
 
-func (g *Graph) Marshal() ([]byte, error) {
-	dg := newMarshalGraph("", g)
-	return json.MarshalIndent(dg, "", "  ")
-}
-
 func (g *Graph) Dot(opts *DotOpts) []byte {
 	return newMarshalGraph("", g).Dot(opts)
 }

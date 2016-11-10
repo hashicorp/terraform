@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/dot"
 )
 
 func TestGraphDot(t *testing.T) {
@@ -263,8 +262,8 @@ type testDrawable struct {
 func (node *testDrawable) Name() string {
 	return node.VertexName
 }
-func (node *testDrawable) DotNode(n string, opts *dag.DotOpts) *dot.Node {
-	return dot.NewNode(n, map[string]string{})
+func (node *testDrawable) DotNode(n string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{Name: n, Attrs: map[string]string{}}
 }
 func (node *testDrawable) DependableName() []string {
 	return []string{node.VertexName}
@@ -280,8 +279,8 @@ type testDrawableOrigin struct {
 func (node *testDrawableOrigin) Name() string {
 	return node.VertexName
 }
-func (node *testDrawableOrigin) DotNode(n string, opts *dag.DotOpts) *dot.Node {
-	return dot.NewNode(n, map[string]string{})
+func (node *testDrawableOrigin) DotNode(n string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{Name: n, Attrs: map[string]string{}}
 }
 func (node *testDrawableOrigin) DotOrigin() bool {
 	return true
@@ -302,8 +301,8 @@ func (node *testDrawableSubgraph) Name() string {
 func (node *testDrawableSubgraph) Subgraph() dag.Grapher {
 	return node.SubgraphMock
 }
-func (node *testDrawableSubgraph) DotNode(n string, opts *dag.DotOpts) *dot.Node {
-	return dot.NewNode(n, map[string]string{})
+func (node *testDrawableSubgraph) DotNode(n string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{Name: n, Attrs: map[string]string{}}
 }
 func (node *testDrawableSubgraph) DependentOn() []string {
 	return node.DependentOnMock

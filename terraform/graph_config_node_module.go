@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/dot"
 )
 
 // GraphNodeConfigModule represents a module within the configuration graph.
@@ -129,11 +128,14 @@ func (n *graphNodeModuleExpanded) DependentOn() []string {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeModuleExpanded) DotNode(name string, opts *dag.DotOpts) *dot.Node {
-	return dot.NewNode(name, map[string]string{
-		"label": dag.VertexName(n.Original),
-		"shape": "component",
-	})
+func (n *graphNodeModuleExpanded) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": dag.VertexName(n.Original),
+			"shape": "component",
+		},
+	}
 }
 
 // GraphNodeEvalable impl.
