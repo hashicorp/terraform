@@ -18,6 +18,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
+ * **New provider:** `nomad` [GH-9538]
  * **New provider:** `vault` [GH-9158]
  * The `import` command will now read provider configuration from Terraform
    configuration files (including loading tfvars files and so on). [GH-9809]
