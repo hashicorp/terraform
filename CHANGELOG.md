@@ -1,5 +1,46 @@
-## 0.7.11 (unreleased)
+## 0.8.0 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * `template_file` _inline_ templates must escape their variable usage. What
+      was previously `${foo}` must now be `$${foo}`. Note that this is only
+      for _inline_ templates. Templates read from files are unchanged. [GH-9698]
+ * Escape sequences used to require double-escaping when used within interpolations.
+      You now must only escape once (which is the expected/typical behavior).
+      For example: `${replace(var.foo, "\\", "\\\\")}` is correct. Before,
+      that would cause very strange behavior. However, this may break existing
+      configurations which found a level of escape sequences to work. Check
+      `terraform plan` for incorrect output.
+
+FEATURES:
+
+ * **New provider:** `nomad` [GH-9538]
+ * **New provider:** `vault` [GH-9158]
+ * The `import` command will now read provider configuration from Terraform
+   configuration files (including loading tfvars files and so on). [GH-9809]
+ * Providers and resources are now notified by Terraform core to "stop" when
+   an interrupt is received, allowing resources to gracefully exit much, much
+   faster. [GH-9607]
+
+IMPROVEMENTS:
+
+  * helper/schema: only map, list, and set elements that are actually causing
+      a resource to destroy/create are marked as "requires new". [GH-9613]
+
+BUG FIXES:
+
+  * core: Escape sequences in interpolations work in every case. [GH-8709]
+  * core: Maps in outputs with computed values are no longer removed. [GH-9549]
+  * command/fmt: Multiline comments aren't indented every fmt. [GH-6524]
+
+## 0.7.11 (Unreleased)
+
+FEATURES:
+
+IMPROVEMENTS:
+ * provider/aws: Expose RDS DB Instance HostedZoneId attribute [GH-10000]
+
+BUG FIXES:
 
 
 ## 0.7.10 (November 9, 2016)
