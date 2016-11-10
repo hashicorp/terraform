@@ -12,9 +12,10 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-var testAccAwsIamPolicyConfig = `
-resource "aws_iam_policy" "test" {
-    name = "test_policy"
+func testAccAwsIamPolicyConfig(suffix string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_policy" "test_%[1]s" {
+    name = "test_policy_%[1]s"
     path = "/"
     description = "My test policy"
     policy = <<EOF
@@ -32,10 +33,12 @@ resource "aws_iam_policy" "test" {
 }
 EOF
 }
-`
+`, suffix)
+}
 
 func TestAccAWSIAMPolicy_importBasic(t *testing.T) {
-	resourceName := "aws_iam_policy.test"
+	suffix := randomString(10)
+	resourceName := fmt.Sprintf("aws_iam_policy.test_%s", suffix)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -43,7 +46,7 @@ func TestAccAWSIAMPolicy_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSPolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAwsIamPolicyConfig,
+				Config: testAccAwsIamPolicyConfig(suffix),
 			},
 
 			resource.TestStep{

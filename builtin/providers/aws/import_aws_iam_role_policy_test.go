@@ -1,21 +1,23 @@
 package aws
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-var testAccAwsIamRolePolicyConfig = `
-resource "aws_iam_role" "role" {
-	name = "tf_test_role_test"
+func testAccAwsIamRolePolicyConfig(suffix string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_role" "role_%[1]s" {
+	name = "tf_test_role_test_%[1]s"
 	path = "/"
 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
 }
 
-resource "aws_iam_role_policy" "foo" {
-	name = "tf_test_policy_test"
-	role = "${aws_iam_role.role.name}"
+resource "aws_iam_role_policy" "foo_%[1]s" {
+	name = "tf_test_policy_test_%[1]s"
+	role = "${aws_iam_role.role_%[1]s.name}"
 	policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -27,10 +29,12 @@ resource "aws_iam_role_policy" "foo" {
 }
 EOF
 }
-`
+`, suffix)
+}
 
 func TestAccAWSIAMRolePolicy_importBasic(t *testing.T) {
-	resourceName := "aws_iam_role_policy.foo"
+	suffix := randomString(10)
+	resourceName := fmt.Sprintf("aws_iam_role_policy.foo_%s", suffix)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -38,7 +42,7 @@ func TestAccAWSIAMRolePolicy_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckIAMRolePolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAwsIamRolePolicyConfig,
+				Config: testAccAwsIamRolePolicyConfig(suffix),
 			},
 
 			resource.TestStep{

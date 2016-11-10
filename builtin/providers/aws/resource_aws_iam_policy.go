@@ -235,20 +235,17 @@ func readIamPolicy(d *schema.ResourceData, policy *iam.Policy) error {
 	d.SetId(*policy.Arn)
 	if policy.Description != nil {
 		// the description isn't present in the response to CreatePolicy.
-		if err := d.Set("description", *policy.Description); err != nil {
+		if err := d.Set("description", policy.Description); err != nil {
 			return err
 		}
 	}
-	if err := d.Set("path", *policy.Path); err != nil {
+	if err := d.Set("path", policy.Path); err != nil {
 		return err
 	}
-	if err := d.Set("name", *policy.PolicyName); err != nil {
+	if err := d.Set("name", policy.PolicyName); err != nil {
 		return err
 	}
-	if err := d.Set("arn", *policy.Arn); err != nil {
-		return err
-	}
-	if err := d.Set("arn", *policy.Arn); err != nil {
+	if err := d.Set("arn", policy.Arn); err != nil {
 		return err
 	}
 	return nil
