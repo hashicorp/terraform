@@ -1,11 +1,14 @@
 package schema
 
 import (
+	"bytes"
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -359,6 +362,138 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 			},
 			testConfigInterpolate(t, map[string]interface{}{
 				"strSet": []interface{}{"${var.foo}/32"},
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeUnknown,
+				},
+			}),
+			false,
+		},
+	}
+
+	for name, tc := range cases {
+		r := &ConfigFieldReader{
+			Schema: schema,
+			Config: tc.Config,
+		}
+		out, err := r.ReadField(tc.Addr)
+		if err != nil != tc.Err {
+			t.Fatalf("%s: err: %s", name, err)
+		}
+		if s, ok := out.Value.(*Set); ok {
+			// If it is a set, convert to the raw map
+			out.Value = s.m
+			if len(s.m) == 0 {
+				out.Value = nil
+			}
+		}
+		if !reflect.DeepEqual(tc.Result, out) {
+			t.Fatalf("%s: bad: %#v", name, out)
+		}
+	}
+}
+
+func TestConfigFieldReader_computedComplexSet(t *testing.T) {
+	hashfunc := func(v interface{}) int {
+		var buf bytes.Buffer
+		m := v.(map[string]interface{})
+		buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+		buf.WriteString(fmt.Sprintf("%s-", m["vhd_uri"].(string)))
+		return hashcode.String(buf.String())
+	}
+
+	schema := map[string]*Schema{
+		"set": &Schema{
+			Type: TypeSet,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"name": {
+						Type:     TypeString,
+						Required: true,
+					},
+
+					"vhd_uri": {
+						Type:     TypeString,
+						Required: true,
+					},
+				},
+			},
+			Set: hashfunc,
+		},
+	}
+
+	cases := map[string]struct {
+		Addr   []string
+		Result FieldReadResult
+		Config *terraform.ResourceConfig
+		Err    bool
+	}{
+		"set, normal": {
+			[]string{"set"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"532860136": map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "bar",
+					},
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfig(t, map[string]interface{}{
+				"set": []interface{}{
+					map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "bar",
+					},
+				},
+			}),
+			false,
+		},
+
+		"set, computed element": {
+			[]string{"set"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"~3596295623": map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "${var.foo}/bar",
+					},
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"set": []interface{}{
+					map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "${var.foo}/bar",
+					},
+				},
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeUnknown,
+				},
+			}),
+			false,
+		},
+
+		"set, computed element single": {
+			[]string{"set", "~3596295623", "vhd_uri"},
+			FieldReadResult{
+				Value:    "${var.foo}/bar",
+				Exists:   true,
+				Computed: true,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"set": []interface{}{
+					map[string]interface{}{
+						"name":    "myosdisk1",
+						"vhd_uri": "${var.foo}/bar",
+					},
+				},
 			}, map[string]ast.Variable{
 				"var.foo": ast.Variable{
 					Value: config.UnknownVariableValue,
