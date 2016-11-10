@@ -823,9 +823,9 @@ func resourceAwsRedshiftClusterStateRefreshFunc(d *schema.ResourceData, meta int
 
 func validateRedshiftClusterIdentifier(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9A-Za-z_\$]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase alphanumeric characters and hyphens allowed in %q", k))
+			"only alphanumeric characters, underscores, and dollar signs are allowed in %q", k))
 	}
 	if !regexp.MustCompile(`^[a-z]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
