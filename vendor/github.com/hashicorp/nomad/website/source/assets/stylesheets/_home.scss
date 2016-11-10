@@ -1,0 +1,633 @@
+//
+// Home
+// --------------------------------------------------
+
+#hero{
+  position: relative;
+  text-align: center;
+  background: image-url('nomad-giant.jpg') 0 0 no-repeat;
+  @include img-retina("nomad-giant.jpg", "nomad-giant.jpg", 624px, 358px);
+  background-size: cover !important;
+  overflow: hidden;
+
+  &:before{
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    width: 1000px;
+    height: 1000px;
+    margin-left: -500px;
+    border-radius: 500px;
+    background-color: $white;
+    z-index: 1;
+  }
+
+  #hero-graphic{
+    position: absolute;
+    display: inline-block;
+    left: 50%;
+    top: 0;
+    width: 499px;
+    height: 340px;
+    margin-top: 38px;
+    margin-left: -250px;
+    z-index: 2;
+
+    #hero-logotype{
+      position: absolute;
+      display: inline-block;
+      top: 75px;
+      left: 50%;
+      width: 115px;
+      height: 155px;
+      margin-left: -60px;
+      background: image-url('hero-logotype.png') 0 0 no-repeat;
+      @include img-retina("hero-logotype.png", "hero-logotype@2x.png", 115px, 155px);
+    }
+
+    #cubes{
+      .cube{
+        position: absolute;
+        top: 300px;
+        left: 248px;
+        opacity: 0.01;
+        @include transform( translate(0, 150px) );
+        @include transition( all 1.5s $easeInOutBack );
+
+        &.in{
+          @include transform( translate(0, 0) );
+          opacity: 1;
+        }
+
+        .face {
+          @include transform-origin(0 0);
+          position: absolute;
+          height: 44px;
+          width: 44px;
+
+          &.top{
+            background-color: $green;
+            @include transform(rotate(210deg) skewX(-30deg) scaleY(0.864) );
+          }
+          &.left{
+            background-color: $green-dark;
+            @include transform(rotate(90deg) skewX(-30deg) scaleY(0.864) );
+          }
+          &.right{
+            background-color: $green-light;
+            @include transform(rotate(-30deg) skewX(-30deg) scaleY(0.864) );
+          }
+        }
+      }
+    }
+  }
+
+  #hero-text{
+    position: relative;
+    padding-top: 400px;
+
+    #hero-text-content{
+      position: relative;
+      z-index: 2;
+      padding-bottom: 40px;
+    }
+
+    h1{
+      margin-top: 0;
+      color: $blue-dark;
+      font-size: $font-size-xl;
+      font-family: $font-family-blanc;
+    }
+
+    h4{
+      color: $blue-light;
+      font-family: $font-family-blanc;
+    }
+
+    #hero-btns{
+      margin-top: 26px;
+      a{
+
+      }
+    }
+  }
+
+  #tag-line{
+    margin: 15px 0 20px 0;
+    font-size: 24px;
+    font-weight: 300;
+  }
+
+  p{
+    margin-top: 60px;
+    text-align: left;
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 2em;
+
+    .strong{
+      font-size: 20px;
+      font-weight: 500;
+    }
+  }
+}
+
+.banner{
+  margin-top: 120px;
+
+  .col{
+    p{
+      line-height: 24px;
+    }
+  }
+
+  &.gray-banner{
+    .col{
+      border: 1px solid $blue-faint;
+    }
+
+    p{
+      color: $blue-light;
+    }
+  }
+
+  &.green-banner{
+    .col{
+      border: 1px solid $blue-faint;
+    }
+
+    p{
+      color: $blue-dark;
+    }
+  }
+
+  &#cta-banner{
+    margin-top: 0;
+    margin-bottom: 80px;
+
+    .col{
+      padding: 60px 20px;
+    }
+  }
+
+  .col{
+    padding: 20px;
+    text-align: center;
+    border-radius: 3px;
+  }
+
+  p{
+    margin-bottom: 0px;
+    margin-right: 30px;
+    font-size: $font-size-reg;
+    line-height: $font-size-reg;
+    font-family: $font-family-blanc-reg;
+  }
+
+  p, a{
+    display: inline-block;
+  }
+}
+
+#content{
+  overflow: hidden;
+  margin-top: 120px;
+
+  h2{
+    margin-bottom: 120px;
+    text-align: center;
+    font-size: $font-size-m;
+    font-family: $font-family-blanc;
+    color: $green;
+    text-transform: uppercase;
+  }
+
+  .feature{
+    position: relative;
+    margin-bottom: 60px;
+    padding-bottom: 60px;
+    border-bottom: 1px solid $blue-faint;
+
+    &:last-child{
+      border-bottom: none;
+    }
+
+    &#deploy{
+      .feature-graphic{
+        margin-top: -130px;
+        width: 1161px;
+        height: 735px;
+        background: image-url('feature-deploy.png') 0 0 no-repeat;
+        @include img-retina("feature-deploy.png", "feature-deploy@2x.png", 1161px, 735px);
+      }
+    }
+
+    &#maintain{
+      .feature-graphic{
+        margin-top: -50px;
+        width: 1113px;
+        height: 689px;
+        background: image-url('feature-manage.png') 0 0 no-repeat;
+        @include img-retina("feature-manage.png", "feature-manage@2x.png", 1113px, 689px);
+      }
+    }
+
+    &#healing{
+      .feature-graphic{
+        margin-top: 80px;
+        width: 1009px;
+        height: 309px;
+        background: image-url('feature-healing.png') 0 0 no-repeat;
+        @include img-retina("feature-healing.png", "feature-healing@2x.png", 1009px, 309px);
+      }
+    }
+
+    &#density{
+      .feature-graphic{
+        margin-top: 80px;
+        width: 1040px;
+        height: 409px;
+        background: image-url('feature-density.png') 0 0 no-repeat;
+        @include img-retina("feature-density.png", "feature-density@2x.png", 1040px, 409px);
+      }
+    }
+
+    &#partners{
+      .partner-logos{
+        .docker-wrap{
+          border-right: 1px solid $blue-faint;
+
+          .partner-logo{
+            display: inline-block;
+            width: 120px;
+            height: 180px;
+
+            &.docker-logo{
+              background: image-url('partner-docker.png') center center no-repeat;
+              @include img-retina("partner-docker.png", "partner-docker@2x.png", 100px, 84px);
+            }
+          }
+        }
+
+        .cloud-wrap{
+          .partner-logo{
+            float: left;
+            width: 25%;
+            height: 180px;
+
+            &.aws-logo{
+              background: image-url('partner-amazon.png') center center no-repeat;
+              @include img-retina("partner-amazon.png", "partner-amazon@2x.png", 153px, 56px);
+            }
+            &.google-logo{
+              background: image-url('partner-google.png') center center no-repeat;
+              @include img-retina("partner-google.png", "partner-google@2x.png", 135px, 87px);
+            }
+            &.microsoft-logo{
+              background: image-url('partner-microsoft.png') center center no-repeat;
+              @include img-retina("partner-microsoft.png", "partner-microsoft@2x.png", 188px, 84px);
+            }
+            &.engineyard-logo{
+              background: image-url('partner-engineyard.png') center center no-repeat;
+              @include img-retina("partner-engineyard.png", "partner-engineyard@2x.png", 178px, 37px);
+            }
+            &.digitalocean-logo{
+              background: image-url('partner-digitalocean.png') center center no-repeat;
+              @include img-retina("partner-digitalocean.png", "partner-digitalocean@2x.png", 134px, 85px);
+            }
+          }
+        }
+      }
+    }
+
+    .feature-graphic{
+      margin: 0 auto;
+    }
+
+    .feature-header{
+
+      &.right{
+        h3, p{
+          text-align: right;
+          display: block;
+          float: right;
+        }
+      }
+
+      h3{
+        margin: 30px 0 20px 0;
+        color: $blue-dark;
+        letter-spacing: 1px;
+        font-size: $font-size-l;
+        font-family: $font-family-blanc;
+        line-height: 1.25em;
+        max-width: 640px;
+      }
+
+      p{
+        margin-bottom: 30px;
+        color: $blue-light;
+        font-size: $font-size-reg+2;
+        font-family: $font-family-blanc-reg;
+        line-height: 1.75em;
+        max-width: 480px;
+      }
+    }
+
+    .feature-footer{
+      margin-top: -50px;
+
+      p{
+        display: inline-block;
+        color: $blue-dark;
+        font-size: $font-size-reg;
+        font-family: $font-family-blanc;
+        line-height: 1.75em;
+        max-width: 320px;
+        padding-left: 20px;
+        border-left: 1px solid $blue-faint;
+      }
+
+      .docker-outline-logo{
+        display: inline-block;
+        width: 80px;
+        height: 67px;
+        position: relative;
+        top: 12px;
+        margin-left: 8px;
+        background: image-url('partner-docker.png') 0 0 no-repeat;
+        @include img-retina("partner-docker.png", "partner-docker@2x.png", 80px, 67px);
+      }
+
+      a{
+        margin-bottom: 15px;
+        margin-left: 15px;
+
+        &:first-child{
+          margin-left: 0;
+        }
+      }
+    }
+  }
+}
+
+@media (min-width: 1200px) {
+
+}
+
+
+@media (max-width: 1200px) {
+
+}
+
+@media (min-width: 992px) and (max-width:1200px) {
+  #cta a {
+    margin-top: 15px;
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 768px) and (max-width:992px) {
+  #cta a {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 992px) {
+  #content{
+    .feature{
+      &#deploy{
+        .feature-graphic{
+          margin-top: -60px;
+          width: 768px;
+          height: 486px;
+          background: image-url('feature-deploy.png') 0 0 no-repeat;
+          @include img-retina("feature-deploy.png", "feature-deploy@2x.png", 768px, 486px);
+        }
+
+        .feature-footer{
+          margin-top: 0;
+        }
+      }
+
+      &#maintain{
+        .feature-graphic{
+          margin-top: -50px;
+          width: 768px;
+          height: 475px;
+          background: image-url('feature-manage.png') 0 0 no-repeat;
+          @include img-retina("feature-manage.png", "feature-manage@2x.png", 768px, 475px);
+        }
+      }
+
+      &#density{
+        .feature-graphic{
+          width: 768px;
+          height: 302px;
+          background: image-url('feature-density.png') 0 0 no-repeat;
+          @include img-retina("feature-density.png", "feature-density@2x.png", 768px, 302px);
+        }
+      }
+
+      &#partners{
+        .partner-logos{
+          .docker-wrap{
+            //border: none;
+            .partner-logo{
+              @include scale(.8);
+              margin-left: -18px;
+            }
+          }
+          .cloud-wrap{
+            .partner-logo{
+              @include scale(.8);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  #hero{
+    #hero-graphic{
+      @include scale(.8);
+    }
+  }
+
+  #content{
+    .feature{
+      &#deploy{
+        .feature-graphic{
+          margin-top: 0px;
+          width: 480px;
+          height: 304px;
+          background: image-url('feature-deploy.png') 0 0 no-repeat;
+          @include img-retina("feature-deploy.png", "feature-deploy@2x.png", 480px, 304px);
+        }
+
+        .feature-footer{
+          margin-top: $small-pad;
+
+          .docker-outline-logo{
+            width: 94px;
+            height: 63px;
+            background: image-url('partner-docker.png') 0 0 no-repeat;
+            @include img-retina("partner-docker.png", "partner-docker@2x.png", 94px, 63px);
+          }
+        }
+      }
+
+      &#maintain{
+        .feature-graphic{
+          margin-top: $small-pad;
+          width: 480px;
+          height: 297px;
+          background: image-url('feature-manage.png') 0 0 no-repeat;
+          @include img-retina("feature-manage.png", "feature-manage@2x.png", 480px, 297px);
+        }
+      }
+
+      &#healing{
+        .feature-graphic{
+          margin-top: $small-pad;
+          width: 480px;
+          height: 147px;
+          background: image-url('feature-healing.png') 0 0 no-repeat;
+          @include img-retina("feature-healing.png", "feature-healing@2x.png", 480px, 147px);
+        }
+      }
+
+      &#density{
+        .feature-graphic{
+          margin-top: $small-pad;
+          width: 480px;
+          height: 189px;
+          background: image-url('feature-density.png') 0 0 no-repeat;
+          @include img-retina("feature-density.png", "feature-density@2x.png", 480px, 189px);
+        }
+      }
+
+      &#partners{
+        .partner-logo{
+          display: block !important;
+          float: none !important;
+          width: 100% !important;
+          margin: 0 auto;
+          -webkit-transform: scale(1) !important;
+          -ms-transform: scale(1) !important;
+          transform: scale(1) !important;
+          margin-left: 0 !important;
+          height: 130px !important;
+        }
+
+        p{
+          padding: 0 20px;
+        }
+      }
+    }
+
+    .feature-header{
+      h3,p{
+        text-align: center !important;
+        max-width: none !important;
+        float: none !important;
+      }
+    }
+  }
+
+  .banner{
+    padding: 18px;
+    margin: 0 20px;
+
+    .col{
+      text-align: center;
+
+      p{
+        display: block;
+        margin-right: 0;
+        margin-bottom: $small-pad;
+      }
+    }
+  }
+
+  #cta{
+    .intro{
+      text-align: center;
+      p{
+        text-align: center;
+        margin-bottom: 15px;
+      }
+    }
+  }
+}
+
+
+@media (max-width: 480px) {
+  #hero{
+    background: none;
+
+    &:before{
+      display: none;
+    }
+
+    #hero-graphic{
+      height: 60px;
+      margin-top: 0;
+      @include scale(.54);
+    }
+
+    #hero-text{
+      position: relative;
+      padding-top: 220px;
+    }
+  }
+
+  #content{
+    .feature{
+      &#deploy{
+        .feature-graphic{
+          width: 280px;
+          height: 177px;
+          background: image-url('feature-deploy.png') 0 0 no-repeat;
+          @include img-retina("feature-deploy.png", "feature-deploy@2x.png", 280px, 177px);
+        }
+        .feature-footer{
+          .docker-outline-logo{
+            display: block;
+          }
+        }
+      }
+
+      &#maintain{
+        .feature-graphic{
+          margin-top: $small-pad;
+          width: 280px;
+          height: 173px;
+          background: image-url('feature-manage.png') 0 0 no-repeat;
+          @include img-retina("feature-manage.png", "feature-manage@2x.png", 280px, 173px);
+        }
+      }
+
+      &#healing{
+        .feature-graphic{
+          width: 280px;
+          height: 86px;
+          background: image-url('feature-healing.png') 0 0 no-repeat;
+          @include img-retina("feature-healing.png", "feature-healing@2x.png", 280px, 86px);
+        }
+      }
+
+      &#density{
+        .feature-graphic{
+          width: 280px;
+          height: 110px;
+          background: image-url('feature-density.png') 0 0 no-repeat;
+          @include img-retina("feature-density.png", "feature-density@2x.png", 280px, 110px);
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,61 @@
+---
+layout: "docs"
+page_title: "Commands: stop"
+sidebar_current: "docs-commands-stop"
+description: >
+  The stop command is used to stop a running job.
+---
+
+# Command: stop
+
+The `stop` command is used to stop a running job and signals the scheduler
+to cancel all of the running allocations.
+
+## Usage
+
+```
+nomad stop [options] <job>
+```
+
+The stop command requires a single argument, specifying the job ID or prefix to
+cancel. If there is an exact match based on the provided job ID or prefix, then
+the job will be cancelled. Otherwise, a list of matching jobs and information
+will be displayed.
+
+Upon successful deregistration, an interactive monitor session will start to
+display log lines as the job unwinds its allocations and completes shutting
+down. The monitor will exit once all allocations are stopped and the job has
+reached a terminal state. It is safe to exit the monitor early using ctrl+c.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Stop Options
+
+* `-detach`: Return immediately instead of entering monitor mode. After the
+  deregister command is submitted, a new evaluation ID is printed to the screen,
+  which can be used to examine the evaluation using the
+  [eval-status](/docs/commands/eval-status.html) command.
+
+## Status Options
+
+* `-verbose`: Show full information.
+
+## Examples
+
+Stop the job with ID "job1":
+
+```
+$ nomad stop job1
+==> Monitoring evaluation "43bfe672"
+    Evaluation status changed: "pending" -> "complete"
+==> Evaluation "43bfe672" finished with status "complete"
+```
+
+Stop the job with ID "job1" and return immediately:
+
+```
+$ nomad stop -detach job1
+507d26cb
+```

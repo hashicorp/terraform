@@ -1,0 +1,114 @@
+---
+layout: "docs"
+page_title: "Commands: run"
+sidebar_current: "docs-commands-run"
+description: >
+  The run command is used to run a new job.
+---
+
+# Command: run
+
+The `run` command is used to submit new jobs to Nomad or to update existing
+jobs. Job files must conform to the [job specification](/docs/jobspec/index.html)
+format.
+
+## Usage
+
+```
+nomad run [options] <jobfile>
+```
+
+The run command requires a single argument, specifying the path to a file
+containing a valid [job specification](/docs/jobspec/index.html). This file
+will be read and the job will be submitted to Nomad for scheduling. If the
+supplied path is "-", the jobfile is read from STDIN. Otherwise it is read
+from the file at the supplied path or downloaded and read from URL specified.
+Nomad downloads jobfile using [`go-getter`](https://github.com/hashicorp/go-getter)
+and support `go-getter` syntax.
+
+By default, on successful job submission the run command will enter an
+interactive monitor and display log information detailing the scheduling
+decisions and placement information for the provided job. The monitor will
+exit after scheduling has finished or failed.
+
+On successful job submission and scheduling, exit code 0 will be returned. If
+there are job placement issues encountered (unsatisfiable constraints, resource
+exhaustion, etc), then the exit code will be 2. Any other errors, including
+client connection issues or internal errors, are indicated by exit code 1.
+
+If the job has specified the region, the -region flag and NOMAD_REGION
+environment variable are overridden and the the job's region is used.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Run Options
+
+* `-check-index`: If set, the job is only registered or
+  updated if the the passed job modify index matches the server side version.
+  If a check-index value of zero is passed, the job is only registered if it does
+  not yet exist. If a non-zero value is passed, it ensures that the job is being
+  updated from a known state. The use of this flag is most common in conjunction
+  with [plan command](/docs/commands/plan.html).
+
+* `-detach`: Return immediately instead of monitoring. A new evaluation ID
+  will be output, which can be used to examine the evaluation using the
+  [eval-status](/docs/commands/eval-status.html) command
+
+* `-output`: Output the JSON that would be submitted to the HTTP API without
+  submitting the job.
+
+## Status Options
+
+* `-verbose`: Show full information.
+
+## Examples
+
+Schedule the job contained in the file `job1.nomad`, monitoring placement:
+
+```
+$ nomad run job1.nomad
+==> Monitoring evaluation "52dee78a"
+    Allocation "5e0b39f0" created: node "3e84d3d2", group "group1"
+    Allocation "5e0b39f0" status changed: "pending" -> "running"
+    Evaluation status changed: "pending" -> "complete"
+==> Evaluation "52dee78a" finished with status "complete"
+```
+
+<a id="check-index"></a> Update the job using `check-index`:
+
+```
+$ nomad run -check-index 5 example.nomad
+Enforcing job modify index 5: job exists with conflicting job modify index: 6
+Job not updated
+
+$ nomad run -check-index 6 example.nomad
+==> Monitoring evaluation "5ef16dff"
+    Evaluation triggered by job "example"
+    Allocation "6ec7d16f" modified: node "6e1f9bf6", group "cache"
+    Evaluation status changed: "pending" -> "complete"
+==> Evaluation "5ef16dff" finished with status "complete"
+```
+
+Schedule the job contained in `job1.nomad` and return immediately:
+
+```
+$ nomad run -detach job1.nomad
+4947e728
+```
+
+Schedule a job which cannot be successfully placed. This results in a scheduling
+failure and the specifics of the placement are printed:
+
+```
+$ nomad run failing.nomad
+==> Monitoring evaluation "2ae0e6a5"
+    Evaluation triggered by job "example"
+    Evaluation status changed: "pending" -> "complete"
+==> Evaluation "2ae0e6a5" finished with status "complete" but failed to place all allocations:
+    Task Group "cache" (failed to place 1 allocation):
+      * Class "foo" filtered 1 nodes
+      * Constraint "${attr.kernel.name} = linux" filtered 1 nodes
+    Evaluation "67493a64" waiting for additional capacity to place remainder
+```
