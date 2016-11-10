@@ -129,6 +129,84 @@ func TestGraphJSON_basicRecord(t *testing.T) {
 	}
 }
 
+// Verify that Vertex and Edge annotations appear in the debug output
+func TestGraphJSON_annotations(t *testing.T) {
+	var g Graph
+	var buf bytes.Buffer
+	g.SetDebugWriter(&buf)
+
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 2))
+
+	g.AnnotateVertex(2, "2")
+	g.AnnotateVertex(3, "3")
+	g.AnnotateEdge(BasicEdge(1, 2), "1|2")
+
+	dec := json.NewDecoder(bytes.NewReader(buf.Bytes()))
+
+	var found2, found3, foundEdge bool
+	for dec.More() {
+		var d streamDecode
+
+		err := dec.Decode(&d)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch d.Type {
+		case "VertexAnnotation":
+			va := &vertexAnnotation{}
+			err := json.Unmarshal(d.JSON, va)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			switch va.Info {
+			case "2":
+				if va.Vertex.Name != "2" {
+					t.Fatalf("wrong vertex annotated 2: %#v", va)
+				}
+				found2 = true
+			case "3":
+				if va.Vertex.Name != "3" {
+					t.Fatalf("wrong vertex annotated 3: %#v", va)
+				}
+				found3 = true
+			default:
+				t.Fatalf("unexpected annotation:", va)
+			}
+		case "EdgeAnnotation":
+			ea := &edgeAnnotation{}
+			err := json.Unmarshal(d.JSON, ea)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			switch ea.Info {
+			case "1|2":
+				if ea.Edge.Name != "1|2" {
+					t.Fatalf("incorrect edge annotation: %#v\n", ea)
+				}
+				foundEdge = true
+			default:
+				t.Fatalf("unexpected edge Info: %#v", ea)
+			}
+		}
+	}
+
+	if !found2 {
+		t.Fatal("annotation 2 not found")
+	}
+	if !found3 {
+		t.Fatal("annotation 3 not found")
+	}
+	if !foundEdge {
+		t.Fatal("edge annotation not found")
+	}
+}
+
 const testGraphJSONEmptyStr = `{
   "Type": "Graph",
   "Name": "root",
