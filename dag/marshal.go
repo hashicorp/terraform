@@ -1,7 +1,10 @@
 package dag
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -9,6 +12,10 @@ import (
 
 // the marshal* structs are for serialization of the graph data.
 type marshalGraph struct {
+	// Type is always "Graph", for identification as a top level object in the
+	// JSON stream.
+	Type string
+
 	// Each marshal structure requires a unique ID so that it can be referenced
 	// by other structures.
 	ID string `json:",omitempty"`
@@ -31,6 +38,36 @@ type marshalGraph struct {
 
 	// Any lists of vertices that are included in cycles.
 	Cycles [][]*marshalVertex `json:",omitempty"`
+}
+
+// The add, remove, connect, removeEdge methods mirror the basic Graph
+// manipulations to reconstruct a marshalGraph from a debug log.
+func (g *marshalGraph) add(v *marshalVertex) {
+	g.Vertices = append(g.Vertices, v)
+	sort.Sort(vertices(g.Vertices))
+}
+
+func (g *marshalGraph) remove(v *marshalVertex) {
+	for i, existing := range g.Vertices {
+		if v.ID == existing.ID {
+			g.Vertices = append(g.Vertices[:i], g.Vertices[i+1:]...)
+			return
+		}
+	}
+}
+
+func (g *marshalGraph) connect(e *marshalEdge) {
+	g.Edges = append(g.Edges, e)
+	sort.Sort(edges(g.Edges))
+}
+
+func (g *marshalGraph) removeEdge(e *marshalEdge) {
+	for i, existing := range g.Edges {
+		if e.Source == existing.Source && e.Target == existing.Target {
+			g.Edges = append(g.Edges[:i], g.Edges[i+1:]...)
+			return
+		}
+	}
 }
 
 func (g *marshalGraph) vertexByID(id string) *marshalVertex {
@@ -57,6 +94,27 @@ type marshalVertex struct {
 	graphNodeDotter bool
 }
 
+func newMarshalVertex(v Vertex) *marshalVertex {
+	return &marshalVertex{
+		ID:              marshalVertexID(v),
+		Name:            VertexName(v),
+		Attrs:           make(map[string]string),
+		graphNodeDotter: isDotter(v),
+	}
+}
+
+func isDotter(v Vertex) bool {
+	dn, isDotter := v.(GraphNodeDotter)
+	dotOpts := &DotOpts{
+		Verbose:    true,
+		DrawCycles: true,
+	}
+	if isDotter && dn.DotNode("fake", dotOpts) == nil {
+		isDotter = false
+	}
+	return isDotter
+}
+
 // vertices is a sort.Interface implementation for sorting vertices by ID
 type vertices []*marshalVertex
 
@@ -75,6 +133,15 @@ type marshalEdge struct {
 	Attrs map[string]string `json:",omitempty"`
 }
 
+func newMarshalEdge(e Edge) *marshalEdge {
+	return &marshalEdge{
+		Name:   fmt.Sprintf("%s|%s", VertexName(e.Source()), VertexName(e.Target())),
+		Source: marshalVertexID(e.Source()),
+		Target: marshalVertexID(e.Target()),
+		Attrs:  make(map[string]string),
+	}
+}
+
 // edges is a sort.Interface implementation for sorting edges by Source ID
 type edges []*marshalEdge
 
@@ -84,69 +151,42 @@ func (e edges) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
 
 // build a marshalGraph structure from a *Graph
 func newMarshalGraph(name string, g *Graph) *marshalGraph {
-	dg := &marshalGraph{
+	mg := &marshalGraph{
+		Type:  "Graph",
 		Name:  name,
 		Attrs: make(map[string]string),
 	}
 
 	for _, v := range g.Vertices() {
-		// We only care about nodes that yield non-empty Dot strings.
-		dn, isDotter := v.(GraphNodeDotter)
-		dotOpts := &DotOpts{
-			Verbose:    true,
-			DrawCycles: true,
-		}
-		if isDotter && dn.DotNode("fake", dotOpts) == nil {
-			isDotter = false
-		}
-
 		id := marshalVertexID(v)
 		if sg, ok := marshalSubgrapher(v); ok {
-
-			sdg := newMarshalGraph(VertexName(v), sg)
-			sdg.ID = id
-			dg.Subgraphs = append(dg.Subgraphs, sdg)
+			smg := newMarshalGraph(VertexName(v), sg)
+			smg.ID = id
+			mg.Subgraphs = append(mg.Subgraphs, smg)
 		}
 
-		dv := &marshalVertex{
-			ID:              id,
-			Name:            VertexName(v),
-			Attrs:           make(map[string]string),
-			graphNodeDotter: isDotter,
-		}
-
-		dg.Vertices = append(dg.Vertices, dv)
+		mv := newMarshalVertex(v)
+		mg.Vertices = append(mg.Vertices, mv)
 	}
 
-	sort.Sort(vertices(dg.Vertices))
+	sort.Sort(vertices(mg.Vertices))
 
 	for _, e := range g.Edges() {
-		de := &marshalEdge{
-			Name:   fmt.Sprintf("%s|%s", VertexName(e.Source()), VertexName(e.Target())),
-			Source: marshalVertexID(e.Source()),
-			Target: marshalVertexID(e.Target()),
-			Attrs:  make(map[string]string),
-		}
-		dg.Edges = append(dg.Edges, de)
+		mg.Edges = append(mg.Edges, newMarshalEdge(e))
 	}
 
-	sort.Sort(edges(dg.Edges))
+	sort.Sort(edges(mg.Edges))
 
 	for _, c := range (&AcyclicGraph{*g}).Cycles() {
 		var cycle []*marshalVertex
 		for _, v := range c {
-			dv := &marshalVertex{
-				ID:    marshalVertexID(v),
-				Name:  VertexName(v),
-				Attrs: make(map[string]string),
-			}
-
-			cycle = append(cycle, dv)
+			mv := newMarshalVertex(v)
+			cycle = append(cycle, mv)
 		}
-		dg.Cycles = append(dg.Cycles, cycle)
+		mg.Cycles = append(mg.Cycles, cycle)
 	}
 
-	return dg
+	return mg
 }
 
 // Attempt to return a unique ID for any vertex.
@@ -188,4 +228,242 @@ func marshalSubgrapher(v Vertex) (*Graph, bool) {
 	}
 
 	return nil, false
+}
+
+// ender provides a way to call any End* method expression via an End method
+type ender func()
+
+func (e ender) End() { e() }
+
+// encoder provides methods to write debug data to an io.Writer, and is a noop
+// when no writer is present
+type encoder struct {
+	w io.Writer
+}
+
+// Encode is analogous to json.Encoder.Encode
+func (e *encoder) Encode(i interface{}) {
+	if e == nil || e.w == nil {
+		return
+	}
+
+	js, err := json.Marshal(i)
+	if err != nil {
+		log.Println("[ERROR] dag:", err)
+		return
+	}
+	js = append(js, '\n')
+
+	_, err = e.w.Write(js)
+	if err != nil {
+		log.Println("[ERROR] dag:", err)
+		return
+	}
+}
+
+func (e *encoder) Add(v Vertex) {
+	e.Encode(marshalTransform{
+		Type:      "Transform",
+		AddVertex: newMarshalVertex(v),
+	})
+}
+
+// Remove records the removal of Vertex v.
+func (e *encoder) Remove(v Vertex) {
+	e.Encode(marshalTransform{
+		Type:         "Transform",
+		RemoveVertex: newMarshalVertex(v),
+	})
+}
+
+func (e *encoder) Connect(edge Edge) {
+	e.Encode(marshalTransform{
+		Type:    "Transform",
+		AddEdge: newMarshalEdge(edge),
+	})
+}
+
+func (e *encoder) RemoveEdge(edge Edge) {
+	e.Encode(marshalTransform{
+		Type:       "Transform",
+		RemoveEdge: newMarshalEdge(edge),
+	})
+}
+
+// BeginReplace marks the start of a replace operation, and returns the encoder
+// to chain the EndReplace call.
+func (e *encoder) BeginReplace() ender {
+	e.Encode(marshalOperation{
+		Type:  "Operation",
+		Begin: newString("Replace"),
+	})
+	return e.EndReplace
+}
+
+func (e *encoder) EndReplace() {
+	e.Encode(marshalOperation{
+		Type: "Operation",
+		End:  newString("Replace"),
+	})
+}
+
+// BeginReduction marks the start of a replace operation, and returns the encoder
+// to chain the EndReduction call.
+func (e *encoder) BeginReduction() ender {
+	e.Encode(marshalOperation{
+		Type:  "Operation",
+		Begin: newString("Reduction"),
+	})
+	return e.EndReduction
+}
+
+func (e *encoder) EndReduction() {
+	e.Encode(marshalOperation{
+		Type: "Operation",
+		End:  newString("Reduction"),
+	})
+}
+
+// BeginDepthFirstWalk marks the start of a replace operation, and returns the
+// encoder to chain the EndDepthFirstWalk call.
+func (e *encoder) BeginDepthFirstWalk() ender {
+	e.Encode(marshalOperation{
+		Type:  "Operation",
+		Begin: newString("DepthFirstWalk"),
+	})
+	return e.EndDepthFirstWalk
+}
+
+func (e *encoder) EndDepthFirstWalk() {
+	e.Encode(marshalOperation{
+		Type: "Operation",
+		End:  newString("DepthFirstWalk"),
+	})
+}
+
+// BeginReverseDepthFirstWalk marks the start of a replace operation, and
+// returns the encoder to chain the EndReverseDepthFirstWalk call.
+func (e *encoder) BeginReverseDepthFirstWalk() ender {
+	e.Encode(marshalOperation{
+		Type:  "Operation",
+		Begin: newString("ReverseDepthFirstWalk"),
+	})
+	return e.EndReverseDepthFirstWalk
+}
+
+func (e *encoder) EndReverseDepthFirstWalk() {
+	e.Encode(marshalOperation{
+		Type: "Operation",
+		End:  newString("ReverseDepthFirstWalk"),
+	})
+}
+
+// BeginWalk marks the start of a replace operation, and returns the encoder
+// to chain the EndWalk call.
+func (e *encoder) BeginWalk() ender {
+	e.Encode(marshalOperation{
+		Type:  "Operation",
+		Begin: newString("Walk"),
+	})
+	return e.EndWalk
+}
+
+func (e *encoder) EndWalk() {
+	e.Encode(marshalOperation{
+		Type: "Operation",
+		End:  newString("Walk"),
+	})
+}
+
+// structure for recording graph transformations
+type marshalTransform struct {
+	// Type: "Transform"
+	Type         string
+	AddEdge      *marshalEdge   `json:",omitempty"`
+	RemoveEdge   *marshalEdge   `json:",omitempty"`
+	AddVertex    *marshalVertex `json:",omitempty"`
+	RemoveVertex *marshalVertex `json:",omitempty"`
+}
+
+func (t marshalTransform) Transform(g *marshalGraph) {
+	switch {
+	case t.AddEdge != nil:
+		g.connect(t.AddEdge)
+	case t.RemoveEdge != nil:
+		g.removeEdge(t.RemoveEdge)
+	case t.AddVertex != nil:
+		g.add(t.AddVertex)
+	case t.RemoveVertex != nil:
+		g.remove(t.RemoveVertex)
+	}
+}
+
+// this structure allows us to decode any object in the json stream for
+// inspection, then re-decode it into a proper struct if needed.
+type streamDecode struct {
+	Type string
+	Map  map[string]interface{}
+	JSON []byte
+}
+
+func (s *streamDecode) UnmarshalJSON(d []byte) error {
+	s.JSON = d
+	err := json.Unmarshal(d, &s.Map)
+	if err != nil {
+		return err
+	}
+
+	if t, ok := s.Map["Type"]; ok {
+		s.Type, _ = t.(string)
+	}
+	return nil
+}
+
+// structure for recording the beginning and end of any multi-step
+// transformations. These are informational, and not required to reproduce the
+// graph state.
+type marshalOperation struct {
+	Type  string
+	Begin *string `json:",omitempty"`
+	End   *string `json:",omitempty"`
+}
+
+func newBool(b bool) *bool { return &b }
+
+func newString(s string) *string { return &s }
+
+// decodeGraph decodes a marshalGraph from an encoded graph stream.
+func decodeGraph(r io.Reader) (*marshalGraph, error) {
+	dec := json.NewDecoder(r)
+
+	// a stream should always start with a graph
+	g := &marshalGraph{}
+
+	err := dec.Decode(g)
+	if err != nil {
+		return nil, err
+	}
+
+	// now replay any operations that occurred on the original graph
+	for dec.More() {
+		s := &streamDecode{}
+		err := dec.Decode(s)
+		if err != nil {
+			return g, err
+		}
+
+		// the only Type we're concerned with here is Transform to complete the
+		// Graph
+		if s.Type != "Transform" {
+			continue
+		}
+
+		t := &marshalTransform{}
+		err = json.Unmarshal(s.JSON, t)
+		if err != nil {
+			return g, err
+		}
+		t.Transform(g)
+	}
+	return g, nil
 }
