@@ -98,44 +98,14 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	terraform.SetDebugInfo(DefaultDataDir)
 
-	// Check for the new apply
-	if experiment.Enabled(experiment.X_newApply) && !experiment.Force() {
-		desc := "Experimental new apply graph has been enabled. This may still\n" +
-			"have bugs, and should be used with care. If you'd like to continue,\n" +
-			"you must enter exactly 'yes' as a response."
-		v, err := c.UIInput().Input(&terraform.InputOpts{
-			Id:          "Xnew-apply",
-			Query:       "Experimental feature enabled: new apply graph. Continue?",
-			Description: desc,
-		})
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
-			return 1
-		}
-		if v != "yes" {
-			c.Ui.Output("Apply cancelled.")
-			return 1
-		}
-	}
-
-	// Check for the new destroy
-	if experiment.Enabled(experiment.X_newDestroy) && !experiment.Force() {
-		desc := "Experimental new destroy graph has been enabled. This may still\n" +
-			"have bugs, and should be used with care. If you'd like to continue,\n" +
-			"you must enter exactly 'yes' as a response."
-		v, err := c.UIInput().Input(&terraform.InputOpts{
-			Id:          "Xnew-destroy",
-			Query:       "Experimental feature enabled: new destroy graph. Continue?",
-			Description: desc,
-		})
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
-			return 1
-		}
-		if v != "yes" {
-			c.Ui.Output("Apply cancelled.")
-			return 1
-		}
+	// Check for the legacy graph
+	if experiment.Enabled(experiment.X_legacyGraph) {
+		c.Ui.Output(c.Colorize().Color(
+			"[reset][bold][yellow]" +
+				"Legacy graph enabled! This will use the graph from Terraform 0.7.x\n" +
+				"to execute this operation. This will be removed in the future so\n" +
+				"please report any issues causing you to use this to the Terraform\n" +
+				"project.\n\n"))
 	}
 
 	// This is going to keep track of shadow errors
