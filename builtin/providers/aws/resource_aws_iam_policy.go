@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -30,8 +31,9 @@ func resourceAwsIamPolicy() *schema.Resource {
 				ForceNew: true,
 			},
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:      schema.TypeString,
+				Required:  true,
+				StateFunc: normalizeJson,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -81,7 +83,31 @@ func resourceAwsIamPolicyRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error reading IAM policy %s: %s", d.Id(), err)
 	}
 
-	return readIamPolicy(d, response.Policy)
+	if err := readIamPolicy(d, response.Policy); err != nil {
+		return err
+	}
+
+	// Another request is necessary to get the actual policy document
+	vrequest := &iam.GetPolicyVersionInput{
+		PolicyArn: aws.String(d.Id()),
+		VersionId: aws.String(*response.Policy.DefaultVersionId),
+	}
+
+	vresponse, err := iamconn.GetPolicyVersion(vrequest)
+	if err != nil {
+		return err
+	}
+
+	// Remove HTML character codes from policy
+	policy, err := url.QueryUnescape(*vresponse.PolicyVersion.Document)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("policy", normalizeJson(policy)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func resourceAwsIamPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -221,7 +247,6 @@ func readIamPolicy(d *schema.ResourceData, policy *iam.Policy) error {
 	if err := d.Set("arn", *policy.Arn); err != nil {
 		return err
 	}
-	// TODO: set policy
 
 	return nil
 }
