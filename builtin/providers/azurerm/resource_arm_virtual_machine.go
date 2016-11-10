@@ -1295,7 +1295,7 @@ func findStorageAccountResourceGroup(meta interface{}, storageAccountName string
 
 	results := *rf.Value
 	if len(results) != 1 {
-		return "", fmt.Errorf("Wrong number of results making resource request for query %s:  %s", filter, len(results))
+		return "", fmt.Errorf("Wrong number of results making resource request for query %s: %d", filter, len(results))
 	}
 
 	id, err := parseAzureResourceID(*results[0].ID)
