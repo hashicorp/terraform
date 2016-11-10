@@ -36,6 +36,16 @@ BUG FIXES:
   * core: Escape sequences in interpolations work in every case. [GH-8709]
   * core: Maps in outputs with computed values are no longer removed. [GH-9549]
   * command/fmt: Multiline comments aren't indented every fmt. [GH-6524]
+  
+## 0.7.11 (Unreleased)
+
+FEATURES:
+
+IMPROVEMENTS:
+ * provider/aws: Expose RDS DB Instance HostedZoneId attribute [GH-10000]
+
+BUG FIXES:
+
 
 ## 0.7.10 (November 9, 2016)
 
