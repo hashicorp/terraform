@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"sync"
 )
 
 // Graph is used to represent a dependency graph.
@@ -15,7 +14,6 @@ type Graph struct {
 	edges     *Set
 	downEdges map[interface{}]*Set
 	upEdges   map[interface{}]*Set
-	once      sync.Once
 
 	// JSON encoder for recording debug information
 	debug *encoder
@@ -108,7 +106,7 @@ func (g *Graph) HasEdge(e Edge) bool {
 // Add adds a vertex to the graph. This is safe to call multiple time with
 // the same Vertex.
 func (g *Graph) Add(v Vertex) Vertex {
-	g.once.Do(g.init)
+	g.init()
 	g.vertices.Add(v)
 	g.debug.Add(v)
 	return v
@@ -165,7 +163,7 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 
 // RemoveEdge removes an edge from the graph.
 func (g *Graph) RemoveEdge(edge Edge) {
-	g.once.Do(g.init)
+	g.init()
 	g.debug.RemoveEdge(edge)
 
 	// Delete the edge from the set
@@ -182,13 +180,13 @@ func (g *Graph) RemoveEdge(edge Edge) {
 
 // DownEdges returns the outward edges from the source Vertex v.
 func (g *Graph) DownEdges(v Vertex) *Set {
-	g.once.Do(g.init)
+	g.init()
 	return g.downEdges[hashcode(v)]
 }
 
 // UpEdges returns the inward edges to the destination Vertex v.
 func (g *Graph) UpEdges(v Vertex) *Set {
-	g.once.Do(g.init)
+	g.init()
 	return g.upEdges[hashcode(v)]
 }
 
@@ -197,7 +195,7 @@ func (g *Graph) UpEdges(v Vertex) *Set {
 // verified through pointer equality of the vertices, not through the
 // value of the edge itself.
 func (g *Graph) Connect(edge Edge) {
-	g.once.Do(g.init)
+	g.init()
 	g.debug.Connect(edge)
 
 	source := edge.Source()
@@ -312,10 +310,18 @@ func (g *Graph) String() string {
 }
 
 func (g *Graph) init() {
-	g.vertices = new(Set)
-	g.edges = new(Set)
-	g.downEdges = make(map[interface{}]*Set)
-	g.upEdges = make(map[interface{}]*Set)
+	if g.vertices == nil {
+		g.vertices = new(Set)
+	}
+	if g.edges == nil {
+		g.edges = new(Set)
+	}
+	if g.downEdges == nil {
+		g.downEdges = make(map[interface{}]*Set)
+	}
+	if g.upEdges == nil {
+		g.upEdges = make(map[interface{}]*Set)
+	}
 }
 
 // Dot returns a dot-formatted representation of the Graph.
