@@ -40,6 +40,11 @@ type Graph struct {
 	// edges.
 	dependableMap map[string]dag.Vertex
 
+	// debugName is a name for reference in the debug output. This is usually
+	// to indicate what topmost builder was, and if this graph is a shadow or
+	// not.
+	debugName string
+
 	once sync.Once
 }
 
@@ -201,7 +206,6 @@ func (g *Graph) Dependable(n string) dag.Vertex {
 // will be walked with full parallelism, so the walker should expect
 // to be called in concurrently.
 func (g *Graph) Walk(walker GraphWalker) error {
-	defer dbug.WriteGraph(walker.Debug())
 	return g.walk(walker)
 }
 
@@ -228,6 +232,15 @@ func (g *Graph) walk(walker GraphWalker) error {
 	if !ok {
 		panicwrap = nil // just to be sure
 	}
+
+	debugName := "walk-graph.json"
+	if g.debugName != "" {
+		debugName = g.debugName + "-" + debugName
+	}
+
+	debugBuf := dbug.NewFileWriter(debugName)
+	g.SetDebugWriter(debugBuf)
+	defer debugBuf.Close()
 
 	// Walk the graph.
 	var walkFn dag.WalkFunc
@@ -258,10 +271,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 		}()
 
 		walker.EnterVertex(v)
-		defer func() {
-			walker.Debug().DebugNode(v)
-			walker.ExitVertex(v, rerr)
-		}()
+		defer walker.ExitVertex(v, rerr)
 
 		// vertexCtx is the context that we use when evaluating. This
 		// is normally the context of our graph but can be overridden
@@ -283,7 +293,10 @@ func (g *Graph) walk(walker GraphWalker) error {
 			// Allow the walker to change our tree if needed. Eval,
 			// then callback with the output.
 			log.Printf("[DEBUG] vertex '%s.%s': evaluating", path, dag.VertexName(v))
-			walker.Debug().Printf("[DEBUG] vertex %T(%s.%s): evaluating\n", v, path, dag.VertexName(v))
+
+			// TODO: replace these debug calls with Graph native methods
+			//walker.Debug().Printf("[DEBUG] vertex %T(%s.%s): evaluating\n", v, path, dag.VertexName(v))
+
 			tree = walker.EnterEvalTree(v, tree)
 			output, err := Eval(tree, vertexCtx)
 			if rerr = walker.ExitEvalTree(v, output, err); rerr != nil {
@@ -297,7 +310,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 				"[DEBUG] vertex '%s.%s': expanding/walking dynamic subgraph",
 				path,
 				dag.VertexName(v))
-			walker.Debug().Printf("[DEBUG] vertex %T(%s.%s): expanding\n", v, path, dag.VertexName(v))
+			//walker.Debug().Printf("[DEBUG] vertex %T(%s.%s): expanding\n", v, path, dag.VertexName(v))
 			g, err := ev.DynamicExpand(vertexCtx)
 			if err != nil {
 				rerr = err
@@ -318,8 +331,8 @@ func (g *Graph) walk(walker GraphWalker) error {
 				path,
 				dag.VertexName(v))
 
-			walker.Debug().Printf(
-				"[DEBUG] vertex %T(%s.%s): subgraph\n", v, path, dag.VertexName(v))
+			//walker.Debug().Printf(
+			//    "[DEBUG] vertex %T(%s.%s): subgraph\n", v, path, dag.VertexName(v))
 
 			if rerr = sn.Subgraph().(*Graph).walk(walker); rerr != nil {
 				return
