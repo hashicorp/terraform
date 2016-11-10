@@ -18,7 +18,10 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
+ * **New provider:** `nomad` [GH-9538]
  * **New provider:** `vault` [GH-9158]
+ * The `import` command will now read provider configuration from Terraform
+   configuration files (including loading tfvars files and so on). [GH-9809]
  * Providers and resources are now notified by Terraform core to "stop" when
    an interrupt is received, allowing resources to gracefully exit much, much
    faster. [GH-9607]
@@ -31,6 +34,18 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * core: Escape sequences in interpolations work in every case. [GH-8709]
+  * core: Maps in outputs with computed values are no longer removed. [GH-9549]
+  * command/fmt: Multiline comments aren't indented every fmt. [GH-6524]
+  
+## 0.7.11 (Unreleased)
+
+FEATURES:
+
+IMPROVEMENTS:
+ * provider/aws: Expose RDS DB Instance HostedZoneId attribute [GH-10000]
+
+BUG FIXES:
+
 
 ## 0.7.10 (November 9, 2016)
 

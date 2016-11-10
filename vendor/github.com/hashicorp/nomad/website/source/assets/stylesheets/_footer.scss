@@ -1,0 +1,156 @@
+body.page-sub{
+  #footer{
+    padding: 0 0 40px 0;
+    .col-md-5{
+      padding-top: 40px;
+      border-top: 1px solid $faint-gray;
+    }
+  }
+}
+
+#footer{
+  position: relative;
+  padding: 64px 0;
+  color: $black;
+
+  > .container{
+    position: relative;
+  }
+
+  .footer-links{
+    li{
+      a{
+        @include hashi-a-style();
+        @include project-a-style;
+        line-height: 30px;
+      }
+    }
+  }
+
+  .pull-right{
+    padding-right: 15px;
+  }
+
+  .footer-hashi{
+    font-size: 14px;
+
+    color: $black;
+
+    a{
+      color: $black;
+      font-weight: 600;
+    }
+
+    span{
+      margin-right: 4px;
+    }
+
+    .hashi-project{
+      display: inline-block;
+      height: 30px;
+      line-height: 30px;
+      text-decoration: none;
+
+      &:hover{
+        svg{
+          .svg-bg-line{
+            fill: $green-dark;
+          }
+        }
+      }
+
+      span{
+        font-family: $header-font-family;
+        font-weight: 500;
+      }
+
+      span,
+      svg{
+        display: inline-block;
+      }
+
+      svg{
+        &.svg-by{
+          width: $by-hashicorp-width;
+          height: $by-hashicorp-height;
+          margin-bottom: -4px;
+          margin-left: -3px;
+        }
+
+        &.svg-logo{
+          width: 30px;
+          height: 30px;
+          margin-bottom: -10px;
+          margin-left: -1px;
+        }
+
+        path,
+        line{
+          fill: $black;
+          @include transition(all 300ms ease-in);
+
+          &:hover{
+            @include transition(all 300ms ease-in);
+          }
+        }
+
+        .svg-bg-line{
+          @include transition(all 300ms ease-in);
+
+          &:hover{
+            @include transition(all 300ms ease-in);
+          }
+        }          
+      }
+    }
+  }
+}
+
+.edit-page-link{
+  position: absolute;
+  top: -70px;
+  right: 30px;;
+
+  a{
+    text-transform: uppercase;
+    color: $black;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 992px) {
+
+}
+
+@media (max-width: 768px) {
+  #footer{
+    text-align: center;
+
+    .footer-links{
+      float: none;
+      display: inline-block;
+      margin-bottom: 36px;
+    }
+
+    .footer-hashi {
+      float: none;
+      display: inline-block;
+
+      .pull-right{
+        float: none !important;
+        padding-right: 0;
+      }
+    }
+  }
+}
+
+@media (max-width: 414px) {
+  #footer{
+    .footer-links{
+      li{
+        display: block;
+        float: none;
+      }
+    }
+  }
+}

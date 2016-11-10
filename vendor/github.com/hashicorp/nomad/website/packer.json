@@ -1,0 +1,43 @@
+{
+  "variables": {
+    "aws_access_key_id": "{{ env `AWS_ACCESS_KEY_ID` }}",
+    "aws_secret_access_key": "{{ env `AWS_SECRET_ACCESS_KEY` }}",
+    "aws_region": "{{ env `AWS_REGION` }}",
+    "fastly_api_key": "{{ env `FASTLY_API_KEY` }}"
+  },
+  "builders": [
+    {
+      "type": "docker",
+      "image": "ruby:2.3-slim",
+      "commit": "true"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": ".",
+      "destination": "/app"
+    },
+    {
+      "type": "shell",
+      "environment_vars": [
+        "AWS_ACCESS_KEY_ID={{ user `aws_access_key_id` }}",
+        "AWS_SECRET_ACCESS_KEY={{ user `aws_secret_access_key` }}",
+        "AWS_REGION={{ user `aws_region` }}",
+        "FASTLY_API_KEY={{ user `fastly_api_key` }}"
+      ],
+      "inline": [
+        "apt-get -qq update",
+        "apt-get -yqq install build-essential curl git libffi-dev wget",
+        "apt-get -yqq install python-pip",
+        "pip install s3cmd",
+        "cd /app",
+
+        "bundle check || bundle install --jobs 7",
+        "bundle exec middleman build",
+
+        "/bin/bash ./scripts/deploy.sh"
+      ]
+    }
+  ]
+}

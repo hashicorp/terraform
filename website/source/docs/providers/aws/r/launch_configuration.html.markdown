@@ -210,6 +210,7 @@ configuration, resource recreation can be manually triggered by using the
 The following attributes are exported:
 
 * `id` - The ID of the launch configuration.
+* `name` - The name of the launch configuration.
 
 [1]: /docs/providers/aws/r/autoscaling_group.html
 [2]: /docs/configuration/resources.html#lifecycle

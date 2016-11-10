@@ -6,16 +6,16 @@ description: |-
   Creates and manages an extension on a PostgreSQL server.
 ---
 
-# postgresql\_role
+# postgresql\_extension
 
-The ``[pstgresql_extension]`` resource creates and manages an extension on a PostgreSQL
+The ``postgresql_extension`` resource creates and manages an extension on a PostgreSQL
 server.
 
 
 ## Usage
 
 ```
-resource "postgresql_role" "my_extension" {
+resource "postgresql_extension" "my_extension" {
   name = "pg_trgm"
 }
 

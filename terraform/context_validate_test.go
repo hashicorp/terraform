@@ -87,7 +87,9 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+		for _, err := range e {
+			t.Errorf("bad: %s", err)
+		}
 	}
 }
 
@@ -809,6 +811,32 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
+		},
+		UIInput: input,
+	})
+
+	w, e := ctx.Validate()
+	if w != nil {
+		t.Log("warnings:", w)
+	}
+	if e != nil {
+		t.Fatal("err:", e)
+	}
+}
+
+// Computed values are lost when a map is output from a module
+func TestContext2Validate_interpolateMap(t *testing.T) {
+	input := new(MockUIInput)
+
+	m := testModule(t, "issue-9549")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
