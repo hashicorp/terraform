@@ -10,8 +10,7 @@ DLL methods for Windows, cgo for Darwin, etc.
 
 How it works:
 
-  * **Darwin** uses the `sysctl` syscall to retrieve the process table, via
-    cgo.
+  * **Darwin** uses the `sysctl` syscall to retrieve the process table.
   * **Unix** uses the procfs at `/proc` to inspect the process tree.
   * **Windows** uses the Windows API, and methods such as
     `CreateToolhelp32Snapshot` to get a point-in-time snapshot of
@@ -33,4 +32,3 @@ implemented for this library that would be nice:
 
   * FreeBSD support
   * Plan9 support
-  * Eliminate the need for cgo with Darwin

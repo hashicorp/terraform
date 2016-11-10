@@ -1879,6 +1879,13 @@
 			"revision": "07bab5fdd9580500aea6ada0e09df4aa28e68abd"
 		},
 		{
+			"checksumSHA1": "DVXnx4zyb0wkeIdIRjwjvR7Dslo=",
+			"origin": "github.com/hashicorp/terraform/vendor/github.com/mitchellh/go-ps",
+			"path": "github.com/mitchellh/go-ps",
+			"revision": "e2d21980687ce16e58469d98dcee92d27fbbd7fb",
+			"revisionTime": "2016-08-22T16:54:47Z"
+		},
+		{
 			"path": "github.com/mitchellh/hashstructure",
 			"revision": "6b17d669fac5e2f71c16658d781ec3fdd3802b69"
 		},
