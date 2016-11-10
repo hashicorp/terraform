@@ -16,16 +16,19 @@ Use of environment variables or config file is recommended.
 
 ## Example Usage
 
+This example follows the recommended approach of storing the access_key in the environment variable `ARM_ACCESS_KEY`.
+
 ```
 terraform remote config \
   -backend=azure \
   -backend-config="storage_account_name=terraform123abc" \
   -backend-config="container_name=terraform-state" \
-  -backend-config="key=prod.terraform.tfstate" \
-  -backend-config="access_key=<primary or secondary storage account access key>"
+  -backend-config="key=prod.terraform.tfstate"
 ```
 
 ## Example Referencing
+
+This example follows the recommended approach of storing the access_key in the environment variable `ARM_ACCESS_KEY`.
 
 ```hcl
 # setup remote state data source
