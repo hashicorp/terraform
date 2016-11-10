@@ -102,17 +102,23 @@ func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}
 		return nil
 	}
 
-	_, _, exists = findLoadBalancerProbeByName(loadBalancer, d.Get("name").(string))
-	if exists {
-		return fmt.Errorf("A Probe with name %q already exists.", d.Get("name").(string))
-	}
-
 	newProbe, err := expandAzureRmLoadBalancerProbe(d, loadBalancer)
 	if err != nil {
 		return errwrap.Wrapf("Error Expanding Probe {{err}}", err)
 	}
 
 	probes := append(*loadBalancer.Properties.Probes, *newProbe)
+
+	existingProbe, existingProbeIndex, exists := findLoadBalancerProbeByName(loadBalancer, d.Get("name").(string))
+	if exists {
+		if d.Id() == *existingProbe.ID {
+			// this probe is being updated remove old copy from the slice
+			probes = append(probes[:existingProbeIndex], probes[existingProbeIndex+1:]...)
+		} else {
+			return fmt.Errorf("A Probe with name %q already exists.", d.Get("name").(string))
+		}
+	}
+
 	loadBalancer.Properties.Probes = &probes
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
