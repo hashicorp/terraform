@@ -184,7 +184,7 @@ func TestApply_destroyTargeted(t *testing.T) {
 	actualStr := strings.TrimSpace(state.String())
 	expectedStr := strings.TrimSpace(testApplyDestroyStr)
 	if actualStr != expectedStr {
-		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
+		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actualStr, expectedStr)
 	}
 
 	// Should have a backup file
