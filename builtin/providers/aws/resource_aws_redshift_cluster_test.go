@@ -13,6 +13,40 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestValidateRedshiftClusterDbName(t *testing.T) {
+	validNames := []string{
+		"testdbname",
+		"test_dbname",
+		"testdbname123",
+		"TestDBname",
+		"testdbname$hashicorp",
+		"_dbname",
+	}
+	for _, v := range validNames {
+		_, errors := validateRedshiftClusterDbName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Redshift DBName: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"!",
+		"/",
+		" ",
+		":",
+		";",
+		"test name",
+		"/slash-at-the-beginning",
+		"slash-at-the-end/",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateRedshiftClusterDbName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Redshift DBName", v)
+		}
+	}
+}
+
 func TestAccAWSRedshiftCluster_basic(t *testing.T) {
 	var v redshift.Cluster
 
