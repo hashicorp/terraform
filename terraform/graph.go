@@ -294,8 +294,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 			// then callback with the output.
 			log.Printf("[DEBUG] vertex '%s.%s': evaluating", path, dag.VertexName(v))
 
-			// TODO: replace these debug calls with Graph native methods
-			//walker.Debug().Printf("[DEBUG] vertex %T(%s.%s): evaluating\n", v, path, dag.VertexName(v))
+			g.AnnotateVertex(v, fmt.Sprintf("evaluating %T(%s)", v, path))
 
 			tree = walker.EnterEvalTree(v, tree)
 			output, err := Eval(tree, vertexCtx)
@@ -310,7 +309,9 @@ func (g *Graph) walk(walker GraphWalker) error {
 				"[DEBUG] vertex '%s.%s': expanding/walking dynamic subgraph",
 				path,
 				dag.VertexName(v))
-			//walker.Debug().Printf("[DEBUG] vertex %T(%s.%s): expanding\n", v, path, dag.VertexName(v))
+
+			g.AnnotateVertex(v, fmt.Sprintf("expanding %T(%s)", v, path))
+
 			g, err := ev.DynamicExpand(vertexCtx)
 			if err != nil {
 				rerr = err
@@ -331,8 +332,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 				path,
 				dag.VertexName(v))
 
-			//walker.Debug().Printf(
-			//    "[DEBUG] vertex %T(%s.%s): subgraph\n", v, path, dag.VertexName(v))
+			g.AnnotateVertex(v, fmt.Sprintf("subgraph: %T(%s)", v, path))
 
 			if rerr = sn.Subgraph().(*Graph).walk(walker); rerr != nil {
 				return
