@@ -21,7 +21,8 @@ terraform remote config \
   -backend=azure \
   -backend-config="storage_account_name=terraform123abc" \
   -backend-config="container_name=terraform-state" \
-  -backend-config="key=prod.terraform.tfstate"
+  -backend-config="key=prod.terraform.tfstate" \
+  -backend-config="access_key=<primary or secondary storage account access key>"
 ```
 
 ## Example Referencing
@@ -34,6 +35,7 @@ data "terraform_remote_state" "foo" {
     storage_account_name = "terraform123abc"
     container_name       = "terraform-state"
     key                  = "prod.terraform.tfstate"
+    access_key           = "<primary or secondary storage account access key>"
   }
 }
 ```
