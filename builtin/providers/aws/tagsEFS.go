@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/efs"
@@ -74,10 +75,13 @@ func diffTagsEFS(oldTags, newTags []*efs.Tag) ([]*efs.Tag, []*efs.Tag) {
 func tagsFromMapEFS(m map[string]interface{}) []*efs.Tag {
 	var result []*efs.Tag
 	for k, v := range m {
-		result = append(result, &efs.Tag{
+		t := &efs.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredEFS(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -87,8 +91,24 @@ func tagsFromMapEFS(m map[string]interface{}) []*efs.Tag {
 func tagsToMapEFS(ts []*efs.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredEFS(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredEFS(t *efs.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

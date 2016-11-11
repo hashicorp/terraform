@@ -3,6 +3,9 @@ package aws
 import (
 	"reflect"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/redshift"
 )
 
 func TestDiffRedshiftTags(t *testing.T) {
@@ -49,6 +52,23 @@ func TestDiffRedshiftTags(t *testing.T) {
 		}
 		if !reflect.DeepEqual(rm, tc.Remove) {
 			t.Fatalf("%d: bad remove: %#v", i, rm)
+		}
+	}
+}
+
+func TestIgnoringTagsRedshift(t *testing.T) {
+	var ignoredTags []*redshift.Tag
+	ignoredTags = append(ignoredTags, &redshift.Tag{
+		Key:   aws.String("aws:cloudformation:logical-id"),
+		Value: aws.String("foo"),
+	})
+	ignoredTags = append(ignoredTags, &redshift.Tag{
+		Key:   aws.String("aws:foo:bar"),
+		Value: aws.String("baz"),
+	})
+	for _, tag := range ignoredTags {
+		if !tagIgnoredRedshift(tag) {
+			t.Fatalf("Tag %v with value %v not ignored, but should be!", *tag.Key, *tag.Value)
 		}
 	}
 }
