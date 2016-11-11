@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -41,11 +40,7 @@ func dataSourceAwsAcmCertificateRead(d *schema.ResourceData, meta interface{}) e
 	statuses, ok := d.GetOk("statuses")
 	if ok {
 		statusStrings := statuses.([]interface{})
-		statusList := make([]*string, len(statusStrings))
-		for i, status := range statusStrings {
-			statusList[i] = aws.String(strings.ToUpper(status.(string)))
-		}
-		params.CertificateStatuses = statusList
+		params.CertificateStatuses = expandStringList(statusStrings)
 	} else {
 		params.CertificateStatuses = []*string{aws.String("ISSUED")}
 	}
@@ -65,12 +60,10 @@ func dataSourceAwsAcmCertificateRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	if len(arns) == 0 {
-		return fmt.Errorf("No certificate with statuses [%s] for domain %q found in this region.",
-			strings.Join(statuses.([]string), ", "), target)
+		return fmt.Errorf("No certificate for domain %q found in this region.", target)
 	}
 	if len(arns) > 1 {
-		return fmt.Errorf("Multiple certificates with statuses [%s] for domain %s found in this region.",
-			strings.Join(statuses.([]string), ","), target)
+		return fmt.Errorf("Multiple certificates for domain %q found in this region.", target)
 	}
 
 	d.SetId(time.Now().UTC().String())
