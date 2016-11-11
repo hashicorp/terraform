@@ -314,6 +314,12 @@
 			"revision": "0290933f5e8afd933f2823fce32bf2847e6ea603"
 		},
 		{
+			"checksumSHA1": "B+GonfgNwOAJMEe0WUHQGATRtMA=",
+			"path": "github.com/Microsoft/go-winio",
+			"revision": "562bb09f6612d9a4e91597184709d1cdba95af93",
+			"revisionTime": "2016-11-03T18:56:17Z"
+		},
+		{
 			"checksumSHA1": "O9o5S7D0E1PaN5ARQ72xLfOrIa0=",
 			"path": "github.com/PagerDuty/go-pagerduty",
 			"revision": "f4d5289481b2c05f2b23f81a64dff86aca960962",
