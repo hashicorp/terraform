@@ -239,7 +239,7 @@ func resourceDatadogTimeboard() *schema.Resource {
 		Delete: resourceDatadogTimeboardDelete,
 		Exists: resourceDatadogTimeboardExists,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceDatadogTimeboardImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -681,6 +681,13 @@ func resourceDatadogTimeboardDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 	return nil
+}
+
+func resourceDatadogTimeboardImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	if err := resourceDatadogTimeboardRead(d, meta); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceDatadogTimeboardExists(d *schema.ResourceData, meta interface{}) (b bool, e error) {
