@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -137,7 +138,6 @@ func diffTags(oldTags, newTags []*ec2.Tag) ([]*ec2.Tag, []*ec2.Tag) {
 	for _, t := range oldTags {
 		old, ok := create[*t.Key]
 		if !ok || old != *t.Value {
-			// Delete it!
 			remove = append(remove, t)
 		}
 	}
@@ -149,10 +149,13 @@ func diffTags(oldTags, newTags []*ec2.Tag) ([]*ec2.Tag, []*ec2.Tag) {
 func tagsFromMap(m map[string]interface{}) []*ec2.Tag {
 	result := make([]*ec2.Tag, 0, len(m))
 	for k, v := range m {
-		result = append(result, &ec2.Tag{
+		t := &ec2.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnored(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -162,7 +165,9 @@ func tagsFromMap(m map[string]interface{}) []*ec2.Tag {
 func tagsToMap(ts []*ec2.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnored(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
@@ -192,7 +197,9 @@ func diffElbV2Tags(oldTags, newTags []*elbv2.Tag) ([]*elbv2.Tag, []*elbv2.Tag) {
 func tagsToMapELBv2(ts []*elbv2.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredELBv2(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
@@ -202,11 +209,41 @@ func tagsToMapELBv2(ts []*elbv2.Tag) map[string]string {
 func tagsFromMapELBv2(m map[string]interface{}) []*elbv2.Tag {
 	var result []*elbv2.Tag
 	for k, v := range m {
-		result = append(result, &elbv2.Tag{
+		t := &elbv2.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredELBv2(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
+}
+
+// tagIgnored compares a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnored(t *ec2.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
+}
+
+// and for ELBv2 as well
+func tagIgnoredELBv2(t *elbv2.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }
