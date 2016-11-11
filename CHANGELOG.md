@@ -46,6 +46,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
  * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
+ * provider/aws: Fix panic in aws_acm_certificate datasource [GH-10051]
 
  * core: New destroy graph `-target` includes dependencies. [GH-10036]
 
