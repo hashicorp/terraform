@@ -1412,10 +1412,10 @@
 			"revisionTime": "2016-11-09T22:51:35Z"
 		},
 		{
-			"checksumSHA1": "mZhRldYjh9MAXzdi3zihMX0A/JU=",
+			"checksumSHA1": "PjLBj8sicHOz2ZzuaMTPZ09OuFs=",
 			"path": "github.com/hashicorp/hil",
-			"revision": "ce4ab742a9dd2bb6e55050337333b2c56666e5a0",
-			"revisionTime": "2016-10-27T15:25:34Z"
+			"revision": "a69e0a85dd050184c00f6080fce138f2dadb1a4c",
+			"revisionTime": "2016-11-11T01:09:07Z"
 		},
 		{
 			"checksumSHA1": "FFroNUb6Nn6xUQJMsVDTb4Cqzo4=",
@@ -1880,7 +1880,6 @@
 		},
 		{
 			"checksumSHA1": "DVXnx4zyb0wkeIdIRjwjvR7Dslo=",
-			"origin": "github.com/hashicorp/terraform/vendor/github.com/mitchellh/go-ps",
 			"path": "github.com/mitchellh/go-ps",
 			"revision": "e2d21980687ce16e58469d98dcee92d27fbbd7fb",
 			"revisionTime": "2016-08-22T16:54:47Z"
