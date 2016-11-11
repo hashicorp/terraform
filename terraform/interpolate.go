@@ -436,13 +436,15 @@ func (i *Interpolater) computeResourceVariable(
 			// Lists and sets make this
 			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
 			if attr, ok := r.Primary.Attributes[key]; ok {
-				return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
+				v, err := hil.InterfaceToVariable(attr)
+				return &v, err
 			}
 
 			// Maps make this
 			key = fmt.Sprintf("%s", strings.Join(parts[:i], "."))
 			if attr, ok := r.Primary.Attributes[key]; ok {
-				return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
+				v, err := hil.InterfaceToVariable(attr)
+				return &v, err
 			}
 		}
 	}
