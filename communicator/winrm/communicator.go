@@ -39,7 +39,7 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 		Port:     connInfo.Port,
 		HTTPS:    connInfo.HTTPS,
 		Insecure: connInfo.Insecure,
-		CACert:   connInfo.CACert,
+		CACert:   *connInfo.CACert,
 	}
 
 	comm := &Communicator{
@@ -58,7 +58,7 @@ func (c *Communicator) Connect(o terraform.UIOutput) error {
 		return nil
 	}
 
-	params := winrm.DefaultParameters()
+	params := winrm.DefaultParameters
 	params.Timeout = formatDuration(c.Timeout())
 
 	client, err := winrm.NewClientWithParameters(
