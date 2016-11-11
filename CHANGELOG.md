@@ -43,10 +43,11 @@ FEATURES:
 
 IMPROVEMENTS:
  * provider/aws: Expose RDS DB Instance HostedZoneId attribute [GH-10000]
+ * provider/azurerm: allow updating load balancer sub-resources [GH-10016]
  * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode [GH-9966]
 
 BUG FIXES:
- * provider/aws: fix the validation of aws_redshift_cluster database_name #10019
+ * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
 
 
 ## 0.7.10 (November 9, 2016)
