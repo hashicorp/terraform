@@ -38,11 +38,13 @@ BUG FIXES:
 FEATURES:
 
 IMPROVEMENTS:
+
  * provider/aws: Expose RDS DB Instance HostedZoneId attribute [GH-10000]
  * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode [GH-9966]
 
 BUG FIXES:
 
+ * core: New destroy graph `-target` includes dependencies. [GH-10036]
 
 ## 0.7.10 (November 9, 2016)
 
