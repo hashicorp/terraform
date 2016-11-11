@@ -9,19 +9,22 @@ import (
 	"os"
 	"sync"
 
-	"github.com/masterzen/winrm/winrm"
-	"github.com/mitchellh/packer/common/uuid"
+	"github.com/masterzen/winrm"
+	"github.com/nu7hatch/gouuid"
 )
 
 func doCopy(client *winrm.Client, config *Config, in io.Reader, toPath string) error {
-	tempFile := fmt.Sprintf("winrmcp-%s.tmp", uuid.TimeOrderedUUID())
+	tempFile, err := tempFileName()
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error generating unique filename: %v", err))
+	}
 	tempPath := "$env:TEMP\\" + tempFile
 
 	if os.Getenv("WINRMCP_DEBUG") != "" {
 		log.Printf("Copying file to %s\n", tempPath)
 	}
 
-	err := uploadContent(client, config.MaxOperationsPerShell, "%TEMP%\\"+tempFile, in)
+	err = uploadContent(client, config.MaxOperationsPerShell, "%TEMP%\\"+tempFile, in)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error uploading file to %s: %v", tempPath, err))
 	}
@@ -113,7 +116,7 @@ func restoreContent(client *winrm.Client, fromPath, toPath string) error {
 	defer shell.Close()
 	script := fmt.Sprintf(`
 		$tmp_file_path = [System.IO.Path]::GetFullPath("%s")
-		$dest_file_path = [System.IO.Path]::GetFullPath("%s")
+		$dest_file_path = [System.IO.Path]::GetFullPath("%s".Trim("'"))
 		if (Test-Path $dest_file_path) {
 			rm $dest_file_path
 		}
@@ -197,4 +200,13 @@ func appendContent(shell *winrm.Shell, filePath, content string) error {
 	}
 
 	return nil
+}
+
+func tempFileName() (string, error) {
+	uniquePart, err := uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("winrmcp-%s.tmp", uniquePart), nil
 }

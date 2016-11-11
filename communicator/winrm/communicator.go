@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/masterzen/winrm/winrm"
+	"github.com/masterzen/winrm"
 	"github.com/packer-community/winrmcp/winrmcp"
 
 	// This import is a bit strange, but it's needed so `make updatedeps` can see and download it

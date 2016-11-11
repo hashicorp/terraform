@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/dylanmei/iso8601"
-	"github.com/masterzen/winrm/winrm"
+	"github.com/masterzen/winrm"
 )
 
 type Winrmcp struct {
@@ -22,8 +23,10 @@ type Config struct {
 	Https                 bool
 	Insecure              bool
 	CACertBytes           []byte
+	ConnectTimeout        time.Duration
 	OperationTimeout      time.Duration
 	MaxOperationsPerShell int
+	TransportDecorator    func(*http.Transport) http.RoundTripper
 }
 
 type Auth struct {
@@ -32,7 +35,7 @@ type Auth struct {
 }
 
 func New(addr string, config *Config) (*Winrmcp, error) {
-	endpoint, err := parseEndpoint(addr, config.Https, config.Insecure, config.CACertBytes)
+	endpoint, err := parseEndpoint(addr, config.Https, config.Insecure, config.CACertBytes, config.ConnectTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +43,16 @@ func New(addr string, config *Config) (*Winrmcp, error) {
 		config = &Config{}
 	}
 
-	params := winrm.DefaultParameters()
+	params := winrm.NewParameters(
+		winrm.DefaultParameters.Timeout,
+		winrm.DefaultParameters.Locale,
+		winrm.DefaultParameters.EnvelopeSize,
+	)
+
+	if config.TransportDecorator != nil {
+		params.TransportDecorator = config.TransportDecorator
+	}
+
 	if config.OperationTimeout.Seconds() > 0 {
 		params.Timeout = iso8601.FormatDuration(config.OperationTimeout)
 	}
