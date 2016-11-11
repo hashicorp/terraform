@@ -39,6 +39,8 @@ func Provider() terraform.ResourceProvider {
 			"github_repository":              resourceGithubRepository(),
 			"github_repository_collaborator": resourceGithubRepositoryCollaborator(),
 			"github_issue_label":             resourceGithubIssueLabel(),
+			"github_repository_fork":         resourceGithubRepositoryFork(),
+			"github_repository_sshkey":       resourceGithubRepositorySSHKey(),
 		},
 
 		ConfigureFunc: providerConfigure,
