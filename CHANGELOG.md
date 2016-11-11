@@ -28,6 +28,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * core: Human-friendly error when a computed count is used. [GH-10060]
   * helper/schema: only map, list, and set elements that are actually causing
       a resource to destroy/create are marked as "requires new". [GH-9613]
 
@@ -36,7 +37,7 @@ BUG FIXES:
   * core: Escape sequences in interpolations work in every case. [GH-8709]
   * core: Maps in outputs with computed values are no longer removed. [GH-9549]
   * command/fmt: Multiline comments aren't indented every fmt. [GH-6524]
-  
+
 ## 0.7.11 (Unreleased)
 
 FEATURES:
