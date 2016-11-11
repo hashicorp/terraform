@@ -2177,6 +2177,12 @@
 			"revision": "5eaf0df67e70d6997a9fe0ed24383fa1b01638d3"
 		},
 		{
+			"checksumSHA1": "fpW2dhGFC6SrVzipJx7fjg2DIH8=",
+			"path": "golang.org/x/sys/windows",
+			"revision": "b699b7032584f0953262cb2788a0ca19bb494703",
+			"revisionTime": "2016-11-10T11:58:56Z"
+		},
+		{
 			"checksumSHA1": "QDbbtubwRml+xdgIfNy/yC6Ff78=",
 			"path": "google.golang.org/api/cloudresourcemanager/v1",
 			"revision": "43c645d4bcf9251ced36c823a93b6d198764aae4",
