@@ -49,6 +49,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
  * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
+ * provider/aws: Fix panic in aws_acm_certificate datasource [GH-10051]
 
 
 ## 0.7.10 (November 9, 2016)
