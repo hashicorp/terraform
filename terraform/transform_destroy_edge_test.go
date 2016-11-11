@@ -78,6 +78,24 @@ func TestDestroyEdgeTransformer_selfRef(t *testing.T) {
 	}
 }
 
+func TestDestroyEdgeTransformer_module(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	g.Add(&graphNodeDestroyerTest{AddrString: "module.child.aws_instance.b"})
+	g.Add(&graphNodeDestroyerTest{AddrString: "aws_instance.a"})
+	tf := &DestroyEdgeTransformer{
+		Module: testModule(t, "transform-destroy-edge-module"),
+	}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformDestroyEdgeModuleStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 type graphNodeCreatorTest struct {
 	AddrString string
 }
@@ -125,6 +143,7 @@ test.B (destroy)
 const testTransformDestroyEdgeMultiStr = `
 test.A (destroy)
   test.B (destroy)
+  test.C (destroy)
 test.B (destroy)
   test.C (destroy)
 test.C (destroy)
@@ -132,4 +151,10 @@ test.C (destroy)
 
 const testTransformDestroyEdgeSelfRefStr = `
 test.A (destroy)
+`
+
+const testTransformDestroyEdgeModuleStr = `
+aws_instance.a (destroy)
+module.child.aws_instance.b (destroy)
+  aws_instance.a (destroy)
 `
