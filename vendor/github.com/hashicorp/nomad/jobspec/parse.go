@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
-	"github.com/hashicorp/nomad/client/driver"
 	"github.com/hashicorp/nomad/nomad/structs"
 	"github.com/mitchellh/mapstructure"
 )
@@ -537,22 +536,6 @@ func parseTasks(jobName string, taskGroupName string, result *[]*structs.Task, l
 				if err := mapstructure.WeakDecode(m, &t.Config); err != nil {
 					return err
 				}
-			}
-
-			// Instantiate a driver to validate the configuration
-			d, err := driver.NewDriver(
-				t.Driver,
-				driver.NewEmptyDriverContext(),
-			)
-
-			if err != nil {
-				return multierror.Prefix(err,
-					fmt.Sprintf("'%s', config ->", n))
-			}
-
-			if err := d.Validate(t.Config); err != nil {
-				return multierror.Prefix(err,
-					fmt.Sprintf("'%s', config ->", n))
 			}
 		}
 
