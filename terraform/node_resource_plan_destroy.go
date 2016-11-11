@@ -10,6 +10,11 @@ type NodePlanDestroyableResource struct {
 	*NodeAbstractResource
 }
 
+// GraphNodeDestroyer
+func (n *NodePlanDestroyableResource) DestroyAddr() *ResourceAddress {
+	return n.Addr
+}
+
 // GraphNodeEvalable
 func (n *NodePlanDestroyableResource) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
