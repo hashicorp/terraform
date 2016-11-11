@@ -45,11 +45,16 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 			State:    b.State,
 		},
 
-		// Target
-		&TargetsTransformer{Targets: b.Targets},
-
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Module: b.Module},
+
+		// Destruction ordering. We require this only so that
+		// targeting below will prune the correct things.
+		&DestroyEdgeTransformer{Module: b.Module, State: b.State},
+
+		// Target. Note we don't set "Destroy: true" here since we already
+		// created proper destroy ordering.
+		&TargetsTransformer{Targets: b.Targets},
 
 		// Single root
 		&RootTransformer{},
