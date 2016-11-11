@@ -123,17 +123,23 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	_, _, exists = findLoadBalancerRuleByName(loadBalancer, d.Get("name").(string))
-	if exists {
-		return fmt.Errorf("A LoadBalancer Rule with name %q already exists.", d.Get("name").(string))
-	}
-
 	newLbRule, err := expandAzureRmLoadBalancerRule(d, loadBalancer)
 	if err != nil {
 		return errwrap.Wrapf("Error Exanding LoadBalancer Rule {{err}}", err)
 	}
 
 	lbRules := append(*loadBalancer.Properties.LoadBalancingRules, *newLbRule)
+
+	existingRule, existingRuleIndex, exists := findLoadBalancerRuleByName(loadBalancer, d.Get("name").(string))
+	if exists {
+		if d.Id() == *existingRule.ID {
+			// this rule is being updated remove old copy from the slice
+			lbRules = append(lbRules[:existingRuleIndex], lbRules[existingRuleIndex+1:]...)
+		} else {
+			return fmt.Errorf("A LoadBalancer Rule with name %q already exists.", d.Get("name").(string))
+		}
+	}
+
 	loadBalancer.Properties.LoadBalancingRules = &lbRules
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
