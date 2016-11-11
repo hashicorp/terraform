@@ -55,7 +55,7 @@ func InterfaceToVariable(input interface{}) (ast.Variable, error) {
 	if err := hilMapstructureWeakDecode(input, &stringVal); err == nil {
 		// Special case the unknown value to turn into "unknown"
 		if stringVal == UnknownValue {
-			return ast.Variable{Type: ast.TypeUnknown}, nil
+			return ast.Variable{Value: UnknownValue, Type: ast.TypeUnknown}, nil
 		}
 
 		// Otherwise return the string value

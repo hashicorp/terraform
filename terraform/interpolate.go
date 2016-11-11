@@ -404,7 +404,8 @@ func (i *Interpolater) computeResourceVariable(
 	}
 
 	if attr, ok := r.Primary.Attributes[v.Field]; ok {
-		return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
+		v, err := hil.InterfaceToVariable(attr)
+		return &v, err
 	}
 
 	// computed list or map attribute
