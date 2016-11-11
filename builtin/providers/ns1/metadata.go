@@ -418,14 +418,7 @@ func flattenNS1Metadata(meta *data.Meta) []map[string]interface{} {
 }
 
 func getFloat(v interface{}, field string, precision int) float64 {
-	var s string
-	if precision == 1 {
-		s = fmt.Sprintf("%.%1", v.(string))
-	} else if precision == 2 {
-		s = fmt.Sprintf("%.%2", v.(string))
-	}
-
-	f, err := strconv.ParseFloat(s, 64)
+	f, err := strconv.ParseFloat(v.(string), 64)
 	if err != nil {
 		log.Printf("Expected float for %s, instead got: %#v", field, v)
 		return 0
