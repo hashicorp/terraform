@@ -1,0 +1,31 @@
+---
+layout: "docs"
+page_title: "Commands: version"
+sidebar_current: "docs-commands-version"
+description: >
+  Display the version and build data of Nomad
+---
+
+# Command: version
+
+The `version` command displays build information about the running binary,
+including the release version and the exact revision.
+
+## Usage
+
+```
+nomad version
+```
+
+## Output
+
+This command prints both the version number as well as the exact commit SHA used
+during the build. The SHA may also have the string `+CHANGES` appended to the
+end, indicating that local, uncommitted changes were detected at build time.
+
+## Examples
+
+```
+$ nomad version
+Nomad v0.0.0-615-gcf3c6aa-dev (cf3c6aa8a75a689987b689d75ae2ba73458465cb+CHANGES)
+```

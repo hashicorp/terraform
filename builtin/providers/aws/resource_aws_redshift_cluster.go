@@ -159,6 +159,12 @@ func resourceAwsRedshiftCluster() *schema.Resource {
 				Computed: true,
 			},
 
+			"enhanced_vpc_routing": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+
 			"kms_key_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -302,6 +308,10 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 			restoreOpts.ElasticIp = aws.String(v.(string))
 		}
 
+		if v, ok := d.GetOk("enhanced_vpc_routing"); ok {
+			restoreOpts.EnhancedVpcRouting = aws.Bool(v.(bool))
+		}
+
 		if v, ok := d.GetOk("iam_roles"); ok {
 			restoreOpts.IamRoles = expandStringList(v.(*schema.Set).List())
 		}
@@ -364,6 +374,10 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 
 		if v, ok := d.GetOk("encrypted"); ok {
 			createOpts.Encrypted = aws.Bool(v.(bool))
+		}
+
+		if v, ok := d.GetOk("enhanced_vpc_routing"); ok {
+			createOpts.EnhancedVpcRouting = aws.Bool(v.(bool))
 		}
 
 		if v, ok := d.GetOk("kms_key_id"); ok {
@@ -467,6 +481,7 @@ func resourceAwsRedshiftClusterRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("cluster_subnet_group_name", rsc.ClusterSubnetGroupName)
 	d.Set("availability_zone", rsc.AvailabilityZone)
 	d.Set("encrypted", rsc.Encrypted)
+	d.Set("enhanced_vpc_routing", rsc.EnhancedVpcRouting)
 	d.Set("kms_key_id", rsc.KmsKeyId)
 	d.Set("automated_snapshot_retention_period", rsc.AutomatedSnapshotRetentionPeriod)
 	d.Set("preferred_maintenance_window", rsc.PreferredMaintenanceWindow)
@@ -607,6 +622,11 @@ func resourceAwsRedshiftClusterUpdate(d *schema.ResourceData, meta interface{}) 
 
 	if d.HasChange("publicly_accessible") {
 		req.PubliclyAccessible = aws.Bool(d.Get("publicly_accessible").(bool))
+		requestUpdate = true
+	}
+
+	if d.HasChange("enhanced_vpc_routing") {
+		req.EnhancedVpcRouting = aws.Bool(d.Get("enhanced_vpc_routing").(bool))
 		requestUpdate = true
 	}
 

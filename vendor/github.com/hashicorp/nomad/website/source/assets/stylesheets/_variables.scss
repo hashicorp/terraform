@@ -1,0 +1,80 @@
+//
+// Variables
+// --------------------------------------------------
+
+
+// Global values
+// --------------------------------------------------
+
+$header-height:         90px;
+$btn-border-radius:     4px;
+$el-border-radius:      6px;
+// colors
+// -------------------------
+
+$white:                 #fff;
+$black:                 #000;
+$gray:                  #929199;
+$light-gray:            #C2C1C7;
+$faint-gray:            #E3E3EA;
+$green:                 #56cdad;
+$green-dark:            #449b82;
+$green-light:           #9bdb9c;
+$green-faint:           #E3F5E3;
+$blue-dark:             #4e5859;
+$blue-light:            #89999A;
+$blue:                  #00BFE0;
+$blue-faint:            #E0E8E8;
+$light-black:           #242424;
+$orange:                #e78c5b;
+$gray-dark:             #3B4142; //#4e5859;
+$gray:                  #777;
+$gray-light:            #939393;
+$gray-lighter:          #979797;
+$red:                   #dd4e58;
+$red-dark:              #c5454e;
+$purple:                #822ff7;
+$light-purple:          #f7f3f9;
+$btn-color:             #4592C5;
+
+
+// Scaffolding
+// -------------------------
+$body-bg:               #fff;
+$text-color:            $gray;
+
+// Links
+// -------------------------
+$link-color:            $red-dark;
+$link-hover-color:      darken($link-color, 15%);
+
+// Typography
+// -------------------------
+$font-family-open-sans: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+$font-family-blanc:     'Blanc-Light', 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+$font-family-blanc-reg: 'Blanc-Regular', 'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+$font-weight-xl:        300;
+$font-weight-reg:       400;
+$font-weight-sb:        600;
+$font-weight-xb:        700;
+$font-size-xl:          44px;
+$font-size-l:           36px;
+$font-size-m:           28px;
+$font-size-reg:         16px;
+
+$text-shadow:           1px 1px 1px #000;
+$shadow:                $text-shadow;
+
+
+//margin + padding
+$xsmall-pad:            20px;
+$small-pad:             30px;
+$med-pad:               70px;
+$large-pad:             120px;
+$xl-pad:                150px;
+
+$light-outline:         #f7f7f7;
+
+//
+$easeInOutBack:         cubic-bezier(0.68, -0.55, 0.265, 1.55);
+$easeOutBack:           cubic-bezier(0.175, 0.885, 0.32, 1.275);

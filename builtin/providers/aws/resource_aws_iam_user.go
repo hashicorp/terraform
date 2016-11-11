@@ -197,10 +197,9 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 			UserName: aws.String(d.Id()),
 		})
 		if err != nil {
-			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
-				return nil
+			if iamerr, ok := err.(awserr.Error); !ok || iamerr.Code() != "NoSuchEntity" {
+				return fmt.Errorf("Error deleting Account Login Profile: %s", err)
 			}
-			return fmt.Errorf("Error deleting Account Login Profile: %s", err)
 		}
 	}
 
@@ -217,9 +216,9 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 
 func validateAwsIamUserName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9A-Za-z=,.@\-_]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9A-Za-z=,.@\-_+]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only alphanumeric characters, hyphens, underscores, commas, periods, @ symbols and equals signs allowed in %q: %q",
+			"only alphanumeric characters, hyphens, underscores, commas, periods, @ symbols, plus and equals signs allowed in %q: %q",
 			k, value))
 	}
 	return

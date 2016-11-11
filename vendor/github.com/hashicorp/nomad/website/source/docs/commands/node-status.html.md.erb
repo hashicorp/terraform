@@ -1,0 +1,279 @@
+---
+layout: "docs"
+page_title: "Commands: node-status"
+sidebar_current: "docs-commands-node-status"
+description: >
+  Display information about nodes.
+---
+
+# Command: node-status
+
+The `node-status` command is used to display information about client nodes. A
+node must first be registered with the servers before it will be visible in this
+output.
+
+## Usage
+
+```
+nomad node-status [options] [node]
+```
+
+If no node ID is passed, then the command will enter "list mode" and dump a
+high-level list of all known nodes. This list output contains less information
+but is a good way to get a bird's-eye view of things.
+
+If there is an exact match based on the provided node ID or prefix, then that
+particular node will be queried, and detailed information will be displayed,
+including resource usage statistics. Otherwise, a list of matching nodes and
+information will be displayed. If running the command on a Nomad Client, the
+-self flag is useful to quickly access the status of the local node.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Node Status Options
+
+* `-self`: Query the status of the local node.
+
+* `-stats`: Display detailed resource usage statistics.
+
+* `-allocs`: When a specific node is not being queried, shows the number of
+  running allocations per node.
+
+* `-short`: Display short output. Used only when querying a single node.
+
+* `-verbose`: Show full information.
+
+* `-json` : Output the node in its JSON format.
+
+* `-t` : Format and display node using a Go template.
+
+
+## Examples
+
+List view:
+
+```
+$ nomad node-status
+ID        DC   Name   Drain  Status
+a72dfba2  dc1  node1  false  ready
+1f3f03ea  dc1  node2  false  ready
+```
+
+List view, with running allocations:
+
+```
+$ nomad node-status -allocs
+ID        DC   Name   Class   Drain  Status  Running Allocs
+4d2ba53b  dc1  node1  <none>  false  ready   1
+34dfba32  dc1  node2  <none>  false  ready   3
+```
+
+Single-node view in short mode:
+
+```
+$ nomad node-status -short 1f3f03ea
+ID     = c754da1f
+Name   = nomad
+Class  = <none>
+DC     = dc1
+Drain  = false
+Status = ready
+Uptime = 17h2m25s
+
+Allocations
+ID        Eval ID   Job ID   Task Group  Desired Status  Client Status
+0b8b9e37  8bf94335  example  cache       run             running
+```
+
+Full output for a single node:
+
+```
+$ nomad node-status 1f3f03ea
+ID     = c754da1f
+Name    = nomad-server01
+Class   = <none>
+DC      = dc1
+Drain   = false
+Status  = ready
+Uptime  = 17h42m50s
+
+Allocated Resources
+CPU           Memory           Disk            IOPS
+500/2600 MHz  256 MiB/2.0 GiB  300 MiB/32 GiB  0/0
+
+Allocation Resource Utilization
+CPU           Memory
+430/2600 MHz  199 MiB/2.0 GiB
+
+Host Resource Utilization
+CPU           Memory           Disk
+513/3000 MHz  551 MiB/2.4 GiB  4.2 GiB/52 GiB
+
+Allocations
+ID        Eval ID   Job ID   Task Group  Desired Status  Client Status
+7bff7214  b3a6b9d2  example  cache       run             running
+```
+
+Using `-self` when on a Nomad Client:
+
+```
+$ nomad node-status -self
+ID     = c754da1f
+Name   = nomad-client01
+Class  = <none>
+DC     = dc1
+Drain  = false
+Status = ready
+Uptime = 17h7m41s
+
+Allocated Resources
+CPU            Memory           Disk            IOPS
+2500/2600 MHz  1.3 GiB/2.0 GiB  1.5 GiB/32 GiB  0/0
+
+Allocation Resource Utilization
+CPU            Memory
+2200/2600 MHz  1.7 GiB/2.0 GiB
+
+Host Resource Utilization
+CPU            Memory           Disk
+2430/3000 MHz  1.8 GiB/2.4 GiB  6.5 GiB/40 GiB
+
+Allocations
+ID        Eval ID   Job ID   Task Group  Desired Status  Client Status
+0b8b9e37  8bf94335  example  cache       run             running
+b206088c  8bf94335  example  cache       run             running
+b82f58b6  8bf94335  example  cache       run             running
+ed3665f5  8bf94335  example  cache       run             running
+24cfd201  8bf94335  example  cache       run             running
+```
+
+Using `-stats` to see detailed to resource usage information on the node:
+
+```
+$ nomad node-status -stats c754da1f
+ID     = c754da1f
+Name   = nomad-client01
+Class  = <none>
+DC     = dc1
+Drain  = false
+Status = ready
+Uptime = 17h7m41s
+
+Allocated Resources
+CPU            Memory           Disk            IOPS
+2500/2600 MHz  1.3 GiB/2.0 GiB  1.5 GiB/32 GiB  0/0
+
+Allocation Resource Utilization
+CPU            Memory
+2200/2600 MHz  1.7 GiB/2.0 GiB
+
+Host Resource Utilization
+CPU            Memory           Disk
+2430/3000 MHz  1.8 GiB/2.4 GiB  3.9 GiB/40 GiB
+
+CPU Stats
+CPU    = cpu0
+User   = 96.94%
+System = 1.02%
+Idle   = 2.04%
+
+CPU    = cpu1
+User   = 97.92%
+System = 2.08%
+Idle   = 0.00%
+
+Memory Stats
+Total     = 2.4 GiB
+Available = 612 MiB
+Used      = 1.8 GiB
+Free      = 312 MiB
+
+Disk Stats
+Device         = /dev/mapper/ubuntu--14--vg-root
+MountPoint     = /
+Size           = 38 GiB
+Used           = 3.9 GiB
+Available      = 32 GiB
+Used Percent   = 10.31%
+Inodes Percent = 3.85%
+
+Device         = /dev/sda1
+MountPoint     = /boot
+Size           = 235 MiB
+Used           = 45 MiB
+Available      = 178 MiB
+Used Percent   = 19.17%
+Inodes Percent = 0.48%
+
+Allocations
+ID        Eval ID   Job ID   Task Group  Desired Status  Client Status
+0b8b9e37  8bf94335  example  cache       run             running
+b206088c  8bf94335  example  cache       run             running
+b82f58b6  8bf94335  example  cache       run             running
+ed3665f5  8bf94335  example  cache       run             running
+24cfd201  8bf94335  example  cache       run             running
+```
+
+To view verbose information about the node:
+
+```
+$ nomad node-status -verbose c754da1f
+ID     = c754da1f-6337-b86d-47dc-2ef4c71aca14
+Name   = nomad
+Class  = <none>
+DC     = dc1
+Drain  = false
+Status = ready
+Uptime = 17h7m41s
+
+Allocated Resources
+CPU            Memory           Disk            IOPS
+2500/2600 MHz  1.3 GiB/2.0 GiB  1.5 GiB/32 GiB  0/0
+
+Allocation Resource Utilization
+CPU            Memory
+2200/2600 MHz  1.7 GiB/2.0 GiB
+
+Host Resource Utilization
+CPU           Memory           Disk
+230/3000 MHz  121 MiB/2.4 GiB  6.5 GiB/40 GiB
+
+Allocations
+ID                                    Eval ID                               Job ID   Task Group  Desired Status  Client Status
+3d743cff-8d57-18c3-2260-a41d3f6c5204  2fb686da-b2b0-f8c2-5d57-2be5600435bd  example  cache       run             complete
+
+Attributes
+arch                      = amd64
+cpu.frequency             = 1300.000000
+cpu.modelname             = Intel(R) Core(TM) M-5Y71 CPU @ 1.20GHz
+cpu.numcores              = 2
+cpu.totalcompute          = 2600.000000
+driver.docker             = 1
+driver.docker.version     = 1.10.3
+driver.exec               = 1
+driver.java               = 1
+driver.java.runtime       = OpenJDK Runtime Environment (IcedTea 2.6.4) (7u95-2.6.4-0ubuntu0.14.04.2)
+driver.java.version       = 1.7.0_95
+driver.java.vm            = OpenJDK 64-Bit Server VM (build 24.95-b01, mixed mode)
+driver.qemu               = 1
+driver.qemu.version       = 2.0.0
+driver.raw_exec           = 1
+driver.rkt                = 1
+driver.rkt.appc.version   = 0.7.4
+driver.rkt.version        = 1.2.0
+hostname                  = nomad
+kernel.name               = linux
+kernel.version            = 3.19.0-25-generic
+memory.totalbytes         = 2094473216
+nomad.revision            = '270da7a60ccbf39eeeadc4064a59ca06bf9ac6fc+CHANGES'
+nomad.version             = 0.3.2dev
+os.name                   = ubuntu
+os.version                = 14.04
+unique.cgroup.mountpoint  = /sys/fs/cgroup
+unique.network.ip-address = 127.0.0.1
+unique.storage.bytesfree  = 36044333056
+unique.storage.bytestotal = 41092214784
+unique.storage.volume     = /dev/mapper/ubuntu--14--vg-root
+```

@@ -12,7 +12,7 @@ func TestProviderTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -73,7 +73,7 @@ func TestCloseProviderTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -105,7 +105,7 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	transforms := []GraphTransformer{
-		&ConfigTransformer{Module: mod},
+		&ConfigTransformerOld{Module: mod},
 		&ProviderTransformer{},
 		&CloseProviderTransformer{},
 		&TargetsTransformer{
@@ -135,7 +135,7 @@ func TestMissingProviderTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -318,7 +318,7 @@ func TestPruneProviderTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -364,7 +364,7 @@ func TestDisableProviderTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	transforms := []GraphTransformer{
-		&ConfigTransformer{Module: mod},
+		&ConfigTransformerOld{Module: mod},
 		&MissingProviderTransformer{Providers: []string{"aws"}},
 		&ProviderTransformer{},
 		&DisableProviderTransformerOld{},
@@ -390,7 +390,7 @@ func TestDisableProviderTransformer_keep(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	transforms := []GraphTransformer{
-		&ConfigTransformer{Module: mod},
+		&ConfigTransformerOld{Module: mod},
 		&MissingProviderTransformer{Providers: []string{"aws"}},
 		&ProviderTransformer{},
 		&DisableProviderTransformerOld{},

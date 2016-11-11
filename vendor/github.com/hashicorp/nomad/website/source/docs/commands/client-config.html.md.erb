@@ -1,0 +1,57 @@
+---
+layout: "docs"
+page_title: "Commands: client-config"
+sidebar_current: "docs-commands-client-config"
+description: >
+  The client-config command is used to view or modify client configuration.
+---
+
+# Command: client-config
+
+The `client-config` command is used to view or modify client configuration
+details. This command only works on client nodes, and can be used to update
+the running client configurations it supports.
+
+## Usage
+
+```
+nomad client-config [options]
+```
+
+The arguments behave differently depending on the flags given. See each flag's
+description below for specific usage information and requirements.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Client Config Options
+
+* `-servers`: List the client's known servers. Client nodes do not participate
+  in the gossip pool, and instead register with these servers periodically over
+  the network. The initial value of this list may come from configuration files
+  using the [servers](/docs/agent/config.html#servers) configuration option in
+  the client block.
+
+* `-update-servers`: Updates the client's server list using the provided
+  arguments. Multiple server addresses may be passed using multiple arguments.
+  When updating the servers list, you must specify ALL of the server nodes you
+  wish to configure. The set is updated atomically. It is an error to specify
+  this flag without any server addresses. If you do _not_ specify a port for each
+  server address, the default port `4647` will be used.
+
+## Examples
+
+Query the currently known servers:
+
+```
+$ nomad client-config -servers
+server1:4647
+server2:4647
+```
+
+Update the list of servers:
+
+```
+$ nomad client-config -update-servers server1:4647 server2:4647 server3:4647 server4
+```

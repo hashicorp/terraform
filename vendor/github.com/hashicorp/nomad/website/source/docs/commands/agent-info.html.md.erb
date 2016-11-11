@@ -1,0 +1,80 @@
+---
+layout: "docs"
+page_title: "Commands: agent-info"
+sidebar_current: "docs-commands-agent-info"
+description: >
+  Display information and status of a running agent.
+---
+
+# Command: agent-info
+
+The `agent-info` command dumps metrics and status information of a running
+agent. The information displayed pertains to the specific agent the CLI
+is connected to. This is useful for troubleshooting and performance monitoring.
+
+## Usage
+
+```
+nomad agent-info [options]
+```
+
+## General Options
+
+<%= general_options_usage %>
+
+## Output
+
+Depending on the agent queried, information from different subsystems is
+returned. These subsystems are described below:
+
+* client  - Status of the local Nomad client
+* nomad   - Status of the local Nomad server
+* serf    - Gossip protocol metrics and information
+* raft    - Status information about the Raft consensus protocol
+* runtime - Various metrics from the runtime environment
+
+## Examples
+
+```
+$ nomad agent-info
+raft
+  commit_index = 0
+  fsm_pending = 0
+  last_contact = never
+  last_snapshot_term = 0
+  state = Follower
+  term = 0
+  applied_index = 0
+  last_log_index = 0
+  last_log_term = 0
+  last_snapshot_index = 0
+  num_peers = 0
+runtime
+  cpu_count = 4
+  goroutines = 43
+  kernel.name = darwin
+  max_procs = 4
+  version = go1.5
+  arch = amd64
+serf
+  intent_queue = 0
+  member_time = 1
+  query_queue = 0
+  event_time = 1
+  event_queue = 0
+  failed = 0
+  left = 0
+  members = 1
+  query_time = 1
+  encrypted = false
+client
+  heartbeat_ttl = 0
+  known_servers = 0
+  last_heartbeat = 9223372036854775807
+  num_allocations = 0
+nomad
+  bootstrap = false
+  known_regions = 1
+  leader = false
+  server = true
+```

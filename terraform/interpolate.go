@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -120,9 +121,13 @@ func (i *Interpolater) valueCountVar(
 
 func unknownVariable() ast.Variable {
 	return ast.Variable{
-		Type:  ast.TypeString,
+		Type:  ast.TypeUnknown,
 		Value: config.UnknownVariableValue,
 	}
+}
+
+func unknownValue() string {
+	return hil.UnknownValue
 }
 
 func (i *Interpolater) valueModuleVar(
@@ -214,10 +219,7 @@ func (i *Interpolater) valueResourceVar(
 	// If we're computing all dynamic fields, then module vars count
 	// and we mark it as computed.
 	if i.Operation == walkValidate {
-		result[n] = ast.Variable{
-			Value: config.UnknownVariableValue,
-			Type:  ast.TypeString,
-		}
+		result[n] = unknownVariable()
 		return nil
 	}
 
@@ -242,10 +244,7 @@ func (i *Interpolater) valueResourceVar(
 		// This applies only to graph nodes that interpolate during the
 		// config walk, e.g. providers.
 		if i.Operation == walkInput {
-			result[n] = ast.Variable{
-				Value: config.UnknownVariableValue,
-				Type:  ast.TypeString,
-			}
+			result[n] = unknownVariable()
 			return nil
 		}
 
@@ -284,12 +283,14 @@ func (i *Interpolater) valueSimpleVar(
 	n string,
 	v *config.SimpleVariable,
 	result map[string]ast.Variable) error {
-	// SimpleVars are never handled by Terraform's interpolator
-	result[n] = ast.Variable{
-		Value: config.UnknownVariableValue,
-		Type:  ast.TypeString,
-	}
-	return nil
+	// This error message includes some information for people who
+	// relied on this for their template_file data sources. We should
+	// remove this at some point but there isn't any rush.
+	return fmt.Errorf(
+		"invalid variable syntax: %q. If this is part of inline `template` parameter\n"+
+			"then you must escape the interpolation with two dollar signs. For\n"+
+			"example: ${a} becomes $${a}.",
+		n)
 }
 
 func (i *Interpolater) valueUserVar(
@@ -403,7 +404,8 @@ func (i *Interpolater) computeResourceVariable(
 	}
 
 	if attr, ok := r.Primary.Attributes[v.Field]; ok {
-		return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
+		v, err := hil.InterfaceToVariable(attr)
+		return &v, err
 	}
 
 	// computed list or map attribute
@@ -434,13 +436,15 @@ func (i *Interpolater) computeResourceVariable(
 			// Lists and sets make this
 			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
 			if attr, ok := r.Primary.Attributes[key]; ok {
-				return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
+				v, err := hil.InterfaceToVariable(attr)
+				return &v, err
 			}
 
 			// Maps make this
 			key = fmt.Sprintf("%s", strings.Join(parts[:i], "."))
 			if attr, ok := r.Primary.Attributes[key]; ok {
-				return &ast.Variable{Type: ast.TypeString, Value: attr}, nil
+				v, err := hil.InterfaceToVariable(attr)
+				return &v, err
 			}
 		}
 	}
@@ -491,13 +495,13 @@ func (i *Interpolater) computeResourceMultiVariable(
 	}
 
 	// Get the keys for all the resources that are created for this resource
-	resourceKeys, err := i.resourceCountKeys(module, cr, v)
+	countMax, err := i.resourceCountMax(module, cr, v)
 	if err != nil {
 		return nil, err
 	}
 
 	// If count is zero, we return an empty list
-	if len(resourceKeys) == 0 {
+	if countMax == 0 {
 		return &ast.Variable{Type: ast.TypeList, Value: []ast.Variable{}}, nil
 	}
 
@@ -507,7 +511,9 @@ func (i *Interpolater) computeResourceMultiVariable(
 	}
 
 	var values []interface{}
-	for _, id := range resourceKeys {
+	for idx := 0; idx < countMax; idx++ {
+		id := fmt.Sprintf("%s.%d", v.ResourceId(), idx)
+
 		// ID doesn't have a trailing index. We try both here, but if a value
 		// without a trailing index is found we prefer that. This choice
 		// is for legacy reasons: older versions of TF preferred it.
@@ -678,10 +684,10 @@ func (i *Interpolater) resourceVariableInfo(
 	return module, cr, nil
 }
 
-func (i *Interpolater) resourceCountKeys(
+func (i *Interpolater) resourceCountMax(
 	ms *ModuleState,
 	cr *config.Resource,
-	v *config.ResourceVariable) ([]string, error) {
+	v *config.ResourceVariable) (int, error) {
 	id := v.ResourceId()
 
 	// If we're NOT applying, then we assume we can read the count
@@ -690,31 +696,58 @@ func (i *Interpolater) resourceCountKeys(
 	if i.Operation != walkApply {
 		count, err := cr.Count()
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 
-		result := make([]string, count)
-		for i := 0; i < count; i++ {
-			result[i] = fmt.Sprintf("%s.%d", id, i)
-		}
-
-		return result, nil
+		return count, nil
 	}
 
 	// We need to determine the list of resource keys to get values from.
 	// This needs to be sorted so the order is deterministic. We used to
 	// use "cr.Count()" but that doesn't work if the count is interpolated
 	// and we can't guarantee that so we instead depend on the state.
-	var resourceKeys []string
+	max := -1
 	for k, _ := range ms.Resources {
-		// If we don't have the right prefix then ignore it
-		if k != id && !strings.HasPrefix(k, id+".") {
+		// Get the index number for this resource
+		index := ""
+		if k == id {
+			// If the key is the id, then its just 0 (no explicit index)
+			index = "0"
+		} else if strings.HasPrefix(k, id+".") {
+			// Grab the index number out of the state
+			index = k[len(id+"."):]
+			if idx := strings.IndexRune(index, '.'); idx >= 0 {
+				index = index[:idx]
+			}
+		}
+
+		// If there was no index then this resource didn't match
+		// the one we're looking for, exit.
+		if index == "" {
 			continue
 		}
 
-		// Add it to the list
-		resourceKeys = append(resourceKeys, k)
+		// Turn the index into an int
+		raw, err := strconv.ParseInt(index, 0, 0)
+		if err != nil {
+			return 0, fmt.Errorf(
+				"%s: error parsing index %q as int: %s",
+				id, index, err)
+		}
+
+		// Keep track of this index if its the max
+		if new := int(raw); new > max {
+			max = new
+		}
 	}
-	sort.Strings(resourceKeys)
-	return resourceKeys, nil
+
+	// If we never found any matching resources in the state, we
+	// have zero.
+	if max == -1 {
+		return 0, nil
+	}
+
+	// The result value is "max+1" because we're returning the
+	// max COUNT, not the max INDEX, and we zero-index.
+	return max + 1, nil
 }

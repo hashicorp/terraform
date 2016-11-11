@@ -2,6 +2,9 @@ package openstack
 
 import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
@@ -9,7 +12,19 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 )
 
-// FloatingIPCreateOpts represents the attributes used when creating a new port.
+// FirewallCreateOpts represents the attributes used when creating a new firewall.
+type FirewallCreateOpts struct {
+	firewalls.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToFirewallCreateMap casts a CreateOpts struct to a map.
+// It overrides firewalls.ToFirewallCreateMap to add the ValueSpecs field.
+func (opts FirewallCreateOpts) ToFirewallCreateMap() (map[string]interface{}, error) {
+	return BuildRequest(opts, "firewall")
+}
+
+// FloatingIPCreateOpts represents the attributes used when creating a new floating ip.
 type FloatingIPCreateOpts struct {
 	floatingips.CreateOpts
 	ValueSpecs map[string]string `json:"value_specs,omitempty"`
@@ -45,6 +60,18 @@ func (opts NetworkCreateOpts) ToNetworkCreateMap() (map[string]interface{}, erro
 	return BuildRequest(opts, "network")
 }
 
+// PolicyCreateOpts represents the attributes used when creating a new firewall policy.
+type PolicyCreateOpts struct {
+	policies.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToPolicyCreateMap casts a CreateOpts struct to a map.
+// It overrides policies.ToFirewallPolicyCreateMap to add the ValueSpecs field.
+func (opts PolicyCreateOpts) ToFirewallPolicyCreateMap() (map[string]interface{}, error) {
+	return BuildRequest(opts, "firewall_policy")
+}
+
 // PortCreateOpts represents the attributes used when creating a new port.
 type PortCreateOpts struct {
 	ports.CreateOpts
@@ -67,6 +94,27 @@ type RouterCreateOpts struct {
 // It overrides routers.ToRouterCreateMap to add the ValueSpecs field.
 func (opts RouterCreateOpts) ToRouterCreateMap() (map[string]interface{}, error) {
 	return BuildRequest(opts, "router")
+}
+
+// RuleCreateOpts represents the attributes used when creating a new firewall rule.
+type RuleCreateOpts struct {
+	rules.CreateOpts
+	ValueSpecs map[string]string `json:"value_specs,omitempty"`
+}
+
+// ToRuleCreateMap casts a CreateOpts struct to a map.
+// It overrides rules.ToRuleCreateMap to add the ValueSpecs field.
+func (opts RuleCreateOpts) ToRuleCreateMap() (map[string]interface{}, error) {
+	b, err := BuildRequest(opts, "firewall_rule")
+	if err != nil {
+		return nil, err
+	}
+
+	if m := b["firewall_rule"].(map[string]interface{}); m["protocol"] == "any" {
+		m["protocol"] = nil
+	}
+
+	return b, nil
 }
 
 // SubnetCreateOpts represents the attributes used when creating a new subnet.

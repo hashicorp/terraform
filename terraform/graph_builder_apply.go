@@ -40,6 +40,7 @@ func (b *ApplyGraphBuilder) Build(path []string) (*Graph, error) {
 	return (&BasicGraphBuilder{
 		Steps:    b.Steps(),
 		Validate: true,
+		Name:     "apply",
 	}).Build(path)
 }
 
@@ -104,11 +105,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
 
-		// Add module variables
-		&ModuleVariableTransformer{Module: b.Module},
-
 		// Add the outputs
 		&OutputTransformer{Module: b.Module},
+
+		// Add module variables
+		&ModuleVariableTransformer{Module: b.Module},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

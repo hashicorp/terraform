@@ -195,7 +195,8 @@ func (p *printer) output(n interface{}) []byte {
 
 func (p *printer) literalType(lit *ast.LiteralType) []byte {
 	result := []byte(lit.Token.Text)
-	if lit.Token.Type == token.HEREDOC {
+	switch lit.Token.Type {
+	case token.HEREDOC:
 		// Clear the trailing newline from heredocs
 		if result[len(result)-1] == '\n' {
 			result = result[:len(result)-1]
@@ -203,6 +204,12 @@ func (p *printer) literalType(lit *ast.LiteralType) []byte {
 
 		// Poison lines 2+ so that we don't indent them
 		result = p.heredocIndent(result)
+	case token.STRING:
+		// If this is a multiline string, poison lines 2+ so we don't
+		// indent them.
+		if bytes.ContainsRune(result, '\n') {
+			result = p.heredocIndent(result)
+		}
 	}
 
 	return result
@@ -281,7 +288,7 @@ func (p *printer) objectType(o *ast.ObjectType) []byte {
 						buf.WriteByte(newline)
 					}
 
-					buf.Write(p.indent([]byte(comment.Text)))
+					buf.Write(p.indent(p.heredocIndent([]byte(comment.Text))))
 					buf.WriteByte(newline)
 					if index != len(o.List.Items) {
 						buf.WriteByte(newline) // do not print on the end

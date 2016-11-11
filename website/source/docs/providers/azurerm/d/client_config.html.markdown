@@ -8,7 +8,8 @@ description: |-
 
 # azurerm\_client\_config
 
-Use this data source to access the configuration 
+Use this data source to access the configuration of the Azure Resource Manager
+provider.
 
 ## Example Usage
 
@@ -26,6 +27,6 @@ There are no arguments available for this data source.
 
 ## Attributes Reference
 
-`client_id` is set to the Azure Client ID. 
-`tenant_id` is set to the Azure Tenant ID.
-`subscription_id` is set to the Azure Subscription ID. 
+* `client_id` is set to the Azure Client ID. 
+* `tenant_id` is set to the Azure Tenant ID.
+* `subscription_id` is set to the Azure Subscription ID. 

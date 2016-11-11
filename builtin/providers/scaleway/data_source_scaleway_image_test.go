@@ -19,6 +19,8 @@ func TestAccScalewayDataSourceImage_Basic(t *testing.T) {
 					testAccCheckImageID("data.scaleway_image.ubuntu"),
 					resource.TestCheckResourceAttr("data.scaleway_image.ubuntu", "architecture", "arm"),
 					resource.TestCheckResourceAttr("data.scaleway_image.ubuntu", "public", "true"),
+					resource.TestCheckResourceAttrSet("data.scaleway_image.ubuntu", "organization"),
+					resource.TestCheckResourceAttrSet("data.scaleway_image.ubuntu", "creation_date"),
 				),
 			},
 		},
@@ -34,9 +36,11 @@ func TestAccScalewayDataSourceImage_Filtered(t *testing.T) {
 				Config: testAccCheckScalewayImageFilterConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckImageID("data.scaleway_image.ubuntu"),
-					resource.TestCheckResourceAttr("data.scaleway_image.ubuntu", "name", "Ubuntu Precise"),
+					resource.TestCheckResourceAttr("data.scaleway_image.ubuntu", "name", "Ubuntu Precise (12.04)"),
 					resource.TestCheckResourceAttr("data.scaleway_image.ubuntu", "architecture", "arm"),
 					resource.TestCheckResourceAttr("data.scaleway_image.ubuntu", "public", "true"),
+					resource.TestCheckResourceAttrSet("data.scaleway_image.ubuntu", "organization"),
+					resource.TestCheckResourceAttrSet("data.scaleway_image.ubuntu", "creation_date"),
 				),
 			},
 		},
@@ -53,6 +57,14 @@ func testAccCheckImageID(n string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("image data source ID not set")
 		}
+
+		scaleway := testAccProvider.Meta().(*Client).scaleway
+		_, err := scaleway.GetImage(rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 }

@@ -147,7 +147,7 @@ type ScalewayVolume struct {
 	Identifier string `json:"id,omitempty"`
 
 	// Size is the allocated size of the volume
-	Size interface{} `json:"size,omitempty"`
+	Size uint64 `json:"size,omitempty"`
 
 	// CreationDate is the creation date of the volume
 	CreationDate string `json:"creation_date,omitempty"`
@@ -939,7 +939,7 @@ func (s *ScalewayAPI) response(method, uri string, content io.Reader) (resp *htt
 
 // GetResponsePaginate fetchs all resources and returns an http.Response object for the requested resource
 func (s *ScalewayAPI) GetResponsePaginate(apiURL, resource string, values url.Values) (*http.Response, error) {
-	resp, err := s.response("HEAD", fmt.Sprintf("%s/%s", strings.TrimRight(apiURL, "/"), resource), nil)
+	resp, err := s.response("HEAD", fmt.Sprintf("%s/%s?%s", strings.TrimRight(apiURL, "/"), resource, values.Encode()), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -956,6 +956,9 @@ func (s *ScalewayAPI) GetResponsePaginate(apiURL, resource string, values url.Va
 	}
 
 	get := maxElem / perPage
+	if (float32(maxElem) / perPage) > float32(get) {
+		get++
+	}
 
 	if get <= 1 { // If there is 0 or 1 page of result, the response is not paginated
 		if len(values) == 0 {
@@ -985,38 +988,31 @@ func (s *ScalewayAPI) GetResponsePaginate(apiURL, resource string, values url.Va
 		if err = g.Wait(); err != nil {
 			return nil, err
 		}
-		newBody := make(map[string][]interface{})
-		body := make(map[string][]interface{})
+		newBody := make(map[string][]json.RawMessage)
+		body := make(map[string][]json.RawMessage)
 		key := ""
 		for i := 0; i < get; i++ {
 			res := <-ch
 			if res.StatusCode != http.StatusOK {
 				return res, nil
 			}
+			content, err := ioutil.ReadAll(res.Body)
+			res.Body.Close()
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(content, &body); err != nil {
+				return nil, err
+			}
+
 			if i == 0 {
 				resp = res
-				content, err := ioutil.ReadAll(res.Body)
-				res.Body.Close()
-				if err != nil {
-					return nil, err
-				}
-				if err := json.Unmarshal(content, &newBody); err != nil {
-					return nil, err
-				}
-				for k := range newBody {
+				for k := range body {
 					key = k
+					break
 				}
-			} else {
-				content, err := ioutil.ReadAll(res.Body)
-				res.Body.Close()
-				if err != nil {
-					return nil, err
-				}
-				if err := json.Unmarshal(content, &body); err != nil {
-					return nil, err
-				}
-				newBody[key] = append(newBody[key], body[key]...)
 			}
+			newBody[key] = append(newBody[key], body[key]...)
 		}
 		payload := new(bytes.Buffer)
 		if err := json.NewEncoder(payload).Encode(newBody); err != nil {
@@ -1509,7 +1505,9 @@ func (s *ScalewayAPI) GetImages() (*[]MarketImage, error) {
 			}
 		}
 	}
-	resp, err := s.GetResponsePaginate(s.computeAPI, "images?organization="+s.Organization, url.Values{})
+	values := url.Values{}
+	values.Set("organization", s.Organization)
+	resp, err := s.GetResponsePaginate(s.computeAPI, "images", values)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -1525,8 +1523,8 @@ func (s *ScalewayAPI) GetImages() (*[]MarketImage, error) {
 	if err = json.Unmarshal(body, &OrgaImages); err != nil {
 		return nil, err
 	}
+
 	for _, orgaImage := range OrgaImages.Images {
-		s.Cache.InsertImage(orgaImage.Identifier, "", orgaImage.Arch, orgaImage.Organization, orgaImage.Name, "")
 		images.Images = append(images.Images, MarketImage{
 			Categories:           []string{"MyImages"},
 			CreationDate:         orgaImage.CreationDate,
@@ -1545,7 +1543,8 @@ func (s *ScalewayAPI) GetImages() (*[]MarketImage, error) {
 								{
 									Arch: orgaImage.Arch,
 									ID:   orgaImage.Identifier,
-									Zone: "",
+									// TODO: fecth images from ams1 and par1
+									Zone: s.Region,
 								},
 							},
 						},
@@ -1553,6 +1552,7 @@ func (s *ScalewayAPI) GetImages() (*[]MarketImage, error) {
 				},
 			},
 		})
+		s.Cache.InsertImage(orgaImage.Identifier, s.Region, orgaImage.Arch, orgaImage.Organization, orgaImage.Name, "")
 	}
 	return &images.Images, nil
 }

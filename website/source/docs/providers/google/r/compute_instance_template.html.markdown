@@ -27,8 +27,11 @@ resource "google_compute_instance_template" "foobar" {
   instance_description = "description assigned to instances"
   machine_type         = "n1-standard-1"
   can_ip_forward       = false
-  automatic_restart    = true
-  on_host_maintenance  = "MIGRATE"
+
+  scheduling {
+    automatic_restart   = true
+    on_host_maintenance = "MIGRATE"
+  }
 
   // Create a new boot disk from an image
   disk {

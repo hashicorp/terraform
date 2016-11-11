@@ -1,0 +1,17 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("downloads-nomad") %>>
+				<a href="/downloads.html">Download Nomad</a>
+				</li>
+
+				<li>
+					<a href="/docs/install/index.html">Build from Source</a>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>

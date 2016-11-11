@@ -96,6 +96,8 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	}
 
+	terraform.SetDebugInfo(DefaultDataDir)
+
 	// Check for the new apply
 	if experiment.Enabled(experiment.X_newApply) && !experiment.Force() {
 		desc := "Experimental new apply graph has been enabled. This may still\n" +
@@ -135,6 +137,9 @@ func (c *ApplyCommand) Run(args []string) int {
 			return 1
 		}
 	}
+
+	// This is going to keep track of shadow errors
+	var shadowErr error
 
 	// Build the context based on the arguments given
 	ctx, planned, err := c.Context(contextOpts{
@@ -189,6 +194,12 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
 			return 1
 		}
+
+		// Record any shadow errors for later
+		if err := ctx.ShadowError(); err != nil {
+			shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+				err, "input operation:"))
+		}
 	}
 	if !validateContext(ctx, c.Ui) {
 		return 1
@@ -207,6 +218,12 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf(
 				"Error creating plan: %s", err))
 			return 1
+		}
+
+		// Record any shadow errors for later
+		if err := ctx.ShadowError(); err != nil {
+			shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+				err, "plan operation:"))
 		}
 	}
 
@@ -229,6 +246,12 @@ func (c *ApplyCommand) Run(args []string) int {
 	go func() {
 		defer close(doneCh)
 		state, applyErr = ctx.Apply()
+
+		// Record any shadow errors for later
+		if err := ctx.ShadowError(); err != nil {
+			shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+				err, "apply operation:"))
+		}
 	}()
 
 	// Wait for the apply to finish or for us to be interrupted so
@@ -303,6 +326,9 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
+
+	// If we have an error in the shadow graph, let the user know.
+	c.outputShadowError(shadowErr, applyErr == nil)
 
 	return 0
 }
@@ -430,7 +456,12 @@ func outputsAsString(state *terraform.State, modPath []string, schema []*config.
 		return ""
 	}
 
-	outputs := state.ModuleByPath(modPath).Outputs
+	ms := state.ModuleByPath(modPath)
+	if ms == nil {
+		return ""
+	}
+
+	outputs := ms.Outputs
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {
 		schemaMap := make(map[string]*config.Output)

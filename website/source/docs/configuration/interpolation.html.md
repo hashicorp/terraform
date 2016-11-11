@@ -54,7 +54,7 @@ provisioners.
 
 The syntax is `TYPE.NAME.ATTRIBUTE`. For example,
 `${aws_instance.web.id}` will interpolate the ID attribute from the
-`aws\_instance` resource named `web`. If the resource has a `count`
+`aws_instance` resource named `web`. If the resource has a `count`
 attribute set, you can access individual attributes with a zero-based
 index, such as `${aws_instance.web.0.id}`. You can also use the splat
 syntax to get a list of all the attributes: `${aws_instance.web.*.id}`.
@@ -299,7 +299,7 @@ A template data source looks like:
 
 ```
 data "template_file" "example" {
-  template = "${hello} ${world}!"
+  template = "$${hello} $${world}!"
   vars {
     hello = "goodnight"
     world = "moon"
@@ -313,7 +313,9 @@ output "rendered" {
 
 Then the rendered value would be `goodnight moon!`.
 
-You may use any of the built-in functions in your template.
+You may use any of the built-in functions in your template. For more
+details on template usage, please see the
+[template_file documentation](/docs/providers/template/d/file.html).
 
 ### Using Templates with Count
 

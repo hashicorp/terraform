@@ -683,7 +683,7 @@ func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]in
 		if i.ParameterValue != nil {
 			result = append(result, map[string]interface{}{
 				"name":  strings.ToLower(*i.ParameterName),
-				"value": strings.ToLower(*i.ParameterValue),
+				"value": *i.ParameterValue,
 			})
 		}
 	}
