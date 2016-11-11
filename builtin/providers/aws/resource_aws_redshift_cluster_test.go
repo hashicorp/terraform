@@ -38,6 +38,8 @@ func TestValidateRedshiftClusterDbName(t *testing.T) {
 		"test name",
 		"/slash-at-the-beginning",
 		"slash-at-the-end/",
+		"",
+		randomString(100),
 	}
 	for _, v := range invalidNames {
 		_, errors := validateRedshiftClusterDbName(v, "name")
