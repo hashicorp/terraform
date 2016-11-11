@@ -65,34 +65,24 @@ For command-line usage check the [winrm-cli project](https://github.com/masterze
 
 **Warning the API might be subject to change.**
 
-For the fast version (this doesn't allow to send input to the command) and it's using HTTP as the transport:
+For the fast version (this doesn't allow to send input to the command):
 
 ```go
-package main
+import "github.com/masterzen/winrm/winrm"
 
-import (
-	"github.com/masterzen/winrm"
-	"os"
-)
-
-endpoint := winrm.NewEndpoint(host, 5986, false, false, nil, nil, nil, 0)
-client, err := winrm.NewClient(endpoint, "Administrator", "secret")
-if err != nil {
-	panic(err)
-}
+client ,_:= winrm.NewClient(&EndPoint{Host:"localhost",Port:5985,HTTPS:false,Insecure:false,CACert:nil}, "Administrator", "secret")
 client.Run("ipconfig /all", os.Stdout, os.Stderr)
 ```
 
 or
 ```go
-package main
 import (
-  "github.com/masterzen/winrm"
+  "github.com/masterzen/winrm/winrm"
   "fmt"
   "os"
 )
 
-endpoint := winrm.NewEndpoint("localhost", 5985, false, false, nil, nil, nil, 0)
+endpoint := winrm.NewEndpoint("localhost", 5985, false, false, nil)
 client, err := winrm.NewClient(endpoint,"Administrator", "secret")
 if err != nil {
 	panic(err)
@@ -108,17 +98,15 @@ if err != nil {
 For a more complex example, it is possible to call the various functions directly:
 
 ```go
-package main
-
 import (
-  "github.com/masterzen/winrm"
+  "github.com/masterzen/winrm/winrm"
   "fmt"
   "bytes"
   "os"
 )
 
 stdin := bytes.NewBufferString("ipconfig /all")
-endpoint := winrm.NewEndpoint("localhost", 5985, false, false,nil, nil, nil, 0)
+endpoint := winrm.NewEndpoint("localhost",5985,false,false,nil)
 client , err := winrm.NewClient(endpoint, "Administrator", "secret")
 if err != nil {
 	panic(err)
@@ -141,37 +129,18 @@ cmd.Wait()
 shell.Close()
 ```
 
-For using HTTPS authentication with x 509 cert without checking the CA
+### Pluggable authentication example: Negotiate/NTLM authentication
+Using the winrm.Parameters.TransportDecorator, it is possible to wrap or completely replace the outgoing http.RoundTripper. For example, use github.com/Azure/go-ntlmssp to plug in Negotiate/NTLM authentication :
+
 ```go
-	package main
+import (
+  "github.com/masterzen/winrm/winrm"
+  "github.com/Azure/go-ntlmssp"
+)
 
-	import (
-		"github.com/masterzen/winrm"
-		"os"
-		"io/ioutil"
-	)
-
-	clientCert, err := ioutil.ReadFile("path/to/cert")
-	if err != nil {
-		panic(err)
-	}
-
-	clientKey, err := ioutil.ReadFile("path/to/key")
-	if err != nil {
-		panic(err)
-	}
-
-	winrm.DefaultParameters.TransportDecorator = func() winrm.Transporter {
-		// winrm https module
-		return &winrm.ClientAuthRequest{}
-	}
-
-	endpoint := winrm.NewEndpoint(host, 5986, false, false, clientCert, clientKey, nil, 0)
-	client, err := winrm.NewClient(endpoint, "Administrator", ""
-	if err != nil {
-		panic(err)
-	}
-	client.Run("ipconfig /all", os.Stdout, os.Stderr)
+params := winrm.DefaultParameters()
+params.TransportDecorator = func(t *http.Transport) http.RoundTripper { return ntlmssp.Negotiator{t} }
+client, err := winrm.NewClientWithParameters(..., params)
 ```
 
 ## Developing on WinRM

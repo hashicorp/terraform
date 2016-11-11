@@ -1816,10 +1816,10 @@
 			"revision": "95ba30457eb1121fa27753627c774c7cd4e90083"
 		},
 		{
-			"checksumSHA1": "FfXYgpIeYuU5DGz0kMQoOYX4NL8=",
+			"checksumSHA1": "BL8FA9MJQmmQBH5s9wYvhDWFk0Q=",
 			"path": "github.com/masterzen/winrm",
-			"revision": "7a535cd943fccaeed196718896beec3fb51aff41",
-			"revisionTime": "2016-10-14T15:10:40Z"
+			"revision": "ef3efbb97f99fc204bd9c7edf778a0dbd9781baf",
+			"revisionTime": "2016-06-06T13:46:36Z"
 		},
 		{
 			"checksumSHA1": "KTsgWipT3ennAAtaKxEZairxero=",
