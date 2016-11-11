@@ -31,6 +31,7 @@ func (n *NodePlannableResource) EvalTree() EvalNode {
 			// into the proper number of instances.
 			&EvalInterpolate{Config: n.Config.RawCount},
 
+			&EvalCountCheckComputed{Resource: n.Config},
 			&EvalCountFixZeroOneBoundary{Resource: n.Config},
 		},
 	}
