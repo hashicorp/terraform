@@ -10,9 +10,6 @@ import (
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 )
 
-// https://github.com/hashicorp/terraform/pull/993
-// Some defaults are sentinels that will be treated as nil
-// during expandMeta.
 func metadataSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,
@@ -36,9 +33,8 @@ func metadataSchema() *schema.Schema {
 					ValidateFunc: validatePositiveInt,
 				},
 				"loadavg": &schema.Schema{
-					Type:     schema.TypeFloat,
-					Optional: true,
-					// Default:      math.NaN(),
+					Type:         schema.TypeFloat,
+					Optional:     true,
 					ValidateFunc: validatePositiveFloat,
 				},
 				"pulsar": &schema.Schema{
@@ -111,9 +107,8 @@ func metadataSchema() *schema.Schema {
 					ValidateFunc: validatePositiveInt,
 				},
 				"weight": &schema.Schema{
-					Type:     schema.TypeFloat,
-					Optional: true,
-					// Default:      math.NaN(),
+					Type:         schema.TypeFloat,
+					Optional:     true,
 					ValidateFunc: validatePositiveFloat,
 				},
 				"low_watermark": &schema.Schema{

@@ -139,28 +139,6 @@ func buildNS1User(d *schema.ResourceData) *account.User {
 		notifyRaw := v.(map[string]interface{})
 		u.Notify.Billing = notifyRaw["billing"].(bool)
 	}
-	// u.Permissions = resourceDataToPermissions(d)
+
 	return u
 }
-
-// func permissionsToResourceData(d *schema.ResourceData, permissions account.PermissionsMap) {
-// 	d.Set("dns_view_zones", permissions.DNS.ViewZones)
-// 	d.Set("dns_manage_zones", permissions.DNS.ManageZones)
-// 	d.Set("dns_zones_allow_by_default", permissions.DNS.ZonesAllowByDefault)
-// 	d.Set("dns_zones_deny", permissions.DNS.ZonesDeny)
-// 	d.Set("dns_zones_allow", permissions.DNS.ZonesAllow)
-// 	d.Set("data_push_to_datafeeds", permissions.Data.PushToDatafeeds)
-// 	d.Set("data_manage_datasources", permissions.Data.ManageDatasources)
-// 	d.Set("data_manage_datafeeds", permissions.Data.ManageDatafeeds)
-// 	d.Set("account_manage_users", permissions.Account.ManageUsers)
-// 	d.Set("account_manage_payment_methods", permissions.Account.ManagePaymentMethods)
-// 	d.Set("account_manage_plan", permissions.Account.ManagePlan)
-// 	d.Set("account_manage_teams", permissions.Account.ManageTeams)
-// 	d.Set("account_manage_apikeys", permissions.Account.ManageApikeys)
-// 	d.Set("account_manage_account_settings", permissions.Account.ManageAccountSettings)
-// 	d.Set("account_view_activity_log", permissions.Account.ViewActivityLog)
-// 	d.Set("account_view_invoices", permissions.Account.ViewInvoices)
-// 	d.Set("monitoring_manage_lists", permissions.Monitoring.ManageLists)
-// 	d.Set("monitoring_manage_jobs", permissions.Monitoring.ManageJobs)
-// 	d.Set("monitoring_view_jobs", permissions.Monitoring.ViewJobs)
-// }
