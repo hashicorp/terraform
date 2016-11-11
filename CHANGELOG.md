@@ -46,6 +46,7 @@ IMPROVEMENTS:
  * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode [GH-9966]
 
 BUG FIXES:
+ * provider/aws: fix the validation of aws_redshift_cluster database_name #10019
 
 
 ## 0.7.10 (November 9, 2016)
