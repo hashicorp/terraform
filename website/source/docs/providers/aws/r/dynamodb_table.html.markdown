@@ -116,3 +116,11 @@ The following attributes are exported:
 * `id` - The name of the table
 * `stream_arn` - The ARN of the Table Stream. Only available when `stream_enabled = true`
 
+
+## Import
+
+DynamoDB tables can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_dynamodb_table.basic-dynamodb-table GameScores
+```
