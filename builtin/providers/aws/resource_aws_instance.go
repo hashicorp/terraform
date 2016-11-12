@@ -41,7 +41,6 @@ func resourceAwsInstance() *schema.Resource {
 			"associate_public_ip_address": &schema.Schema{
 				Type:     schema.TypeBool,
 				ForceNew: true,
-				Computed: true,
 				Optional: true,
 			},
 
@@ -507,7 +506,6 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			if *ni.Attachment.DeviceIndex == 0 {
 				d.Set("subnet_id", ni.SubnetId)
 				d.Set("network_interface_id", ni.NetworkInterfaceId)
-				d.Set("associate_public_ip_address", ni.Association != nil)
 			}
 		}
 	} else {
