@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -130,11 +131,55 @@ func TestConfig_emptyCollections(t *testing.T) {
 	}
 }
 
-func TestConfigValidate(t *testing.T) {
-	c := testConfig(t, "validate-good")
-	if err := c.Validate(); err != nil {
-		t.Fatalf("err: %s", err)
+// This table test is the preferred way to test validation of configuration.
+// There are dozens of functions below which do not follow this that are
+// there mostly historically. They should be converted at some point.
+func TestConfigValidate_table(t *testing.T) {
+	cases := []struct {
+		Name      string
+		Fixture   string
+		Err       bool
+		ErrString string
+	}{
+		{
+			"basic good",
+			"validate-good",
+			false,
+			"",
+		},
+
+		{
+			"depends on module",
+			"validate-depends-on-module",
+			false,
+			"",
+		},
+
+		{
+			"depends on non-existent module",
+			"validate-depends-on-bad-module",
+			true,
+			"non-existent module 'foo'",
+		},
 	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			c := testConfig(t, tc.Fixture)
+			err := c.Validate()
+			if (err != nil) != tc.Err {
+				t.Fatalf("err: %s", err)
+			}
+			if err != nil {
+				if tc.ErrString != "" && !strings.Contains(err.Error(), tc.ErrString) {
+					t.Fatalf("expected err to contain: %s\n\ngot: %s", tc.ErrString, err)
+				}
+
+				return
+			}
+		})
+	}
+
 }
 
 func TestConfigValidate_badDependsOn(t *testing.T) {
