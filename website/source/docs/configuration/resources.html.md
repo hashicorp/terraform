@@ -53,8 +53,8 @@ There are **meta-parameters** available to all resources:
 
   * `depends_on` (list of strings) - Explicit dependencies that this
       resource has. These dependencies will be created before this
-      resource. The dependencies are in the format of `TYPE.NAME`,
-      for example `aws_instance.web`.
+      resource. For syntax and other details, see the section below on
+      [explicit dependencies](#explicit-dependencies).
 
   * `provider` (string) - The name of a specific provider to use for
       this resource. The name is in the format of `TYPE.ALIAS`, for example,
@@ -95,6 +95,50 @@ Additionally you can also use a single entry with a wildcard (e.g. `"*"`)
 which will match all attribute names. Using a partial string together with a
 wildcard (e.g. `"rout*"`) is **not** supported.
 
+<a id="explicit-dependencies"></a>
+
+### Explicit Dependencies
+
+Terraform ensures that dependencies are successfully created before a
+resource is created. During a destroy operation, Terraform ensures that
+this resource is destroyed before its dependencies.
+
+A resource automatically depends on anything it references via
+[interpolations](/docs/configuration/interpolation.html). The automatically
+determined dependencies are all that is needed most of the time. You can also
+use the `depends_on` parameter to explicitly define a list of additional
+dependencies.
+
+The primary use case of explicit `depends_on` is to depend on a _side effect_
+of another operation. For example: if a provisioner creates a file, and your
+resource reads that file, then there is no interpolation reference for Terraform
+to automatically connect the two resources. However, there is a causal
+ordering that needs to be represented. This is an ideal case for `depends_on`.
+In most cases, however, `depends_on` should be avoided and Terraform should
+be allowed to determine dependencies automatically.
+
+The syntax of `depends_on` is a list of resources and modules:
+
+  * Resources are `TYPE.NAME`, such as `aws_instance.web`.
+  * Modules are `module.NAME`, such as `module.foo`.
+
+When a resource depends on a module, _everything_ in that module must be
+created before the resource is created.
+
+An example of a resource depending on both a module and resource is shown
+below. Note that `depends_on` can contain any number of dependencies:
+
+```
+resource "aws_instance" "web" {
+  depends_on = ["aws_instance.leader", "module.vpc"]
+}
+```
+
+-> **Use sparingly!** `depends_on` is rarely necessary.
+In almost every case, Terraform's automatic dependency system is the best-case
+scenario by having your resources depend only on what they explicitly use.
+Please think carefully before you use `depends_on` to determine if Terraform
+could automatically do this a better way.
 
 <a id="connection-block"></a>
 
@@ -204,7 +248,7 @@ The full syntax is:
 resource TYPE NAME {
 	CONFIG ...
 	[count = COUNT]
-	[depends_on = [RESOURCE NAME, ...]]
+	[depends_on = [NAME, ...]]
 	[provider = PROVIDER]
 
     [LIFECYCLE]
