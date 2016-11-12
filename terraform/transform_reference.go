@@ -11,6 +11,11 @@ import (
 
 // GraphNodeReferenceable must be implemented by any node that represents
 // a Terraform thing that can be referenced (resource, module, etc.).
+//
+// Even if the thing has no name, this should return an empty list. By
+// implementing this and returning a non-nil result, you say that this CAN
+// be referenced and other methods of referencing may still be possible (such
+// as by path!)
 type GraphNodeReferenceable interface {
 	// ReferenceableName is the name by which this can be referenced.
 	// This can be either just the type, or include the field. Example:
@@ -205,7 +210,7 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 		// example, if this is a referenceable thing at path []string{"foo"},
 		// then it can be referenced at "module.foo"
 		if pn, ok := v.(GraphNodeSubPath); ok {
-			if p := ReferenceModulePath(pn.Path()); p != "" {
+			for _, p := range ReferenceModulePath(pn.Path()) {
 				refMap[p] = append(refMap[p], v)
 			}
 		}
@@ -234,15 +239,22 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 }
 
 // Returns the reference name for a module path. The path "foo" would return
-// "module.foo"
-func ReferenceModulePath(p []string) string {
+// "module.foo". If this is a deeply nested module, it will be every parent
+// as well. For example: ["foo", "bar"] would return both "module.foo" and
+// "module.foo.module.bar"
+func ReferenceModulePath(p []string) []string {
 	p = normalizeModulePath(p)
 	if len(p) == 1 {
 		// Root, no name
-		return ""
+		return nil
 	}
 
-	return fmt.Sprintf("module.%s", strings.Join(p[1:], "."))
+	result := make([]string, 0, len(p)-1)
+	for i := len(p); i > 1; i-- {
+		result = append(result, modulePrefixStr(p[:i]))
+	}
+
+	return result
 }
 
 // ReferencesFromConfig returns the references that a configuration has
