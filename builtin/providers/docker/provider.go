@@ -17,6 +17,25 @@ func Provider() terraform.ResourceProvider {
 				Description: "The Docker daemon address",
 			},
 
+			"ca": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Default:       "",
+				ConflictsWith: []string{"cert_path"},
+			},
+			"cert": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Default:       "",
+				ConflictsWith: []string{"cert_path"},
+			},
+			"key": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Default:       "",
+				ConflictsWith: []string{"cert_path"},
+			},
+
 			"cert_path": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -43,6 +62,9 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Host:     d.Get("host").(string),
+		Ca:       d.Get("ca").(string),
+		Cert:     d.Get("cert").(string),
+		Key:      d.Get("key").(string),
 		CertPath: d.Get("cert_path").(string),
 	}
 
