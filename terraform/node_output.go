@@ -37,6 +37,7 @@ func (n *NodeApplyableOutput) ReferenceableName() []string {
 // GraphNodeReferencer
 func (n *NodeApplyableOutput) References() []string {
 	var result []string
+	result = append(result, n.Config.DependsOn...)
 	result = append(result, ReferencesFromConfig(n.Config.RawConfig)...)
 	for _, v := range result {
 		split := strings.Split(v, "/")
