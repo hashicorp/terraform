@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -74,10 +75,13 @@ func diffTagsS3(oldTags, newTags []*s3.Tag) ([]*s3.Tag, []*s3.Tag) {
 func tagsFromMapS3(m map[string]interface{}) []*s3.Tag {
 	result := make([]*s3.Tag, 0, len(m))
 	for k, v := range m {
-		result = append(result, &s3.Tag{
+		t := &s3.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredS3(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -87,7 +91,9 @@ func tagsFromMapS3(m map[string]interface{}) []*s3.Tag {
 func tagsToMapS3(ts []*s3.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredS3(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
@@ -110,4 +116,18 @@ func getTagSetS3(s3conn *s3.S3, bucket string) ([]*s3.Tag, error) {
 	}
 
 	return response.TagSet, nil
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredS3(t *s3.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

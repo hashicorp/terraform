@@ -1309,6 +1309,26 @@ func TestContext2Plan_countComputed(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_countComputedModule(t *testing.T) {
+	m := testModule(t, "plan-count-computed-module")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan()
+
+	expectedErr := "aws_instance.bar: value of 'count'"
+	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
+		t.Fatalf("expected err would contain %q\nerr: %s\n",
+			expectedErr, err)
+	}
+}
+
 func TestContext2Plan_countIndex(t *testing.T) {
 	m := testModule(t, "plan-count-index")
 	p := testProvider("aws")

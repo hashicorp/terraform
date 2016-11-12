@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -71,10 +72,13 @@ func diffTagsR53(oldTags, newTags []*route53.Tag) ([]*route53.Tag, []*route53.Ta
 func tagsFromMapR53(m map[string]interface{}) []*route53.Tag {
 	result := make([]*route53.Tag, 0, len(m))
 	for k, v := range m {
-		result = append(result, &route53.Tag{
+		t := &route53.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredRoute53(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -84,8 +88,24 @@ func tagsFromMapR53(m map[string]interface{}) []*route53.Tag {
 func tagsToMapR53(ts []*route53.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredRoute53(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredRoute53(t *route53.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

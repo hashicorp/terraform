@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/elb"
@@ -74,10 +75,13 @@ func diffTagsELB(oldTags, newTags []*elb.Tag) ([]*elb.Tag, []*elb.Tag) {
 func tagsFromMapELB(m map[string]interface{}) []*elb.Tag {
 	var result []*elb.Tag
 	for k, v := range m {
-		result = append(result, &elb.Tag{
+		t := &elb.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredELB(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -87,8 +91,24 @@ func tagsFromMapELB(m map[string]interface{}) []*elb.Tag {
 func tagsToMapELB(ts []*elb.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredELB(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredELB(t *elb.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

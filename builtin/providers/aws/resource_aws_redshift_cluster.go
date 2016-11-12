@@ -844,9 +844,13 @@ func validateRedshiftClusterIdentifier(v interface{}, k string) (ws []string, er
 
 func validateRedshiftClusterDbName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[0-9a-z]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[0-9A-Za-z_$]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only lowercase letters and numeric characters allowed in %q", k))
+			"only alphanumeric characters, underscores, and dollar signs are allowed in %q", k))
+	}
+	if !regexp.MustCompile(`^[a-zA-Z_]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"first character of %q must be a letter or underscore", k))
 	}
 	if len(value) > 64 {
 		errors = append(errors, fmt.Errorf(
