@@ -2243,6 +2243,77 @@ func TestContext2Apply_nilDiff(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_outputDependsOn(t *testing.T) {
+	m := testModule(t, "apply-output-depends-on")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	{
+		// Create a custom apply function that sleeps a bit (to allow parallel
+		// graph execution) and then returns an error to force a partial state
+		// return. We then verify the output is NOT there.
+		p.ApplyFn = func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+
+			// Sleep to allow parallel execution
+			time.Sleep(50 * time.Millisecond)
+
+			// Return error to force partial state
+			return nil, fmt.Errorf("abcd")
+		}
+
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err == nil || !strings.Contains(err.Error(), "abcd") {
+			t.Fatalf("err: %s", err)
+		}
+
+		checkStateString(t, state, `<no state>`)
+	}
+
+	{
+		// Create the standard apply function and verify we get the output
+		p.ApplyFn = testApplyFn
+
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		checkStateString(t, state, `
+aws_instance.foo:
+  ID = foo
+
+Outputs:
+
+value = result
+		`)
+	}
+}
+
 func TestContext2Apply_outputOrphan(t *testing.T) {
 	m := testModule(t, "apply-output-orphan")
 	p := testProvider("aws")
