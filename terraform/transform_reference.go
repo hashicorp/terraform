@@ -200,6 +200,15 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 			n = prefix + n
 			refMap[n] = append(refMap[n], v)
 		}
+
+		// If there is a path, it is always referenceable by that. For
+		// example, if this is a referenceable thing at path []string{"foo"},
+		// then it can be referenced at "module.foo"
+		if pn, ok := v.(GraphNodeSubPath); ok {
+			if p := ReferenceModulePath(pn.Path()); p != "" {
+				refMap[p] = append(refMap[p], v)
+			}
+		}
 	}
 
 	// Build the lookup table for referenced by
@@ -222,6 +231,18 @@ func NewReferenceMap(vs []dag.Vertex) *ReferenceMap {
 	m.references = refMap
 	m.referencedBy = refByMap
 	return &m
+}
+
+// Returns the reference name for a module path. The path "foo" would return
+// "module.foo"
+func ReferenceModulePath(p []string) string {
+	p = normalizeModulePath(p)
+	if len(p) == 1 {
+		// Root, no name
+		return ""
+	}
+
+	return fmt.Sprintf("module.%s", strings.Join(p[1:], "."))
 }
 
 // ReferencesFromConfig returns the references that a configuration has
