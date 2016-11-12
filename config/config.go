@@ -154,6 +154,7 @@ type Variable struct {
 type Output struct {
 	Name      string
 	Sensitive bool
+	DependsOn []string
 	RawConfig *RawConfig
 }
 

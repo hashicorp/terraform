@@ -292,10 +292,20 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 	for _, item := range list.Items {
 		n := item.Keys[0].Token.Value().(string)
 
+		var listVal *ast.ObjectList
+		if ot, ok := item.Val.(*ast.ObjectType); ok {
+			listVal = ot.List
+		} else {
+			return nil, fmt.Errorf("output '%s': should be an object", n)
+		}
+
 		var config map[string]interface{}
 		if err := hcl.DecodeObject(&config, item.Val); err != nil {
 			return nil, err
 		}
+
+		// Delete special keys
+		delete(config, "depends_on")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -305,9 +315,22 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 				err)
 		}
 
+		// If we have depends fields, then add those in
+		var dependsOn []string
+		if o := listVal.Filter("depends_on"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&dependsOn, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading depends_on for output %q: %s",
+					n,
+					err)
+			}
+		}
+
 		result = append(result, &Output{
 			Name:      n,
 			RawConfig: rawConfig,
+			DependsOn: dependsOn,
 		})
 	}
 
