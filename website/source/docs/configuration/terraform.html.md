@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Configuring Terraform"
 sidebar_current: "docs-config-terraform"
 description: |-
-  Atlas is the ideal way to use Terraform in a team environment. Atlas will run Terraform for you, safely handle parallelization across different team members, save run history along with plans, and more.
+  The `terraform` configuration section is used to configure Terraform itself, such as requiring a minimum Terraform version to execute a configuration.
 ---
 
 # Terraform Configuration
