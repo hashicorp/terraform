@@ -18,12 +18,14 @@ func registerBuiltins(scope *ast.BasicScope) *ast.BasicScope {
 	}
 
 	// Implicit conversions
+	scope.FuncMap["__builtin_BoolToString"] = builtinBoolToString()
 	scope.FuncMap["__builtin_FloatToInt"] = builtinFloatToInt()
 	scope.FuncMap["__builtin_FloatToString"] = builtinFloatToString()
 	scope.FuncMap["__builtin_IntToFloat"] = builtinIntToFloat()
 	scope.FuncMap["__builtin_IntToString"] = builtinIntToString()
 	scope.FuncMap["__builtin_StringToInt"] = builtinStringToInt()
 	scope.FuncMap["__builtin_StringToFloat"] = builtinStringToFloat()
+	scope.FuncMap["__builtin_StringToBool"] = builtinStringToBool()
 
 	// Math operations
 	scope.FuncMap["__builtin_IntMath"] = builtinIntMath()
@@ -159,6 +161,31 @@ func builtinStringToFloat() ast.Function {
 		ReturnType: ast.TypeFloat,
 		Callback: func(args []interface{}) (interface{}, error) {
 			v, err := strconv.ParseFloat(args[0].(string), 64)
+			if err != nil {
+				return nil, err
+			}
+
+			return v, nil
+		},
+	}
+}
+
+func builtinBoolToString() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeBool},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return strconv.FormatBool(args[0].(bool)), nil
+		},
+	}
+}
+
+func builtinStringToBool() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeBool,
+		Callback: func(args []interface{}) (interface{}, error) {
+			v, err := strconv.ParseBool(args[0].(string))
 			if err != nil {
 				return nil, err
 			}
