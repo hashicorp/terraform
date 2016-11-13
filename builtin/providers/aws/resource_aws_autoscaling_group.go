@@ -160,6 +160,13 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Set:      schema.HashString,
 			},
 
+			"suspended_processes": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
 			"metrics_granularity": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -382,6 +389,13 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	if _, ok := d.GetOk("suspended_processes"); ok {
+		suspendedProcessesErr := enableASGSuspendedProcesses(d, conn)
+		if suspendedProcessesErr != nil {
+			return suspendedProcessesErr
+		}
+	}
+
 	if _, ok := d.GetOk("enabled_metrics"); ok {
 		metricsErr := enableASGMetricsCollection(d, conn)
 		if metricsErr != nil {
@@ -413,6 +427,9 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
 	d.Set("load_balancers", flattenStringList(g.LoadBalancerNames))
+	if err := d.Set("suspended_processes", flattenAsgSuspendedProcesses(g.SuspendedProcesses)); err != nil {
+		log.Printf("[WARN] Error setting suspended_processes for %q: %s", d.Id(), err)
+	}
 	if err := d.Set("target_group_arns", flattenStringList(g.TargetGroupARNs)); err != nil {
 		log.Printf("[ERR] Error setting target groups: %s", err)
 	}
@@ -607,6 +624,12 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	if d.HasChange("suspended_processes") {
+		if err := updateASGSuspendedProcesses(d, conn); err != nil {
+			return errwrap.Wrapf("Error updating AutoScaling Group Suspended Processes: {{err}}", err)
+		}
+	}
+
 	return resourceAwsAutoscalingGroupRead(d, meta)
 }
 
@@ -742,6 +765,20 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	})
 }
 
+func enableASGSuspendedProcesses(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
+	props := &autoscaling.ScalingProcessQuery{
+		AutoScalingGroupName: aws.String(d.Id()),
+		ScalingProcesses:     expandStringList(d.Get("suspended_processes").(*schema.Set).List()),
+	}
+
+	_, err := conn.SuspendProcesses(props)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func enableASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
 	props := &autoscaling.EnableMetricsCollectionInput{
 		AutoScalingGroupName: aws.String(d.Id()),
@@ -756,6 +793,48 @@ func enableASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoSc
 	}
 
 	return nil
+}
+
+func updateASGSuspendedProcesses(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
+	o, n := d.GetChange("suspended_processes")
+	if o == nil {
+		o = new(schema.Set)
+	}
+	if n == nil {
+		n = new(schema.Set)
+	}
+
+	os := o.(*schema.Set)
+	ns := n.(*schema.Set)
+
+	resumeProcesses := os.Difference(ns)
+	if resumeProcesses.Len() != 0 {
+		props := &autoscaling.ScalingProcessQuery{
+			AutoScalingGroupName: aws.String(d.Id()),
+			ScalingProcesses:     expandStringList(resumeProcesses.List()),
+		}
+
+		_, err := conn.ResumeProcesses(props)
+		if err != nil {
+			return fmt.Errorf("Error Resuming Processes for ASG %q: %s", d.Id(), err)
+		}
+	}
+
+	suspendedProcesses := ns.Difference(os)
+	if suspendedProcesses.Len() != 0 {
+		props := &autoscaling.ScalingProcessQuery{
+			AutoScalingGroupName: aws.String(d.Id()),
+			ScalingProcesses:     expandStringList(suspendedProcesses.List()),
+		}
+
+		_, err := conn.SuspendProcesses(props)
+		if err != nil {
+			return fmt.Errorf("Error Suspending Processes for ASG %q: %s", d.Id(), err)
+		}
+	}
+
+	return nil
+
 }
 
 func updateASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoScaling) error {
