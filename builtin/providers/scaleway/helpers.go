@@ -85,6 +85,8 @@ func deleteStoppedServer(scaleway *api.ScalewayAPI, server *api.ScalewayServer) 
 
 func waitForServerState(scaleway *api.ScalewayAPI, serverID, targetState string) error {
 	return resource.Retry(60*time.Minute, func() *resource.RetryError {
+		scaleway.ClearCache()
+
 		s, err := scaleway.GetServer(serverID)
 
 		if err != nil {

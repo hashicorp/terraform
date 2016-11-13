@@ -32,6 +32,7 @@ func resourceScalewayVolumeAttachment() *schema.Resource {
 
 func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+	scaleway.ClearCache()
 
 	var startServerAgain = false
 
@@ -83,6 +84,8 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 	}
 
 	if err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		scaleway.ClearCache()
+
 		var req = api.ScalewayServerPatchDefinition{
 			Volumes: &volumes,
 		}
@@ -121,6 +124,7 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 
 func resourceScalewayVolumeAttachmentRead(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+	scaleway.ClearCache()
 
 	server, err := scaleway.GetServer(d.Get("server").(string))
 	if err != nil {
@@ -160,6 +164,8 @@ func resourceScalewayVolumeAttachmentRead(d *schema.ResourceData, m interface{})
 
 func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
+	scaleway.ClearCache()
+
 	var startServerAgain = false
 
 	// guard against server shutdown/ startup race conditiond
@@ -204,6 +210,8 @@ func resourceScalewayVolumeAttachmentDelete(d *schema.ResourceData, m interface{
 	}
 
 	if err := resource.Retry(5*time.Minute, func() *resource.RetryError {
+		scaleway.ClearCache()
+
 		var req = api.ScalewayServerPatchDefinition{
 			Volumes: &volumes,
 		}
