@@ -30,11 +30,20 @@ func resourceScalewayVolumeAttachment() *schema.Resource {
 	}
 }
 
+var errVolumeAlreadyAttached = fmt.Errorf("Scaleway volume already attached")
+
 func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 	scaleway.ClearCache()
 
-	var startServerAgain = false
+	vol, err := scaleway.GetVolume(d.Get("volume").(string))
+	if err != nil {
+		return err
+	}
+	if vol.Server != nil {
+		log.Printf("[DEBUG] Scaleway volume %q already attached to %q.", vol.Identifier, vol.Server.Identifier)
+		return errVolumeAlreadyAttached
+	}
 
 	// guard against server shutdown/ startup race conditiond
 	serverID := d.Get("server").(string)
@@ -47,6 +56,7 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 		return err
 	}
 
+	var startServerAgain = false
 	// volumes can only be modified when the server is powered off
 	if server.State != "stopped" {
 		startServerAgain = true
@@ -64,10 +74,6 @@ func resourceScalewayVolumeAttachmentCreate(d *schema.ResourceData, m interface{
 		volumes[i] = volume
 	}
 
-	vol, err := scaleway.GetVolume(d.Get("volume").(string))
-	if err != nil {
-		return err
-	}
 	volumes[fmt.Sprintf("%d", len(volumes)+1)] = *vol
 
 	// the API request requires most volume attributes to be unset to succeed
