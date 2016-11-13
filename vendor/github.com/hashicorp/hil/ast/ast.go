@@ -19,12 +19,21 @@ type Node interface {
 
 // Pos is the starting position of an AST node
 type Pos struct {
-	Column, Line int // Column/Line number, starting at 1
+	Column, Line int    // Column/Line number, starting at 1
+	Filename     string // Optional source filename, if known
 }
 
 func (p Pos) String() string {
-	return fmt.Sprintf("%d:%d", p.Line, p.Column)
+	if p.Filename == "" {
+		return fmt.Sprintf("%d:%d", p.Line, p.Column)
+	} else {
+		return fmt.Sprintf("%s:%d:%d", p.Filename, p.Line, p.Column)
+	}
 }
+
+// InitPos is an initiaial position value. This should be used as
+// the starting position (presets the column and line to 1).
+var InitPos = Pos{Column: 1, Line: 1}
 
 // Visitors are just implementations of this function.
 //
@@ -49,6 +58,7 @@ type Type uint32
 const (
 	TypeInvalid Type = 0
 	TypeAny     Type = 1 << iota
+	TypeBool
 	TypeString
 	TypeInt
 	TypeFloat
@@ -69,6 +79,8 @@ func (t Type) Printable() string {
 		return "invalid type"
 	case TypeAny:
 		return "any type"
+	case TypeBool:
+		return "type bool"
 	case TypeString:
 		return "type string"
 	case TypeInt:
