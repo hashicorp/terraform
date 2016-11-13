@@ -16,6 +16,12 @@ func resourceCloudStackIPAddress() *schema.Resource {
 		Delete: resourceCloudStackIPAddressDelete,
 
 		Schema: map[string]*schema.Schema{
+			"zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -56,6 +62,11 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 	if networkid, ok := d.GetOk("network_id"); ok {
 		// Set the networkid
 		p.SetNetworkid(networkid.(string))
+	}
+
+	if zoneid, ok := d.GetOk("zone_id"); ok {
+		// Set the zoneid
+		p.SetZoneid(zoneid.(string))
 	}
 
 	if vpcid, ok := d.GetOk("vpc_id"); ok {
