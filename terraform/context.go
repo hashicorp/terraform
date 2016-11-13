@@ -102,6 +102,13 @@ type Context struct {
 // should not be mutated in any way, since the pointers are copied, not
 // the values themselves.
 func NewContext(opts *ContextOpts) (*Context, error) {
+	// Validate the version requirement if it is given
+	if opts.Module != nil {
+		if err := checkRequiredVersion(opts.Module); err != nil {
+			return nil, err
+		}
+	}
+
 	// Copy all the hooks and add our stop hook. We don't append directly
 	// to the Config so that we're not modifying that in-place.
 	sh := new(stopHook)
