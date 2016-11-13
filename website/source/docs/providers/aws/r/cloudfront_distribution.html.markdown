@@ -36,7 +36,7 @@ resource "aws_s3_bucket" "b" {
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
-    domain_name = "${aws_s3_bucket.b.bucket}.s3.amazonaws.com"
+    domain_name = "${aws_s3_bucket.b.bucket_domain_name}"
     origin_id   = "myS3Origin"
 
     s3_origin_config {
