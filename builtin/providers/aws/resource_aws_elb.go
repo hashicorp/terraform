@@ -143,6 +143,7 @@ func resourceAwsElb() *schema.Resource {
 			"listener": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"instance_port": &schema.Schema{
