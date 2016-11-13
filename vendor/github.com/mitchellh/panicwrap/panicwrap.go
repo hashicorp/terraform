@@ -12,13 +12,15 @@ package panicwrap
 import (
 	"bytes"
 	"errors"
-	"github.com/kardianos/osext"
 	"io"
 	"os"
 	"os/exec"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/kardianos/osext"
 )
 
 const (
@@ -61,6 +63,10 @@ type WrapConfig struct {
 	// The writer to send stdout to. If this is nil, then it defaults to
 	// os.Stdout.
 	Stdout io.Writer
+
+	// Catch and igore these signals in the parent process, let the child
+	// handle them gracefully.
+	IgnoreSignals []os.Signal
 }
 
 // BasicWrap calls Wrap with the given handler function, using defaults
@@ -145,6 +151,7 @@ func Wrap(c *WrapConfig) (int, error) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = stdout_w
 	cmd.Stderr = stderr_w
+	cmd.ExtraFiles = []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	if err := cmd.Start(); err != nil {
 		return 1, err
 	}
@@ -152,7 +159,10 @@ func Wrap(c *WrapConfig) (int, error) {
 	// Listen to signals and capture them forever. We allow the child
 	// process to handle them in some way.
 	sigCh := make(chan os.Signal)
-	signal.Notify(sigCh, os.Interrupt)
+	if len(c.IgnoreSignals) == 0 {
+		c.IgnoreSignals = []os.Signal{os.Interrupt}
+	}
+	signal.Notify(sigCh, c.IgnoreSignals...)
 	go func() {
 		defer signal.Stop(sigCh)
 		for {
@@ -200,7 +210,17 @@ func Wrap(c *WrapConfig) (int, error) {
 //
 // Wrapped is very cheap and can be used early to short-circuit some pre-wrap
 // logic your application may have.
+//
+// If the given configuration is nil, then this will return a cached
+// value of Wrapped. This is useful because Wrapped is usually called early
+// to verify a process hasn't been wrapped before wrapping. After this,
+// the value of Wrapped hardly changes and is process-global, so other
+// libraries can check with Wrapped(nil).
 func Wrapped(c *WrapConfig) bool {
+	if c == nil {
+		return wrapCache.Load().(bool)
+	}
+
 	if c.CookieKey == "" {
 		c.CookieKey = DEFAULT_COOKIE_KEY
 	}
@@ -211,7 +231,16 @@ func Wrapped(c *WrapConfig) bool {
 
 	// If the cookie key/value match our environment, then we are the
 	// child, so just exit now and tell the caller that we're the child
-	return os.Getenv(c.CookieKey) == c.CookieValue
+	result := os.Getenv(c.CookieKey) == c.CookieValue
+	wrapCache.Store(result)
+	return result
+}
+
+// wrapCache is the cached value for Wrapped when called with nil
+var wrapCache atomic.Value
+
+func init() {
+	wrapCache.Store(false)
 }
 
 // trackPanic monitors the given reader for a panic. If a panic is detected,
