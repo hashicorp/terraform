@@ -169,9 +169,6 @@ func resourceNS1ZoneExists(d *schema.ResourceData, meta interface{}) (b bool, er
 func buildNS1ZoneStruct(d *schema.ResourceData) *dns.Zone {
 	z := dns.NewZone(d.Get("zone").(string))
 
-	if v, ok := d.GetOk("hostmaster"); ok {
-		z.Hostmaster = v.(string)
-	}
 	if v, ok := d.GetOk("ttl"); ok {
 		z.TTL = v.(int)
 	}
