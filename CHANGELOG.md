@@ -1,6 +1,16 @@
 ## 0.8.0-beta2 (unreleased)
 
+FEATURES:
 
+ * **New command:** `terraform console`, an interactive console for experimenting
+   with and using interpolations. [GH-10093]
+ * **Terraform version requirement in configuration.** You can now specify
+   a Terraform version requirement in configuration and modules. [GH-10080]
+ * **`depends_on` can reference modules.** This allows a resource or output
+   to depend on everything within a module. [GH-10076]
+ * **`output` supports `depends_on`.** This is useful when the output depends
+   on a certain ordering to happen that can't be represented with interpolations.
+   [GH-10072]
 
 ## 0.8.0-beta1 (November 11, 2016)
 
