@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
@@ -27,6 +28,7 @@ type Config struct {
 	// any meaningful directory.
 	Dir string
 
+	Terraform       *Terraform
 	Atlas           *AtlasConfig
 	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
@@ -37,6 +39,12 @@ type Config struct {
 	// The fields below can be filled in by loaders for validation
 	// purposes.
 	unknownKeys []string
+}
+
+// Terraform is the Terraform meta-configuration that can be present
+// in configuration files for configuring Terraform itself.
+type Terraform struct {
+	RequiredVersion string `hcl:"required_version"` // Required Terraform version (constraint)
 }
 
 // AtlasConfig is the configuration for building in HashiCorp's Atlas.
@@ -235,6 +243,30 @@ func (c *Config) Validate() error {
 	for _, k := range c.unknownKeys {
 		errs = append(errs, fmt.Errorf(
 			"Unknown root level key: %s", k))
+	}
+
+	// Validate the Terraform config
+	if tf := c.Terraform; tf != nil {
+		if raw := tf.RequiredVersion; raw != "" {
+			// Check that the value has no interpolations
+			rc, err := NewRawConfig(map[string]interface{}{
+				"root": raw,
+			})
+			if err != nil {
+				errs = append(errs, fmt.Errorf(
+					"terraform.required_version: %s", err))
+			} else if len(rc.Interpolations) > 0 {
+				errs = append(errs, fmt.Errorf(
+					"terraform.required_version: cannot contain interpolations"))
+			} else {
+				// Check it is valid
+				_, err := version.NewConstraint(raw)
+				if err != nil {
+					errs = append(errs, fmt.Errorf(
+						"terraform.required_version: invalid syntax: %s", err))
+				}
+			}
+		}
 	}
 
 	vars := c.InterpolatedVariables()

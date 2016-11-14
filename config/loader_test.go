@@ -160,6 +160,11 @@ func TestLoadFileBasic(t *testing.T) {
 		t.Fatalf("bad: %#v", c.Dir)
 	}
 
+	expectedTF := &Terraform{RequiredVersion: "foo"}
+	if !reflect.DeepEqual(c.Terraform, expectedTF) {
+		t.Fatalf("bad: %#v", c.Terraform)
+	}
+
 	expectedAtlas := &AtlasConfig{Name: "mitchellh/foo"}
 	if !reflect.DeepEqual(c.Atlas, expectedAtlas) {
 		t.Fatalf("bad: %#v", c.Atlas)

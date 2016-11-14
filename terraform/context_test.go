@@ -6,8 +6,86 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/flatmap"
 )
+
+func TestNewContextRequiredVersion(t *testing.T) {
+	cases := []struct {
+		Name    string
+		Module  string
+		Version string
+		Value   string
+		Err     bool
+	}{
+		{
+			"no requirement",
+			"",
+			"0.1.0",
+			"",
+			false,
+		},
+
+		{
+			"doesn't match",
+			"",
+			"0.1.0",
+			"> 0.6.0",
+			true,
+		},
+
+		{
+			"matches",
+			"",
+			"0.7.0",
+			"> 0.6.0",
+			false,
+		},
+
+		{
+			"module matches",
+			"context-required-version-module",
+			"0.5.0",
+			"",
+			false,
+		},
+
+		{
+			"module doesn't match",
+			"context-required-version-module",
+			"0.4.0",
+			"",
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			// Reset the version for the tests
+			old := SemVersion
+			SemVersion = version.Must(version.NewVersion(tc.Version))
+			defer func() { SemVersion = old }()
+
+			name := "context-required-version"
+			if tc.Module != "" {
+				name = tc.Module
+			}
+			mod := testModule(t, name)
+			if tc.Value != "" {
+				mod.Config().Terraform.RequiredVersion = tc.Value
+			}
+			_, err := NewContext(&ContextOpts{
+				Module: mod,
+			})
+			if (err != nil) != tc.Err {
+				t.Fatalf("err: %s", err)
+			}
+			if err != nil {
+				return
+			}
+		})
+	}
+}
 
 func TestNewContextState(t *testing.T) {
 	cases := map[string]struct {

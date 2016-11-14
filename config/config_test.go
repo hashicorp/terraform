@@ -182,6 +182,27 @@ func TestConfigValidate_table(t *testing.T) {
 
 }
 
+func TestConfigValidate_tfVersion(t *testing.T) {
+	c := testConfig(t, "validate-tf-version")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestConfigValidate_tfVersionBad(t *testing.T) {
+	c := testConfig(t, "validate-bad-tf-version")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_tfVersionInterpolations(t *testing.T) {
+	c := testConfig(t, "validate-tf-version-interp")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_badDependsOn(t *testing.T) {
 	c := testConfig(t, "validate-bad-depends-on")
 	if err := c.Validate(); err == nil {
