@@ -2010,6 +2010,25 @@ func TestContext2Plan_orphan(t *testing.T) {
 	}
 }
 
+// This tests that configurations with UUIDs don't produce errors.
+// For shadows, this would produce errors since a UUID changes every time.
+func TestContext2Plan_shadowUuid(t *testing.T) {
+	m := testModule(t, "plan-shadow-uuid")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContext2Plan_state(t *testing.T) {
 	m := testModule(t, "plan-good")
 	p := testProvider("aws")
