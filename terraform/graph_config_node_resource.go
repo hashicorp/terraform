@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/dot"
 )
 
 // GraphNodeCountDependent is implemented by resources for giving only
@@ -128,14 +127,17 @@ func (n *GraphNodeConfigResource) Name() string {
 }
 
 // GraphNodeDotter impl.
-func (n *GraphNodeConfigResource) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+func (n *GraphNodeConfigResource) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 	if n.Destroy && !opts.Verbose {
 		return nil
 	}
-	return dot.NewNode(name, map[string]string{
-		"label": n.Name(),
-		"shape": "box",
-	})
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "box",
+		},
+	}
 }
 
 // GraphNodeFlattenable impl.
