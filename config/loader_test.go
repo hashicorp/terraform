@@ -286,6 +286,26 @@ func TestLoadFileBasic_modules(t *testing.T) {
 	}
 }
 
+func TestLoadFile_outputDependsOn(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "output-depends-on.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	actual := outputsStr(c.Outputs)
+	if actual != strings.TrimSpace(outputDependsOnStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadJSONBasic(t *testing.T) {
 	raw, err := ioutil.ReadFile(filepath.Join(fixtureDir, "basic.tf.json"))
 	if err != nil {
@@ -1090,6 +1110,12 @@ aws_instance.web (x1)
   vars
     resource: aws_security_group.firewall.foo
     user: var.foo
+`
+
+const outputDependsOnStr = `
+value
+  dependsOn
+    foo
 `
 
 const variablesVariablesStr = `
