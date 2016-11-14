@@ -50,7 +50,8 @@ resource "google_container_cluster" "primary" {
 * `zone` - (Required) The zone that all resources should be created in.
 
 - - -
-* `addons_config` - (Optional) The configuration for addons supported by Google Container Engine
+* `addons_config` - (Optional) The configuration for addons supported by Google
+    Container Engine
 
 * `cluster_ipv4_cidr` - (Optional) The IP address range of the container pods in
     this cluster. Default is an automatically assigned CIDR.
@@ -66,8 +67,8 @@ resource "google_container_cluster" "primary" {
     `monitoring.googleapis.com` and `none`. Defaults to
     `monitoring.googleapis.com`
 
-* `network` - (Optional) The name or self_link of the Google Compute Engine network to which
-    the cluster is connected
+* `network` - (Optional) The name or self_link of the Google Compute Engine
+    network to which the cluster is connected
 
 * `node_config` -  (Optional) The machine type and image to use for all nodes in
     this cluster
@@ -79,7 +80,8 @@ resource "google_container_cluster" "primary" {
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
 
-* `subnetwork` - (Optional) The name of the Google Compute Engine subnetwork in which the cluster's instances are launched
+* `subnetwork` - (Optional) The name of the Google Compute Engine subnetwork in
+which the cluster's instances are launched
 
 **Master Auth** supports the following arguments:
 
@@ -108,14 +110,17 @@ resource "google_container_cluster" "primary" {
 
 **Addons Config** supports the following addons:
 
-* `http_load_balancing` - (Optional) The status of the HTTP Load Balancing addon. It is enabled by default; set `disabled = true` to disable.
-* `horizontal_pod_autoscaling` - (Optional) The status of the Horizontal Pod Autoscaling addon. It is enabled by default; set `disabled = true` to disable.
+* `http_load_balancing` - (Optional) The status of the HTTP Load Balancing
+    add-on. It is enabled by default; set `disabled = true` to disable.
+* `horizontal_pod_autoscaling` - (Optional) The status of the Horizontal Pod
+    Autoscaling addon. It is enabled by default; set `disabled = true` to
+    disable.
 
 This example `addons_config` disables both addons:
 
 ```
 addons_config {
-  http_load_balancing { 
+  http_load_balancing {
     disabled = true
   }
   horizontal_pod_autoscaling {
