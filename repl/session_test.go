@@ -25,6 +25,21 @@ func TestSession_basicState(t *testing.T) {
 					},
 				},
 			},
+
+			&terraform.ModuleState{
+				Path: []string{"root", "module"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"id": "bar",
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -60,6 +75,32 @@ func TestSession_basicState(t *testing.T) {
 					Input:         "test_instance.bar.id",
 					Error:         true,
 					ErrorContains: "'test_instance.bar' not found",
+				},
+			},
+		})
+	})
+
+	t.Run("missing module", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			State: state,
+			Inputs: []testSessionInput{
+				{
+					Input:         "module.child.foo",
+					Error:         true,
+					ErrorContains: "Couldn't find module \"child\"",
+				},
+			},
+		})
+	})
+
+	t.Run("missing module output", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			State: state,
+			Inputs: []testSessionInput{
+				{
+					Input:         "module.module.foo",
+					Error:         true,
+					ErrorContains: "Couldn't find output \"foo\"",
 				},
 			},
 		})
