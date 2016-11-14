@@ -49,7 +49,14 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 			stepName = stepName[dot+1:]
 		}
 
+		debugOp := g.DebugOperation(stepName, "")
 		err := step.Transform(g)
+
+		errMsg := ""
+		if err != nil {
+			errMsg = err.Error()
+		}
+		debugOp.End(errMsg)
 
 		// always log the graph state to see what transformations may have happened
 		debugName := "build-" + stepName
