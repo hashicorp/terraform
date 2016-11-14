@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/experiment"
+	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -308,6 +309,17 @@ func (m *Meta) PersistState(s *terraform.State) error {
 // Input returns true if we should ask for input for context.
 func (m *Meta) Input() bool {
 	return !test && m.input && len(m.variables) == 0
+}
+
+// StdinPiped returns true if the input is piped.
+func (m *Meta) StdinPiped() bool {
+	fi, err := wrappedstreams.Stdin().Stat()
+	if err != nil {
+		// If there is an error, let's just say its not piped
+		return false
+	}
+
+	return fi.Mode()&os.ModeNamedPipe != 0
 }
 
 // contextOpts returns the options to use to initialize a Terraform

@@ -825,6 +825,12 @@
 			"revision": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
 		},
 		{
+			"checksumSHA1": "sIaADZAnjqXQLRXec+QvQ6ChlYE=",
+			"path": "github.com/chzyer/readline",
+			"revision": "c914be64f07d9998f52bf0d598ec26d457168c0f",
+			"revisionTime": "2016-11-06T04:23:43Z"
+		},
+		{
 			"checksumSHA1": "L0fG0Aej27fMmhJwshFsqgVY4dM=",
 			"path": "github.com/cloudflare/cloudflare-go",
 			"revision": "06a204ed25dc2873323f27d0e134ed4fdbd1c1ec",
@@ -1916,8 +1922,10 @@
 			"revision": "314aad379a39f6ad5bcca278e6757d9abbb3a52e"
 		},
 		{
+			"checksumSHA1": "wqU8bs9c+xm0f07t6ajQFWYS+rE=",
 			"path": "github.com/mitchellh/panicwrap",
-			"revision": "a1e50bc201f387747a45ffff020f1af2d8759e88"
+			"revision": "168f3680ad986108df63bae07da2978f51c4ac8e",
+			"revisionTime": "2016-11-14T06:37:33Z"
 		},
 		{
 			"path": "github.com/mitchellh/prefixedio",
