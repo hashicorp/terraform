@@ -118,10 +118,11 @@ func resourceGoogleServiceAccountRead(d *schema.ResourceData, meta interface{}) 
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			log.Printf("[WARN] Removing reference to service account %q because it no longer exists", d.Id())
-
-			return fmt.Errorf("Error getting service account with name %q: %s", d.Id(), err)
+			saName := d.Id()
 			// The resource doesn't exist anymore
 			d.SetId("")
+
+			return fmt.Errorf("Error getting service account with name %q: %s", saName, err)
 		}
 		return fmt.Errorf("Error reading service account %q: %q", d.Id(), err)
 	}
