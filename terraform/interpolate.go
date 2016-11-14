@@ -160,6 +160,13 @@ func (i *Interpolater) valueModuleVar(
 		// ensure that the module is in the state, so if we reach this
 		// point otherwise it really is a panic.
 		result[n] = unknownVariable()
+
+		// During apply this is always an error
+		if i.Operation == walkApply {
+			return fmt.Errorf(
+				"Couldn't find module %q for var: %s",
+				v.Name, v.FullKey())
+		}
 	} else {
 		// Get the value from the outputs
 		if outputState, ok := mod.Outputs[v.Field]; ok {
@@ -171,6 +178,13 @@ func (i *Interpolater) valueModuleVar(
 		} else {
 			// Same reasons as the comment above.
 			result[n] = unknownVariable()
+
+			// During apply this is always an error
+			if i.Operation == walkApply {
+				return fmt.Errorf(
+					"Couldn't find output %q for module var: %s",
+					v.Field, v.FullKey())
+			}
 		}
 	}
 
