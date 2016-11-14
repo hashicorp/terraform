@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 var (
-	accountId    = "tf-test"
-	accountId2   = "tf-test-2"
 	displayName  = "Terraform Test"
 	displayName2 = "Terraform Test Update"
 )
 
 // Test that a service account resource can be created, updated, and destroyed
 func TestAccGoogleServiceAccount_basic(t *testing.T) {
+	accountId := "a" + acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -42,27 +42,28 @@ func TestAccGoogleServiceAccount_basic(t *testing.T) {
 // Test that a service account resource can be created with a policy, updated,
 // and destroyed.
 func TestAccGoogleServiceAccount_createPolicy(t *testing.T) {
+	accountId := "a" + acctest.RandString(10)
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			// The first step creates a basic service account with an IAM policy
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleServiceAccount_policy, accountId2, displayName, projectId),
+				Config: fmt.Sprintf(testAccGoogleServiceAccount_policy, accountId, displayName, accountId, projectId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleServiceAccountPolicyCount("google_service_account.acceptance", 1),
 				),
 			},
 			// The second step updates the service account with no IAM policy
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleServiceAccount_basic, accountId2, displayName),
+				Config: fmt.Sprintf(testAccGoogleServiceAccount_basic, accountId, displayName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleServiceAccountPolicyCount("google_service_account.acceptance", 0),
 				),
 			},
 			// The final step re-applies the IAM policy
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleServiceAccount_policy, accountId2, displayName, projectId),
+				Config: fmt.Sprintf(testAccGoogleServiceAccount_policy, accountId, displayName, accountId, projectId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleServiceAccountPolicyCount("google_service_account.acceptance", 1),
 				),
@@ -132,7 +133,7 @@ data "google_iam_policy" "service_account" {
   binding {
     role = "roles/iam.serviceAccountActor"
     members = [
-      "serviceAccount:tf-test-2@%v.iam.gserviceaccount.com",
+      "serviceAccount:%v@%v.iam.gserviceaccount.com",
     ]
   }
 }`
