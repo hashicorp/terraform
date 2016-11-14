@@ -32,3 +32,4 @@ The following attributes are exported:
 
 * `id` - The ID of the REST API
 * `root_resource_id` - The resource ID of the REST API's root
+* `created_date` - The creation date of the REST API
