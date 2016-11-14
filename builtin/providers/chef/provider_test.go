@@ -56,7 +56,7 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("CHEF_CLIENT_NAME"); v == "" {
 		t.Fatal("CHEF_CLIENT_NAME must be set for acceptance tests")
 	}
-	if v := os.Getenv("CHEF_PRIVATE_KEY_FILE"); v == "" {
-		t.Fatal("CHEF_PRIVATE_KEY_FILE must be set for acceptance tests")
+	if v := os.Getenv("CHEF_KEY_MATERIAL"); v == "" {
+		t.Fatal("CHEF_KEY_MATERIAL must be set for acceptance tests")
 	}
 }
