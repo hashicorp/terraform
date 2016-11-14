@@ -144,6 +144,7 @@ The `redshift_configuration` object supports the following:
 * `cluster_jdbcurl` - (Required) The jdbcurl of the redshift cluster.
 * `username` - (Required) The username that the firehose delivery stream will assume. It is strongly recommended that the username and password provided is used exclusively for Amazon Kinesis Firehose purposes, and that the permissions for the account are restricted for Amazon Redshift INSERT permissions.
 * `password` - (Required) The password for the username above.
+* `retry_duration` - (Optional) The length of time during which Firehose retries delivery after a failure, starting from the initial request and including the first attempt. The default value is 3600 seconds (60 minutes). Firehose does not retry if the value of DurationInSeconds is 0 (zero) or if the first delivery attempt takes longer than the current value.
 * `role_arn` - (Required) The arn of the role the stream assumes.
 * `data_table_name` - (Required) The name of the table in the redshift cluster that the s3 bucket will copy to.
 * `copy_options` - (Optional) Copy options for copying the data from the s3 intermediate bucket into redshift.
