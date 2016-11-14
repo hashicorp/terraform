@@ -18,7 +18,7 @@ permission in a project.
 ```js
 resource "google_service_account" "object_viewer" {
     account_id = "object-viewer"
-	display_name = "Object viewer"
+    display_name = "Object viewer"
 }
 
 resource "google_project" "my_project" {
@@ -55,7 +55,7 @@ The following arguments are supported:
 
     Changing this updates the policy.
 
-    Deleting this removes the policy, but leaves the original  policy
+    Deleting this removes the policy, but leaves the original policy
     intact. If there are overlapping `binding` entries between the original
     policy and the data source policy, they will be removed.
 
