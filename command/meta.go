@@ -15,12 +15,11 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/experiment"
-	"github.com/hashicorp/terraform/helper/wrappedreadline"
+	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
-	"github.com/mitchellh/panicwrap"
 )
 
 // Meta are the meta-options that are available on all or most commands.
@@ -314,43 +313,13 @@ func (m *Meta) Input() bool {
 
 // StdinPiped returns true if the input is piped.
 func (m *Meta) StdinPiped() bool {
-	fi, err := m.Stdin().Stat()
+	fi, err := wrappedstreams.Stdin().Stat()
 	if err != nil {
 		// If there is an error, let's just say its not piped
 		return false
 	}
 
 	return fi.Mode()&os.ModeNamedPipe != 0
-}
-
-// Stdin returns the stdin for this command.
-func (m *Meta) Stdin() *os.File {
-	stdin := os.Stdin
-	if panicwrap.Wrapped(nil) {
-		stdin = wrappedreadline.Stdin
-	}
-
-	return stdin
-}
-
-// Stdout returns the stdout for this command.
-func (m *Meta) Stdout() *os.File {
-	stdout := os.Stdout
-	if panicwrap.Wrapped(nil) {
-		stdout = wrappedreadline.Stdout
-	}
-
-	return stdout
-}
-
-// Stderr returns the stderr for this command.
-func (m *Meta) Stderr() *os.File {
-	stderr := os.Stderr
-	if panicwrap.Wrapped(nil) {
-		stderr = wrappedreadline.Stderr
-	}
-
-	return stderr
 }
 
 // contextOpts returns the options to use to initialize a Terraform

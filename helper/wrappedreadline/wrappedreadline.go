@@ -10,38 +10,24 @@
 package wrappedreadline
 
 import (
-	"os"
 	"runtime"
 
 	"github.com/chzyer/readline"
-)
 
-// These are the file descriptor numbers for the original stdin, stdout, stderr
-// streams from the parent process.
-const (
-	StdinFd  = 3
-	StdoutFd = 4
-	StderrFd = 5
-)
-
-// These are the *os.File values for the standard streams.
-var (
-	Stdin  = os.NewFile(uintptr(StdinFd), "stdin")
-	Stdout = os.NewFile(uintptr(StdoutFd), "stdout")
-	Stderr = os.NewFile(uintptr(StderrFd), "stderr")
+	"github.com/hashicorp/terraform/helper/wrappedstreams"
 )
 
 // Override overrides the values in readline.Config that need to be
 // set with wrapped values.
 func Override(cfg *readline.Config) *readline.Config {
-	cfg.Stdin = Stdin
-	cfg.Stdout = Stdout
-	cfg.Stderr = Stderr
+	cfg.Stdin = wrappedstreams.Stdin()
+	cfg.Stdout = wrappedstreams.Stdout()
+	cfg.Stderr = wrappedstreams.Stderr()
 
 	cfg.FuncGetWidth = TerminalWidth
 	cfg.FuncIsTerminal = IsTerminal
 
-	var rm RawMode
+	rm := RawMode{StdinFd: int(wrappedstreams.Stdin().Fd())}
 	cfg.FuncMakeRaw = rm.Enter
 	cfg.FuncExitRaw = rm.Exit
 
@@ -56,7 +42,9 @@ func IsTerminal() bool {
 	}
 
 	// Same implementation as readline but with our custom fds
-	return readline.IsTerminal(StdinFd) && (readline.IsTerminal(StdoutFd) || readline.IsTerminal(StderrFd))
+	return readline.IsTerminal(int(wrappedstreams.Stdin().Fd())) &&
+		(readline.IsTerminal(int(wrappedstreams.Stdout().Fd())) ||
+			readline.IsTerminal(int(wrappedstreams.Stderr().Fd())))
 }
 
 // TerminalWidth gets the terminal width in characters.
@@ -70,11 +58,13 @@ func TerminalWidth() int {
 
 // RawMode is a helper for entering and exiting raw mode.
 type RawMode struct {
+	StdinFd int
+
 	state *readline.State
 }
 
 func (r *RawMode) Enter() (err error) {
-	r.state, err = readline.MakeRaw(StdinFd)
+	r.state, err = readline.MakeRaw(r.StdinFd)
 	return err
 }
 
@@ -83,5 +73,5 @@ func (r *RawMode) Exit() error {
 		return nil
 	}
 
-	return readline.Restore(StdinFd, r.state)
+	return readline.Restore(r.StdinFd, r.state)
 }
