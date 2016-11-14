@@ -100,13 +100,16 @@ which the cluster's instances are launched
     in GB. The smallest allowed disk size is 10GB. Defaults to 100GB.
 
 * `oauth_scopes` - (Optional) The set of Google API scopes to be made available
-    on all of the node VMs under the "default" service account. The following
-    scopes are necessary to ensure the correct functioning of the cluster:
+    on all of the node VMs under the "default" service account. These can be
+    either FQDNs, or scope aliases. The following scopes are necessary to ensure
+    the correct functioning of the cluster:
 
-  * `https://www.googleapis.com/auth/compute`
-  * `https://www.googleapis.com/auth/devstorage.read_only`
-  * `https://www.googleapis.com/auth/logging.write` (if `logging_service` points to Google)
-  * `https://www.googleapis.com/auth/monitoring` (if `monitoring_service` points to Google)
+  * `compute-rw` (`https://www.googleapis.com/auth/compute`)
+  * `storage-ro` (`https://www.googleapis.com/auth/devstorage.read_only`)
+  * `logging-write` (`https://www.googleapis.com/auth/logging.write`),
+    if `logging_service` points to Google
+  * `monitoring` (`https://www.googleapis.com/auth/monitoring`),
+    if `monitoring_service` points to Google
 
 **Addons Config** supports the following addons:
 
