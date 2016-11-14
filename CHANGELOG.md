@@ -46,6 +46,7 @@ IMPROVEMENTS:
  * provider/aws: Expose RDS DB Instance HostedZoneId attribute ([#10000](https://github.com/hashicorp/terraform/issues/10000))
  * provider/aws: Ignore AWS internal tags ([#7454](https://github.com/hashicorp/terraform/issues/7454))
  * provider/aws: Exposed aws_iam_role create_date attribute [GH-10091]
+ * provider/aws: Added aws_api_gateway_api_key created_date & last_updated_date attributes [GH-9530]
  * provider/azurerm: allow updating load balancer sub-resources ([#10016](https://github.com/hashicorp/terraform/issues/10016))
  * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode ([#9966](https://github.com/hashicorp/terraform/issues/9966))
 
