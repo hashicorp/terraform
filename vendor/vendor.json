@@ -825,6 +825,12 @@
 			"revision": "4dc77674aceaabba2c7e3da25d4c823edfb73f99"
 		},
 		{
+			"checksumSHA1": "sIaADZAnjqXQLRXec+QvQ6ChlYE=",
+			"path": "github.com/chzyer/readline",
+			"revision": "c914be64f07d9998f52bf0d598ec26d457168c0f",
+			"revisionTime": "2016-11-06T04:23:43Z"
+		},
+		{
 			"checksumSHA1": "L0fG0Aej27fMmhJwshFsqgVY4dM=",
 			"path": "github.com/cloudflare/cloudflare-go",
 			"revision": "06a204ed25dc2873323f27d0e134ed4fdbd1c1ec",
