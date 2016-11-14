@@ -110,6 +110,339 @@ test = []`)
 	}
 }
 
+func TestContext2Apply_resourceDependsOnModule(t *testing.T) {
+	m := testModule(t, "apply-resource-depends-on-module")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	{
+		// Wait for the dependency, sleep, and verify the graph never
+		// called a child.
+		var called int32
+		var checked bool
+		p.ApplyFn = func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			if info.HumanId() == "module.child.aws_instance.child" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 0 {
+					return nil, fmt.Errorf("aws_instance.a should not be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("should check")
+		}
+
+		checkStateString(t, state, testTerraformApplyResourceDependsOnModuleStr)
+	}
+}
+
+// Test that without a config, the Dependencies in the state are enough
+// to maintain proper ordering.
+func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
+	m := testModule(t, "apply-resource-depends-on-module-empty")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.a": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+						Dependencies: []string{"module.child"},
+					},
+				},
+			},
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.child": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	{
+		// Wait for the dependency, sleep, and verify the graph never
+		// called a child.
+		var called int32
+		var checked bool
+		p.ApplyFn = func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			if info.HumanId() == "aws_instance.a" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 0 {
+					return nil, fmt.Errorf("module child should not be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			State: state,
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("should check")
+		}
+
+		checkStateString(t, state, `
+<no state>
+module.child:
+  <no state>
+		`)
+	}
+}
+
+func TestContext2Apply_resourceDependsOnModuleDestroy(t *testing.T) {
+	m := testModule(t, "apply-resource-depends-on-module")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	var globalState *State
+	{
+		p.ApplyFn = testApplyFn
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		globalState = state
+	}
+
+	{
+		// Wait for the dependency, sleep, and verify the graph never
+		// called a child.
+		var called int32
+		var checked bool
+		p.ApplyFn = func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			if info.HumanId() == "aws_instance.a" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 0 {
+					return nil, fmt.Errorf("module child should not be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			State:   globalState,
+			Destroy: true,
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("should check")
+		}
+
+		checkStateString(t, state, `
+<no state>
+module.child:
+  <no state>
+		`)
+	}
+}
+
+func TestContext2Apply_resourceDependsOnModuleGrandchild(t *testing.T) {
+	m := testModule(t, "apply-resource-depends-on-module-deep")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	{
+		// Wait for the dependency, sleep, and verify the graph never
+		// called a child.
+		var called int32
+		var checked bool
+		p.ApplyFn = func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			if info.HumanId() == "module.child.grandchild.aws_instance.c" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 0 {
+					return nil, fmt.Errorf("aws_instance.a should not be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("should check")
+		}
+
+		checkStateString(t, state, testTerraformApplyResourceDependsOnModuleDeepStr)
+	}
+}
+
+func TestContext2Apply_resourceDependsOnModuleInModule(t *testing.T) {
+	m := testModule(t, "apply-resource-depends-on-module-in-module")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	{
+		// Wait for the dependency, sleep, and verify the graph never
+		// called a child.
+		var called int32
+		var checked bool
+		p.ApplyFn = func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			if info.HumanId() == "module.child.grandchild.aws_instance.c" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 0 {
+					return nil, fmt.Errorf("nothing else should not be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("should check")
+		}
+
+		checkStateString(t, state, testTerraformApplyResourceDependsOnModuleInModuleStr)
+	}
+}
+
 func TestContext2Apply_mapVarBetweenModules(t *testing.T) {
 	m := testModule(t, "apply-map-var-through-module")
 	p := testProvider("null")
