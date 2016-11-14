@@ -12,6 +12,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"github.com/Azure/azure-sdk-for-go/arm/redis"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
@@ -77,6 +78,8 @@ type ArmClient struct {
 	storageUsageClient   storage.UsageOperationsClient
 
 	deploymentsClient resources.DeploymentsClient
+
+	redisClient redis.Client
 
 	trafficManagerProfilesClient  trafficmanager.ProfilesClient
 	trafficManagerEndpointsClient trafficmanager.EndpointsClient
@@ -384,6 +387,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tmec.Authorizer = spt
 	tmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerEndpointsClient = tmec
+
+	rdc := redis.NewClient(c.SubscriptionID)
+	setUserAgent(&rdc.Client)
+	rdc.Authorizer = spt
+	rdc.Sender = autorest.CreateSender(withRequestLogging())
+	client.redisClient = rdc
 
 	sbnc := servicebus.NewNamespacesClient(c.SubscriptionID)
 	setUserAgent(&sbnc.Client)
