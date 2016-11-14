@@ -159,7 +159,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Go through all the nodes in the graph and determine what they
 	// depend on.
 	for _, v := range tempDestroyed {
-		// Find all descendents of this to determine the edges we'll depend on
+		// Find all ancestors of this to determine the edges we'll depend on
 		vs, err := tempG.Ancestors(v)
 		if err != nil {
 			return err
