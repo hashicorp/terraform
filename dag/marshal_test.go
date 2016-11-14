@@ -130,7 +130,7 @@ func TestGraphJSON_basicRecord(t *testing.T) {
 }
 
 // Verify that Vertex and Edge annotations appear in the debug output
-func TestGraphJSON_annotations(t *testing.T) {
+func TestGraphJSON_debugInfo(t *testing.T) {
 	var g Graph
 	var buf bytes.Buffer
 	g.SetDebugWriter(&buf)
@@ -140,9 +140,9 @@ func TestGraphJSON_annotations(t *testing.T) {
 	g.Add(3)
 	g.Connect(BasicEdge(1, 2))
 
-	g.AnnotateVertex(2, "2")
-	g.AnnotateVertex(3, "3")
-	g.AnnotateEdge(BasicEdge(1, 2), "1|2")
+	g.DebugVertexInfo(2, "2")
+	g.DebugVertexInfo(3, "3")
+	g.DebugEdgeInfo(BasicEdge(1, 2), "1|2")
 
 	dec := json.NewDecoder(bytes.NewReader(buf.Bytes()))
 
@@ -156,8 +156,8 @@ func TestGraphJSON_annotations(t *testing.T) {
 		}
 
 		switch d.Type {
-		case "VertexAnnotation":
-			va := &vertexAnnotation{}
+		case "VertexDebugInfo":
+			va := &vertexDebugInfo{}
 			err := json.Unmarshal(d.JSON, va)
 			if err != nil {
 				t.Fatal(err)
@@ -177,8 +177,8 @@ func TestGraphJSON_annotations(t *testing.T) {
 			default:
 				t.Fatalf("unexpected annotation: %#v", va)
 			}
-		case "EdgeAnnotation":
-			ea := &edgeAnnotation{}
+		case "EdgeDebugInfo":
+			ea := &edgeDebugInfo{}
 			err := json.Unmarshal(d.JSON, ea)
 			if err != nil {
 				t.Fatal(err)

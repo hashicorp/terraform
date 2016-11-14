@@ -426,6 +426,7 @@ type marshalOperation struct {
 	Type  string
 	Begin *string `json:",omitempty"`
 	End   *string `json:",omitempty"`
+	Info  *string `json:".omitempty"`
 }
 
 func newBool(b bool) *bool { return &b }
@@ -468,31 +469,31 @@ func decodeGraph(r io.Reader) (*marshalGraph, error) {
 	return g, nil
 }
 
-// *Annotation structs allow encoding arbitrary information about the graph in
+// *DebugInfo structs allow encoding arbitrary information about the graph in
 // the logs.
-type vertexAnnotation struct {
+type vertexDebugInfo struct {
 	Type   string
 	Vertex *marshalVertex
 	Info   string
 }
 
-func newVertexAnnotation(v Vertex, info string) *vertexAnnotation {
-	return &vertexAnnotation{
-		Type:   "VertexAnnotation",
+func newVertexDebugInfo(v Vertex, info string) *vertexDebugInfo {
+	return &vertexDebugInfo{
+		Type:   "VertexDebugInfo",
 		Vertex: newMarshalVertex(v),
 		Info:   info,
 	}
 }
 
-type edgeAnnotation struct {
+type edgeDebugInfo struct {
 	Type string
 	Edge *marshalEdge
 	Info string
 }
 
-func newEdgeAnnotation(e Edge, info string) *edgeAnnotation {
-	return &edgeAnnotation{
-		Type: "EdgeAnnotation",
+func newEdgeDebugInfo(e Edge, info string) *edgeDebugInfo {
+	return &edgeDebugInfo{
+		Type: "EdgeDebugInfo",
 		Edge: newMarshalEdge(e),
 		Info: info,
 	}
