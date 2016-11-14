@@ -100,6 +100,13 @@ func outputsStr(os []*Output) string {
 
 		result += fmt.Sprintf("%s\n", n)
 
+		if len(o.DependsOn) > 0 {
+			result += fmt.Sprintf("  dependsOn\n")
+			for _, d := range o.DependsOn {
+				result += fmt.Sprintf("    %s\n", d)
+			}
+		}
+
 		if len(o.RawConfig.Variables) > 0 {
 			result += fmt.Sprintf("  vars\n")
 			for _, rawV := range o.RawConfig.Variables {
