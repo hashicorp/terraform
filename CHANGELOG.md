@@ -50,6 +50,7 @@ IMPROVEMENTS:
 BUG FIXES:
  * core: New destroy graph `-target` includes dependencies. [GH-10036]
  * core: New destroy graph creates proper edges through module outputs [GH-10068]
+ * core: Fix shadow error when using uuid() [GH-10106]
  * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
  * provider/aws: Fix panic in aws_acm_certificate datasource [GH-10051]
 
