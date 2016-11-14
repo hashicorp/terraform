@@ -29,6 +29,15 @@ type BasicGraphBuilder struct {
 
 func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 	g := &Graph{Path: path}
+
+	debugName := "build-graph.json"
+	if b.Name != "" {
+		debugName = b.Name + "-" + debugName
+	}
+	debugBuf := dbug.NewFileWriter(debugName)
+	g.SetDebugWriter(debugBuf)
+	defer debugBuf.Close()
+
 	for _, step := range b.Steps {
 		if step == nil {
 			continue
@@ -52,8 +61,8 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 			"[TRACE] Graph after step %T:\n\n%s",
 			step, g.StringWithNodeTypes())
 
-		dg, _ := NewDebugGraph(debugName, g, nil)
-		dbug.WriteGraph(dg)
+		// TODO: replace entirely with the json logs
+		dbug.WriteGraph(debugName, g)
 
 		if err != nil {
 			return g, err

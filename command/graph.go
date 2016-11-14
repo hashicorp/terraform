@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -67,7 +68,7 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	graphStr, err := terraform.GraphDot(g, &terraform.GraphDotOpts{
+	graphStr, err := terraform.GraphDot(g, &dag.DotOpts{
 		DrawCycles: drawCycles,
 		MaxDepth:   moduleDepth,
 		Verbose:    verbose,

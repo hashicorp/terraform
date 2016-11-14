@@ -697,11 +697,9 @@ func (c *Context) walk(
 
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
-	dg, _ := NewDebugGraph("walk", graph, nil)
 	walker := &ContextGraphWalker{
-		Context:    realCtx,
-		Operation:  operation,
-		DebugGraph: dg,
+		Context:   realCtx,
+		Operation: operation,
 	}
 
 	// Watch for a stop so we can call the provider Stop() API.
@@ -728,20 +726,13 @@ func (c *Context) walk(
 
 	// If we have a shadow graph, wait for that to complete.
 	if shadowCloser != nil {
-		// create a debug graph for this walk
-		dg, err := NewDebugGraph("walk-shadow", shadow, nil)
-		if err != nil {
-			log.Printf("[ERROR] %v", err)
-		}
-
 		// Build the graph walker for the shadow. We also wrap this in
 		// a panicwrap so that panics are captured. For the shadow graph,
 		// we just want panics to be normal errors rather than to crash
 		// Terraform.
 		shadowWalker := GraphWalkerPanicwrap(&ContextGraphWalker{
-			Context:    shadowCtx,
-			Operation:  operation,
-			DebugGraph: dg,
+			Context:   shadowCtx,
+			Operation: operation,
 		})
 
 		// Kick off the shadow walk. This will block on any operations
