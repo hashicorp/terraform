@@ -38,11 +38,11 @@ BUG FIXES:
 FEATURES:
 
 IMPROVEMENTS:
-
- * provider/aws: Expose RDS DB Instance HostedZoneId attribute [GH-10000]
- * provider/aws: Ignore AWS internal tags [GH-7454]
- * provider/azurerm: allow updating load balancer sub-resources [GH-10016]
- * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode [GH-9966]
+ * provider/aws: Expose RDS DB Instance HostedZoneId attribute ([#10000](https://github.com/hashicorp/terraform/issues/10000))
+ * provider/aws: Ignore AWS internal tags ([#7454](https://github.com/hashicorp/terraform/issues/7454))
+ * provider/aws: Exposed aws_iam_role create_date attribute [GH-10091]
+ * provider/azurerm: allow updating load balancer sub-resources ([#10016](https://github.com/hashicorp/terraform/issues/10016))
+ * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode ([#9966](https://github.com/hashicorp/terraform/issues/9966))
 
 BUG FIXES:
  * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
