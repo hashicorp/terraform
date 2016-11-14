@@ -4,6 +4,9 @@
 // panicwrap overrides the standard file descriptors so that the child process
 // no longer looks like a TTY. The helpers here access the extra file descriptors
 // passed by panicwrap to fix that.
+//
+// panicwrap should be checked for with panicwrap.Wrapped before using this
+// librar, since this library won't adapt if the binary is not wrapped.
 package wrappedreadline
 
 import (
