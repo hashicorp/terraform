@@ -223,10 +223,15 @@ func resourceContainerCluster() *schema.Resource {
 
 						"oauth_scopes": &schema.Schema{
 							Type:     schema.TypeList,
-							Elem:     &schema.Schema{Type: schema.TypeString},
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+								StateFunc: func(v interface{}) string {
+									return canonicalizeServiceScope(v.(string))
+								},
+							},
 						},
 					},
 				},
@@ -340,7 +345,7 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 			scopesList := v.([]interface{})
 			scopes := []string{}
 			for _, v := range scopesList {
-				scopes = append(scopes, v.(string))
+				scopes = append(scopes, canonicalizeServiceScope(v.(string)))
 			}
 
 			cluster.NodeConfig.OauthScopes = scopes
