@@ -653,6 +653,43 @@ aws_instance.foo:
   num = 2
 `
 
+const testTerraformApplyResourceDependsOnModuleStr = `
+aws_instance.a:
+  ID = foo
+
+  Dependencies:
+    module.child
+
+module.child:
+  aws_instance.child:
+    ID = foo
+`
+
+const testTerraformApplyResourceDependsOnModuleDeepStr = `
+aws_instance.a:
+  ID = foo
+
+  Dependencies:
+    module.child
+
+module.child.grandchild:
+  aws_instance.c:
+    ID = foo
+`
+
+const testTerraformApplyResourceDependsOnModuleInModuleStr = `
+<no state>
+module.child:
+  aws_instance.b:
+    ID = foo
+
+    Dependencies:
+      module.grandchild
+module.child.grandchild:
+  aws_instance.c:
+    ID = foo
+`
+
 const testTerraformApplyTaintStr = `
 aws_instance.bar:
   ID = foo

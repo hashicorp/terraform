@@ -509,25 +509,8 @@ func (c *Config) Validate() error {
 		}
 		r.RawCount.init()
 
-		// Verify depends on points to resources that all exist
-		for _, d := range r.DependsOn {
-			// Check if we contain interpolations
-			rc, err := NewRawConfig(map[string]interface{}{
-				"value": d,
-			})
-			if err == nil && len(rc.Variables) > 0 {
-				errs = append(errs, fmt.Errorf(
-					"%s: depends on value cannot contain interpolations: %s",
-					n, d))
-				continue
-			}
-
-			if _, ok := resources[d]; !ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: resource depends on non-existent resource '%s'",
-					n, d))
-			}
-		}
+		// Validate DependsOn
+		errs = append(errs, c.validateDependsOn(n, r.DependsOn, resources, modules)...)
 
 		// Verify provider points to a provider that is configured
 		if r.Provider != "" {
@@ -800,6 +783,48 @@ func (c *Config) validateVarContextFn(
 			}
 		}
 	}
+}
+
+func (c *Config) validateDependsOn(
+	n string,
+	v []string,
+	resources map[string]*Resource,
+	modules map[string]*Module) []error {
+	// Verify depends on points to resources that all exist
+	var errs []error
+	for _, d := range v {
+		// Check if we contain interpolations
+		rc, err := NewRawConfig(map[string]interface{}{
+			"value": d,
+		})
+		if err == nil && len(rc.Variables) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s: depends on value cannot contain interpolations: %s",
+				n, d))
+			continue
+		}
+
+		// If it is a module, verify it is a module
+		if strings.HasPrefix(d, "module.") {
+			name := d[len("module."):]
+			if _, ok := modules[name]; !ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: resource depends on non-existent module '%s'",
+					n, name))
+			}
+
+			continue
+		}
+
+		// Check resources
+		if _, ok := resources[d]; !ok {
+			errs = append(errs, fmt.Errorf(
+				"%s: resource depends on non-existent resource '%s'",
+				n, d))
+		}
+	}
+
+	return errs
 }
 
 func (m *Module) mergerName() string {
