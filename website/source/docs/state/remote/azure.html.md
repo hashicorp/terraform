@@ -48,3 +48,4 @@ The following configuration options are supported:
  * `container_name` - (Required) The name of the container to use within the storage account
  * `key` - (Required) The key where to place/look for state file inside the container
  * `access_key` / `ARM_ACCESS_KEY` - (Required) Storage account access key
+ * `lease_id` / `ARM_LEASE_ID` - (Optional) If set, will be used when writing to storage blob.
