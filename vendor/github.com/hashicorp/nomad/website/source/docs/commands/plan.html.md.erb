@@ -1,0 +1,200 @@
+---
+layout: "docs"
+page_title: "Commands: plan"
+sidebar_current: "docs-commands-plan"
+description: >
+  The plan command is used to dry-run a job update to determine its effects.
+---
+
+# Command: plan
+
+The `plan` command can be used to envoke the scheduler in a dry-run mode with new
+jobs or when updating existing jobs to determine what would happen if the job
+is submitted. Job files must conform to the [job specification](/docs/jobspec/index.html)
+format.
+
+## Usage
+
+```
+nomad plan [options] <file>
+```
+
+The plan command requires a single argument, specifying the path to a file
+containing a [HCL job specification](/docs/jobspec/index.html). This file
+will be read and the job checked for any problems. If the
+supplied path is "-", the jobfile is read from STDIN. Otherwise it is read
+from the file at the supplied path or downloaded and read from URL specified.
+Nomad downloads jobfile using [`go-getter`](https://github.com/hashicorp/go-getter)
+and support `go-getter` syntax.
+
+Plan invokes a dry-run of the scheduler to determine the effects of submitting
+either a new or updated version of a job. The plan will not result in any
+changes to the cluster but gives insight into whether the job could be run
+successfully and how it would affect existing allocations.
+
+A job modify index is returned with the plan. This value can be used when
+submitting the job using [`nomad run
+-check-index`](/docs/commands/run.html#check-index), which will check that the
+job was not modified between the plan and run command before invoking the
+scheduler. This ensures the job has not been modified since the plan.
+
+A structured diff between the local and remote job is displayed to
+give insight into what the scheduler will attempt to do and why.
+
+If the job has specified the region, the `-region` flag and `NOMAD_REGION`
+environment variable are overridden and the the job's region is used.
+
+Plan will return one of the following exit codes:
+
+  * 0: No allocations created or destroyed.
+  * 1: Allocations created or destroyed.
+  * 255: Error determining plan results.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Plan Options
+
+* `-diff`: Determines whether the diff between the remote job and planned job is
+  shown. Defaults to true.
+
+* `-verbose`: Increase diff verbosity.
+
+## Examples
+
+Plan a new job that has not been previously submitted:
+
+```
+$ nomad run job1.nomad
+nomad plan example.nomad
++ Job: "example"
++ Task Group: "cache" (1 create)
+  + Task: "redis" (forces create)
+
+Scheduler dry-run:
+- All tasks successfully allocated.
+
+Job Modify Index: 0
+To submit the job with version verification run:
+
+nomad run -check-index 0 example.nomad
+
+When running the job with the check-index flag, the job will only be run if the
+server side version matches the the job modify index returned. If the index has
+changed, another user has modified the job and the plan's results are
+potentially invalid.
+```
+
+
+Increase the count of an existing without sufficient cluster capacity:
+
+```
+$ nomad plan example.nomad
++/- Job: "example"
++/- Task Group: "cache" (7 create, 1 in-place update)
+  +/- Count: "1" => "8" (forces create)
+      Task: "redis"
+
+Scheduler dry-run:
+- WARNING: Failed to place all allocations.
+  Task Group "cache" (failed to place 3 allocations):
+    * Resources exhausted on 1 nodes
+    * Dimension "cpu exhausted" exhausted on 1 nodes
+
+Job Modify Index: 15
+To submit the job with version verification run:
+
+nomad run -check-index 15 example.nomad
+
+When running the job with the check-index flag, the job will only be run if the
+server side version matches the the job modify index returned. If the index has
+changed, another user has modified the job and the plan's results are
+potentially invalid.
+```
+
+Update an existing job such that it would cause a rolling update:
+
+```
+$ nomad plan example.nomad
++/- Job: "example"
++/- Task Group: "cache" (3 create/destroy update)
+  +/- Task: "redis" (forces create/destroy update)
+    +/- Config {
+      +/- image:           "redis:2.8" => "redis:3.2"
+          port_map[0][db]: "6379"
+    }
+
+Scheduler dry-run:
+- All tasks successfully allocated.
+- Rolling update, next evaluation will be in 10s.
+
+Job Modify Index: 7
+To submit the job with version verification run:
+
+nomad run -check-index 7 example.nomad
+
+When running the job with the check-index flag, the job will only be run if the
+server side version matches the the job modify index returned. If the index has
+changed, another user has modified the job and the plan's results are
+potentially invalid.
+```
+
+Add a task to the task group using verbose mode:
+
+```
+$ nomad plan -verbose example.nomad
++/- Job: "example"
++/- Task Group: "cache" (3 create/destroy update)
+  + Task: "my-website" (forces create/destroy update)
+    + Driver:      "docker"
+    + KillTimeout: "5000000000"
+    + Config {
+      + image:            "node:6.2"
+      + port_map[0][web]: "80"
+    }
+    + Resources {
+      + CPU:      "500"
+      + DiskMB:   "300"
+      + IOPS:     "0"
+      + MemoryMB: "256"
+      + Network {
+        + MBits: "10"
+        + Dynamic Port {
+          + Label: "web"
+        }
+      }
+    }
+    + LogConfig {
+      + MaxFileSizeMB: "10"
+      + MaxFiles:      "10"
+    }
+    + Service {
+      + Name:      "website"
+      + PortLabel: "web"
+      + Check {
+          Command:  ""
+        + Interval: "10000000000"
+        + Name:     "alive"
+          Path:     ""
+          Protocol: ""
+        + Timeout:  "2000000000"
+        + Type:     "tcp"
+      }
+    }
+    Task: "redis"
+
+Scheduler dry-run:
+- All tasks successfully allocated.
+- Rolling update, next evaluation will be in 10s.
+
+Job Modify Index: 7
+To submit the job with version verification run:
+
+nomad run -check-index 7 example.nomad
+
+When running the job with the check-index flag, the job will only be run if the
+server side version matches the the job modify index returned. If the index has
+changed, another user has modified the job and the plan's results are
+potentially invalid.
+```

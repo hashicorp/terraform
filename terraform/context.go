@@ -359,63 +359,26 @@ func (c *Context) Apply() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	X_newApply := experiment.Enabled(experiment.X_newApply)
-	X_newDestroy := experiment.Enabled(experiment.X_newDestroy)
-	newGraphEnabled := (c.destroy && X_newDestroy) || (!c.destroy && X_newApply)
+	// Enable the new graph by default
+	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
 
-	// Build the original graph. This is before the new graph builders
-	// coming in 0.8. We do this for shadow graphing.
-	oldGraph, err := c.Graph(&ContextGraphOpts{Validate: true})
-	if err != nil && X_newApply {
-		// If we had an error graphing but we're using the new graph,
-		// just set it to nil and let it go. There are some features that
-		// may work with the new graph that don't with the old.
-		oldGraph = nil
-		err = nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	// Build the new graph. We do this no matter what so we can shadow it.
-	newGraph, err := (&ApplyGraphBuilder{
-		Module:       c.module,
-		Diff:         c.diff,
-		State:        c.state,
-		Providers:    c.components.ResourceProviders(),
-		Provisioners: c.components.ResourceProvisioners(),
-		Destroy:      c.destroy,
-	}).Build(RootModulePath)
-	if err != nil && !newGraphEnabled {
-		// If we had an error graphing but we're not using this graph, just
-		// set it to nil and record it as a shadow error.
-		c.shadowErr = multierror.Append(c.shadowErr, fmt.Errorf(
-			"Error building new graph: %s", err))
-
-		newGraph = nil
-		err = nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	// Determine what is the real and what is the shadow. The logic here
-	// is straightforward though the if statements are not:
-	//
-	//   * Destroy mode - always use original, shadow with nothing because
-	//     we're only testing the new APPLY graph.
-	//   * Apply with new apply - use new graph, shadow is new graph. We can't
-	//     shadow with the old graph because the old graph does a lot more
-	//     that it shouldn't.
-	//   * Apply with old apply - use old graph, shadow with new graph.
-	//
-	real := oldGraph
-	shadow := newGraph
-	if newGraphEnabled {
-		log.Printf("[WARN] terraform: real graph is experiment, shadow is experiment")
-		real = shadow
+	// Build the graph.
+	var graph *Graph
+	var err error
+	if !X_legacyGraph {
+		graph, err = (&ApplyGraphBuilder{
+			Module:       c.module,
+			Diff:         c.diff,
+			State:        c.state,
+			Providers:    c.components.ResourceProviders(),
+			Provisioners: c.components.ResourceProvisioners(),
+			Destroy:      c.destroy,
+		}).Build(RootModulePath)
 	} else {
-		log.Printf("[WARN] terraform: real graph is original, shadow is experiment")
+		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	// Determine the operation
@@ -424,14 +387,8 @@ func (c *Context) Apply() (*State, error) {
 		operation = walkDestroy
 	}
 
-	// This shouldn't happen, so assert it. This is before any state changes
-	// so it is safe to crash here.
-	if real == nil {
-		panic("nil real graph")
-	}
-
 	// Walk the graph
-	walker, err := c.walk(real, shadow, operation)
+	walker, err := c.walk(graph, graph, operation)
 	if len(walker.ValidationErrors) > 0 {
 		err = multierror.Append(err, walker.ValidationErrors...)
 	}
@@ -488,19 +445,26 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diffLock.Unlock()
 
 	// Used throughout below
-	X_newDestroy := experiment.Enabled(experiment.X_newDestroy)
+	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
 
-	// Build the graph. We have a branch here since for the pure-destroy
-	// plan (c.destroy) we use a much simpler graph builder that simply
-	// walks the state and reverses edges.
+	// Build the graph.
 	var graph *Graph
 	var err error
-	if c.destroy && X_newDestroy {
-		graph, err = (&DestroyPlanGraphBuilder{
-			Module:  c.module,
-			State:   c.state,
-			Targets: c.targets,
-		}).Build(RootModulePath)
+	if !X_legacyGraph {
+		if c.destroy {
+			graph, err = (&DestroyPlanGraphBuilder{
+				Module:  c.module,
+				State:   c.state,
+				Targets: c.targets,
+			}).Build(RootModulePath)
+		} else {
+			graph, err = (&PlanGraphBuilder{
+				Module:    c.module,
+				State:     c.state,
+				Providers: c.components.ResourceProviders(),
+				Targets:   c.targets,
+			}).Build(RootModulePath)
+		}
 	} else {
 		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
 	}
@@ -528,7 +492,7 @@ func (c *Context) Plan() (*Plan, error) {
 
 	// We don't do the reverification during the new destroy plan because
 	// it will use a different apply process.
-	if !(c.destroy && X_newDestroy) {
+	if X_legacyGraph {
 		// Now that we have a diff, we can build the exact graph that Apply will use
 		// and catch any possible cycles during the Plan phase.
 		if _, err := c.Graph(&ContextGraphOpts{Validate: true}); err != nil {
@@ -733,11 +697,9 @@ func (c *Context) walk(
 
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
-	dg, _ := NewDebugGraph("walk", graph, nil)
 	walker := &ContextGraphWalker{
-		Context:    realCtx,
-		Operation:  operation,
-		DebugGraph: dg,
+		Context:   realCtx,
+		Operation: operation,
 	}
 
 	// Watch for a stop so we can call the provider Stop() API.
@@ -764,20 +726,13 @@ func (c *Context) walk(
 
 	// If we have a shadow graph, wait for that to complete.
 	if shadowCloser != nil {
-		// create a debug graph for this walk
-		dg, err := NewDebugGraph("walk-shadow", shadow, nil)
-		if err != nil {
-			log.Printf("[ERROR] %v", err)
-		}
-
 		// Build the graph walker for the shadow. We also wrap this in
 		// a panicwrap so that panics are captured. For the shadow graph,
 		// we just want panics to be normal errors rather than to crash
 		// Terraform.
 		shadowWalker := GraphWalkerPanicwrap(&ContextGraphWalker{
-			Context:    shadowCtx,
-			Operation:  operation,
-			DebugGraph: dg,
+			Context:   shadowCtx,
+			Operation: operation,
 		})
 
 		// Kick off the shadow walk. This will block on any operations
@@ -814,7 +769,12 @@ func (c *Context) walk(
 		//
 		// This must be done BEFORE appending shadowWalkErr since the
 		// shadowWalkErr may include expected errors.
-		if c.shadowErr != nil && contextFailOnShadowError {
+		//
+		// We only do this if we don't have a real error. In the case of
+		// a real error, we can't guarantee what nodes were and weren't
+		// traversed in parallel scenarios so we can't guarantee no
+		// shadow errors.
+		if c.shadowErr != nil && contextFailOnShadowError && realErr == nil {
 			panic(multierror.Prefix(c.shadowErr, "shadow graph:"))
 		}
 

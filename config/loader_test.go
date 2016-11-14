@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+func TestErrNoConfigsFound_impl(t *testing.T) {
+	var _ error = new(ErrNoConfigsFound)
+}
+
 func TestIsEmptyDir(t *testing.T) {
 	val, err := IsEmptyDir(fixtureDir)
 	if err != nil {
@@ -137,7 +141,7 @@ func TestLoadFileEscapedQuotes(t *testing.T) {
 		t.Fatalf("expected syntax error as escaped quotes are no longer supported")
 	}
 
-	if !strings.Contains(err.Error(), "syntax error") {
+	if !strings.Contains(err.Error(), "parse error") {
 		t.Fatalf("expected \"syntax error\", got: %s", err)
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestContext2Plan(t *testing.T) {
+func TestContext2Plan_basic(t *testing.T) {
 	m := testModule(t, "plan-good")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -626,7 +626,7 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_moduleVarWrongType(t *testing.T) {
+func TestContext2Plan_moduleVarWrongTypeBasic(t *testing.T) {
 	m := testModule(t, "plan-module-wrong-var-type")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -1306,6 +1306,26 @@ func TestContext2Plan_countComputed(t *testing.T) {
 	_, err := ctx.Plan()
 	if err == nil {
 		t.Fatal("should error")
+	}
+}
+
+func TestContext2Plan_countComputedModule(t *testing.T) {
+	m := testModule(t, "plan-count-computed-module")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan()
+
+	expectedErr := "aws_instance.bar: value of 'count'"
+	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
+		t.Fatalf("expected err would contain %q\nerr: %s\n",
+			expectedErr, err)
 	}
 }
 

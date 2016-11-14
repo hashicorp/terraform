@@ -1,0 +1,30 @@
+---
+layout: "docs"
+page_title: "Commands: validate"
+sidebar_current: "docs-commands-validate"
+description: >
+  The validate command is used to check a job specification for syntax errors and validation problems.
+---
+
+# Command: validate
+
+The `validate` command is used to check a [HCL job specification](/docs/jobspec/index.html)
+for any syntax errors or validation problems.
+
+## Usage
+
+```
+nomad validate <file>
+```
+
+The validate command requires a single argument, specifying the path to a file
+containing a [HCL job specification](/docs/jobspec/index.html). This file
+will be read and the job checked for any problems. If the
+supplied path is "-", the jobfile is read from STDIN. Otherwise it is read
+from the file at the supplied path or downloaded and read from URL specified.
+Nomad downloads jobfile using [`go-getter`](https://github.com/hashicorp/go-getter)
+and support `go-getter` syntax.
+
+On successful validation, exit code 0 will be returned, otherwise an exit code
+of 1 indicates an error.
+

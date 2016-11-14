@@ -5,8 +5,10 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/config"
+	"github.com/mitchellh/reflectwalk"
 )
 
 func TestInstanceInfo(t *testing.T) {
@@ -47,7 +49,7 @@ func TestInstanceInfo(t *testing.T) {
 func TestResourceConfigGet(t *testing.T) {
 	cases := []struct {
 		Config map[string]interface{}
-		Vars   map[string]string
+		Vars   map[string]interface{}
 		Key    string
 		Value  interface{}
 	}{
@@ -55,6 +57,14 @@ func TestResourceConfigGet(t *testing.T) {
 			Config: nil,
 			Key:    "foo",
 			Value:  nil,
+		},
+
+		{
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+			Key:   "foo",
+			Value: "bar",
 		},
 
 		{
@@ -69,9 +79,9 @@ func TestResourceConfigGet(t *testing.T) {
 			Config: map[string]interface{}{
 				"foo": "${var.foo}",
 			},
-			Vars:  map[string]string{"foo": "bar"},
+			Vars:  map[string]interface{}{"foo": unknownValue()},
 			Key:   "foo",
-			Value: "bar",
+			Value: "${var.foo}",
 		},
 
 		{
@@ -198,7 +208,12 @@ func TestResourceConfigGet(t *testing.T) {
 		if tc.Vars != nil {
 			vs := make(map[string]ast.Variable)
 			for k, v := range tc.Vars {
-				vs["var."+k] = ast.Variable{Value: v, Type: ast.TypeString}
+				hilVar, err := hil.InterfaceToVariable(v)
+				if err != nil {
+					t.Fatalf("%#v to var: %s", v, err)
+				}
+
+				vs["var."+k] = hilVar
 			}
 
 			if err := rawC.Interpolate(vs); err != nil {
@@ -234,6 +249,240 @@ func TestResourceConfigGet(t *testing.T) {
 			}
 			if !rc.Equal(copy) {
 				t.Fatalf("rc != copy:\n\n%#v\n\n%#v", copy, rc)
+			}
+		})
+	}
+}
+
+func TestResourceConfigIsComputed(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Config map[string]interface{}
+		Vars   map[string]interface{}
+		Key    string
+		Result bool
+	}{
+		{
+			Name: "basic value",
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Vars: map[string]interface{}{
+				"foo": unknownValue(),
+			},
+			Key:    "foo",
+			Result: true,
+		},
+
+		{
+			Name: "set with a computed element",
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Vars: map[string]interface{}{
+				"foo": []string{
+					"a",
+					unknownValue(),
+				},
+			},
+			Key:    "foo",
+			Result: true,
+		},
+
+		{
+			Name: "set with no computed elements",
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Vars: map[string]interface{}{
+				"foo": []string{
+					"a",
+					"b",
+				},
+			},
+			Key:    "foo",
+			Result: false,
+		},
+
+		/*
+			{
+				Name: "set count with computed elements",
+				Config: map[string]interface{}{
+					"foo": "${var.foo}",
+				},
+				Vars: map[string]interface{}{
+					"foo": []string{
+						"a",
+						unknownValue(),
+					},
+				},
+				Key:    "foo.#",
+				Result: true,
+			},
+		*/
+
+		{
+			Name: "set count with computed elements",
+			Config: map[string]interface{}{
+				"foo": []interface{}{"${var.foo}"},
+			},
+			Vars: map[string]interface{}{
+				"foo": []string{
+					"a",
+					unknownValue(),
+				},
+			},
+			Key:    "foo.#",
+			Result: true,
+		},
+
+		{
+			Name: "nested set with computed elements",
+			Config: map[string]interface{}{
+				"route": []map[string]interface{}{
+					map[string]interface{}{
+						"index":   "1",
+						"gateway": []interface{}{"${var.foo}"},
+					},
+				},
+			},
+			Vars: map[string]interface{}{
+				"foo": unknownValue(),
+			},
+			Key:    "route.0.gateway",
+			Result: true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			var rawC *config.RawConfig
+			if tc.Config != nil {
+				var err error
+				rawC, err = config.NewRawConfig(tc.Config)
+				if err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			}
+
+			if tc.Vars != nil {
+				vs := make(map[string]ast.Variable)
+				for k, v := range tc.Vars {
+					hilVar, err := hil.InterfaceToVariable(v)
+					if err != nil {
+						t.Fatalf("%#v to var: %s", v, err)
+					}
+
+					vs["var."+k] = hilVar
+				}
+
+				if err := rawC.Interpolate(vs); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			}
+
+			rc := NewResourceConfig(rawC)
+			rc.interpolateForce()
+
+			t.Logf("Config: %#v", rc)
+
+			actual := rc.IsComputed(tc.Key)
+			if actual != tc.Result {
+				t.Fatalf("bad: %#v", actual)
+			}
+		})
+	}
+}
+
+func TestResourceConfigCheckSet(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Config map[string]interface{}
+		Vars   map[string]interface{}
+		Input  []string
+		Errs   bool
+	}{
+		{
+			Name: "computed basic",
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Vars: map[string]interface{}{
+				"foo": unknownValue(),
+			},
+			Input: []string{"foo"},
+			Errs:  false,
+		},
+
+		{
+			Name: "basic",
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+			Vars:  nil,
+			Input: []string{"foo"},
+			Errs:  false,
+		},
+
+		{
+			Name: "basic with not set",
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+			Vars:  nil,
+			Input: []string{"foo", "bar"},
+			Errs:  true,
+		},
+
+		{
+			Name: "basic with one computed",
+			Config: map[string]interface{}{
+				"foo": "bar",
+				"bar": "${var.foo}",
+			},
+			Vars: map[string]interface{}{
+				"foo": unknownValue(),
+			},
+			Input: []string{"foo", "bar"},
+			Errs:  false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			var rawC *config.RawConfig
+			if tc.Config != nil {
+				var err error
+				rawC, err = config.NewRawConfig(tc.Config)
+				if err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			}
+
+			if tc.Vars != nil {
+				vs := make(map[string]ast.Variable)
+				for k, v := range tc.Vars {
+					hilVar, err := hil.InterfaceToVariable(v)
+					if err != nil {
+						t.Fatalf("%#v to var: %s", v, err)
+					}
+
+					vs["var."+k] = hilVar
+				}
+
+				if err := rawC.Interpolate(vs); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			}
+
+			rc := NewResourceConfig(rawC)
+			rc.interpolateForce()
+
+			t.Logf("Config: %#v", rc)
+
+			errs := rc.CheckSet(tc.Input)
+			if tc.Errs != (len(errs) > 0) {
+				t.Fatalf("bad: %#v", errs)
 			}
 		})
 	}
@@ -279,6 +528,54 @@ func TestResourceConfigEqual_computedKeyOrder(t *testing.T) {
 
 	if !rc.Equal(rc2) {
 		t.Fatal("should be equal")
+	}
+}
+
+func TestUnknownCheckWalker(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Input  interface{}
+		Result bool
+	}{
+		{
+			"primitive",
+			42,
+			false,
+		},
+
+		{
+			"primitive computed",
+			unknownValue(),
+			true,
+		},
+
+		{
+			"list",
+			[]interface{}{"foo", unknownValue()},
+			true,
+		},
+
+		{
+			"nested list",
+			[]interface{}{
+				"foo",
+				[]interface{}{unknownValue()},
+			},
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			var w unknownCheckWalker
+			if err := reflectwalk.Walk(tc.Input, &w); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			if w.Unknown != tc.Result {
+				t.Fatalf("bad: %v", w.Unknown)
+			}
+		})
 	}
 }
 

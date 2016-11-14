@@ -3488,6 +3488,8 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	t.Logf("State 1: %s", state)
+
 	// Next, plan and apply config-less to force a destroy with "apply"
 	h.Active = true
 	ctx = testContext2(t, &ContextOpts{
@@ -3697,8 +3699,10 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 		})
 
 		// First plan and apply a create operation
-		if _, err := ctx.Plan(); err != nil {
+		if p, err := ctx.Plan(); err != nil {
 			t.Fatalf("plan err: %s", err)
+		} else {
+			t.Logf("Step 1 plan: %s", p)
 		}
 
 		state, err = ctx.Apply()
@@ -3732,6 +3736,8 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 			t.Fatalf("destroy plan err: %s", err)
 		}
 
+		t.Logf("Step 2 plan: %s", plan)
+
 		var buf bytes.Buffer
 		if err := WritePlan(plan, &buf); err != nil {
 			t.Fatalf("plan write err: %s", err)
@@ -3755,6 +3761,8 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 		if err != nil {
 			t.Fatalf("destroy apply err: %s", err)
 		}
+
+		t.Logf("Step 2 state: %s", state)
 	}
 
 	//Test that things were destroyed
@@ -3765,7 +3773,7 @@ module.child:
   <no state>
 		`)
 	if actual != expected {
-		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
+		t.Fatalf("expected:\n\n%s\n\nactual:\n\n%s", expected, actual)
 	}
 }
 
@@ -4955,6 +4963,43 @@ aws_instance.bar:
 	`)
 }
 
+func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
+	m := testModule(t, "apply-destroy-targeted-count")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.bar": resourceState("aws_instance", "i-abc123"),
+					},
+				},
+			},
+		},
+		Targets: []string{"aws_instance.foo"},
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `<no state>`)
+}
+
 // https://github.com/hashicorp/terraform/issues/4462
 func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 	m := testModule(t, "apply-targeted-module")
@@ -5120,8 +5165,10 @@ func TestContext2Apply_targetedModuleDep(t *testing.T) {
 		Targets: []string{"aws_instance.foo"},
 	})
 
-	if _, err := ctx.Plan(); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf("Diff: %s", p)
 	}
 
 	state, err := ctx.Apply()

@@ -5,11 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/state"
@@ -163,6 +166,17 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	var mod *module.Tree
 	if copts.Path != "" {
 		mod, err = module.NewTreeModule("", copts.Path)
+
+		// Check for the error where we have no config files but
+		// allow that. If that happens, clear the error.
+		if errwrap.ContainsType(err, new(config.ErrNoConfigsFound)) &&
+			copts.PathEmptyOk {
+			log.Printf(
+				"[WARN] Empty configuration dir, ignoring: %s", copts.Path)
+			err = nil
+			mod = module.NewEmptyTree()
+		}
+
 		if err != nil {
 			return nil, false, fmt.Errorf("Error loading config: %s", err)
 		}
@@ -495,7 +509,11 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 // contextOpts are the options used to load a context from a command.
 type contextOpts struct {
 	// Path to the directory where the root module is.
-	Path string
+	//
+	// PathEmptyOk, when set, will allow paths that have no Terraform
+	// configurations. The result in that case will be an empty module.
+	Path        string
+	PathEmptyOk bool
 
 	// StatePath is the path to the state file. If this is empty, then
 	// no state will be loaded. It is also okay for this to be a path to

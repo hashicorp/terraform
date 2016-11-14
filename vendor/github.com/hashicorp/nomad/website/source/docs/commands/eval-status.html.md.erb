@@ -1,0 +1,87 @@
+---
+layout: "docs"
+page_title: "Commands: eval-status"
+sidebar_current: "docs-commands-eval-status"
+description: >
+  The eval-status command is used to see the status and potential failed
+  allocations of an evaluation.
+---
+
+# Command: eval-status
+
+The `eval-status` command is used to display information about an existing
+evaluation. In the case an evaluation could not place all the requested
+allocations, this command can be used to determine the failure reasons.
+
+Optionally, it can also be invoked in a monitor mode to track an outstanding
+evaluation. In this mode, ogs will be output describing state changes to the
+evaluation or its associated allocations. The monitor will exit when the
+evaluation reaches a terminal state.
+
+## Usage
+
+```
+nomad eval-status [options] <eval>
+```
+
+An evaluation ID or prefix must be provided. If there is an exact match, the
+the status  will be shown. Otherwise, a list of matching evaluations and
+information will be displayed.
+
+If the `-monitor` flag is passed, an interactive monitoring session will be
+started in the terminal. It is safe to exit the monitor at any time using
+ctrl+c. The command will exit when the given evaluation reaches a terminal
+state (completed or failed). Exit code 0 is returned on successful
+evaluation, and if there are no scheduling problems. If there are
+job placement issues encountered (unsatisfiable constraints,
+resource exhaustion, etc), then the exit code will be 2. Any other
+errors, including client connection issues or internal errors, are
+indicated by exit code 1.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Eval Status Options
+
+* `-monitor`: Monitor an outstanding evaluation
+
+* `-verbose`: Show full information.
+
+* `-json` : Output the evaluation in its JSON format.
+
+* `-t` : Format and display evaluation using a Go template.
+
+## Examples
+
+Show the status of an evaluation that has placement failures
+
+```
+$ nomad eval-status 2ae0e6a5
+ID                 = 2ae0e6a5
+Status             = complete
+Status Description = complete
+Type               = service
+TriggeredBy        = job-register
+Job ID             = example
+Priority           = 50
+Placement Failures = true
+
+==> Failed Placements
+Task Group "cache" (failed to place 1 allocation):
+  * Class "foo" filtered 1 nodes
+  * Constraint "${attr.kernel.name} = windows" filtered 1 nodes
+
+
+Evaluation "67493a64" waiting for additional capacity to place remainder
+```
+
+Monitor an existing evaluation
+
+```
+$ nomad eval-status -monitor 8262bc83
+==> Monitoring evaluation "8262bc83"
+    Allocation "bd6bd0de" created: node "6f299da5", group "group1"
+    Evaluation status changed: "pending" -> "complete"
+==> Evaluation "8262bc83" finished with status "complete"
+```

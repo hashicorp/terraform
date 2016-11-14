@@ -1,14 +1,14 @@
-## 0.8.0 (unreleased)
+## 0.8.0-beta2 (unreleased)
 
-NOTE FOR COMMITTERS UNTIL RELEASE: Only changes that are definitely only going
-to be in 0.8 should be placed here. If the change is cherry picked over to
-maint-0.7 for a 0.7.x release, put it in a 0.7 heading.
+
+
+## 0.8.0-beta1 (November 11, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * `template_file` _inline_ templates must escape their variable usage. What
       was previously `${foo}` must now be `$${foo}`. Note that this is only
-      for _inline_ templates. Templates read from files are unchanged. [GH-9698]
+      for _inline_ templates. Templates read from files are unchanged. ([#9698](https://github.com/hashicorp/terraform/issues/9698))
  * Escape sequences used to require double-escaping when used within interpolations.
       You now must only escape once (which is the expected/typical behavior).
       For example: `${replace(var.foo, "\\", "\\\\")}` is correct. Before,
@@ -18,53 +18,83 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
- * **New provider:** `vault` [GH-9158]
+ * **New provider:** `nomad` ([#9538](https://github.com/hashicorp/terraform/issues/9538))
+ * **New provider:** `vault` ([#9158](https://github.com/hashicorp/terraform/issues/9158))
+ * The `import` command will now read provider configuration from Terraform
+   configuration files (including loading tfvars files and so on). ([#9809](https://github.com/hashicorp/terraform/issues/9809))
  * Providers and resources are now notified by Terraform core to "stop" when
    an interrupt is received, allowing resources to gracefully exit much, much
-   faster. [GH-9607]
+   faster. ([#9607](https://github.com/hashicorp/terraform/issues/9607))
 
 IMPROVEMENTS:
 
+  * core: Human-friendly error when a computed count is used. ([#10060](https://github.com/hashicorp/terraform/issues/10060))
   * helper/schema: only map, list, and set elements that are actually causing
-      a resource to destroy/create are marked as "requires new". [GH-9613]
+      a resource to destroy/create are marked as "requires new". ([#9613](https://github.com/hashicorp/terraform/issues/9613))
 
 BUG FIXES:
 
-  * core: Escape sequences in interpolations work in every case. [GH-8709]
+  * core: Escape sequences in interpolations work in every case. ([#8709](https://github.com/hashicorp/terraform/issues/8709))
+  * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
+  * command/fmt: Multiline comments aren't indented every fmt. ([#6524](https://github.com/hashicorp/terraform/issues/6524))
 
-## 0.7.10 (unreleased)
+## 0.7.11 (Unreleased)
 
 FEATURES:
- * **New Resource:** `azurerm_eventhub` [GH-9889]
- * **New Resource:** `azurerm_virtual_machine_extension` [GH-9962]
+
+IMPROVEMENTS:
+ * provider/aws: Expose RDS DB Instance HostedZoneId attribute ([#10000](https://github.com/hashicorp/terraform/issues/10000))
+ * provider/aws: Ignore AWS internal tags ([#7454](https://github.com/hashicorp/terraform/issues/7454))
+ * provider/aws: Exposed aws_iam_role create_date attribute [GH-10091]
+ * provider/aws: Added aws_api_gateway_api_key created_date & last_updated_date attributes [GH-9530]
+ * provider/aws: Added aws_api_gateway_rest_api created_date attribute [GH-9532]
+ * provider/aws: Exposed aws_api_gateway_deployment.created_date attribute [GH-9534]
+ * provider/azurerm: allow updating load balancer sub-resources ([#10016](https://github.com/hashicorp/terraform/issues/10016))
+ * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode ([#9966](https://github.com/hashicorp/terraform/issues/9966))
+
+BUG FIXES:
+ * provider/aws: fix the validation of aws_redshift_cluster database_name ([#10019](https://github.com/hashicorp/terraform/issues/10019))
+ * provider/aws: Fix panic in aws_acm_certificate datasource ([#10051](https://github.com/hashicorp/terraform/issues/10051))
+
+
+## 0.7.10 (November 9, 2016)
+
+FEATURES:
+
+ * **New Resource:** `azurerm_eventhub` ([#9889](https://github.com/hashicorp/terraform/issues/9889))
+ * **New Resource:** `azurerm_virtual_machine_extension` ([#9962](https://github.com/hashicorp/terraform/issues/9962))
+ * **Experimental new plan graph:** `terraform plan` is getting a new graph
+   creation process for 0.8. This is now available behind a flag `-Xnew-apply`
+   (on any command). This will become the default in 0.8. There may still be
+   bugs. ([#9973](https://github.com/hashicorp/terraform/issues/9973))
 
 IMPROVEMENTS:
 
- * provider/aws: Add support for Service Access Security Group in `aws_emr_cluster` [GH-9600]
- * provider/aws: Add Enhanced VPC routing to Redshift [GH-9950]
- * provider/aws: Add key_name_prefix argument to aws_key_pair resource [GH-9993]
- * provider/openstack: Add `value_specs` to `openstack_fw_policy_v1` resource, allowing vendor information [GH-9835]
- * provider/openstack: Add `value_specs` to `openstack_fw_firewall_v1` resource, allowing vendor information [GH-9836]
- * provider/openstack: Instance `user_data` will now detect if the incoming data is already Base64 encoded [GH-9966]
- * provider/random: The `b64` attribute on `random_id` resources is deprecated, replaced by `b64_url` and `b64_std` [GH-9903]
+ * provider/aws: Add support for Service Access Security Group in `aws_emr_cluster` ([#9600](https://github.com/hashicorp/terraform/issues/9600))
+ * provider/aws: Add Enhanced VPC routing to Redshift ([#9950](https://github.com/hashicorp/terraform/issues/9950))
+ * provider/aws: Add key_name_prefix argument to aws_key_pair resource ([#9993](https://github.com/hashicorp/terraform/issues/9993))
+ * provider/openstack: Add `value_specs` to `openstack_fw_policy_v1` resource, allowing vendor information ([#9835](https://github.com/hashicorp/terraform/issues/9835))
+ * provider/openstack: Add `value_specs` to `openstack_fw_firewall_v1` resource, allowing vendor information ([#9836](https://github.com/hashicorp/terraform/issues/9836))
+ * provider/random: The `b64` attribute on `random_id` resources is deprecated, replaced by `b64_url` and `b64_std` ([#9903](https://github.com/hashicorp/terraform/issues/9903))
 
 BUG FIXES:
 
- * core: Splat variables (`foo.*.bar`) are now ordered by count index for deterministic ordering. [GH-9883]
- * core: Prune orphan outputs (in the config but not in the state). [GH-9971]
- * core: New apply graph doesn't prune module variables as aggressively. [GH-9898]
- * core: New apply graph properly configures providers with aliases. [GH-9894]
- * core: New destroy graph doesn't create edge loops to destroy nodes that reference themselves. [GH-9968]
- * provider/aws: Fix crash when adding EBS volumes to spot fleet request. [GH-9857]
- * provider/aws: Fix issue with incorrect `core_instance_count` configuration in EMR Cluster [GH-9683]
- * provider/aws: Ignore NoSuchEntity error when IAM user does not have login profile [GH-9900]
- * provider/aws: Setting static_routes_only on import of vpn_connection [GH-9802]
- * provider/aws: aws_alb_target_group arn_suffix missing the targetgroup [GH-9911]
- * provider/aws: Fix the validateFunc of aws_elasticache_replication_group [GH-9918]
- * provider/aws: removing toLower when setting aws_db_parameter_group options [GH-9820]
- * provider/scaleway: retry volume attachment [GH-9972]
- * provider/scaleway: fix `scaleway_image` datasource returning unknown images [GH-9899]
- * provider/google: fix crash when mistakenly configuring disks [GH-9942]
+ * core: Splat variables (`foo.*.bar`) are now ordered by count index for deterministic ordering. ([#9883](https://github.com/hashicorp/terraform/issues/9883))
+ * core: Prune orphan outputs (in the config but not in the state). ([#9971](https://github.com/hashicorp/terraform/issues/9971))
+ * core: New apply graph doesn't prune module variables as aggressively. ([#9898](https://github.com/hashicorp/terraform/issues/9898))
+ * core: New apply graph properly configures providers with aliases. ([#9894](https://github.com/hashicorp/terraform/issues/9894))
+ * core: New destroy graph doesn't create edge loops to destroy nodes that reference themselves. ([#9968](https://github.com/hashicorp/terraform/issues/9968))
+ * provider/aws: Fix crash when adding EBS volumes to spot fleet request. ([#9857](https://github.com/hashicorp/terraform/issues/9857))
+ * provider/aws: Ignore NoSuchEntity error when IAM user does not have login profile ([#9900](https://github.com/hashicorp/terraform/issues/9900))
+ * provider/aws: Setting static_routes_only on import of vpn_connection ([#9802](https://github.com/hashicorp/terraform/issues/9802))
+ * provider/aws: aws_alb_target_group arn_suffix missing the targetgroup ([#9911](https://github.com/hashicorp/terraform/issues/9911))
+ * provider/aws: Fix the validateFunc of aws_elasticache_replication_group ([#9918](https://github.com/hashicorp/terraform/issues/9918))
+ * provider/aws: removing toLower when setting aws_db_parameter_group options ([#9820](https://github.com/hashicorp/terraform/issues/9820))
+ * provider/aws: Fix panic when passing statuses to aws_acm_certificate ([#9990](https://github.com/hashicorp/terraform/issues/9990))
+ * provider/aws: AWS IAM, User and Role allow + in the name ([#9991](https://github.com/hashicorp/terraform/issues/9991))
+ * provider/scaleway: retry volume attachment ([#9972](https://github.com/hashicorp/terraform/issues/9972))
+ * provider/scaleway: fix `scaleway_image` datasource returning unknown images ([#9899](https://github.com/hashicorp/terraform/issues/9899))
+ * provider/google: fix crash when mistakenly configuring disks ([#9942](https://github.com/hashicorp/terraform/issues/9942))
 
 ## 0.7.9 (November 4, 2016)
 

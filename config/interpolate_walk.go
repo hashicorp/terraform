@@ -176,8 +176,7 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		}
 
 		if remove {
-			w.removeCurrent()
-			return nil
+			w.unknownKeys = append(w.unknownKeys, strings.Join(w.key, "."))
 		}
 
 		resultVal := reflect.ValueOf(replaceVal)
@@ -207,27 +206,6 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 	}
 
 	return nil
-}
-
-func (w *interpolationWalker) removeCurrent() {
-	// Append the key to the unknown keys
-	w.unknownKeys = append(w.unknownKeys, strings.Join(w.key, "."))
-
-	for i := 1; i <= len(w.cs); i++ {
-		c := w.cs[len(w.cs)-i]
-		switch c.Kind() {
-		case reflect.Map:
-			// Zero value so that we delete the map key
-			var val reflect.Value
-
-			// Get the key and delete it
-			k := w.csData.(reflect.Value)
-			c.SetMapIndex(k, val)
-			return
-		}
-	}
-
-	panic("No container found for removeCurrent")
 }
 
 func (w *interpolationWalker) replaceCurrent(v reflect.Value) {

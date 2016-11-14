@@ -11,7 +11,7 @@ func TestFlattenTransformer(t *testing.T) {
 	var b BasicGraphBuilder
 	b = BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&ConfigTransformer{Module: mod},
+			&ConfigTransformerOld{Module: mod},
 			&VertexTransformer{
 				Transforms: []GraphVertexTransformer{
 					&ExpandTransform{
@@ -41,7 +41,7 @@ func TestFlattenTransformer_withProxy(t *testing.T) {
 	var b BasicGraphBuilder
 	b = BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&ConfigTransformer{Module: mod},
+			&ConfigTransformerOld{Module: mod},
 			&VertexTransformer{
 				Transforms: []GraphVertexTransformer{
 					&ExpandTransform{

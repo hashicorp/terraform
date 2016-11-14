@@ -1,0 +1,55 @@
+---
+layout: "docs"
+page_title: "Commands: node-drain"
+sidebar_current: "docs-commands-node-drain"
+description: >
+  Toggle drain mode for a given node.
+---
+
+# Command: node-drain
+
+The `node-drain` command is used to toggle drain mode on a given node. Drain
+mode prevents any new tasks from being allocated to the node, and begins
+migrating all existing allocations away.
+
+The [node-status](/docs/commands/node-status.html) command compliments this
+nicely by providing the current drain status of a given node.
+
+## Usage
+
+```
+nomad node-drain [options] <node>
+```
+
+A `-self` flag can be used to drain the local node. If this is not supplied, a
+node ID or prefix must be provided. If there is an exact match, the drain mode
+will be adjusted for that node. Otherwise, a list of matching nodes and
+information will be displayed.
+
+It is also required to pass one of `-enable` or `-disable`, depending on which
+operation is desired.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Node Drain Options
+
+* `-enable`: Enable node drain mode.
+* `-disable`: Disable node drain mode.
+* `-self`: Drain the local node.
+* `-yes`: Automtic yes to prompts.
+
+## Examples
+
+Enable drain mode on node with ID prefix "4d2ba53b":
+
+```
+$ nomad node-drain -enable 4d2ba53b
+```
+
+Enable drain mode on the local node:
+
+```
+$ nomad node-drain -enable -self
+```

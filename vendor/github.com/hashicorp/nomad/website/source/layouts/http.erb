@@ -1,0 +1,127 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+					<a href="/docs/index.html">Documentation Home</a>
+				</li>
+
+				<hr>
+
+				<li<%= sidebar_current("docs-http-overview") %>>
+					<a href="/docs/http/index.html">Overview</a>
+                </li>
+
+				<li<%= sidebar_current("docs-http-job") %>>
+					<a href="#">Jobs</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-http-jobs") %>>
+							<a href="/docs/http/jobs.html">/v1/jobs</a>
+						</li>
+
+						<li<%= sidebar_current("docs-http-job-") %>>
+							<a href="/docs/http/job.html">/v1/job</a>
+						</li>
+					</ul>
+                </li>
+
+				<li<%= sidebar_current("docs-http-node") %>>
+					<a href="#">Nodes</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-http-nodes") %>>
+							<a href="/docs/http/nodes.html">/v1/nodes</a>
+						</li>
+
+						<li<%= sidebar_current("docs-http-node-") %>>
+							<a href="/docs/http/node.html">/v1/node</a>
+						</li>
+					</ul>
+                </li>
+
+				<li<%= sidebar_current("docs-http-alloc") %>>
+					<a href="#">Allocations</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-http-allocs") %>>
+							<a href="/docs/http/allocs.html">/v1/allocations</a>
+						</li>
+
+						<li<%= sidebar_current("docs-http-alloc-") %>>
+							<a href="/docs/http/alloc.html">/v1/allocation</a>
+						</li>
+					</ul>
+                </li>
+
+				<li<%= sidebar_current("docs-http-eval") %>>
+					<a href="#">Evaluations</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-http-evals") %>>
+							<a href="/docs/http/evals.html">/v1/evaluations</a>
+						</li>
+
+						<li<%= sidebar_current("docs-http-eval-") %>>
+							<a href="/docs/http/eval.html">/v1/evaluation</a>
+						</li>
+					</ul>
+                </li>
+
+				<li<%= sidebar_current("docs-http-agent") %>>
+					<a href="#">Agent</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-http-agent-self") %>>
+							<a href="/docs/http/agent-self.html">/v1/agent/self</a>
+                        </li>
+
+						<li<%= sidebar_current("docs-http-agent-join") %>>
+							<a href="/docs/http/agent-join.html">/v1/agent/join</a>
+                        </li>
+
+						<li<%= sidebar_current("docs-http-agent-members") %>>
+							<a href="/docs/http/agent-members.html">/v1/agent/members</a>
+                        </li>
+
+						<li<%= sidebar_current("docs-http-agent-force-leave") %>>
+							<a href="/docs/http/agent-force-leave.html">/v1/agent/force-leave</a>
+						</li>
+
+						<li<%= sidebar_current("docs-http-agent-servers") %>>
+							<a href="/docs/http/agent-servers.html">/v1/agent/servers</a>
+						</li>
+					</ul>
+                </li>
+				<li<%= sidebar_current("docs-http-client") %>>
+					<a href="#">Client</a>
+					<ul class="nav nav-visible">
+						<li<%= sidebar_current("docs-http-client-fs") %>>
+							<a href="/docs/http/client-fs.html">/v1/client/fs</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-http-client-stats") %>>
+							<a href="/docs/http/client-stats.html">/v1/client/stats</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-http-client-allocation-stats") %>>
+							<a href="/docs/http/client-allocation-stats.html">/v1/client/allocation</a>
+                        </li>
+					</ul>
+                </li>
+
+                <li<%= sidebar_current("docs-http-regions") %>>
+                    <a href="/docs/http/regions.html">Regions</a>
+                </li>
+
+				<li<%= sidebar_current("docs-http-status") %>>
+					<a href="/docs/http/status.html">Status</a>
+                </li>
+
+				<li<%= sidebar_current("docs-http-system") %>>
+					<a href="/docs/http/system.html">System</a>
+                </li>
+
+			</ul>
+		</div>
+	<% end %>
+
+	<div class="bs-api-section">
+	<%= yield %>
+	</div>
+<% end %>
