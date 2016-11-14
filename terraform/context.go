@@ -236,6 +236,21 @@ func (c *Context) ShadowError() error {
 	return c.shadowErr
 }
 
+// Interpolater returns an Interpolater built on a copy of the state
+// that can be used to test interpolation values.
+func (c *Context) Interpolater() *Interpolater {
+	var varLock sync.Mutex
+	var stateLock sync.RWMutex
+	return &Interpolater{
+		Operation:          walkApply,
+		Module:             c.module,
+		State:              c.state.DeepCopy(),
+		StateLock:          &stateLock,
+		VariableValues:     map[string]interface{}{},
+		VariableValuesLock: &varLock,
+	}
+}
+
 // Input asks for input to fill variables and provider configurations.
 // This modifies the configuration in-place, so asking for Input twice
 // may result in different UI output showing different current values.

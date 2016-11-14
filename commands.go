@@ -47,6 +47,13 @@ func init() {
 			}, nil
 		},
 
+		"console": func() (cli.Command, error) {
+			return &command.ConsoleCommand{
+				Meta:       meta,
+				ShutdownCh: makeShutdownCh(),
+			}, nil
+		},
+
 		"destroy": func() (cli.Command, error) {
 			return &command.ApplyCommand{
 				Meta:       meta,

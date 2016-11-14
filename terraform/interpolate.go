@@ -46,6 +46,10 @@ type InterpolationScope struct {
 func (i *Interpolater) Values(
 	scope *InterpolationScope,
 	vars map[string]config.InterpolatedVariable) (map[string]ast.Variable, error) {
+	if scope == nil {
+		scope = &InterpolationScope{}
+	}
+
 	result := make(map[string]ast.Variable, len(vars))
 
 	// Copy the default variables
@@ -156,6 +160,13 @@ func (i *Interpolater) valueModuleVar(
 		// ensure that the module is in the state, so if we reach this
 		// point otherwise it really is a panic.
 		result[n] = unknownVariable()
+
+		// During apply this is always an error
+		if i.Operation == walkApply {
+			return fmt.Errorf(
+				"Couldn't find module %q for var: %s",
+				v.Name, v.FullKey())
+		}
 	} else {
 		// Get the value from the outputs
 		if outputState, ok := mod.Outputs[v.Field]; ok {
@@ -167,6 +178,13 @@ func (i *Interpolater) valueModuleVar(
 		} else {
 			// Same reasons as the comment above.
 			result[n] = unknownVariable()
+
+			// During apply this is always an error
+			if i.Operation == walkApply {
+				return fmt.Errorf(
+					"Couldn't find output %q for module var: %s",
+					v.Field, v.FullKey())
+			}
 		}
 	}
 
@@ -369,7 +387,12 @@ func (i *Interpolater) computeResourceVariable(
 	// If we're requesting "count" its a special variable that we grab
 	// directly from the config itself.
 	if v.Field == "count" {
-		count, err := cr.Count()
+		var count int
+		if cr != nil {
+			count, err = cr.Count()
+		} else {
+			count, err = i.resourceCountMax(module, cr, v)
+		}
 		if err != nil {
 			return nil, fmt.Errorf(
 				"Error reading %s count: %s",
@@ -380,26 +403,36 @@ func (i *Interpolater) computeResourceVariable(
 		return &ast.Variable{Type: ast.TypeInt, Value: count}, nil
 	}
 
-	// If we have no module in the state yet or count, return empty
-	if module == nil || len(module.Resources) == 0 {
-		return nil, nil
-	}
-
 	// Get the resource out from the state. We know the state exists
 	// at this point and if there is a state, we expect there to be a
 	// resource with the given name.
-	r, ok := module.Resources[id]
-	if !ok && v.Multi && v.Index == 0 {
-		r, ok = module.Resources[v.ResourceId()]
+	var r *ResourceState
+	if module != nil && len(module.Resources) > 0 {
+		var ok bool
+		r, ok = module.Resources[id]
+		if !ok && v.Multi && v.Index == 0 {
+			r, ok = module.Resources[v.ResourceId()]
+		}
+		if !ok {
+			r = nil
+		}
 	}
-	if !ok {
-		r = nil
-	}
-	if r == nil {
-		goto MISSING
-	}
+	if r == nil || r.Primary == nil {
+		if i.Operation == walkApply || i.Operation == walkPlan {
+			return nil, fmt.Errorf(
+				"Resource '%s' not found for variable '%s'",
+				v.ResourceId(),
+				v.FullKey())
+		}
 
-	if r.Primary == nil {
+		// If we have no module in the state yet or count, return empty.
+		// NOTE(@mitchellh): I actually don't know why this is here. During
+		// a refactor I kept this here to maintain the same behavior, but
+		// I'm not sure why its here.
+		if module == nil || len(module.Resources) == 0 {
+			return nil, nil
+		}
+
 		goto MISSING
 	}
 
@@ -671,12 +704,6 @@ func (i *Interpolater) resourceVariableInfo(
 			cr = r
 			break
 		}
-	}
-	if cr == nil {
-		return nil, nil, fmt.Errorf(
-			"Resource '%s' not found for variable '%s'",
-			v.ResourceId(),
-			v.FullKey())
 	}
 
 	// Get the relevant module
