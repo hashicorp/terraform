@@ -5,13 +5,18 @@ package wrappedreadline
 import (
 	"syscall"
 	"unsafe"
+
+	"github.com/hashicorp/terraform/helper/wrappedstreams"
 )
 
 // getWidth impl for Unix
 func getWidth() int {
-	w := getWidthFd(StdoutFd)
+	stdoutFd := int(wrappedstreams.Stdout().Fd())
+	stderrFd := int(wrappedstreams.Stderr().Fd())
+
+	w := getWidthFd(stdoutFd)
 	if w < 0 {
-		w = getWidthFd(StderrFd)
+		w = getWidthFd(stderrFd)
 	}
 
 	return w

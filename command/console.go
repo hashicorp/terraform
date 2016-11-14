@@ -3,14 +3,12 @@ package command
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/wrappedreadline"
+	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/repl"
 
-	"github.com/chzyer/readline"
 	"github.com/mitchellh/cli"
 )
 
@@ -63,8 +61,8 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	// Setup the UI so we can output directly to stdout
 	ui := &cli.BasicUi{
-		Writer:      c.Stdout(),
-		ErrorWriter: c.Stderr(),
+		Writer:      wrappedstreams.Stdout(),
+		ErrorWriter: wrappedstreams.Stderr(),
 	}
 
 	// IO Loop
@@ -82,7 +80,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
 	var lastResult string
-	scanner := bufio.NewScanner(c.Stdin())
+	scanner := bufio.NewScanner(wrappedstreams.Stdin())
 	for scanner.Scan() {
 		// Handle it. If there is an error exit immediately
 		result, err := session.Handle(strings.TrimSpace(scanner.Text()))
@@ -97,50 +95,6 @@ func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
 
 	// Output the final result
 	ui.Output(lastResult)
-
-	return 0
-}
-
-func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {
-	// Configure input
-	l, err := readline.NewEx(wrappedreadline.Override(&readline.Config{
-		Prompt:            "> ",
-		InterruptPrompt:   "^C",
-		EOFPrompt:         "exit",
-		HistorySearchFold: true,
-	}))
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error initializing console: %s",
-			err))
-		return 1
-	}
-	defer l.Close()
-
-	for {
-		// Read a line
-		line, err := l.Readline()
-		if err == readline.ErrInterrupt {
-			if len(line) == 0 {
-				break
-			} else {
-				continue
-			}
-		} else if err == io.EOF {
-			break
-		}
-
-		out, err := session.Handle(line)
-		if err == repl.ErrSessionExit {
-			break
-		}
-		if err != nil {
-			ui.Error(err.Error())
-			continue
-		}
-
-		ui.Output(out)
-	}
 
 	return 0
 }
