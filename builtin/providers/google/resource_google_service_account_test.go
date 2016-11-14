@@ -125,7 +125,7 @@ resource "google_service_account" "acceptance" {
 var testAccGoogleServiceAccount_policy = `
 resource "google_service_account" "acceptance" {
     account_id = "%v"
-	display_name = "%v"
+    display_name = "%v"
     policy_data = "${data.google_iam_policy.service_account.policy_data}"
 }
 
