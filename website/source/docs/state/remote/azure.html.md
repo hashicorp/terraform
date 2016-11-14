@@ -12,11 +12,11 @@ Stores the state as a given key in a given bucket on [Microsoft Azure Storage](h
 
 -> **Note:** Passing credentials directly via config options will
 make them included in cleartext inside the persisted state.
-Use of environment variables or config file is recommended.
+Access key should, ideally, be passed using the environment variable
+`ARM_ACCESS_KEY` to follow this convention.
 
 ## Example Usage
 
-This example follows the recommended approach of storing the access_key in the environment variable `ARM_ACCESS_KEY`.
 
 ```
 terraform remote config \
@@ -28,8 +28,6 @@ terraform remote config \
 
 ## Example Referencing
 
-This example follows the recommended approach of storing the access_key in the environment variable `ARM_ACCESS_KEY`.
-
 ```hcl
 # setup remote state data source
 data "terraform_remote_state" "foo" {
@@ -38,7 +36,6 @@ data "terraform_remote_state" "foo" {
     storage_account_name = "terraform123abc"
     container_name       = "terraform-state"
     key                  = "prod.terraform.tfstate"
-    access_key           = "<primary or secondary storage account access key>"
   }
 }
 ```
