@@ -38,6 +38,7 @@ func Provider() terraform.ResourceProvider {
 			"github_membership":              resourceGithubMembership(),
 			"github_repository":              resourceGithubRepository(),
 			"github_repository_collaborator": resourceGithubRepositoryCollaborator(),
+			"github_issue_label":             resourceGithubIssueLabel(),
 		},
 
 		ConfigureFunc: providerConfigure,
