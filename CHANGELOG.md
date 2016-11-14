@@ -48,10 +48,10 @@ IMPROVEMENTS:
  * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode ([#9966](https://github.com/hashicorp/terraform/issues/9966))
 
 BUG FIXES:
+ * core: New destroy graph `-target` includes dependencies. [GH-10036]
+ * core: New destroy graph creates proper edges through module outputs [GH-10068]
  * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
  * provider/aws: Fix panic in aws_acm_certificate datasource [GH-10051]
-
- * core: New destroy graph `-target` includes dependencies. [GH-10036]
 
 ## 0.7.10 (November 9, 2016)
 
