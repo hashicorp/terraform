@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/lrsmith/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/lrsmith/go-icinga2-api/iapi"
 )
 
 func TestAccCreateBasicHost(t *testing.T) {
 
 	var testAccCreateBasicHost = fmt.Sprintf(`
-		resource "icinga2_host" "basic" {
-		hostname      = "terraform-test-1"
+		resource "icinga2_host" "tf-1" {
+		hostname      = "terraform-host-1"
 		address       = "10.10.10.1"
 		check_command = "hostalive"
 	}`)
@@ -22,78 +24,24 @@ func TestAccCreateBasicHost(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCreateBasicHost,
-				//Check:  resource.ComposeTestCheckFunc(
-				//					VerifyResourceExists(t, "icinga2_host.basic"),
-				//					testAccCheckResourceState("icinga2_host.basic", "hostname", "terraform-test"),
-				//					testAccCheckResourceState("icinga2_host.basic", "address", "10.10.10.1"),
-				//					testAccCheckResourceState("icinga2_host.basic", "check_command", "hostalive"),
-				//),
-			},
-		},
-	})
-}
-
-/*
-func TestAccModifyHostname(t *testing.T) {
-
-	var testAccModifyHostname = fmt.Sprintf(`
-		resource "icinga2_host" "basic" {
-		hostname      = "terraform-test-rename"
-		address       = "10.10.40.1"
-		check_command = "hostalive"
-	  }`)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccModifyHostname,
 				Check: resource.ComposeTestCheckFunc(
-					VerifyResourceExists(t, "icinga2_host.basic"),
-					testAccCheckResourceState("icinga2_host.basic", "hostname", "terraform-test-rename"),
-					testAccCheckResourceState("icinga2_host.basic", "address", "10.10.40.1"),
-					testAccCheckResourceState("icinga2_host.basic", "check_command", "hostalive"),
+					testAccCheckHostExists("icinga2_host.tf-1"),
+					testAccCheckResourceState("icinga2_host.tf-1", "hostname", "terraform-host-1"),
+					testAccCheckResourceState("icinga2_host.tf-1", "address", "10.10.10.1"),
+					testAccCheckResourceState("icinga2_host.tf-1", "check_command", "hostalive"),
 				),
 			},
 		},
 	})
 }
-
-func TestAccModifyAddress(t *testing.T) {
-
-	var testAccModifyAddress = fmt.Sprintf(`
-		resource "icinga2_host" "basic" {
-		hostname      = "terraform-test-rename"
-		address       = "20.10.40.1"
-		check_command = "hostalive"
-	  }`)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccModifyAddress,
-				Check: resource.ComposeTestCheckFunc(
-					VerifyResourceExists(t, "icinga2_host.basic"),
-					testAccCheckResourceState("icinga2_host.basic", "hostname", "terraform-test-rename"),
-					testAccCheckResourceState("icinga2_host.basic", "address", "20.10.40.1"),
-					testAccCheckResourceState("icinga2_host.basic", "check_command", "hostalive"),
-				),
-			},
-		},
-	})
-}
-*/
 
 // Test setting template for Host. NOTE : This assumes the template already exists
 func TestAccCreateTemplatedHost(t *testing.T) {
 
 	var testAccCreateTemplatedHost = fmt.Sprintf(`
-		resource "icinga2_host" "templated" {
-		hostname      = "terraform-test-5"
-		address       = "10.10.10.5"
+		resource "icinga2_host" "tf-2" {
+		hostname      = "terraform-host-2"
+		address       = "10.10.10.2"
 		check_command = "hostalive"
 		templates = [ "bp-host-web" ]
 	}`)
@@ -104,14 +52,14 @@ func TestAccCreateTemplatedHost(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCreateTemplatedHost,
-				//				Check: resource.ComposeTestCheckFunc(
-				//					VerifyResourceExists(t, "icinga2_host.templated"),
-				//					testAccCheckResourceState("icinga2_host.templated", "hostname", "terraform-test-templated"),
-				//					testAccCheckResourceState("icinga2_host.templated", "address", "20.10.40.1"),
-				//					testAccCheckResourceState("icinga2_host.templated", "check_command", "hostalive"),
-				//					testAccCheckResourceState("icinga2_host.templated", "templates.#", "1"),
-				//					testAccCheckResourceState("icinga2_host.templated", "templates.0", "bp-host-web"),
-				//				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHostExists("icinga2_host.tf-2"),
+					testAccCheckResourceState("icinga2_host.tf-2", "hostname", "terraform-host-2"),
+					testAccCheckResourceState("icinga2_host.tf-2", "address", "10.10.10.2"),
+					testAccCheckResourceState("icinga2_host.tf-2", "check_command", "hostalive"),
+					testAccCheckResourceState("icinga2_host.tf-2", "templates.#", "1"), // List so use # for length/size
+					testAccCheckResourceState("icinga2_host.tf-2", "templates.0", "bp-host-web"),
+				),
 			},
 		},
 	})
@@ -120,9 +68,9 @@ func TestAccCreateTemplatedHost(t *testing.T) {
 func TestAccCreateVariableHost(t *testing.T) {
 
 	var testAccCreateVariableHost = fmt.Sprintf(`
-		resource "icinga2_host" "variable" {
-		hostname = "terraform-test-4"
-		address = "10.10.10.4"
+		resource "icinga2_host" "tf-3" {
+		hostname = "terraform-host-3"
+		address = "10.10.10.3"
 		check_command = "hostalive"
 		vars {
 		  os = "linux"
@@ -136,23 +84,39 @@ func TestAccCreateVariableHost(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCreateVariableHost,
-				//				Check:  resource.ComposeTestCheckFunc(
-				//					VerifyResourceExists(t, "icinga2_host.variable"),
-				//					testAccCheckResourceState("icinga2_host.variable", "hostname", "terraform-test-variable"),
-				//					testAccCheckResourceState("icinga2_host.variable", "address", "30.10.40.1"),
-				//					testAccCheckResourceState("icinga2_host.variable", "check_command", "hostalive"),
-				//					testAccCheckResourceState("icinga2_host.variable", "vars.#", "3"),
-				//					testAccCheckResourceState("icinga2_host.variable", "vars.allowance", "none"),
-				//					testAccCheckResourceState("icinga2_host.variable", "vars.os", "linux"),
-				//					testAccCheckResourceState("icinga2_host.variable", "vars.osver", "1"),
-				//				),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHostExists("icinga2_host.tf-3"),
+					testAccCheckResourceState("icinga2_host.tf-3", "hostname", "terraform-host-3"),
+					testAccCheckResourceState("icinga2_host.tf-3", "address", "10.10.10.3"),
+					testAccCheckResourceState("icinga2_host.tf-3", "check_command", "hostalive"),
+					testAccCheckResourceState("icinga2_host.tf-3", "vars.%", "3"), // map so use % for length/size
+					testAccCheckResourceState("icinga2_host.tf-3", "vars.allowance", "none"),
+					testAccCheckResourceState("icinga2_host.tf-3", "vars.os", "linux"),
+					testAccCheckResourceState("icinga2_host.tf-3", "vars.osver", "1"),
+				),
 			},
 		},
 	})
 }
 
-//func testAccHostExists(n string) resource.TestCheckFunc {
-//	return func(s *terraform.State) error {
-//		return nil
-//	}
-//}
+func testAccCheckHostExists(rn string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		resource, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("Host resource not found: %s", rn)
+		}
+
+		if resource.Primary.ID == "" {
+			return fmt.Errorf("resource id not set")
+		}
+
+		client := testAccProvider.Meta().(*iapi.Server)
+		_, err := client.GetHost(resource.Primary.ID)
+		if err != nil {
+			return fmt.Errorf("error getting getting host: %s", err)
+		}
+
+		return nil
+	}
+
+}
