@@ -195,6 +195,20 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 							Required: true,
 						},
 
+						"retry_duration": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  3600,
+							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+								value := v.(int)
+								if value < 0 || value > 7200 {
+									errors = append(errors, fmt.Errorf(
+										"%q must be in the range from 0 to 7200 seconds.", k))
+								}
+								return
+							},
+						},
+
 						"copy_options": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -446,6 +460,7 @@ func createRedshiftConfig(d *schema.ResourceData, s3Config *firehose.S3Destinati
 
 	configuration := &firehose.RedshiftDestinationConfiguration{
 		ClusterJDBCURL:  aws.String(redshift["cluster_jdbcurl"].(string)),
+		RetryOptions:    extractRedshiftRetryOptions(redshift),
 		Password:        aws.String(redshift["password"].(string)),
 		Username:        aws.String(redshift["username"].(string)),
 		RoleARN:         aws.String(redshift["role_arn"].(string)),
@@ -471,6 +486,7 @@ func updateRedshiftConfig(d *schema.ResourceData, s3Update *firehose.S3Destinati
 
 	configuration := &firehose.RedshiftDestinationUpdate{
 		ClusterJDBCURL: aws.String(redshift["cluster_jdbcurl"].(string)),
+		RetryOptions:   extractRedshiftRetryOptions(redshift),
 		Password:       aws.String(redshift["password"].(string)),
 		Username:       aws.String(redshift["username"].(string)),
 		RoleARN:        aws.String(redshift["role_arn"].(string)),
@@ -498,7 +514,7 @@ func createElasticsearchConfig(d *schema.ResourceData, s3Config *firehose.S3Dest
 		BufferingHints:  extractBufferingHints(es),
 		DomainARN:       aws.String(es["domain_arn"].(string)),
 		IndexName:       aws.String(es["index_name"].(string)),
-		RetryOptions:    extractRetryOptions(es),
+		RetryOptions:    extractElasticSearchRetryOptions(es),
 		RoleARN:         aws.String(es["role_arn"].(string)),
 		TypeName:        aws.String(es["type_name"].(string)),
 		S3Configuration: s3Config,
@@ -531,7 +547,7 @@ func updateElasticsearchConfig(d *schema.ResourceData, s3Update *firehose.S3Dest
 		BufferingHints: extractBufferingHints(es),
 		DomainARN:      aws.String(es["domain_arn"].(string)),
 		IndexName:      aws.String(es["index_name"].(string)),
-		RetryOptions:   extractRetryOptions(es),
+		RetryOptions:   extractElasticSearchRetryOptions(es),
 		RoleARN:        aws.String(es["role_arn"].(string)),
 		TypeName:       aws.String(es["type_name"].(string)),
 		S3Update:       s3Update,
@@ -559,13 +575,22 @@ func extractBufferingHints(es map[string]interface{}) *firehose.ElasticsearchBuf
 	}
 
 	return bufferingHints
-
 }
 
-func extractRetryOptions(es map[string]interface{}) *firehose.ElasticsearchRetryOptions {
+func extractElasticSearchRetryOptions(es map[string]interface{}) *firehose.ElasticsearchRetryOptions {
 	retryOptions := &firehose.ElasticsearchRetryOptions{}
 
 	if retryDuration, ok := es["retry_duration"].(int); ok {
+		retryOptions.DurationInSeconds = aws.Int64(int64(retryDuration))
+	}
+
+	return retryOptions
+}
+
+func extractRedshiftRetryOptions(redshift map[string]interface{}) *firehose.RedshiftRetryOptions {
+	retryOptions := &firehose.RedshiftRetryOptions{}
+
+	if retryDuration, ok := redshift["retry_duration"].(int); ok {
 		retryOptions.DurationInSeconds = aws.Int64(int64(retryDuration))
 	}
 
