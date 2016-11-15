@@ -392,7 +392,11 @@ func scanIdentifier(s string) (string, int) {
 		}
 
 		nextRune, size := utf8.DecodeRuneInString(s[byteLen:])
-		if !(nextRune == '_' || unicode.IsNumber(nextRune) || unicode.IsLetter(nextRune) || unicode.IsMark(nextRune)) {
+		if !(nextRune == '_' ||
+			nextRune == '-' ||
+			unicode.IsNumber(nextRune) ||
+			unicode.IsLetter(nextRune) ||
+			unicode.IsMark(nextRune)) {
 			break
 		}
 
