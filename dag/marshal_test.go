@@ -156,8 +156,8 @@ func TestGraphJSON_debugInfo(t *testing.T) {
 		}
 
 		switch d.Type {
-		case "VertexDebugInfo":
-			va := &vertexDebugInfo{}
+		case typeVertexInfo:
+			va := &marshalVertexInfo{}
 			err := json.Unmarshal(d.JSON, va)
 			if err != nil {
 				t.Fatal(err)
@@ -177,8 +177,8 @@ func TestGraphJSON_debugInfo(t *testing.T) {
 			default:
 				t.Fatalf("unexpected annotation: %#v", va)
 			}
-		case "EdgeDebugInfo":
-			ea := &edgeDebugInfo{}
+		case typeEdgeInfo:
+			ea := &marshalEdgeInfo{}
 			err := json.Unmarshal(d.JSON, ea)
 			if err != nil {
 				t.Fatal(err)
@@ -238,7 +238,7 @@ func TestGraphJSON_debugOperations(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if d.Type != "Operation" {
+		if d.Type != typeOperation {
 			continue
 		}
 
@@ -275,6 +275,61 @@ func TestGraphJSON_debugOperations(t *testing.T) {
 
 	if strings.Join(ops, ",") != strings.Join(expectedOps, ",") {
 		t.Fatalf("incorrect order of operations: %v", ops)
+	}
+}
+
+// Verify that we can replay visiting each vertex in order
+func TestGraphJSON_debugVisits(t *testing.T) {
+	var g Graph
+	var buf bytes.Buffer
+	g.SetDebugWriter(&buf)
+
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+
+	g.Connect(BasicEdge(2, 1))
+	g.Connect(BasicEdge(4, 2))
+	g.Connect(BasicEdge(3, 4))
+
+	err := (&AcyclicGraph{g}).Walk(func(v Vertex) error {
+		g.DebugVisitInfo(v, "basic walk")
+		return nil
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var visited []string
+
+	dec := json.NewDecoder(bytes.NewReader(buf.Bytes()))
+	for dec.More() {
+		var d streamDecode
+
+		err := dec.Decode(&d)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if d.Type != typeVisitInfo {
+			continue
+		}
+
+		o := &marshalVertexInfo{}
+		err = json.Unmarshal(d.JSON, o)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		visited = append(visited, o.Vertex.ID)
+	}
+
+	expected := []string{"1", "2", "4", "3"}
+
+	if strings.Join(visited, "-") != strings.Join(expected, "-") {
+		t.Fatalf("incorrect order of operations: %v", visited)
 	}
 }
 

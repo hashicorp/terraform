@@ -8,6 +8,19 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"sync"
+)
+
+const (
+	typeOperation             = "Operation"
+	typeTransform             = "Transform"
+	typeWalk                  = "Walk"
+	typeDepthFirstWalk        = "DepthFirstWalk"
+	typeReverseDepthFirstWalk = "ReverseDepthFirstWalk"
+	typeTransitiveReduction   = "TransitiveReduction"
+	typeEdgeInfo              = "EdgeInfo"
+	typeVertexInfo            = "VertexInfo"
+	typeVisitInfo             = "VisitInfo"
 )
 
 // the marshal* structs are for serialization of the graph data.
@@ -241,6 +254,7 @@ func (e DebugOperationEnd) End(info string) { e(info) }
 // encoder provides methods to write debug data to an io.Writer, and is a noop
 // when no writer is present
 type encoder struct {
+	sync.Mutex
 	w io.Writer
 }
 
@@ -249,6 +263,8 @@ func (e *encoder) Encode(i interface{}) {
 	if e == nil || e.w == nil {
 		return
 	}
+	e.Lock()
+	defer e.Unlock()
 
 	js, err := json.Marshal(i)
 	if err != nil {
@@ -266,7 +282,7 @@ func (e *encoder) Encode(i interface{}) {
 
 func (e *encoder) Add(v Vertex) {
 	e.Encode(marshalTransform{
-		Type:      "Transform",
+		Type:      typeTransform,
 		AddVertex: newMarshalVertex(v),
 	})
 }
@@ -274,21 +290,21 @@ func (e *encoder) Add(v Vertex) {
 // Remove records the removal of Vertex v.
 func (e *encoder) Remove(v Vertex) {
 	e.Encode(marshalTransform{
-		Type:         "Transform",
+		Type:         typeTransform,
 		RemoveVertex: newMarshalVertex(v),
 	})
 }
 
 func (e *encoder) Connect(edge Edge) {
 	e.Encode(marshalTransform{
-		Type:    "Transform",
+		Type:    typeTransform,
 		AddEdge: newMarshalEdge(edge),
 	})
 }
 
 func (e *encoder) RemoveEdge(edge Edge) {
 	e.Encode(marshalTransform{
-		Type:       "Transform",
+		Type:       typeTransform,
 		RemoveEdge: newMarshalEdge(edge),
 	})
 }
@@ -301,14 +317,14 @@ func (e *encoder) BeginOperation(op string, info string) DebugOperationEnd {
 	}
 
 	e.Encode(marshalOperation{
-		Type:  "Operation",
+		Type:  typeOperation,
 		Begin: op,
 		Info:  info,
 	})
 
 	return func(info string) {
 		e.Encode(marshalOperation{
-			Type: "Operation",
+			Type: typeOperation,
 			End:  op,
 			Info: info,
 		})
@@ -391,7 +407,7 @@ func decodeGraph(r io.Reader) (*marshalGraph, error) {
 
 		// the only Type we're concerned with here is Transform to complete the
 		// Graph
-		if s.Type != "Transform" {
+		if s.Type != typeTransform {
 			continue
 		}
 
@@ -405,31 +421,35 @@ func decodeGraph(r io.Reader) (*marshalGraph, error) {
 	return g, nil
 }
 
-// *DebugInfo structs allow encoding arbitrary information about the graph in
-// the logs.
-type vertexDebugInfo struct {
+// marshalVertexInfo allows encoding arbitrary information about the a single
+// Vertex in the logs. These are accumulated for informational display while
+// rebuilding the graph.
+type marshalVertexInfo struct {
 	Type   string
 	Vertex *marshalVertex
 	Info   string
 }
 
-func newVertexDebugInfo(v Vertex, info string) *vertexDebugInfo {
-	return &vertexDebugInfo{
-		Type:   "VertexDebugInfo",
+func newVertexInfo(infoType string, v Vertex, info string) *marshalVertexInfo {
+	return &marshalVertexInfo{
+		Type:   infoType,
 		Vertex: newMarshalVertex(v),
 		Info:   info,
 	}
 }
 
-type edgeDebugInfo struct {
+// marshalEdgeInfo allows encoding arbitrary information about the a single
+// Edge in the logs. These are accumulated for informational display while
+// rebuilding the graph.
+type marshalEdgeInfo struct {
 	Type string
 	Edge *marshalEdge
 	Info string
 }
 
-func newEdgeDebugInfo(e Edge, info string) *edgeDebugInfo {
-	return &edgeDebugInfo{
-		Type: "EdgeDebugInfo",
+func newEdgeInfo(infoType string, e Edge, info string) *marshalEdgeInfo {
+	return &marshalEdgeInfo{
+		Type: infoType,
 		Edge: newMarshalEdge(e),
 		Info: info,
 	}
