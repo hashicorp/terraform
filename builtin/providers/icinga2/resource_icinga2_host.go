@@ -60,7 +60,7 @@ func resourceIcinga2HostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Call CreateHost with normalized data
-	err := client.CreateHost(hostname, address, checkCommand, vars)
+	_, err := client.CreateHost(hostname, address, checkCommand, vars)
 	if err != nil {
 		return err
 	}
