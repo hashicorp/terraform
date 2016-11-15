@@ -1,5 +1,7 @@
 ## 0.8.0-beta2 (unreleased)
 
+BASED ON: 0.7.11 (includes any changes up to that point as well)
+
 FEATURES:
 
  * **New command:** `terraform console`, an interactive console for experimenting
@@ -13,6 +15,8 @@ FEATURES:
    [GH-10072]
 
 ## 0.8.0-beta1 (November 11, 2016)
+
+BASED ON: 0.7.10 (includes any changes up to that point as well)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
