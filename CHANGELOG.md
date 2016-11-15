@@ -2,6 +2,16 @@
 
 BASED ON: 0.7.11 (includes any changes up to that point as well)
 
+**Please read prior beta notes, as those are also included. The 0.8 changes
+will be coalesced for a 0.8 final, but will remain separate for the pre-release
+period.**
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * Math operators now follow the standard order of operations: *, /, % followed
+   by +, -. See the updated interpolation docs for more information. You can
+   continue to force ordering with parentheses.
+
 FEATURES:
 
  * **New command:** `terraform console`, an interactive console for experimenting
