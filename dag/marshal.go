@@ -230,10 +230,13 @@ func marshalSubgrapher(v Vertex) (*Graph, bool) {
 	return nil, false
 }
 
-// ender provides a way to call any End* method expression via an End method
-type ender func()
+// The DebugOperationEnd func type provides a way to call an End function via a
+// method call, allowing for the chaining of methods in a defer statement.
+type DebugOperationEnd func(string)
 
-func (e ender) End() { e() }
+// End calls function e with the info parameter, marking the end of this
+// operation in the logs.
+func (e DebugOperationEnd) End(info string) { e(info) }
 
 // encoder provides methods to write debug data to an io.Writer, and is a noop
 // when no writer is present
@@ -290,89 +293,26 @@ func (e *encoder) RemoveEdge(edge Edge) {
 	})
 }
 
-// BeginReplace marks the start of a replace operation, and returns the encoder
-// to chain the EndReplace call.
-func (e *encoder) BeginReplace() ender {
+// BeginOperation marks the start of set of graph transformations, and returns
+// an EndDebugOperation func to be called once the opration is complete.
+func (e *encoder) BeginOperation(op string, info string) DebugOperationEnd {
+	if e == nil {
+		return func(string) {}
+	}
+
 	e.Encode(marshalOperation{
 		Type:  "Operation",
-		Begin: newString("Replace"),
+		Begin: op,
+		Info:  info,
 	})
-	return e.EndReplace
-}
 
-func (e *encoder) EndReplace() {
-	e.Encode(marshalOperation{
-		Type: "Operation",
-		End:  newString("Replace"),
-	})
-}
-
-// BeginReduction marks the start of a replace operation, and returns the encoder
-// to chain the EndReduction call.
-func (e *encoder) BeginReduction() ender {
-	e.Encode(marshalOperation{
-		Type:  "Operation",
-		Begin: newString("Reduction"),
-	})
-	return e.EndReduction
-}
-
-func (e *encoder) EndReduction() {
-	e.Encode(marshalOperation{
-		Type: "Operation",
-		End:  newString("Reduction"),
-	})
-}
-
-// BeginDepthFirstWalk marks the start of a replace operation, and returns the
-// encoder to chain the EndDepthFirstWalk call.
-func (e *encoder) BeginDepthFirstWalk() ender {
-	e.Encode(marshalOperation{
-		Type:  "Operation",
-		Begin: newString("DepthFirstWalk"),
-	})
-	return e.EndDepthFirstWalk
-}
-
-func (e *encoder) EndDepthFirstWalk() {
-	e.Encode(marshalOperation{
-		Type: "Operation",
-		End:  newString("DepthFirstWalk"),
-	})
-}
-
-// BeginReverseDepthFirstWalk marks the start of a replace operation, and
-// returns the encoder to chain the EndReverseDepthFirstWalk call.
-func (e *encoder) BeginReverseDepthFirstWalk() ender {
-	e.Encode(marshalOperation{
-		Type:  "Operation",
-		Begin: newString("ReverseDepthFirstWalk"),
-	})
-	return e.EndReverseDepthFirstWalk
-}
-
-func (e *encoder) EndReverseDepthFirstWalk() {
-	e.Encode(marshalOperation{
-		Type: "Operation",
-		End:  newString("ReverseDepthFirstWalk"),
-	})
-}
-
-// BeginWalk marks the start of a replace operation, and returns the encoder
-// to chain the EndWalk call.
-func (e *encoder) BeginWalk() ender {
-	e.Encode(marshalOperation{
-		Type:  "Operation",
-		Begin: newString("Walk"),
-	})
-	return e.EndWalk
-}
-
-func (e *encoder) EndWalk() {
-	e.Encode(marshalOperation{
-		Type: "Operation",
-		End:  newString("Walk"),
-	})
+	return func(info string) {
+		e.Encode(marshalOperation{
+			Type: "Operation",
+			End:  op,
+			Info: info,
+		})
+	}
 }
 
 // structure for recording graph transformations
@@ -424,14 +364,10 @@ func (s *streamDecode) UnmarshalJSON(d []byte) error {
 // graph state.
 type marshalOperation struct {
 	Type  string
-	Begin *string `json:",omitempty"`
-	End   *string `json:",omitempty"`
-	Info  *string `json:".omitempty"`
+	Begin string `json:",omitempty"`
+	End   string `json:",omitempty"`
+	Info  string `json:",omitempty"`
 }
-
-func newBool(b bool) *bool { return &b }
-
-func newString(s string) *string { return &s }
 
 // decodeGraph decodes a marshalGraph from an encoded graph stream.
 func decodeGraph(r io.Reader) (*marshalGraph, error) {
