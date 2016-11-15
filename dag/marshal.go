@@ -434,3 +434,17 @@ func newEdgeDebugInfo(e Edge, info string) *edgeDebugInfo {
 		Info: info,
 	}
 }
+
+// JSON2Dot reads a Graph debug log from and io.Reader, and converts the final
+// graph dot format.
+//
+// TODO: Allow returning the output at a certain point during decode.
+//       Encode extra information from the json log into the Dot.
+func JSON2Dot(r io.Reader) ([]byte, error) {
+	g, err := decodeGraph(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return g.Dot(nil), nil
+}
