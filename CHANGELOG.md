@@ -55,6 +55,7 @@ BUG FIXES:
  * core: New destroy graph creates proper edges through module outputs [GH-10068]
  * core: Fix shadow error when using uuid() [GH-10106]
  * core: Fix an issue where applies with data sources could hang [GH-10134]
+ * core: Fix plan operation diff mismatch for computed keys in slices [GH-10118]
  * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
  * provider/aws: Fix panic in aws_acm_certificate datasource [GH-10051]
  * provider/aws: increase aws_lambda_function timeout [GH-10116]
