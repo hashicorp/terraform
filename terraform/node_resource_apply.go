@@ -75,6 +75,11 @@ func (n *NodeApplyableResource) evalTreeDataResource(
 
 	return &EvalSequence{
 		Nodes: []EvalNode{
+			// Build the instance info
+			&EvalInstanceInfo{
+				Info: info,
+			},
+
 			// Get the saved diff for apply
 			&EvalReadDiff{
 				Name: stateId,
