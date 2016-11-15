@@ -673,7 +673,7 @@ func (p *shadowResourceProviderShadow) ReadDataDiff(
 		p.ErrorLock.Lock()
 		defer p.ErrorLock.Unlock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Unknown 'ReadDataDiff' shadow value: %#v", raw))
+			"Unknown 'ReadDataDiff' shadow value for %q: %#v", key, raw))
 		return nil, nil
 	}
 
@@ -709,7 +709,7 @@ func (p *shadowResourceProviderShadow) ReadDataApply(
 		p.ErrorLock.Lock()
 		defer p.ErrorLock.Unlock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Unknown 'ReadDataApply' shadow value: %#v", raw))
+			"Unknown 'ReadDataApply' shadow value for %q: %#v", key, raw))
 		return nil, nil
 	}
 
