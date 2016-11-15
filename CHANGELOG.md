@@ -38,6 +38,7 @@ BUG FIXES:
 FEATURES:
 
 IMPROVEMENTS:
+
  * provider/aws: Expose RDS DB Instance HostedZoneId attribute ([#10000](https://github.com/hashicorp/terraform/issues/10000))
  * provider/aws: Ignore AWS internal tags ([#7454](https://github.com/hashicorp/terraform/issues/7454))
  * provider/aws: Exposed aws_iam_role create_date attribute [GH-10091]
@@ -48,9 +49,11 @@ IMPROVEMENTS:
  * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode ([#9966](https://github.com/hashicorp/terraform/issues/9966))
 
 BUG FIXES:
+
  * core: New destroy graph `-target` includes dependencies. [GH-10036]
  * core: New destroy graph creates proper edges through module outputs [GH-10068]
  * core: Fix shadow error when using uuid() [GH-10106]
+ * core: Fix an issue where applies with data sources could hang [GH-10134]
  * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
  * provider/aws: Fix panic in aws_acm_certificate datasource [GH-10051]
  * provider/aws: increase aws_lambda_function timeout [GH-10116]
