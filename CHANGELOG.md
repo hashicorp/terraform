@@ -54,6 +54,7 @@ BUG FIXES:
  * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
  * provider/aws: Fix panic in aws_acm_certificate datasource [GH-10051]
  * provider/aws: increase aws_lambda_function timeout [GH-10116]
+ * provider/aws: Fixed ES buffering_interval option in `kinesis_firehose_delivery_stream` [GH-10112]
 
 ## 0.7.10 (November 9, 2016)
 
