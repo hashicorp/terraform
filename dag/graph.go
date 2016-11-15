@@ -339,22 +339,28 @@ func (g *Graph) MarshalJSON() ([]byte, error) {
 // information. After this is set, the graph will immediately encode itself to
 // the stream, and continue to record all subsequent operations.
 func (g *Graph) SetDebugWriter(w io.Writer) {
-	g.debug = &encoder{w}
+	g.debug = &encoder{w: w}
 	g.debug.Encode(newMarshalGraph("root", g))
 }
 
 // DebugVertexInfo encodes arbitrary information about a vertex in the graph
 // debug logs.
 func (g *Graph) DebugVertexInfo(v Vertex, info string) {
-	va := newVertexDebugInfo(v, info)
+	va := newVertexInfo(typeVertexInfo, v, info)
 	g.debug.Encode(va)
 }
 
 // DebugEdgeInfo encodes arbitrary information about an edge in the graph debug
 // logs.
 func (g *Graph) DebugEdgeInfo(e Edge, info string) {
-	ea := newEdgeDebugInfo(e, info)
+	ea := newEdgeInfo(typeEdgeInfo, e, info)
 	g.debug.Encode(ea)
+}
+
+// DebugVisitInfo records a visit to a Vertex during a walk operation.
+func (g *Graph) DebugVisitInfo(v Vertex, info string) {
+	vi := newVertexInfo(typeVisitInfo, v, info)
+	g.debug.Encode(vi)
 }
 
 // DebugOperation marks the start of a set of graph transformations in
