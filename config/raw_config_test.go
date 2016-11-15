@@ -339,6 +339,49 @@ func TestRawConfig_unknownPartialList(t *testing.T) {
 	}
 }
 
+// This tests a race found where we were not maintaining the "slice index"
+// accounting properly. The result would be that some computed keys would
+// look like they had no slice index when they in fact do. This test is not
+// very reliable but it did fail before the fix and passed after.
+func TestRawConfig_sliceIndexLoss(t *testing.T) {
+	raw := map[string]interface{}{
+		"slice": []map[string]interface{}{
+			map[string]interface{}{
+				"foo": []interface{}{"foo/${var.unknown}"},
+				"bar": []interface{}{"bar"},
+			},
+		},
+	}
+
+	vars := map[string]ast.Variable{
+		"var.unknown": ast.Variable{
+			Value: UnknownVariableValue,
+			Type:  ast.TypeUnknown,
+		},
+		"var.known": ast.Variable{
+			Value: "123456",
+			Type:  ast.TypeString,
+		},
+	}
+
+	// We run it a lot because its fast and we try to get a race out
+	for i := 0; i < 50; i++ {
+		rc, err := NewRawConfig(raw)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if err := rc.Interpolate(vars); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		expectedKeys := []string{"slice.0.foo"}
+		if !reflect.DeepEqual(rc.UnknownKeys(), expectedKeys) {
+			t.Fatalf("bad: %#v", rc.UnknownKeys())
+		}
+	}
+}
+
 func TestRawConfigValue(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var.bar}",
