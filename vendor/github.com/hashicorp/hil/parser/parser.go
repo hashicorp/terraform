@@ -188,6 +188,21 @@ func (p *parser) ParseInterpolation() (ast.Node, error) {
 }
 
 func (p *parser) ParseExpression() (ast.Node, error) {
+	return p.parseBinaryOps(binaryOps)
+}
+
+// parseBinaryOps calls itself recursively to work through all of the
+// operator precedence groups, and then eventually calls ParseExpressionTerm
+// for each operand.
+func (p *parser) parseBinaryOps(ops []map[scanner.TokenType]ast.ArithmeticOp) (ast.Node, error) {
+	if len(ops) == 0 {
+		// We've run out of operators, so now we'll just try to parse a term.
+		return p.ParseExpressionTerm()
+	}
+
+	thisLevel := ops[0]
+	remaining := ops[1:]
+
 	startPos := p.peeker.Peek().Pos
 
 	var lhs, rhs ast.Node
@@ -198,37 +213,24 @@ func (p *parser) ParseExpression() (ast.Node, error) {
 	// expression or it might just be a standalone term, but
 	// we won't know until we've parsed it and can look ahead
 	// to see if there's an operator token.
-	lhs, err = p.ParseExpressionTerm()
+	lhs, err = p.parseBinaryOps(remaining)
 	if err != nil {
 		return nil, err
 	}
 
 	// We'll keep eating up arithmetic operators until we run
-	// out, so that binary expressions will combine in a manner
-	// that is compatible with the old yacc-based parser:
-	// a+b*c => (a+b)*c, *not* a+(b*c)
+	// out, so that operators with the same precedence will combine in a
+	// left-associative manner:
+	// a+b+c => (a+b)+c, not a+(b+c)
 	//
-	// (perhaps later we'll implement some more intuitive precendence
-	// rules here, but for now being compatible with the old parser
-	// is the goal.)
+	// Should we later want to have right-associative operators, a way
+	// to achieve that would be to call back up to ParseExpression here
+	// instead of iteratively parsing only the remaining operators.
 	for {
 		next := p.peeker.Peek()
-		newOperator := ast.ArithmeticOpInvalid
-
-		switch next.Type {
-		case scanner.PLUS:
-			newOperator = ast.ArithmeticOpAdd
-		case scanner.MINUS:
-			newOperator = ast.ArithmeticOpSub
-		case scanner.STAR:
-			newOperator = ast.ArithmeticOpMul
-		case scanner.SLASH:
-			newOperator = ast.ArithmeticOpDiv
-		case scanner.PERCENT:
-			newOperator = ast.ArithmeticOpMod
-		}
-
-		if newOperator == ast.ArithmeticOpInvalid {
+		var newOperator ast.ArithmeticOp
+		var ok bool
+		if newOperator, ok = thisLevel[next.Type]; !ok {
 			break
 		}
 
@@ -244,7 +246,7 @@ func (p *parser) ParseExpression() (ast.Node, error) {
 
 		operator = newOperator
 		p.peeker.Read() // eat operator token
-		rhs, err = p.ParseExpressionTerm()
+		rhs, err = p.parseBinaryOps(remaining)
 		if err != nil {
 			return nil, err
 		}
