@@ -51,6 +51,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * core: Fix diff mismatch error on "Destroy: true to false" scenarios. [GH-10139]
  * core: New destroy graph `-target` includes dependencies. [GH-10036]
  * core: New destroy graph creates proper edges through module outputs [GH-10068]
  * core: Fix shadow error when using uuid() [GH-10106]
