@@ -30,7 +30,7 @@ type BasicGraphBuilder struct {
 func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 	g := &Graph{Path: path}
 
-	debugName := "build-graph.json"
+	debugName := "graph.json"
 	if b.Name != "" {
 		debugName = b.Name + "-" + debugName
 	}
@@ -125,7 +125,7 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 	basic := &BasicGraphBuilder{
 		Steps:    b.Steps(path),
 		Validate: b.Validate,
-		Name:     "builtin",
+		Name:     "BuiltinGraphBuilder",
 	}
 
 	return basic.Build(path)

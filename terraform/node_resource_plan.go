@@ -101,6 +101,10 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	}
 
 	// Build the graph
-	b := &BasicGraphBuilder{Steps: steps, Validate: true}
+	b := &BasicGraphBuilder{
+		Steps:    steps,
+		Validate: true,
+		Name:     "NodePlannableResource",
+	}
 	return b.Build(ctx.Path())
 }
