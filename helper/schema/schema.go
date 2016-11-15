@@ -925,6 +925,13 @@ func (m schemaMap) diffSet(
 	oldStr := strconv.Itoa(oldLen)
 	newStr := strconv.Itoa(newLen)
 
+	// Build a schema for our count
+	countSchema := &Schema{
+		Type:     TypeInt,
+		Computed: schema.Computed,
+		ForceNew: schema.ForceNew,
+	}
+
 	// If the set computed then say that the # is computed
 	if computedSet || schema.Computed && !nSet {
 		// If # already exists, equals 0 and no new set is supplied, there
@@ -941,22 +948,16 @@ func (m schemaMap) diffSet(
 			countStr = ""
 		}
 
-		diff.Attributes[k+".#"] = &terraform.ResourceAttrDiff{
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
 			Old:         countStr,
 			NewComputed: true,
-		}
+		})
 		return nil
 	}
 
 	// If the counts are not the same, then record that diff
 	changed := oldLen != newLen
 	if changed || all {
-		countSchema := &Schema{
-			Type:     TypeInt,
-			Computed: schema.Computed,
-			ForceNew: schema.ForceNew,
-		}
-
 		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
 			Old: oldStr,
 			New: newStr,

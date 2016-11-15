@@ -2608,6 +2608,49 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		{
+			Name: "Set ForceNew marks count as ForceNew if computed",
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					ForceNew: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.1": "1",
+					"ports.2": "2",
+					"ports.4": "4",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{"${var.foo}", 2, 1},
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old:         "3",
+						New:         "",
+						NewComputed: true,
+						RequiresNew: true,
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
