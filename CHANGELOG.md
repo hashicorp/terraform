@@ -4,7 +4,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * `template_file` _inline_ templates must escape their variable usage. What
       was previously `${foo}` must now be `$${foo}`. Note that this is only
-      for _inline_ templates. Templates read from files are unchanged. [GH-9698]
+      for _inline_ templates. Templates read from files are unchanged. ([#9698](https://github.com/hashicorp/terraform/issues/9698))
  * Escape sequences used to require double-escaping when used within interpolations.
       You now must only escape once (which is the expected/typical behavior).
       For example: `${replace(var.foo, "\\", "\\\\")}` is correct. Before,
@@ -14,26 +14,26 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
- * **New provider:** `nomad` [GH-9538]
- * **New provider:** `vault` [GH-9158]
+ * **New provider:** `nomad` ([#9538](https://github.com/hashicorp/terraform/issues/9538))
+ * **New provider:** `vault` ([#9158](https://github.com/hashicorp/terraform/issues/9158))
  * The `import` command will now read provider configuration from Terraform
-   configuration files (including loading tfvars files and so on). [GH-9809]
+   configuration files (including loading tfvars files and so on). ([#9809](https://github.com/hashicorp/terraform/issues/9809))
  * Providers and resources are now notified by Terraform core to "stop" when
    an interrupt is received, allowing resources to gracefully exit much, much
-   faster. [GH-9607]
+   faster. ([#9607](https://github.com/hashicorp/terraform/issues/9607))
 
 IMPROVEMENTS:
 
   * helper/schema: only map, list, and set elements that are actually causing
-      a resource to destroy/create are marked as "requires new". [GH-9613]
+      a resource to destroy/create are marked as "requires new". ([#9613](https://github.com/hashicorp/terraform/issues/9613))
 
 BUG FIXES:
 
-  * core: Escape sequences in interpolations work in every case. [GH-8709]
-  * core: Maps in outputs with computed values are no longer removed. [GH-9549]
-  * command/fmt: Multiline comments aren't indented every fmt. [GH-6524]
+  * core: Escape sequences in interpolations work in every case. ([#8709](https://github.com/hashicorp/terraform/issues/8709))
+  * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
+  * command/fmt: Multiline comments aren't indented every fmt. ([#6524](https://github.com/hashicorp/terraform/issues/6524))
 
-## 0.7.11 (Unreleased)
+## 0.7.11 (November 15, 2016)
 
 FEATURES:
 
@@ -41,26 +41,26 @@ IMPROVEMENTS:
 
  * provider/aws: Expose RDS DB Instance HostedZoneId attribute ([#10000](https://github.com/hashicorp/terraform/issues/10000))
  * provider/aws: Ignore AWS internal tags ([#7454](https://github.com/hashicorp/terraform/issues/7454))
- * provider/aws: Exposed aws_iam_role create_date attribute [GH-10091]
- * provider/aws: Added aws_api_gateway_api_key created_date & last_updated_date attributes [GH-9530]
- * provider/aws: Added aws_api_gateway_rest_api created_date attribute [GH-9532]
- * provider/aws: Exposed aws_api_gateway_deployment.created_date attribute [GH-9534]
- * provider/aws: Added `retry_duraction` to `redshift_configuration` in `kinesis_firehose_delivery_stream` [GH-10113]
+ * provider/aws: Exposed aws_iam_role create_date attribute ([#10091](https://github.com/hashicorp/terraform/issues/10091))
+ * provider/aws: Added aws_api_gateway_api_key created_date & last_updated_date attributes ([#9530](https://github.com/hashicorp/terraform/issues/9530))
+ * provider/aws: Added aws_api_gateway_rest_api created_date attribute ([#9532](https://github.com/hashicorp/terraform/issues/9532))
+ * provider/aws: Exposed aws_api_gateway_deployment.created_date attribute ([#9534](https://github.com/hashicorp/terraform/issues/9534))
+ * provider/aws: Added `retry_duraction` to `redshift_configuration` in `kinesis_firehose_delivery_stream` ([#10113](https://github.com/hashicorp/terraform/issues/10113))
  * provider/azurerm: allow updating load balancer sub-resources ([#10016](https://github.com/hashicorp/terraform/issues/10016))
  * provider/openstack: Instance `user_data` will now detect if input is already Base64-encode ([#9966](https://github.com/hashicorp/terraform/issues/9966))
 
 BUG FIXES:
 
- * core: Fix diff mismatch error on "Destroy: true to false" scenarios. [GH-10139]
- * core: New destroy graph `-target` includes dependencies. [GH-10036]
- * core: New destroy graph creates proper edges through module outputs [GH-10068]
- * core: Fix shadow error when using uuid() [GH-10106]
- * core: Fix an issue where applies with data sources could hang [GH-10134]
- * core: Fix plan operation diff mismatch for computed keys in slices [GH-10118]
- * provider/aws: fix the validation of aws_redshift_cluster database_name [GH-10019]
- * provider/aws: Fix panic in aws_acm_certificate datasource [GH-10051]
- * provider/aws: increase aws_lambda_function timeout [GH-10116]
- * provider/aws: Fixed ES buffering_interval option in `kinesis_firehose_delivery_stream` [GH-10112]
+ * core: Fix diff mismatch error on "Destroy: true to false" scenarios. ([#10139](https://github.com/hashicorp/terraform/issues/10139))
+ * core: New destroy graph `-target` includes dependencies. ([#10036](https://github.com/hashicorp/terraform/issues/10036))
+ * core: New destroy graph creates proper edges through module outputs ([#10068](https://github.com/hashicorp/terraform/issues/10068))
+ * core: Fix shadow error when using uuid() ([#10106](https://github.com/hashicorp/terraform/issues/10106))
+ * core: Fix an issue where applies with data sources could hang ([#10134](https://github.com/hashicorp/terraform/issues/10134))
+ * core: Fix plan operation diff mismatch for computed keys in slices ([#10118](https://github.com/hashicorp/terraform/issues/10118))
+ * provider/aws: fix the validation of aws_redshift_cluster database_name ([#10019](https://github.com/hashicorp/terraform/issues/10019))
+ * provider/aws: Fix panic in aws_acm_certificate datasource ([#10051](https://github.com/hashicorp/terraform/issues/10051))
+ * provider/aws: increase aws_lambda_function timeout ([#10116](https://github.com/hashicorp/terraform/issues/10116))
+ * provider/aws: Fixed ES buffering_interval option in `kinesis_firehose_delivery_stream` ([#10112](https://github.com/hashicorp/terraform/issues/10112))
 
 ## 0.7.10 (November 9, 2016)
 
