@@ -1,9 +1,7 @@
 package ns1
 
 import (
-	"fmt"
 	"log"
-	"regexp"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -33,23 +31,16 @@ func recordResource() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"type": &schema.Schema{
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateRRType,
+			},
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-			},
-			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(string)
-					if !regexp.MustCompile(`^(A|AAAA|ALIAS|AFSDB|CNAME|DNAME|HINFO|MX|NAPTR|NS|PTR|RP|SPF|SRV|TXT)$`).MatchString(value) {
-						es = append(es, fmt.Errorf(
-							"only A, AAAA, ALIAS, AFSDB, CNAME, DNAME, HINFO, MX, NAPTR, NS, PTR, RP, SPF, SRV, TXT allowed in %q", k))
-					}
-					return
-				},
 			},
 			"link": &schema.Schema{
 				Type:          schema.TypeString,

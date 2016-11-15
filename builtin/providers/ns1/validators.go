@@ -3,7 +3,17 @@ package ns1
 import (
 	"fmt"
 	"net"
+	"regexp"
 )
+
+func validateRRType(v interface{}, k string) (ws []string, es []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^(A|AAAA|ALIAS|AFSDB|CNAME|DNAME|HINFO|MX|NAPTR|NS|PTR|RP|SPF|SRV|TXT)$`).MatchString(value) {
+		es = append(es, fmt.Errorf(
+			"only A, AAAA, ALIAS, AFSDB, CNAME, DNAME, HINFO, MX, NAPTR, NS, PTR, RP, SPF, SRV, TXT allowed in %q", k))
+	}
+	return
+}
 
 func validateJob(v interface{}, k string) (ws []string, es []error) {
 	t := v.(string)
