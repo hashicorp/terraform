@@ -14,30 +14,47 @@ Provides an AutoScaling Group resource.
 
 ```
 resource "aws_placement_group" "test" {
-  name = "test"
+  name     = "test"
   strategy = "cluster"
 }
 
 resource "aws_autoscaling_group" "bar" {
-  availability_zones = ["us-east-1a"]
-  name = "foobar3-terraform-test"
-  max_size = 5
-  min_size = 2
+  availability_zones        = ["us-east-1a"]
+  name                      = "foobar3-terraform-test"
+  max_size                  = 5
+  min_size                  = 2
   health_check_grace_period = 300
-  health_check_type = "ELB"
-  desired_capacity = 4
-  force_delete = true
-  placement_group = "${aws_placement_group.test.id}"
-  launch_configuration = "${aws_launch_configuration.foobar.name}"
+  health_check_type         = "ELB"
+  desired_capacity          = 4
+  force_delete              = true
+  placement_group           = "${aws_placement_group.test.id}"
+  launch_configuration      = "${aws_launch_configuration.foobar.name}"
+
+  initial_lifecycle_hook {
+    name                   = "foobar"
+    default_result         = "CONTINUE"
+    heartbeat_timeout      = 2000
+    lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
+
+    notification_metadata = <<EOF
+{
+  "foo": "bar"
+}
+EOF
+
+    notification_target_arn = "arn:aws:sqs:us-east-1:444455556666:queue1*"
+    role_arn                = "arn:aws:iam::123456789012:role/S3Access"
+  }
 
   tag {
-    key = "foo"
-    value = "bar"
+    key                 = "foo"
+    value               = "bar"
     propagate_at_launch = true
   }
+
   tag {
-    key = "lorem"
-    value = "ipsum"
+    key                 = "lorem"
+    value               = "ipsum"
     propagate_at_launch = false
   }
 }
@@ -54,6 +71,12 @@ The following arguments are supported:
 * `availability_zones` - (Optional) A list of AZs to launch resources in.
    Required only if you do not specify any `vpc_zone_identifier`
 * `launch_configuration` - (Required) The name of the launch configuration to use.
+* `initial_lifecycle_hook` - (Optional) One or more
+  [Lifecycle Hooks](http://docs.aws.amazon.com/autoscaling/latest/userguide/lifecycle-hooks.html)
+  to attach to the autoscaling group **before** instances are launched. The
+  syntax is exactly the same as the separate
+  [`aws_autoscaling_lifecycle_hook`](/docs/providers/aws/r/autoscaling_lifecycle_hooks.html)
+  resource, without the `autoscaling_group_name` attribute.
 * `health_check_grace_period` - (Optional, Default: 300) Time (in seconds) after instance comes into service before checking health.
 * `health_check_type` - (Optional) "EC2" or "ELB". Controls how health checking is done.
 * `desired_capacity` - (Optional) The number of Amazon EC2 instances that
@@ -120,7 +143,18 @@ The following attributes are exported:
 * `target_group_arns` (Optional) list of Target Group ARNs that apply to this
 AutoScaling Group
 
-~> **NOTE:** When using `ELB` as the health_check_type, `health_check_grace_period` is required.
+~> **NOTE:** When using `ELB` as the `health_check_type`, `health_check_grace_period` is required.
+
+~> **NOTE:** Terraform has two types of ways you can add lifecycle hooks - via
+the `initial_lifecycle_hook` attribute from this resource, or via the separate
+[`aws_autoscaling_lifecycle_hook`](/docs/providers/aws/r/autoscaling_lifecycle_hooks.html)
+resource. `initial_lifecycle_hook` exists here because any lifecycle hooks
+added with `aws_autoscaling_lifecycle_hook` will not be added until the
+autoscaling group has been created, and depending on your
+[capacity](#waiting-for-capacity) settings, after the initial instances have
+been launched, creating unintended behavior. If you need hooks to run on all
+instances, add them with `initial_lifecycle_hook` here, but take
+care to not duplicate these hooks in `aws_autoscaling_lifecycle_hook`.
 
 ## Waiting for Capacity
 
