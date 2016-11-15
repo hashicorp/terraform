@@ -207,6 +207,77 @@ func TestGraphJSON_debugInfo(t *testing.T) {
 	}
 }
 
+// Verify that debug operations appear in the debug output
+func TestGraphJSON_debugOperations(t *testing.T) {
+	var g Graph
+	var buf bytes.Buffer
+	g.SetDebugWriter(&buf)
+
+	debugOp := g.DebugOperation("AddOne", "adding node 1")
+	g.Add(1)
+	debugOp.End("done adding node 1")
+
+	// use an immediate closure to test defers
+	func() {
+		defer g.DebugOperation("AddTwo", "adding nodes 2 and 3").End("done adding 2 and 3")
+		g.Add(2)
+		defer g.DebugOperation("NestedAddThree", "second defer").End("done adding node 3")
+		g.Add(3)
+	}()
+
+	g.Connect(BasicEdge(1, 2))
+
+	dec := json.NewDecoder(bytes.NewReader(buf.Bytes()))
+
+	var ops []string
+	for dec.More() {
+		var d streamDecode
+
+		err := dec.Decode(&d)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if d.Type != "Operation" {
+			continue
+		}
+
+		o := &marshalOperation{}
+		err = json.Unmarshal(d.JSON, o)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		switch {
+		case o.Begin == "AddOne":
+			ops = append(ops, "BeginAddOne")
+		case o.End == "AddOne":
+			ops = append(ops, "EndAddOne")
+		case o.Begin == "AddTwo":
+			ops = append(ops, "BeginAddTwo")
+		case o.End == "AddTwo":
+			ops = append(ops, "EndAddTwo")
+		case o.Begin == "NestedAddThree":
+			ops = append(ops, "BeginAddThree")
+		case o.End == "NestedAddThree":
+			ops = append(ops, "EndAddThree")
+		}
+	}
+
+	expectedOps := []string{
+		"BeginAddOne",
+		"EndAddOne",
+		"BeginAddTwo",
+		"BeginAddThree",
+		"EndAddThree",
+		"EndAddTwo",
+	}
+
+	if strings.Join(ops, ",") != strings.Join(expectedOps, ",") {
+		t.Fatalf("incorrect order of operations: %v", ops)
+	}
+}
+
 const testGraphJSONEmptyStr = `{
   "Type": "Graph",
   "Name": "root",

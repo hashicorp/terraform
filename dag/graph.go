@@ -139,7 +139,7 @@ func (g *Graph) Replace(original, replacement Vertex) bool {
 		return false
 	}
 
-	defer g.debug.BeginReplace().End()
+	defer g.debug.BeginOperation("Replace", "").End("")
 
 	// If they're the same, then don't do anything
 	if original == replacement {
@@ -355,6 +355,21 @@ func (g *Graph) DebugVertexInfo(v Vertex, info string) {
 func (g *Graph) DebugEdgeInfo(e Edge, info string) {
 	ea := newEdgeDebugInfo(e, info)
 	g.debug.Encode(ea)
+}
+
+// DebugOperation marks the start of a set of graph transformations in
+// the debug log, and returns a DebugOperationEnd func, which marks the end of
+// the operation in the log. Additional information can be added to the log via
+// the info parameter.
+//
+// The returned func's End method allows this method to be called from a single
+// defer statement:
+//     defer g.DebugOperationBegin("OpName", "operating").End("")
+//
+// The returned function must be called to properly close the logical operation
+// in the logs.
+func (g *Graph) DebugOperation(operation string, info string) DebugOperationEnd {
+	return g.debug.BeginOperation(operation, info)
 }
 
 // VertexName returns the name of a vertex.
