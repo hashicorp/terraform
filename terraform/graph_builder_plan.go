@@ -38,7 +38,7 @@ func (b *PlanGraphBuilder) Build(path []string) (*Graph, error) {
 	return (&BasicGraphBuilder{
 		Steps:    b.Steps(),
 		Validate: true,
-		Name:     "plan",
+		Name:     "PlanGraphBuilder",
 	}).Build(path)
 }
 
