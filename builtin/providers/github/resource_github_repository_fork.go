@@ -13,7 +13,8 @@ func resourceGithubRepositoryFork() *schema.Resource {
 		Delete: resourceGithubRepositoryForkDelete,
 
 		Schema: map[string]*schema.Schema{
-			"username": &schema.Schema{
+			// owner specifies the owner of the repository
+			"owner": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -23,9 +24,9 @@ func resourceGithubRepositoryFork() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			// option specifies the optional parameters to the
-			// The organization to fork the repositories into.
-			"options": &schema.Schema{
+			// organization specifies the optional parameter to fork the
+			// repository into the organization
+			"organization": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -34,39 +35,21 @@ func resourceGithubRepositoryFork() *schema.Resource {
 	}
 }
 
-// interfaceToStringSlice function is created to support
-// forking multi repository at a time
-func interfaceToStringSlice(s interface{}) []string {
-	slice, ok := s.([]interface{})
-	if !ok {
-		return nil
-	}
+func ForkGithub() {
 
-	sslice := make([]string, len(slice))
-	for i := range slice {
-		sslice[i] = slice[i].(string)
-	}
-
-	return sslice
 }
 
 func resourceGithubRepositoryForkCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
-	u := d.Get("username").(string)
+	client := meta.(*Organization)
+	o := d.Get("owner").(string)
 	r := d.Get("repository").(string)
-	p := d.Get("option").(string)
+	p := d.Get("organization").(string)
 
-	var opt *github.RepositoryCreateForkOptions
-	if p != "" {
-		opt = &github.RepositoryCreateForkOptions{Organization: p}
-	}
-
-	_, _, err := client.Repositories.CreateFork(meta.(*Organization).name, r, opt)
-	if err != nil {
+	if err := client.Fork(o, r, p); err != nil {
 		return err
 	}
 
-	d.SetId(buildTwoPartID(&r, &u))
+	d.SetId(buildTwoPartID(&r, &o))
 
 	return resourceGithubRepositoryForkRead(d, meta)
 }
@@ -93,10 +76,10 @@ func resourceGithubRepositoryForkRead(d *schema.ResourceData, meta interface{}) 
 
 func resourceGithubRepositoryForkDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	u := d.Get("username").(string)
+	o := d.Get("owner").(string)
 	r := d.Get("repository").(string)
 
-	_, err := client.Repositories.Delete(u, r)
+	_, err := client.Repositories.Delete(o, r)
 
 	return err
 }

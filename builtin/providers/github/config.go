@@ -37,3 +37,17 @@ func (c *Config) Client() (interface{}, error) {
 	}
 	return &org, nil
 }
+
+func (o *Organization) Fork(owner, repository, organization string) error {
+	var opt *github.RepositoryCreateForkOptions
+	if organization != "" {
+		opt = &github.RepositoryCreateForkOptions{Organization: organization}
+	}
+
+	_, _, err := o.client.Repositories.CreateFork(owner, repository, opt)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
