@@ -81,6 +81,7 @@ func resourceIcinga2HostRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.SetId(hostname)
 	return nil
 }
 
