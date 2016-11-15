@@ -320,7 +320,7 @@ func TestRawConfig_sliceIndexLoss(t *testing.T) {
 	vars := map[string]ast.Variable{
 		"var.unknown": ast.Variable{
 			Value: UnknownVariableValue,
-			Type:  ast.TypeUnknown,
+			Type:  ast.TypeString,
 		},
 		"var.known": ast.Variable{
 			Value: "123456",

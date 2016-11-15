@@ -2493,8 +2493,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		{
-			Name: "Set ForceNew marks count as ForceNew if computed",
+		"Set ForceNew marks count as ForceNew if computed": {
 			Schema: map[string]*Schema{
 				"ports": &Schema{
 					Type:     TypeSet,
