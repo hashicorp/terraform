@@ -79,6 +79,12 @@ BUG FIXES:
   * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
   * command/fmt: Multiline comments aren't indented every fmt. ([#6524](https://github.com/hashicorp/terraform/issues/6524))
 
+## 0.7.12 (Unreleased)
+
+BUG FIXES:
+
+  * provider/aws: Fixed issue with `enable_dns_support` on creation in `aws_vpc` [GH-10171]
+
 ## 0.7.11 (November 15, 2016)
 
 FEATURES:
