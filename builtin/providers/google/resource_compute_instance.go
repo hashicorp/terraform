@@ -111,10 +111,9 @@ func resourceComputeInstance() *schema.Resource {
 			},
 
 			"metadata": &schema.Schema{
-				Type:         schema.TypeMap,
-				Optional:     true,
-				Elem:         schema.TypeString,
-				ValidateFunc: validateInstanceMetadata,
+				Type:     schema.TypeMap,
+				Optional: true,
+				Elem:     schema.TypeString,
 			},
 
 			"metadata_startup_script": &schema.Schema{
@@ -996,13 +995,4 @@ func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
 	}
 
 	return tags
-}
-
-func validateInstanceMetadata(v interface{}, k string) (ws []string, es []error) {
-	mdMap := v.(map[string]interface{})
-	if _, ok := mdMap["startup-script"]; ok {
-		es = append(es, fmt.Errorf(
-			"Use metadata_startup_script instead of a startup-script key in %q.", k))
-	}
-	return
 }
