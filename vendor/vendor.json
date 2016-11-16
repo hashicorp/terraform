@@ -2243,6 +2243,12 @@
 			"revisionTime": "2016-03-24T17:48:31Z"
 		},
 		{
+			"checksumSHA1": "7gf/zxIEscN4L1kwuYIhRmfOcH8=",
+			"path": "google.golang.org/api/monitoring/v3",
+			"revision": "74c274bf66fc9ff1193915913a3370bcc79dba51",
+			"revisionTime": "2016-10-05T23:19:56Z"
+		},
+		{
 			"checksumSHA1": "M7er6A8YuCmllh/cj/fZhHDEb3I=",
 			"path": "google.golang.org/api/pubsub/v1",
 			"revision": "3f131f305a2ae45080e71fdb780128cc92e8745e",
