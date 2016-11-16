@@ -258,41 +258,41 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-  if a, ok := d.GetOk("ebs_volume"); ok {
-    ebsVolume := a.([]interface{})
-    volume    := ebsVolume[0].(map[string]interface{})
+        if a, ok := d.GetOk("ebs_volume"); ok {
+		ebsVolume := a.([]interface{})
+		volume    := ebsVolume[0].(map[string]interface{})
 		instanceConfig["EbsConfiguration"] = map[string]map[string]string{
 			"EbsBlockDeviceConfigs": map[string]map[string]string{
 				"[]*emr.EbsBlockDeviceConfig": map[string]map[string]string{
 					"VolumeSpecification": map[string]map[string]string{
 						"&emr.VolumeSpecification": map[string]string{
 							"SizeInGB":   aws.String(volume["size"].(int),
-					    "VolumeType": aws.String(volume["type"].(string)
-					  }
-				  }
-			  }
-		  }
+							"VolumeType": aws.String(volume["type"].(string)
+						}
+					}
+				}
+			}
 		}
 
-	  if v, ok := attributes["iops"]; ok {
-		  instanceConfig["EbsConfiguration"][
+		if v, ok := attributes["iops"]; ok {
+			instanceConfig["EbsConfiguration"][
 			"EbsBlockDeviceConfigs"][
 			"[]*emr.EbsBlockDeviceConfig"][
 			"VolumeSpecification"][
 			"Iops"] = aws.String(v.(int))
-    }
+		}
 
-    if v, ok := attributes["volumes_per_instance"]; ok {
-		  instanceConfig["EbsConfiguration"][
+		if v, ok := attributes["volumes_per_instance"]; ok {
+			instanceConfig["EbsConfiguration"][
 			"EbsBlockDeviceConfigs"][
 			"[]*emr.EbsBlockDeviceConfig"][
 			"VolumesPerInstance"] = aws.String(v.(int))
-    }
+		}
 
-    if v, ok := attributes["optimized"]; ok {
-  	  instanceConfig["EbsConfiguration"][
+		if v, ok := attributes["optimized"]; ok {
+			instanceConfig["EbsConfiguration"][
 			"EbsOptimized"] = aws.String(v.(bool))
-    }
+		}
 	}
 
 	emrApps := expandApplications(applications)
