@@ -10,8 +10,6 @@ description: |-
 
 Provides an ElastiCache Replication Group resource.
 
-~> **Note:** We currently do not support passing a `primary_cluster_id` in order to create the Replication Group.
-
 ## Example Usage
 
 ```
@@ -26,6 +24,14 @@ resource "aws_elasticache_replication_group" "bar" {
   automatic_failover_enabled    = true
 }
 ```
+
+~> **Note:** We currently do not support passing a `primary_cluster_id` in order to create the Replication Group.
+
+~> **Note:** Automatic Failover is unavailable for Redis versions earlier than 2.8.6, 
+and unavailable on T1 and T2 node types. See the [Amazon Replication with
+Redis](http://docs.aws.amazon.com/en_en/AmazonElastiCache/latest/UserGuide/Replication.html) guide 
+for full details on using Replication Groups.
+
 
 ## Argument Reference
 
