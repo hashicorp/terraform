@@ -135,6 +135,39 @@ func resourceAwsEMRCluster() *schema.Resource {
 					},
 				},
 			},
+			"ebs_volume": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+							Default: 50,
+						},
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Require: true,
+							Default: "standard",
+						},
+						"iops": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"volumes_per_instance": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+							Default: 1,
+						},
+						"optimized": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+							Default: 1,
+						},
+					},
+				},
+			},
 			"tags": tagsSchema(),
 			"configurations": &schema.Schema{
 				Type:     schema.TypeString,
@@ -223,6 +256,43 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 		if v, ok := attributes["service_access_security_group"]; ok {
 			instanceConfig.ServiceAccessSecurityGroup = aws.String(v.(string))
 		}
+	}
+
+  if a, ok := d.GetOk("ebs_volume"); ok {
+    ebsVolume := a.([]interface{})
+    volume    := ebsVolume[0].(map[string]interface{})
+		instanceConfig["EbsConfiguration"] = map[string]map[string]string{
+			"EbsBlockDeviceConfigs": map[string]map[string]string{
+				"[]*emr.EbsBlockDeviceConfig": map[string]map[string]string{
+					"VolumeSpecification": map[string]map[string]string{
+						"&emr.VolumeSpecification": map[string]string{
+							"SizeInGB":   aws.String(volume["size"].(int),
+					    "VolumeType": aws.String(volume["type"].(string)
+					  }
+				  }
+			  }
+		  }
+		}
+
+	  if v, ok := attributes["iops"]; ok {
+		  instanceConfig["EbsConfiguration"][
+			"EbsBlockDeviceConfigs"][
+			"[]*emr.EbsBlockDeviceConfig"][
+			"VolumeSpecification"][
+			"Iops"] = aws.String(v.(int))
+    }
+
+    if v, ok := attributes["volumes_per_instance"]; ok {
+		  instanceConfig["EbsConfiguration"][
+			"EbsBlockDeviceConfigs"][
+			"[]*emr.EbsBlockDeviceConfig"][
+			"VolumesPerInstance"] = aws.String(v.(int))
+    }
+
+    if v, ok := attributes["optimized"]; ok {
+  	  instanceConfig["EbsConfiguration"][
+			"EbsOptimized"] = aws.String(v.(bool))
+    }
 	}
 
 	emrApps := expandApplications(applications)
