@@ -68,6 +68,10 @@ func s3Factory(conf map[string]string) (Client, error) {
 		CredsFilename: conf["shared_credentials_file"],
 		AssumeRoleARN: conf["role_arn"],
 	})
+	if err != nil {
+		return nil, err
+	}
+
 	// Call Get to check for credential provider. If nothing found, we'll get an
 	// error, and we can present it nicely to the user
 	_, err = creds.Get()
