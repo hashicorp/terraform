@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -23,29 +25,43 @@ func dataSourceFile() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"source_content": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"source_file", "source_dir"},
-			},
-			"source_content_filename": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				ConflictsWith: []string{"source_file", "source_dir"},
-			},
 			"source_file": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"source_content", "source_content_filename", "source_dir"},
+				ConflictsWith: []string{"source_content", "source_dir"},
 			},
 			"source_dir": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				ConflictsWith: []string{"source_content", "source_content_filename", "source_file"},
+				ConflictsWith: []string{"source_content", "source_file"},
+			},
+			"source_content": &schema.Schema{
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"source_file", "source_dir"},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"content": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"filename": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["filename"].(string)))
+					return hashcode.String(buf.String())
+				},
 			},
 			"output_path": &schema.Schema{
 				Type:     schema.TypeString,
@@ -125,13 +141,18 @@ func archive(d *schema.ResourceData) error {
 		if err := archiver.ArchiveFile(file.(string)); err != nil {
 			return fmt.Errorf("error archiving file: %s", err)
 		}
-	} else if filename, ok := d.GetOk("source_content_filename"); ok {
-		content := d.Get("source_content").(string)
-		if err := archiver.ArchiveContent([]byte(content), filename.(string)); err != nil {
-			return fmt.Errorf("error archiving content: %s", err)
+	} else if c, ok := d.GetOk("source_content"); ok {
+		cL := c.(*schema.Set).List()
+		for _, c := range cL {
+			sc := c.(map[string]interface{})
+			content := sc["content"].(string)
+			filename := sc["filename"].(string)
+			if err := archiver.ArchiveContent([]byte(content), filename); err != nil {
+				return fmt.Errorf("error archiving content: %s", err)
+			}
 		}
 	} else {
-		return fmt.Errorf("one of 'source_dir', 'source_file', 'source_content_filename' must be specified")
+		return fmt.Errorf("one of 'source_dir', 'source_file', 'source_content' must be specified")
 	}
 	return nil
 }
