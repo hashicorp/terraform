@@ -1,4 +1,4 @@
-## 0.8.0-beta2 (unreleased)
+## 0.8.0-beta2 (November 16, 2016)
 
 BASED ON: 0.7.11 (includes any changes up to that point as well)
 
