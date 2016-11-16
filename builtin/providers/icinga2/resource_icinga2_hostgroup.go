@@ -1,10 +1,8 @@
 package icinga2
 
-/*
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/lrsmith/go-icinga2-api/iapi"
 )
 
 func resourceIcinga2HostGroup() *schema.Resource {
@@ -38,74 +36,50 @@ func resourceIcinga2HostGroup() *schema.Resource {
 
 func resourceIcinga2HostGroupCreate(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*Config)
-	name := d.Get("name").(string)
-	DisplayName := d.Get("display_name").(string)
-	//groups := d.Get("groups").([]interface{})
+	client := meta.(*iapi.Server)
 
-	endpoint := fmt.Sprintf("v1/objects/hostgroups/%s", name)
-	jsonData := []byte(fmt.Sprintf("{ \"attrs\": { \"display_name\":  \"%s\" } }", DisplayName))
+	groupName := d.Get("name").(string)
+	displayName := d.Get("display_name").(string)
 
-	httpCode, httpBody, _ := config.Client("PUT", endpoint, jsonData)
-
-	switch httpCode {
-	case 200:
-		d.SetId(name)
-		return nil
-	case 500:
-		d.SetId(name)
-		return nil
-	default:
-		r := httpBody.(map[string]interface{})["results"].([]interface{})[0].(map[string]interface{})
-		return fmt.Errorf("[CREATE HOSTGROUP] %d : %s", httpCode, r["errors"])
-
+	_, err := client.CreateHostgroup(groupName, displayName)
+	if err != nil {
+		return err
 	}
+
+	d.SetId(groupName)
+	return nil
 
 }
 
 func resourceIcinga2HostGroupRead(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*Config)
-	name := d.Get("name").(string)
+	client := meta.(*iapi.Server)
+	groupName := d.Get("name").(string)
 
-	endpoint := fmt.Sprintf("v1/objects/hostgroups/%s", name)
-
-	httpCode, httpBody, _ := config.Client("GET", endpoint, nil)
-
-	switch httpCode {
-	case 200:
-		attrs := httpBody.(map[string]interface{})["results"].([]interface{})[0].(map[string]interface{})["attrs"].(map[string]interface{})
-		d.Set("name", attrs["name"])
-		d.Set("display_name", attrs["display_name"])
-		return nil
-	case 404:
-		d.SetId("")
-		return nil
-	default:
-		return fmt.Errorf("[READ HOSTGROUPS ] Unexpected HTTP code : %d", httpCode)
+	_, err := client.GetHostgroup(groupName)
+	if err != nil {
+		return err
 	}
 
+	d.SetId(groupName)
+	return nil
+
+}
+
+func resourceIcinga2HostGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	return nil
 }
 
 func resourceIcinga2HostGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
-	config := meta.(*Config)
-	name := d.Get("name").(string)
+	client := meta.(*iapi.Server)
+	groupName := d.Get("name").(string)
 
-	endpoint := fmt.Sprintf("v1/objects/hostgroups/%s", name)
-	httpCode, _, _ := config.Client("DELETE", endpoint, nil)
-
-	switch httpCode {
-	case 200:
-		d.SetId("")
-		return nil
-	case 404:
-		d.SetId("")
-		return nil
-	default:
-		return fmt.Errorf("%d", httpCode)
-
+	err := client.DeleteHostgroup(groupName)
+	if err != nil {
+		return err
 	}
 
+	return nil
+
 }
-*/
