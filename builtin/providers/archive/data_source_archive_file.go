@@ -46,12 +46,12 @@ func dataSourceFile() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"content": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ForceNew: true,
 						},
 						"filename": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 							ForceNew: true,
 						},
 					},
