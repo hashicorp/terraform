@@ -1,5 +1,18 @@
 ## 0.8.0-rc1 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * The chef provider now accepts `key_material` as an alternative to `private_key_pem`. `private_key_pem` will be deprecated in a future release
+
+FEATURES:
+
+
+IMPROVEMENTS:
+ * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file [GH-10105]
+
+
+BUG FIXES:
+
 
 
 ## 0.8.0-beta2 (November 16, 2016)
