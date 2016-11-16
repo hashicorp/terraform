@@ -266,24 +266,32 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 				"[]*emr.EbsBlockDeviceConfig": map[string]map[string]string{
 					"VolumeSpecification": map[string]map[string]string{
 						"&emr.VolumeSpecification": map[string]string{
-							"SizeInGB":   aws.String(volume["size"].(int),
-							"VolumeType": aws.String(volume["type"].(string),
-						}
-					}
-				}
-			}
+							"SizeInGB":   aws.String(volume["size"].(int)),
+							"VolumeType": aws.String(volume["type"].(string)),
+						},
+					},
+				},
+			},
 		}
 
 		if v, ok := attributes["iops"]; ok {
-			instanceConfig["EbsConfiguration"]["EbsBlockDeviceConfigs"]["[]*emr.EbsBlockDeviceConfig"]["VolumeSpecification"]["Iops"] = aws.String(v.(int))
+			instanceConfig["EbsConfiguration"][
+			"EbsBlockDeviceConfigs"][
+			"[]*emr.EbsBlockDeviceConfig"][
+			"VolumeSpecification"][
+			"Iops"] = aws.String(v.(int))
 		}
 
 		if v, ok := attributes["volumes_per_instance"]; ok {
-			instanceConfig["EbsConfiguration"]["EbsBlockDeviceConfigs"]["[]*emr.EbsBlockDeviceConfig"]["VolumesPerInstance"] = aws.String(v.(int))
+			instanceConfig["EbsConfiguration"][
+			"EbsBlockDeviceConfigs"][
+			"[]*emr.EbsBlockDeviceConfig"][
+			"VolumesPerInstance"] = aws.String(v.(int))
 		}
 
 		if v, ok := attributes["optimized"]; ok {
-			instanceConfig["EbsConfiguration"]["EbsOptimized"] = aws.String(v.(bool))
+			instanceConfig["EbsConfiguration"][
+			"EbsOptimized"] = aws.String(v.(bool))
 		}
 	}
 
