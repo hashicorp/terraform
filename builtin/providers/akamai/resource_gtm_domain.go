@@ -66,9 +66,12 @@ func resourceGTMDomainUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 // NOTE: this 403s due to Akamai's permissions policy
-// DomainDelete has been removed from edgegrid.Client
 func resourceGTMDomainDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting domain: %s", d.Id())
+	err := meta.(*Clients).GTM.DomainDelete(d.Get("name").(string))
+	if err != nil {
+		return err
+	}
 
 	d.SetId("")
 
