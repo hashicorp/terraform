@@ -96,7 +96,7 @@ func resourceAwsDirectConnectVirtualInterfaceCreate(d *schema.ResourceData, meta
 	var err error
 	var resp *directconnect.VirtualInterface
 
-	if v, ok := d.GetOk("interface_type"); ok && v == "public" {
+	if v, ok := d.GetOk("interface_type"); ok && v.(string) == "public" {
 
 		createOpts := &directconnect.CreatePublicVirtualInterfaceInput{
 			ConnectionId: aws.String(d.Get("connection_id").(string)),
@@ -104,7 +104,6 @@ func resourceAwsDirectConnectVirtualInterfaceCreate(d *schema.ResourceData, meta
 				Asn:                  aws.Int64(int64(d.Get("asn").(int))),
 				VirtualInterfaceName: aws.String(d.Get("virtual_interface_name").(string)),
 				Vlan:                 aws.Int64(int64(d.Get("vlan").(int))),
-				RouteFilterPrefixes:  []*directconnect.RouteFilterPrefix{},
 			},
 		}
 
@@ -121,6 +120,8 @@ func resourceAwsDirectConnectVirtualInterfaceCreate(d *schema.ResourceData, meta
 		}
 
 		if prefixesSet, ok := d.Get("route_filter_prefixes").(*schema.Set); ok {
+
+			createOpts.NewPublicVirtualInterface.RouteFilterPrefixes = []*directconnect.RouteFilterPrefix{}
 
 			for _, cidr := range prefixesSet.List() {
 				createOpts.NewPublicVirtualInterface.RouteFilterPrefixes = append(createOpts.NewPublicVirtualInterface.RouteFilterPrefixes, &directconnect.RouteFilterPrefix{Cidr: aws.String(cidr.(string))})

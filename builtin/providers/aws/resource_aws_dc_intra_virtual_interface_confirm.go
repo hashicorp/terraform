@@ -85,30 +85,18 @@ func resourceAwsDirectConnectIntraVirtualInterfaceConfirmCreate(d *schema.Resour
 
 	}
 
-	var stateConf *resource.StateChangeConf
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"pending", "down"},
+		Target:     []string{"available"},
+		Refresh:    DirectConnectIntraVirtualInterfaceConfirmRefreshFunc(conn, d.Get("virtual_interface_id").(string)),
+		Timeout:    30 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 10 * time.Second,
+	}
 
 	if v, ok := d.GetOk("allow_down_state"); ok && v.(bool) {
-
-		stateConf = &resource.StateChangeConf{
-			Pending:    []string{"pending"},
-			Target:     []string{"available", "down"},
-			Refresh:    DirectConnectIntraVirtualInterfaceConfirmRefreshFunc(conn, d.Get("virtual_interface_id").(string)),
-			Timeout:    10 * time.Minute,
-			Delay:      10 * time.Second,
-			MinTimeout: 10 * time.Second,
-		}
-
-	} else {
-
-		stateConf = &resource.StateChangeConf{
-			Pending:    []string{"pending", "down"},
-			Target:     []string{"available"},
-			Refresh:    DirectConnectIntraVirtualInterfaceConfirmRefreshFunc(conn, d.Get("virtual_interface_id").(string)),
-			Timeout:    30 * time.Minute,
-			Delay:      10 * time.Second,
-			MinTimeout: 10 * time.Second,
-		}
-
+		stateConf.Target = []string{"available", "down"}
+		stateConf.Pending = []string{"pending"}
 	}
 
 	_, stateErr := stateConf.WaitForState()
@@ -168,17 +156,17 @@ func resourceAwsDirectConnectIntraVirtualInterfaceConfirmRead(d *schema.Resource
 	virtualInterface := resp.VirtualInterfaces[0]
 
 	// Set attributes under the user's control.
-	d.Set("connection_id", *virtualInterface.ConnectionId)
-	d.Set("asn", *virtualInterface.Asn)
-	d.Set("virtual_interface_name", *virtualInterface.VirtualInterfaceName)
-	d.Set("vlan", *virtualInterface.Vlan)
-	d.Set("amazon_address", *virtualInterface.AmazonAddress)
-	d.Set("customer_address", *virtualInterface.CustomerAddress)
+	d.Set("connection_id", virtualInterface.ConnectionId)
+	d.Set("asn", virtualInterface.Asn)
+	d.Set("virtual_interface_name", virtualInterface.VirtualInterfaceName)
+	d.Set("vlan", virtualInterface.Vlan)
+	d.Set("amazon_address", virtualInterface.AmazonAddress)
+	d.Set("customer_address", virtualInterface.CustomerAddress)
 	// d.Set("auth_key", *virtualInterface.AuthKey)
 
 	// Set read only attributes.
 	d.SetId(*virtualInterface.VirtualInterfaceId)
-	d.Set("owner_account_id", *virtualInterface.OwnerAccount)
+	d.Set("owner_account_id", virtualInterface.OwnerAccount)
 
 	return nil
 }

@@ -96,7 +96,7 @@ func resourceAwsDirectConnectIntraVirtualInterfaceCreate(d *schema.ResourceData,
 	var err error
 	var resp *directconnect.VirtualInterface
 
-	if v, ok := d.GetOk("interface_type"); ok && v == "public" {
+	if v, ok := d.GetOk("interface_type"); ok && v.(string) == "public" {
 
 		createOpts := &directconnect.AllocatePublicVirtualInterfaceInput{
 			ConnectionId: aws.String(d.Get("connection_id").(string)),
@@ -229,24 +229,25 @@ func resourceAwsDirectConnectIntraVirtualInterfaceRead(d *schema.ResourceData, m
 
 	}
 
-	if len(resp.VirtualInterfaces) != 1 {
-		return fmt.Errorf("[ERROR] Error finding DirectConnect PrivateVirtualInterface: %s", d.Id())
+	vifsCount := len(resp.VirtualInterfaces)
+
+	if vifsCount != 1 {
+		return fmt.Errorf("[ERROR] Error finding DirectConnect PrivateVirtualInterface or unexpected number of %d VirtualInterfaces was returned: %s", vifsCount, d.Id())
 	}
 
 	virtualInterface := resp.VirtualInterfaces[0]
 
 	// Set attributes under the user's control.
-	d.Set("connection_id", *virtualInterface.ConnectionId)
-	d.Set("asn", *virtualInterface.Asn)
-	d.Set("virtual_interface_name", *virtualInterface.VirtualInterfaceName)
-	d.Set("vlan", *virtualInterface.Vlan)
-	d.Set("amazon_address", *virtualInterface.AmazonAddress)
-	d.Set("customer_address", *virtualInterface.CustomerAddress)
+	d.Set("connection_id", virtualInterface.ConnectionId)
+	d.Set("asn", virtualInterface.Asn)
+	d.Set("virtual_interface_name", virtualInterface.VirtualInterfaceName)
+	d.Set("vlan", virtualInterface.Vlan)
+	d.Set("amazon_address", virtualInterface.AmazonAddress)
+	d.Set("customer_address", virtualInterface.CustomerAddress)
 	// d.Set("auth_key", *virtualInterface.AuthKey)
 
 	// Set read only attributes.
-	d.SetId(*virtualInterface.VirtualInterfaceId)
-	d.Set("owner_account_id", *virtualInterface.OwnerAccount)
+	d.Set("owner_account_id", virtualInterface.OwnerAccount)
 
 	return nil
 }
