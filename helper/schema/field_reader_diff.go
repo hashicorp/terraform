@@ -69,6 +69,12 @@ func (r *DiffFieldReader) readMap(
 		resultSet = true
 	}
 
+	// Determine what element type the map contains, defaulting to string
+	elemType := TypeString
+	if et, ok := schema.Elem.(ValueType); ok {
+		elemType = et
+	}
+
 	// Next, read all the elements we have in our diff, and apply
 	// the diff to our result.
 	prefix := strings.Join(address, ".") + "."
@@ -89,7 +95,20 @@ func (r *DiffFieldReader) readMap(
 			continue
 		}
 
-		result[k] = v.New
+		// Replace the new value with one of the correct Elem type if needed.
+		// We don't supported arbitrarily nested schemas, so we can only handle
+		// the primitive types here.
+		var vNew interface{} = v.New
+		switch elemType {
+		case TypeBool, TypeInt, TypeFloat:
+			v, err := stringToPrimitive(v.New, false, &Schema{Type: elemType})
+			if err != nil {
+				return FieldReadResult{}, err
+			}
+			vNew = v
+		}
+
+		result[k] = vNew
 	}
 
 	var resultVal interface{}

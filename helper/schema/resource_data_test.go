@@ -2983,7 +2983,7 @@ func TestResourceData_nonStringValuesInMap(t *testing.T) {
 					},
 					"boolMap.boolField": &terraform.ResourceAttrDiff{
 						Old: "",
-						New: "1",
+						New: "true",
 					},
 				},
 			},
@@ -2995,7 +2995,7 @@ func TestResourceData_nonStringValuesInMap(t *testing.T) {
 			Schema: map[string]*Schema{
 				"intMap": &Schema{
 					Type:     TypeMap,
-					Elem:     TypeBool,
+					Elem:     TypeInt,
 					Optional: true,
 				},
 			},
