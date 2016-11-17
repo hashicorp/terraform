@@ -144,6 +144,7 @@ func Provider() terraform.ResourceProvider {
 
 		DataSourcesMap: map[string]*schema.Resource{
 			"aws_acm_certificate":          dataSourceAwsAcmCertificate(),
+			"aws_alb_listener":             dataSourceAwsAlbListener(),
 			"aws_ami":                      dataSourceAwsAmi(),
 			"aws_availability_zone":        dataSourceAwsAvailabilityZone(),
 			"aws_availability_zones":       dataSourceAwsAvailabilityZones(),
