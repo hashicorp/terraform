@@ -37,15 +37,15 @@ func testAccAkamaiGTMDataCenterDestroy(s *terraform.State) error {
 		if rs.Type != "akamai_gtm_data_center" {
 			continue
 		}
-		dcId, err := strconv.Atoi(rs.Primary.ID)
+		dcID, err := strconv.Atoi(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
 		// Try to find the data center
-		_, err = client.DataCenter("terraform-test.akadns.net", dcId)
+		_, err = client.DataCenter("terraform-test.akadns.net", dcID)
 
 		if err == nil {
-			fmt.Errorf("Data center still exists")
+			return fmt.Errorf("Data center still exists")
 		}
 	}
 
@@ -56,7 +56,6 @@ func testAccCheckAkamaiGTMDataCenterExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
-			return fmt.Errorf("n is %s", n)
 			return fmt.Errorf("Not found %s", rs)
 		}
 
@@ -65,17 +64,17 @@ func testAccCheckAkamaiGTMDataCenterExists(n string) resource.TestCheckFunc {
 		}
 
 		client := testAccProvider.Meta().(*Clients).GTM
-		dcId, err := strconv.Atoi(rs.Primary.ID)
+		dcID, err := strconv.Atoi(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
-		readDc, err := client.DataCenter("terraform-test.akadns.net", dcId)
+		readDC, err := client.DataCenter("terraform-test.akadns.net", dcID)
 
 		if err != nil {
 			return err
 		}
 
-		if strconv.Itoa(readDc.DataCenterID) != rs.Primary.ID {
+		if strconv.Itoa(readDC.DataCenterID) != rs.Primary.ID {
 			return fmt.Errorf("Record not found")
 		}
 

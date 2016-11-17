@@ -39,7 +39,7 @@ func testAccAkamaiGTMPropertyDestroy(s *terraform.State) error {
 		// Try to find the property
 		_, err := client.Property("terraform-test.akadns.net", name)
 		if err == nil {
-			fmt.Errorf("Property still exists")
+			return fmt.Errorf("Property still exists")
 		}
 	}
 
