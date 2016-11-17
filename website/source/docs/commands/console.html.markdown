@@ -31,8 +31,11 @@ to function.
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
+* `-state=path` - Path to the state file. Defaults to `terraform.tfstate`.
   A state file doesn't need to exist.
+
+You can close the console with the `exit` command or by using Control-C
+or Control-D.
 
 ## Scripting
 
