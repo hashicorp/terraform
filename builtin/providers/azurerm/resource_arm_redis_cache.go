@@ -287,20 +287,20 @@ func resourceArmRedisCacheRead(d *schema.ResourceData, meta interface{}) error {
 			d.Set("port", properties.Port)
 		}
 
-		if properties.Properties != nil {
-			d.Set("enable_non_ssl_port", properties.Properties.EnableNonSslPort)
+		d.Set("enable_non_ssl_port", properties.Properties.EnableNonSslPort)
 
-			d.Set("capacity", properties.Properties.Sku.Capacity)
-			d.Set("family", properties.Properties.Sku.Family)
-			d.Set("sku_name", properties.Properties.Sku.Name)
+		//log.Printf("[INFO] %s", spew.Sdump(properties.Properties.Sku))
 
-			if properties.Properties.ShardCount != nil {
-				d.Set("shard_count", properties.Properties.ShardCount)
-			}
+		d.Set("capacity", properties.Properties.Sku.Capacity)
+		d.Set("family", properties.Properties.Sku.Family)
+		d.Set("sku_name", properties.Properties.Sku.Name)
 
-			// TODO: ensure this parses out the Redis Configuration correctly
-			d.Set("redis_configuration", properties.Properties.RedisConfiguration)
+		if properties.Properties.ShardCount != nil {
+			d.Set("shard_count", properties.Properties.ShardCount)
 		}
+
+		// TODO: ensure this parses out the Redis Configuration correctly
+		d.Set("redis_configuration", properties.Properties.RedisConfiguration)
 	}
 
 	d.Set("primary_access_key", keysResp.PrimaryKey)
