@@ -19,12 +19,12 @@ import (
 // tests work:
 // CHEF_SERVER_URL to the base URL as described above.
 // CHEF_CLIENT_NAME to the name of the client object you created.
-// CHEF_PRIVATE_KEY_FILE to the path to the private key file you created.
+// CHEF_KEY_MATERIAL the key file contents.
 //
 // You will probably need to edit the global permissions on your Chef
 // Server account to allow this client (or all clients, if you're lazy)
 // to have both List and Create access on all types of object:
-//     https://manage.chef.io/organizations/saymedia/global_permissions
+//     https://manage.chef.io/organizations/yourorg/global_permissions
 //
 // With all of that done, you can run like this:
 //    make testacc TEST=./builtin/providers/chef
