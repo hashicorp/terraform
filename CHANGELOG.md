@@ -11,6 +11,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file [GH-10105]
+ * provider/google: Add Service Accounts resource [GH-9946]
 
 BUG FIXES:
 
