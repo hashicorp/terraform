@@ -8,7 +8,7 @@ description: |-
 
 # google\_service\_account
 
-Allows management of a Google Cloud Platform service account.
+Allows management of a [Google Cloud Platform service account](https://cloud.google.com/compute/docs/access/service-accounts)
 
 ## Example Usage
 
@@ -55,9 +55,8 @@ The following arguments are supported:
 
     Changing this updates the policy.
 
-    Deleting this removes the policy, but leaves the original policy
-    intact. If there are overlapping `binding` entries between the original
-    policy and the data source policy, they will be removed.
+    Deleting this removes the policy declared in Terraform. Any policy bindings
+    associated with the project before Terraform was used are not deleted.
 
 ## Attributes Reference
 

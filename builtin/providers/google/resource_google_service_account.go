@@ -178,9 +178,7 @@ func resourceGoogleServiceAccountUpdate(d *schema.ResourceData, meta interface{}
 			newPString = "{}"
 		}
 
-		oldPStringf, _ := json.MarshalIndent(oldPString, "", "   ")
-		newPStringf, _ := json.MarshalIndent(newPString, "", "   ")
-		log.Printf("[DEBUG]: Old policy: %v\nNew policy: %v", string(oldPStringf), string(newPStringf))
+		log.Printf("[DEBUG]: Old policy: %q\nNew policy: %q", string(oldPString), string(newPString))
 
 		var oldPolicy, newPolicy iam.Policy
 		if err = json.Unmarshal([]byte(newPString), &newPolicy); err != nil {

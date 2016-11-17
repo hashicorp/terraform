@@ -9,30 +9,27 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-var (
-	displayName  = "Terraform Test"
-	displayName2 = "Terraform Test Update"
-)
-
 // Test that a service account resource can be created, updated, and destroyed
 func TestAccGoogleServiceAccount_basic(t *testing.T) {
 	accountId := "a" + acctest.RandString(10)
+	displayName := "Terraform Test"
+	displayName2 := "Terraform Test Update"
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			// The first step creates a basic service account
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleServiceAccount_basic, accountId, displayName),
+				Config: testAccGoogleServiceAccountBasic(accountId, displayName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleServiceAccountExists("google_service_account.acceptance"),
 				),
 			},
 			// The second step updates the service account
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleServiceAccount_basic, accountId, displayName2),
+				Config: testAccGoogleServiceAccountBasic(accountId, displayName2),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckGoogleServiceAccountNameModified("google_service_account.acceptance"),
+					testAccCheckGoogleServiceAccountNameModified("google_service_account.acceptance", displayName2),
 				),
 			},
 		},
@@ -43,27 +40,28 @@ func TestAccGoogleServiceAccount_basic(t *testing.T) {
 // and destroyed.
 func TestAccGoogleServiceAccount_createPolicy(t *testing.T) {
 	accountId := "a" + acctest.RandString(10)
+	displayName := "Terraform Test"
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			// The first step creates a basic service account with an IAM policy
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleServiceAccount_policy, accountId, displayName, accountId, projectId),
+				Config: testAccGoogleServiceAccountPolicy(accountId, projectId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleServiceAccountPolicyCount("google_service_account.acceptance", 1),
 				),
 			},
 			// The second step updates the service account with no IAM policy
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleServiceAccount_basic, accountId, displayName),
+				Config: testAccGoogleServiceAccountBasic(accountId, displayName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleServiceAccountPolicyCount("google_service_account.acceptance", 0),
 				),
 			},
 			// The final step re-applies the IAM policy
 			resource.TestStep{
-				Config: fmt.Sprintf(testAccGoogleServiceAccount_policy, accountId, displayName, accountId, projectId),
+				Config: testAccGoogleServiceAccountPolicy(accountId, projectId),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGoogleServiceAccountPolicyCount("google_service_account.acceptance", 1),
 				),
@@ -101,29 +99,32 @@ func testAccCheckGoogleServiceAccountExists(r string) resource.TestCheckFunc {
 	}
 }
 
-func testAccCheckGoogleServiceAccountNameModified(r string) resource.TestCheckFunc {
+func testAccCheckGoogleServiceAccountNameModified(r, n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[r]
 		if !ok {
 			return fmt.Errorf("Not found: %s", r)
 		}
 
-		if rs.Primary.Attributes["display_name"] != displayName2 {
-			return fmt.Errorf("display_name is %q expected %q", rs.Primary.Attributes["display_name"], displayName2)
+		if rs.Primary.Attributes["display_name"] != n {
+			return fmt.Errorf("display_name is %q expected %q", rs.Primary.Attributes["display_name"], n)
 		}
 
 		return nil
 	}
 }
 
-var testAccGoogleServiceAccount_basic = `
-resource "google_service_account" "acceptance" {
+func testAccGoogleServiceAccountBasic(account, name string) string {
+	t := `resource "google_service_account" "acceptance" {
     account_id = "%v"
 	display_name = "%v"
-}`
+ }`
+	return fmt.Sprintf(t, account, name)
+}
 
-var testAccGoogleServiceAccount_policy = `
-resource "google_service_account" "acceptance" {
+func testAccGoogleServiceAccountPolicy(account, name string) string {
+
+	t := `resource "google_service_account" "acceptance" {
     account_id = "%v"
     display_name = "%v"
     policy_data = "${data.google_iam_policy.service_account.policy_data}"
@@ -137,3 +138,6 @@ data "google_iam_policy" "service_account" {
     ]
   }
 }`
+
+	return fmt.Sprintf(t, account, name, account, projectId)
+}
