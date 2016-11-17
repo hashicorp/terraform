@@ -81,9 +81,12 @@ BUG FIXES:
 
 ## 0.7.12 (Unreleased)
 
+IMPROVEMENTS:
+ * provider/aws: Add name_prefix to aws_iam_policy [GH-10178]
+
 BUG FIXES:
 
-  * provider/aws: Fixed issue with `enable_dns_support` on creation in `aws_vpc` [GH-10171]
+ * provider/aws: Fixed issue with `enable_dns_support` on creation in `aws_vpc` [GH-10171]
 
 ## 0.7.11 (November 15, 2016)
 
