@@ -112,6 +112,29 @@ func TestAccInstanceGroupManager_updateLifecycle(t *testing.T) {
 		},
 	})
 }
+
+func TestAccInstanceGroupManager_updateStrategy(t *testing.T) {
+	var manager compute.InstanceGroupManager
+	igm := fmt.Sprintf("igm-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceGroupManagerDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceGroupManager_updateStrategy(igm),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceGroupManagerExists(
+						"google_compute_instance_group_manager.igm-update-strategy", &manager),
+					testAccCheckInstanceGroupManagerUpdateStrategy(
+						"google_compute_instance_group_manager.igm-update-strategy", "NONE"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckInstanceGroupManagerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -264,6 +287,25 @@ func testAccCheckInstanceGroupManagerTemplateTags(n string, tags []string) resou
 			return fmt.Errorf("instance template not updated")
 		}
 
+		return nil
+	}
+}
+
+func testAccCheckInstanceGroupManagerUpdateStrategy(n, strategy string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		if rs.Primary.Attributes["update_strategy"] != strategy {
+			return fmt.Errorf("Expected strategy to be %s, got %s",
+				strategy, rs.Primary.Attributes["update_strategy"])
+		}
 		return nil
 	}
 }
@@ -486,6 +528,47 @@ func testAccInstanceGroupManager_updateLifecycle(tag, igm string) string {
 			port = 8080
 		}
 	}`, tag, igm)
+}
+
+func testAccInstanceGroupManager_updateStrategy(igm string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_instance_template" "igm-update-strategy" {
+		machine_type = "n1-standard-1"
+		can_ip_forward = false
+		tags = ["terraform-testing"]
+
+		disk {
+			source_image = "debian-cloud/debian-8-jessie-v20160803"
+			auto_delete = true
+			boot = true
+		}
+
+		network_interface {
+			network = "default"
+		}
+
+		service_account {
+			scopes = ["userinfo-email", "compute-ro", "storage-ro"]
+		}
+
+		lifecycle {
+			create_before_destroy = true
+		}
+	}
+
+	resource "google_compute_instance_group_manager" "igm-update-strategy" {
+		description = "Terraform test instance group manager"
+		name = "%s"
+		instance_template = "${google_compute_instance_template.igm-update-strategy.self_link}"
+		base_instance_name = "igm-update-strategy"
+		zone = "us-central1-c"
+		target_size = 2
+		update_strategy = "NONE"
+		named_port {
+			name = "customhttp"
+			port = 8080
+		}
+	}`, igm)
 }
 
 func resourceSplitter(resource string) string {
