@@ -748,6 +748,8 @@ func testAccComputeInstance_basic(instance string) string {
 			baz = "qux"
 		}
 
+		create_timeout = 5
+
 		metadata_startup_script = "echo Hello"
 	}`, instance)
 }
