@@ -79,7 +79,7 @@ resource "akamai_gtm_domain" "property_test_domain" {
 	type = "basic"
 }
 
-resource "akamai_gtm_datacenter" "property_test_dc1" {
+resource "akamai_gtm_data_center" "property_test_dc1" {
 	name = "property_test_dc1"
 	domain = "${akamai_gtm_domain.property_test_domain.name}"
 	country = "GB"
@@ -92,7 +92,7 @@ resource "akamai_gtm_datacenter" "property_test_dc1" {
 	]
 }
 
-resource "akamai_gtm_datacenter" "property_test_dc2" {
+resource "akamai_gtm_data_center" "property_test_dc2" {
 	name = "property_test_dc2"
 	domain = "${akamai_gtm_domain.property_test_domain.name}"
 	country = "IS"
@@ -101,7 +101,7 @@ resource "akamai_gtm_datacenter" "property_test_dc2" {
 	longitude = -23.776
 	latitude = 64.808
 	depends_on = [
-		"akamai_gtm_datacenter.property_test_dc1"
+		"akamai_gtm_data_center.property_test_dc1"
 	]
 }
 
@@ -139,9 +139,9 @@ resource "akamai_gtm_property" "test_property" {
   }
 	trafficTarget {
 		enabled = true
-		dataCenterId = "${akamai_gtm_datacenter.property_test_dc1.id}"
+		data_center_id = "${akamai_gtm_data_center.property_test_dc1.id}"
 		weight = 50.0
-		name = "${akamai_gtm_datacenter.property_test_dc1.name}"
+		name = "${akamai_gtm_data_center.property_test_dc1.name}"
 		servers = [
 			"1.2.3.4",
 			"1.2.3.5"
@@ -149,9 +149,9 @@ resource "akamai_gtm_property" "test_property" {
 	}
 	trafficTarget {
 		enabled = true
-		dataCenterId = "${akamai_gtm_datacenter.property_test_dc2.id}"
+		data_center_id = "${akamai_gtm_data_center.property_test_dc2.id}"
 		weight = 50.0
-		name = "${akamai_gtm_datacenter.property_test_dc2.name}"
+		name = "${akamai_gtm_data_center.property_test_dc2.name}"
 		servers = [
 			"1.2.3.6",
 			"1.2.3.7"

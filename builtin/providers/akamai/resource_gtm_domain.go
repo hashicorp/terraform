@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAkamaiGtmDomain() *schema.Resource {
+func resourceAkamaiGTMDomain() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGTMDomainCreate,
 		Read:   resourceGTMDomainRead,

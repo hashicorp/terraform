@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAkamaiGtmDatacenter() *schema.Resource {
+func resourceAkamaiGTMDataCenter() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGTMDatacenterCreate,
 		Read:   resourceGTMDatacenterRead,
@@ -32,7 +32,7 @@ func resourceAkamaiGtmDatacenter() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"state": &schema.Schema{
+			"state_or_province": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},

@@ -46,7 +46,7 @@ resource "akamai_gtm_property" "test_property" {
     }
     traffic_target {
         enabled = true
-        datacenter_id = "123"
+        data_center_id = "123"
         weight = 50.0
         name = "traffic_target1"
         servers = [
@@ -56,7 +56,7 @@ resource "akamai_gtm_property" "test_property" {
     }
     traffic_target {
         enabled = true
-        datacenter_id = "456"
+        data_center_id = "456"
         weight = 50.0
         name = "traffic_target2"
         servers = [
@@ -81,7 +81,7 @@ The following arguments are supported:
 
 * `traffic_target` - (Required) An option for where to direct traffic.
 
-* `handout_mode` - (Required) Relevant when more than one server IP exists in a given datacenter. Specifies the behavior of how IPs are returned when multiple IPs are alive and available. Valid values are `normal`, `persistent`, `one-ip`, `one-ip-hashed`, or `all-live-ips`.
+* `handout_mode` - (Required) Relevant when more than one server IP exists in a given data center. Specifies the behavior of how IPs are returned when multiple IPs are alive and available. Valid values are `normal`, `persistent`, `one-ip`, `one-ip-hashed`, or `all-live-ips`.
 
 * `balance_by_download_score` - (Optional) Enables download score based load balancing.
 
@@ -103,8 +103,8 @@ The following arguments are supported:
 
 * `static_ttl` - (Optional) Specifies the TTL for record types that do not change moment-to-moment.
 
-* `stickiness_bonus_percentage` - (Optional) Used with `stickiness_bonus_constant` to control datacenter affinity. Specifies that a user should not be switched unless the resulting improvement to their score exceeds a configured threshold.
+* `stickiness_bonus_percentage` - (Optional) Used with `stickiness_bonus_constant` to control data center affinity. Specifies that a user should not be switched unless the resulting improvement to their score exceeds a configured threshold.
 
-* `stickiness_bonus_constant` - (Optional) Used with `stickiness_bonus_percentage` to control datacenter affinity. Specifies that a user should not be switched unless the resulting improvement to their score exceeds a configured threshold.
+* `stickiness_bonus_constant` - (Optional) Used with `stickiness_bonus_percentage` to control data center affinity. Specifies that a user should not be switched unless the resulting improvement to their score exceeds a configured threshold.
 
 * `use_computed_targets` - (Optional) Specifies whether GTM should automatically compute target load.

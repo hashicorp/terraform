@@ -34,7 +34,9 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"akamai_gtm_domain": resourceAkamaiGTMDomain(),
+			"akamai_gtm_domain":      resourceAkamaiGTMDomain(),
+			"akamai_gtm_property":    resourceAkamaiGTMProperty(),
+			"akamai_gtm_data_center": resourceAkamaiGTMDataCenter(),
 		},
 
 		ConfigureFunc: providerConfigure,

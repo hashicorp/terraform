@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAkamaiGtmProperty() *schema.Resource {
+func resourceAkamaiGTMProperty() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceGTMPropertyCreate,
 		Read:   resourceGTMPropertyRead,
@@ -174,7 +174,7 @@ func resourceAkamaiGtmProperty() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"datacenter_id": &schema.Schema{
+						"data_center_id": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
 						},
@@ -239,7 +239,7 @@ func resourceGTMPropertyRead(d *schema.ResourceData, meta interface{}) error {
 func resourceGTMPropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	log.Printf("[INFO] Updating GTM property: %s", name)
-	updated, err := meta.(*AkamaiClients).GTM.PropertyCreate(d.Get("domain").(string), property(d))
+	updated, err := meta.(*Clients).GTM.PropertyCreate(d.Get("domain").(string), property(d))
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func resourceGTMPropertyUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceGTMPropertyRead(d, meta)
 }
 
-func resourceGtmPropertyDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGTMPropertyDelete(d *schema.ResourceData, meta interface{}) error {
 	name := d.Get("name").(string)
 	log.Printf("[INFO] Deleting property: %s", name)
 	_, err := meta.(*Clients).GTM.PropertyDelete(d.Get("domain").(string), name)
@@ -298,7 +298,7 @@ func trafficTargets(d *schema.ResourceData) []edgegrid.TrafficTarget {
 			Weight:       d.Get(prefix + ".weight").(float64),
 			Enabled:      d.Get(prefix + ".enabled").(bool),
 			Servers:      stringSetToStringSlice(d.Get(prefix + ".servers").(*schema.Set)),
-			DataCenterID: d.Get(prefix + ".datacenter_id").(int),
+			DataCenterID: d.Get(prefix + ".data_center_id").(int),
 		})
 	}
 

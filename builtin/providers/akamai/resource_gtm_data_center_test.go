@@ -13,46 +13,46 @@ func TestAccAkamaiGtmDatacenterBasic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccAkamaiGtmDatacenterDestroy,
+		CheckDestroy: testAccAkamaiGTMDataCenterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckAkamaiGTMDatacenterConfigBasic,
+				Config: testAccCheckAkamaiGTMDataCenterConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAkamaiGTMDatacenterExists("akamai_gtm_datacenter.test_dc"),
-					resource.TestCheckResourceAttr("akamai_gtm_datacenter.test_dc", "name", "test_dc"),
-					resource.TestCheckResourceAttr("akamai_gtm_datacenter.test_dc", "domain", "terraform-test.akadns.net"),
-					resource.TestCheckResourceAttr("akamai_gtm_datacenter.test_dc", "city", "Downpatrick"),
-					resource.TestCheckResourceAttr("akamai_gtm_datacenter.test_dc", "country", "GB"),
-					resource.TestCheckResourceAttr("akamai_gtm_datacenter.test_dc", "continent", "EU"),
+					testAccCheckAkamaiGTMDataCenterExists("akamai_gtm_data_center.test_dc"),
+					resource.TestCheckResourceAttr("akamai_gtm_data_center.test_dc", "name", "test_dc"),
+					resource.TestCheckResourceAttr("akamai_gtm_data_center.test_dc", "domain", "terraform-test.akadns.net"),
+					resource.TestCheckResourceAttr("akamai_gtm_data_center.test_dc", "city", "Downpatrick"),
+					resource.TestCheckResourceAttr("akamai_gtm_data_center.test_dc", "country", "GB"),
+					resource.TestCheckResourceAttr("akamai_gtm_data_center.test_dc", "continent", "EU"),
 				),
 			},
 		},
 	})
 }
 
-func testAccAkamaiGtmDatacenterDestroy(s *terraform.State) error {
+func testAccAkamaiGTMDataCenterDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*Clients).GTM
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "akamai_gtm_datacenter" {
+		if rs.Type != "akamai_gtm_data_center" {
 			continue
 		}
 		dcId, err := strconv.Atoi(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
-		// Try to find the datacenter
+		// Try to find the data center
 		_, err = client.DataCenter("terraform-test.akadns.net", dcId)
 
 		if err == nil {
-			fmt.Errorf("Datacenter still exists")
+			fmt.Errorf("Data center still exists")
 		}
 	}
 
 	return nil
 }
 
-func testAccCheckAkamaiGTMDatacenterExists(n string) resource.TestCheckFunc {
+func testAccCheckAkamaiGTMDataCenterExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -83,8 +83,8 @@ func testAccCheckAkamaiGTMDatacenterExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccCheckAkamaiGTMDatacenterConfigBasic = `
-resource "akamai_gtm_datacenter" "test_dc" {
+const testAccCheckAkamaiGTMDataCenterConfigBasic = `
+resource "akamai_gtm_data_center" "test_dc" {
   name =  "test_dc"
 	domain = "terraform-test.akadns.net"
 	city = "Downpatrick"
