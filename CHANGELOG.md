@@ -87,6 +87,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * provider/aws: Fixed issue with `enable_dns_support` on creation in `aws_vpc` [GH-10171]
+ * provider/aws: Add CertificateNotFound retry waiter to aws_alb_listener [GH-10180]
 
 ## 0.7.11 (November 15, 2016)
 
