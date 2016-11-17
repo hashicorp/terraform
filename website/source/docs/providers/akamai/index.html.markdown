@@ -72,10 +72,10 @@ resource "akamai_gtm_property" "some_property" {
       test_interval = 60
       disable_nonstandard_port_warning = false
       http_error_4xx = true
-      httpError3xx = true
-      httpError5xx = true
-      testObjectPort = 80
-      testTimeout = 25
+      http_error_3xx = true
+      http_error_5xx = true
+      test_object_port = 80
+      test_timeout = 25
   }
   traffic_target {
       enabled = true

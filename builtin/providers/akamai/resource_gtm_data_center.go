@@ -100,11 +100,11 @@ func resourceGTMDatacenterUpdate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[INFO] Updating GTM Datacenter: %s", d.Id())
 
 	updateBody := dc(d)
-	dcId, err := strconv.Atoi(d.Id())
+	dcID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return err
 	}
-	updateBody.DataCenterID = dcId
+	updateBody.DataCenterID = dcID
 
 	_, err = meta.(*Clients).GTM.DataCenterUpdate(d.Get("domain").(string), updateBody)
 	if err != nil {
@@ -116,11 +116,11 @@ func resourceGTMDatacenterUpdate(d *schema.ResourceData, meta interface{}) error
 
 func resourceGTMDatacenterDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Datacenter: %s", d.Id())
-	dcId, err := strconv.Atoi(d.Id())
+	dcID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return err
 	}
-	err = meta.(*Clients).GTM.DataCenterDelete(d.Get("domain").(string), dcId)
+	err = meta.(*Clients).GTM.DataCenterDelete(d.Get("domain").(string), dcID)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func dc(d *schema.ResourceData) *edgegrid.DataCenter {
 		Nickname:             d.Get("name").(string),
 		City:                 d.Get("city").(string),
 		Country:              d.Get("country").(string),
-		StateOrProvince:      d.Get("state").(string),
+		StateOrProvince:      d.Get("state_or_province").(string),
 		Continent:            d.Get("continent").(string),
 		Latitude:             d.Get("latitude").(float64),
 		Longitude:            d.Get("longitude").(float64),
