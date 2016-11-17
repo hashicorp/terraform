@@ -119,7 +119,7 @@ func dataSourceAwsAlbRead(d *schema.ResourceData, meta interface{}) error {
 		return errwrap.Wrapf("Error retrieving ALB: {{err}}", err)
 	}
 	if len(describeResp.LoadBalancers) != 1 {
-		return fmt.Errorf("Your search returned %d results. Please narrow your search.", len(describeResp.LoadBalancers))
+		return fmt.Errorf("Search returned %d results, please revise so only one is returned", len(describeResp.LoadBalancers))
 	}
 	d.SetId(*describeResp.LoadBalancers[0].LoadBalancerArn)
 

@@ -3,7 +3,7 @@ layout: "aws"
 page_title: "AWS: aws_alb"
 sidebar_current: "docs-aws-datasource-alb"
 description: |-
-  Provides an Application Load Balancer resource.
+  Provides an Application Load Balancer data source.
 ---
 
 # aws\_alb
