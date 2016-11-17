@@ -7,13 +7,20 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
 
-IMPROVEMENTS:
- * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file [GH-10105]
 
+IMPROVEMENTS:
+
+ * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file [GH-10105]
 
 BUG FIXES:
 
 
+
+PLUGIN CHANGES:
+
+ * The protocol version has been incremented, requiring all plugins for
+   0.8 to be built with 0.8 sources (or newer). This should only require
+   a simple recompile for compatibility.
 
 ## 0.8.0-beta2 (November 16, 2016)
 
