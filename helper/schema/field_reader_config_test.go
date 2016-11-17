@@ -35,6 +35,17 @@ func TestConfigFieldReader(t *testing.T) {
 					"foo": "bar",
 					"bar": "baz",
 				},
+				"mapInt": map[string]interface{}{
+					"one": "1",
+					"two": "2",
+				},
+				"mapFloat": map[string]interface{}{
+					"oneDotTwo": "1.2",
+				},
+				"mapBool": map[string]interface{}{
+					"True":  "true",
+					"False": "false",
+				},
 
 				"set": []interface{}{10, 50},
 				"setDeep": []interface{}{
