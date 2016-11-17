@@ -25,6 +25,7 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 			"identifier": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateRdsId,
 			},
