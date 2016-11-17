@@ -30,7 +30,7 @@ resource "aws_instance" "web" {
 }
 ```
 
-## Authentication 
+## Authentication
 
 The AWS provider offers flexible means of providing credentials for
 authentication. The following methods are supported, in this order, and
@@ -69,7 +69,7 @@ provider "aws" {}
 Usage:
 
 ```
-$ export AWS_ACCESS_KEY_ID="anaccesskey" 
+$ export AWS_ACCESS_KEY_ID="anaccesskey"
 $ export AWS_SECRET_ACCESS_KEY="asecretkey"
 $ export AWS_DEFAULT_REGION="us-west-2"
 $ terraform plan
@@ -77,16 +77,17 @@ $ terraform plan
 
 ###Shared Credentials file
 
-You can use an AWS credentials file to specify your credentials. The default
-location is `$HOME/.aws/credentials` on Linux and OSX, or `"%USERPROFILE%\.aws\credentials"` 
-for Windows users. If we fail to detect credentials inline, or in the
-environment, Terraform will check this location. You can optionally specify a
-different location in the configuration by providing `shared_credentials_file`,
-or in the environment with the `AWS_SHARED_CREDENTIALS_FILE` variable. This
-method also supports a `profile` configuration and matching `AWS_PROFILE`
+You can use an AWS credentials file to specify your credentials. The
+default location is `$HOME/.aws/credentials` on Linux and OSX, or
+`"%USERPROFILE%\.aws\credentials"` for Windows users. If we fail to
+detect credentials inline, or in the environment, Terraform will check
+this location. You can optionally specify a different location in the
+configuration by providing `shared_credentials_file`, or in the
+environment with the `AWS_SHARED_CREDENTIALS_FILE` variable. This method
+also supports a `profile` configuration and matching `AWS_PROFILE`
 environment variable:
 
-Usage: 
+Usage:
 
 ```
 provider "aws" {
