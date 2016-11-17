@@ -335,7 +335,7 @@ func getServers(prefix string, d *schema.ResourceData) []string {
 	serversCount := d.Get(fmt.Sprintf("%d.#", serversPrefix)).(int)
 
 	for i := 0; i < serversCount; i++ {
-		serverPrefix := fmt.Sprintf("%d.%s", serversPrefix, i)
+		serverPrefix := fmt.Sprintf("%d.%s", serversPrefix, string(i))
 		servers = append(servers, d.Get(serverPrefix).(string))
 	}
 
