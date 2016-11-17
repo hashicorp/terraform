@@ -32,67 +32,70 @@ func resourceAwsInstance() *schema.Resource {
 		MigrateState:  resourceAwsInstanceMigrateState,
 
 		Schema: map[string]*schema.Schema{
-			"ami": &schema.Schema{
+			"ami": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"associate_public_ip_address": &schema.Schema{
+			"associate_public_ip_address": {
 				Type:     schema.TypeBool,
 				ForceNew: true,
 				Computed: true,
 				Optional: true,
 			},
 
-			"availability_zone": &schema.Schema{
+			"availability_zone": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"placement_group": &schema.Schema{
+			"placement_group": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
 
-			"instance_type": &schema.Schema{
+			"instance_type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"key_name": &schema.Schema{
+			"key_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"subnet_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+			"subnet_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"network_interface_id"},
 			},
 
-			"private_ip": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-				Computed: true,
+			"private_ip": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Computed:      true,
+				ConflictsWith: []string{"network_interface_id"},
 			},
 
-			"source_dest_check": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
+			"source_dest_check": {
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       true,
+				ConflictsWith: []string{"network_interface_id"},
 			},
 
-			"user_data": &schema.Schema{
+			"user_data": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -106,76 +109,81 @@ func resourceAwsInstance() *schema.Resource {
 				},
 			},
 
-			"security_groups": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+			"security_groups": {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Set:           schema.HashString,
+				ConflictsWith: []string{"network_interface_id"},
 			},
 
-			"vpc_security_group_ids": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set:      schema.HashString,
+			"vpc_security_group_ids": {
+				Type:          schema.TypeSet,
+				Optional:      true,
+				Computed:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Set:           schema.HashString,
+				ConflictsWith: []string{"network_interface_id"},
 			},
 
-			"public_dns": &schema.Schema{
+			"public_dns": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"network_interface_id": &schema.Schema{
+			"network_interface_id": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"subnet_id", "security_groups", "vpc_security_group_ids", "private_ip", "source_dest_check"},
+			},
+
+			"public_ip": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"public_ip": &schema.Schema{
+			"instance_state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"instance_state": &schema.Schema{
+			"private_dns": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"private_dns": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"ebs_optimized": &schema.Schema{
+			"ebs_optimized": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"disable_api_termination": &schema.Schema{
+			"disable_api_termination": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"instance_initiated_shutdown_behavior": &schema.Schema{
+			"instance_initiated_shutdown_behavior": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"monitoring": &schema.Schema{
+			"monitoring": {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"iam_instance_profile": &schema.Schema{
+			"iam_instance_profile": {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
 			},
 
-			"tenancy": &schema.Schema{
+			"tenancy": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -184,60 +192,60 @@ func resourceAwsInstance() *schema.Resource {
 
 			"tags": tagsSchema(),
 
-			"block_device": &schema.Schema{
+			"block_device": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Removed:  "Split out into three sub-types; see Changelog and Docs",
 			},
 
-			"ebs_block_device": &schema.Schema{
+			"ebs_block_device": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"delete_on_termination": &schema.Schema{
+						"delete_on_termination": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
 							ForceNew: true,
 						},
 
-						"device_name": &schema.Schema{
+						"device_name": {
 							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 
-						"encrypted": &schema.Schema{
+						"encrypted": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"iops": &schema.Schema{
+						"iops": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"snapshot_id": &schema.Schema{
+						"snapshot_id": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"volume_size": &schema.Schema{
+						"volume_size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"volume_type": &schema.Schema{
+						"volume_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -254,19 +262,19 @@ func resourceAwsInstance() *schema.Resource {
 				},
 			},
 
-			"ephemeral_block_device": &schema.Schema{
+			"ephemeral_block_device": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"device_name": &schema.Schema{
+						"device_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
 
-						"virtual_name": &schema.Schema{
+						"virtual_name": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
@@ -281,7 +289,7 @@ func resourceAwsInstance() *schema.Resource {
 				},
 			},
 
-			"root_block_device": &schema.Schema{
+			"root_block_device": {
 				// TODO: This is a set because we don't support singleton
 				//       sub-resources today. We'll enforce that the set only ever has
 				//       length zero or one below. When TF gains support for
@@ -294,28 +302,28 @@ func resourceAwsInstance() *schema.Resource {
 					// Termination flag on the block device mapping entry for the root
 					// device volume." - bit.ly/ec2bdmap
 					Schema: map[string]*schema.Schema{
-						"delete_on_termination": &schema.Schema{
+						"delete_on_termination": {
 							Type:     schema.TypeBool,
 							Optional: true,
 							Default:  true,
 							ForceNew: true,
 						},
 
-						"iops": &schema.Schema{
+						"iops": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"volume_size": &schema.Schema{
+						"volume_size": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
 						},
 
-						"volume_type": &schema.Schema{
+						"volume_type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
@@ -1047,6 +1055,9 @@ func buildAwsInstanceOpts(
 	subnet, hasSubnet := d.GetOk("subnet_id")
 	subnetID := subnet.(string)
 
+	networkInterface, hasNetworkInterface := d.GetOk("network_interface_id")
+	networkInterfaceID := networkInterface.(string)
+
 	// Placement is used for aws_instance; SpotPlacement is used for
 	// aws_spot_instance_request. They represent the same data. :-|
 	opts.Placement = &ec2.Placement{
@@ -1080,7 +1091,13 @@ func buildAwsInstanceOpts(
 		}
 	}
 
-	if hasSubnet && associatePublicIPAddress {
+	if hasNetworkInterface {
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			DeviceIndex:        aws.Int64(int64(0)),
+			NetworkInterfaceId: aws.String(networkInterfaceID),
+		}
+		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+	} else if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
 		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise

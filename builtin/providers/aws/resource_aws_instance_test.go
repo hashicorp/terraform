@@ -45,7 +45,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
 			// Create a volume to cover #1249
-			resource.TestStep{
+			{
 				// Need a resource in this config so the provisioner will be available
 				Config: testAccInstanceConfig_pre,
 				Check: func(*terraform.State) error {
@@ -59,7 +59,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 				},
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -77,7 +77,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 			// We repeat the exact same test so that we can be sure
 			// that the user data hash stuff is working without generating
 			// an incorrect diff.
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -93,7 +93,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 			},
 
 			// Clean up volume created above
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfig,
 				Check: func(*terraform.State) error {
 					conn := testAccProvider.Meta().(*AWSClient).ec2conn
@@ -134,7 +134,7 @@ func TestAccAWSInstance_GP2IopsDevice(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceGP2IopsDevice,
 				//Config: testAccInstanceConfigBlockDevices,
 				Check: resource.ComposeTestCheckFunc(
@@ -199,7 +199,7 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigBlockDevices,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -267,7 +267,7 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigSourceDestDisable,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -275,7 +275,7 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigSourceDestEnable,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -283,7 +283,7 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigSourceDestDisable,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -321,7 +321,7 @@ func TestAccAWSInstance_disableApiTermination(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigDisableAPITermination(true),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -329,7 +329,7 @@ func TestAccAWSInstance_disableApiTermination(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigDisableAPITermination(false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -350,7 +350,7 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigVPC,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -384,7 +384,7 @@ func TestAccAWSInstance_multipleRegions(t *testing.T) {
 		ProviderFactories: providerFactories,
 		CheckDestroy:      testAccCheckInstanceDestroyWithProviders(&providers),
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigMultipleRegions,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExistsWithProviders(
@@ -407,7 +407,7 @@ func TestAccAWSInstance_NetworkInstanceSecurityGroups(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceNetworkInstanceSecurityGroups,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -427,7 +427,7 @@ func TestAccAWSInstance_NetworkInstanceVPCSecurityGroupIDs(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceNetworkInstanceVPCSecurityGroupIDs,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
@@ -450,7 +450,7 @@ func TestAccAWSInstance_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckInstanceConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -460,7 +460,7 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccCheckInstanceConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -491,7 +491,7 @@ func TestAccAWSInstance_privateIP(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigPrivateIP,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -522,7 +522,7 @@ func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigAssociatePublicIPAndPrivateIP,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -558,7 +558,7 @@ func TestAccAWSInstance_keyPairCheck(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigKeyPair,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -577,7 +577,7 @@ func TestAccAWSInstance_rootBlockDeviceMismatch(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigRootBlockDeviceMismatch,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -607,7 +607,7 @@ func TestAccAWSInstance_forceNewAndTagsDrift(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigForceNewAndTagsDrift,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -615,7 +615,7 @@ func TestAccAWSInstance_forceNewAndTagsDrift(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
-			resource.TestStep{
+			{
 				Config: testAccInstanceConfigForceNewAndTagsDrift_Update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
@@ -752,259 +752,259 @@ func driftTags(instance *ec2.Instance) resource.TestCheckFunc {
 
 const testAccInstanceConfig_pre = `
 resource "aws_security_group" "tf_test_foo" {
-	name = "tf_test_foo"
-	description = "foo"
+  name = "tf_test_foo"
+  description = "foo"
 
-	ingress {
-		protocol = "icmp"
-		from_port = -1
-		to_port = -1
-		cidr_blocks = ["0.0.0.0/0"]
-	}
+  ingress {
+    protocol = "icmp"
+    from_port = -1
+    to_port = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 `
 
 const testAccInstanceConfig = `
 resource "aws_security_group" "tf_test_foo" {
-	name = "tf_test_foo"
-	description = "foo"
+  name = "tf_test_foo"
+  description = "foo"
 
-	ingress {
-		protocol = "icmp"
-		from_port = -1
-		to_port = -1
-		cidr_blocks = ["0.0.0.0/0"]
-	}
+  ingress {
+    protocol = "icmp"
+    from_port = -1
+    to_port = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_instance" "foo" {
-	# us-west-2
-	ami = "ami-4fccb37f"
-	availability_zone = "us-west-2a"
+  # us-west-2
+  ami = "ami-4fccb37f"
+  availability_zone = "us-west-2a"
 
-	instance_type = "m1.small"
-	security_groups = ["${aws_security_group.tf_test_foo.name}"]
-	user_data = "foo:-with-character's"
+  instance_type = "m1.small"
+  security_groups = ["${aws_security_group.tf_test_foo.name}"]
+  user_data = "foo:-with-character's"
 }
 `
 
 const testAccInstanceGP2IopsDevice = `
 resource "aws_instance" "foo" {
-	# us-west-2
-	ami = "ami-55a7ea65"
+  # us-west-2
+  ami = "ami-55a7ea65"
 
-	# In order to attach an encrypted volume to an instance you need to have an
-	# m3.medium or larger. See "Supported Instance Types" in:
-	# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
-	instance_type = "m3.medium"
+  # In order to attach an encrypted volume to an instance you need to have an
+  # m3.medium or larger. See "Supported Instance Types" in:
+  # http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
+  instance_type = "m3.medium"
 
-	root_block_device {
-		volume_type = "gp2"
-		volume_size = 11
-		iops = 330
-	}
+  root_block_device {
+    volume_type = "gp2"
+    volume_size = 11
+    iops = 330
+  }
 }
 `
 
 const testAccInstanceConfigBlockDevices = `
 resource "aws_instance" "foo" {
-	# us-west-2
-	ami = "ami-55a7ea65"
+  # us-west-2
+  ami = "ami-55a7ea65"
 
-	# In order to attach an encrypted volume to an instance you need to have an
-	# m3.medium or larger. See "Supported Instance Types" in:
-	# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
-	instance_type = "m3.medium"
+  # In order to attach an encrypted volume to an instance you need to have an
+  # m3.medium or larger. See "Supported Instance Types" in:
+  # http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
+  instance_type = "m3.medium"
 
-	root_block_device {
-		volume_type = "gp2"
-		volume_size = 11
-	}
-	ebs_block_device {
-		device_name = "/dev/sdb"
-		volume_size = 9
-	}
-	ebs_block_device {
-		device_name = "/dev/sdc"
-		volume_size = 10
-		volume_type = "io1"
-		iops = 100
-	}
+  root_block_device {
+    volume_type = "gp2"
+    volume_size = 11
+  }
+  ebs_block_device {
+    device_name = "/dev/sdb"
+    volume_size = 9
+  }
+  ebs_block_device {
+    device_name = "/dev/sdc"
+    volume_size = 10
+    volume_type = "io1"
+    iops = 100
+  }
 
-	# Encrypted ebs block device
-	ebs_block_device {
-		device_name = "/dev/sdd"
-		volume_size = 12
-		encrypted = true
-	}
+  # Encrypted ebs block device
+  ebs_block_device {
+    device_name = "/dev/sdd"
+    volume_size = 12
+    encrypted = true
+  }
 
-	ephemeral_block_device {
-		device_name = "/dev/sde"
-		virtual_name = "ephemeral0"
-	}
+  ephemeral_block_device {
+    device_name = "/dev/sde"
+    virtual_name = "ephemeral0"
+  }
 }
 `
 
 const testAccInstanceConfigSourceDestEnable = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
 }
 
 resource "aws_instance" "foo" {
-	# us-west-2
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
-	subnet_id = "${aws_subnet.foo.id}"
+  # us-west-2
+  ami = "ami-4fccb37f"
+  instance_type = "m1.small"
+  subnet_id = "${aws_subnet.foo.id}"
 }
 `
 
 const testAccInstanceConfigSourceDestDisable = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
 }
 
 resource "aws_instance" "foo" {
-	# us-west-2
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
-	subnet_id = "${aws_subnet.foo.id}"
-	source_dest_check = false
+  # us-west-2
+  ami = "ami-4fccb37f"
+  instance_type = "m1.small"
+  subnet_id = "${aws_subnet.foo.id}"
+  source_dest_check = false
 }
 `
 
 func testAccInstanceConfigDisableAPITermination(val bool) string {
 	return fmt.Sprintf(`
-	resource "aws_vpc" "foo" {
-		cidr_block = "10.1.0.0/16"
-	}
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+}
 
-	resource "aws_subnet" "foo" {
-		cidr_block = "10.1.1.0/24"
-		vpc_id = "${aws_vpc.foo.id}"
-	}
+resource "aws_subnet" "foo" {
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
+}
 
-	resource "aws_instance" "foo" {
-		# us-west-2
-		ami = "ami-4fccb37f"
-		instance_type = "m1.small"
-		subnet_id = "${aws_subnet.foo.id}"
-		disable_api_termination = %t
-	}
-	`, val)
+resource "aws_instance" "foo" {
+  # us-west-2
+  ami = "ami-4fccb37f"
+  instance_type = "m1.small"
+  subnet_id = "${aws_subnet.foo.id}"
+  disable_api_termination = %t
+}
+  `, val)
 }
 
 const testAccInstanceConfigVPC = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
 }
 
 resource "aws_instance" "foo" {
-	# us-west-2
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
-	subnet_id = "${aws_subnet.foo.id}"
-	associate_public_ip_address = true
-	tenancy = "dedicated"
-	# pre-encoded base64 data
-	user_data = "3dc39dda39be1205215e776bad998da361a5955d"
+  # us-west-2
+  ami = "ami-4fccb37f"
+  instance_type = "m1.small"
+  subnet_id = "${aws_subnet.foo.id}"
+  associate_public_ip_address = true
+  tenancy = "dedicated"
+  # pre-encoded base64 data
+  user_data = "3dc39dda39be1205215e776bad998da361a5955d"
 }
 `
 
 const testAccInstanceConfigMultipleRegions = `
 provider "aws" {
-	alias = "west"
-	region = "us-west-2"
+  alias = "west"
+  region = "us-west-2"
 }
 
 provider "aws" {
-	alias = "east"
-	region = "us-east-1"
+  alias = "east"
+  region = "us-east-1"
 }
 
 resource "aws_instance" "foo" {
-	# us-west-2
-	provider = "aws.west"
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
+  # us-west-2
+  provider = "aws.west"
+  ami = "ami-4fccb37f"
+  instance_type = "m1.small"
 }
 
 resource "aws_instance" "bar" {
-	# us-east-1
-	provider = "aws.east"
-	ami = "ami-8c6ea9e4"
-	instance_type = "m1.small"
+  # us-east-1
+  provider = "aws.east"
+  ami = "ami-8c6ea9e4"
+  instance_type = "m1.small"
 }
 `
 
 const testAccCheckInstanceConfigTags = `
 resource "aws_instance" "foo" {
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
-	tags {
-		foo = "bar"
-	}
+  ami = "ami-4fccb37f"
+  instance_type = "m1.small"
+  tags {
+   foo = "bar"
+  }
 }
 `
 
 const testAccCheckInstanceConfigTagsUpdate = `
 resource "aws_instance" "foo" {
-	ami = "ami-4fccb37f"
-	instance_type = "m1.small"
-	tags {
-		bar = "baz"
-	}
+  ami = "ami-4fccb37f"
+  instance_type = "m1.small"
+  tags {
+   bar = "baz"
+  }
 }
 `
 
 const testAccInstanceConfigPrivateIP = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
 }
 
 resource "aws_instance" "foo" {
-	ami = "ami-c5eabbf5"
-	instance_type = "t2.micro"
-	subnet_id = "${aws_subnet.foo.id}"
-	private_ip = "10.1.1.42"
+  ami = "ami-c5eabbf5"
+  instance_type = "t2.micro"
+  subnet_id = "${aws_subnet.foo.id}"
+  private_ip = "10.1.1.42"
 }
 `
 
 const testAccInstanceConfigAssociatePublicIPAndPrivateIP = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
 }
 
 resource "aws_instance" "foo" {
-	ami = "ami-c5eabbf5"
-	instance_type = "t2.micro"
-	subnet_id = "${aws_subnet.foo.id}"
-	associate_public_ip_address = true
-	private_ip = "10.1.1.42"
+  ami = "ami-c5eabbf5"
+  instance_type = "t2.micro"
+  subnet_id = "${aws_subnet.foo.id}"
+  associate_public_ip_address = true
+  private_ip = "10.1.1.42"
 }
 `
 
@@ -1015,9 +1015,9 @@ resource "aws_internet_gateway" "gw" {
 
 resource "aws_vpc" "foo" {
   cidr_block = "10.1.0.0/16"
-	tags {
-		Name = "tf-network-test"
-	}
+  tags {
+    Name = "tf-network-test"
+  }
 }
 
 resource "aws_security_group" "tf_test_foo" {
@@ -1044,13 +1044,13 @@ resource "aws_instance" "foo_instance" {
   vpc_security_group_ids = ["${aws_security_group.tf_test_foo.id}"]
   subnet_id = "${aws_subnet.foo.id}"
   associate_public_ip_address = true
-	depends_on = ["aws_internet_gateway.gw"]
+  depends_on = ["aws_internet_gateway.gw"]
 }
 
 resource "aws_eip" "foo_eip" {
   instance = "${aws_instance.foo_instance.id}"
   vpc = true
-	depends_on = ["aws_internet_gateway.gw"]
+  depends_on = ["aws_internet_gateway.gw"]
 }
 `
 
@@ -1061,9 +1061,9 @@ resource "aws_internet_gateway" "gw" {
 
 resource "aws_vpc" "foo" {
   cidr_block = "10.1.0.0/16"
-	tags {
-		Name = "tf-network-test"
-	}
+  tags {
+     Name = "tf-network-test"
+  }
 }
 
 resource "aws_security_group" "tf_test_foo" {
@@ -1089,87 +1089,87 @@ resource "aws_instance" "foo_instance" {
   instance_type = "t1.micro"
   vpc_security_group_ids = ["${aws_security_group.tf_test_foo.id}"]
   subnet_id = "${aws_subnet.foo.id}"
-	depends_on = ["aws_internet_gateway.gw"]
+  depends_on = ["aws_internet_gateway.gw"]
 }
 
 resource "aws_eip" "foo_eip" {
   instance = "${aws_instance.foo_instance.id}"
   vpc = true
-	depends_on = ["aws_internet_gateway.gw"]
+  depends_on = ["aws_internet_gateway.gw"]
 }
 `
 
 const testAccInstanceConfigKeyPair = `
 provider "aws" {
-	region = "us-east-1"
+  region = "us-east-1"
 }
 
 resource "aws_key_pair" "debugging" {
-	key_name = "tmp-key"
-	public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
+  key_name = "tmp-key"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com"
 }
 
 resource "aws_instance" "foo" {
   ami = "ami-408c7f28"
   instance_type = "t1.micro"
   key_name = "${aws_key_pair.debugging.key_name}"
-	tags {
-		Name = "testAccInstanceConfigKeyPair_TestAMI"
-	}
+  tags {
+    Name = "testAccInstanceConfigKeyPair_TestAMI"
+  }
 }
 `
 
 const testAccInstanceConfigRootBlockDeviceMismatch = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
 }
 
 resource "aws_instance" "foo" {
-	// This is an AMI with RootDeviceName: "/dev/sda1"; actual root: "/dev/sda"
-	ami = "ami-ef5b69df"
-	instance_type = "t1.micro"
-	subnet_id = "${aws_subnet.foo.id}"
-	root_block_device {
-		volume_size = 13
-	}
+  // This is an AMI with RootDeviceName: "/dev/sda1"; actual root: "/dev/sda"
+  ami = "ami-ef5b69df"
+  instance_type = "t1.micro"
+  subnet_id = "${aws_subnet.foo.id}"
+  root_block_device {
+    volume_size = 13
+  }
 }
 `
 
 const testAccInstanceConfigForceNewAndTagsDrift = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
 }
 
 resource "aws_instance" "foo" {
-	ami = "ami-22b9a343"
-	instance_type = "t2.nano"
-	subnet_id = "${aws_subnet.foo.id}"
+  ami = "ami-22b9a343"
+  instance_type = "t2.nano"
+  subnet_id = "${aws_subnet.foo.id}"
 }
 `
 
 const testAccInstanceConfigForceNewAndTagsDrift_Update = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_subnet" "foo" {
-	cidr_block = "10.1.1.0/24"
-	vpc_id = "${aws_vpc.foo.id}"
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
 }
 
 resource "aws_instance" "foo" {
-	ami = "ami-22b9a343"
-	instance_type = "t2.micro"
-	subnet_id = "${aws_subnet.foo.id}"
+  ami = "ami-22b9a343"
+  instance_type = "t2.micro"
+  subnet_id = "${aws_subnet.foo.id}"
 }
 `
