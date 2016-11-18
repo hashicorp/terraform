@@ -36,7 +36,7 @@ func resourceGithubTeam() *schema.Resource {
 }
 
 func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
 	p := d.Get("privacy").(string)
@@ -53,7 +53,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 
 	team, err := getGithubTeam(d, client)
 	if err != nil {
@@ -67,7 +67,7 @@ func resourceGithubTeamRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	team, err := getGithubTeam(d, client)
 
 	if err != nil {
@@ -91,7 +91,7 @@ func resourceGithubTeamUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGithubTeamDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	id := toGithubID(d.Id())
 	_, err := client.Organizations.DeleteTeam(id)
 	return err

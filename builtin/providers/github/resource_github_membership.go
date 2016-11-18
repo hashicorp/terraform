@@ -33,7 +33,7 @@ func resourceGithubMembership() *schema.Resource {
 }
 
 func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
@@ -49,7 +49,7 @@ func resourceGithubMembershipCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	_, n := parseTwoPartID(d.Id())
 
 	membership, _, err := client.Organizations.GetOrgMembership(n, meta.(*Organization).name)
@@ -64,7 +64,7 @@ func resourceGithubMembershipRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	n := d.Get("username").(string)
 	r := d.Get("role").(string)
 
@@ -80,7 +80,7 @@ func resourceGithubMembershipUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceGithubMembershipDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	n := d.Get("username").(string)
 
 	_, err := client.Organizations.RemoveOrgMembership(n, meta.(*Organization).name)

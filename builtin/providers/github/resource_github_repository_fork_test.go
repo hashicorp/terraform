@@ -36,14 +36,14 @@ func TestAccGithubRepositoryFork_basic(t *testing.T) {
 }
 
 func testAccCheckGithubRepositoryForkDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Clients).OrgClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_fork" {
 			continue
 		}
 
-		o := testAccProvider.Meta().(*Organization).name
+		o := testAccProvider.Meta().(*Clients).OrgName
 		r, _ := parseTwoPartID(rs.Primary.ID)
 		repositories, _, err := conn.Repositories.ListForks(o, r, nil)
 		if err != nil {

@@ -40,7 +40,7 @@ func TestAccGithubRepositorySSHKey_basic(t *testing.T) {
 }
 
 func testAccCheckGithubRepositorySSHKeyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*Organization).client
+	conn := testAccProvider.Meta().(*Clients).UserClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "github_repository_sshkey" {
@@ -76,7 +76,7 @@ func testAccCheckGithubRepositorySSHKeyExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("ID is not set")
 		}
 
-		conn := testAccProvider.Meta().(*Organization).client
+		conn := testAccProvider.Meta().(*Clients).UserClient
 		id, err := strconv.Atoi(rs.Primary.ID)
 		if err != nil {
 			return err

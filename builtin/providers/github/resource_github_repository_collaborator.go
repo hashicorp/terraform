@@ -38,12 +38,12 @@ func resourceGithubRepositoryCollaborator() *schema.Resource {
 }
 
 func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	u := d.Get("username").(string)
 	r := d.Get("repository").(string)
 	p := d.Get("permission").(string)
 
-	_, err := client.Repositories.AddCollaborator(meta.(*Organization).name, r, u,
+	_, err := client.Repositories.AddCollaborator(meta.(*Clients).OrgName, r, u,
 		&github.RepositoryAddCollaboratorOptions{Permission: p})
 
 	if err != nil {
@@ -56,17 +56,17 @@ func resourceGithubRepositoryCollaboratorCreate(d *schema.ResourceData, meta int
 }
 
 func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	r, u := parseTwoPartID(d.Id())
 
-	isCollaborator, _, err := client.Repositories.IsCollaborator(meta.(*Organization).name, r, u)
+	isCollaborator, _, err := client.Repositories.IsCollaborator(meta.(*Clients).OrgName, r, u)
 
 	if !isCollaborator || err != nil {
 		d.SetId("")
 		return nil
 	}
 
-	collaborators, _, err := client.Repositories.ListCollaborators(meta.(*Organization).name, r,
+	collaborators, _, err := client.Repositories.ListCollaborators(meta.(*Clients).OrgName, r,
 		&github.ListOptions{})
 
 	if err != nil {
@@ -93,11 +93,11 @@ func resourceGithubRepositoryCollaboratorRead(d *schema.ResourceData, meta inter
 }
 
 func resourceGithubRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).OrgClient
 	u := d.Get("username").(string)
 	r := d.Get("repository").(string)
 
-	_, err := client.Repositories.RemoveCollaborator(meta.(*Organization).name, r, u)
+	_, err := client.Repositories.RemoveCollaborator(meta.(*Clients).OrgName, r, u)
 
 	return err
 }

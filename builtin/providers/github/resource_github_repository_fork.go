@@ -35,12 +35,8 @@ func resourceGithubRepositoryFork() *schema.Resource {
 	}
 }
 
-func ForkGithub() {
-
-}
-
 func resourceGithubRepositoryForkCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization)
+	client := meta.(*Clients)
 	o := d.Get("owner").(string)
 	r := d.Get("repository").(string)
 	p := d.Get("organization").(string)
@@ -55,7 +51,7 @@ func resourceGithubRepositoryForkCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubRepositoryForkRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).UserClient
 	r := d.Get("repository").(string)
 
 	repositories, _, err := client.Repositories.ListForks(meta.(*Organization).name, r, &github.RepositoryListForksOptions{})
@@ -75,7 +71,7 @@ func resourceGithubRepositoryForkRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceGithubRepositoryForkDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).UserClient
 	o := d.Get("owner").(string)
 	r := d.Get("repository").(string)
 

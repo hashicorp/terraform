@@ -38,7 +38,7 @@ func isErr422ValidationFailed(err error) bool {
 }
 
 func resourceGithubRepositorySSHKeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).UserClient
 	title := d.Get("title").(string)
 	keySSH := d.Get("sshkey").(string)
 
@@ -63,7 +63,7 @@ func resourceGithubRepositorySSHKeyCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceGithubRepositorySSHKeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).UserClient
 	id := d.Id()
 	i, err := strconv.Atoi(id)
 	if err != nil {
@@ -80,7 +80,7 @@ func resourceGithubRepositorySSHKeyRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceGithubRepositorySSHKeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Organization).client
+	client := meta.(*Clients).UserClient
 	id := d.Id()
 	if id == "" {
 		return nil
