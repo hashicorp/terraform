@@ -316,7 +316,8 @@ func (c *ResourceConfig) get(
 			// prefix so were split as path components above.
 			actualKey := strings.Join(parts[i-1:], ".")
 			if prevMap, ok := previous.(map[string]interface{}); ok {
-				return prevMap[actualKey], true
+				v, ok := prevMap[actualKey]
+				return v, ok
 			}
 
 			return nil, false
