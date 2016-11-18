@@ -109,7 +109,11 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancerID := d.Get("loadbalancer_id").(string)
+	armMutexKV.Lock(loadBalancerID)
+	defer armMutexKV.Unlock(loadBalancerID)
+
+	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -119,17 +123,23 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	_, _, exists = findLoadBalancerRuleByName(loadBalancer, d.Get("name").(string))
-	if exists {
-		return fmt.Errorf("A LoadBalancer Rule with name %q already exists.", d.Get("name").(string))
-	}
-
 	newLbRule, err := expandAzureRmLoadBalancerRule(d, loadBalancer)
 	if err != nil {
 		return errwrap.Wrapf("Error Exanding LoadBalancer Rule {{err}}", err)
 	}
 
 	lbRules := append(*loadBalancer.Properties.LoadBalancingRules, *newLbRule)
+
+	existingRule, existingRuleIndex, exists := findLoadBalancerRuleByName(loadBalancer, d.Get("name").(string))
+	if exists {
+		if d.Id() == *existingRule.ID {
+			// this rule is being updated remove old copy from the slice
+			lbRules = append(lbRules[:existingRuleIndex], lbRules[existingRuleIndex+1:]...)
+		} else {
+			return fmt.Errorf("A LoadBalancer Rule with name %q already exists.", d.Get("name").(string))
+		}
+	}
+
 	loadBalancer.Properties.LoadBalancingRules = &lbRules
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
@@ -229,7 +239,11 @@ func resourceArmLoadBalancerRuleDelete(d *schema.ResourceData, meta interface{})
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancerID := d.Get("loadbalancer_id").(string)
+	armMutexKV.Lock(loadBalancerID)
+	defer armMutexKV.Unlock(loadBalancerID)
+
+	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -324,9 +338,9 @@ func expandAzureRmLoadBalancerRule(d *schema.ResourceData, lb *network.LoadBalan
 
 func validateArmLoadBalancerRuleName(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
-	if !regexp.MustCompile(`^[a-zA-Z._-]+$`).MatchString(value) {
+	if !regexp.MustCompile(`^[a-zA-Z_0-9.-]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"only word characters and hyphens allowed in %q: %q",
+			"only word characters, numbers, underscores, periods, and hyphens allowed in %q: %q",
 			k, value))
 	}
 
@@ -339,14 +353,14 @@ func validateArmLoadBalancerRuleName(v interface{}, k string) (ws []string, erro
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be an empty string: %q", k, value))
 	}
-	if !regexp.MustCompile(`[a-zA-Z]$`).MatchString(value) {
+	if !regexp.MustCompile(`[a-zA-Z0-9_]$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q must end with a word character: %q", k, value))
+			"%q must end with a word character, number, or underscore: %q", k, value))
 	}
 
-	if !regexp.MustCompile(`^[a-zA-Z]`).MatchString(value) {
+	if !regexp.MustCompile(`^[a-zA-Z0-9]`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"%q must start with a word character: %q", k, value))
+			"%q must start with a word character or number: %q", k, value))
 	}
 
 	return

@@ -11,6 +11,15 @@
               <a href="/docs/providers/azurerm/index.html">Microsoft Azure Provider</a>
             </li>
 
+            <li<%= sidebar_current(/^docs-azurerm-datasource/) %>>
+              <a href="#">Data Sources</a>
+              <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-azurerm-datasource-client-config") %>>
+                    <a href="/docs/providers/azurerm/d/client_config.html">azurerm_client_config</a>
+                </li>
+              </ul>
+            </li>
+
             <li<%= sidebar_current(/^docs-azurerm-resource-resource/) %>>
               <a href="#">Base Resources</a>
               <ul class="nav nav-visible">
@@ -72,6 +81,29 @@
                   </li>
 
                 </ul>
+            </li>
+
+
+            <li<%= sidebar_current(/^docs-azurerm-resource-eventhub/) %>>
+              <a href="#">Event Hubs</a>
+              <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-azurerm-resource-eventhub") %>>
+                  <a href="/docs/providers/azurerm/r/eventhub.html">azurerm_eventhub</a>
+                </li>
+                <li<%= sidebar_current("docs-azurerm-resource-eventhub-namespace") %>>
+                  <a href="/docs/providers/azurerm/r/eventhub_namespace.html">azurerm_eventhub_namespace</a>
+                </li>
+              </ul>
+            </li>
+
+            <li<%= sidebar_current(/^docs-azurerm-resource-key-vault/) %>>
+              <a href="#">Key Vault Resources</a>
+              <ul class="nav nav-visible">
+
+                <li<%= sidebar_current("docs-azurerm-resource-key-vault") %>>
+                  <a href="/docs/providers/azurerm/r/key_vault.html">azurerm_key_vault</a>
+                </li>
+              </ul>
             </li>
 
             <li<%= sidebar_current(/^docs-azurerm-resource-loadbalancer/) %>>
@@ -204,7 +236,7 @@
 
               </ul>
             </li>
-            
+
             <li<%= sidebar_current(/^docs-azurerm-resource-storage/) %>>
               <a href="#">Storage Resources</a>
               <ul class="nav nav-visible">
@@ -223,6 +255,10 @@
 
                 <li<%= sidebar_current("docs-azurerm-resource-storage-queue") %>>
                   <a href="/docs/providers/azurerm/r/storage_queue.html">azurerm_storage_queue</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-storage-share") %>>
+                  <a href="/docs/providers/azurerm/r/storage_share.html">azurerm_storage_share</a>
                 </li>
 
                 <li<%= sidebar_current("docs-azurerm-resource-storage-table") %>>
@@ -253,6 +289,10 @@
 
                 <li<%= sidebar_current("docs-azurerm-resource-virtualmachine") %>>
                   <a href="/docs/providers/azurerm/r/virtual_machine.html">azurerm_virtual_machine</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-virtualmachine-extension") %>>
+                  <a href="/docs/providers/azurerm/r/virtual_machine_extension.html">azurerm_virtual_machine_extension</a>
                 </li>
 
                 <li<%= sidebar_current("docs-azurerm-resource-virtualmachine-scalesets") %>>

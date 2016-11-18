@@ -12,9 +12,11 @@ Stores the state as a given key in a given bucket on [Microsoft Azure Storage](h
 
 -> **Note:** Passing credentials directly via config options will
 make them included in cleartext inside the persisted state.
-Use of environment variables or config file is recommended.
+Access key should, ideally, be passed using the environment variable
+`ARM_ACCESS_KEY` to follow this convention.
 
 ## Example Usage
+
 
 ```
 terraform remote config \

@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -118,5 +119,22 @@ func testAccCheckAutoscalingTagNotExists(ts *[]*autoscaling.TagDescription, key 
 		}
 
 		return nil
+	}
+}
+
+func TestIgnoringTagsAutoscaling(t *testing.T) {
+	var ignoredTags []*autoscaling.Tag
+	ignoredTags = append(ignoredTags, &autoscaling.Tag{
+		Key:   aws.String("aws:cloudformation:logical-id"),
+		Value: aws.String("foo"),
+	})
+	ignoredTags = append(ignoredTags, &autoscaling.Tag{
+		Key:   aws.String("aws:foo:bar"),
+		Value: aws.String("baz"),
+	})
+	for _, tag := range ignoredTags {
+		if !tagIgnoredAutoscaling(tag) {
+			t.Fatalf("Tag %v with value %v not ignored, but should be!", *tag.Key, *tag.Value)
+		}
 	}
 }

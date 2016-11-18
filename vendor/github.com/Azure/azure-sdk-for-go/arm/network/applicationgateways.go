@@ -46,6 +46,78 @@ func NewApplicationGatewaysClientWithBaseURI(baseURI string, subscriptionID stri
 	return ApplicationGatewaysClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
+// BackendHealth the BackendHealth operation gets the backend health of
+// application gateway in the specified resource group through Network
+// resource provider. This method may poll for completion. Polling can be
+// canceled by passing the cancel channel argument. The channel will be used
+// to cancel polling and any outstanding HTTP requests.
+//
+// resourceGroupName is the name of the resource group. applicationGatewayName
+// is the name of the application gateway. expand is expands
+// BackendAddressPool and BackendHttpSettings referenced in backend health.
+func (client ApplicationGatewaysClient) BackendHealth(resourceGroupName string, applicationGatewayName string, expand string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	req, err := client.BackendHealthPreparer(resourceGroupName, applicationGatewayName, expand, cancel)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "BackendHealth", nil, "Failure preparing request")
+	}
+
+	resp, err := client.BackendHealthSender(req)
+	if err != nil {
+		result.Response = resp
+		return result, autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "BackendHealth", resp, "Failure sending request")
+	}
+
+	result, err = client.BackendHealthResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "network.ApplicationGatewaysClient", "BackendHealth", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// BackendHealthPreparer prepares the BackendHealth request.
+func (client ApplicationGatewaysClient) BackendHealthPreparer(resourceGroupName string, applicationGatewayName string, expand string, cancel <-chan struct{}) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"applicationGatewayName": autorest.Encode("path", applicationGatewayName),
+		"resourceGroupName":      autorest.Encode("path", resourceGroupName),
+		"subscriptionId":         autorest.Encode("path", client.SubscriptionID),
+	}
+
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+	if len(expand) > 0 {
+		queryParameters["$expand"] = autorest.Encode("query", expand)
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/applicationGateways/{applicationGatewayName}/backendhealth", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{Cancel: cancel})
+}
+
+// BackendHealthSender sends the BackendHealth request. The method will close the
+// http.Response Body if it receives an error.
+func (client ApplicationGatewaysClient) BackendHealthSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client,
+		req,
+		azure.DoPollForAsynchronous(client.PollingDelay))
+}
+
+// BackendHealthResponder handles the response to the BackendHealth request. The method always
+// closes the http.Response Body.
+func (client ApplicationGatewaysClient) BackendHealthResponder(resp *http.Response) (result autorest.Response, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted),
+		autorest.ByClosing())
+	result.Response = resp
+	return
+}
+
 // CreateOrUpdate the Put ApplicationGateway operation creates/updates a
 // ApplicationGateway This method may poll for completion. Polling can be
 // canceled by passing the cancel channel argument. The channel will be used
@@ -58,7 +130,10 @@ func (client ApplicationGatewaysClient) CreateOrUpdate(resourceGroupName string,
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
 			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.OperationalState", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}}}); err != nil {
+				Chain: []validation.Constraint{{Target: "parameters.Properties.WebApplicationFirewallConfiguration", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.WebApplicationFirewallConfiguration.Enabled", Name: validation.Null, Rule: true, Chain: nil}}},
+					{Target: "parameters.Properties.OperationalState", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "network.ApplicationGatewaysClient", "CreateOrUpdate")
 	}
 

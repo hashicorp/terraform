@@ -40,7 +40,7 @@ The following attributes are exported:
 
 ## Import
 
-VPN Endpoints can be imported using the `vpc endpoint id`, e.g. 
+VPC Endpoints can be imported using the `vpc endpoint id`, e.g. 
 
 ```
 $ terraform import aws_vpc_endpoint.endpoint1 vpce-3ecf2a57

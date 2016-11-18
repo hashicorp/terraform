@@ -122,4 +122,4 @@ EIPs in EC2 Classic can be imported using their Public IP, e.g.
 $ terraform import aws_eip.bar 52.0.0.0
 ```
 
-[1]: https://docs.aws.amazon.com/fr_fr/AWSEC2/latest/APIReference/API_AssociateAddress.html
+[1]: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AssociateAddress.html

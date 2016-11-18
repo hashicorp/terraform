@@ -62,6 +62,7 @@ The following attributes are exported in addition to the arguments listed above:
 
 * `id` - The ARN of the Target Group (matches `arn`)
 * `arn` - The ARN of the Target Group (matches `id`)
+* `arn_suffix` - The ARN suffix for use with CloudWatch Metrics.
 
 ## Import
 

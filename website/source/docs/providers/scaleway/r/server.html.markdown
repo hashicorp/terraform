@@ -17,7 +17,12 @@ For additional details please refer to [API documentation](https://developer.sca
 resource "scaleway_server" "test" {
   name = "test"
   image = "5faef9cd-ea9b-4a63-9171-9e26bec03dbc"
-  type = "C1"
+  type = "VC1M"
+
+  volume {
+    size_in_gb = 20
+    type = "l_ssd"
+  }
 }
 ```
 
@@ -35,6 +40,16 @@ The following arguments are supported:
 * `security_group` - (Optional) assign security group to server
 
 Field `name`, `type`, `tags`, `dynamic_ip_required`, `security_group` are editable.
+
+## Volume
+
+You can attach additional volumes to your instance, which will share the lifetime
+of your `scaleway_server` resource.
+
+The `volume` mapping supports the following:
+
+* `type` - (Required) The type of volume. Can be `"l_ssd"`
+* `size_in_gb` - (Required) The size of the volume in gigabytes.
 
 ## Attributes Reference
 

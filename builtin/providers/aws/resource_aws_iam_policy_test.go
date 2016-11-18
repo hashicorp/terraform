@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -11,97 +12,141 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSIAMPolicy_basic(t *testing.T) {
+func TestAWSPolicy_namePrefix(t *testing.T) {
+	var out iam.GetPolicyOutput
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckIAMPolicyDestroy,
+		CheckDestroy: testAccCheckAWSPolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccIAMPolicyConfig,
+				Config: testAccAWSPolicyPrefixNameConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckIAMPolicyExists(
-						"aws_iam_policy.foo",
-					),
+					testAccCheckAWSPolicyExists("aws_iam_policy.policy", &out),
+					testAccCheckAWSPolicyGeneratedNamePrefix(
+						"aws_iam_policy.policy", "test-policy-"),
 				),
 			},
 			resource.TestStep{
-				Config: testAccIAMPolicyConfigUpdate,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckIAMPolicyExists(
-						"aws_iam_policy.foo",
-					),
-				),
+			  Config: testAccIAMPolicyConfig,
+			  Check: resource.ComposeTestCheckFunc(
+			  	testAccCheckAWSPolicyExists("aws_iam_policy.foo", &out),
+			  ),
+			},
+			resource.TestStep{
+			  Config: testAccIAMPolicyConfigUpdate,
+			  Check: resource.ComposeTestCheckFunc(
+			  	testAccCheckAWSPolicyExists("aws_iam_policy.foo", &out),
+			  ),
 			},
 		},
 	})
 }
 
-func testAccCheckIAMPolicyExists(name string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
-		}
-
-		arn := rs.Primary.ID
-		//policy = policy.Attributes["policy"]
-
-		conn := testAccProvider.Meta().(*AWSClient).iamconn
-
-		request := &iam.GetPolicyInput{
-			PolicyArn: aws.String(arn),
-		}
-
-		_, err := conn.GetPolicy(request)
-
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckIAMPolicyDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).iamconn
+func testAccCheckAWSPolicyDestroy(s *terraform.State) error {
+	iamconn := testAccProvider.Meta().(*AWSClient).iamconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_iam_policy" {
 			continue
 		}
 
-		arn := rs.Primary.ID
-
-		request := &iam.GetPolicyInput{
-			PolicyArn: aws.String(arn),
+		// Try to get policy
+		_, err := iamconn.GetPolicy(&iam.GetPolicyInput{
+			PolicyArn: aws.String(rs.Primary.Attributes["arn"]),
+		})
+		if err == nil {
+			return fmt.Errorf("still exist.")
 		}
 
-		_, err := conn.GetPolicy(request)
-		if err != nil {
-			// Verify the error is what we want
-			if ae, ok := err.(awserr.Error); ok && ae.Code() == "NoSuchEntity" {
-				continue
-			}
+		// Verify the error is what we want
+		ec2err, ok := err.(awserr.Error)
+		if !ok {
 			return err
 		}
-
-		return fmt.Errorf("IAM policy still exists")
+		if ec2err.Code() != "NoSuchEntity" {
+			return err
+		}
 	}
 
 	return nil
 }
 
+func testAccCheckAWSPolicyExists(resource string, res *iam.GetPolicyOutput) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resource]
+		if !ok {
+			return fmt.Errorf("Not found: %s", resource)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Policy name is set")
+		}
+
+		iamconn := testAccProvider.Meta().(*AWSClient).iamconn
+
+		resp, err := iamconn.GetPolicy(&iam.GetPolicyInput{
+			PolicyArn: aws.String(rs.Primary.Attributes["arn"]),
+		})
+		if err != nil {
+			return err
+		}
+
+		*res = *resp
+
+		return nil
+	}
+}
+
+func testAccCheckAWSPolicyGeneratedNamePrefix(resource, prefix string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		r, ok := s.RootModule().Resources[resource]
+		if !ok {
+			return fmt.Errorf("Resource not found")
+		}
+		name, ok := r.Primary.Attributes["name"]
+		if !ok {
+			return fmt.Errorf("Name attr not found: %#v", r.Primary.Attributes)
+		}
+		if !strings.HasPrefix(name, prefix) {
+			return fmt.Errorf("Name: %q, does not have prefix: %q", name, prefix)
+		}
+		return nil
+	}
+}
+
+const testAccAWSPolicyPrefixNameConfig = `
+resource "aws_iam_policy" "policy" {
+	name_prefix = "test-policy-"
+	path = "/"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ec2:Describe*"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+`
+
 const testAccIAMPolicyConfig = `
 resource "aws_iam_policy" "foo" {
-	name = "foo_policy"
-	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+  name = "foo_policy"
+  policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
 }
 `
 
 const testAccIAMPolicyConfigUpdate = `
 resource "aws_iam_policy" "foo" {
-	name = "foo_policy"
-	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"ec2:Describe*\",\"Resource\":\"*\"}}"
+  name = "foo_policy"
+  policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"ec2:Describe*\",\"Resource\":\"*\"}}"
 }
 `

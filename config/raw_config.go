@@ -18,7 +18,7 @@ import (
 const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 
 // RawConfig is a structure that holds a piece of configuration
-// where te overall structure is unknown since it will be used
+// where the overall structure is unknown since it will be used
 // to configure a plugin or some other similar external component.
 //
 // RawConfigs can be interpolated with variables that come from
@@ -127,27 +127,6 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 
 	config := langEvalConfig(vs)
 	return r.interpolate(func(root ast.Node) (interface{}, error) {
-		// We detect the variables again and check if the value of any
-		// of the variables is the computed value. If it is, then we
-		// treat this entire value as computed.
-		//
-		// We have to do this here before the `lang.Eval` because
-		// if any of the variables it depends on are computed, then
-		// the interpolation can fail at runtime for other reasons. Example:
-		// `${count.index+1}`: in a world where `count.index` is computed,
-		// this would fail a type check since the computed placeholder is
-		// a string, but realistically the whole value is just computed.
-		vars, err := DetectVariables(root)
-		if err != nil {
-			return "", err
-		}
-		for _, v := range vars {
-			varVal, ok := vs[v.FullKey()]
-			if ok && varVal.Value == UnknownVariableValue {
-				return UnknownVariableValue, nil
-			}
-		}
-
 		// None of the variables we need are computed, meaning we should
 		// be able to properly evaluate.
 		result, err := hil.Eval(root, config)

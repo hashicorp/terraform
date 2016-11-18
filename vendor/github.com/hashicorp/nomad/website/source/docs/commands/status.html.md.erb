@@ -1,0 +1,154 @@
+---
+layout: "docs"
+page_title: "Commands: status"
+sidebar_current: "docs-commands-status"
+description: >
+  Display information and status of jobs.
+---
+
+# Command: status
+
+The `status` command displays status information for jobs.
+
+## Usage
+
+```
+nomad status [options] [job]
+```
+
+This command accepts an optional job ID or prefix as the sole argument. If there
+is an exact match based on the provided job ID or prefix, then information about
+the specific job is queried and displayed. Otherwise, a list of matching jobs and
+information will be displayed.
+
+If the ID is omitted, the command lists out all of the existing jobs and a few of
+the most useful status fields for each.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Status Options
+
+* `-evals`: Display the evaluations associated with the job.
+
+* `-short`: Display short output. Used only when a single node is being queried.
+  Drops verbose node allocation data from the output.
+
+* `-verbose`: Show full information.
+
+## Examples
+
+List of all jobs:
+
+```
+$ nomad status
+ID     Type     Priority  Status
+job1   service  3         pending
+job2   service  3         running
+job3   service  2         pending
+job4   service  1         complete
+```
+
+Short view of a specific job:
+
+```
+$ nomad status -short job1
+ID          = job1
+Name        = Test Job
+Type        = service
+Priority    = 3
+Datacenters = dc1,dc2,dc3
+Status      = pending
+Periodic    = false
+```
+
+Full status information of a job:
+
+```
+$ nomad status example
+ID          = example
+Name        = example
+Type        = service
+Priority    = 50
+Datacenters = dc1
+Status      = running
+Periodic    = false
+
+Summary
+Task Group  Queued  Starting  Running  Failed  Complete  Lost
+cache       0       0         1        0       0         0
+
+Allocations
+ID        Eval ID   Node ID   Task Group  Desired  Status   Created At
+24cfd201  81efc2fa  8d0331e9  cache       run      running  08/08/16 21:03:19 CDT
+```
+
+Full status information of a job with placement failures:
+
+```
+$ nomad status example
+ID          = example
+Name        = example
+Type        = service
+Priority    = 50
+Datacenters = dc1
+Status      = running
+Periodic    = false
+
+Summary
+Task Group  Queued  Starting  Running  Failed  Complete  Lost
+cache       0       0         5        0       0         0
+
+Placement Failure
+Task Group "cache":
+  * Resources exhausted on 1 nodes
+  * Dimension "cpu exhausted" exhausted on 1 nodes
+
+Allocations
+ID        Eval ID   Node ID   Task Group  Desired  Status   Created At
+0b8b9e37  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:19 CDT
+b206088c  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:18 CDT
+b82f58b6  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:17 CDT
+ed3665f5  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:21 CDT
+24cfd201  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:19 CDT
+```
+
+Full status information showing evaluations with a placement failure. The in
+progress evaluation denotes that Nomad is blocked waiting for resources to
+become availables so that it can place the remaining allocations.
+
+```
+$ nomad status -evals example
+ID          = example
+Name        = example
+Type        = service
+Priority    = 50
+Datacenters = dc1
+Status      = running
+Periodic    = false
+
+Summary
+Task Group  Queued  Starting  Running  Failed  Complete  Lost
+cache       0       0         5        0       0         0
+
+Evaluations
+ID        Priority  Triggered By  Status    Placement Failures
+69f34a37  50        job-register  blocked   N/A - In Progress
+8bf94335  50        job-register  complete  true
+df79bec7  50        job-register  complete  false
+81efc2fa  50        job-register  complete  false
+
+Placement Failure
+Task Group "cache":
+  * Resources exhausted on 1 nodes
+  * Dimension "cpu exhausted" exhausted on 1 nodes
+
+Allocations
+ID        Eval ID   Node ID   Task Group  Desired  Status   Created At
+0b8b9e37  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:19 CDT
+b206088c  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:19 CDT
+b82f58b6  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:19 CDT
+ed3665f5  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:19 CDT
+24cfd201  8bf94335  8d0331e9  cache       run      running  08/08/16 21:03:19 CDT
+```

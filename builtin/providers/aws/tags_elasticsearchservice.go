@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
@@ -74,10 +75,13 @@ func diffTagsElasticsearchService(oldTags, newTags []*elasticsearch.Tag) ([]*ela
 func tagsFromMapElasticsearchService(m map[string]interface{}) []*elasticsearch.Tag {
 	var result []*elasticsearch.Tag
 	for k, v := range m {
-		result = append(result, &elasticsearch.Tag{
+		t := &elasticsearch.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredElasticsearchService(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -87,8 +91,24 @@ func tagsFromMapElasticsearchService(m map[string]interface{}) []*elasticsearch.
 func tagsToMapElasticsearchService(ts []*elasticsearch.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredElasticsearchService(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredElasticsearchService(t *elasticsearch.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

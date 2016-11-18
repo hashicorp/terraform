@@ -82,7 +82,11 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancerID := d.Get("loadbalancer_id").(string)
+	armMutexKV.Lock(loadBalancerID)
+	defer armMutexKV.Unlock(loadBalancerID)
+
+	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -92,17 +96,23 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 		return nil
 	}
 
-	_, _, exists = findLoadBalancerNatRuleByName(loadBalancer, d.Get("name").(string))
-	if exists {
-		return fmt.Errorf("A NAT Rule with name %q already exists.", d.Get("name").(string))
-	}
-
 	newNatRule, err := expandAzureRmLoadBalancerNatRule(d, loadBalancer)
 	if err != nil {
 		return errwrap.Wrapf("Error Expanding NAT Rule {{err}}", err)
 	}
 
 	natRules := append(*loadBalancer.Properties.InboundNatRules, *newNatRule)
+
+	existingNatRule, existingNatRuleIndex, exists := findLoadBalancerNatRuleByName(loadBalancer, d.Get("name").(string))
+	if exists {
+		if d.Id() == *existingNatRule.ID {
+			// this probe is being updated remove old copy from the slice
+			natRules = append(natRules[:existingNatRuleIndex], natRules[existingNatRuleIndex+1:]...)
+		} else {
+			return fmt.Errorf("A NAT Rule with name %q already exists.", d.Get("name").(string))
+		}
+	}
+
 	loadBalancer.Properties.InboundNatRules = &natRules
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
@@ -188,7 +198,11 @@ func resourceArmLoadBalancerNatRuleDelete(d *schema.ResourceData, meta interface
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancerID := d.Get("loadbalancer_id").(string)
+	armMutexKV.Lock(loadBalancerID)
+	defer armMutexKV.Unlock(loadBalancerID)
+
+	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}

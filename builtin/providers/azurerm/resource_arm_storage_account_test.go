@@ -139,6 +139,37 @@ func TestAccAzureRMStorageAccount_blobEncryption(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMStorageAccount_blobStorageWithUpdate(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := acctest.RandString(4)
+	preConfig := fmt.Sprintf(testAccAzureRMStorageAccount_blobStorage, ri, rs)
+	postConfig := fmt.Sprintf(testAccAzureRMStorageAccount_blobStorageUpdate, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageAccountDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "account_kind", "BlobStorage"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "access_tier", "Hot"),
+				),
+			},
+
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageAccountExists("azurerm_storage_account.testsa"),
+					resource.TestCheckResourceAttr("azurerm_storage_account.testsa", "access_tier", "Cool"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckAzureRMStorageAccountExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
@@ -281,6 +312,46 @@ resource "azurerm_storage_account" "testsa" {
     location = "westus"
     account_type = "Standard_LRS"
     enable_blob_encryption = false
+
+    tags {
+        environment = "production"
+    }
+}`
+
+// BlobStorage accounts are not available in WestUS
+var testAccAzureRMStorageAccount_blobStorage = `
+resource "azurerm_resource_group" "testrg" {
+    name = "testAccAzureRMSA-%d"
+    location = "northeurope"
+}
+
+resource "azurerm_storage_account" "testsa" {
+    name = "unlikely23exst2acct%s"
+    resource_group_name = "${azurerm_resource_group.testrg.name}"
+
+    location = "northeurope"
+	account_kind = "BlobStorage"
+    account_type = "Standard_LRS"
+
+    tags {
+        environment = "production"
+    }
+}`
+
+var testAccAzureRMStorageAccount_blobStorageUpdate = `
+resource "azurerm_resource_group" "testrg" {
+    name = "testAccAzureRMSA-%d"
+    location = "northeurope"
+}
+
+resource "azurerm_storage_account" "testsa" {
+    name = "unlikely23exst2acct%s"
+    resource_group_name = "${azurerm_resource_group.testrg.name}"
+
+    location = "northeurope"
+	account_kind = "BlobStorage"
+    account_type = "Standard_LRS"
+	access_tier = "Cool"
 
     tags {
         environment = "production"

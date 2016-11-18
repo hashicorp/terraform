@@ -31,7 +31,7 @@ Example for Linux/Mac - Type the following into your terminal:
 >`PATH=/usr/local/terraform/bin:/home/your-user-name/terraform:$PATH`
 
 Example for Windows - Type the following into Powershell:
->`set PATH=%PATH%;C:\terraform`
+>`[Environment]::SetEnvironmentVariable("PATH", $env:PATH + ({;C:\terraform},{C:\terraform})[$env:PATH[-1] -eq ';'], "User")`
 
 
 ## Verifying the Installation

@@ -287,11 +287,6 @@ func (s *FirewallService) ListPortForwardingRules(p *ListPortForwardingRulesPara
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r ListPortForwardingRulesResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -506,11 +501,6 @@ func (s *FirewallService) CreatePortForwardingRule(p *CreatePortForwardingRulePa
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r CreatePortForwardingRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -610,11 +600,6 @@ func (s *FirewallService) NewDeletePortForwardingRuleParams(id string) *DeletePo
 // Deletes a port forwarding rule
 func (s *FirewallService) DeletePortForwardingRule(p *DeletePortForwardingRuleParams) (*DeletePortForwardingRuleResponse, error) {
 	resp, err := s.cs.newRequest("deletePortForwardingRule", p.toURLValues())
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -744,11 +729,6 @@ func (s *FirewallService) NewUpdatePortForwardingRuleParams(id string) *UpdatePo
 // Updates a port forwarding rule. Only the private port and the virtual machine can be updated.
 func (s *FirewallService) UpdatePortForwardingRule(p *UpdatePortForwardingRuleParams) (*UpdatePortForwardingRuleResponse, error) {
 	resp, err := s.cs.newRequest("updatePortForwardingRule", p.toURLValues())
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -951,11 +931,6 @@ func (s *FirewallService) CreateFirewallRule(p *CreateFirewallRuleParams) (*Crea
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r CreateFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1051,11 +1026,6 @@ func (s *FirewallService) NewDeleteFirewallRuleParams(id string) *DeleteFirewall
 // Deletes a firewall rule
 func (s *FirewallService) DeleteFirewallRule(p *DeleteFirewallRuleParams) (*DeleteFirewallRuleResponse, error) {
 	resp, err := s.cs.newRequest("deleteFirewallRule", p.toURLValues())
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -1306,11 +1276,6 @@ func (s *FirewallService) ListFirewallRules(p *ListFirewallRulesParams) (*ListFi
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r ListFirewallRulesResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1408,11 +1373,6 @@ func (s *FirewallService) NewUpdateFirewallRuleParams(id string) *UpdateFirewall
 // Updates firewall rule
 func (s *FirewallService) UpdateFirewallRule(p *UpdateFirewallRuleParams) (*UpdateFirewallRuleResponse, error) {
 	resp, err := s.cs.newRequest("updateFirewallRule", p.toURLValues())
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -1611,11 +1571,6 @@ func (s *FirewallService) CreateEgressFirewallRule(p *CreateEgressFirewallRulePa
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r CreateEgressFirewallRuleResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -1711,11 +1666,6 @@ func (s *FirewallService) NewDeleteEgressFirewallRuleParams(id string) *DeleteEg
 // Deletes an egress firewall rule
 func (s *FirewallService) DeleteEgressFirewallRule(p *DeleteEgressFirewallRuleParams) (*DeleteEgressFirewallRuleResponse, error) {
 	resp, err := s.cs.newRequest("deleteEgressFirewallRule", p.toURLValues())
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -1966,11 +1916,6 @@ func (s *FirewallService) ListEgressFirewallRules(p *ListEgressFirewallRulesPara
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r ListEgressFirewallRulesResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2068,11 +2013,6 @@ func (s *FirewallService) NewUpdateEgressFirewallRuleParams(id string) *UpdateEg
 // Updates egress firewall rule
 func (s *FirewallService) UpdateEgressFirewallRule(p *UpdateEgressFirewallRuleParams) (*UpdateEgressFirewallRuleResponse, error) {
 	resp, err := s.cs.newRequest("updateEgressFirewallRule", p.toURLValues())
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -2224,11 +2164,6 @@ func (s *FirewallService) AddPaloAltoFirewall(p *AddPaloAltoFirewallParams) (*Ad
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r AddPaloAltoFirewallResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2320,11 +2255,6 @@ func (s *FirewallService) DeletePaloAltoFirewall(p *DeletePaloAltoFirewallParams
 		return nil, err
 	}
 
-	resp, err = convertFirewallServiceResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
 	var r DeletePaloAltoFirewallResponse
 	if err := json.Unmarshal(resp, &r); err != nil {
 		return nil, err
@@ -2405,11 +2335,6 @@ func (s *FirewallService) NewConfigurePaloAltoFirewallParams(fwdeviceid string) 
 // Configures a Palo Alto firewall device
 func (s *FirewallService) ConfigurePaloAltoFirewall(p *ConfigurePaloAltoFirewallParams) (*ConfigurePaloAltoFirewallResponse, error) {
 	resp, err := s.cs.newRequest("configurePaloAltoFirewall", p.toURLValues())
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}
@@ -2546,11 +2471,6 @@ func (s *FirewallService) NewListPaloAltoFirewallsParams() *ListPaloAltoFirewall
 // lists Palo Alto firewall devices in a physical network
 func (s *FirewallService) ListPaloAltoFirewalls(p *ListPaloAltoFirewallsParams) (*ListPaloAltoFirewallsResponse, error) {
 	resp, err := s.cs.newRequest("listPaloAltoFirewalls", p.toURLValues())
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err = convertFirewallServiceResponse(resp)
 	if err != nil {
 		return nil, err
 	}

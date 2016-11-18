@@ -59,3 +59,11 @@ The following attributes are exported:
 
 * `id` - The subnet ID.
 * `ip_configurations` - The collection of IP Configurations with IPs within this subnet.
+
+## Import
+
+Subnets can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_subnet.testSubnet /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/virtualNetworks/myvnet1/subnets/mysubnet1
+```

@@ -1,0 +1,106 @@
+---
+layout: "docs"
+page_title: "Commands: fs"
+sidebar_current: "docs-commands-fs"
+description: >
+  Introspect an allocation directory on a Nomad client
+---
+
+# Command: fs
+
+The `fs` command allows a user to navigate an allocation directory on a Nomad
+client. The following functionalities are available - `cat`, `tail`, `ls` and
+`stat`.
+
+* `cat`: If the target path is a file, Nomad will `cat` the file.
+* `tail`: If the target path is a file and `-tail` flag is specified, Nomad will
+        `tail` the file.
+* `ls`: If the target path is a directory, Nomad displays the name of a file and
+      directories and their associated information.
+* `stat`: If the `-stat` flag is used, Nomad will display information about a
+        file.
+
+## Usage
+
+```
+nomad fs [options] <alloc-id> <path>
+```
+
+This command accepts a path and single allocation ID unless the `-job` flag is
+specified, in which case an allocation is chosen for the given job.  The path is
+relative to the root of the allocation directory.  The path is optional and it
+defaults to `/` of the allocation directory.
+
+## General Options
+
+<%= general_options_usage %>
+
+## Fs Options
+
+* `-H`: Machine friendly output.
+
+* `-verbose`: Display verbose output.
+
+* `-job`: Use a random allocation from the specified job, prefering a running
+allocation.
+
+* `-stat`: Show stat information instead of displaying the file, or listing the
+directory.
+
+* `-f`: Causes the output to not stop when the end of the file is reached, but
+rather to wait for additional output. 
+
+* `-tail`: Show the files contents with offsets relative to the end of the file.
+If no offset is given, -n is defaulted to 10.
+
+* `-n`: Sets the tail location in best-efforted number of lines relative to the
+end of the file.
+
+* `-c`: Sets the tail location in number of bytes relative to the end of the file.
+
+## Examples
+
+```
+$ nomad fs eb17e557
+Mode        Size  Modified Time        Name
+drwxrwxr-x  4096  28 Jan 16 05:39 UTC  alloc/
+drwxrwxr-x  4096  28 Jan 16 05:39 UTC  redis/
+-rw-rw-r--  0     28 Jan 16 05:39 UTC  redis_exit_status
+
+
+$ nomad fs eb17e557 redis/local
+Mode        Size  Modified Time        Name
+-rw-rw-rw-  0     28 Jan 16 05:39 UTC  redis.stderr
+-rw-rw-rw-  17    28 Jan 16 05:39 UTC  redis.stdout
+
+
+$ nomad fs -stat eb17e557 redis/local/redis.stdout
+Mode        Size  Modified Time        Name
+-rw-rw-rw-  17    28 Jan 16 05:39 UTC  redis.stdout
+
+
+$ nomad fs eb17e557 redis/local/redis.stdout
+foobar
+baz
+
+$ nomad fs -tail -f -n 3 eb17e557 redis/local/redis.stdout
+foobar
+baz
+bam
+<blocking>
+```
+
+## Using Job ID instead of Allocation ID
+
+Setting the `-job` flag causes a random allocation of the specified job to be
+selected. Nomad will prefer to select a running allocation ID for the job, but
+if no running allocations for the job are found, Nomad will use a dead
+allocation.
+
+```
+nomad fs -job <job-id> <path>
+```
+
+
+This can be useful for debugging a job that has multiple allocations, and it's
+not really required to use a specific allocation ID.

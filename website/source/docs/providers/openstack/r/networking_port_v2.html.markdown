@@ -67,6 +67,8 @@ The following arguments are supported:
     addresses that can be active on this port. The structure is described
     below.
 
+* `value_specs` - (Optional) Map of additional options.
+
 The `fixed_ip` block supports:
 
 * `subnet_id` - (Required) Subnet in which to allocate IP address for

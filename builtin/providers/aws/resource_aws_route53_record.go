@@ -95,8 +95,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 						},
 
 						"name": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:      schema.TypeString,
+							Required:  true,
+							StateFunc: normalizeAwsAliasName,
 						},
 
 						"evaluate_target_health": &schema.Schema{
@@ -374,7 +375,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if alias := record.AliasTarget; alias != nil {
-		name := strings.TrimSuffix(*alias.DNSName, ".")
+		name := normalizeAwsAliasName(*alias.DNSName)
 		d.Set("alias", []interface{}{
 			map[string]interface{}{
 				"zone_id": *alias.HostedZoneId,
@@ -732,7 +733,7 @@ func expandRecordName(name, zone string) string {
 func resourceAwsRoute53AliasRecordHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", normalizeAwsAliasName(m["name"].(string))))
 	buf.WriteString(fmt.Sprintf("%s-", m["zone_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%t-", m["evaluate_target_health"].(bool)))
 
@@ -747,4 +748,13 @@ func nilString(s string) *string {
 		return nil
 	}
 	return aws.String(s)
+}
+
+func normalizeAwsAliasName(alias interface{}) string {
+	input := alias.(string)
+	if strings.HasPrefix(input, "dualstack.") {
+		return strings.Replace(input, "dualstack.", "", -1)
+	}
+
+	return strings.TrimRight(input, ".")
 }

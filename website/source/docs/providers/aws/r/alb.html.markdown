@@ -54,6 +54,7 @@ Access Logs (`access_logs`) support the following:
 
 * `bucket` - (Required) The S3 bucket name to store the logs in.
 * `prefix` - (Optional) The S3 bucket prefix. Logs are stored in the root if not configured.
+* `enabled` = (Optional) Boolean to enable / disable `access_logs`. Default is `true`
 
 ## Attributes Reference
 

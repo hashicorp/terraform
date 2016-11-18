@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/kinesis"
@@ -85,10 +86,13 @@ func diffTagsKinesis(oldTags, newTags []*kinesis.Tag) ([]*kinesis.Tag, []*kinesi
 func tagsFromMapKinesis(m map[string]interface{}) []*kinesis.Tag {
 	var result []*kinesis.Tag
 	for k, v := range m {
-		result = append(result, &kinesis.Tag{
+		t := &kinesis.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredKinesis(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -98,8 +102,24 @@ func tagsFromMapKinesis(m map[string]interface{}) []*kinesis.Tag {
 func tagsToMapKinesis(ts []*kinesis.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredKinesis(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
+}
+
+// compare a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnoredKinesis(t *kinesis.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

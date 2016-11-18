@@ -5,6 +5,25 @@ import (
 	"github.com/gophercloud/gophercloud/pagination"
 )
 
+type (
+	// Protocol represents a valid rule protocol
+	Protocol string
+)
+
+const (
+	// ProtocolAny is to allow any protocol
+	ProtocolAny Protocol = "any"
+
+	// ProtocolICMP is to allow the ICMP protocol
+	ProtocolICMP Protocol = "icmp"
+
+	// ProtocolTCP is to allow the TCP protocol
+	ProtocolTCP Protocol = "tcp"
+
+	// ProtocolUDP is to allow the UDP protocol
+	ProtocolUDP Protocol = "udp"
+)
+
 // ListOptsBuilder allows extensions to add additional parameters to the
 // List request.
 type ListOptsBuilder interface {
@@ -76,7 +95,7 @@ type CreateOptsBuilder interface {
 
 // CreateOpts contains all the values needed to create a new firewall rule.
 type CreateOpts struct {
-	Protocol             string                `json:"protocol" required:"true"`
+	Protocol             Protocol              `json:"protocol" required:"true"`
 	Action               string                `json:"action" required:"true"`
 	TenantID             string                `json:"tenant_id,omitempty"`
 	Name                 string                `json:"name,omitempty"`
@@ -92,7 +111,16 @@ type CreateOpts struct {
 
 // ToRuleCreateMap casts a CreateOpts struct to a map.
 func (opts CreateOpts) ToRuleCreateMap() (map[string]interface{}, error) {
-	return gophercloud.BuildRequestBody(opts, "firewall_rule")
+	b, err := gophercloud.BuildRequestBody(opts, "firewall_rule")
+	if err != nil {
+		return nil, err
+	}
+
+	if m := b["firewall_rule"].(map[string]interface{}); m["protocol"] == "any" {
+		m["protocol"] = nil
+	}
+
+	return b, nil
 }
 
 // Create accepts a CreateOpts struct and uses the values to create a new firewall rule

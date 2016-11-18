@@ -20,7 +20,7 @@ Let's first extract our access key, secret key, and region
 into a few variables. Create another file `variables.tf` with
 the following contents.
 
-**Note**: that the file can be named anything, since Terraform loads all
+-> **Note**: that the file can be named anything, since Terraform loads all
 files ending in `.tf` in a directory.
 
 ```
@@ -118,7 +118,7 @@ Terraform will ask you to input the variables interactively.  These
 variables are not saved, but provides a nice user experience for getting
 started with Terraform.
 
-**Note**: UI Input is only supported for string variables. List and map
+-> **Note**: UI Input is only supported for string variables. List and map
 variables must be populated via one of the other mechanisms.
 
 #### Variable Defaults
@@ -155,7 +155,7 @@ A variable can have a `map` type assigned explicitly, or it can be implicitly
 declared as a map by specifying a default value that is a map. The above
 demonstrates both.
 
-Then, replace the `aws\_instance` with the following:
+Then, replace the `aws_instance` with the following:
 
 ```
 resource "aws_instance" "example" {
@@ -184,7 +184,7 @@ $ terraform plan -var 'amis={ us-east-1 = "foo", us-west-2 = "bar" }'
 ...
 ```
 
-**Note**: Even if every key will be assigned as input, the variable must be
+-> **Note**: Even if every key will be assigned as input, the variable must be
 established as a map by setting its default to `{}`.
 
 Here is an example of setting a map's keys from a file. Starting with these

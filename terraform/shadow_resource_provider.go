@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"sync"
 
@@ -105,6 +104,10 @@ func (p *shadowResourceProviderReal) Configure(c *ResourceConfig) error {
 	})
 
 	return err
+}
+
+func (p *shadowResourceProviderReal) Stop() error {
+	return p.ResourceProvider.Stop()
 }
 
 func (p *shadowResourceProviderReal) ValidateResource(
@@ -305,22 +308,7 @@ type shadowResourceProviderShared struct {
 }
 
 func (p *shadowResourceProviderShared) Close() error {
-	closers := []io.Closer{
-		&p.CloseErr, &p.Input, &p.Validate,
-		&p.Configure, &p.ValidateResource, &p.Apply, &p.Diff,
-		&p.Refresh, &p.ValidateDataSource, &p.ReadDataDiff,
-	}
-
-	for _, c := range closers {
-		// This should never happen, but we don't panic because a panic
-		// could affect the real behavior of Terraform and a shadow should
-		// never be able to do that.
-		if err := c.Close(); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return shadow.Close(p)
 }
 
 func (p *shadowResourceProviderShadow) CloseShadow() error {
@@ -441,6 +429,11 @@ func (p *shadowResourceProviderShadow) Configure(c *ResourceConfig) error {
 	return result.Result
 }
 
+// Stop returns immediately.
+func (p *shadowResourceProviderShadow) Stop() error {
+	return nil
+}
+
 func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
 	// Unique key
 	key := t
@@ -466,7 +459,7 @@ func (p *shadowResourceProviderShadow) ValidateResource(t string, c *ResourceCon
 			p.ErrorLock.Lock()
 			defer p.ErrorLock.Unlock()
 			p.Error = multierror.Append(p.Error, fmt.Errorf(
-				"Unknown 'ValidateResource' shadow value: %#v", raw))
+				"Unknown 'ValidateResource' shadow value for %q: %#v", key, raw))
 			return nil, nil
 		}
 
@@ -558,7 +551,7 @@ func (p *shadowResourceProviderShadow) Diff(
 		p.ErrorLock.Lock()
 		defer p.ErrorLock.Unlock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Unknown 'diff' shadow value: %#v", raw))
+			"Unknown 'diff' shadow value for %q: %#v", key, raw))
 		return nil, nil
 	}
 
@@ -689,7 +682,7 @@ func (p *shadowResourceProviderShadow) ReadDataDiff(
 		p.ErrorLock.Lock()
 		defer p.ErrorLock.Unlock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Unknown 'ReadDataDiff' shadow value: %#v", raw))
+			"Unknown 'ReadDataDiff' shadow value for %q: %#v", key, raw))
 		return nil, nil
 	}
 
@@ -725,7 +718,7 @@ func (p *shadowResourceProviderShadow) ReadDataApply(
 		p.ErrorLock.Lock()
 		defer p.ErrorLock.Unlock()
 		p.Error = multierror.Append(p.Error, fmt.Errorf(
-			"Unknown 'ReadDataApply' shadow value: %#v", raw))
+			"Unknown 'ReadDataApply' shadow value for %q: %#v", key, raw))
 		return nil, nil
 	}
 

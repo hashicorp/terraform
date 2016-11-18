@@ -145,6 +145,11 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 					State:        &state,
 					Index:        n.Index,
 				},
+				&EvalApplyPost{
+					Info:  info,
+					State: &state,
+					Error: &err,
+				},
 				&EvalReturnError{
 					Error: &err,
 				},

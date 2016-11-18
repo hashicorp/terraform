@@ -17,7 +17,7 @@ func TestModuleVariableTransformer(t *testing.T) {
 	}
 
 	{
-		tf := &ModuleVariableTransformer{Module: module}
+		tf := &ModuleVariableTransformer{Module: module, DisablePrune: true}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -42,7 +42,7 @@ func TestModuleVariableTransformer_nested(t *testing.T) {
 	}
 
 	{
-		tf := &ModuleVariableTransformer{Module: module}
+		tf := &ModuleVariableTransformer{Module: module, DisablePrune: true}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

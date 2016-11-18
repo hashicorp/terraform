@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/hilmapstructure"
 )
 
 // Variables returns the fully loaded set of variables to use with
@@ -104,10 +105,25 @@ func Variables(
 			}
 
 			switch schema.Type() {
+			case config.VariableTypeList:
+				result[k] = v
 			case config.VariableTypeMap:
 				varSetMap(result, k, v)
+			case config.VariableTypeString:
+				// Convert to a string and set. We don't catch any errors
+				// here because the validation step later should catch
+				// any type errors.
+				var strVal string
+				if err := hilmapstructure.WeakDecode(v, &strVal); err == nil {
+					result[k] = strVal
+				} else {
+					result[k] = v
+				}
 			default:
-				result[k] = v
+				panic(fmt.Sprintf(
+					"Unhandled var type: %T\n\n"+
+						"THIS IS A BUG. Please report it.",
+					schema.Type()))
 			}
 		}
 	}

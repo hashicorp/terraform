@@ -291,6 +291,13 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"create_timeout": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  4,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -360,6 +367,13 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		disk.Mode = "READ_WRITE"
 		disk.Boot = i == 0
 		disk.AutoDelete = d.Get(prefix + ".auto_delete").(bool)
+
+		if _, ok := d.GetOk(prefix + ".disk"); ok {
+			if _, ok := d.GetOk(prefix + ".type"); ok {
+				return fmt.Errorf(
+					"Error: cannot define both disk and type.")
+			}
+		}
 
 		// Load up the disk for this disk if specified
 		if v, ok := d.GetOk(prefix + ".disk"); ok {
@@ -557,6 +571,12 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		scheduling.OnHostMaintenance = val.(string)
 	}
 
+	// Read create timeout
+	var createTimeout int
+	if v, ok := d.GetOk("create_timeout"); ok {
+		createTimeout = v.(int)
+	}
+
 	metadata, err := resourceInstanceMetadata(d)
 	if err != nil {
 		return fmt.Errorf("Error creating metadata: %s", err)
@@ -587,7 +607,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	d.SetId(instance.Name)
 
 	// Wait for the operation to complete
-	waitErr := computeOperationWaitZone(config, op, project, zone.Name, "instance to create")
+	waitErr := computeOperationWaitZoneTime(config, op, project, zone.Name, createTimeout, "instance to create")
 	if waitErr != nil {
 		// The resource didn't actually create
 		d.SetId("")

@@ -21,8 +21,14 @@ func resolveImage(c *Config, name string) (string, error) {
 
 			// Must infer the project name:
 
-			// First, try the configured project.
+			// First, try the configured project for a specific image:
 			image, err := c.clientCompute.Images.Get(c.Project, name).Do()
+			if err == nil {
+				return image.SelfLink, nil
+			}
+
+			// If it doesn't exist, try to see if it works as an image family:
+			image, err = c.clientCompute.Images.GetFromFamily(c.Project, name).Do()
 			if err == nil {
 				return image.SelfLink, nil
 			}

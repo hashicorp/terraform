@@ -328,6 +328,12 @@ func resourceArmNetworkInterfaceIpConfigurationHash(v interface{}) int {
 	if m["public_ip_address_id"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["public_ip_address_id"].(string)))
 	}
+	if m["load_balancer_backend_address_pools_ids"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["load_balancer_backend_address_pools_ids"].(*schema.Set).GoString()))
+	}
+	if m["load_balancer_inbound_nat_rules_ids"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["load_balancer_inbound_nat_rules_ids"].(*schema.Set).GoString()))
+	}
 
 	return hashcode.String(buf.String())
 }

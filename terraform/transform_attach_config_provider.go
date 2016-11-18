@@ -47,8 +47,6 @@ func (t *AttachProviderConfigTransformer) attachProviders(g *Graph) error {
 			continue
 		}
 
-		// TODO: aliases?
-
 		// Determine what we're looking for
 		path := normalizeModulePath(apn.Path())
 		path = path[1:]
@@ -63,7 +61,14 @@ func (t *AttachProviderConfigTransformer) attachProviders(g *Graph) error {
 
 		// Go through the provider configs to find the matching config
 		for _, p := range tree.Config().ProviderConfigs {
-			if p.Name == name {
+			// Build the name, which is "name.alias" if an alias exists
+			current := p.Name
+			if p.Alias != "" {
+				current += "." + p.Alias
+			}
+
+			// If the configs match then attach!
+			if current == name {
 				log.Printf("[TRACE] Attaching provider config: %#v", p)
 				apn.AttachProvider(p)
 				break

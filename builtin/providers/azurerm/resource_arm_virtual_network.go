@@ -165,11 +165,13 @@ func resourceArmVirtualNetworkRead(d *schema.ResourceData, meta interface{}) err
 	}
 	d.Set("subnet", subnets)
 
-	dnses := []string{}
-	for _, dns := range *vnet.DhcpOptions.DNSServers {
-		dnses = append(dnses, dns)
+	if vnet.DhcpOptions != nil && vnet.DhcpOptions.DNSServers != nil {
+		dnses := []string{}
+		for _, dns := range *vnet.DhcpOptions.DNSServers {
+			dnses = append(dnses, dns)
+		}
+		d.Set("dns_servers", dnses)
 	}
-	d.Set("dns_servers", dnses)
 
 	flattenAndSetTags(d, resp.Tags)
 

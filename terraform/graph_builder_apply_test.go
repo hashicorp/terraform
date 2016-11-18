@@ -100,16 +100,16 @@ meta.count-boundary (count boundary fixup)
   module.child.aws_instance.create
   module.child.aws_instance.other
   module.child.provider.aws
+  module.child.provisioner.exec
   provider.aws
-  provisioner.exec
 module.child.aws_instance.create
   module.child.provider.aws
-  provisioner.exec
+  module.child.provisioner.exec
 module.child.aws_instance.other
   module.child.aws_instance.create
   module.child.provider.aws
 module.child.provider.aws
   provider.aws
+module.child.provisioner.exec
 provider.aws
-provisioner.exec
 `

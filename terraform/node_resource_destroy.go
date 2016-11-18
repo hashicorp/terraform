@@ -2,11 +2,13 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // NodeDestroyResource represents a resource that is to be destroyed.
 type NodeDestroyResource struct {
-	NodeAbstractResource
+	*NodeAbstractResource
 }
 
 func (n *NodeDestroyResource) Name() string {
@@ -61,6 +63,11 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	steps = append(steps, &DeposedTransformer{
 		State: state,
 		View:  n.Config.Id(),
+	})
+
+	// Target
+	steps = append(steps, &TargetsTransformer{
+		ParsedTargets: n.Targets,
 	})
 
 	// Always end with the root being added
@@ -142,11 +149,13 @@ func (n *NodeDestroyResource) EvalTree() EvalNode {
 				// Make sure we handle data sources properly.
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						/* TODO: data source
-						if n.Resource.Mode == config.DataResourceMode {
+						if n.Addr == nil {
+							return false, fmt.Errorf("nil address")
+						}
+
+						if n.Addr.Mode == config.DataResourceMode {
 							return true, nil
 						}
-						*/
 
 						return false, nil
 					},
