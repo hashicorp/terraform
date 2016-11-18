@@ -121,6 +121,9 @@ resource "aws_emr_cluster" "tf-test-cluster" {
     name     = "name-env"
   }
 
+autotermination = true
+termination_protection = false
+
   bootstrap_action {
     path = "s3://elasticmapreduce/bootstrap-actions/run-if"
     name = "runif"
