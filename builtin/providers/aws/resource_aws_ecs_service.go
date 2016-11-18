@@ -44,6 +44,12 @@ func resourceAwsEcsService() *schema.Resource {
 				Required: true,
 			},
 
+			"update_task_definition": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+
 			"desired_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -203,12 +209,14 @@ func resourceAwsEcsServiceRead(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(*service.ServiceArn)
 	d.Set("name", service.ServiceName)
 
-	// Save task definition in the same format
-	if strings.HasPrefix(d.Get("task_definition").(string), "arn:aws:ecs:") {
-		d.Set("task_definition", service.TaskDefinition)
-	} else {
-		taskDefinition := buildFamilyAndRevisionFromARN(*service.TaskDefinition)
-		d.Set("task_definition", taskDefinition)
+	if d.Get("update_task_definition").(bool) {
+		// Save task definition in the same format
+		if strings.HasPrefix(d.Get("task_definition").(string), "arn:aws:ecs:") {
+			d.Set("task_definition", service.TaskDefinition)
+		} else {
+			taskDefinition := buildFamilyAndRevisionFromARN(*service.TaskDefinition)
+			d.Set("task_definition", taskDefinition)
+		}
 	}
 
 	d.Set("desired_count", service.DesiredCount)
@@ -256,9 +264,12 @@ func resourceAwsEcsServiceUpdate(d *schema.ResourceData, meta interface{}) error
 		_, n := d.GetChange("desired_count")
 		input.DesiredCount = aws.Int64(int64(n.(int)))
 	}
-	if d.HasChange("task_definition") {
-		_, n := d.GetChange("task_definition")
-		input.TaskDefinition = aws.String(n.(string))
+
+	if d.Get("update_task_definition").(bool) {
+		if d.HasChange("task_definition") {
+			_, n := d.GetChange("task_definition")
+			input.TaskDefinition = aws.String(n.(string))
+		}
 	}
 
 	if d.HasChange("deployment_maximum_percent") || d.HasChange("deployment_minimum_healthy_percent") {
