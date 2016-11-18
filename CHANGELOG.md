@@ -5,6 +5,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * The chef provider now accepts `key_material` as an alternative to `private_key_pem`. `private_key_pem` will be deprecated in a future release
 
 FEATURES:
+ * core: allow outputs to have descriptions [GH-9722]
  * state/azure: support passing of lease ID when writing storage blob [GH-10115]
 
 
