@@ -644,6 +644,17 @@ func (s *State) init() {
 	}
 	s.ensureHasLineage()
 
+	// Filter out empty modules.
+	// A module is always assumed to have a path, and it's length isn't always
+	// bounds checked later on. Modules may be "emptied" during destroy, but we
+	// never want to store those in the state.
+	for i := 0; i < len(s.Modules); i++ {
+		if s.Modules[i] == nil || len(s.Modules[i].Path) == 0 {
+			s.Modules = append(s.Modules[:i], s.Modules[i+1:]...)
+			i--
+		}
+	}
+
 	for _, mod := range s.Modules {
 		mod.init()
 	}
