@@ -70,16 +70,16 @@ func resourceAwsEMRCluster() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			// "termination_protected": &schema.Schema{
-			// 	Type:     schema.TypeBool,
-			// 	Optional: true,
-			// 	Computed: true,
-			// },
-			// "autoterminate": &schema.Schema{
-			// 	Type:     schema.TypeBool,
-			// 	Optional: true,
-			// 	Computed: true,
-			// },
+			"termination_protected": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"autoterminate": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
 			"ec2_attributes": &schema.Schema{
 				Type:     schema.TypeList,
 				MaxItems: 1,
