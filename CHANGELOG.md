@@ -95,6 +95,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
  * *New Data Source:* `aws_alb_listener` [GH-10181]
+ * *New Resource:* `github_label` [GH-10213]
 
 IMPROVEMENTS:
  * provider/aws: Add name_prefix to aws_iam_policy [GH-10178]
