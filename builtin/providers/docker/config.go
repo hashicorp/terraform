@@ -21,7 +21,7 @@ type Config struct {
 func (c *Config) NewClient() (*dc.Client, error) {
 	if c.Ca != "" || c.Cert != "" || c.Key != "" {
 		if c.Ca == "" || c.Cert == "" || c.Key == "" {
-			return nil, fmt.Errorf("ca, cert, and key must be specified")
+			return nil, fmt.Errorf("ca_material, cert_material, and key_material must be specified")
 		}
 
 		return dc.NewTLSClientFromBytes(c.Host, []byte(c.Cert), []byte(c.Key), []byte(c.Ca))

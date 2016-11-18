@@ -17,23 +17,26 @@ func Provider() terraform.ResourceProvider {
 				Description: "The Docker daemon address",
 			},
 
-			"ca": &schema.Schema{
+			"ca_material": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
-				Default:       "",
+				DefaultFunc:   schema.EnvDefaultFunc("DOCKER_CA_MATERIAL", ""),
 				ConflictsWith: []string{"cert_path"},
+				Description:   "PEM-encoded content of Docker host CA certificate",
 			},
-			"cert": &schema.Schema{
+			"cert_material": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
-				Default:       "",
+				DefaultFunc:   schema.EnvDefaultFunc("DOCKER_CERT_MATERIAL", ""),
 				ConflictsWith: []string{"cert_path"},
+				Description:   "PEM-encoded content of Docker client certificate",
 			},
-			"key": &schema.Schema{
+			"key_material": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
-				Default:       "",
+				DefaultFunc:   schema.EnvDefaultFunc("DOCKER_KEY_MATERIAL", ""),
 				ConflictsWith: []string{"cert_path"},
+				Description:   "PEM-encoded content of Docker client private key",
 			},
 
 			"cert_path": &schema.Schema{
@@ -62,9 +65,9 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Host:     d.Get("host").(string),
-		Ca:       d.Get("ca").(string),
-		Cert:     d.Get("cert").(string),
-		Key:      d.Get("key").(string),
+		Ca:       d.Get("ca_material").(string),
+		Cert:     d.Get("cert_material").(string),
+		Key:      d.Get("key_material").(string),
 		CertPath: d.Get("cert_path").(string),
 	}
 
