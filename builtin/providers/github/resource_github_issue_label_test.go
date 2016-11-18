@@ -101,17 +101,43 @@ func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 }
 
 var testAccGithubIssueLabelConfig string = fmt.Sprintf(`
-    resource "github_issue_label" "test" {
-      repository = "%s"
-      name       = "foo"
-      color      = "000000"
-    }
+resource "github_repository" "foo" {
+  name = "%s"
+  description = "Terraform acceptance tests!"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues = false
+  has_wiki = false
+  has_downloads = false
+}
+resource "github_issue_label" "test" {
+  repository = "${github_repository.foo.name}"
+  name       = "foo"
+  color      = "000000"
+}
 `, testRepo)
 
 var testAccGithubIssueLabelUpdateConfig string = fmt.Sprintf(`
-    resource "github_issue_label" "test" {
-      repository = "%s"
-      name       = "bar"
-      color      = "FFFFFF"
-    }
+resource "github_repository" "foo" {
+  name = "%s"
+  description = "Terraform acceptance tests!"
+  homepage_url = "http://example.com/"
+
+  # So that acceptance tests can be run in a github organization
+  # with no billing
+  private = false
+
+  has_issues = false
+  has_wiki = false
+  has_downloads = false
+}
+resource "github_issue_label" "test" {
+  repository = "${github_repository.foo.name}"
+  name       = "bar"
+  color      = "FFFFFF"
+}
 `, testRepo)
