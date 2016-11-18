@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSDCINTRAVIRTUALINTERFACE_basic(t *testing.T) {
+func TestAccAwsDcIntraVirtualInterface_basic(t *testing.T) {
 	var virtualIF directconnect.VirtualInterface
 
 	resource.Test(t, resource.TestCase{
