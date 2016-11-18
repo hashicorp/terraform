@@ -65,5 +65,5 @@ All of the argument attributes except `filter` blocks are also exported as
 result attributes. This data source will complete the data by populating
 any fields that are not included in the configuration with the data for
 the selected Security Group.
-Additionnaly `description` field is enable.
+Additionally, the `description` attribute is exported.
 
