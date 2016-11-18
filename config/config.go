@@ -160,10 +160,11 @@ type Variable struct {
 // output marked Sensitive will be output in a masked form following
 // application, but will still be available in state.
 type Output struct {
-	Name      string
-	Sensitive bool
-	DependsOn []string
-	RawConfig *RawConfig
+	Name        string
+	DependsOn   []string
+	Description string
+	Sensitive   bool
+	RawConfig   *RawConfig
 }
 
 // VariableType is the type of value a variable is holding, and returned
@@ -660,6 +661,17 @@ func (c *Config) Validate() error {
 
 					errs = append(errs, fmt.Errorf(
 						"%s: value for 'sensitive' must be boolean",
+						o.Name))
+					continue
+				}
+				if k == "description" {
+					if desc, ok := o.RawConfig.config[k].(string); ok {
+						o.Description = desc
+						continue
+					}
+
+					errs = append(errs, fmt.Errorf(
+						"%s: value for 'description' must be string",
 						o.Name))
 					continue
 				}
