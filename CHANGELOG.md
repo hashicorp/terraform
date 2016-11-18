@@ -89,6 +89,10 @@ BUG FIXES:
 
 ## 0.7.12 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * provider/cloudstack: `cloudstack_port_forward` has now deprecated `network_id` [GH-10204]
+
 FEATURES:
  * *New Data Source:* `aws_alb_listener` [GH-10181]
 
