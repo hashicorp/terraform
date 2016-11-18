@@ -55,3 +55,11 @@ The following attributes are exported:
 
 * `id` - The SQL Server ID.
 * `fully_qualified_domain_name` - The fully qualified domain name of the Azure SQL Server (e.g. myServerName.database.windows.net)
+
+## Import
+
+SQL Servers can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_sql_server.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myresourcegroup/providers/Microsoft.Sql/servers/myserver
+```
