@@ -78,6 +78,13 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+				StateFunc: func(v interface{}) string {
+					s, ok := v.(string)
+					if !ok {
+						return ""
+					}
+					return strings.TrimSpace(s)
+				},
 			},
 
 			"ingress": &schema.Schema{
