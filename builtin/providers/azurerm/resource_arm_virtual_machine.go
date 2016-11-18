@@ -195,7 +195,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 
 						"disk_size_gb": {
 							Type:         schema.TypeInt,
-							Required:     true,
+							Optional:     true,
 							ValidateFunc: validateDiskSizeGB,
 						},
 
@@ -840,7 +840,9 @@ func flattenAzureRmVirtualMachineDataDisk(disks *[]compute.DataDisk) interface{}
 		l["name"] = *disk.Name
 		l["vhd_uri"] = *disk.Vhd.URI
 		l["create_option"] = disk.CreateOption
-		l["disk_size_gb"] = *disk.DiskSizeGB
+		if disk.DiskSizeGB != nil {
+			l["disk_size_gb"] = *disk.DiskSizeGB
+		}
 		l["lun"] = *disk.Lun
 
 		result[i] = l
