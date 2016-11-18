@@ -13,12 +13,12 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-func resourceComputeBackendService() *schema.Resource {
+func resourceComputeRegionBackendService() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceComputeBackendServiceCreate,
-		Read:   resourceComputeBackendServiceRead,
-		Update: resourceComputeBackendServiceUpdate,
-		Delete: resourceComputeBackendServiceDelete,
+		Create: resourceComputeRegionBackendServiceCreate,
+		Read:   resourceComputeRegionBackendServiceRead,
+		Update: resourceComputeRegionBackendServiceUpdate,
+		Delete: resourceComputeRegionBackendServiceDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -81,7 +81,7 @@ func resourceComputeBackendService() *schema.Resource {
 					},
 				},
 				Optional: true,
-				Set:      resourceGoogleComputeBackendServiceBackendHash,
+				Set:      resourceGoogleComputeRegionBackendServiceBackendHash,
 			},
 
 			"description": &schema.Schema{
@@ -135,12 +135,6 @@ func resourceComputeBackendService() *schema.Resource {
 				Computed: true,
 			},
 
-			"session_affinity": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-			},
-
 			"timeout_sec": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
@@ -150,7 +144,7 @@ func resourceComputeBackendService() *schema.Resource {
 	}
 }
 
-func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	hc := d.Get("health_checks").(*schema.Set).List()
@@ -180,10 +174,6 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 		service.Protocol = v.(string)
 	}
 
-	if v, ok := d.GetOk("session_affinity"); ok {
-		service.SessionAffinity = v.(string)
-	}
-
 	if v, ok := d.GetOk("timeout_sec"); ok {
 		service.TimeoutSec = int64(v.(int))
 	}
@@ -196,19 +186,21 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 		service.LoadBalancingScheme = v.(string)
 	}
 
-	if v, ok := d.GetOk("region"); ok {
-		service.Region = v.(string)
-	}
-
 	project, err := getProject(d, config)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "[DEBUG] Creating new Backend Service: %#v", service)
-	log.Printf("[DEBUG] Creating new Backend Service: %#v", service)
-	op, err := config.clientComputeBeta.BackendServices.Insert(
-		project, &service).Do()
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(os.Stderr, "[DEBUG] Creating new Region Backend Service: %#v", service) // DO NOT SUBMIT
+	log.Printf("[DEBUG] Creating new Region Backend Service: %#v", service)
+
+	op, err := config.clientComputeBeta.RegionBackendServices.Insert(
+		project, region, &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating backend service: %s", err)
 	}
@@ -222,10 +214,10 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	return resourceComputeBackendServiceRead(d, meta)
+	return resourceComputeRegionBackendServiceRead(d, meta)
 }
 
-func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeRegionBackendServiceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	project, err := getProject(d, config)
@@ -233,8 +225,13 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	service, err := config.clientComputeBeta.BackendServices.Get(
-		project, d.Id()).Do()
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
+	service, err := config.clientComputeBeta.RegionBackendServices.Get(
+		project, region, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
 			// The resource doesn't exist anymore
@@ -251,7 +248,6 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	d.Set("enable_cdn", service.EnableCDN)
 	d.Set("port_name", service.PortName)
 	d.Set("protocol", service.Protocol)
-	d.Set("session_affinity", service.SessionAffinity)
 	d.Set("timeout_sec", service.TimeoutSec)
 	d.Set("fingerprint", service.Fingerprint)
 	d.Set("load_balancing_scheme", service.LoadBalancingScheme)
@@ -263,10 +259,15 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	project, err := getProject(d, config)
+	if err != nil {
+		return err
+	}
+
+	region, err := getRegion(d, config)
 	if err != nil {
 		return err
 	}
@@ -300,10 +301,6 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 		service.TimeoutSec = int64(v.(int))
 	}
 
-	if d.HasChange("session_affinity") {
-		service.SessionAffinity = d.Get("session_affinity").(string)
-	}
-
 	if v, ok := d.GetOk("load_balancing_scheme"); ok {
 		service.LoadBalancingScheme = v.(string)
 	}
@@ -313,8 +310,8 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 	}
 
 	log.Printf("[DEBUG] Updating existing Backend Service %q: %#v", d.Id(), service)
-	op, err := config.clientComputeBeta.BackendServices.Update(
-		project, d.Id(), &service).Do()
+	op, err := config.clientComputeBeta.RegionBackendServices.Update(
+		project, region, d.Id(), &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error updating backend service: %s", err)
 	}
@@ -326,10 +323,10 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	return resourceComputeBackendServiceRead(d, meta)
+	return resourceComputeRegionBackendServiceRead(d, meta)
 }
 
-func resourceComputeBackendServiceDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeRegionBackendServiceDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	project, err := getProject(d, config)
@@ -337,9 +334,14 @@ func resourceComputeBackendServiceDelete(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	region, err := getRegion(d, config)
+	if err != nil {
+		return err
+	}
+
 	log.Printf("[DEBUG] Deleting backend service %s", d.Id())
-	op, err := config.clientComputeBeta.BackendServices.Delete(
-		project, d.Id()).Do()
+	op, err := config.clientComputeBeta.RegionBackendServices.Delete(
+		project, region, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting backend service: %s", err)
 	}
@@ -353,62 +355,62 @@ func resourceComputeBackendServiceDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func expandBackends(configured []interface{}) []*compute.Backend {
-	backends := make([]*compute.Backend, 0, len(configured))
+// func expandBackends(configured []interface{}) []*compute.Backend {
+// 	backends := make([]*compute.Backend, 0, len(configured))
 
-	for _, raw := range configured {
-		data := raw.(map[string]interface{})
+// 	for _, raw := range configured {
+// 		data := raw.(map[string]interface{})
 
-		b := compute.Backend{
-			Group: data["group"].(string),
-		}
+// 		b := compute.Backend{
+// 			Group: data["group"].(string),
+// 		}
 
-		if v, ok := data["balancing_mode"]; ok {
-			b.BalancingMode = v.(string)
-		}
-		if v, ok := data["capacity_scaler"]; ok {
-			b.CapacityScaler = v.(float64)
-		}
-		if v, ok := data["description"]; ok {
-			b.Description = v.(string)
-		}
-		if v, ok := data["max_rate"]; ok {
-			b.MaxRate = int64(v.(int))
-		}
-		if v, ok := data["max_rate_per_instance"]; ok {
-			b.MaxRatePerInstance = v.(float64)
-		}
-		if v, ok := data["max_utilization"]; ok {
-			b.MaxUtilization = v.(float64)
-		}
+// 		if v, ok := data["balancing_mode"]; ok {
+// 			b.BalancingMode = v.(string)
+// 		}
+// 		if v, ok := data["capacity_scaler"]; ok {
+// 			b.CapacityScaler = v.(float64)
+// 		}
+// 		if v, ok := data["description"]; ok {
+// 			b.Description = v.(string)
+// 		}
+// 		if v, ok := data["max_rate"]; ok {
+// 			b.MaxRate = int64(v.(int))
+// 		}
+// 		if v, ok := data["max_rate_per_instance"]; ok {
+// 			b.MaxRatePerInstance = v.(float64)
+// 		}
+// 		if v, ok := data["max_utilization"]; ok {
+// 			b.MaxUtilization = v.(float64)
+// 		}
 
-		backends = append(backends, &b)
-	}
+// 		backends = append(backends, &b)
+// 	}
 
-	return backends
-}
+// 	return backends
+// }
 
-func flattenBackends(backends []*compute.Backend) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(backends))
+// func flattenBackends(backends []*compute.Backend) []map[string]interface{} {
+// 	result := make([]map[string]interface{}, 0, len(backends))
 
-	for _, b := range backends {
-		data := make(map[string]interface{})
+// 	for _, b := range backends {
+// 		data := make(map[string]interface{})
 
-		data["balancing_mode"] = b.BalancingMode
-		data["capacity_scaler"] = b.CapacityScaler
-		data["description"] = b.Description
-		data["group"] = b.Group
-		data["max_rate"] = b.MaxRate
-		data["max_rate_per_instance"] = b.MaxRatePerInstance
-		data["max_utilization"] = b.MaxUtilization
+// 		data["balancing_mode"] = b.BalancingMode
+// 		data["capacity_scaler"] = b.CapacityScaler
+// 		data["description"] = b.Description
+// 		data["group"] = b.Group
+// 		data["max_rate"] = b.MaxRate
+// 		data["max_rate_per_instance"] = b.MaxRatePerInstance
+// 		data["max_utilization"] = b.MaxUtilization
 
-		result = append(result, data)
-	}
+// 		result = append(result, data)
+// 	}
 
-	return result
-}
+// 	return result
+// }
 
-func resourceGoogleComputeBackendServiceBackendHash(v interface{}) int {
+func resourceGoogleComputeRegionBackendServiceBackendHash(v interface{}) int {
 	if v == nil {
 		return 0
 	}
