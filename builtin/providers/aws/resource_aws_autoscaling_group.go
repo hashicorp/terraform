@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/elbv2"
 )
 
 func resourceAwsAutoscalingGroup() *schema.Resource {
@@ -800,11 +801,13 @@ func updateASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoSc
 	return nil
 }
 
-// Returns a mapping of the instance states of all the ELBs attached to the
+// getELBInstanceStates returns a mapping of the instance states of all the ELBs attached to the
 // provided ASG.
 //
+// Note that this is the instance state function for ELB Classic.
+//
 // Nested like: lbName -> instanceId -> instanceState
-func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map[string]string, error) {
+func getELBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map[string]string, error) {
 	lbInstanceStates := make(map[string]map[string]string)
 	elbconn := meta.(*AWSClient).elbconn
 
@@ -824,6 +827,35 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 	}
 
 	return lbInstanceStates, nil
+}
+
+// getTargetGroupInstanceStates returns a mapping of the instance states of
+// all the ALB target groups attached to the provided ASG.
+//
+// Note that this is the instance state function for Application Load
+// Balancing (aka ELBv2).
+//
+// Nested like: targetGroupARN -> instanceId -> instanceState
+func getTargetGroupInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map[string]string, error) {
+	targetInstanceStates := make(map[string]map[string]string)
+	elbv2conn := meta.(*AWSClient).elbv2conn
+
+	for _, targetGroupARN := range g.TargetGroupARNs {
+		targetInstanceStates[*targetGroupARN] = make(map[string]string)
+		opts := &elbv2.DescribeTargetHealthInput{TargetGroupArn: targetGroupARN}
+		r, err := elbv2conn.DescribeTargetHealth(opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, desc := range r.TargetHealthDescriptions {
+			if desc.Target == nil || desc.Target.Id == nil || desc.TargetHealth == nil || desc.TargetHealth.State == nil {
+				continue
+			}
+			targetInstanceStates[*targetGroupARN][*desc.Target.Id] = *desc.TargetHealth.State
+		}
+	}
+
+	return targetInstanceStates, nil
 }
 
 func expandVpcZoneIdentifiers(list []interface{}) *string {
