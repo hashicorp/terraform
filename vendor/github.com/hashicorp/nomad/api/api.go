@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
+	rootcerts "github.com/hashicorp/go-rootcerts"
 )
 
 // QueryOptions are used to parameterize a query
@@ -102,6 +104,53 @@ type Config struct {
 	// WaitTime limits how long a Watch will block. If not provided,
 	// the agent default values will be used.
 	WaitTime time.Duration
+
+	// TLSConfig provides the various TLS related configurations for the http
+	// client
+	TLSConfig *TLSConfig
+}
+
+// CopyConfig copies the configuration with a new address
+func (c *Config) CopyConfig(address string, tlsEnabled bool) *Config {
+	scheme := "http"
+	if tlsEnabled {
+		scheme = "https"
+	}
+	config := &Config{
+		Address:    fmt.Sprintf("%s://%s", scheme, address),
+		Region:     c.Region,
+		HttpClient: c.HttpClient,
+		HttpAuth:   c.HttpAuth,
+		WaitTime:   c.WaitTime,
+		TLSConfig:  c.TLSConfig,
+	}
+
+	return config
+}
+
+// TLSConfig contains the parameters needed to configure TLS on the HTTP client
+// used to communicate with Nomad.
+type TLSConfig struct {
+	// CACert is the path to a PEM-encoded CA cert file to use to verify the
+	// Nomad server SSL certificate.
+	CACert string
+
+	// CAPath is the path to a directory of PEM-encoded CA cert files to verify
+	// the Nomad server SSL certificate.
+	CAPath string
+
+	// ClientCert is the path to the certificate for Nomad communication
+	ClientCert string
+
+	// ClientKey is the path to the private key for Nomad communication
+	ClientKey string
+
+	// TLSServerName, if set, is used to set the SNI host when connecting via
+	// TLS.
+	TLSServerName string
+
+	// Insecure enables or disables SSL verification
+	Insecure bool
 }
 
 // DefaultConfig returns a default configuration for the client
@@ -109,7 +158,14 @@ func DefaultConfig() *Config {
 	config := &Config{
 		Address:    "http://127.0.0.1:4646",
 		HttpClient: cleanhttp.DefaultClient(),
+		TLSConfig:  &TLSConfig{},
 	}
+	transport := config.HttpClient.Transport.(*http.Transport)
+	transport.TLSHandshakeTimeout = 10 * time.Second
+	transport.TLSClientConfig = &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
 	if addr := os.Getenv("NOMAD_ADDR"); addr != "" {
 		config.Address = addr
 	}
@@ -128,7 +184,69 @@ func DefaultConfig() *Config {
 			Password: password,
 		}
 	}
+
+	// Read TLS specific env vars
+	if v := os.Getenv("NOMAD_CACERT"); v != "" {
+		config.TLSConfig.CACert = v
+	}
+	if v := os.Getenv("NOMAD_CAPATH"); v != "" {
+		config.TLSConfig.CAPath = v
+	}
+	if v := os.Getenv("NOMAD_CLIENT_CERT"); v != "" {
+		config.TLSConfig.ClientCert = v
+	}
+	if v := os.Getenv("NOMAD_CLIENT_KEY"); v != "" {
+		config.TLSConfig.ClientKey = v
+	}
+	if v := os.Getenv("NOMAD_SKIP_VERIFY"); v != "" {
+		if insecure, err := strconv.ParseBool(v); err == nil {
+			config.TLSConfig.Insecure = insecure
+		}
+	}
+
 	return config
+}
+
+// ConfigureTLS applies a set of TLS configurations to the the HTTP client.
+func (c *Config) ConfigureTLS() error {
+	if c.HttpClient == nil {
+		return fmt.Errorf("config HTTP Client must be set")
+	}
+
+	var clientCert tls.Certificate
+	foundClientCert := false
+	if c.TLSConfig.ClientCert != "" || c.TLSConfig.ClientKey != "" {
+		if c.TLSConfig.ClientCert != "" && c.TLSConfig.ClientKey != "" {
+			var err error
+			clientCert, err = tls.LoadX509KeyPair(c.TLSConfig.ClientCert, c.TLSConfig.ClientKey)
+			if err != nil {
+				return err
+			}
+			foundClientCert = true
+		} else if c.TLSConfig.ClientCert != "" || c.TLSConfig.ClientKey != "" {
+			return fmt.Errorf("Both client cert and client key must be provided")
+		}
+	}
+
+	clientTLSConfig := c.HttpClient.Transport.(*http.Transport).TLSClientConfig
+	rootConfig := &rootcerts.Config{
+		CAFile: c.TLSConfig.CACert,
+		CAPath: c.TLSConfig.CAPath,
+	}
+	if err := rootcerts.ConfigureTLS(clientTLSConfig, rootConfig); err != nil {
+		return err
+	}
+
+	clientTLSConfig.InsecureSkipVerify = c.TLSConfig.Insecure
+
+	if foundClientCert {
+		clientTLSConfig.Certificates = []tls.Certificate{clientCert}
+	}
+	if c.TLSConfig.TLSServerName != "" {
+		clientTLSConfig.ServerName = c.TLSConfig.TLSServerName
+	}
+
+	return nil
 }
 
 // Client provides a client to the Nomad API
@@ -149,6 +267,11 @@ func NewClient(config *Config) (*Client, error) {
 
 	if config.HttpClient == nil {
 		config.HttpClient = defConfig.HttpClient
+	}
+
+	// Configure the TLS cofigurations
+	if err := config.ConfigureTLS(); err != nil {
+		return nil, err
 	}
 
 	client := &Client{

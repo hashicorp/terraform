@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"sort"
 	"time"
+)
 
-	"github.com/hashicorp/go-cleanhttp"
+var (
+	// NodeDownErr marks an operation as not able to complete since the node is
+	// down.
+	NodeDownErr = fmt.Errorf("node down")
 )
 
 // Allocations is used to query the alloc-related endpoints.
@@ -48,13 +52,13 @@ func (a *Allocations) Stats(alloc *Allocation, q *QueryOptions) (*AllocResourceU
 	if err != nil {
 		return nil, err
 	}
+	if node.Status == "down" {
+		return nil, NodeDownErr
+	}
 	if node.HTTPAddr == "" {
 		return nil, fmt.Errorf("http addr of the node where alloc %q is running is not advertised", alloc.ID)
 	}
-	client, err := NewClient(&Config{
-		Address:    fmt.Sprintf("http://%s", node.HTTPAddr),
-		HttpClient: cleanhttp.DefaultClient(),
-	})
+	client, err := NewClient(a.client.config.CopyConfig(node.HTTPAddr, node.TLSEnabled))
 	if err != nil {
 		return nil, err
 	}
@@ -81,6 +85,7 @@ type Allocation struct {
 	ClientStatus       string
 	ClientDescription  string
 	TaskStates         map[string]*TaskState
+	PreviousAllocation string
 	CreateIndex        uint64
 	ModifyIndex        uint64
 	CreateTime         int64

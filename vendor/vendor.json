@@ -1452,17 +1452,10 @@
 			"revision": "0dc08b1671f34c4250ce212759ebd880f743d883"
 		},
 		{
-			"checksumSHA1": "i6mfjvpzNX/4aHFVVRLq3YrFj+c=",
-			"path": "github.com/hashicorp/nomad",
-			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
-			"revisionTime": "2016-08-17T23:09:46Z",
-			"tree": true
-		},
-		{
-			"checksumSHA1": "saggpFOsmKtEMYIj0kWW6OhfKoU=",
+			"checksumSHA1": "MUbJZdL5xl9+yEoLTZet6diIuHA=",
 			"path": "github.com/hashicorp/nomad/api",
-			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
-			"revisionTime": "2016-08-17T23:09:46Z"
+			"revision": "655c0385e75db974384052717b61b81c68ec2308",
+			"revisionTime": "2016-11-16T23:08:03Z"
 		},
 		{
 			"checksumSHA1": "P8iGYykI8LXyBytMV2rNYlpU0QA=",
@@ -1533,8 +1526,8 @@
 		{
 			"checksumSHA1": "UOuTIv1Ef6r3cN9fImCq1SNQnCs=",
 			"path": "github.com/hashicorp/nomad/helper/args",
-			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
-			"revisionTime": "2016-08-17T23:09:46Z"
+			"revision": "655c0385e75db974384052717b61b81c68ec2308",
+			"revisionTime": "2016-11-16T23:08:03Z"
 		},
 		{
 			"checksumSHA1": "xHzxKelZY3IGFMQvuD4ATi7LgCM=",
@@ -1551,8 +1544,8 @@
 		{
 			"checksumSHA1": "J7j/5Jtk8la/xEAtu4e/6KIiqzs=",
 			"path": "github.com/hashicorp/nomad/helper/flatmap",
-			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
-			"revisionTime": "2016-08-17T23:09:46Z"
+			"revision": "655c0385e75db974384052717b61b81c68ec2308",
+			"revisionTime": "2016-11-16T23:08:03Z"
 		},
 		{
 			"checksumSHA1": "g8cxV0OVSzVCxKDreir54dDAulY=",
@@ -1561,16 +1554,16 @@
 			"revisionTime": "2016-08-17T23:09:46Z"
 		},
 		{
-			"checksumSHA1": "ram9peUVU+QonmgPmMFMLz24wsQ=",
+			"checksumSHA1": "l8ZbZPlWjmV9Yuu7ulejPhCkHzg=",
 			"path": "github.com/hashicorp/nomad/jobspec",
-			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
-			"revisionTime": "2016-08-17T23:09:46Z"
+			"revision": "655c0385e75db974384052717b61b81c68ec2308",
+			"revisionTime": "2016-11-16T23:08:03Z"
 		},
 		{
-			"checksumSHA1": "Fwhx/DzNN/jsFJtfIuWn9VKqUTQ=",
+			"checksumSHA1": "62RJpGyZS9tVjx+bGDk4l6xTecA=",
 			"path": "github.com/hashicorp/nomad/nomad/structs",
-			"revision": "d1ed8950bde3ae6838abb5109e564bcf4d1b0dd7",
-			"revisionTime": "2016-08-17T23:09:46Z"
+			"revision": "655c0385e75db974384052717b61b81c68ec2308",
+			"revisionTime": "2016-11-16T23:08:03Z"
 		},
 		{
 			"checksumSHA1": "/igEhkMAxgSkqzvkMA1/GcC1kl0=",

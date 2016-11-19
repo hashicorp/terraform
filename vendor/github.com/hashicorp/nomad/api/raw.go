@@ -1,5 +1,7 @@
 package api
 
+import "io"
+
 // Raw can be used to do raw queries against custom endpoints
 type Raw struct {
 	c *Client
@@ -15,6 +17,12 @@ func (c *Client) Raw() *Raw {
 // standard Nomad conventions.
 func (raw *Raw) Query(endpoint string, out interface{}, q *QueryOptions) (*QueryMeta, error) {
 	return raw.c.query(endpoint, out, q)
+}
+
+// Response is used to make a GET request against an endpoint and returns the
+// response body
+func (raw *Raw) Response(endpoint string, q *QueryOptions) (io.ReadCloser, error) {
+	return raw.c.rawQuery(endpoint, q)
 }
 
 // Write is used to do a PUT request against an endpoint
