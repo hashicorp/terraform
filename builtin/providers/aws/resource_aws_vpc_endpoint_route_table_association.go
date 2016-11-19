@@ -60,6 +60,10 @@ func resourceAwsVPCEndpointRouteTableAssociationCreate(d *schema.ResourceData, m
 	if err != nil {
 		return fmt.Errorf("Error creating VPC Endpoint/Route Table association: %s", err.Error())
 	}
+	id := vpcEndpointIdRouteTableIdHash(endpointId, rtId)
+	log.Printf("[DEBUG] VPC Endpoint/Route Table association %q created.", id)
+
+	d.SetId(id)
 
 	return resourceAwsVPCEndpointRouteTableAssociationRead(d, meta)
 }
