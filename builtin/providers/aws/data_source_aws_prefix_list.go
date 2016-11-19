@@ -16,14 +16,15 @@ func dataSourceAwsPrefixList() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"prefix_list_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+			},
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 			// Computed values.
 			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -42,8 +43,13 @@ func dataSourceAwsPrefixListRead(d *schema.ResourceData, meta interface{}) error
 	req := &ec2.DescribePrefixListsInput{}
 
 	if prefixListID := d.Get("prefix_list_id"); prefixListID != "" {
-		req.PrefixListIds = []*string{aws.String(prefixListID.(string))}
+		req.PrefixListIds = aws.StringSlice([]string{prefixListID.(string)})
 	}
+	req.Filters = buildEC2AttributeFilterList(
+		map[string]string{
+			"prefix-list-name": d.Get("name").(string),
+		},
+	)
 
 	log.Printf("[DEBUG] DescribePrefixLists %s\n", req)
 	resp, err := conn.DescribePrefixLists(req)
@@ -51,7 +57,7 @@ func dataSourceAwsPrefixListRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 	if resp == nil || len(resp.PrefixLists) == 0 {
-		return fmt.Errorf("no matching prefix list found; the prefix list ID may be invalid or not exist in the current region")
+		return fmt.Errorf("no matching prefix list found; the prefix list ID or name may be invalid or not exist in the current region")
 	}
 
 	pl := resp.PrefixLists[0]
