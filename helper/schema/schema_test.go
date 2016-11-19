@@ -3321,7 +3321,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 				"var.bar": interfaceToVariableSwallowError(config.UnknownVariableValue),
 			},
 
-			Diff: &terraform.InstanceDiff{
+			ExpectedDiff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"outer.#": &terraform.ResourceAttrDiff{
 						Old: "0",
@@ -3336,8 +3336,9 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 						New: "1",
 					},
 					"outer.~1.inner.~2.inner_str": &terraform.ResourceAttrDiff{
-						Old: "",
-						New: "${var.bar}",
+						Old:         "",
+						New:         "${var.bar}",
+						NewComputed: true,
 					},
 				},
 			},
@@ -3395,7 +3396,7 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 				"var.bar": interfaceToVariableSwallowError(config.UnknownVariableValue),
 			},
 
-			Diff: &terraform.InstanceDiff{
+			ExpectedDiff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"outer.#": &terraform.ResourceAttrDiff{
 						Old: "0",
@@ -3410,8 +3411,9 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 						New: "1",
 					},
 					"outer.~1.inner.0.inner_str": &terraform.ResourceAttrDiff{
-						Old: "",
-						New: "${var.bar}",
+						Old:         "",
+						New:         "${var.bar}",
+						NewComputed: true,
 					},
 				},
 			},
