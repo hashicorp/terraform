@@ -35,10 +35,9 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := &api.Config{
-		Address: d.Get("address").(string),
-		Region:  d.Get("region").(string),
-	}
+	config := api.DefaultConfig()
+	config.Address = d.Get("address").(string)
+	config.Region = d.Get("region").(string)
 
 	client, err := api.NewClient(config)
 	if err != nil {
