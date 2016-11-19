@@ -20,31 +20,39 @@ import (
 // between distributed components of your applications that perform different
 // tasks without losing messages or requiring each component to be always available.
 //
-// Helpful Links:
+// Topics
 //
-//  Current WSDL (2012-11-05) (http://queue.amazonaws.com/doc/2012-11-05/QueueService.wsdl)
+//    *
 //
-// Making API Requests (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/MakingRequestsArticle.html)
+//    *
 //
-// Amazon SQS product page (http://aws.amazon.com/sqs/)
+//    * CommonParameters
 //
-// Using Amazon SQS Message Attributes (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html)
+//    * CommonErrors
 //
-// Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
+// Helpful Links
 //
-// Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#sqs_region)
+//    * Making API Requests (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/MakingRequestsArticle.html)
 //
-//  We also provide SDKs that enable you to access Amazon SQS from your preferred
+//    * Amazon SQS product page (http://aws.amazon.com/sqs/)
+//
+//    * Using Amazon SQS Message Attributes (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html)
+//
+//    * Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
+//
+//    * Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#sqs_region)
+//
+// We also provide SDKs that enable you to access Amazon SQS from your preferred
 // programming language. The SDKs contain functionality that automatically takes
 // care of tasks such as:
 //
-//  Cryptographically signing your service requests
+//    * Cryptographically signing your service requests
 //
-// Retrying requests
+//    * Retrying requests
 //
-// Handling error responses
+//    * Handling error responses
 //
-//  For a list of available SDKs, go to Tools for Amazon Web Services (http://aws.amazon.com/tools/).
+// For a list of available SDKs, see Tools for Amazon Web Services (http://aws.amazon.com/tools/).
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type SQS struct {

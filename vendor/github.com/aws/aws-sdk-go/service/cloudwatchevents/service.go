@@ -18,11 +18,13 @@ import (
 // to take action on a pre-determined schedule. For example, you can configure
 // rules to:
 //
-//  Automatically invoke an AWS Lambda function to update DNS entries when
-// an event notifies you that Amazon EC2 instance enters the running state.
-// Direct specific API records from CloudTrail to an Amazon Kinesis stream for
-// detailed analysis of potential security or availability risks. Periodically
-// invoke a built-in target to create a snapshot of an Amazon EBS volume.
+//    * Automatically invoke an AWS Lambda function to update DNS entries when
+//    an event notifies you that Amazon EC2 instance enters the running state.
+//
+//    * Direct specific API records from CloudTrail to an Amazon Kinesis stream
+//    for detailed analysis of potential security or availability risks.
+//    * Periodically invoke a built-in target to create a snapshot of an Amazon
+//    EBS volume.
 // For more information about Amazon CloudWatch Events features, see the Amazon
 // CloudWatch Developer Guide (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide).
 //The service client's operations are safe to be used concurrently.
