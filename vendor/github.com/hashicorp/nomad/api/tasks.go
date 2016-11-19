@@ -60,16 +60,17 @@ type RestartPolicy struct {
 // The ServiceCheck data model represents the consul health check that
 // Nomad registers for a Task
 type ServiceCheck struct {
-	Id        string
-	Name      string
-	Type      string
-	Command   string
-	Args      []string
-	Path      string
-	Protocol  string `mapstructure:"port"`
-	PortLabel string `mapstructure:"port"`
-	Interval  time.Duration
-	Timeout   time.Duration
+	Id            string
+	Name          string
+	Type          string
+	Command       string
+	Args          []string
+	Path          string
+	Protocol      string `mapstructure:"port"`
+	PortLabel     string `mapstructure:"port"`
+	Interval      time.Duration
+	Timeout       time.Duration
+	InitialStatus string `mapstructure:"initial_status"`
 }
 
 // The Service model represents a Consul service definition
@@ -81,6 +82,13 @@ type Service struct {
 	Checks    []ServiceCheck
 }
 
+// EphemeralDisk is an ephemeral disk object
+type EphemeralDisk struct {
+	Sticky  bool
+	Migrate bool
+	SizeMB  int `mapstructure:"size"`
+}
+
 // TaskGroup is the unit of scheduling.
 type TaskGroup struct {
 	Name          string
@@ -88,6 +96,7 @@ type TaskGroup struct {
 	Constraints   []*Constraint
 	Tasks         []*Task
 	RestartPolicy *RestartPolicy
+	EphemeralDisk *EphemeralDisk
 	Meta          map[string]string
 }
 
@@ -120,6 +129,12 @@ func (g *TaskGroup) AddTask(t *Task) *TaskGroup {
 	return g
 }
 
+// RequireDisk adds a ephemeral disk to the task group
+func (g *TaskGroup) RequireDisk(disk *EphemeralDisk) *TaskGroup {
+	g.EphemeralDisk = disk
+	return g
+}
+
 // LogConfig provides configuration for log rotation
 type LogConfig struct {
 	MaxFiles      int
@@ -140,6 +155,8 @@ type Task struct {
 	KillTimeout time.Duration
 	LogConfig   *LogConfig
 	Artifacts   []*TaskArtifact
+	Vault       *Vault
+	Templates   []*Template
 }
 
 // TaskArtifact is used to download artifacts before running a task.
@@ -147,6 +164,22 @@ type TaskArtifact struct {
 	GetterSource  string
 	GetterOptions map[string]string
 	RelativeDest  string
+}
+
+type Template struct {
+	SourcePath   string
+	DestPath     string
+	EmbeddedTmpl string
+	ChangeMode   string
+	ChangeSignal string
+	Splay        time.Duration
+}
+
+type Vault struct {
+	Policies     []string
+	Env          bool
+	ChangeMode   string
+	ChangeSignal string
 }
 
 // NewTask creates and initializes a new Task.
@@ -159,7 +192,7 @@ func NewTask(name, driver string) *Task {
 
 // Configure is used to configure a single k/v pair on
 // the task.
-func (t *Task) SetConfig(key, val string) *Task {
+func (t *Task) SetConfig(key string, val interface{}) *Task {
 	if t.Config == nil {
 		t.Config = make(map[string]interface{})
 	}
@@ -198,10 +231,12 @@ func (t *Task) SetLogConfig(l *LogConfig) *Task {
 // transitions.
 type TaskState struct {
 	State  string
+	Failed bool
 	Events []*TaskEvent
 }
 
 const (
+	TaskSetupFailure           = "Setup Failure"
 	TaskDriverFailure          = "Driver Failure"
 	TaskReceived               = "Received"
 	TaskFailedValidation       = "Failed Validation"
@@ -213,21 +248,34 @@ const (
 	TaskNotRestarting          = "Not Restarting"
 	TaskDownloadingArtifacts   = "Downloading Artifacts"
 	TaskArtifactDownloadFailed = "Failed Artifact Download"
+	TaskVaultRenewalFailed     = "Vault token renewal failed"
+	TaskSiblingFailed          = "Sibling task failed"
+	TaskSignaling              = "Signaling"
+	TaskRestartSignal          = "Restart Signaled"
 )
 
 // TaskEvent is an event that effects the state of a task and contains meta-data
 // appropriate to the events type.
 type TaskEvent struct {
-	Type            string
-	Time            int64
-	RestartReason   string
-	DriverError     string
-	ExitCode        int
-	Signal          int
-	Message         string
-	KillTimeout     time.Duration
-	KillError       string
-	StartDelay      int64
-	DownloadError   string
-	ValidationError string
+	Type             string
+	Time             int64
+	FailsTask        bool
+	RestartReason    string
+	SetupError       string
+	DriverError      string
+	ExitCode         int
+	Signal           int
+	Message          string
+	KillReason       string
+	KillTimeout      time.Duration
+	KillError        string
+	StartDelay       int64
+	DownloadError    string
+	ValidationError  string
+	DiskLimit        int64
+	DiskSize         int64
+	FailedSibling    string
+	VaultError       string
+	TaskSignalReason string
+	TaskSignal       string
 }
