@@ -8,11 +8,11 @@ FEATURES:
  * core: allow outputs to have descriptions [GH-9722]
  * state/azure: support passing of lease ID when writing storage blob [GH-10115]
 
-
 IMPROVEMENTS:
 
  * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file [GH-10105]
  * provider/google: Add Service Accounts resource [GH-9946]
+ * provider/nomad: Update to support Nomad 0.5.0
 
 BUG FIXES:
 
