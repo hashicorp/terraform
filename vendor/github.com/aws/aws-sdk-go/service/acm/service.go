@@ -11,14 +11,11 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
-// Welcome to the AWS Certificate Manager (ACM) Command Reference. This guide
-// provides descriptions, syntax, and usage examples for each ACM command. You
-// can use AWS Certificate Manager to request ACM Certificates for your AWS-based
-// websites and applications. For general information about using ACM and for
-// more information about using the console, see the AWS Certificate Manager
-// User Guide (http://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html).
-// For more information about using the ACM API, see the AWS Certificate Manager
-// API Reference (http://docs.aws.amazon.com/acm/latest/APIReference/Welcome.html).
+// Welcome to the AWS Certificate Manager (ACM) API documentation.
+//
+// You can use ACM to manage SSL/TLS certificates for your AWS-based websites
+// and applications. For general information about using ACM, see the AWS Certificate
+// Manager User Guide (http://docs.aws.amazon.com/acm/latest/userguide/).
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type ACM struct {

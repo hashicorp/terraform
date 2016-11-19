@@ -64,18 +64,18 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 // not currently exist that is owned by the caller's AWS account with the specified
 // creation token, this operation does the following:
 //
-//   Creates a new, empty file system. The file system will have an Amazon
-// EFS assigned ID, and an initial lifecycle state creating.
+//    * Creates a new, empty file system. The file system will have an Amazon
+//    EFS assigned ID, and an initial lifecycle state creating.
 //
-//   Returns with the description of the created file system.
+//    * Returns with the description of the created file system.
 //
-//   Otherwise, this operation returns a FileSystemAlreadyExists error with
-// the ID of the existing file system.
+// Otherwise, this operation returns a FileSystemAlreadyExists error with the
+// ID of the existing file system.
 //
-//  For basic use cases, you can use a randomly generated UUID for the creation
+// For basic use cases, you can use a randomly generated UUID for the creation
 // token.
 //
-//   The idempotent operation allows you to retry a CreateFileSystem call without
+// The idempotent operation allows you to retry a CreateFileSystem call without
 // risk of creating an extra file system. This can happen when an initial call
 // fails in a way that leaves it uncertain whether or not a file system was
 // actually created. An example might be that a transport level timeout occurred
@@ -83,12 +83,12 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 // if the initial call had succeeded in creating a file system, the client can
 // learn of its existence from the FileSystemAlreadyExists error.
 //
-//  The CreateFileSystem call returns while the file system's lifecycle state
+// The CreateFileSystem call returns while the file system's lifecycle state
 // is still creating. You can check the file system creation status by calling
 // the DescribeFileSystems operation, which among other things returns the file
 // system state.
 //
-//  This operation also takes an optional PerformanceMode parameter that you
+// This operation also takes an optional PerformanceMode parameter that you
 // choose for your file system. We recommend generalPurpose performance mode
 // for most file systems. File systems using the maxIO performance mode can
 // scale to higher levels of aggregate throughput and operations per second
@@ -102,7 +102,7 @@ func (c *EFS) CreateFileSystemRequest(input *CreateFileSystemInput) (req *reques
 // You mount your Amazon EFS file system on an EC2 instances in your VPC via
 // the mount target. For more information, see Amazon EFS: How it Works (http://docs.aws.amazon.com/efs/latest/ug/how-it-works.html).
 //
-//  This operation requires permissions for the elasticfilesystem:CreateFileSystem
+// This operation requires permissions for the elasticfilesystem:CreateFileSystem
 // action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -195,14 +195,14 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 //
 // In the request, you also provide a subnet ID, which determines the following:
 //
-//   VPC in which Amazon EFS creates the mount target
+//    * VPC in which Amazon EFS creates the mount target
 //
-//   Availability Zone in which Amazon EFS creates the mount target
+//    * Availability Zone in which Amazon EFS creates the mount target
 //
-//   IP address range from which Amazon EFS selects the IP address of the mount
-// target (if you don't specify an IP address in the request)
+//    * IP address range from which Amazon EFS selects the IP address of the
+//    mount target (if you don't specify an IP address in the request)
 //
-//   After creating the mount target, Amazon EFS returns a response that includes,
+// After creating the mount target, Amazon EFS returns a response that includes,
 // a MountTargetId and an IpAddress. You use this IP address when mounting the
 // file system in an EC2 instance. You can also use the mount target's DNS name
 // when mounting the file system. The EC2 instance on which you mount the file
@@ -216,44 +216,44 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 // subnet specified in the request to add another mount target must meet the
 // following requirements:
 //
-//   Must belong to the same VPC as the subnets of the existing mount targets
+//    * Must belong to the same VPC as the subnets of the existing mount targets
 //
-//   Must not be in the same Availability Zone as any of the subnets of the
-// existing mount targets
+//    * Must not be in the same Availability Zone as any of the subnets of the
+//    existing mount targets
 //
-//   If the request satisfies the requirements, Amazon EFS does the following:
+// If the request satisfies the requirements, Amazon EFS does the following:
 //
-//   Creates a new mount target in the specified subnet.
+//    * Creates a new mount target in the specified subnet.
 //
-//   Also creates a new network interface in the subnet as follows:
+//    * Also creates a new network interface in the subnet as follows:
 //
-//   If the request provides an IpAddress, Amazon EFS assigns that IP address
-// to the network interface. Otherwise, Amazon EFS assigns a free address in
-// the subnet (in the same way that the Amazon EC2 CreateNetworkInterface call
-// does when a request does not specify a primary private IP address).
+// If the request provides an IpAddress, Amazon EFS assigns that IP address
+//    to the network interface. Otherwise, Amazon EFS assigns a free address
+//    in the subnet (in the same way that the Amazon EC2 CreateNetworkInterface
+//    call does when a request does not specify a primary private IP address).
 //
-//   If the request provides SecurityGroups, this network interface is associated
-// with those security groups. Otherwise, it belongs to the default security
-// group for the subnet's VPC.
+// If the request provides SecurityGroups, this network interface is associated
+//    with those security groups. Otherwise, it belongs to the default security
+//    group for the subnet's VPC.
 //
-//   Assigns the description Mount target fsmt-id for file system fs-id  where
-//  fsmt-id  is the mount target ID, and  fs-id  is the FileSystemId.
+// Assigns the description Mount target fsmt-id for file system fs-id where
+//    fsmt-id is the mount target ID, and fs-id is the FileSystemId.
 //
-//   Sets the requesterManaged property of the network interface to true, and
-// the requesterId value to EFS.
+// Sets the requesterManaged property of the network interface to true, and
+//    the requesterId value to EFS.
 //
-//   Each Amazon EFS mount target has one corresponding requestor-managed EC2
-// network interface. After the network interface is created, Amazon EFS sets
-// the NetworkInterfaceId field in the mount target's description to the network
-// interface ID, and the IpAddress field to its address. If network interface
-// creation fails, the entire CreateMountTarget operation fails.
+// Each Amazon EFS mount target has one corresponding requestor-managed EC2
+//    network interface. After the network interface is created, Amazon EFS
+//    sets the NetworkInterfaceId field in the mount target's description to
+//    the network interface ID, and the IpAddress field to its address. If network
+//    interface creation fails, the entire CreateMountTarget operation fails.
 //
-//    The CreateMountTarget call returns only after creating the network interface,
+// The CreateMountTarget call returns only after creating the network interface,
 // but while the mount target state is still creating. You can check the mount
 // target creation status by calling the DescribeFileSystems operation, which
 // among other things returns the mount target state.
 //
-//  We recommend you create a mount target in each of the Availability Zones.
+// We recommend you create a mount target in each of the Availability Zones.
 // There are cost considerations for using a file system in an Availability
 // Zone through a mount target created in another Availability Zone. For more
 // information, see Amazon EFS (http://aws.amazon.com/efs/). In addition, by
@@ -265,16 +265,15 @@ func (c *EFS) CreateMountTargetRequest(input *CreateMountTargetInput) (req *requ
 // This operation requires permissions for the following action on the file
 // system:
 //
-//    elasticfilesystem:CreateMountTarget
+//    * elasticfilesystem:CreateMountTarget
 //
-//   This operation also requires permissions for the following Amazon EC2
-// actions:
+// This operation also requires permissions for the following Amazon EC2 actions:
 //
-//    ec2:DescribeSubnets
+//    * ec2:DescribeSubnets
 //
-//    ec2:DescribeNetworkInterfaces
+//    * ec2:DescribeNetworkInterfaces
 //
-//    ec2:CreateNetworkInterface
+//    * ec2:CreateNetworkInterface
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -390,8 +389,7 @@ func (c *EFS) CreateTagsRequest(input *CreateTagsInput) (req *request.Request, o
 // If you add the Name tag to your file system, Amazon EFS returns it in the
 // response to the DescribeFileSystems operation.
 //
-// This operation requires permission for the elasticfilesystem:CreateTags
-// action.
+// This operation requires permission for the elasticfilesystem:CreateTags action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -469,17 +467,17 @@ func (c *EFS) DeleteFileSystemRequest(input *DeleteFileSystemInput) (req *reques
 // return, the file system no longer exists and you can't access any contents
 // of the deleted file system.
 //
-//  You can't delete a file system that is in use. That is, if the file system
+// You can't delete a file system that is in use. That is, if the file system
 // has any mount targets, you must first delete them. For more information,
 // see DescribeMountTargets and DeleteMountTarget.
 //
-//  The DeleteFileSystem call returns while the file system state is still
-// deleting. You can check the file system deletion status by calling the DescribeFileSystems
+// The DeleteFileSystem call returns while the file system state is still deleting.
+// You can check the file system deletion status by calling the DescribeFileSystems
 // operation, which returns a list of file systems in your account. If you pass
 // file system ID or creation token for the deleted file system, the DescribeFileSystems
 // returns a 404 FileSystemNotFound error.
 //
-//  This operation requires permissions for the elasticfilesystem:DeleteFileSystem
+// This operation requires permissions for the elasticfilesystem:DeleteFileSystem
 // action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -571,17 +569,17 @@ func (c *EFS) DeleteMountTargetRequest(input *DeleteMountTargetInput) (req *requ
 // This operation requires permissions for the following action on the file
 // system:
 //
-//    elasticfilesystem:DeleteMountTarget
+//    * elasticfilesystem:DeleteMountTarget
 //
-//    The DeleteMountTarget call returns while the mount target state is still
+// The DeleteMountTarget call returns while the mount target state is still
 // deleting. You can check the mount target deletion by calling the DescribeMountTargets
 // operation, which returns a list of mount target descriptions for the given
 // file system.
 //
-//  The operation also requires permissions for the following Amazon EC2 action
+// The operation also requires permissions for the following Amazon EC2 action
 // on the mount target's network interface:
 //
-//    ec2:DeleteNetworkInterface
+//    * ec2:DeleteNetworkInterface
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -743,7 +741,7 @@ func (c *EFS) DescribeFileSystemsRequest(input *DescribeFileSystemsInput) (req *
 // returns descriptions of all file systems owned by the caller's AWS account
 // in the AWS Region of the endpoint that you're calling.
 //
-//  When retrieving all file system descriptions, you can optionally specify
+// When retrieving all file system descriptions, you can optionally specify
 // the MaxItems parameter to limit the number of descriptions in a response.
 // If more file system descriptions remain, Amazon EFS returns a NextMarker,
 // an opaque token, in the response. In this case, you should send a subsequent
@@ -758,11 +756,11 @@ func (c *EFS) DescribeFileSystemsRequest(input *DescribeFileSystemsInput) (req *
 // The implementation may return fewer than MaxItems file system descriptions
 // while still including a NextMarker value.
 //
-//  The order of file systems returned in the response of one DescribeFileSystems
+// The order of file systems returned in the response of one DescribeFileSystems
 // call and the order of file systems returned across the responses of a multi-call
 // iteration is unspecified.
 //
-//  This operation requires permissions for the elasticfilesystem:DescribeFileSystems
+// This operation requires permissions for the elasticfilesystem:DescribeFileSystems
 // action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -841,11 +839,11 @@ func (c *EFS) DescribeMountTargetSecurityGroupsRequest(input *DescribeMountTarge
 //
 // This operation requires permissions for the following actions:
 //
-//    elasticfilesystem:DescribeMountTargetSecurityGroups action on the mount
-// target's file system.
+//    * elasticfilesystem:DescribeMountTargetSecurityGroups action on the mount
+//    target's file system.
 //
-//    ec2:DescribeNetworkInterfaceAttribute action on the mount target's network
-// interface.
+//    * ec2:DescribeNetworkInterfaceAttribute action on the mount target's network
+//    interface.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1006,7 +1004,7 @@ func (c *EFS) DescribeTagsRequest(input *DescribeTagsInput) (req *request.Reques
 // in the response of one DescribeTags call and the order of tags returned across
 // the responses of a multi-call iteration (when using pagination) is unspecified.
 //
-//  This operation requires permissions for the elasticfilesystem:DescribeTags
+// This operation requires permissions for the elasticfilesystem:DescribeTags
 // action.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1092,11 +1090,11 @@ func (c *EFS) ModifyMountTargetSecurityGroupsRequest(input *ModifyMountTargetSec
 //
 // The operation requires permissions for the following actions:
 //
-//    elasticfilesystem:ModifyMountTargetSecurityGroups action on the mount
-// target's file system.
+//    * elasticfilesystem:ModifyMountTargetSecurityGroups action on the mount
+//    target's file system.
 //
-//    ec2:ModifyNetworkInterfaceAttribute action on the mount target's network
-// interface.
+//    * ec2:ModifyNetworkInterfaceAttribute action on the mount target's network
+//    interface.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1177,6 +1175,18 @@ func (s *CreateFileSystemInput) Validate() error {
 	return nil
 }
 
+// SetCreationToken sets the CreationToken field's value.
+func (s *CreateFileSystemInput) SetCreationToken(v string) *CreateFileSystemInput {
+	s.CreationToken = &v
+	return s
+}
+
+// SetPerformanceMode sets the PerformanceMode field's value.
+func (s *CreateFileSystemInput) SetPerformanceMode(v string) *CreateFileSystemInput {
+	s.PerformanceMode = &v
+	return s
+}
+
 type CreateMountTargetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1222,6 +1232,30 @@ func (s *CreateMountTargetInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *CreateMountTargetInput) SetFileSystemId(v string) *CreateMountTargetInput {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetIpAddress sets the IpAddress field's value.
+func (s *CreateMountTargetInput) SetIpAddress(v string) *CreateMountTargetInput {
+	s.IpAddress = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *CreateMountTargetInput) SetSecurityGroups(v []*string) *CreateMountTargetInput {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetSubnetId sets the SubnetId field's value.
+func (s *CreateMountTargetInput) SetSubnetId(v string) *CreateMountTargetInput {
+	s.SubnetId = &v
+	return s
 }
 
 type CreateTagsInput struct {
@@ -1275,6 +1309,18 @@ func (s *CreateTagsInput) Validate() error {
 	return nil
 }
 
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *CreateTagsInput) SetFileSystemId(v string) *CreateTagsInput {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateTagsInput) SetTags(v []*Tag) *CreateTagsInput {
+	s.Tags = v
+	return s
+}
+
 type CreateTagsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1321,6 +1367,12 @@ func (s *DeleteFileSystemInput) Validate() error {
 	return nil
 }
 
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *DeleteFileSystemInput) SetFileSystemId(v string) *DeleteFileSystemInput {
+	s.FileSystemId = &v
+	return s
+}
+
 type DeleteFileSystemOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1365,6 +1417,12 @@ func (s *DeleteMountTargetInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetMountTargetId sets the MountTargetId field's value.
+func (s *DeleteMountTargetInput) SetMountTargetId(v string) *DeleteMountTargetInput {
+	s.MountTargetId = &v
+	return s
 }
 
 type DeleteMountTargetOutput struct {
@@ -1419,6 +1477,18 @@ func (s *DeleteTagsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *DeleteTagsInput) SetFileSystemId(v string) *DeleteTagsInput {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *DeleteTagsInput) SetTagKeys(v []*string) *DeleteTagsInput {
+	s.TagKeys = v
+	return s
 }
 
 type DeleteTagsOutput struct {
@@ -1485,6 +1555,30 @@ func (s *DescribeFileSystemsInput) Validate() error {
 	return nil
 }
 
+// SetCreationToken sets the CreationToken field's value.
+func (s *DescribeFileSystemsInput) SetCreationToken(v string) *DescribeFileSystemsInput {
+	s.CreationToken = &v
+	return s
+}
+
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *DescribeFileSystemsInput) SetFileSystemId(v string) *DescribeFileSystemsInput {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeFileSystemsInput) SetMarker(v string) *DescribeFileSystemsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxItems sets the MaxItems field's value.
+func (s *DescribeFileSystemsInput) SetMaxItems(v int64) *DescribeFileSystemsInput {
+	s.MaxItems = &v
+	return s
+}
+
 type DescribeFileSystemsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1507,6 +1601,24 @@ func (s DescribeFileSystemsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeFileSystemsOutput) GoString() string {
 	return s.String()
+}
+
+// SetFileSystems sets the FileSystems field's value.
+func (s *DescribeFileSystemsOutput) SetFileSystems(v []*FileSystemDescription) *DescribeFileSystemsOutput {
+	s.FileSystems = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeFileSystemsOutput) SetMarker(v string) *DescribeFileSystemsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeFileSystemsOutput) SetNextMarker(v string) *DescribeFileSystemsOutput {
+	s.NextMarker = &v
+	return s
 }
 
 type DescribeMountTargetSecurityGroupsInput struct {
@@ -1541,6 +1653,12 @@ func (s *DescribeMountTargetSecurityGroupsInput) Validate() error {
 	return nil
 }
 
+// SetMountTargetId sets the MountTargetId field's value.
+func (s *DescribeMountTargetSecurityGroupsInput) SetMountTargetId(v string) *DescribeMountTargetSecurityGroupsInput {
+	s.MountTargetId = &v
+	return s
+}
+
 type DescribeMountTargetSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1558,6 +1676,12 @@ func (s DescribeMountTargetSecurityGroupsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeMountTargetSecurityGroupsOutput) GoString() string {
 	return s.String()
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *DescribeMountTargetSecurityGroupsOutput) SetSecurityGroups(v []*string) *DescribeMountTargetSecurityGroupsOutput {
+	s.SecurityGroups = v
+	return s
 }
 
 type DescribeMountTargetsInput struct {
@@ -1604,6 +1728,30 @@ func (s *DescribeMountTargetsInput) Validate() error {
 	return nil
 }
 
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *DescribeMountTargetsInput) SetFileSystemId(v string) *DescribeMountTargetsInput {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeMountTargetsInput) SetMarker(v string) *DescribeMountTargetsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxItems sets the MaxItems field's value.
+func (s *DescribeMountTargetsInput) SetMaxItems(v int64) *DescribeMountTargetsInput {
+	s.MaxItems = &v
+	return s
+}
+
+// SetMountTargetId sets the MountTargetId field's value.
+func (s *DescribeMountTargetsInput) SetMountTargetId(v string) *DescribeMountTargetsInput {
+	s.MountTargetId = &v
+	return s
+}
+
 type DescribeMountTargetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1629,6 +1777,24 @@ func (s DescribeMountTargetsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeMountTargetsOutput) GoString() string {
 	return s.String()
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeMountTargetsOutput) SetMarker(v string) *DescribeMountTargetsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetMountTargets sets the MountTargets field's value.
+func (s *DescribeMountTargetsOutput) SetMountTargets(v []*MountTargetDescription) *DescribeMountTargetsOutput {
+	s.MountTargets = v
+	return s
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeMountTargetsOutput) SetNextMarker(v string) *DescribeMountTargetsOutput {
+	s.NextMarker = &v
+	return s
 }
 
 type DescribeTagsInput struct {
@@ -1675,6 +1841,24 @@ func (s *DescribeTagsInput) Validate() error {
 	return nil
 }
 
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *DescribeTagsInput) SetFileSystemId(v string) *DescribeTagsInput {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeTagsInput) SetMarker(v string) *DescribeTagsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxItems sets the MaxItems field's value.
+func (s *DescribeTagsInput) SetMaxItems(v int64) *DescribeTagsInput {
+	s.MaxItems = &v
+	return s
+}
+
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1701,6 +1885,24 @@ func (s DescribeTagsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeTagsOutput) GoString() string {
 	return s.String()
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeTagsOutput) SetMarker(v string) *DescribeTagsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeTagsOutput) SetNextMarker(v string) *DescribeTagsOutput {
+	s.NextMarker = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *DescribeTagsOutput) SetTags(v []*Tag) *DescribeTagsOutput {
+	s.Tags = v
+	return s
 }
 
 // Description of the file system.
@@ -1773,6 +1975,60 @@ func (s FileSystemDescription) GoString() string {
 	return s.String()
 }
 
+// SetCreationTime sets the CreationTime field's value.
+func (s *FileSystemDescription) SetCreationTime(v time.Time) *FileSystemDescription {
+	s.CreationTime = &v
+	return s
+}
+
+// SetCreationToken sets the CreationToken field's value.
+func (s *FileSystemDescription) SetCreationToken(v string) *FileSystemDescription {
+	s.CreationToken = &v
+	return s
+}
+
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *FileSystemDescription) SetFileSystemId(v string) *FileSystemDescription {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetLifeCycleState sets the LifeCycleState field's value.
+func (s *FileSystemDescription) SetLifeCycleState(v string) *FileSystemDescription {
+	s.LifeCycleState = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *FileSystemDescription) SetName(v string) *FileSystemDescription {
+	s.Name = &v
+	return s
+}
+
+// SetNumberOfMountTargets sets the NumberOfMountTargets field's value.
+func (s *FileSystemDescription) SetNumberOfMountTargets(v int64) *FileSystemDescription {
+	s.NumberOfMountTargets = &v
+	return s
+}
+
+// SetOwnerId sets the OwnerId field's value.
+func (s *FileSystemDescription) SetOwnerId(v string) *FileSystemDescription {
+	s.OwnerId = &v
+	return s
+}
+
+// SetPerformanceMode sets the PerformanceMode field's value.
+func (s *FileSystemDescription) SetPerformanceMode(v string) *FileSystemDescription {
+	s.PerformanceMode = &v
+	return s
+}
+
+// SetSizeInBytes sets the SizeInBytes field's value.
+func (s *FileSystemDescription) SetSizeInBytes(v *FileSystemSize) *FileSystemDescription {
+	s.SizeInBytes = v
+	return s
+}
+
 // Latest known metered size (in bytes) of data stored in the file system, in
 // its Value field, and the time at which that size was determined in its Timestamp
 // field. Note that the value does not represent the size of a consistent snapshot
@@ -1802,6 +2058,18 @@ func (s FileSystemSize) String() string {
 // GoString returns the string representation
 func (s FileSystemSize) GoString() string {
 	return s.String()
+}
+
+// SetTimestamp sets the Timestamp field's value.
+func (s *FileSystemSize) SetTimestamp(v time.Time) *FileSystemSize {
+	s.Timestamp = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *FileSystemSize) SetValue(v int64) *FileSystemSize {
+	s.Value = &v
+	return s
 }
 
 type ModifyMountTargetSecurityGroupsInput struct {
@@ -1837,6 +2105,18 @@ func (s *ModifyMountTargetSecurityGroupsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetMountTargetId sets the MountTargetId field's value.
+func (s *ModifyMountTargetSecurityGroupsInput) SetMountTargetId(v string) *ModifyMountTargetSecurityGroupsInput {
+	s.MountTargetId = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *ModifyMountTargetSecurityGroupsInput) SetSecurityGroups(v []*string) *ModifyMountTargetSecurityGroupsInput {
+	s.SecurityGroups = v
+	return s
 }
 
 type ModifyMountTargetSecurityGroupsOutput struct {
@@ -1898,6 +2178,48 @@ func (s MountTargetDescription) GoString() string {
 	return s.String()
 }
 
+// SetFileSystemId sets the FileSystemId field's value.
+func (s *MountTargetDescription) SetFileSystemId(v string) *MountTargetDescription {
+	s.FileSystemId = &v
+	return s
+}
+
+// SetIpAddress sets the IpAddress field's value.
+func (s *MountTargetDescription) SetIpAddress(v string) *MountTargetDescription {
+	s.IpAddress = &v
+	return s
+}
+
+// SetLifeCycleState sets the LifeCycleState field's value.
+func (s *MountTargetDescription) SetLifeCycleState(v string) *MountTargetDescription {
+	s.LifeCycleState = &v
+	return s
+}
+
+// SetMountTargetId sets the MountTargetId field's value.
+func (s *MountTargetDescription) SetMountTargetId(v string) *MountTargetDescription {
+	s.MountTargetId = &v
+	return s
+}
+
+// SetNetworkInterfaceId sets the NetworkInterfaceId field's value.
+func (s *MountTargetDescription) SetNetworkInterfaceId(v string) *MountTargetDescription {
+	s.NetworkInterfaceId = &v
+	return s
+}
+
+// SetOwnerId sets the OwnerId field's value.
+func (s *MountTargetDescription) SetOwnerId(v string) *MountTargetDescription {
+	s.OwnerId = &v
+	return s
+}
+
+// SetSubnetId sets the SubnetId field's value.
+func (s *MountTargetDescription) SetSubnetId(v string) *MountTargetDescription {
+	s.SubnetId = &v
+	return s
+}
+
 // A tag is a key-value pair. Allowed characters: letters, whitespace, and numbers,
 // representable in UTF-8, and the following characters: + - = . _ : /
 type Tag struct {
@@ -1941,6 +2263,18 @@ func (s *Tag) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
 }
 
 const (

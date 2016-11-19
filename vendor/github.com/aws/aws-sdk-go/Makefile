@@ -5,9 +5,11 @@ LINTIGNORESTUTTER='service/[^/]+/(api|service)\.go:.+(and that stutters)'
 LINTIGNOREINFLECT='service/[^/]+/(api|service)\.go:.+method .+ should be '
 LINTIGNOREINFLECTS3UPLOAD='service/s3/s3manager/upload\.go:.+struct field SSEKMSKeyId should be '
 LINTIGNOREDEPS='vendor/.+\.go'
+UNIT_TEST_TAGS="example codegen"
 
-SDK_WITH_VENDOR_PKGS=$(shell go list ./... | grep -v "/vendor/src")
+SDK_WITH_VENDOR_PKGS=$(shell go list -tags ${UNIT_TEST_TAGS} ./... | grep -v "/vendor/src")
 SDK_ONLY_PKGS=$(shell go list ./... | grep -v "/vendor/")
+SDK_UNIT_TEST_ONLY_PKGS=$(shell go list -tags ${UNIT_TEST_TAGS} ./... | grep -v "/vendor/")
 SDK_GO_1_4=$(shell go version | grep "go1.4")
 SDK_GO_1_5=$(shell go version | grep "go1.5")
 SDK_GO_VERSION=$(shell go version | awk '''{print $$3}''' | tr -d '''\n''')
@@ -47,15 +49,15 @@ gen-endpoints:
 
 build:
 	@echo "go build SDK and vendor packages"
-	@go build -tags example,codegen ${SDK_ONLY_PKGS}
+	@go build ${SDK_ONLY_PKGS}
 
 unit: get-deps-tests build verify
 	@echo "go test SDK and vendor packages"
-	@go test -tags example,codegen $(SDK_ONLY_PKGS)
+	@go test -tags ${UNIT_TEST_TAGS} $(SDK_UNIT_TEST_ONLY_PKGS)
 
 unit-with-race-cover: get-deps-tests build verify
 	@echo "go test SDK and vendor packages"
-	@go test -tags example,codegen -race -cpu=1,2,4 $(SDK_ONLY_PKGS)
+	@go test -tags ${UNIT_TEST_TAGS} -race -cpu=1,2,4 $(SDK_UNIT_TEST_ONLY_PKGS)
 
 integration: get-deps-tests integ-custom smoke-tests performance
 
@@ -128,6 +130,7 @@ get-deps-tests:
 	go get github.com/gucumber/gucumber/cmd/gucumber
 	go get github.com/stretchr/testify
 	go get github.com/smartystreets/goconvey
+	go get golang.org/x/net/html
 
 get-deps-verify:
 	@echo "go get SDK verification utilities"

@@ -69,14 +69,14 @@ func (c *Glacier) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) 
 //
 // This operation is idempotent.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
-//  For conceptual information and underlying REST API, go to Working with
-// Archives in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-archives.html)
+// For conceptual information and underlying REST API, go to Working with Archives
+// in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/working-with-archives.html)
 // and Abort Multipart Upload (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-multipart-abort-upload.html)
 // in the Amazon Glacier Developer Guide.
 //
@@ -346,9 +346,9 @@ func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadI
 // upload. It includes checksum information for each uploaded part that can
 // be used to debug a bad checksum issue.
 //
-// Additionally, Amazon Glacier also checks for any missing content ranges
-// when assembling the archive, if missing content ranges are found, Amazon
-// Glacier returns an error and the operation fails.
+// Additionally, Amazon Glacier also checks for any missing content ranges when
+// assembling the archive, if missing content ranges are found, Amazon Glacier
+// returns an error and the operation fails.
 //
 // Complete Multipart Upload is an idempotent operation. After your first successful
 // complete multipart upload, if you call the operation again within a short
@@ -361,13 +361,13 @@ func (c *Glacier) CompleteMultipartUploadRequest(input *CompleteMultipartUploadI
 // appear in List Multipart Uploads response, even if idempotent complete is
 // possible.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
-//  For conceptual information and underlying REST API, go to Uploading Large
+// For conceptual information and underlying REST API, go to Uploading Large
 // Archives in Parts (Multipart Upload) (http://docs.aws.amazon.com/amazonglacier/latest/dev/uploading-archive-mpu.html)
 // and Complete Multipart Upload (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-multipart-complete-upload.html)
 // in the Amazon Glacier Developer Guide.
@@ -541,20 +541,20 @@ func (c *Glacier) CreateVaultRequest(input *CreateVaultInput) (req *request.Requ
 //
 // You must use the following guidelines when naming a vault.
 //
-//     Names can be between 1 and 255 characters long.
+// Names can be between 1 and 255 characters long.
 //
-//   Allowed characters are a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen),
-// and '.' (period).
+// Allowed characters are a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen), and
+// '.' (period).
 //
-//    This operation is idempotent.
+// This operation is idempotent.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
-//  For conceptual information and underlying REST API, go to Creating a Vault
+// For conceptual information and underlying REST API, go to Creating a Vault
 // in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/creating-vaults.html)
 // and Create Vault  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vault-put.html)
 // in the Amazon Glacier Developer Guide.
@@ -636,20 +636,22 @@ func (c *Glacier) DeleteArchiveRequest(input *DeleteArchiveInput) (req *request.
 // a retrieval of this archive will fail. Archive retrievals that are in progress
 // for this archive ID may or may not succeed according to the following scenarios:
 //
-//  If the archive retrieval job is actively preparing the data for download
-// when Amazon Glacier receives the delete archive request, the archival retrieval
-// operation might fail.  If the archive retrieval job has successfully prepared
-// the archive for download when Amazon Glacier receives the delete archive
-// request, you will be able to download the output.   This operation is idempotent.
-// Attempting to delete an already-deleted archive does not result in an error.
+//    * If the archive retrieval job is actively preparing the data for download
+//    when Amazon Glacier receives the delete archive request, the archival
+//    retrieval operation might fail.
+//    * If the archive retrieval job has successfully prepared the archive for
+//    download when Amazon Glacier receives the delete archive request, you
+//    will be able to download the output.
+// This operation is idempotent. Attempting to delete an already-deleted archive
+// does not result in an error.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
-//  For conceptual information and underlying REST API, go to Deleting an Archive
+// For conceptual information and underlying REST API, go to Deleting an Archive
 // in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/deleting-an-archive.html)
 // and Delete Archive (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-archive-delete.html)
 // in the Amazon Glacier Developer Guide.
@@ -741,13 +743,13 @@ func (c *Glacier) DeleteVaultRequest(input *DeleteVaultInput) (req *request.Requ
 //
 // This operation is idempotent.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
-//  For conceptual information and underlying REST API, go to Deleting a Vault
+// For conceptual information and underlying REST API, go to Deleting a Vault
 // in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/deleting-vaults.html)
 // and Delete Vault  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vault-delete.html)
 // in the Amazon Glacier Developer Guide.
@@ -916,13 +918,13 @@ func (c *Glacier) DeleteVaultNotificationsRequest(input *DeleteVaultNotification
 // Amazon Glacier to completely disable the notifications and you might still
 // receive some notifications for a short time after you send the delete request.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/latest/dev/using-iam-with-amazon-glacier.html).
 //
-//  For conceptual information and underlying REST API, go to Configuring Vault
+// For conceptual information and underlying REST API, go to Configuring Vault
 // Notifications in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/configuring-notifications.html)
 // and Delete Vault Notification Configuration  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-vault-notifications-delete.html)
 // in the Amazon Glacier Developer Guide.
@@ -1004,21 +1006,21 @@ func (c *Glacier) DescribeJobRequest(input *DescribeJobInput) (req *request.Requ
 // status code/message and the Amazon SNS topic to notify after Amazon Glacier
 // completes the job. For more information about initiating a job, see InitiateJob.
 //
-// This operation enables you to check the status of your job. However, it
-// is strongly recommended that you set up an Amazon SNS topic and specify it
-// in your initiate job request so that Amazon Glacier can notify the topic
-// after it completes the job.
+// This operation enables you to check the status of your job. However, it is
+// strongly recommended that you set up an Amazon SNS topic and specify it in
+// your initiate job request so that Amazon Glacier can notify the topic after
+// it completes the job.
 //
 // A job ID will not expire for at least 24 hours after Amazon Glacier completes
 // the job.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
-//  For information about the underlying REST API, go to Working with Archives
+// For information about the underlying REST API, go to Working with Archives
 // in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-describe-job-get.html)
 // in the Amazon Glacier Developer Guide.
 //
@@ -1104,8 +1106,8 @@ func (c *Glacier) DescribeVaultRequest(input *DescribeVaultInput) (req *request.
 // Amazon Glacier generates vault inventories approximately daily. For more
 // information, see Downloading a Vault Inventory in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-inventory.html).
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
@@ -1274,27 +1276,27 @@ func (c *Glacier) GetJobOutputRequest(input *GetJobOutputInput) (req *request.Re
 // of data at a time, which is a total of eight Get Job Output requests. You
 // use the following process to download the job output:
 //
-//   Download a 128 MB chunk of output by specifying the appropriate byte range
+// Download a 128 MB chunk of output by specifying the appropriate byte range
 // using the Range header.
 //
-//   Along with the data, the response includes a SHA256 tree hash of the payload.
+// Along with the data, the response includes a SHA256 tree hash of the payload.
 // You compute the checksum of the payload on the client and compare it with
 // the checksum you received in the response to ensure you received all the
 // expected data.
 //
-//   Repeat steps 1 and 2 for all the eight 128 MB chunks of output data, each
+// Repeat steps 1 and 2 for all the eight 128 MB chunks of output data, each
 // time specifying the appropriate byte range.
 //
-//   After downloading all the parts of the job output, you have a list of
-// eight checksum values. Compute the tree hash of these values to find the
-// checksum of the entire output. Using the DescribeJob API, obtain job information
-// of the job that provided you the output. The response includes the checksum
+// After downloading all the parts of the job output, you have a list of eight
+// checksum values. Compute the tree hash of these values to find the checksum
+// of the entire output. Using the DescribeJob API, obtain job information of
+// the job that provided you the output. The response includes the checksum
 // of the entire archive stored in Amazon Glacier. You compare this value with
 // the checksum you computed to ensure you have downloaded the entire archive
 // content with no errors.
 //
-//   An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
@@ -1456,16 +1458,16 @@ func (c *Glacier) GetVaultLockRequest(input *GetVaultLockInput) (req *request.Re
 // GetVaultLock API operation for Amazon Glacier.
 //
 // This operation retrieves the following attributes from the lock-policy subresource
-// set on the specified vault:   The vault lock policy set on the vault.
+// set on the specified vault: The vault lock policy set on the vault.
 //
-//   The state of the vault lock, which is either InProgess or Locked.
+// The state of the vault lock, which is either InProgess or Locked.
 //
-//   When the lock ID expires. The lock ID is used to complete the vault locking
+// When the lock ID expires. The lock ID is used to complete the vault locking
 // process.
 //
-//   When the vault lock was initiated and put into the InProgress state.
+// When the vault lock was initiated and put into the InProgress state.
 //
-//    A vault lock is put into the InProgress state by calling InitiateVaultLock.
+// A vault lock is put into the InProgress state by calling InitiateVaultLock.
 // A vault lock is put into the Locked state by calling CompleteVaultLock. You
 // can abort the vault locking process by calling AbortVaultLock. For more information
 // about the vault locking process, Amazon Glacier Vault Lock (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-lock.html).
@@ -1555,8 +1557,8 @@ func (c *Glacier) GetVaultNotificationsRequest(input *GetVaultNotificationsInput
 // vault notifications, see Configuring Vault Notifications in Amazon Glacier
 // (http://docs.aws.amazon.com/amazonglacier/latest/dev/configuring-notifications.html).
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
@@ -1644,7 +1646,7 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 //
 // Retrieving data from Amazon Glacier is a two-step process:
 //
-//   Initiate a retrieval job.
+// Initiate a retrieval job.
 //
 // A data retrieval policy can cause your initiate retrieval job request to
 // fail with a PolicyEnforcedException exception. For more information about
@@ -1652,9 +1654,9 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 // For more information about the PolicyEnforcedException exception, see Error
 // Responses (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-error-responses.html).
 //
-//   After the job completes, download the bytes.
+// After the job completes, download the bytes.
 //
-//  The retrieval request is executed asynchronously. When you initiate a retrieval
+// The retrieval request is executed asynchronously. When you initiate a retrieval
 // job, Amazon Glacier creates a job and returns a job ID in the response. When
 // Amazon Glacier completes the job, you can get the job output (archive or
 // inventory data). For information about getting job output, see GetJobOutput
@@ -1663,35 +1665,35 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 // The job must complete before you can get its output. To determine when a
 // job is complete, you have the following options:
 //
-//   Use Amazon SNS Notification You can specify an Amazon Simple Notification
-// Service (Amazon SNS) topic to which Amazon Glacier can post a notification
-// after the job is completed. You can specify an SNS topic per job request.
-// The notification is sent only after Amazon Glacier completes the job. In
-// addition to specifying an SNS topic per job request, you can configure vault
-// notifications for a vault so that job notifications are always sent. For
-// more information, see SetVaultNotifications.
+//    * Use Amazon SNS Notification You can specify an Amazon Simple Notification
+//    Service (Amazon SNS) topic to which Amazon Glacier can post a notification
+//    after the job is completed. You can specify an SNS topic per job request.
+//    The notification is sent only after Amazon Glacier completes the job.
+//    In addition to specifying an SNS topic per job request, you can configure
+//    vault notifications for a vault so that job notifications are always sent.
+//    For more information, see SetVaultNotifications.
 //
-//   Get job details You can make a DescribeJob request to obtain job status
-// information while a job is in progress. However, it is more efficient to
-// use an Amazon SNS notification to determine when a job is complete.
+//    * Get job details You can make a DescribeJob request to obtain job status
+//    information while a job is in progress. However, it is more efficient
+//    to use an Amazon SNS notification to determine when a job is complete.
 //
-//   The information you get via notification is same that you get by calling
+// The information you get via notification is same that you get by calling
 // DescribeJob.
 //
-// If for a specific event, you add both the notification configuration on
-// the vault and also specify an SNS topic in your initiate job request, Amazon
+// If for a specific event, you add both the notification configuration on the
+// vault and also specify an SNS topic in your initiate job request, Amazon
 // Glacier sends both notifications. For more information, see SetVaultNotifications.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
 // About the Vault Inventory
 //
-// Amazon Glacier prepares an inventory for each vault periodically, every
-// 24 hours. When you initiate a job for a vault inventory, Amazon Glacier returns
+// Amazon Glacier prepares an inventory for each vault periodically, every 24
+// hours. When you initiate a job for a vault inventory, Amazon Glacier returns
 // the last inventory for the vault. The inventory data you get might be up
 // to a day or two days old. Also, the initiate inventory job might take some
 // time to complete before you can download the vault inventory. So you do not
@@ -1711,13 +1713,13 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 //
 // Filtering by Archive Creation Date
 //
-// You can retrieve inventory items for archives created between StartDate
-// and EndDate by specifying values for these parameters in the InitiateJob
-// request. Archives created on or after the StartDate and before the EndDate
-// will be returned. If you only provide the StartDate without the EndDate,
-// you will retrieve the inventory for all archives created on or after the
-// StartDate. If you only provide the EndDate without the StartDate, you will
-// get back the inventory for all archives created before the EndDate.
+// You can retrieve inventory items for archives created between StartDate and
+// EndDate by specifying values for these parameters in the InitiateJob request.
+// Archives created on or after the StartDate and before the EndDate will be
+// returned. If you only provide the StartDate without the EndDate, you will
+// retrieve the inventory for all archives created on or after the StartDate.
+// If you only provide the EndDate without the StartDate, you will get back
+// the inventory for all archives created before the EndDate.
 //
 // Limiting Inventory Items per Retrieval
 //
@@ -1736,8 +1738,8 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 //
 // About Ranged Archive Retrieval
 //
-//  You can initiate an archive retrieval for the whole archive or a range
-// of the archive. In the case of ranged archive retrieval, you specify a byte
+// You can initiate an archive retrieval for the whole archive or a range of
+// the archive. In the case of ranged archive retrieval, you specify a byte
 // range to return or the whole archive. The range specified must be megabyte
 // (MB) aligned, that is the range start value must be divisible by 1 MB and
 // range end value plus 1 must be divisible by 1 MB or equal the end of the
@@ -1745,8 +1747,8 @@ func (c *Glacier) InitiateJobRequest(input *InitiateJobInput) (req *request.Requ
 // returns a 400 response. Furthermore, to ensure you get checksum values for
 // data you download using Get Job Output API, the range must be tree hash aligned.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
@@ -1856,8 +1858,8 @@ func (c *Glacier) InitiateMultipartUploadRequest(input *InitiateMultipartUploadI
 // upload resource if you cancel the multipart upload or it may be removed if
 // there is no activity for a period of 24 hours.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
@@ -1940,15 +1942,15 @@ func (c *Glacier) InitiateVaultLockRequest(input *InitiateVaultLockInput) (req *
 // InitiateVaultLock API operation for Amazon Glacier.
 //
 // This operation initiates the vault locking process by doing the following:
-//   Installing a vault lock policy on the specified vault.
+// Installing a vault lock policy on the specified vault.
 //
-//   Setting the lock state of vault lock to InProgress.
+// Setting the lock state of vault lock to InProgress.
 //
-//   Returning a lock ID, which is used to complete the vault locking process.
+// Returning a lock ID, which is used to complete the vault locking process.
 //
-//    You can set one vault lock policy for each vault and this policy can
-// be up to 20 KB in size. For more information about vault lock policies, see
-// Amazon Glacier Access Control with Vault Lock Policies (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-lock-policy.html).
+// You can set one vault lock policy for each vault and this policy can be up
+// to 20 KB in size. For more information about vault lock policies, see Amazon
+// Glacier Access Control with Vault Lock Policies (http://docs.aws.amazon.com/amazonglacier/latest/dev/vault-lock-policy.html).
 //
 // You must complete the vault locking process within 24 hours after the vault
 // lock enters the InProgress state. After the 24 hour window ends, the lock
@@ -2079,8 +2081,8 @@ func (c *Glacier) ListJobsRequest(input *ListJobsInput) (req *request.Request, o
 // a specified status are returned. The completed parameter allows you to specify
 // that only jobs in a specific completion state are returned.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
@@ -2210,8 +2212,8 @@ func (c *Glacier) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) 
 // and does not require a multipart upload ID. The List Parts operation requires
 // a multipart upload ID since parts are associated with a single upload.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
@@ -2338,8 +2340,8 @@ func (c *Glacier) ListPartsRequest(input *ListPartsInput) (req *request.Request,
 // from a previous List Parts request. You can also limit the number of parts
 // returned in the response by specifying the limit parameter in the request.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
@@ -2531,17 +2533,16 @@ func (c *Glacier) ListVaultsRequest(input *ListVaultsInput) (req *request.Reques
 // This operation lists all vaults owned by the calling user's account. The
 // list returned in the response is ASCII-sorted by vault name.
 //
-// By default, this operation returns up to 1,000 items. If there are more
-// vaults to list, the response marker field contains the vault Amazon Resource
-// Name (ARN) at which to continue the list with a new List Vaults request;
-// otherwise, the marker field is null. To return a list of vaults that begins
-// at a specific vault, set the marker request parameter to the vault ARN you
-// obtained from a previous List Vaults request. You can also limit the number
-// of vaults returned in the response by specifying the limit parameter in the
-// request.
+// By default, this operation returns up to 1,000 items. If there are more vaults
+// to list, the response marker field contains the vault Amazon Resource Name
+// (ARN) at which to continue the list with a new List Vaults request; otherwise,
+// the marker field is null. To return a list of vaults that begins at a specific
+// vault, set the marker request parameter to the vault ARN you obtained from
+// a previous List Vaults request. You can also limit the number of vaults returned
+// in the response by specifying the limit parameter in the request.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
@@ -2902,18 +2903,19 @@ func (c *Glacier) SetVaultNotificationsRequest(input *SetVaultNotificationsInput
 // notifications to the topic. You can configure a vault to publish a notification
 // for the following vault events:
 //
-//   ArchiveRetrievalCompleted This event occurs when a job that was initiated
-// for an archive retrieval is completed (InitiateJob). The status of the completed
-// job can be "Succeeded" or "Failed". The notification sent to the SNS topic
-// is the same output as returned from DescribeJob.   InventoryRetrievalCompleted
-// This event occurs when a job that was initiated for an inventory retrieval
-// is completed (InitiateJob). The status of the completed job can be "Succeeded"
-// or "Failed". The notification sent to the SNS topic is the same output as
-// returned from DescribeJob.   An AWS account has full permission to perform
-// all operations (actions). However, AWS Identity and Access Management (IAM)
-// users don't have any permissions by default. You must grant them explicit
-// permission to perform specific actions. For more information, see Access
-// Control Using AWS Identity and Access Management (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
+//    * ArchiveRetrievalCompleted This event occurs when a job that was initiated
+//    for an archive retrieval is completed (InitiateJob). The status of the
+//    completed job can be "Succeeded" or "Failed". The notification sent to
+//    the SNS topic is the same output as returned from DescribeJob.
+//    * InventoryRetrievalCompleted This event occurs when a job that was initiated
+//    for an inventory retrieval is completed (InitiateJob). The status of the
+//    completed job can be "Succeeded" or "Failed". The notification sent to
+//    the SNS topic is the same output as returned from DescribeJob.
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
+// by default. You must grant them explicit permission to perform specific actions.
+// For more information, see Access Control Using AWS Identity and Access Management
+// (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
 // For conceptual information and underlying REST API, go to Configuring Vault
 // Notifications in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/configuring-notifications.html)
@@ -3018,14 +3020,14 @@ func (c *Glacier) UploadArchiveRequest(input *UploadArchiveInput) (req *request.
 // Archives are immutable. After you upload an archive, you cannot edit the
 // archive or its description.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
-//  For conceptual information and underlying REST API, go to Uploading an
-// Archive in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/uploading-an-archive.html)
+// For conceptual information and underlying REST API, go to Uploading an Archive
+// in Amazon Glacier (http://docs.aws.amazon.com/amazonglacier/latest/dev/uploading-an-archive.html)
 // and Upload Archive (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-archive-post.html)
 // in the Amazon Glacier Developer Guide.
 //
@@ -3109,42 +3111,44 @@ func (c *Glacier) UploadMultipartPartRequest(input *UploadMultipartPartInput) (r
 // in any order. You can also upload them in parallel. You can upload up to
 // 10,000 parts for a multipart upload.
 //
-// Amazon Glacier rejects your upload part request if any of the following
-// conditions is true:
+// Amazon Glacier rejects your upload part request if any of the following conditions
+// is true:
 //
-//   SHA256 tree hash does not matchTo ensure that part data is not corrupted
-// in transmission, you compute a SHA256 tree hash of the part and include it
-// in your request. Upon receiving the part data, Amazon Glacier also computes
-// a SHA256 tree hash. If these hash values don't match, the operation fails.
-// For information about computing a SHA256 tree hash, see Computing Checksums
-// (http://docs.aws.amazon.com/amazonglacier/latest/dev/checksum-calculations.html).
+//    * SHA256 tree hash does not matchTo ensure that part data is not corrupted
+//    in transmission, you compute a SHA256 tree hash of the part and include
+//    it in your request. Upon receiving the part data, Amazon Glacier also
+//    computes a SHA256 tree hash. If these hash values don't match, the operation
+//    fails. For information about computing a SHA256 tree hash, see Computing
+//    Checksums (http://docs.aws.amazon.com/amazonglacier/latest/dev/checksum-calculations.html).
 //
-//   Part size does not matchThe size of each part except the last must match
-// the size specified in the corresponding InitiateMultipartUpload request.
-// The size of the last part must be the same size as, or smaller than, the
-// specified size.
+//    * Part size does not matchThe size of each part except the last must match
+//    the size specified in the corresponding InitiateMultipartUpload request.
+//    The size of the last part must be the same size as, or smaller than, the
+//    specified size.
 //
 // If you upload a part whose size is smaller than the part size you specified
-// in your initiate multipart upload request and that part is not the last part,
-// then the upload part request will succeed. However, the subsequent Complete
-// Multipart Upload request will fail.
+//    in your initiate multipart upload request and that part is not the last
+//    part, then the upload part request will succeed. However, the subsequent
+//    Complete Multipart Upload request will fail.
 //
-//   Range does not alignThe byte range value in the request does not align
-// with the part size specified in the corresponding initiate request. For example,
-// if you specify a part size of 4194304 bytes (4 MB), then 0 to 4194303 bytes
-// (4 MB - 1) and 4194304 (4 MB) to 8388607 (8 MB - 1) are valid part ranges.
-// However, if you set a range value of 2 MB to 6 MB, the range does not align
-// with the part size and the upload will fail.   This operation is idempotent.
-// If you upload the same part multiple times, the data included in the most
-// recent request overwrites the previously uploaded data.
+//    * Range does not alignThe byte range value in the request does not align
+//    with the part size specified in the corresponding initiate request. For
+//    example, if you specify a part size of 4194304 bytes (4 MB), then 0 to
+//    4194303 bytes (4 MB - 1) and 4194304 (4 MB) to 8388607 (8 MB - 1) are
+//    valid part ranges. However, if you set a range value of 2 MB to 6 MB,
+//    the range does not align with the part size and the upload will fail.
 //
-// An AWS account has full permission to perform all operations (actions).
-// However, AWS Identity and Access Management (IAM) users don't have any permissions
+// This operation is idempotent. If you upload the same part multiple times,
+// the data included in the most recent request overwrites the previously uploaded
+// data.
+//
+// An AWS account has full permission to perform all operations (actions). However,
+// AWS Identity and Access Management (IAM) users don't have any permissions
 // by default. You must grant them explicit permission to perform specific actions.
 // For more information, see Access Control Using AWS Identity and Access Management
 // (IAM) (http://docs.aws.amazon.com/amazonglacier/latest/dev/using-iam-with-amazon-glacier.html).
 //
-//  For conceptual information and underlying REST API, go to Uploading Large
+// For conceptual information and underlying REST API, go to Uploading Large
 // Archives in Parts (Multipart Upload) (http://docs.aws.amazon.com/amazonglacier/latest/dev/uploading-archive-mpu.html)
 // and Upload Part  (http://docs.aws.amazon.com/amazonglacier/latest/dev/api-upload-part.html)
 // in the Amazon Glacier Developer Guide.
@@ -3238,6 +3242,24 @@ func (s *AbortMultipartUploadInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *AbortMultipartUploadInput) SetAccountId(v string) *AbortMultipartUploadInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *AbortMultipartUploadInput) SetUploadId(v string) *AbortMultipartUploadInput {
+	s.UploadId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *AbortMultipartUploadInput) SetVaultName(v string) *AbortMultipartUploadInput {
+	s.VaultName = &v
+	return s
+}
+
 type AbortMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3296,6 +3318,18 @@ func (s *AbortVaultLockInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *AbortVaultLockInput) SetAccountId(v string) *AbortVaultLockInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *AbortVaultLockInput) SetVaultName(v string) *AbortVaultLockInput {
+	s.VaultName = &v
+	return s
 }
 
 type AbortVaultLockOutput struct {
@@ -3361,6 +3395,24 @@ func (s *AddTagsToVaultInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *AddTagsToVaultInput) SetAccountId(v string) *AddTagsToVaultInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *AddTagsToVaultInput) SetTags(v map[string]*string) *AddTagsToVaultInput {
+	s.Tags = v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *AddTagsToVaultInput) SetVaultName(v string) *AddTagsToVaultInput {
+	s.VaultName = &v
+	return s
+}
+
 type AddTagsToVaultOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3401,6 +3453,24 @@ func (s ArchiveCreationOutput) String() string {
 // GoString returns the string representation
 func (s ArchiveCreationOutput) GoString() string {
 	return s.String()
+}
+
+// SetArchiveId sets the ArchiveId field's value.
+func (s *ArchiveCreationOutput) SetArchiveId(v string) *ArchiveCreationOutput {
+	s.ArchiveId = &v
+	return s
+}
+
+// SetChecksum sets the Checksum field's value.
+func (s *ArchiveCreationOutput) SetChecksum(v string) *ArchiveCreationOutput {
+	s.Checksum = &v
+	return s
+}
+
+// SetLocation sets the Location field's value.
+func (s *ArchiveCreationOutput) SetLocation(v string) *ArchiveCreationOutput {
+	s.Location = &v
+	return s
 }
 
 // Provides options to complete a multipart upload operation. This informs Amazon
@@ -3470,6 +3540,36 @@ func (s *CompleteMultipartUploadInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *CompleteMultipartUploadInput) SetAccountId(v string) *CompleteMultipartUploadInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetArchiveSize sets the ArchiveSize field's value.
+func (s *CompleteMultipartUploadInput) SetArchiveSize(v string) *CompleteMultipartUploadInput {
+	s.ArchiveSize = &v
+	return s
+}
+
+// SetChecksum sets the Checksum field's value.
+func (s *CompleteMultipartUploadInput) SetChecksum(v string) *CompleteMultipartUploadInput {
+	s.Checksum = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *CompleteMultipartUploadInput) SetUploadId(v string) *CompleteMultipartUploadInput {
+	s.UploadId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *CompleteMultipartUploadInput) SetVaultName(v string) *CompleteMultipartUploadInput {
+	s.VaultName = &v
+	return s
+}
+
 // The input values for CompleteVaultLock.
 type CompleteVaultLockInput struct {
 	_ struct{} `type:"structure"`
@@ -3522,6 +3622,24 @@ func (s *CompleteVaultLockInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *CompleteVaultLockInput) SetAccountId(v string) *CompleteVaultLockInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetLockId sets the LockId field's value.
+func (s *CompleteVaultLockInput) SetLockId(v string) *CompleteVaultLockInput {
+	s.LockId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *CompleteVaultLockInput) SetVaultName(v string) *CompleteVaultLockInput {
+	s.VaultName = &v
+	return s
 }
 
 type CompleteVaultLockOutput struct {
@@ -3584,6 +3702,18 @@ func (s *CreateVaultInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *CreateVaultInput) SetAccountId(v string) *CreateVaultInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *CreateVaultInput) SetVaultName(v string) *CreateVaultInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type CreateVaultOutput struct {
 	_ struct{} `type:"structure"`
@@ -3600,6 +3730,12 @@ func (s CreateVaultOutput) String() string {
 // GoString returns the string representation
 func (s CreateVaultOutput) GoString() string {
 	return s.String()
+}
+
+// SetLocation sets the Location field's value.
+func (s *CreateVaultOutput) SetLocation(v string) *CreateVaultOutput {
+	s.Location = &v
+	return s
 }
 
 // Data retrieval policy.
@@ -3619,6 +3755,12 @@ func (s DataRetrievalPolicy) String() string {
 // GoString returns the string representation
 func (s DataRetrievalPolicy) GoString() string {
 	return s.String()
+}
+
+// SetRules sets the Rules field's value.
+func (s *DataRetrievalPolicy) SetRules(v []*DataRetrievalRule) *DataRetrievalPolicy {
+	s.Rules = v
+	return s
 }
 
 // Data retrieval policy rule.
@@ -3646,6 +3788,18 @@ func (s DataRetrievalRule) String() string {
 // GoString returns the string representation
 func (s DataRetrievalRule) GoString() string {
 	return s.String()
+}
+
+// SetBytesPerHour sets the BytesPerHour field's value.
+func (s *DataRetrievalRule) SetBytesPerHour(v int64) *DataRetrievalRule {
+	s.BytesPerHour = &v
+	return s
+}
+
+// SetStrategy sets the Strategy field's value.
+func (s *DataRetrievalRule) SetStrategy(v string) *DataRetrievalRule {
+	s.Strategy = &v
+	return s
 }
 
 // Provides options for deleting an archive from an Amazon Glacier vault.
@@ -3699,6 +3853,24 @@ func (s *DeleteArchiveInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *DeleteArchiveInput) SetAccountId(v string) *DeleteArchiveInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetArchiveId sets the ArchiveId field's value.
+func (s *DeleteArchiveInput) SetArchiveId(v string) *DeleteArchiveInput {
+	s.ArchiveId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *DeleteArchiveInput) SetVaultName(v string) *DeleteArchiveInput {
+	s.VaultName = &v
+	return s
 }
 
 type DeleteArchiveOutput struct {
@@ -3760,6 +3932,18 @@ func (s *DeleteVaultAccessPolicyInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *DeleteVaultAccessPolicyInput) SetAccountId(v string) *DeleteVaultAccessPolicyInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *DeleteVaultAccessPolicyInput) SetVaultName(v string) *DeleteVaultAccessPolicyInput {
+	s.VaultName = &v
+	return s
+}
+
 type DeleteVaultAccessPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3819,6 +4003,18 @@ func (s *DeleteVaultInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *DeleteVaultInput) SetAccountId(v string) *DeleteVaultInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *DeleteVaultInput) SetVaultName(v string) *DeleteVaultInput {
+	s.VaultName = &v
+	return s
+}
+
 // Provides options for deleting a vault notification configuration from an
 // Amazon Glacier vault.
 type DeleteVaultNotificationsInput struct {
@@ -3863,6 +4059,18 @@ func (s *DeleteVaultNotificationsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *DeleteVaultNotificationsInput) SetAccountId(v string) *DeleteVaultNotificationsInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *DeleteVaultNotificationsInput) SetVaultName(v string) *DeleteVaultNotificationsInput {
+	s.VaultName = &v
+	return s
 }
 
 type DeleteVaultNotificationsOutput struct {
@@ -3946,6 +4154,24 @@ func (s *DescribeJobInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *DescribeJobInput) SetAccountId(v string) *DescribeJobInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetJobId sets the JobId field's value.
+func (s *DescribeJobInput) SetJobId(v string) *DescribeJobInput {
+	s.JobId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *DescribeJobInput) SetVaultName(v string) *DescribeJobInput {
+	s.VaultName = &v
+	return s
+}
+
 // Provides options for retrieving metadata for a specific vault in Amazon Glacier.
 type DescribeVaultInput struct {
 	_ struct{} `type:"structure"`
@@ -3991,6 +4217,18 @@ func (s *DescribeVaultInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *DescribeVaultInput) SetAccountId(v string) *DescribeVaultInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *DescribeVaultInput) SetVaultName(v string) *DescribeVaultInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type DescribeVaultOutput struct {
 	_ struct{} `type:"structure"`
@@ -4028,6 +4266,42 @@ func (s DescribeVaultOutput) String() string {
 // GoString returns the string representation
 func (s DescribeVaultOutput) GoString() string {
 	return s.String()
+}
+
+// SetCreationDate sets the CreationDate field's value.
+func (s *DescribeVaultOutput) SetCreationDate(v string) *DescribeVaultOutput {
+	s.CreationDate = &v
+	return s
+}
+
+// SetLastInventoryDate sets the LastInventoryDate field's value.
+func (s *DescribeVaultOutput) SetLastInventoryDate(v string) *DescribeVaultOutput {
+	s.LastInventoryDate = &v
+	return s
+}
+
+// SetNumberOfArchives sets the NumberOfArchives field's value.
+func (s *DescribeVaultOutput) SetNumberOfArchives(v int64) *DescribeVaultOutput {
+	s.NumberOfArchives = &v
+	return s
+}
+
+// SetSizeInBytes sets the SizeInBytes field's value.
+func (s *DescribeVaultOutput) SetSizeInBytes(v int64) *DescribeVaultOutput {
+	s.SizeInBytes = &v
+	return s
+}
+
+// SetVaultARN sets the VaultARN field's value.
+func (s *DescribeVaultOutput) SetVaultARN(v string) *DescribeVaultOutput {
+	s.VaultARN = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *DescribeVaultOutput) SetVaultName(v string) *DescribeVaultOutput {
+	s.VaultName = &v
+	return s
 }
 
 // Input for GetDataRetrievalPolicy.
@@ -4068,6 +4342,12 @@ func (s *GetDataRetrievalPolicyInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *GetDataRetrievalPolicyInput) SetAccountId(v string) *GetDataRetrievalPolicyInput {
+	s.AccountId = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to the GetDataRetrievalPolicy request.
 type GetDataRetrievalPolicyOutput struct {
 	_ struct{} `type:"structure"`
@@ -4084,6 +4364,12 @@ func (s GetDataRetrievalPolicyOutput) String() string {
 // GoString returns the string representation
 func (s GetDataRetrievalPolicyOutput) GoString() string {
 	return s.String()
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *GetDataRetrievalPolicyOutput) SetPolicy(v *DataRetrievalPolicy) *GetDataRetrievalPolicyOutput {
+	s.Policy = v
+	return s
 }
 
 // Provides options for downloading output of an Amazon Glacier job.
@@ -4144,6 +4430,30 @@ func (s *GetJobOutputInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *GetJobOutputInput) SetAccountId(v string) *GetJobOutputInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetJobId sets the JobId field's value.
+func (s *GetJobOutputInput) SetJobId(v string) *GetJobOutputInput {
+	s.JobId = &v
+	return s
+}
+
+// SetRange sets the Range field's value.
+func (s *GetJobOutputInput) SetRange(v string) *GetJobOutputInput {
+	s.Range = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *GetJobOutputInput) SetVaultName(v string) *GetJobOutputInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type GetJobOutputOutput struct {
 	_ struct{} `type:"structure" payload:"Body"`
@@ -4159,15 +4469,17 @@ type GetJobOutputOutput struct {
 
 	// The checksum of the data in the response. This header is returned only when
 	// retrieving the output for an archive retrieval job. Furthermore, this header
-	// appears only under the following conditions:  You get the entire range of
-	// the archive. You request a range to return of the archive that starts and
-	// ends on a multiple of 1 MB. For example, if you have an 3.1 MB archive and
-	// you specify a range to return that starts at 1 MB and ends at 2 MB, then
-	// the x-amz-sha256-tree-hash is returned as a response header. You request
-	// a range of the archive to return that starts on a multiple of 1 MB and goes
-	// to the end of the archive. For example, if you have a 3.1 MB archive and
-	// you specify a range that starts at 2 MB and ends at 3.1 MB (the end of the
-	// archive), then the x-amz-sha256-tree-hash is returned as a response header.
+	// appears only under the following conditions: You get the entire range of
+	// the archive.
+	// You request a range to return of the archive that starts and ends on a multiple
+	// of 1 MB. For example, if you have an 3.1 MB archive and you specify a range
+	// to return that starts at 1 MB and ends at 2 MB, then the x-amz-sha256-tree-hash
+	// is returned as a response header.
+	// You request a range of the archive to return that starts on a multiple of
+	// 1 MB and goes to the end of the archive. For example, if you have a 3.1 MB
+	// archive and you specify a range that starts at 2 MB and ends at 3.1 MB (the
+	// end of the archive), then the x-amz-sha256-tree-hash is returned as a response
+	// header.
 	Checksum *string `location:"header" locationName:"x-amz-sha256-tree-hash" type:"string"`
 
 	// The range of bytes returned by Amazon Glacier. If only partial output is
@@ -4195,6 +4507,48 @@ func (s GetJobOutputOutput) String() string {
 // GoString returns the string representation
 func (s GetJobOutputOutput) GoString() string {
 	return s.String()
+}
+
+// SetAcceptRanges sets the AcceptRanges field's value.
+func (s *GetJobOutputOutput) SetAcceptRanges(v string) *GetJobOutputOutput {
+	s.AcceptRanges = &v
+	return s
+}
+
+// SetArchiveDescription sets the ArchiveDescription field's value.
+func (s *GetJobOutputOutput) SetArchiveDescription(v string) *GetJobOutputOutput {
+	s.ArchiveDescription = &v
+	return s
+}
+
+// SetBody sets the Body field's value.
+func (s *GetJobOutputOutput) SetBody(v io.ReadCloser) *GetJobOutputOutput {
+	s.Body = v
+	return s
+}
+
+// SetChecksum sets the Checksum field's value.
+func (s *GetJobOutputOutput) SetChecksum(v string) *GetJobOutputOutput {
+	s.Checksum = &v
+	return s
+}
+
+// SetContentRange sets the ContentRange field's value.
+func (s *GetJobOutputOutput) SetContentRange(v string) *GetJobOutputOutput {
+	s.ContentRange = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *GetJobOutputOutput) SetContentType(v string) *GetJobOutputOutput {
+	s.ContentType = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *GetJobOutputOutput) SetStatus(v int64) *GetJobOutputOutput {
+	s.Status = &v
+	return s
 }
 
 // Input for GetVaultAccessPolicy.
@@ -4242,6 +4596,18 @@ func (s *GetVaultAccessPolicyInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *GetVaultAccessPolicyInput) SetAccountId(v string) *GetVaultAccessPolicyInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *GetVaultAccessPolicyInput) SetVaultName(v string) *GetVaultAccessPolicyInput {
+	s.VaultName = &v
+	return s
+}
+
 // Output for GetVaultAccessPolicy.
 type GetVaultAccessPolicyOutput struct {
 	_ struct{} `type:"structure" payload:"Policy"`
@@ -4258,6 +4624,12 @@ func (s GetVaultAccessPolicyOutput) String() string {
 // GoString returns the string representation
 func (s GetVaultAccessPolicyOutput) GoString() string {
 	return s.String()
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *GetVaultAccessPolicyOutput) SetPolicy(v *VaultAccessPolicy) *GetVaultAccessPolicyOutput {
+	s.Policy = v
+	return s
 }
 
 // The input values for GetVaultLock.
@@ -4305,6 +4677,18 @@ func (s *GetVaultLockInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *GetVaultLockInput) SetAccountId(v string) *GetVaultLockInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *GetVaultLockInput) SetVaultName(v string) *GetVaultLockInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type GetVaultLockOutput struct {
 	_ struct{} `type:"structure"`
@@ -4332,6 +4716,30 @@ func (s GetVaultLockOutput) String() string {
 // GoString returns the string representation
 func (s GetVaultLockOutput) GoString() string {
 	return s.String()
+}
+
+// SetCreationDate sets the CreationDate field's value.
+func (s *GetVaultLockOutput) SetCreationDate(v string) *GetVaultLockOutput {
+	s.CreationDate = &v
+	return s
+}
+
+// SetExpirationDate sets the ExpirationDate field's value.
+func (s *GetVaultLockOutput) SetExpirationDate(v string) *GetVaultLockOutput {
+	s.ExpirationDate = &v
+	return s
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *GetVaultLockOutput) SetPolicy(v string) *GetVaultLockOutput {
+	s.Policy = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *GetVaultLockOutput) SetState(v string) *GetVaultLockOutput {
+	s.State = &v
+	return s
 }
 
 // Provides options for retrieving the notification configuration set on an
@@ -4380,6 +4788,18 @@ func (s *GetVaultNotificationsInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *GetVaultNotificationsInput) SetAccountId(v string) *GetVaultNotificationsInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *GetVaultNotificationsInput) SetVaultName(v string) *GetVaultNotificationsInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type GetVaultNotificationsOutput struct {
 	_ struct{} `type:"structure" payload:"VaultNotificationConfig"`
@@ -4396,6 +4816,12 @@ func (s GetVaultNotificationsOutput) String() string {
 // GoString returns the string representation
 func (s GetVaultNotificationsOutput) GoString() string {
 	return s.String()
+}
+
+// SetVaultNotificationConfig sets the VaultNotificationConfig field's value.
+func (s *GetVaultNotificationsOutput) SetVaultNotificationConfig(v *VaultNotificationConfig) *GetVaultNotificationsOutput {
+	s.VaultNotificationConfig = v
+	return s
 }
 
 // Provides options for initiating an Amazon Glacier job.
@@ -4446,6 +4872,24 @@ func (s *InitiateJobInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *InitiateJobInput) SetAccountId(v string) *InitiateJobInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetJobParameters sets the JobParameters field's value.
+func (s *InitiateJobInput) SetJobParameters(v *JobParameters) *InitiateJobInput {
+	s.JobParameters = v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *InitiateJobInput) SetVaultName(v string) *InitiateJobInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type InitiateJobOutput struct {
 	_ struct{} `type:"structure"`
@@ -4465,6 +4909,18 @@ func (s InitiateJobOutput) String() string {
 // GoString returns the string representation
 func (s InitiateJobOutput) GoString() string {
 	return s.String()
+}
+
+// SetJobId sets the JobId field's value.
+func (s *InitiateJobOutput) SetJobId(v string) *InitiateJobOutput {
+	s.JobId = &v
+	return s
+}
+
+// SetLocation sets the Location field's value.
+func (s *InitiateJobOutput) SetLocation(v string) *InitiateJobOutput {
+	s.Location = &v
+	return s
 }
 
 // Provides options for initiating a multipart upload to an Amazon Glacier vault.
@@ -4524,6 +4980,30 @@ func (s *InitiateMultipartUploadInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *InitiateMultipartUploadInput) SetAccountId(v string) *InitiateMultipartUploadInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetArchiveDescription sets the ArchiveDescription field's value.
+func (s *InitiateMultipartUploadInput) SetArchiveDescription(v string) *InitiateMultipartUploadInput {
+	s.ArchiveDescription = &v
+	return s
+}
+
+// SetPartSize sets the PartSize field's value.
+func (s *InitiateMultipartUploadInput) SetPartSize(v string) *InitiateMultipartUploadInput {
+	s.PartSize = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *InitiateMultipartUploadInput) SetVaultName(v string) *InitiateMultipartUploadInput {
+	s.VaultName = &v
+	return s
+}
+
 // The Amazon Glacier response to your request.
 type InitiateMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
@@ -4544,6 +5024,18 @@ func (s InitiateMultipartUploadOutput) String() string {
 // GoString returns the string representation
 func (s InitiateMultipartUploadOutput) GoString() string {
 	return s.String()
+}
+
+// SetLocation sets the Location field's value.
+func (s *InitiateMultipartUploadOutput) SetLocation(v string) *InitiateMultipartUploadOutput {
+	s.Location = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *InitiateMultipartUploadOutput) SetUploadId(v string) *InitiateMultipartUploadOutput {
+	s.UploadId = &v
+	return s
 }
 
 // The input values for InitiateVaultLock.
@@ -4595,6 +5087,24 @@ func (s *InitiateVaultLockInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *InitiateVaultLockInput) SetAccountId(v string) *InitiateVaultLockInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *InitiateVaultLockInput) SetPolicy(v *VaultLockPolicy) *InitiateVaultLockInput {
+	s.Policy = v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *InitiateVaultLockInput) SetVaultName(v string) *InitiateVaultLockInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type InitiateVaultLockOutput struct {
 	_ struct{} `type:"structure"`
@@ -4611,6 +5121,12 @@ func (s InitiateVaultLockOutput) String() string {
 // GoString returns the string representation
 func (s InitiateVaultLockOutput) GoString() string {
 	return s.String()
+}
+
+// SetLockId sets the LockId field's value.
+func (s *InitiateVaultLockOutput) SetLockId(v string) *InitiateVaultLockOutput {
+	s.LockId = &v
+	return s
 }
 
 // Describes the options for a range inventory retrieval job.
@@ -4655,6 +5171,36 @@ func (s InventoryRetrievalJobDescription) GoString() string {
 	return s.String()
 }
 
+// SetEndDate sets the EndDate field's value.
+func (s *InventoryRetrievalJobDescription) SetEndDate(v string) *InventoryRetrievalJobDescription {
+	s.EndDate = &v
+	return s
+}
+
+// SetFormat sets the Format field's value.
+func (s *InventoryRetrievalJobDescription) SetFormat(v string) *InventoryRetrievalJobDescription {
+	s.Format = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *InventoryRetrievalJobDescription) SetLimit(v string) *InventoryRetrievalJobDescription {
+	s.Limit = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *InventoryRetrievalJobDescription) SetMarker(v string) *InventoryRetrievalJobDescription {
+	s.Marker = &v
+	return s
+}
+
+// SetStartDate sets the StartDate field's value.
+func (s *InventoryRetrievalJobDescription) SetStartDate(v string) *InventoryRetrievalJobDescription {
+	s.StartDate = &v
+	return s
+}
+
 // Provides options for specifying a range inventory retrieval job.
 type InventoryRetrievalJobInput struct {
 	_ struct{} `type:"structure"`
@@ -4688,6 +5234,30 @@ func (s InventoryRetrievalJobInput) String() string {
 // GoString returns the string representation
 func (s InventoryRetrievalJobInput) GoString() string {
 	return s.String()
+}
+
+// SetEndDate sets the EndDate field's value.
+func (s *InventoryRetrievalJobInput) SetEndDate(v string) *InventoryRetrievalJobInput {
+	s.EndDate = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *InventoryRetrievalJobInput) SetLimit(v string) *InventoryRetrievalJobInput {
+	s.Limit = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *InventoryRetrievalJobInput) SetMarker(v string) *InventoryRetrievalJobInput {
+	s.Marker = &v
+	return s
+}
+
+// SetStartDate sets the StartDate field's value.
+func (s *InventoryRetrievalJobInput) SetStartDate(v string) *InventoryRetrievalJobInput {
+	s.StartDate = &v
+	return s
 }
 
 // Describes an Amazon Glacier job.
@@ -4742,20 +5312,20 @@ type JobDescription struct {
 	// For an ArchiveRetrieval job, it is the checksum of the archive. Otherwise,
 	// the value is null.
 	//
-	//  The SHA256 tree hash value for the requested range of an archive. If the
+	// The SHA256 tree hash value for the requested range of an archive. If the
 	// Initiate a Job request for an archive specified a tree-hash aligned range,
 	// then this field returns a value.
 	//
-	//  For the specific case when the whole archive is retrieved, this value is
+	// For the specific case when the whole archive is retrieved, this value is
 	// the same as the ArchiveSHA256TreeHash value.
 	//
-	//  This field is null in the following situations:  Archive retrieval jobs
-	// that specify a range that is not tree-hash aligned.
+	// This field is null in the following situations: Archive retrieval jobs that
+	// specify a range that is not tree-hash aligned.
 	//
-	//   Archival jobs that specify a range that is equal to the whole archive
-	// and the job status is InProgress.
+	// Archival jobs that specify a range that is equal to the whole archive and
+	// the job status is InProgress.
 	//
-	//   Inventory jobs.
+	// Inventory jobs.
 	SHA256TreeHash *string `type:"string"`
 
 	// An Amazon Simple Notification Service (Amazon SNS) topic that receives notification.
@@ -4781,6 +5351,108 @@ func (s JobDescription) String() string {
 // GoString returns the string representation
 func (s JobDescription) GoString() string {
 	return s.String()
+}
+
+// SetAction sets the Action field's value.
+func (s *JobDescription) SetAction(v string) *JobDescription {
+	s.Action = &v
+	return s
+}
+
+// SetArchiveId sets the ArchiveId field's value.
+func (s *JobDescription) SetArchiveId(v string) *JobDescription {
+	s.ArchiveId = &v
+	return s
+}
+
+// SetArchiveSHA256TreeHash sets the ArchiveSHA256TreeHash field's value.
+func (s *JobDescription) SetArchiveSHA256TreeHash(v string) *JobDescription {
+	s.ArchiveSHA256TreeHash = &v
+	return s
+}
+
+// SetArchiveSizeInBytes sets the ArchiveSizeInBytes field's value.
+func (s *JobDescription) SetArchiveSizeInBytes(v int64) *JobDescription {
+	s.ArchiveSizeInBytes = &v
+	return s
+}
+
+// SetCompleted sets the Completed field's value.
+func (s *JobDescription) SetCompleted(v bool) *JobDescription {
+	s.Completed = &v
+	return s
+}
+
+// SetCompletionDate sets the CompletionDate field's value.
+func (s *JobDescription) SetCompletionDate(v string) *JobDescription {
+	s.CompletionDate = &v
+	return s
+}
+
+// SetCreationDate sets the CreationDate field's value.
+func (s *JobDescription) SetCreationDate(v string) *JobDescription {
+	s.CreationDate = &v
+	return s
+}
+
+// SetInventoryRetrievalParameters sets the InventoryRetrievalParameters field's value.
+func (s *JobDescription) SetInventoryRetrievalParameters(v *InventoryRetrievalJobDescription) *JobDescription {
+	s.InventoryRetrievalParameters = v
+	return s
+}
+
+// SetInventorySizeInBytes sets the InventorySizeInBytes field's value.
+func (s *JobDescription) SetInventorySizeInBytes(v int64) *JobDescription {
+	s.InventorySizeInBytes = &v
+	return s
+}
+
+// SetJobDescription sets the JobDescription field's value.
+func (s *JobDescription) SetJobDescription(v string) *JobDescription {
+	s.JobDescription = &v
+	return s
+}
+
+// SetJobId sets the JobId field's value.
+func (s *JobDescription) SetJobId(v string) *JobDescription {
+	s.JobId = &v
+	return s
+}
+
+// SetRetrievalByteRange sets the RetrievalByteRange field's value.
+func (s *JobDescription) SetRetrievalByteRange(v string) *JobDescription {
+	s.RetrievalByteRange = &v
+	return s
+}
+
+// SetSHA256TreeHash sets the SHA256TreeHash field's value.
+func (s *JobDescription) SetSHA256TreeHash(v string) *JobDescription {
+	s.SHA256TreeHash = &v
+	return s
+}
+
+// SetSNSTopic sets the SNSTopic field's value.
+func (s *JobDescription) SetSNSTopic(v string) *JobDescription {
+	s.SNSTopic = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *JobDescription) SetStatusCode(v string) *JobDescription {
+	s.StatusCode = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *JobDescription) SetStatusMessage(v string) *JobDescription {
+	s.StatusMessage = &v
+	return s
+}
+
+// SetVaultARN sets the VaultARN field's value.
+func (s *JobDescription) SetVaultARN(v string) *JobDescription {
+	s.VaultARN = &v
+	return s
 }
 
 // Provides options for defining a job.
@@ -4836,6 +5508,48 @@ func (s JobParameters) String() string {
 // GoString returns the string representation
 func (s JobParameters) GoString() string {
 	return s.String()
+}
+
+// SetArchiveId sets the ArchiveId field's value.
+func (s *JobParameters) SetArchiveId(v string) *JobParameters {
+	s.ArchiveId = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *JobParameters) SetDescription(v string) *JobParameters {
+	s.Description = &v
+	return s
+}
+
+// SetFormat sets the Format field's value.
+func (s *JobParameters) SetFormat(v string) *JobParameters {
+	s.Format = &v
+	return s
+}
+
+// SetInventoryRetrievalParameters sets the InventoryRetrievalParameters field's value.
+func (s *JobParameters) SetInventoryRetrievalParameters(v *InventoryRetrievalJobInput) *JobParameters {
+	s.InventoryRetrievalParameters = v
+	return s
+}
+
+// SetRetrievalByteRange sets the RetrievalByteRange field's value.
+func (s *JobParameters) SetRetrievalByteRange(v string) *JobParameters {
+	s.RetrievalByteRange = &v
+	return s
+}
+
+// SetSNSTopic sets the SNSTopic field's value.
+func (s *JobParameters) SetSNSTopic(v string) *JobParameters {
+	s.SNSTopic = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *JobParameters) SetType(v string) *JobParameters {
+	s.Type = &v
+	return s
 }
 
 // Provides options for retrieving a job list for an Amazon Glacier vault.
@@ -4900,6 +5614,42 @@ func (s *ListJobsInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *ListJobsInput) SetAccountId(v string) *ListJobsInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetCompleted sets the Completed field's value.
+func (s *ListJobsInput) SetCompleted(v string) *ListJobsInput {
+	s.Completed = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListJobsInput) SetLimit(v string) *ListJobsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListJobsInput) SetMarker(v string) *ListJobsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetStatuscode sets the Statuscode field's value.
+func (s *ListJobsInput) SetStatuscode(v string) *ListJobsInput {
+	s.Statuscode = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *ListJobsInput) SetVaultName(v string) *ListJobsInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type ListJobsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4921,6 +5671,18 @@ func (s ListJobsOutput) String() string {
 // GoString returns the string representation
 func (s ListJobsOutput) GoString() string {
 	return s.String()
+}
+
+// SetJobList sets the JobList field's value.
+func (s *ListJobsOutput) SetJobList(v []*JobDescription) *ListJobsOutput {
+	s.JobList = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListJobsOutput) SetMarker(v string) *ListJobsOutput {
+	s.Marker = &v
+	return s
 }
 
 // Provides options for retrieving list of in-progress multipart uploads for
@@ -4980,6 +5742,30 @@ func (s *ListMultipartUploadsInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *ListMultipartUploadsInput) SetAccountId(v string) *ListMultipartUploadsInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListMultipartUploadsInput) SetLimit(v string) *ListMultipartUploadsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListMultipartUploadsInput) SetMarker(v string) *ListMultipartUploadsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *ListMultipartUploadsInput) SetVaultName(v string) *ListMultipartUploadsInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type ListMultipartUploadsOutput struct {
 	_ struct{} `type:"structure"`
@@ -5001,6 +5787,18 @@ func (s ListMultipartUploadsOutput) String() string {
 // GoString returns the string representation
 func (s ListMultipartUploadsOutput) GoString() string {
 	return s.String()
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListMultipartUploadsOutput) SetMarker(v string) *ListMultipartUploadsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetUploadsList sets the UploadsList field's value.
+func (s *ListMultipartUploadsOutput) SetUploadsList(v []*UploadListElement) *ListMultipartUploadsOutput {
+	s.UploadsList = v
+	return s
 }
 
 // Provides options for retrieving a list of parts of an archive that have been
@@ -5068,6 +5866,36 @@ func (s *ListPartsInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *ListPartsInput) SetAccountId(v string) *ListPartsInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListPartsInput) SetLimit(v string) *ListPartsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListPartsInput) SetMarker(v string) *ListPartsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *ListPartsInput) SetUploadId(v string) *ListPartsInput {
+	s.UploadId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *ListPartsInput) SetVaultName(v string) *ListPartsInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type ListPartsOutput struct {
 	_ struct{} `type:"structure"`
@@ -5106,6 +5934,48 @@ func (s ListPartsOutput) String() string {
 // GoString returns the string representation
 func (s ListPartsOutput) GoString() string {
 	return s.String()
+}
+
+// SetArchiveDescription sets the ArchiveDescription field's value.
+func (s *ListPartsOutput) SetArchiveDescription(v string) *ListPartsOutput {
+	s.ArchiveDescription = &v
+	return s
+}
+
+// SetCreationDate sets the CreationDate field's value.
+func (s *ListPartsOutput) SetCreationDate(v string) *ListPartsOutput {
+	s.CreationDate = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListPartsOutput) SetMarker(v string) *ListPartsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetMultipartUploadId sets the MultipartUploadId field's value.
+func (s *ListPartsOutput) SetMultipartUploadId(v string) *ListPartsOutput {
+	s.MultipartUploadId = &v
+	return s
+}
+
+// SetPartSizeInBytes sets the PartSizeInBytes field's value.
+func (s *ListPartsOutput) SetPartSizeInBytes(v int64) *ListPartsOutput {
+	s.PartSizeInBytes = &v
+	return s
+}
+
+// SetParts sets the Parts field's value.
+func (s *ListPartsOutput) SetParts(v []*PartListElement) *ListPartsOutput {
+	s.Parts = v
+	return s
+}
+
+// SetVaultARN sets the VaultARN field's value.
+func (s *ListPartsOutput) SetVaultARN(v string) *ListPartsOutput {
+	s.VaultARN = &v
+	return s
 }
 
 // The input value for ListTagsForVaultInput.
@@ -5153,6 +6023,18 @@ func (s *ListTagsForVaultInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *ListTagsForVaultInput) SetAccountId(v string) *ListTagsForVaultInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *ListTagsForVaultInput) SetVaultName(v string) *ListTagsForVaultInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type ListTagsForVaultOutput struct {
 	_ struct{} `type:"structure"`
@@ -5169,6 +6051,12 @@ func (s ListTagsForVaultOutput) String() string {
 // GoString returns the string representation
 func (s ListTagsForVaultOutput) GoString() string {
 	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsForVaultOutput) SetTags(v map[string]*string) *ListTagsForVaultOutput {
+	s.Tags = v
+	return s
 }
 
 // Provides options to retrieve the vault list owned by the calling user's account.
@@ -5218,6 +6106,24 @@ func (s *ListVaultsInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *ListVaultsInput) SetAccountId(v string) *ListVaultsInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListVaultsInput) SetLimit(v string) *ListVaultsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListVaultsInput) SetMarker(v string) *ListVaultsInput {
+	s.Marker = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type ListVaultsOutput struct {
 	_ struct{} `type:"structure"`
@@ -5240,6 +6146,18 @@ func (s ListVaultsOutput) GoString() string {
 	return s.String()
 }
 
+// SetMarker sets the Marker field's value.
+func (s *ListVaultsOutput) SetMarker(v string) *ListVaultsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetVaultList sets the VaultList field's value.
+func (s *ListVaultsOutput) SetVaultList(v []*DescribeVaultOutput) *ListVaultsOutput {
+	s.VaultList = v
+	return s
+}
+
 // A list of the part sizes of the multipart upload.
 type PartListElement struct {
 	_ struct{} `type:"structure"`
@@ -5260,6 +6178,18 @@ func (s PartListElement) String() string {
 // GoString returns the string representation
 func (s PartListElement) GoString() string {
 	return s.String()
+}
+
+// SetRangeInBytes sets the RangeInBytes field's value.
+func (s *PartListElement) SetRangeInBytes(v string) *PartListElement {
+	s.RangeInBytes = &v
+	return s
+}
+
+// SetSHA256TreeHash sets the SHA256TreeHash field's value.
+func (s *PartListElement) SetSHA256TreeHash(v string) *PartListElement {
+	s.SHA256TreeHash = &v
+	return s
 }
 
 // The input value for RemoveTagsFromVaultInput.
@@ -5308,6 +6238,24 @@ func (s *RemoveTagsFromVaultInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *RemoveTagsFromVaultInput) SetAccountId(v string) *RemoveTagsFromVaultInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *RemoveTagsFromVaultInput) SetTagKeys(v []*string) *RemoveTagsFromVaultInput {
+	s.TagKeys = v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *RemoveTagsFromVaultInput) SetVaultName(v string) *RemoveTagsFromVaultInput {
+	s.VaultName = &v
+	return s
 }
 
 type RemoveTagsFromVaultOutput struct {
@@ -5363,6 +6311,18 @@ func (s *SetDataRetrievalPolicyInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *SetDataRetrievalPolicyInput) SetAccountId(v string) *SetDataRetrievalPolicyInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *SetDataRetrievalPolicyInput) SetPolicy(v *DataRetrievalPolicy) *SetDataRetrievalPolicyInput {
+	s.Policy = v
+	return s
 }
 
 type SetDataRetrievalPolicyOutput struct {
@@ -5427,6 +6387,24 @@ func (s *SetVaultAccessPolicyInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *SetVaultAccessPolicyInput) SetAccountId(v string) *SetVaultAccessPolicyInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *SetVaultAccessPolicyInput) SetPolicy(v *VaultAccessPolicy) *SetVaultAccessPolicyInput {
+	s.Policy = v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *SetVaultAccessPolicyInput) SetVaultName(v string) *SetVaultAccessPolicyInput {
+	s.VaultName = &v
+	return s
+}
+
 type SetVaultAccessPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5488,6 +6466,24 @@ func (s *SetVaultNotificationsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccountId sets the AccountId field's value.
+func (s *SetVaultNotificationsInput) SetAccountId(v string) *SetVaultNotificationsInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *SetVaultNotificationsInput) SetVaultName(v string) *SetVaultNotificationsInput {
+	s.VaultName = &v
+	return s
+}
+
+// SetVaultNotificationConfig sets the VaultNotificationConfig field's value.
+func (s *SetVaultNotificationsInput) SetVaultNotificationConfig(v *VaultNotificationConfig) *SetVaultNotificationsInput {
+	s.VaultNotificationConfig = v
+	return s
 }
 
 type SetVaultNotificationsOutput struct {
@@ -5558,6 +6554,36 @@ func (s *UploadArchiveInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *UploadArchiveInput) SetAccountId(v string) *UploadArchiveInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetArchiveDescription sets the ArchiveDescription field's value.
+func (s *UploadArchiveInput) SetArchiveDescription(v string) *UploadArchiveInput {
+	s.ArchiveDescription = &v
+	return s
+}
+
+// SetBody sets the Body field's value.
+func (s *UploadArchiveInput) SetBody(v io.ReadSeeker) *UploadArchiveInput {
+	s.Body = v
+	return s
+}
+
+// SetChecksum sets the Checksum field's value.
+func (s *UploadArchiveInput) SetChecksum(v string) *UploadArchiveInput {
+	s.Checksum = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *UploadArchiveInput) SetVaultName(v string) *UploadArchiveInput {
+	s.VaultName = &v
+	return s
+}
+
 // A list of in-progress multipart uploads for a vault.
 type UploadListElement struct {
 	_ struct{} `type:"structure"`
@@ -5589,6 +6615,36 @@ func (s UploadListElement) String() string {
 // GoString returns the string representation
 func (s UploadListElement) GoString() string {
 	return s.String()
+}
+
+// SetArchiveDescription sets the ArchiveDescription field's value.
+func (s *UploadListElement) SetArchiveDescription(v string) *UploadListElement {
+	s.ArchiveDescription = &v
+	return s
+}
+
+// SetCreationDate sets the CreationDate field's value.
+func (s *UploadListElement) SetCreationDate(v string) *UploadListElement {
+	s.CreationDate = &v
+	return s
+}
+
+// SetMultipartUploadId sets the MultipartUploadId field's value.
+func (s *UploadListElement) SetMultipartUploadId(v string) *UploadListElement {
+	s.MultipartUploadId = &v
+	return s
+}
+
+// SetPartSizeInBytes sets the PartSizeInBytes field's value.
+func (s *UploadListElement) SetPartSizeInBytes(v int64) *UploadListElement {
+	s.PartSizeInBytes = &v
+	return s
+}
+
+// SetVaultARN sets the VaultARN field's value.
+func (s *UploadListElement) SetVaultARN(v string) *UploadListElement {
+	s.VaultARN = &v
+	return s
 }
 
 // Provides options to upload a part of an archive in a multipart upload operation.
@@ -5656,6 +6712,42 @@ func (s *UploadMultipartPartInput) Validate() error {
 	return nil
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *UploadMultipartPartInput) SetAccountId(v string) *UploadMultipartPartInput {
+	s.AccountId = &v
+	return s
+}
+
+// SetBody sets the Body field's value.
+func (s *UploadMultipartPartInput) SetBody(v io.ReadSeeker) *UploadMultipartPartInput {
+	s.Body = v
+	return s
+}
+
+// SetChecksum sets the Checksum field's value.
+func (s *UploadMultipartPartInput) SetChecksum(v string) *UploadMultipartPartInput {
+	s.Checksum = &v
+	return s
+}
+
+// SetRange sets the Range field's value.
+func (s *UploadMultipartPartInput) SetRange(v string) *UploadMultipartPartInput {
+	s.Range = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *UploadMultipartPartInput) SetUploadId(v string) *UploadMultipartPartInput {
+	s.UploadId = &v
+	return s
+}
+
+// SetVaultName sets the VaultName field's value.
+func (s *UploadMultipartPartInput) SetVaultName(v string) *UploadMultipartPartInput {
+	s.VaultName = &v
+	return s
+}
+
 // Contains the Amazon Glacier response to your request.
 type UploadMultipartPartOutput struct {
 	_ struct{} `type:"structure"`
@@ -5672,6 +6764,12 @@ func (s UploadMultipartPartOutput) String() string {
 // GoString returns the string representation
 func (s UploadMultipartPartOutput) GoString() string {
 	return s.String()
+}
+
+// SetChecksum sets the Checksum field's value.
+func (s *UploadMultipartPartOutput) SetChecksum(v string) *UploadMultipartPartOutput {
+	s.Checksum = &v
+	return s
 }
 
 // Contains the vault access policy.
@@ -5692,6 +6790,12 @@ func (s VaultAccessPolicy) GoString() string {
 	return s.String()
 }
 
+// SetPolicy sets the Policy field's value.
+func (s *VaultAccessPolicy) SetPolicy(v string) *VaultAccessPolicy {
+	s.Policy = &v
+	return s
+}
+
 // Contains the vault lock policy.
 type VaultLockPolicy struct {
 	_ struct{} `type:"structure"`
@@ -5708,6 +6812,12 @@ func (s VaultLockPolicy) String() string {
 // GoString returns the string representation
 func (s VaultLockPolicy) GoString() string {
 	return s.String()
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *VaultLockPolicy) SetPolicy(v string) *VaultLockPolicy {
+	s.Policy = &v
+	return s
 }
 
 // Represents a vault's notification configuration.
@@ -5731,6 +6841,18 @@ func (s VaultNotificationConfig) String() string {
 // GoString returns the string representation
 func (s VaultNotificationConfig) GoString() string {
 	return s.String()
+}
+
+// SetEvents sets the Events field's value.
+func (s *VaultNotificationConfig) SetEvents(v []*string) *VaultNotificationConfig {
+	s.Events = v
+	return s
+}
+
+// SetSNSTopic sets the SNSTopic field's value.
+func (s *VaultNotificationConfig) SetSNSTopic(v string) *VaultNotificationConfig {
+	s.SNSTopic = &v
+	return s
 }
 
 const (
