@@ -191,6 +191,7 @@ type PeriodicConfig struct {
 type Job struct {
 	Region            string
 	ID                string
+	ParentID          string
 	Name              string
 	Type              string
 	Priority          int
@@ -201,6 +202,7 @@ type Job struct {
 	Update            *UpdateStrategy
 	Periodic          *PeriodicConfig
 	Meta              map[string]string
+	VaultToken        string
 	Status            string
 	StatusDescription string
 	CreateIndex       uint64

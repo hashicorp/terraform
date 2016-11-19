@@ -83,6 +83,10 @@ func (j *Job) Diff(other *Job, contextual bool) (*JobDiff, error) {
 			return nil, fmt.Errorf("can not diff jobs with different IDs: %q and %q", j.ID, other.ID)
 		}
 
+		if !reflect.DeepEqual(j, other) {
+			diff.Type = DiffTypeEdited
+		}
+
 		jUpdate = &j.Update
 		otherUpdate = &other.Update
 		oldPrimitiveFlat = flatmap.Flatten(j, filter, true)
@@ -94,7 +98,7 @@ func (j *Job) Diff(other *Job, contextual bool) (*JobDiff, error) {
 	diff.Fields = fieldDiffs(oldPrimitiveFlat, newPrimitiveFlat, false)
 
 	// Datacenters diff
-	if setDiff := stringSetDiff(j.Datacenters, other.Datacenters, "Datacenters"); setDiff != nil {
+	if setDiff := stringSetDiff(j.Datacenters, other.Datacenters, "Datacenters", contextual); setDiff != nil {
 		diff.Objects = append(diff.Objects, setDiff)
 	}
 
@@ -124,20 +128,6 @@ func (j *Job) Diff(other *Job, contextual bool) (*JobDiff, error) {
 	// Periodic diff
 	if pDiff := primitiveObjectDiff(j.Periodic, other.Periodic, nil, "Periodic", contextual); pDiff != nil {
 		diff.Objects = append(diff.Objects, pDiff)
-	}
-
-	// If the job is not a delete or add, determine if there are edits.
-	if diff.Type == DiffTypeNone {
-		tgEdit := false
-		for _, tg := range diff.TaskGroups {
-			if tg.Type != DiffTypeNone {
-				tgEdit = true
-				break
-			}
-		}
-		if tgEdit || len(diff.Fields)+len(diff.Objects) != 0 {
-			diff.Type = DiffTypeEdited
-		}
 	}
 
 	return diff, nil
@@ -221,6 +211,12 @@ func (tg *TaskGroup) Diff(other *TaskGroup, contextual bool) (*TaskGroupDiff, er
 	rDiff := primitiveObjectDiff(tg.RestartPolicy, other.RestartPolicy, nil, "RestartPolicy", contextual)
 	if rDiff != nil {
 		diff.Objects = append(diff.Objects, rDiff)
+	}
+
+	// EphemeralDisk diff
+	diskDiff := primitiveObjectDiff(tg.EphemeralDisk, other.EphemeralDisk, nil, "EphemeralDisk", contextual)
+	if diskDiff != nil {
+		diff.Objects = append(diff.Objects, diskDiff)
 	}
 
 	// Tasks diff
@@ -388,6 +384,23 @@ func (t *Task) Diff(other *Task, contextual bool) (*TaskDiff, error) {
 	// Services diff
 	if sDiffs := serviceDiffs(t.Services, other.Services, contextual); sDiffs != nil {
 		diff.Objects = append(diff.Objects, sDiffs...)
+	}
+
+	// Vault diff
+	vDiff := vaultDiff(t.Vault, other.Vault, contextual)
+	if vDiff != nil {
+		diff.Objects = append(diff.Objects, vDiff)
+	}
+
+	// Artifacts diff
+	tmplDiffs := primitiveObjectSetDiff(
+		interfaceSlice(t.Templates),
+		interfaceSlice(other.Templates),
+		nil,
+		"Template",
+		contextual)
+	if tmplDiffs != nil {
+		diff.Objects = append(diff.Objects, tmplDiffs...)
 	}
 
 	return diff, nil
@@ -581,6 +594,39 @@ func serviceCheckDiffs(old, new []*ServiceCheck, contextual bool) []*ObjectDiff 
 
 	sort.Sort(ObjectDiffs(diffs))
 	return diffs
+}
+
+// vaultDiff returns the diff of two vault objects. If contextual diff is
+// enabled, all fields will be returned, even if no diff occurred.
+func vaultDiff(old, new *Vault, contextual bool) *ObjectDiff {
+	diff := &ObjectDiff{Type: DiffTypeNone, Name: "Vault"}
+	var oldPrimitiveFlat, newPrimitiveFlat map[string]string
+
+	if reflect.DeepEqual(old, new) {
+		return nil
+	} else if old == nil {
+		old = &Vault{}
+		diff.Type = DiffTypeAdded
+		newPrimitiveFlat = flatmap.Flatten(new, nil, true)
+	} else if new == nil {
+		new = &Vault{}
+		diff.Type = DiffTypeDeleted
+		oldPrimitiveFlat = flatmap.Flatten(old, nil, true)
+	} else {
+		diff.Type = DiffTypeEdited
+		oldPrimitiveFlat = flatmap.Flatten(old, nil, true)
+		newPrimitiveFlat = flatmap.Flatten(new, nil, true)
+	}
+
+	// Diff the primitive fields.
+	diff.Fields = fieldDiffs(oldPrimitiveFlat, newPrimitiveFlat, contextual)
+
+	// Policies diffs
+	if setDiff := stringSetDiff(old.Policies, new.Policies, "Policies", contextual); setDiff != nil {
+		diff.Objects = append(diff.Objects, setDiff)
+	}
+
+	return diff
 }
 
 // Diff returns a diff of two resource objects. If contextual diff is enabled,
@@ -938,7 +984,7 @@ func fieldDiffs(old, new map[string]string, contextual bool) []*FieldDiff {
 }
 
 // stringSetDiff diffs two sets of strings with the given name.
-func stringSetDiff(old, new []string, name string) *ObjectDiff {
+func stringSetDiff(old, new []string, name string, contextual bool) *ObjectDiff {
 	oldMap := make(map[string]struct{}, len(old))
 	newMap := make(map[string]struct{}, len(new))
 	for _, o := range old {
@@ -947,7 +993,7 @@ func stringSetDiff(old, new []string, name string) *ObjectDiff {
 	for _, n := range new {
 		newMap[n] = struct{}{}
 	}
-	if reflect.DeepEqual(oldMap, newMap) {
+	if reflect.DeepEqual(oldMap, newMap) && !contextual {
 		return nil
 	}
 
@@ -955,14 +1001,16 @@ func stringSetDiff(old, new []string, name string) *ObjectDiff {
 	var added, removed bool
 	for k := range oldMap {
 		if _, ok := newMap[k]; !ok {
-			diff.Fields = append(diff.Fields, fieldDiff(k, "", name, false))
+			diff.Fields = append(diff.Fields, fieldDiff(k, "", name, contextual))
 			removed = true
+		} else if contextual {
+			diff.Fields = append(diff.Fields, fieldDiff(k, k, name, contextual))
 		}
 	}
 
 	for k := range newMap {
 		if _, ok := oldMap[k]; !ok {
-			diff.Fields = append(diff.Fields, fieldDiff("", k, name, false))
+			diff.Fields = append(diff.Fields, fieldDiff("", k, name, contextual))
 			added = true
 		}
 	}
@@ -974,8 +1022,15 @@ func stringSetDiff(old, new []string, name string) *ObjectDiff {
 		diff.Type = DiffTypeEdited
 	} else if added {
 		diff.Type = DiffTypeAdded
-	} else {
+	} else if removed {
 		diff.Type = DiffTypeDeleted
+	} else {
+		// Diff of an empty set
+		if len(diff.Fields) == 0 {
+			return nil
+		}
+
+		diff.Type = DiffTypeNone
 	}
 
 	return diff
