@@ -75,7 +75,7 @@ func resourceAwsEMRCluster() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"autoterminate": &schema.Schema{
+			"keep_job_flow_alive_when_no_steps": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
@@ -179,8 +179,8 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	applications := d.Get("applications").(*schema.Set).List()
 
-	autotermination := false
-	if v, ok := d.GetOk("autotermination"); ok {
+	keepJobFlowAliveWhenNoSteps := true
+	if v, ok := d.GetOk("keep_job_flow_alive_when_no_steps"); ok {
 		autotermination = v.(bool)
 	}
 
@@ -193,7 +193,7 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 		SlaveInstanceType:  aws.String(coreInstanceType),
 		InstanceCount:      aws.Int64(int64(coreInstanceCount)),
 
-		KeepJobFlowAliveWhenNoSteps: aws.Bool(autotermination),
+		KeepJobFlowAliveWhenNoSteps: aws.Bool(keepJobFlowAliveWhenNoSteps),
 		TerminationProtected:        aws.Bool(terminationProtection),
 	}
 
