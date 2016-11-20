@@ -1279,7 +1279,7 @@ func ParseResourceStateKey(k string) (*ResourceStateKey, error) {
 		Name:  parts[1],
 		Index: -1,
 	}
-	if len(parts) == 3 {
+	if len(parts) == 3 && parts[2] != "*" {
 		index, err := strconv.Atoi(parts[2])
 		if err != nil {
 			return nil, fmt.Errorf("Malformed resource state key index: %s", k)

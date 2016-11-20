@@ -104,6 +104,67 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Taint resources using wildcard
+	if strings.Contains(name, ".*") {
+		nameParts := strings.Split(name, ".")
+		tainted := []string{}
+
+		for k, _ := range mod.Resources {
+			resourceParts := strings.Split(k, ".")
+			// Verify it's possible for name to match resource
+			if len(resourceParts) < len(nameParts) {
+				continue
+			}
+			if len(resourceParts) > len(nameParts) && !strings.HasSuffix(name, ".*") {
+				continue
+			}
+
+			// Verify whether resource paths match
+			isMatch := true
+			for i, p := range nameParts {
+				if p != resourceParts[i] && p != "*" {
+					isMatch = false
+					break
+				}
+			}
+
+			// Mark the resource for tainting if it matches
+			if isMatch {
+				rs, _ := mod.Resources[k]
+				rs.Taint()
+				tainted = append(tainted, k)
+			}
+		}
+
+		// Check whether it's okay if no resources were tainted
+		if len(tainted) == 0 {
+			if allowMissing {
+				return c.allowMissingExit(name, module)
+			}
+
+			c.Ui.Error(fmt.Sprintf(
+				"No resources matching pattern %s could be found in the module %s.",
+				name,
+				module))
+			return 1
+		}
+
+		// Attempt to write new state with tainted resources
+		log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
+		if err := c.Meta.PersistState(s); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+			return 1
+		}
+
+		// Give notice that resources were successfully tainted
+		for _, k := range tainted {
+			c.Ui.Output(fmt.Sprintf(
+				"The resource %s in the module %s has been marked as tainted!",
+				k, module))
+		}
+		return 0
+	}
+
 	// Get the resource we're looking for
 	rs, ok := mod.Resources[name]
 	if !ok {
@@ -121,6 +182,7 @@ func (c *TaintCommand) Run(args []string) int {
 	// Taint the resource
 	rs.Taint()
 
+	// Attempt to write new state with tainted resource
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := c.Meta.PersistState(s); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
