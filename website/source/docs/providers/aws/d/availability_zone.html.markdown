@@ -64,7 +64,7 @@ resource "aws_vpc" "example" {
 # Create a subnet for the AZ within the regional VPC
 resource "aws_subnet" "example" {
   vpc_id     = "${aws_vpc.example.id}"
-  cidr_block = "${cidrsubnet(aws_vpc.example.cidr_block, 4, var.az_number[data.aws_availability_zone.name_suffix])}"
+  cidr_block = "${cidrsubnet(aws_vpc.example.cidr_block, 4, var.az_number[data.aws_availability_zone.example.name_suffix])}"
 }
 ```
 
