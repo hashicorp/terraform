@@ -121,7 +121,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
     name     = "name-env"
   }
 
-autotermination = true
+keep_job_flow_alive_when_no_steps = true
 termination_protection = false
 
   bootstrap_action {
