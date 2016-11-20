@@ -70,7 +70,7 @@ func resourceAwsEMRCluster() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
-			"termination_protected": &schema.Schema{
+			"termination_protection": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
@@ -181,7 +181,7 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	keepJobFlowAliveWhenNoSteps := true
 	if v, ok := d.GetOk("keep_job_flow_alive_when_no_steps"); ok {
-		autotermination = v.(bool)
+		keepJobFlowAliveWhenNoSteps = v.(bool)
 	}
 
 	terminationProtection := false
