@@ -49,7 +49,9 @@ The arguments of this data source act as filters for querying the available
 prefix lists. The given filters must match exactly one prefix list
 whose data will be exported as attributes.
 
-* `prefix_list_id` - (Required) The ID of the prefix list to select.
+* `prefix_list_id` - (Optional) The ID of the prefix list to select.
+
+* `name` - (Optional) The name of the prefix list to select.
 
 ## Attributes Reference
 
