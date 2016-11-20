@@ -110,6 +110,12 @@ resource "aws_emr_cluster" "tf-test-cluster" {
     instance_profile                  = "${aws_iam_instance_profile.emr_profile.arn}"
   }
 
+  ebs_volume {
+    size = "100"
+    type = "standard"
+    volumes_per_instance = "1"
+  }
+
   master_instance_type = "m3.xlarge"
   core_instance_type   = "m3.xlarge"
   core_instance_count  = 1

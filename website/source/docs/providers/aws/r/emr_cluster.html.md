@@ -100,11 +100,9 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 
 EBS volume configuration for adding additional EBS volumes to Core nodes 
 
-* `size` - (Required) Size of volume to be provisioned in GBs 
-* `type` - (Required) [Type of EBS volume](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html) to be used 
-* `iops` - (Required) Number of IOPs to provision to the EBS volume(s) 
-* `volumes_per_instance` - (Required) Number of EBS volumes to provision to each core node 
-* `optimized` - (Required) [EBS optimization](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSOptimized.html) true or false
+* `size` - (Required) Size of volume to be provisioned in GBs. Default `50`
+* `type` - (Required) [Type of EBS volume](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html) to be used. Default `standard`
+* `volumes_per_instance` - (Required) Number of EBS volumes to provision to each core node. Default `1`
 
 
 
@@ -162,9 +160,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
   ebs_volume {
     size = "50"
     type = "standard"
-    iops = "100"
     volumes_per_instance = "1"
-    optimized = true
   }
 
   master_instance_type = "m3.xlarge"

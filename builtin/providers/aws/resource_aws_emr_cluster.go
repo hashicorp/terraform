@@ -144,25 +144,15 @@ func resourceAwsEMRCluster() *schema.Resource {
 						"size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							Default:  50,
 						},
 						"type": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
-							Default:  "standard",
-						},
-						"iops": &schema.Schema{
-							Type:     schema.TypeInt,
 							Optional: true,
+							Default:  "standard",
 						},
 						"volumes_per_instance": &schema.Schema{
 							Type:     schema.TypeInt,
-							Required: true,
-							Default:  1,
-						},
-						"optimized": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
+							Optional: true,
 							Default:  1,
 						},
 					},
@@ -267,11 +257,7 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 		volumeType := volume["type"].(string)
 
-		ebsIops := volume["iops"].(int)
-
 		volumesPerInstance := volume["volumes_per_instance"].(int)
-
-		ebsOptimized := volume["optimized"].(bool)
 
 		configEbs := []*emr.InstanceGroupConfig{
 			{
@@ -284,12 +270,10 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 							VolumeSpecification: &emr.VolumeSpecification{
 								SizeInGB:   aws.Int64(int64(sizeInGB)),
 								VolumeType: aws.String(volumeType),
-								Iops:       aws.Int64(int64(ebsIops)),
 							},
 							VolumesPerInstance: aws.Int64(int64(volumesPerInstance)),
 						},
 					},
-					EbsOptimized: aws.Bool(ebsOptimized),
 				},
 			},
 		}
