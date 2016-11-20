@@ -16,7 +16,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-
+ * core: escape sequence for " works (0.8 beta regression) [GH-10236]
 
 PLUGIN CHANGES:
 
