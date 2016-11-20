@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -77,29 +78,31 @@ func TestCacheState_RefreshState(t *testing.T) {
 			expected: CacheRefreshLocalNewer,
 		},
 	} {
-		cache := testLocalState(t)
-		durable := testLocalState(t)
-		defer os.Remove(cache.Path)
-		defer os.Remove(durable.Path)
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			cache := testLocalState(t)
+			durable := testLocalState(t)
+			defer os.Remove(cache.Path)
+			defer os.Remove(durable.Path)
 
-		cs := &CacheState{
-			Cache:   cache,
-			Durable: durable,
-		}
+			cs := &CacheState{
+				Cache:   cache,
+				Durable: durable,
+			}
 
-		state := cache.State()
-		state.Modules = test.cacheModules
-		if err := cs.WriteState(state); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+			state := cache.State()
+			state.Modules = test.cacheModules
+			if err := cs.WriteState(state); err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-		if err := cs.RefreshState(); err != nil {
-			t.Fatalf("err: %s", err)
-		}
+			if err := cs.RefreshState(); err != nil {
+				t.Fatalf("err: %s", err)
+			}
 
-		if cs.RefreshResult() != test.expected {
-			t.Fatalf("bad %d: %v", i, cs.RefreshResult())
-		}
+			if cs.RefreshResult() != test.expected {
+				t.Fatalf("bad %d: %v", i, cs.RefreshResult())
+			}
+		})
 	}
 }
 
