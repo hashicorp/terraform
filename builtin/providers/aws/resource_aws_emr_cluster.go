@@ -144,12 +144,12 @@ func resourceAwsEMRCluster() *schema.Resource {
 						"size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							Default: 50,
+							Default:  50,
 						},
 						"type": &schema.Schema{
 							Type:     schema.TypeString,
-							Require: true,
-							Default: "standard",
+							Required: true,
+							Default:  "standard",
 						},
 						"iops": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -158,12 +158,12 @@ func resourceAwsEMRCluster() *schema.Resource {
 						"volumes_per_instance": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							Default: 1,
+							Default:  1,
 						},
 						"optimized": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							Default: 1,
+							Default:  1,
 						},
 					},
 				},
@@ -258,40 +258,49 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-        if a, ok := d.GetOk("ebs_volume"); ok {
+	if a, ok := d.GetOk("ebs_volume"); ok {
+		instanceConfigEbs := &instanceConfig
 		ebsVolume := a.([]interface{})
-		volume    := ebsVolume[0].(map[string]interface{})
-		instanceConfig["EbsConfiguration"] = map[string]map[string]string{
-			"EbsBlockDeviceConfigs": map[string]map[string]string{
-				"[]*emr.EbsBlockDeviceConfig": map[string]map[string]string{
-					"VolumeSpecification": map[string]map[string]string{
-						"&emr.VolumeSpecification": map[string]string{
-							"SizeInGB":   aws.String(volume["size"].(int)),
-							"VolumeType": aws.String(volume["type"].(string)),
+		volume := ebsVolume[0].(map[string]interface{})
+
+		sizeInGB := volume["size"].(int)
+
+		volumeType := volume["type"].(string)
+
+		ebsIops := volume["iops"].(int)
+
+		volumesPerInstance := volume["volumes_per_instance"].(int)
+
+		ebsOptimized := volume["optimized"].(bool)
+
+		configEbs := []*emr.InstanceGroupConfig{
+			{
+				InstanceCount: aws.Int64(int64(coreInstanceCount)),
+				InstanceRole:  aws.String(d.Get("service_role").(string)),
+				InstanceType:  aws.String(coreInstanceType),
+				EbsConfiguration: &emr.EbsConfiguration{
+					EbsBlockDeviceConfigs: []*emr.EbsBlockDeviceConfig{
+						{
+							VolumeSpecification: &emr.VolumeSpecification{
+								SizeInGB:   aws.Int64(int64(sizeInGB)),
+								VolumeType: aws.String(volumeType),
+								Iops:       aws.Int64(int64(ebsIops)),
+							},
+							VolumesPerInstance: aws.Int64(int64(volumesPerInstance)),
 						},
 					},
+					EbsOptimized: aws.Bool(ebsOptimized),
 				},
 			},
 		}
 
-		if v, ok := attributes["iops"]; ok {
-			instanceConfig["EbsConfiguration"][
-			"EbsBlockDeviceConfigs"][
-			"[]*emr.EbsBlockDeviceConfig"][
-			"VolumeSpecification"][
-			"Iops"] = aws.String(v.(int))
-		}
-
-		if v, ok := attributes["volumes_per_instance"]; ok {
-			instanceConfig["EbsConfiguration"][
-			"EbsBlockDeviceConfigs"][
-			"[]*emr.EbsBlockDeviceConfig"][
-			"VolumesPerInstance"] = aws.String(v.(int))
-		}
-
-		if v, ok := attributes["optimized"]; ok {
-			instanceConfig["EbsConfiguration"][
-			"EbsOptimized"] = aws.String(v.(bool))
+		*instanceConfigEbs = &emr.JobFlowInstancesConfig{
+			MasterInstanceType:          aws.String(masterInstanceType),
+			SlaveInstanceType:           aws.String(coreInstanceType),
+			InstanceCount:               aws.Int64(int64(coreInstanceCount)),
+			KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
+			TerminationProtected:        aws.Bool(false),
+			InstanceGroups:              configEbs,
 		}
 	}
 
