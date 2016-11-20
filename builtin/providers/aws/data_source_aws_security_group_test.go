@@ -20,6 +20,7 @@ func TestAccDataSourceAwsSecurityGroup(t *testing.T) {
 					testAccDataSourceAwsSecurityGroupCheck("data.aws_security_group.by_tag"),
 					testAccDataSourceAwsSecurityGroupCheck("data.aws_security_group.by_filter"),
 					testAccDataSourceAwsSecurityGroupCheck("data.aws_security_group.by_name"),
+					testAccDataSourceAwsSecurityGroupCheckDefault("data.aws_security_group.default_by_name"),
 				),
 			},
 		},
@@ -67,6 +68,31 @@ func testAccDataSourceAwsSecurityGroupCheck(name string) resource.TestCheckFunc 
 	}
 }
 
+func testAccDataSourceAwsSecurityGroupCheckDefault(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("root module has no resource called %s", name)
+		}
+
+		vpcRs, ok := s.RootModule().Resources["aws_vpc.test"]
+		if !ok {
+			return fmt.Errorf("can't find aws_vpc.test in state")
+		}
+		attr := rs.Primary.Attributes
+
+		if attr["id"] != vpcRs.Primary.Attributes["default_security_group_id"] {
+			return fmt.Errorf(
+				"id is %s; want %s",
+				attr["id"],
+				vpcRs.Primary.Attributes["default_security_group_id"],
+			)
+		}
+
+		return nil
+	}
+}
+
 const testAccDataSourceAwsSecurityGroupConfig = `
 provider "aws" {
   region = "eu-west-1"
@@ -94,6 +120,12 @@ data "aws_security_group" "by_id" {
 data "aws_security_group" "by_name" {
   name = "${aws_security_group.test.name}"
 }
+
+data "aws_security_group" "default_by_name" {
+	vpc_id = "${aws_vpc.test.id}"
+  name = "default"
+}
+
 data "aws_security_group" "by_tag" {
   tags {
     Name = "${aws_security_group.test.tags["Name"]}"
