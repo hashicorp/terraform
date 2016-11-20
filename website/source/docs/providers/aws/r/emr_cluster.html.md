@@ -71,6 +71,7 @@ The following arguments are supported:
 	`Mahout`, `Pig`, and `Spark.` Case insensitive
 * `ec2_attributes` - (Optional) Attributes for the EC2 instances running the job
 flow. Defined below
+* `ebs_volume` - (Optional) Allocate additional EBS volumes to core instances 
 * `bootstrap_action` - (Optional) List of bootstrap actions that will be run before Hadoop is started on
 	the cluster nodes. Defined below
 * `configurations` - (Optional) List of configurations supplied for the EMR cluster you are creating
@@ -95,6 +96,17 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 * `service_access_security_group` - (Optional) Identifier of the Amazon EC2 service-access security group - required when the cluster runs on a private subnet
 * `instance_profile` - (Optional) Instance Profile for EC2 instances of the cluster assume this role
 
+## ebs\_volume
+
+EBS volume configuration for adding additional EBS volumes to Core nodes 
+
+* `size` - (Required) Size of volume to be provisioned in GBs 
+* `type` - (Required) [Type of EBS volume](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html) to be used 
+* `iops` - (Required) Number of IOPs to provision to the EBS volume(s) 
+* `volumes_per_instance` - (Required) Number of EBS volumes to provision to each core node 
+* `optimized` - (Required) [EBS optimization](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSOptimized.html) true or false
+
+
 
 ## bootstrap\_action
 
@@ -115,6 +127,7 @@ The following attributes are exported:
 * `log_uri`
 * `applications`
 * `ec2_attributes`
+* `ebs_volume`
 * `bootstrap_action`
 * `configurations`
 * `service_role`
@@ -144,6 +157,14 @@ resource "aws_emr_cluster" "tf-test-cluster" {
     emr_managed_master_security_group = "${aws_security_group.allow_all.id}"
     emr_managed_slave_security_group  = "${aws_security_group.allow_all.id}"
     instance_profile                  = "${aws_iam_instance_profile.emr_profile.arn}"
+  }
+
+  ebs_volume {
+    size = "50"
+    type = "standard"
+    iops = "100"
+    volumes_per_instance = "1"
+    optimized = true
   }
 
   master_instance_type = "m3.xlarge"
