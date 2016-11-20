@@ -153,6 +153,9 @@ func (p *parser) parseStringToken(tok *scanner.Token) (string, error) {
 			case 'n':
 				b = '\n'
 				i++
+			case '"':
+				b = '"'
+				i++
 			default:
 				return "", Errorf(
 					ast.Pos{
