@@ -20,6 +20,7 @@
                         <li<%= sidebar_current("docs-aws-datasource-alb") %>>
                             <a href="/docs/providers/aws/d/alb.html">aws_alb</a>
                         </li>
+
                         <li<%= sidebar_current("docs-aws-datasource-ami") %>>
                             <a href="/docs/providers/aws/d/ami.html">aws_ami</a>
                         </li>
@@ -37,6 +38,9 @@
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-cloudformation-stack") %>>
                             <a href="/docs/providers/aws/d/cloudformation_stack.html">aws_cloudformation_stack</a>
+                        </li>
+                        <li<%= sidebar_current("docs-aws-datasource-ebs-snapshot") %>>
+                          <a href="/docs/providers/aws/d/ebs_snapshot.html">aws_ebs_snapshot</a>
                         </li>
                         <li<%= sidebar_current("docs-aws-datasource-ebs-volume") %>>
                           <a href="/docs/providers/aws/d/ebs_volume.html">aws_ebs_volume</a>
@@ -304,10 +308,6 @@
                             <a href="/docs/providers/aws/r/autoscaling_group.html">aws_autoscaling_group</a>
                         </li>
 
-                        <li<%= sidebar_current("docs-aws-resource-autoscaling-attachment") %>>
-                            <a href="/docs/providers/aws/r/autoscaling_attachment.html">aws_autoscaling_attachment</a>
-                        </li>
-
                         <li<%= sidebar_current("docs-aws-resource-autoscaling-lifecycle-hook") %>>
                             <a href="/docs/providers/aws/r/autoscaling_lifecycle_hooks.html">aws_autoscaling_lifecycle_hook</a>
                         </li>
@@ -322,6 +322,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-autoscaling-schedule") %>>
                           <a href="/docs/providers/aws/r/autoscaling_schedule.html">aws_autoscaling_schedule</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-ebs-snapshot") %>>
+                          <a href="/docs/providers/aws/r/ebs_snapshot.html">aws_ebs_snapshot</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-ebs-volume") %>>
@@ -819,11 +823,11 @@
                   <li<%= sidebar_current("docs-aws-resource-waf-webacl") %>>
                     <a href="/docs/providers/aws/r/waf_web_acl.html">aws_waf_web_acl</a>
                   </li>
-                  
+
                   <li<%= sidebar_current("docs-aws-resource-waf-bytematchset") %>>
                     <a href="/docs/providers/aws/r/waf_byte_match_set.html">aws_waf_byte_match_set</a>
                   </li>
-                  
+
                   <li<%= sidebar_current("docs-aws-resource-waf-size-constraint-set") %>>
                     <a href="/docs/providers/aws/r/waf_size_constraint_set.html">aws_waf_size_constraint_set</a>
                   </li>
@@ -835,7 +839,7 @@
                   <li<%= sidebar_current("docs-aws-resource-waf-ipset") %>>
                     <a href="/docs/providers/aws/r/waf_ipset.html">aws_waf_ipset</a>
                   </li>
-                  
+
                   <li<%= sidebar_current("docs-aws-resource-waf-xss-match-set") %>>
                     <a href="/docs/providers/aws/r/waf_xss_match_set.html">aws_waf_xss_match_set</a>
                   </li>
