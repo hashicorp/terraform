@@ -5,9 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
@@ -470,6 +473,14 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 		return false
 	}
 
+	// Write the shadow error output to a file
+	path := fmt.Sprintf("terraform-error-%d.log", time.Now().UTC().Unix())
+	if err := ioutil.WriteFile(path, []byte(err.Error()), 0644); err != nil {
+		// If there is an error writing it, just let it go
+		log.Printf("[ERROR] Error writing shadow error: %s", err)
+		return false
+	}
+
 	// Output!
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
 		"[reset][bold][yellow]\nExperimental feature failure! Please report a bug.\n\n"+
@@ -479,14 +490,13 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 			"background. These features cannot affect real state and never touch\n"+
 			"real infrastructure. If the features work properly, you see nothing.\n"+
 			"If the features fail, this message appears.\n\n"+
-			"The following failures happened while running experimental features.\n"+
-			"Please report a Terraform bug so that future Terraform versions that\n"+
-			"enable these features can be improved!\n\n"+
 			"You can report an issue at: https://github.com/hashicorp/terraform/issues\n\n"+
-			"%s\n\n"+
+			"The failure was written to %q. Please\n"+
+			"double check this file contains no sensitive information and report\n"+
+			"it with your issue.\n\n"+
 			"This is not an error. Your terraform operation completed successfully\n"+
 			"and your real infrastructure is unaffected by this message.",
-		err,
+		path,
 	)))
 
 	return true
