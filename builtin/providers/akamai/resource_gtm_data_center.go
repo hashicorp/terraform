@@ -10,10 +10,10 @@ import (
 
 func resourceAkamaiGTMDataCenter() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGTMDatacenterCreate,
-		Read:   resourceGTMDatacenterRead,
-		Update: resourceGTMDatacenterUpdate,
-		Delete: resourceGTMDatacenterDelete,
+		Create: resourceGTMDataCenterCreate,
+		Read:   resourceGTMDataCenterRead,
+		Update: resourceGTMDataCenterUpdate,
+		Delete: resourceGTMDataCenterDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -64,7 +64,7 @@ func resourceAkamaiGTMDataCenter() *schema.Resource {
 	}
 }
 
-func resourceGTMDatacenterCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGTMDataCenterCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Creating GTM Datacenter d: %+v", d)
 
 	created, err := meta.(*Clients).GTM.DataCenterCreate(d.Get("domain").(string), dc(d))
@@ -80,7 +80,7 @@ func resourceGTMDatacenterCreate(d *schema.ResourceData, meta interface{}) error
 	return resourceGTMDatacenterRead(d, meta)
 }
 
-func resourceGTMDatacenterRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGTMDataCenterRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Reading GTM Datacenter: %s", d.Id())
 	dcId, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -96,7 +96,7 @@ func resourceGTMDatacenterRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceGTMDatacenterUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGTMDataCenterUpdate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Updating GTM Datacenter: %s", d.Id())
 
 	updateBody := dc(d)
@@ -111,10 +111,10 @@ func resourceGTMDatacenterUpdate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	return resourceGTMDatacenterRead(d, meta)
+	return resourceGTMDataCenterRead(d, meta)
 }
 
-func resourceGTMDatacenterDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGTMDataCenterDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting Datacenter: %s", d.Id())
 	dcID, err := strconv.Atoi(d.Id())
 	if err != nil {
