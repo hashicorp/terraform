@@ -40,10 +40,13 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * provider/cloudstack: `cloudstack_port_forward` has now deprecated `network_id` [GH-10204]
 
 FEATURES:
+
  * *New Data Source:* `aws_alb_listener` [GH-10181]
  * *New Resource:* `github_label` [GH-10213]
 
 IMPROVEMENTS:
+
+ * core: Experimental feature failures are less verbose. [GH-10276]
  * provider/aws: Add name_prefix to aws_iam_policy [GH-10178]
  * provider/aws: Add ability to select aws_prefix_list data source by name [GH-10248]
  * provider/aws Return service CIDR blocks from aws_vpc_endpoint resource [GH-10254]
@@ -61,7 +64,6 @@ FEATURES:
 
 IMPROVEMENTS:
 
- * core: Experimental feature failures are less verbose. [GH-10276]
  * provider/aws: Expose RDS DB Instance HostedZoneId attribute ([#10000](https://github.com/hashicorp/terraform/issues/10000))
  * provider/aws: Ignore AWS internal tags ([#7454](https://github.com/hashicorp/terraform/issues/7454))
  * provider/aws: Exposed aws_iam_role create_date attribute ([#10091](https://github.com/hashicorp/terraform/issues/10091))
