@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -187,6 +188,18 @@ func testAccCheckVpcEndpointPrefixListAvailable(n string) resource.TestCheckFunc
 		}
 		if !strings.HasPrefix(prefixListID, "pl") {
 			return fmt.Errorf("Prefix list ID does not appear to be a valid value: '%s'", prefixListID)
+		}
+
+		var (
+			cidrBlockSize int
+			err           error
+		)
+
+		if cidrBlockSize, err = strconv.Atoi(rs.Primary.Attributes["cidr_blocks.#"]); err != nil {
+			return err
+		}
+		if cidrBlockSize < 1 {
+			return fmt.Errorf("cidr_blocks seem suspiciously low: %d", cidrBlockSize)
 		}
 
 		return nil
