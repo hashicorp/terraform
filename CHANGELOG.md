@@ -61,6 +61,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * core: Experimental feature failures are less verbose. [GH-10276]
  * provider/aws: Expose RDS DB Instance HostedZoneId attribute ([#10000](https://github.com/hashicorp/terraform/issues/10000))
  * provider/aws: Ignore AWS internal tags ([#7454](https://github.com/hashicorp/terraform/issues/7454))
  * provider/aws: Exposed aws_iam_role create_date attribute ([#10091](https://github.com/hashicorp/terraform/issues/10091))
