@@ -37,6 +37,7 @@ func init() {
 
 	PlumbingCommands = map[string]struct{}{
 		"state": struct{}{}, // includes all subcommands
+		"debug": struct{}{}, // includes all subcommands
 	}
 
 	Commands = map[string]cli.CommandFactory{
@@ -165,6 +166,18 @@ func init() {
 		//-----------------------------------------------------------
 		// Plumbing
 		//-----------------------------------------------------------
+
+		"debug": func() (cli.Command, error) {
+			return &command.DebugCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"debug json2dot": func() (cli.Command, error) {
+			return &command.DebugJSON2DotCommand{
+				Meta: meta,
+			}, nil
+		},
 
 		"state": func() (cli.Command, error) {
 			return &command.StateCommand{
