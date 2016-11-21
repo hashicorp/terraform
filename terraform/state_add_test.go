@@ -1,17 +1,20 @@
 package terraform
 
 import (
+	"fmt"
 	"testing"
 )
 
 func TestStateAdd(t *testing.T) {
-	cases := map[string]struct {
+	cases := []struct {
+		Name     string
 		Err      bool
 		From, To string
 		Value    interface{}
 		One, Two *State
 	}{
-		"ModuleState => Module Addr (new)": {
+		{
+			"ModuleState => Module Addr (new)",
 			false,
 			"",
 			"module.foo",
@@ -59,7 +62,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ModuleState => Nested Module Addr (new)": {
+		{
+			"ModuleState => Nested Module Addr (new)",
 			false,
 			"",
 			"module.foo.module.bar",
@@ -107,7 +111,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ModuleState w/ outputs and deps => Module Addr (new)": {
+		{
+			"ModuleState w/ outputs and deps => Module Addr (new)",
 			false,
 			"",
 			"module.foo",
@@ -171,7 +176,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ModuleState => Module Addr (existing)": {
+		{
+			"ModuleState => Module Addr (existing)",
 			true,
 			"",
 			"module.foo",
@@ -194,7 +200,8 @@ func TestStateAdd(t *testing.T) {
 			nil,
 		},
 
-		"ModuleState with children => Module Addr (new)": {
+		{
+			"ModuleState with children => Module Addr (new)",
 			false,
 			"module.foo",
 			"module.bar",
@@ -278,7 +285,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ResourceState => Resource Addr (new)": {
+		{
+			"ResourceState => Resource Addr (new)",
 			false,
 			"aws_instance.bar",
 			"aws_instance.foo",
@@ -307,7 +315,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ResourceState w/ deps, provider => Resource Addr (new)": {
+		{
+			"ResourceState w/ deps, provider => Resource Addr (new)",
 			false,
 			"aws_instance.bar",
 			"aws_instance.foo",
@@ -340,7 +349,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ResourceState tainted => Resource Addr (new)": {
+		{
+			"ResourceState tainted => Resource Addr (new)",
 			false,
 			"aws_instance.bar",
 			"aws_instance.foo",
@@ -371,7 +381,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ResourceState with count unspecified => Resource Addr (new)": {
+		{
+			"ResourceState with count unspecified => Resource Addr (new)",
 			false,
 			"aws_instance.bar",
 			"aws_instance.foo",
@@ -416,7 +427,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ResourceState with count unspecified => Resource Addr (new with count)": {
+		{
+			"ResourceState with count unspecified => Resource Addr (new with count)",
 			true,
 			"aws_instance.bar",
 			"aws_instance.foo[0]",
@@ -440,7 +452,8 @@ func TestStateAdd(t *testing.T) {
 			nil,
 		},
 
-		"ResourceState with single count unspecified => Resource Addr (new with count)": {
+		{
+			"ResourceState with single count unspecified => Resource Addr (new with count)",
 			false,
 			"aws_instance.bar",
 			"aws_instance.foo[0]",
@@ -471,7 +484,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ResourceState => Resource Addr (new with count)": {
+		{
+			"ResourceState => Resource Addr (new with count)",
 			false,
 			"aws_instance.bar",
 			"aws_instance.foo[0]",
@@ -500,7 +514,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"ResourceState => Resource Addr (existing)": {
+		{
+			"ResourceState => Resource Addr (existing)",
 			true,
 			"aws_instance.bar",
 			"aws_instance.foo",
@@ -529,7 +544,8 @@ func TestStateAdd(t *testing.T) {
 			nil,
 		},
 
-		"ResourceState => Module (new)": {
+		{
+			"ResourceState => Module (new)",
 			false,
 			"aws_instance.bar",
 			"module.foo",
@@ -558,7 +574,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"InstanceState => Resource (new)": {
+		{
+			"InstanceState => Resource (new)",
 			false,
 			"aws_instance.bar.primary",
 			"aws_instance.baz",
@@ -584,7 +601,8 @@ func TestStateAdd(t *testing.T) {
 			},
 		},
 
-		"InstanceState => Module (new)": {
+		{
+			"InstanceState => Module (new)",
 			false,
 			"aws_instance.bar.primary",
 			"module.foo",
@@ -611,30 +629,32 @@ func TestStateAdd(t *testing.T) {
 		},
 	}
 
-	for k, tc := range cases {
-		// Make sure they're both initialized as normal
-		tc.One.init()
-		if tc.Two != nil {
-			tc.Two.init()
-		}
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			// Make sure they're both initialized as normal
+			tc.One.init()
+			if tc.Two != nil {
+				tc.Two.init()
+			}
 
-		// Add the value
-		err := tc.One.Add(tc.From, tc.To, tc.Value)
-		if (err != nil) != tc.Err {
-			t.Fatalf("bad: %s\n\n%s", k, err)
-		}
-		if tc.Err {
-			continue
-		}
+			// Add the value
+			err := tc.One.Add(tc.From, tc.To, tc.Value)
+			if (err != nil) != tc.Err {
+				t.Fatal(err)
+			}
+			if tc.Err {
+				return
+			}
 
-		// Prune them both to be sure
-		tc.One.prune()
-		tc.Two.prune()
+			// Prune them both to be sure
+			tc.One.prune()
+			tc.Two.prune()
 
-		// Verify equality
-		if !tc.One.Equal(tc.Two) {
-			//t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
-			t.Fatalf("Bad: %s\n\n%s\n\n%s", k, tc.One.String(), tc.Two.String())
-		}
+			// Verify equality
+			if !tc.One.Equal(tc.Two) {
+				//t.Fatalf("Bad: %s\n\n%#v\n\n%#v", k, tc.One, tc.Two)
+				t.Fatalf("Bad: \n\n%s\n\n%s", tc.One.String(), tc.Two.String())
+			}
+		})
 	}
 }
