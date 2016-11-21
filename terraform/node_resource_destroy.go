@@ -74,7 +74,10 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	steps = append(steps, &RootTransformer{})
 
 	// Build the graph
-	b := &BasicGraphBuilder{Steps: steps}
+	b := &BasicGraphBuilder{
+		Steps: steps,
+		Name:  "NodeResourceDestroy",
+	}
 	return b.Build(ctx.Path())
 }
 
