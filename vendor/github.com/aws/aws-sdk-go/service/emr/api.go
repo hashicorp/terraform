@@ -20,6 +20,8 @@ const opAddInstanceGroups = "AddInstanceGroups"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See AddInstanceGroups for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -54,7 +56,22 @@ func (c *EMR) AddInstanceGroupsRequest(input *AddInstanceGroupsInput) (req *requ
 	return
 }
 
+// AddInstanceGroups API operation for Amazon Elastic MapReduce.
+//
 // AddInstanceGroups adds an instance group to a running cluster.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation AddInstanceGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   Indicates that an error occurred while processing the request and that the
+//   request was not completed.
+//
 func (c *EMR) AddInstanceGroups(input *AddInstanceGroupsInput) (*AddInstanceGroupsOutput, error) {
 	req, out := c.AddInstanceGroupsRequest(input)
 	err := req.Send()
@@ -67,6 +84,8 @@ const opAddJobFlowSteps = "AddJobFlowSteps"
 // client's request for the AddJobFlowSteps operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AddJobFlowSteps for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -102,6 +121,8 @@ func (c *EMR) AddJobFlowStepsRequest(input *AddJobFlowStepsInput) (req *request.
 	return
 }
 
+// AddJobFlowSteps API operation for Amazon Elastic MapReduce.
+//
 // AddJobFlowSteps adds new steps to a running job flow. A maximum of 256 steps
 // are allowed in each job flow.
 //
@@ -126,6 +147,19 @@ func (c *EMR) AddJobFlowStepsRequest(input *AddJobFlowStepsInput) (req *request.
 //
 // You can only add steps to a job flow that is in one of the following states:
 // STARTING, BOOTSTRAPPING, RUNNING, or WAITING.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation AddJobFlowSteps for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   Indicates that an error occurred while processing the request and that the
+//   request was not completed.
+//
 func (c *EMR) AddJobFlowSteps(input *AddJobFlowStepsInput) (*AddJobFlowStepsOutput, error) {
 	req, out := c.AddJobFlowStepsRequest(input)
 	err := req.Send()
@@ -138,6 +172,8 @@ const opAddTags = "AddTags"
 // client's request for the AddTags operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See AddTags for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -173,12 +209,165 @@ func (c *EMR) AddTagsRequest(input *AddTagsInput) (req *request.Request, output 
 	return
 }
 
+// AddTags API operation for Amazon Elastic MapReduce.
+//
 // Adds tags to an Amazon EMR resource. Tags make it easier to associate clusters
 // in various ways, such as grouping clusters to track your Amazon EMR resource
 // allocation costs. For more information, see Tagging Amazon EMR Resources
 // (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-plan-tags.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation AddTags for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
 func (c *EMR) AddTags(input *AddTagsInput) (*AddTagsOutput, error) {
 	req, out := c.AddTagsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opCreateSecurityConfiguration = "CreateSecurityConfiguration"
+
+// CreateSecurityConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the CreateSecurityConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateSecurityConfiguration for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateSecurityConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateSecurityConfigurationRequest method.
+//    req, resp := client.CreateSecurityConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EMR) CreateSecurityConfigurationRequest(input *CreateSecurityConfigurationInput) (req *request.Request, output *CreateSecurityConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opCreateSecurityConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateSecurityConfigurationInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &CreateSecurityConfigurationOutput{}
+	req.Data = output
+	return
+}
+
+// CreateSecurityConfiguration API operation for Amazon Elastic MapReduce.
+//
+// Creates a security configuration using EMR Security Configurations, which
+// are stored in the service. Security Configurations enable you to more easily
+// create a configuration, reuse it, and apply it whenever a cluster is created.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation CreateSecurityConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
+func (c *EMR) CreateSecurityConfiguration(input *CreateSecurityConfigurationInput) (*CreateSecurityConfigurationOutput, error) {
+	req, out := c.CreateSecurityConfigurationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDeleteSecurityConfiguration = "DeleteSecurityConfiguration"
+
+// DeleteSecurityConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteSecurityConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteSecurityConfiguration for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteSecurityConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteSecurityConfigurationRequest method.
+//    req, resp := client.DeleteSecurityConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EMR) DeleteSecurityConfigurationRequest(input *DeleteSecurityConfigurationInput) (req *request.Request, output *DeleteSecurityConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opDeleteSecurityConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteSecurityConfigurationInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DeleteSecurityConfigurationOutput{}
+	req.Data = output
+	return
+}
+
+// DeleteSecurityConfiguration API operation for Amazon Elastic MapReduce.
+//
+// Deletes a security configuration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation DeleteSecurityConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
+func (c *EMR) DeleteSecurityConfiguration(input *DeleteSecurityConfigurationInput) (*DeleteSecurityConfigurationOutput, error) {
+	req, out := c.DeleteSecurityConfigurationRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -189,6 +378,8 @@ const opDescribeCluster = "DescribeCluster"
 // client's request for the DescribeCluster operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeCluster for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -224,8 +415,25 @@ func (c *EMR) DescribeClusterRequest(input *DescribeClusterInput) (req *request.
 	return
 }
 
+// DescribeCluster API operation for Amazon Elastic MapReduce.
+//
 // Provides cluster-level details including status, hardware and software configuration,
 // VPC settings, and so on. For information about the cluster steps, see ListSteps.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation DescribeCluster for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
 func (c *EMR) DescribeCluster(input *DescribeClusterInput) (*DescribeClusterOutput, error) {
 	req, out := c.DescribeClusterRequest(input)
 	err := req.Send()
@@ -238,6 +446,8 @@ const opDescribeJobFlows = "DescribeJobFlows"
 // client's request for the DescribeJobFlows operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeJobFlows for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -276,6 +486,8 @@ func (c *EMR) DescribeJobFlowsRequest(input *DescribeJobFlowsInput) (req *reques
 	return
 }
 
+// DescribeJobFlows API operation for Amazon Elastic MapReduce.
+//
 // This API is deprecated and will eventually be removed. We recommend you use
 // ListClusters, DescribeCluster, ListSteps, ListInstanceGroups and ListBootstrapActions
 // instead.
@@ -296,8 +508,89 @@ func (c *EMR) DescribeJobFlowsRequest(input *DescribeJobFlowsInput) (req *reques
 // states: RUNNING, WAITING, SHUTTING_DOWN, STARTING
 //
 //   Amazon Elastic MapReduce can return a maximum of 512 job flow descriptions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation DescribeJobFlows for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   Indicates that an error occurred while processing the request and that the
+//   request was not completed.
+//
 func (c *EMR) DescribeJobFlows(input *DescribeJobFlowsInput) (*DescribeJobFlowsOutput, error) {
 	req, out := c.DescribeJobFlowsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeSecurityConfiguration = "DescribeSecurityConfiguration"
+
+// DescribeSecurityConfigurationRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeSecurityConfiguration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeSecurityConfiguration for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeSecurityConfiguration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeSecurityConfigurationRequest method.
+//    req, resp := client.DescribeSecurityConfigurationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EMR) DescribeSecurityConfigurationRequest(input *DescribeSecurityConfigurationInput) (req *request.Request, output *DescribeSecurityConfigurationOutput) {
+	op := &request.Operation{
+		Name:       opDescribeSecurityConfiguration,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeSecurityConfigurationInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeSecurityConfigurationOutput{}
+	req.Data = output
+	return
+}
+
+// DescribeSecurityConfiguration API operation for Amazon Elastic MapReduce.
+//
+// Provides the details of a security configuration by returning the configuration
+// JSON.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation DescribeSecurityConfiguration for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
+func (c *EMR) DescribeSecurityConfiguration(input *DescribeSecurityConfigurationInput) (*DescribeSecurityConfigurationOutput, error) {
+	req, out := c.DescribeSecurityConfigurationRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -308,6 +601,8 @@ const opDescribeStep = "DescribeStep"
 // client's request for the DescribeStep operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DescribeStep for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -343,7 +638,24 @@ func (c *EMR) DescribeStepRequest(input *DescribeStepInput) (req *request.Reques
 	return
 }
 
+// DescribeStep API operation for Amazon Elastic MapReduce.
+//
 // Provides more detail about the cluster step.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation DescribeStep for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
 func (c *EMR) DescribeStep(input *DescribeStepInput) (*DescribeStepOutput, error) {
 	req, out := c.DescribeStepRequest(input)
 	err := req.Send()
@@ -356,6 +668,8 @@ const opListBootstrapActions = "ListBootstrapActions"
 // client's request for the ListBootstrapActions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListBootstrapActions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -397,7 +711,24 @@ func (c *EMR) ListBootstrapActionsRequest(input *ListBootstrapActionsInput) (req
 	return
 }
 
+// ListBootstrapActions API operation for Amazon Elastic MapReduce.
+//
 // Provides information about the bootstrap actions associated with a cluster.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation ListBootstrapActions for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
 func (c *EMR) ListBootstrapActions(input *ListBootstrapActionsInput) (*ListBootstrapActionsOutput, error) {
 	req, out := c.ListBootstrapActionsRequest(input)
 	err := req.Send()
@@ -435,6 +766,8 @@ const opListClusters = "ListClusters"
 // client's request for the ListClusters operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListClusters for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -476,11 +809,28 @@ func (c *EMR) ListClustersRequest(input *ListClustersInput) (req *request.Reques
 	return
 }
 
+// ListClusters API operation for Amazon Elastic MapReduce.
+//
 // Provides the status of all clusters visible to this AWS account. Allows you
 // to filter the list of clusters based on certain criteria; for example, filtering
 // by cluster creation date and time or by status. This call returns a maximum
 // of 50 clusters per call, but returns a marker to track the paging of the
 // cluster list across multiple ListClusters calls.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation ListClusters for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
 func (c *EMR) ListClusters(input *ListClustersInput) (*ListClustersOutput, error) {
 	req, out := c.ListClustersRequest(input)
 	err := req.Send()
@@ -518,6 +868,8 @@ const opListInstanceGroups = "ListInstanceGroups"
 // client's request for the ListInstanceGroups operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListInstanceGroups for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -559,7 +911,24 @@ func (c *EMR) ListInstanceGroupsRequest(input *ListInstanceGroupsInput) (req *re
 	return
 }
 
+// ListInstanceGroups API operation for Amazon Elastic MapReduce.
+//
 // Provides all available details about the instance groups in a cluster.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation ListInstanceGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
 func (c *EMR) ListInstanceGroups(input *ListInstanceGroupsInput) (*ListInstanceGroupsOutput, error) {
 	req, out := c.ListInstanceGroupsRequest(input)
 	err := req.Send()
@@ -597,6 +966,8 @@ const opListInstances = "ListInstances"
 // client's request for the ListInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -638,11 +1009,28 @@ func (c *EMR) ListInstancesRequest(input *ListInstancesInput) (req *request.Requ
 	return
 }
 
+// ListInstances API operation for Amazon Elastic MapReduce.
+//
 // Provides information about the cluster instances that Amazon EMR provisions
 // on behalf of a user when it creates the cluster. For example, this operation
 // indicates when the EC2 instances reach the Ready state, when instances become
 // available to Amazon EMR to use for jobs, and the IP addresses for cluster
 // instances, etc.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation ListInstances for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
 func (c *EMR) ListInstances(input *ListInstancesInput) (*ListInstancesOutput, error) {
 	req, out := c.ListInstancesRequest(input)
 	err := req.Send()
@@ -674,12 +1062,84 @@ func (c *EMR) ListInstancesPages(input *ListInstancesInput, fn func(p *ListInsta
 	})
 }
 
+const opListSecurityConfigurations = "ListSecurityConfigurations"
+
+// ListSecurityConfigurationsRequest generates a "aws/request.Request" representing the
+// client's request for the ListSecurityConfigurations operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListSecurityConfigurations for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListSecurityConfigurations method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListSecurityConfigurationsRequest method.
+//    req, resp := client.ListSecurityConfigurationsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EMR) ListSecurityConfigurationsRequest(input *ListSecurityConfigurationsInput) (req *request.Request, output *ListSecurityConfigurationsOutput) {
+	op := &request.Operation{
+		Name:       opListSecurityConfigurations,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListSecurityConfigurationsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListSecurityConfigurationsOutput{}
+	req.Data = output
+	return
+}
+
+// ListSecurityConfigurations API operation for Amazon Elastic MapReduce.
+//
+// Lists all the security configurations visible to this account, providing
+// their creation dates and times, and their names. This call returns a maximum
+// of 50 clusters per call, but returns a marker to track the paging of the
+// cluster list across multiple ListSecurityConfigurations calls.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation ListSecurityConfigurations for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
+func (c *EMR) ListSecurityConfigurations(input *ListSecurityConfigurationsInput) (*ListSecurityConfigurationsOutput, error) {
+	req, out := c.ListSecurityConfigurationsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListSteps = "ListSteps"
 
 // ListStepsRequest generates a "aws/request.Request" representing the
 // client's request for the ListSteps operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListSteps for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -721,7 +1181,24 @@ func (c *EMR) ListStepsRequest(input *ListStepsInput) (req *request.Request, out
 	return
 }
 
+// ListSteps API operation for Amazon Elastic MapReduce.
+//
 // Provides a list of steps for the cluster.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation ListSteps for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
 func (c *EMR) ListSteps(input *ListStepsInput) (*ListStepsOutput, error) {
 	req, out := c.ListStepsRequest(input)
 	err := req.Send()
@@ -760,6 +1237,8 @@ const opModifyInstanceGroups = "ModifyInstanceGroups"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See ModifyInstanceGroups for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -796,10 +1275,25 @@ func (c *EMR) ModifyInstanceGroupsRequest(input *ModifyInstanceGroupsInput) (req
 	return
 }
 
+// ModifyInstanceGroups API operation for Amazon Elastic MapReduce.
+//
 // ModifyInstanceGroups modifies the number of nodes and configuration settings
 // of an instance group. The input parameters include the new target instance
 // count for the group and the instance group ID. The call will either succeed
 // or fail atomically.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation ModifyInstanceGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   Indicates that an error occurred while processing the request and that the
+//   request was not completed.
+//
 func (c *EMR) ModifyInstanceGroups(input *ModifyInstanceGroupsInput) (*ModifyInstanceGroupsOutput, error) {
 	req, out := c.ModifyInstanceGroupsRequest(input)
 	err := req.Send()
@@ -812,6 +1306,8 @@ const opRemoveTags = "RemoveTags"
 // client's request for the RemoveTags operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RemoveTags for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -847,12 +1343,29 @@ func (c *EMR) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Request, o
 	return
 }
 
+// RemoveTags API operation for Amazon Elastic MapReduce.
+//
 // Removes tags from an Amazon EMR resource. Tags make it easier to associate
 // clusters in various ways, such as grouping clusters to track your Amazon
 // EMR resource allocation costs. For more information, see Tagging Amazon EMR
 // Resources (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/emr-plan-tags.html).
 //
 // The following example removes the stack tag with value Prod from a cluster:
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation RemoveTags for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerException
+//   This exception occurs when there is an internal failure in the EMR service.
+//
+//   * InvalidRequestException
+//   This exception occurs when there is something wrong with user input.
+//
 func (c *EMR) RemoveTags(input *RemoveTagsInput) (*RemoveTagsOutput, error) {
 	req, out := c.RemoveTagsRequest(input)
 	err := req.Send()
@@ -865,6 +1378,8 @@ const opRunJobFlow = "RunJobFlow"
 // client's request for the RunJobFlow operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RunJobFlow for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -900,6 +1415,8 @@ func (c *EMR) RunJobFlowRequest(input *RunJobFlowInput) (req *request.Request, o
 	return
 }
 
+// RunJobFlow API operation for Amazon Elastic MapReduce.
+//
 // RunJobFlow creates and starts running a new job flow. The job flow will run
 // the steps specified. Once the job flow completes, the cluster is stopped
 // and the HDFS partition is lost. To prevent loss of data, configure the last
@@ -923,6 +1440,19 @@ func (c *EMR) RunJobFlowRequest(input *RunJobFlowInput) (req *request.Request, o
 //
 // For long running job flows, we recommend that you periodically store your
 // results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation RunJobFlow for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   Indicates that an error occurred while processing the request and that the
+//   request was not completed.
+//
 func (c *EMR) RunJobFlow(input *RunJobFlowInput) (*RunJobFlowOutput, error) {
 	req, out := c.RunJobFlowRequest(input)
 	err := req.Send()
@@ -935,6 +1465,8 @@ const opSetTerminationProtection = "SetTerminationProtection"
 // client's request for the SetTerminationProtection operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetTerminationProtection for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -972,6 +1504,8 @@ func (c *EMR) SetTerminationProtectionRequest(input *SetTerminationProtectionInp
 	return
 }
 
+// SetTerminationProtection API operation for Amazon Elastic MapReduce.
+//
 // SetTerminationProtection locks a job flow so the Amazon EC2 instances in
 // the cluster cannot be terminated by user intervention, an API call, or in
 // the event of a job-flow error. The cluster still terminates upon successful
@@ -989,6 +1523,19 @@ func (c *EMR) SetTerminationProtectionRequest(input *SetTerminationProtectionInp
 //
 //  For more information, go to Protecting a Job Flow from Termination (http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/UsingEMR_TerminationProtection.html)
 // in the Amazon Elastic MapReduce Developer's Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation SetTerminationProtection for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   Indicates that an error occurred while processing the request and that the
+//   request was not completed.
+//
 func (c *EMR) SetTerminationProtection(input *SetTerminationProtectionInput) (*SetTerminationProtectionOutput, error) {
 	req, out := c.SetTerminationProtectionRequest(input)
 	err := req.Send()
@@ -1001,6 +1548,8 @@ const opSetVisibleToAllUsers = "SetVisibleToAllUsers"
 // client's request for the SetVisibleToAllUsers operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetVisibleToAllUsers for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1038,12 +1587,27 @@ func (c *EMR) SetVisibleToAllUsersRequest(input *SetVisibleToAllUsersInput) (req
 	return
 }
 
+// SetVisibleToAllUsers API operation for Amazon Elastic MapReduce.
+//
 // Sets whether all AWS Identity and Access Management (IAM) users under your
 // account can access the specified job flows. This action works on running
 // job flows. You can also set the visibility of a job flow when you launch
 // it using the VisibleToAllUsers parameter of RunJobFlow. The SetVisibleToAllUsers
 // action can be called only by an IAM user who created the job flow or the
 // AWS account that owns the job flow.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation SetVisibleToAllUsers for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   Indicates that an error occurred while processing the request and that the
+//   request was not completed.
+//
 func (c *EMR) SetVisibleToAllUsers(input *SetVisibleToAllUsersInput) (*SetVisibleToAllUsersOutput, error) {
 	req, out := c.SetVisibleToAllUsersRequest(input)
 	err := req.Send()
@@ -1056,6 +1620,8 @@ const opTerminateJobFlows = "TerminateJobFlows"
 // client's request for the TerminateJobFlows operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See TerminateJobFlows for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1093,6 +1659,8 @@ func (c *EMR) TerminateJobFlowsRequest(input *TerminateJobFlowsInput) (req *requ
 	return
 }
 
+// TerminateJobFlows API operation for Amazon Elastic MapReduce.
+//
 // TerminateJobFlows shuts a list of job flows down. When a job flow is shut
 // down, any step not yet completed is canceled and the EC2 instances on which
 // the job flow is running are stopped. Any log files not already saved are
@@ -1102,6 +1670,19 @@ func (c *EMR) TerminateJobFlowsRequest(input *TerminateJobFlowsInput) (req *requ
 // is asynchronous. Depending on the configuration of the job flow, it may take
 // up to 5-20 minutes for the job flow to completely terminate and release allocated
 // resources, such as Amazon EC2 instances.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic MapReduce's
+// API operation TerminateJobFlows for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   Indicates that an error occurred while processing the request and that the
+//   request was not completed.
+//
 func (c *EMR) TerminateJobFlows(input *TerminateJobFlowsInput) (*TerminateJobFlowsOutput, error) {
 	req, out := c.TerminateJobFlowsRequest(input)
 	err := req.Send()
@@ -1113,9 +1694,13 @@ type AddInstanceGroupsInput struct {
 	_ struct{} `type:"structure"`
 
 	// Instance Groups to add.
+	//
+	// InstanceGroups is a required field
 	InstanceGroups []*InstanceGroupConfig `type:"list" required:"true"`
 
 	// Job flow in which to add the instance groups.
+	//
+	// JobFlowId is a required field
 	JobFlowId *string `type:"string" required:"true"`
 }
 
@@ -1182,9 +1767,13 @@ type AddJobFlowStepsInput struct {
 
 	// A string that uniquely identifies the job flow. This identifier is returned
 	// by RunJobFlow and can also be obtained from ListClusters.
+	//
+	// JobFlowId is a required field
 	JobFlowId *string `type:"string" required:"true"`
 
 	// A list of StepConfig to be executed by the job flow.
+	//
+	// Steps is a required field
 	Steps []*StepConfig `type:"list" required:"true"`
 }
 
@@ -1248,12 +1837,16 @@ type AddTagsInput struct {
 
 	// The Amazon EMR resource identifier to which tags will be added. This value
 	// must be a cluster identifier.
+	//
+	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
 
 	// A list of tags to associate with a cluster and propagate to Amazon EC2 instances.
 	// Tags are user-defined key/value pairs that consist of a required key string
 	// with a maximum of 128 characters, and an optional value string with a maximum
 	// of 256 characters.
+	//
+	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
 }
 
@@ -1343,14 +1936,13 @@ func (s Application) GoString() string {
 	return s.String()
 }
 
-// Configuration of a bootstrap action.
 type BootstrapActionConfig struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the bootstrap action.
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
-	// The script run by the bootstrap action.
+	// ScriptBootstrapAction is a required field
 	ScriptBootstrapAction *ScriptBootstrapActionConfig `type:"structure" required:"true"`
 }
 
@@ -1451,6 +2043,9 @@ type Cluster struct {
 
 	// The AMI version running on this cluster.
 	RunningAmiVersion *string `type:"string"`
+
+	// The name of the security configuration applied to the cluster.
+	SecurityConfiguration *string `type:"string"`
 
 	// The IAM role that will be assumed by the Amazon EMR service to access AWS
 	// resources on your behalf.
@@ -1643,11 +2238,123 @@ func (s Configuration) GoString() string {
 	return s.String()
 }
 
+type CreateSecurityConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the security configuration.
+	//
+	// Name is a required field
+	Name *string `type:"string" required:"true"`
+
+	// The security configuration details in JSON format.
+	//
+	// SecurityConfiguration is a required field
+	SecurityConfiguration *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateSecurityConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateSecurityConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateSecurityConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateSecurityConfigurationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.SecurityConfiguration == nil {
+		invalidParams.Add(request.NewErrParamRequired("SecurityConfiguration"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type CreateSecurityConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time the security configuration was created.
+	//
+	// CreationDateTime is a required field
+	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+
+	// The name of the security configuration.
+	//
+	// Name is a required field
+	Name *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateSecurityConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateSecurityConfigurationOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteSecurityConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the security configuration.
+	//
+	// Name is a required field
+	Name *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteSecurityConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteSecurityConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteSecurityConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteSecurityConfigurationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DeleteSecurityConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteSecurityConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteSecurityConfigurationOutput) GoString() string {
+	return s.String()
+}
+
 // This input determines which cluster to describe.
 type DescribeClusterInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the cluster to describe.
+	//
+	// ClusterId is a required field
 	ClusterId *string `type:"string" required:"true"`
 }
 
@@ -1737,14 +2444,73 @@ func (s DescribeJobFlowsOutput) GoString() string {
 	return s.String()
 }
 
+type DescribeSecurityConfigurationInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the security configuration.
+	//
+	// Name is a required field
+	Name *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeSecurityConfigurationInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeSecurityConfigurationInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeSecurityConfigurationInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeSecurityConfigurationInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+type DescribeSecurityConfigurationOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time the security configuration was created
+	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The name of the security configuration.
+	Name *string `type:"string"`
+
+	// The security configuration details in JSON format.
+	SecurityConfiguration *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeSecurityConfigurationOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeSecurityConfigurationOutput) GoString() string {
+	return s.String()
+}
+
 // This input determines which step to describe.
 type DescribeStepInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the cluster with steps to describe.
+	//
+	// ClusterId is a required field
 	ClusterId *string `type:"string" required:"true"`
 
 	// The identifier of the step to describe.
+	//
+	// StepId is a required field
 	StepId *string `type:"string" required:"true"`
 }
 
@@ -1822,6 +2588,8 @@ type EbsBlockDeviceConfig struct {
 
 	// EBS volume specifications such as volume type, IOPS, and size(GiB) that will
 	// be requested for the EBS volume attached to an EC2 instance in the cluster.
+	//
+	// VolumeSpecification is a required field
 	VolumeSpecification *VolumeSpecification `type:"structure" required:"true"`
 
 	// Number of EBS volumes with specific volume configuration, that will be associated
@@ -2010,6 +2778,8 @@ type HadoopJarStepConfig struct {
 	Args []*string `type:"list"`
 
 	// A path to a JAR file run during the step.
+	//
+	// Jar is a required field
 	Jar *string `type:"string" required:"true"`
 
 	// The name of the main class in the specified Java file. If not specified,
@@ -2201,12 +2971,18 @@ type InstanceGroupConfig struct {
 	EbsConfiguration *EbsConfiguration `type:"structure"`
 
 	// Target number of instances for the instance group.
+	//
+	// InstanceCount is a required field
 	InstanceCount *int64 `type:"integer" required:"true"`
 
 	// The role of the instance group in the cluster.
+	//
+	// InstanceRole is a required field
 	InstanceRole *string `type:"string" required:"true" enum:"InstanceRoleType"`
 
 	// The Amazon EC2 instance type for all instances in the instance group.
+	//
+	// InstanceType is a required field
 	InstanceType *string `min:"1" type:"string" required:"true"`
 
 	// Market type of the Amazon EC2 instances used to create a cluster node.
@@ -2262,6 +3038,8 @@ type InstanceGroupDetail struct {
 	BidPrice *string `type:"string"`
 
 	// The date/time the instance group was created.
+	//
+	// CreationDateTime is a required field
 	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// The date/time the instance group was terminated.
@@ -2271,21 +3049,31 @@ type InstanceGroupDetail struct {
 	InstanceGroupId *string `type:"string"`
 
 	// Target number of instances to run in the instance group.
+	//
+	// InstanceRequestCount is a required field
 	InstanceRequestCount *int64 `type:"integer" required:"true"`
 
 	// Instance group role in the cluster
+	//
+	// InstanceRole is a required field
 	InstanceRole *string `type:"string" required:"true" enum:"InstanceRoleType"`
 
 	// Actual count of running instances.
+	//
+	// InstanceRunningCount is a required field
 	InstanceRunningCount *int64 `type:"integer" required:"true"`
 
 	// Amazon EC2 Instance type.
+	//
+	// InstanceType is a required field
 	InstanceType *string `min:"1" type:"string" required:"true"`
 
 	// Details regarding the state of the instance group.
 	LastStateChangeReason *string `type:"string"`
 
 	// Market type of the Amazon EC2 instances used to create a cluster node.
+	//
+	// Market is a required field
 	Market *string `type:"string" required:"true" enum:"MarketType"`
 
 	// Friendly name for the instance group.
@@ -2299,6 +3087,8 @@ type InstanceGroupDetail struct {
 
 	// State of instance group. The following values are deprecated: STARTING, TERMINATED,
 	// and FAILED.
+	//
+	// State is a required field
 	State *string `type:"string" required:"true" enum:"InstanceGroupState"`
 }
 
@@ -2324,6 +3114,8 @@ type InstanceGroupModifyConfig struct {
 	InstanceCount *int64 `type:"integer"`
 
 	// Unique ID of the instance group to expand or shrink.
+	//
+	// InstanceGroupId is a required field
 	InstanceGroupId *string `type:"string" required:"true"`
 
 	// Policy for customizing shrink operations.
@@ -2531,12 +3323,18 @@ type JobFlowDetail struct {
 	BootstrapActions []*BootstrapActionDetail `type:"list"`
 
 	// Describes the execution status of the job flow.
+	//
+	// ExecutionStatusDetail is a required field
 	ExecutionStatusDetail *JobFlowExecutionStatusDetail `type:"structure" required:"true"`
 
 	// Describes the Amazon EC2 instances of the job flow.
+	//
+	// Instances is a required field
 	Instances *JobFlowInstancesDetail `type:"structure" required:"true"`
 
 	// The job flow identifier.
+	//
+	// JobFlowId is a required field
 	JobFlowId *string `type:"string" required:"true"`
 
 	// The IAM role that was specified when the job flow was launched. The EC2 instances
@@ -2547,6 +3345,8 @@ type JobFlowDetail struct {
 	LogUri *string `type:"string"`
 
 	// The name of the job flow.
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
 	// The IAM role that will be assumed by the Amazon EMR service to access AWS
@@ -2585,6 +3385,8 @@ type JobFlowExecutionStatusDetail struct {
 	_ struct{} `type:"structure"`
 
 	// The creation date and time of the job flow.
+	//
+	// CreationDateTime is a required field
 	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// The completion date and time of the job flow.
@@ -2601,6 +3403,8 @@ type JobFlowExecutionStatusDetail struct {
 	StartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// The state of the job flow.
+	//
+	// State is a required field
 	State *string `type:"string" required:"true" enum:"JobFlowExecutionState"`
 }
 
@@ -2742,6 +3546,8 @@ type JobFlowInstancesDetail struct {
 	// The number of Amazon EC2 instances in the cluster. If the value is 1, the
 	// same instance serves as both the master and slave node. If the value is greater
 	// than 1, one instance is the master node and all others are slave nodes.
+	//
+	// InstanceCount is a required field
 	InstanceCount *int64 `type:"integer" required:"true"`
 
 	// Details about the job flow's instance groups.
@@ -2754,6 +3560,8 @@ type JobFlowInstancesDetail struct {
 	MasterInstanceId *string `type:"string"`
 
 	// The Amazon EC2 master node instance type.
+	//
+	// MasterInstanceType is a required field
 	MasterInstanceType *string `min:"1" type:"string" required:"true"`
 
 	// The DNS name of the master node.
@@ -2771,6 +3579,8 @@ type JobFlowInstancesDetail struct {
 	Placement *PlacementType `type:"structure"`
 
 	// The Amazon EC2 slave node instance type.
+	//
+	// SlaveInstanceType is a required field
 	SlaveInstanceType *string `min:"1" type:"string" required:"true"`
 
 	// Specifies whether the Amazon EC2 instances in the cluster are protected from
@@ -2815,9 +3625,11 @@ type ListBootstrapActionsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The cluster identifier for the bootstrap actions to list .
+	//
+	// ClusterId is a required field
 	ClusterId *string `type:"string" required:"true"`
 
-	// The pagination token that indicates the next set of results to retrieve .
+	// The pagination token that indicates the next set of results to retrieve.
 	Marker *string `type:"string"`
 }
 
@@ -2851,7 +3663,7 @@ type ListBootstrapActionsOutput struct {
 	// The bootstrap actions associated with the cluster .
 	BootstrapActions []*Command `type:"list"`
 
-	// The pagination token that indicates the next set of results to retrieve .
+	// The pagination token that indicates the next set of results to retrieve.
 	Marker *string `type:"string"`
 }
 
@@ -2920,6 +3732,8 @@ type ListInstanceGroupsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the cluster for which to list the instance groups.
+	//
+	// ClusterId is a required field
 	ClusterId *string `type:"string" required:"true"`
 
 	// The pagination token that indicates the next set of results to retrieve.
@@ -2975,6 +3789,8 @@ type ListInstancesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the cluster for which to list the instances.
+	//
+	// ClusterId is a required field
 	ClusterId *string `type:"string" required:"true"`
 
 	// The identifier of the instance group for which to list the instances.
@@ -3035,11 +3851,52 @@ func (s ListInstancesOutput) GoString() string {
 	return s.String()
 }
 
+type ListSecurityConfigurationsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The pagination token that indicates the set of results to retrieve.
+	Marker *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListSecurityConfigurationsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListSecurityConfigurationsInput) GoString() string {
+	return s.String()
+}
+
+type ListSecurityConfigurationsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A pagination token that indicates the next set of results to retrieve. Include
+	// the marker in the next ListSecurityConfiguration call to retrieve the next
+	// page of results, if required.
+	Marker *string `type:"string"`
+
+	// The creation date and time, and name, of each security configuration.
+	SecurityConfigurations []*SecurityConfigurationSummary `type:"list"`
+}
+
+// String returns the string representation
+func (s ListSecurityConfigurationsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListSecurityConfigurationsOutput) GoString() string {
+	return s.String()
+}
+
 // This input determines which steps to list.
 type ListStepsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the cluster for which to list the steps.
+	//
+	// ClusterId is a required field
 	ClusterId *string `type:"string" required:"true"`
 
 	// The pagination token that indicates the next set of results to retrieve.
@@ -3154,6 +4011,8 @@ type PlacementType struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon EC2 Availability Zone for the job flow.
+	//
+	// AvailabilityZone is a required field
 	AvailabilityZone *string `type:"string" required:"true"`
 }
 
@@ -3186,9 +4045,13 @@ type RemoveTagsInput struct {
 
 	// The Amazon EMR resource identifier from which tags will be removed. This
 	// value must be a cluster identifier.
+	//
+	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
 
 	// A list of tag keys to remove from a resource.
+	//
+	// TagKeys is a required field
 	TagKeys []*string `type:"list" required:"true"`
 }
 
@@ -3275,6 +4138,8 @@ type RunJobFlowInput struct {
 
 	// A specification of the number and type of Amazon EC2 instances on which to
 	// run the job flow.
+	//
+	// Instances is a required field
 	Instances *JobFlowInstancesConfig `type:"structure" required:"true"`
 
 	// Also called instance profile and EC2 role. An IAM role for an EMR cluster.
@@ -3288,6 +4153,8 @@ type RunJobFlowInput struct {
 	LogUri *string `type:"string"`
 
 	// The name of the job flow.
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
 	// For Amazon EMR releases 3.x and 2.x. For Amazon EMR releases 4.x and greater,
@@ -3323,6 +4190,9 @@ type RunJobFlowInput struct {
 	//  The release label for the Amazon EMR release. For Amazon EMR 3.x and 2.x
 	// AMIs, use amiVersion instead instead of ReleaseLabel.
 	ReleaseLabel *string `type:"string"`
+
+	// The name of a security configuration to apply to the cluster.
+	SecurityConfiguration *string `type:"string"`
 
 	// The IAM role that will be assumed by the Amazon EMR service to access AWS
 	// resources on your behalf.
@@ -3424,15 +4294,12 @@ func (s RunJobFlowOutput) GoString() string {
 	return s.String()
 }
 
-// Configuration of the script to run during a bootstrap action.
 type ScriptBootstrapActionConfig struct {
 	_ struct{} `type:"structure"`
 
-	// A list of command line arguments to pass to the bootstrap action script.
 	Args []*string `type:"list"`
 
-	// Location of the script to run during a bootstrap action. Can be either a
-	// location in Amazon S3 or on a local file system.
+	// Path is a required field
 	Path *string `type:"string" required:"true"`
 }
 
@@ -3459,6 +4326,27 @@ func (s *ScriptBootstrapActionConfig) Validate() error {
 	return nil
 }
 
+// The creation date and time, and name, of a security configuration.
+type SecurityConfigurationSummary struct {
+	_ struct{} `type:"structure"`
+
+	// The date and time the security configuration was created.
+	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The name of the security configuration.
+	Name *string `type:"string"`
+}
+
+// String returns the string representation
+func (s SecurityConfigurationSummary) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SecurityConfigurationSummary) GoString() string {
+	return s.String()
+}
+
 // The input argument to the TerminationProtection operation.
 type SetTerminationProtectionInput struct {
 	_ struct{} `type:"structure"`
@@ -3466,11 +4354,15 @@ type SetTerminationProtectionInput struct {
 	// A list of strings that uniquely identify the job flows to protect. This identifier
 	// is returned by RunJobFlow and can also be obtained from DescribeJobFlows
 	// .
+	//
+	// JobFlowIds is a required field
 	JobFlowIds []*string `type:"list" required:"true"`
 
 	// A Boolean that indicates whether to protect the job flow and prevent the
 	// Amazon EC2 instances in the cluster from shutting down due to API calls,
 	// user intervention, or job-flow error.
+	//
+	// TerminationProtected is a required field
 	TerminationProtected *bool `type:"boolean" required:"true"`
 }
 
@@ -3519,6 +4411,8 @@ type SetVisibleToAllUsersInput struct {
 	_ struct{} `type:"structure"`
 
 	// Identifiers of the job flows to receive the new visibility setting.
+	//
+	// JobFlowIds is a required field
 	JobFlowIds []*string `type:"list" required:"true"`
 
 	// Whether the specified job flows are visible to all IAM users of the AWS account
@@ -3526,6 +4420,8 @@ type SetVisibleToAllUsersInput struct {
 	// of that AWS account can view and, if they have the proper IAM policy permissions
 	// set, manage the job flows. If it is set to False, only the IAM user that
 	// created a job flow can view and manage it.
+	//
+	// VisibleToAllUsers is a required field
 	VisibleToAllUsers *bool `type:"boolean" required:"true"`
 }
 
@@ -3632,9 +4528,13 @@ type StepConfig struct {
 	ActionOnFailure *string `type:"string" enum:"ActionOnFailure"`
 
 	// The JAR file used for the job flow step.
+	//
+	// HadoopJarStep is a required field
 	HadoopJarStep *HadoopJarStepConfig `type:"structure" required:"true"`
 
 	// The name of the job flow step.
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 }
 
@@ -3674,9 +4574,13 @@ type StepDetail struct {
 	_ struct{} `type:"structure"`
 
 	// The description of the step status.
+	//
+	// ExecutionStatusDetail is a required field
 	ExecutionStatusDetail *StepExecutionStatusDetail `type:"structure" required:"true"`
 
 	// The step configuration.
+	//
+	// StepConfig is a required field
 	StepConfig *StepConfig `type:"structure" required:"true"`
 }
 
@@ -3695,6 +4599,8 @@ type StepExecutionStatusDetail struct {
 	_ struct{} `type:"structure"`
 
 	// The creation date and time of the step.
+	//
+	// CreationDateTime is a required field
 	CreationDateTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// The completion date and time of the step.
@@ -3707,6 +4613,8 @@ type StepExecutionStatusDetail struct {
 	StartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// The state of the job flow step.
+	//
+	// State is a required field
 	State *string `type:"string" required:"true" enum:"StepExecutionState"`
 }
 
@@ -3880,6 +4788,8 @@ type TerminateJobFlowsInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of job flows to be shutdown.
+	//
+	// JobFlowIds is a required field
 	JobFlowIds []*string `type:"list" required:"true"`
 }
 
@@ -3930,9 +4840,13 @@ type VolumeSpecification struct {
 
 	// The volume size, in gibibytes (GiB). This can be a number from 1 - 1024.
 	// If the volume type is EBS-optimized, the minimum value is 10.
+	//
+	// SizeInGB is a required field
 	SizeInGB *int64 `type:"integer" required:"true"`
 
 	// The volume type. Volume types supported are gp2, io1, standard.
+	//
+	// VolumeType is a required field
 	VolumeType *string `type:"string" required:"true"`
 }
 
@@ -3963,188 +4877,246 @@ func (s *VolumeSpecification) Validate() error {
 }
 
 const (
-	// @enum ActionOnFailure
+	// ActionOnFailureTerminateJobFlow is a ActionOnFailure enum value
 	ActionOnFailureTerminateJobFlow = "TERMINATE_JOB_FLOW"
-	// @enum ActionOnFailure
+
+	// ActionOnFailureTerminateCluster is a ActionOnFailure enum value
 	ActionOnFailureTerminateCluster = "TERMINATE_CLUSTER"
-	// @enum ActionOnFailure
+
+	// ActionOnFailureCancelAndWait is a ActionOnFailure enum value
 	ActionOnFailureCancelAndWait = "CANCEL_AND_WAIT"
-	// @enum ActionOnFailure
+
+	// ActionOnFailureContinue is a ActionOnFailure enum value
 	ActionOnFailureContinue = "CONTINUE"
 )
 
 const (
-	// @enum ClusterState
+	// ClusterStateStarting is a ClusterState enum value
 	ClusterStateStarting = "STARTING"
-	// @enum ClusterState
+
+	// ClusterStateBootstrapping is a ClusterState enum value
 	ClusterStateBootstrapping = "BOOTSTRAPPING"
-	// @enum ClusterState
+
+	// ClusterStateRunning is a ClusterState enum value
 	ClusterStateRunning = "RUNNING"
-	// @enum ClusterState
+
+	// ClusterStateWaiting is a ClusterState enum value
 	ClusterStateWaiting = "WAITING"
-	// @enum ClusterState
+
+	// ClusterStateTerminating is a ClusterState enum value
 	ClusterStateTerminating = "TERMINATING"
-	// @enum ClusterState
+
+	// ClusterStateTerminated is a ClusterState enum value
 	ClusterStateTerminated = "TERMINATED"
-	// @enum ClusterState
+
+	// ClusterStateTerminatedWithErrors is a ClusterState enum value
 	ClusterStateTerminatedWithErrors = "TERMINATED_WITH_ERRORS"
 )
 
 const (
-	// @enum ClusterStateChangeReasonCode
+	// ClusterStateChangeReasonCodeInternalError is a ClusterStateChangeReasonCode enum value
 	ClusterStateChangeReasonCodeInternalError = "INTERNAL_ERROR"
-	// @enum ClusterStateChangeReasonCode
+
+	// ClusterStateChangeReasonCodeValidationError is a ClusterStateChangeReasonCode enum value
 	ClusterStateChangeReasonCodeValidationError = "VALIDATION_ERROR"
-	// @enum ClusterStateChangeReasonCode
+
+	// ClusterStateChangeReasonCodeInstanceFailure is a ClusterStateChangeReasonCode enum value
 	ClusterStateChangeReasonCodeInstanceFailure = "INSTANCE_FAILURE"
-	// @enum ClusterStateChangeReasonCode
+
+	// ClusterStateChangeReasonCodeBootstrapFailure is a ClusterStateChangeReasonCode enum value
 	ClusterStateChangeReasonCodeBootstrapFailure = "BOOTSTRAP_FAILURE"
-	// @enum ClusterStateChangeReasonCode
+
+	// ClusterStateChangeReasonCodeUserRequest is a ClusterStateChangeReasonCode enum value
 	ClusterStateChangeReasonCodeUserRequest = "USER_REQUEST"
-	// @enum ClusterStateChangeReasonCode
+
+	// ClusterStateChangeReasonCodeStepFailure is a ClusterStateChangeReasonCode enum value
 	ClusterStateChangeReasonCodeStepFailure = "STEP_FAILURE"
-	// @enum ClusterStateChangeReasonCode
+
+	// ClusterStateChangeReasonCodeAllStepsCompleted is a ClusterStateChangeReasonCode enum value
 	ClusterStateChangeReasonCodeAllStepsCompleted = "ALL_STEPS_COMPLETED"
 )
 
 const (
-	// @enum InstanceGroupState
+	// InstanceGroupStateProvisioning is a InstanceGroupState enum value
 	InstanceGroupStateProvisioning = "PROVISIONING"
-	// @enum InstanceGroupState
+
+	// InstanceGroupStateBootstrapping is a InstanceGroupState enum value
 	InstanceGroupStateBootstrapping = "BOOTSTRAPPING"
-	// @enum InstanceGroupState
+
+	// InstanceGroupStateRunning is a InstanceGroupState enum value
 	InstanceGroupStateRunning = "RUNNING"
-	// @enum InstanceGroupState
+
+	// InstanceGroupStateResizing is a InstanceGroupState enum value
 	InstanceGroupStateResizing = "RESIZING"
-	// @enum InstanceGroupState
+
+	// InstanceGroupStateSuspended is a InstanceGroupState enum value
 	InstanceGroupStateSuspended = "SUSPENDED"
-	// @enum InstanceGroupState
+
+	// InstanceGroupStateTerminating is a InstanceGroupState enum value
 	InstanceGroupStateTerminating = "TERMINATING"
-	// @enum InstanceGroupState
+
+	// InstanceGroupStateTerminated is a InstanceGroupState enum value
 	InstanceGroupStateTerminated = "TERMINATED"
-	// @enum InstanceGroupState
+
+	// InstanceGroupStateArrested is a InstanceGroupState enum value
 	InstanceGroupStateArrested = "ARRESTED"
-	// @enum InstanceGroupState
+
+	// InstanceGroupStateShuttingDown is a InstanceGroupState enum value
 	InstanceGroupStateShuttingDown = "SHUTTING_DOWN"
-	// @enum InstanceGroupState
+
+	// InstanceGroupStateEnded is a InstanceGroupState enum value
 	InstanceGroupStateEnded = "ENDED"
 )
 
 const (
-	// @enum InstanceGroupStateChangeReasonCode
+	// InstanceGroupStateChangeReasonCodeInternalError is a InstanceGroupStateChangeReasonCode enum value
 	InstanceGroupStateChangeReasonCodeInternalError = "INTERNAL_ERROR"
-	// @enum InstanceGroupStateChangeReasonCode
+
+	// InstanceGroupStateChangeReasonCodeValidationError is a InstanceGroupStateChangeReasonCode enum value
 	InstanceGroupStateChangeReasonCodeValidationError = "VALIDATION_ERROR"
-	// @enum InstanceGroupStateChangeReasonCode
+
+	// InstanceGroupStateChangeReasonCodeInstanceFailure is a InstanceGroupStateChangeReasonCode enum value
 	InstanceGroupStateChangeReasonCodeInstanceFailure = "INSTANCE_FAILURE"
-	// @enum InstanceGroupStateChangeReasonCode
+
+	// InstanceGroupStateChangeReasonCodeClusterTerminated is a InstanceGroupStateChangeReasonCode enum value
 	InstanceGroupStateChangeReasonCodeClusterTerminated = "CLUSTER_TERMINATED"
 )
 
 const (
-	// @enum InstanceGroupType
+	// InstanceGroupTypeMaster is a InstanceGroupType enum value
 	InstanceGroupTypeMaster = "MASTER"
-	// @enum InstanceGroupType
+
+	// InstanceGroupTypeCore is a InstanceGroupType enum value
 	InstanceGroupTypeCore = "CORE"
-	// @enum InstanceGroupType
+
+	// InstanceGroupTypeTask is a InstanceGroupType enum value
 	InstanceGroupTypeTask = "TASK"
 )
 
 const (
-	// @enum InstanceRoleType
+	// InstanceRoleTypeMaster is a InstanceRoleType enum value
 	InstanceRoleTypeMaster = "MASTER"
-	// @enum InstanceRoleType
+
+	// InstanceRoleTypeCore is a InstanceRoleType enum value
 	InstanceRoleTypeCore = "CORE"
-	// @enum InstanceRoleType
+
+	// InstanceRoleTypeTask is a InstanceRoleType enum value
 	InstanceRoleTypeTask = "TASK"
 )
 
 const (
-	// @enum InstanceState
+	// InstanceStateAwaitingFulfillment is a InstanceState enum value
 	InstanceStateAwaitingFulfillment = "AWAITING_FULFILLMENT"
-	// @enum InstanceState
+
+	// InstanceStateProvisioning is a InstanceState enum value
 	InstanceStateProvisioning = "PROVISIONING"
-	// @enum InstanceState
+
+	// InstanceStateBootstrapping is a InstanceState enum value
 	InstanceStateBootstrapping = "BOOTSTRAPPING"
-	// @enum InstanceState
+
+	// InstanceStateRunning is a InstanceState enum value
 	InstanceStateRunning = "RUNNING"
-	// @enum InstanceState
+
+	// InstanceStateTerminated is a InstanceState enum value
 	InstanceStateTerminated = "TERMINATED"
 )
 
 const (
-	// @enum InstanceStateChangeReasonCode
+	// InstanceStateChangeReasonCodeInternalError is a InstanceStateChangeReasonCode enum value
 	InstanceStateChangeReasonCodeInternalError = "INTERNAL_ERROR"
-	// @enum InstanceStateChangeReasonCode
+
+	// InstanceStateChangeReasonCodeValidationError is a InstanceStateChangeReasonCode enum value
 	InstanceStateChangeReasonCodeValidationError = "VALIDATION_ERROR"
-	// @enum InstanceStateChangeReasonCode
+
+	// InstanceStateChangeReasonCodeInstanceFailure is a InstanceStateChangeReasonCode enum value
 	InstanceStateChangeReasonCodeInstanceFailure = "INSTANCE_FAILURE"
-	// @enum InstanceStateChangeReasonCode
+
+	// InstanceStateChangeReasonCodeBootstrapFailure is a InstanceStateChangeReasonCode enum value
 	InstanceStateChangeReasonCodeBootstrapFailure = "BOOTSTRAP_FAILURE"
-	// @enum InstanceStateChangeReasonCode
+
+	// InstanceStateChangeReasonCodeClusterTerminated is a InstanceStateChangeReasonCode enum value
 	InstanceStateChangeReasonCodeClusterTerminated = "CLUSTER_TERMINATED"
 )
 
 // The type of instance.
 const (
-	// @enum JobFlowExecutionState
+	// JobFlowExecutionStateStarting is a JobFlowExecutionState enum value
 	JobFlowExecutionStateStarting = "STARTING"
-	// @enum JobFlowExecutionState
+
+	// JobFlowExecutionStateBootstrapping is a JobFlowExecutionState enum value
 	JobFlowExecutionStateBootstrapping = "BOOTSTRAPPING"
-	// @enum JobFlowExecutionState
+
+	// JobFlowExecutionStateRunning is a JobFlowExecutionState enum value
 	JobFlowExecutionStateRunning = "RUNNING"
-	// @enum JobFlowExecutionState
+
+	// JobFlowExecutionStateWaiting is a JobFlowExecutionState enum value
 	JobFlowExecutionStateWaiting = "WAITING"
-	// @enum JobFlowExecutionState
+
+	// JobFlowExecutionStateShuttingDown is a JobFlowExecutionState enum value
 	JobFlowExecutionStateShuttingDown = "SHUTTING_DOWN"
-	// @enum JobFlowExecutionState
+
+	// JobFlowExecutionStateTerminated is a JobFlowExecutionState enum value
 	JobFlowExecutionStateTerminated = "TERMINATED"
-	// @enum JobFlowExecutionState
+
+	// JobFlowExecutionStateCompleted is a JobFlowExecutionState enum value
 	JobFlowExecutionStateCompleted = "COMPLETED"
-	// @enum JobFlowExecutionState
+
+	// JobFlowExecutionStateFailed is a JobFlowExecutionState enum value
 	JobFlowExecutionStateFailed = "FAILED"
 )
 
 const (
-	// @enum MarketType
+	// MarketTypeOnDemand is a MarketType enum value
 	MarketTypeOnDemand = "ON_DEMAND"
-	// @enum MarketType
+
+	// MarketTypeSpot is a MarketType enum value
 	MarketTypeSpot = "SPOT"
 )
 
 const (
-	// @enum StepExecutionState
+	// StepExecutionStatePending is a StepExecutionState enum value
 	StepExecutionStatePending = "PENDING"
-	// @enum StepExecutionState
+
+	// StepExecutionStateRunning is a StepExecutionState enum value
 	StepExecutionStateRunning = "RUNNING"
-	// @enum StepExecutionState
+
+	// StepExecutionStateContinue is a StepExecutionState enum value
 	StepExecutionStateContinue = "CONTINUE"
-	// @enum StepExecutionState
+
+	// StepExecutionStateCompleted is a StepExecutionState enum value
 	StepExecutionStateCompleted = "COMPLETED"
-	// @enum StepExecutionState
+
+	// StepExecutionStateCancelled is a StepExecutionState enum value
 	StepExecutionStateCancelled = "CANCELLED"
-	// @enum StepExecutionState
+
+	// StepExecutionStateFailed is a StepExecutionState enum value
 	StepExecutionStateFailed = "FAILED"
-	// @enum StepExecutionState
+
+	// StepExecutionStateInterrupted is a StepExecutionState enum value
 	StepExecutionStateInterrupted = "INTERRUPTED"
 )
 
 const (
-	// @enum StepState
+	// StepStatePending is a StepState enum value
 	StepStatePending = "PENDING"
-	// @enum StepState
+
+	// StepStateRunning is a StepState enum value
 	StepStateRunning = "RUNNING"
-	// @enum StepState
+
+	// StepStateCompleted is a StepState enum value
 	StepStateCompleted = "COMPLETED"
-	// @enum StepState
+
+	// StepStateCancelled is a StepState enum value
 	StepStateCancelled = "CANCELLED"
-	// @enum StepState
+
+	// StepStateFailed is a StepState enum value
 	StepStateFailed = "FAILED"
-	// @enum StepState
+
+	// StepStateInterrupted is a StepState enum value
 	StepStateInterrupted = "INTERRUPTED"
 )
 
 const (
-	// @enum StepStateChangeReasonCode
+	// StepStateChangeReasonCodeNone is a StepStateChangeReasonCode enum value
 	StepStateChangeReasonCodeNone = "NONE"
 )

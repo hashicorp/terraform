@@ -92,6 +92,11 @@ func (r *DiffFieldReader) readMap(
 		result[k] = v.New
 	}
 
+	err = mapValuesToPrimitive(result, schema)
+	if err != nil {
+		return FieldReadResult{}, nil
+	}
+
 	var resultVal interface{}
 	if resultSet {
 		resultVal = result
@@ -183,6 +188,16 @@ func (r *DiffFieldReader) readSet(
 		// "0" to "" breaking us (if that were to happen).
 		if _, ok := r.Diff.Attributes[prefix+"#"]; ok {
 			exists = true
+		}
+	}
+
+	if !exists {
+		result, err := r.Source.ReadField(address)
+		if err != nil {
+			return FieldReadResult{}, err
+		}
+		if result.Exists {
+			return result, nil
 		}
 	}
 

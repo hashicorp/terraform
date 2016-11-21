@@ -581,7 +581,7 @@ type PurchasePlan struct {
 	Product   *string `json:"product,omitempty"`
 }
 
-// Resource is
+// Resource is the Resource model definition.
 type Resource struct {
 	ID       *string             `json:"id,omitempty"`
 	Name     *string             `json:"name,omitempty"`
@@ -1015,7 +1015,7 @@ type VirtualMachineScaleSetProperties struct {
 	UpgradePolicy         *UpgradePolicy                   `json:"upgradePolicy,omitempty"`
 	VirtualMachineProfile *VirtualMachineScaleSetVMProfile `json:"virtualMachineProfile,omitempty"`
 	ProvisioningState     *string                          `json:"provisioningState,omitempty"`
-	OverProvision         *bool                            `json:"overProvision,omitempty"`
+	Overprovision         *bool                            `json:"overprovision,omitempty"`
 }
 
 // VirtualMachineScaleSetSku is describes an available virtual machine scale

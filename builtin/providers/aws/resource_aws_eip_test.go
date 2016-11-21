@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -11,6 +12,50 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func TestAccAWSEIP_importEc2Classic(t *testing.T) {
+	oldvar := os.Getenv("AWS_DEFAULT_REGION")
+	os.Setenv("AWS_DEFAULT_REGION", "us-east-1")
+	defer os.Setenv("AWS_DEFAULT_REGION", oldvar)
+
+	resourceName := "aws_eip.bar"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEIPDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEIPInstanceEc2Classic,
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAWSEIP_importVpc(t *testing.T) {
+	resourceName := "aws_eip.bar"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEIPDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEIPNetworkInterfaceConfig,
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
 
 func TestAccAWSEIP_basic(t *testing.T) {
 	var conf ec2.Address
@@ -152,7 +197,7 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
 				// Verify the error is what we want
-				if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidAllocationID.NotFound" {
+				if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidAllocationID.NotFound" || ae.Code() == "InvalidAddress.NotFound" {
 					continue
 				}
 				return err
@@ -168,7 +213,7 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
 				// Verify the error is what we want
-				if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidAllocationID.NotFound" {
+				if ae, ok := err.(awserr.Error); ok && ae.Code() == "InvalidAllocationID.NotFound" || ae.Code() == "InvalidAddress.NotFound" {
 					continue
 				}
 				return err
@@ -253,6 +298,20 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 
 const testAccAWSEIPConfig = `
 resource "aws_eip" "bar" {
+}
+`
+
+const testAccAWSEIPInstanceEc2Classic = `
+provider "aws" {
+	region = "us-east-1"
+}
+resource "aws_instance" "foo" {
+	ami = "ami-5469ae3c"
+	instance_type = "m1.small"
+}
+
+resource "aws_eip" "bar" {
+	instance = "${aws_instance.foo.id}"
 }
 `
 

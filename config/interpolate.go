@@ -149,6 +149,10 @@ func (v *ModuleVariable) FullKey() string {
 	return v.key
 }
 
+func (v *ModuleVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
 func NewPathVariable(key string) (*PathVariable, error) {
 	var fieldType PathValueType
 	parts := strings.SplitN(key, ".", 2)

@@ -13,6 +13,12 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+func TestInterpolater_simpleVar(t *testing.T) {
+	i := &Interpolater{}
+	scope := &InterpolationScope{}
+	testInterpolateErr(t, i, scope, "simple")
+}
+
 func TestInterpolater_countIndex(t *testing.T) {
 	i := &Interpolater{}
 
@@ -300,7 +306,7 @@ func TestInterpolater_resourceVariableMissingDuringInput(t *testing.T) {
 
 		testInterpolate(t, i, scope, "aws_instance.web.foo", ast.Variable{
 			Value: config.UnknownVariableValue,
-			Type:  ast.TypeString,
+			Type:  ast.TypeUnknown,
 		})
 	}
 
@@ -354,8 +360,51 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 
 	testInterpolate(t, i, scope, "aws_instance.web.*.foo", ast.Variable{
 		Value: config.UnknownVariableValue,
-		Type:  ast.TypeString,
+		Type:  ast.TypeUnknown,
 	})
+}
+
+func TestInterpolater_resourceVariableMulti_interpolated(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "a",
+							Attributes: map[string]string{"foo": "a"},
+						},
+					},
+
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "b",
+							Attributes: map[string]string{"foo": "b"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Operation: walkApply,
+		Module:    testModule(t, "interpolate-multi-interp"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	expected := []interface{}{"a", "b"}
+	testInterpolate(t, i, scope, "aws_instance.web.*.foo",
+		interfaceToVariableSwallowError(expected))
 }
 
 func interfaceToVariableSwallowError(input interface{}) ast.Variable {
@@ -516,7 +565,45 @@ func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {
 
 	testInterpolate(t, i, scope, "aws_route53_zone.yada.name_servers", ast.Variable{
 		Value: config.UnknownVariableValue,
-		Type:  ast.TypeString,
+		Type:  ast.TypeUnknown,
+	})
+}
+
+func TestInterpolator_resourceAttributeComputed(t *testing.T) {
+	lock := new(sync.RWMutex)
+	// The state would never be written with an UnknownVariableValue in it, but
+	// it can/does exist that way in memory during the plan phase.
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
+						Type: "aws_route53_zone",
+						Primary: &InstanceState{
+							ID: "z-abc123",
+							Attributes: map[string]string{
+								"id": config.UnknownVariableValue,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: lock,
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.id", ast.Variable{
+		Value: config.UnknownVariableValue,
+		Type:  ast.TypeUnknown,
 	})
 }
 

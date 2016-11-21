@@ -12,18 +12,25 @@ import (
 	"fmt"
 )
 
+// GraphDefinitionRequest represents the requests passed into each graph.
+type GraphDefinitionRequest struct {
+	Query              string `json:"q"`
+	Stacked            bool   `json:"stacked"`
+	Aggregator         string
+	ConditionalFormats []DashboardConditionalFormat `json:"conditional_formats,omitempty"`
+	Type               string                       `json:"type,omitempty"`
+	Style              struct {
+		Palette string `json:"palette,omitempty"`
+	} `json:"style,omitempty"`
+}
+
 // Graph represents a graph that might exist on a dashboard.
 type Graph struct {
 	Title      string     `json:"title"`
 	Events     []struct{} `json:"events"`
 	Definition struct {
-		Viz      string `json:"viz"`
-		Requests []struct {
-			Query              string `json:"q"`
-			Stacked            bool   `json:"stacked"`
-			Aggregator         string
-			ConditionalFormats []DashboardConditionalFormat `json:"conditional_formats,omitempty"`
-		} `json:"requests"`
+		Viz      string                   `json:"viz"`
+		Requests []GraphDefinitionRequest `json:"requests"`
 	} `json:"definition"`
 }
 

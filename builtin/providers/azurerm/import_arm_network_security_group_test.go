@@ -19,10 +19,9 @@ func TestAccAzureRMNetworkSecurityGroup_importBasic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				ResourceName:            resourceName,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"resource_group_name"},
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

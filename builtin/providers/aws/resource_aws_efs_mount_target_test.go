@@ -212,7 +212,7 @@ func testAccAWSEFSMountTargetDisappears(mount *efs.MountTargetDescription) resou
 				return nil
 			}
 			return resource.RetryableError(fmt.Errorf(
-				"Waiting for EFS mount target: %s", mount.MountTargetId))
+				"Waiting for EFS mount target: %s", *mount.MountTargetId))
 		})
 	}
 

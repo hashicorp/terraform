@@ -2,6 +2,7 @@ package hil
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -32,6 +33,7 @@ type SemanticChecker func(ast.Node) error
 //     TypeString:  string
 //     TypeList:    []interface{}
 //     TypeMap:     map[string]interface{}
+//     TypBool:     bool
 type EvaluationResult struct {
 	Type  EvalType
 	Value interface{}
@@ -41,6 +43,10 @@ type EvaluationResult struct {
 // which has invalid syntax, missing variables, or some other type of error.
 // The error is described out of band in the accompanying error return value.
 var InvalidResult = EvaluationResult{Type: TypeInvalid, Value: nil}
+
+// errExitUnknown is an internal error that when returned means the result
+// is an unknown value. We use this for early exit.
+var errExitUnknown = errors.New("unknown value")
 
 func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 	output, outputType, err := internalEval(root, config)
@@ -72,6 +78,16 @@ func Eval(root ast.Node, config *EvalConfig) (EvaluationResult, error) {
 			Type:  TypeString,
 			Value: output,
 		}, nil
+	case ast.TypeBool:
+		return EvaluationResult{
+			Type:  TypeBool,
+			Value: output,
+		}, nil
+	case ast.TypeUnknown:
+		return EvaluationResult{
+			Type:  TypeUnknown,
+			Value: UnknownValue,
+		}, nil
 	default:
 		return InvalidResult, fmt.Errorf("unknown type %s as interpolation output", outputType)
 	}
@@ -97,6 +113,10 @@ func internalEval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, err
 		ast.TypeString: {
 			ast.TypeInt:   "__builtin_StringToInt",
 			ast.TypeFloat: "__builtin_StringToFloat",
+			ast.TypeBool:  "__builtin_StringToBool",
+		},
+		ast.TypeBool: {
+			ast.TypeString: "__builtin_BoolToString",
 		},
 	}
 
@@ -154,6 +174,12 @@ func (v *evalVisitor) Visit(root ast.Node) (interface{}, ast.Type, error) {
 		result = new(ast.LiteralNode)
 	}
 	resultErr := v.err
+	if resultErr == errExitUnknown {
+		// This means the return value is unknown and we used the error
+		// as an early exit mechanism. Reset since the value on the stack
+		// should be the unknown value.
+		resultErr = nil
+	}
 
 	// Clear everything else so we aren't just dangling
 	v.Stack.Reset()
@@ -188,6 +214,13 @@ func (v *evalVisitor) visit(raw ast.Node) ast.Node {
 		Value: out,
 		Typex: outType,
 	})
+
+	if outType == ast.TypeUnknown {
+		// Halt immediately
+		v.err = errExitUnknown
+		return raw
+	}
+
 	return raw
 }
 
@@ -244,39 +277,20 @@ func (v *evalCall) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, e
 type evalIndex struct{ *ast.Index }
 
 func (v *evalIndex) Eval(scope ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
-	evalVarAccess, err := evalNode(v.Target)
-	if err != nil {
-		return nil, ast.TypeInvalid, err
-	}
-	target, targetType, err := evalVarAccess.Eval(scope, stack)
-
-	evalKey, err := evalNode(v.Key)
-	if err != nil {
-		return nil, ast.TypeInvalid, err
-	}
-
-	key, keyType, err := evalKey.Eval(scope, stack)
-	if err != nil {
-		return nil, ast.TypeInvalid, err
-	}
+	key := stack.Pop().(*ast.LiteralNode)
+	target := stack.Pop().(*ast.LiteralNode)
 
 	variableName := v.Index.Target.(*ast.VariableAccess).Name
 
-	switch targetType {
+	switch target.Typex {
 	case ast.TypeList:
-		if keyType != ast.TypeInt {
-			return nil, ast.TypeInvalid, fmt.Errorf("key for indexing list %q must be an int, is %s", variableName, keyType)
-		}
-
-		return v.evalListIndex(variableName, target, key)
+		return v.evalListIndex(variableName, target.Value, key.Value)
 	case ast.TypeMap:
-		if keyType != ast.TypeString {
-			return nil, ast.TypeInvalid, fmt.Errorf("key for indexing map %q must be a string, is %s", variableName, keyType)
-		}
-
-		return v.evalMapIndex(variableName, target, key)
+		return v.evalMapIndex(variableName, target.Value, key.Value)
 	default:
-		return nil, ast.TypeInvalid, fmt.Errorf("target %q for indexing must be ast.TypeList or ast.TypeMap, is %s", variableName, targetType)
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"target %q for indexing must be ast.TypeList or ast.TypeMap, is %s",
+			variableName, target.Typex)
 	}
 }
 
@@ -285,12 +299,14 @@ func (v *evalIndex) evalListIndex(variableName string, target interface{}, key i
 	// is a list and key is an int
 	list, ok := target.([]ast.Variable)
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast target to []Variable")
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"cannot cast target to []Variable, is: %T", target)
 	}
 
 	keyInt, ok := key.(int)
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast key to int")
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"cannot cast key to int, is: %T", key)
 	}
 
 	if len(list) == 0 {
@@ -298,12 +314,13 @@ func (v *evalIndex) evalListIndex(variableName string, target interface{}, key i
 	}
 
 	if keyInt < 0 || len(list) < keyInt+1 {
-		return nil, ast.TypeInvalid, fmt.Errorf("index %d out of range for list %s (max %d)", keyInt, variableName, len(list))
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"index %d out of range for list %s (max %d)",
+			keyInt, variableName, len(list))
 	}
 
 	returnVal := list[keyInt].Value
 	returnType := list[keyInt].Type
-
 	return returnVal, returnType, nil
 }
 
@@ -312,12 +329,14 @@ func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key in
 	// is a map and key is a string
 	vmap, ok := target.(map[string]ast.Variable)
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast target to map[string]Variable")
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"cannot cast target to map[string]Variable, is: %T", target)
 	}
 
 	keyString, ok := key.(string)
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("cannot cast key to string")
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"cannot cast key to string, is: %T", key)
 	}
 
 	if len(vmap) == 0 {
@@ -326,7 +345,8 @@ func (v *evalIndex) evalMapIndex(variableName string, target interface{}, key in
 
 	value, ok := vmap[keyString]
 	if !ok {
-		return nil, ast.TypeInvalid, fmt.Errorf("key %q does not exist in map %s", keyString, variableName)
+		return nil, ast.TypeInvalid, fmt.Errorf(
+			"key %q does not exist in map %s", keyString, variableName)
 	}
 
 	return value.Value, value.Type, nil
@@ -343,11 +363,15 @@ func (v *evalOutput) Eval(s ast.Scope, stack *ast.Stack) (interface{}, ast.Type,
 	}
 
 	// Special case the single list and map
-	if len(nodes) == 1 && nodes[0].Typex == ast.TypeList {
-		return nodes[0].Value, ast.TypeList, nil
-	}
-	if len(nodes) == 1 && nodes[0].Typex == ast.TypeMap {
-		return nodes[0].Value, ast.TypeMap, nil
+	if len(nodes) == 1 {
+		switch t := nodes[0].Typex; t {
+		case ast.TypeList:
+			fallthrough
+		case ast.TypeMap:
+			fallthrough
+		case ast.TypeUnknown:
+			return nodes[0].Value, t, nil
+		}
 	}
 
 	// Otherwise concatenate the strings
@@ -373,6 +397,12 @@ func (v *evalVariableAccess) Eval(scope ast.Scope, _ *ast.Stack) (interface{}, a
 	if !ok {
 		return nil, ast.TypeInvalid, fmt.Errorf(
 			"unknown variable accessed: %s", v.Name)
+	}
+
+	// Check if the variable contains any unknown types. If so, then
+	// mark it as unknown and return that type.
+	if ast.IsUnknown(variable) {
+		return nil, ast.TypeUnknown, nil
 	}
 
 	return variable.Value, variable.Type, nil

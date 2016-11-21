@@ -447,6 +447,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 				},
 			},
 
+			"detach_unknown_disks_on_delete": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"cdrom": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -1149,10 +1155,11 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 	}
 
 	// Safely eject any disks the user marked as keep_on_remove
+	var diskSetList []interface{}
 	if vL, ok := d.GetOk("disk"); ok {
 		if diskSet, ok := vL.(*schema.Set); ok {
-
-			for _, value := range diskSet.List() {
+			diskSetList = diskSet.List()
+			for _, value := range diskSetList {
 				disk := value.(map[string]interface{})
 
 				if v, ok := disk["keep_on_remove"].(bool); ok && v == true {
@@ -1164,6 +1171,36 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 						return err
 					}
 				}
+			}
+		}
+	}
+
+	// Safely eject any disks that are not managed by this resource
+	if v, ok := d.GetOk("detach_unknown_disks_on_delete"); ok && v.(bool) {
+		var disksToRemove object.VirtualDeviceList
+		for _, device := range devices {
+			if devices.TypeName(device) != "VirtualDisk" {
+				continue
+			}
+			vd := device.GetVirtualDevice()
+			var skip bool
+			for _, value := range diskSetList {
+				disk := value.(map[string]interface{})
+				if int32(disk["key"].(int)) == vd.Key {
+					skip = true
+					break
+				}
+			}
+			if skip {
+				continue
+			}
+			disksToRemove = append(disksToRemove, device)
+		}
+		if len(disksToRemove) != 0 {
+			err = vm.RemoveDevice(context.TODO(), true, disksToRemove...)
+			if err != nil {
+				log.Printf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
+				return err
 			}
 		}
 	}

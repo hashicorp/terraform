@@ -236,6 +236,11 @@ func resourceAwsDbInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"hosted_zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"status": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -265,6 +270,7 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: false,
 				Optional: true,
+				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
@@ -668,7 +674,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	if v.Endpoint != nil {
 		d.Set("port", v.Endpoint.Port)
 		d.Set("address", v.Endpoint.Address)
-
+		d.Set("hosted_zone_id", v.Endpoint.HostedZoneId)
 		if v.Endpoint.Address != nil && v.Endpoint.Port != nil {
 			d.Set("endpoint",
 				fmt.Sprintf("%s:%d", *v.Endpoint.Address, *v.Endpoint.Port))
@@ -692,7 +698,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// list tags for resource
 	// set tags
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region)
+	arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if v.DBName != nil && *v.DBName != "" {
@@ -975,7 +981,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
+	if arn, err := buildRDSARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		} else {
@@ -1051,11 +1057,13 @@ func resourceAwsDbInstanceStateRefreshFunc(
 	}
 }
 
-func buildRDSARN(identifier, accountid, region string) (string, error) {
+func buildRDSARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
+	}
 	if accountid == "" {
 		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
 	}
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, accountid, identifier)
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:db:%s", partition, region, accountid, identifier)
 	return arn, nil
-
 }

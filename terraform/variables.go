@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/hilmapstructure"
 )
 
 // Variables returns the fully loaded set of variables to use with
@@ -89,7 +90,9 @@ func Variables(
 
 			switch varType {
 			case config.VariableTypeMap:
-				varSetMap(result, k, varVal)
+				if err := varSetMap(result, k, varVal); err != nil {
+					return nil, err
+				}
 			default:
 				result[k] = varVal
 			}
@@ -104,10 +107,27 @@ func Variables(
 			}
 
 			switch schema.Type() {
-			case config.VariableTypeMap:
-				varSetMap(result, k, v)
-			default:
+			case config.VariableTypeList:
 				result[k] = v
+			case config.VariableTypeMap:
+				if err := varSetMap(result, k, v); err != nil {
+					return nil, err
+				}
+			case config.VariableTypeString:
+				// Convert to a string and set. We don't catch any errors
+				// here because the validation step later should catch
+				// any type errors.
+				var strVal string
+				if err := hilmapstructure.WeakDecode(v, &strVal); err == nil {
+					result[k] = strVal
+				} else {
+					result[k] = v
+				}
+			default:
+				panic(fmt.Sprintf(
+					"Unhandled var type: %T\n\n"+
+						"THIS IS A BUG. Please report it.",
+					schema.Type()))
 			}
 		}
 	}
@@ -118,16 +138,16 @@ func Variables(
 // varSetMap sets or merges the map in "v" with the key "k" in the
 // "current" set of variables. This is just a private function to remove
 // duplicate logic in Variables
-func varSetMap(current map[string]interface{}, k string, v interface{}) {
+func varSetMap(current map[string]interface{}, k string, v interface{}) error {
 	existing, ok := current[k]
 	if !ok {
 		current[k] = v
-		return
+		return nil
 	}
 
 	existingMap, ok := existing.(map[string]interface{})
 	if !ok {
-		panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
+		panic(fmt.Sprintf("%q is not a map, this is a bug in Terraform.", k))
 	}
 
 	switch typedV := v.(type) {
@@ -140,6 +160,7 @@ func varSetMap(current map[string]interface{}, k string, v interface{}) {
 			existingMap[newKey] = newVal
 		}
 	default:
-		panic(fmt.Sprintf("%s is not a map, this is a bug in Terraform.", k))
+		return fmt.Errorf("variable %q should be type map, got %s", k, hclTypeName(v))
 	}
+	return nil
 }

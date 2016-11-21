@@ -10,7 +10,7 @@ func TestTargetsTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -41,7 +41,7 @@ func TestTargetsTransformer_destroy(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

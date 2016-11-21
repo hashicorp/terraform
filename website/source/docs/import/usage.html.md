@@ -22,9 +22,6 @@ $ terraform import aws_instance.bar i-abcd1234
 ...
 ```
 
-~> **Note:** In order to import resources, the provider should be configured with environment variables.
-We currently do not support passing credentials directly to the provider.
-
 The above command imports an AWS instance with the given ID to the
 address `aws_instance.bar`. You can also import resources into modules.
 See the [resource addressing](/docs/internals/resource-addressing.html)
@@ -49,6 +46,5 @@ an `aws_security_group` but also one `aws_security_group_rule` for each rule.
 
 In this case, the name of the resource is shown as part of the import output.
 You'll have to create a configuration for each resource imported. If you want
-to rename the other imported resources, the
-[state management commands](/docs/commands/state/index.html) should be used
-to rename resources.
+to rename or otherwise modify the imported resources, the
+[state management commands](/docs/commands/state/index.html) should be used.

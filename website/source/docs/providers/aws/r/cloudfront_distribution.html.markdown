@@ -75,6 +75,10 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     }
   }
 
+  tags {
+    Environment = "production"
+  }
+
   viewer_certificate {
     cloudfront_default_certificate = true
   }
@@ -110,6 +114,10 @@ of several sub-resources - these resources are laid out below.
   * `enabled` (Required) - Whether the distribution is enabled to accept end
     user requests for content.
 
+  * `http_version` (Optional) - The maximum HTTP version to support on the
+    distribution. Allowed values are `http1.1` and `http2`. The default is
+    `http2`.
+
   * `logging_config` (Optional) - The [logging
     configuration](#logging-config-arguments) that controls how logs are written
     to your distribution (maximum one).
@@ -122,6 +130,8 @@ of several sub-resources - these resources are laid out below.
 
   * `restrictions` (Required) - The [restriction
     configuration](#restrictions-arguments) for this distribution (maximum one).
+
+  * `tags` - (Optional) A mapping of tags to assign to the resource.
 
   * `viewer_certificate` (Required) - The [SSL
     configuration](#viewer-certificate-arguments) for this distribution (maximum
@@ -195,6 +205,11 @@ of several sub-resources - these resources are laid out below.
 
   * `query_string` (Required) - Indicates whether you want CloudFront to forward
     query strings to the origin that is associated with this cache behavior.
+
+  * `query_string_cache_keys` (Optional) - When specified, along with a value of
+    `true` for `query_string`, all query strings are forwarded, however only the
+    query string keys listed in this argument are cached. When omitted with a
+    value of `true` for `query_string`, all query string keys are cached.
 
 ##### Cookies Arguments
 
@@ -299,7 +314,8 @@ The arguments of `geo_restriction` are:
 
   * `acm_certificate_arn` - The ARN of the [AWS Certificate Manager][6]
     certificate that you wish to use with this distribution. Specify this,
-    `cloudfront_default_certificate`, or `iam_certificate_id`.
+    `cloudfront_default_certificate`, or `iam_certificate_id`.  The ACM
+    certificate must be in  US-EAST-1.
 
   * `cloudfront_default_certificate` - `true` if you want viewers to use HTTPS
     to request your objects and you're using the CloudFront domain name for your
@@ -347,7 +363,7 @@ The following attributes are exported:
 
   * `etag` - The current version of the distribution's information. For example:
     `E2QWRUHAPOMQZL`.
-  
+
   * `hosted_zone_id` - The CloudFront Route 53 zone ID that can be used to
      route an [Alias Resource Record Set][7] to. This attribute is simply an
      alias for the zone ID `Z2FDTNDATAQYW2`.
@@ -360,3 +376,12 @@ The following attributes are exported:
 [5]: /docs/providers/aws/r/cloudfront_origin_access_identity.html
 [6]: https://aws.amazon.com/certificate-manager/
 [7]: http://docs.aws.amazon.com/Route53/latest/APIReference/CreateAliasRRSAPI.html
+
+
+## Import
+
+Cloudfront Distributions can be imported using the `id`, e.g.
+
+```
+$ terraform import aws_cloudfront_distribution.distribution E74FTE3EXAMPLE
+```

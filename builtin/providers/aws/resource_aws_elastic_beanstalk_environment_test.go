@@ -235,7 +235,14 @@ func TestAccAWSBeanstalkEnv_basic_settings_update(t *testing.T) {
 				Config: testAccBeanstalkEnvConfig_settings(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
-					testAccVerifyBeanstalkConfig(&app, []string{"TF_LOG", "TF_SOME_VAR"}),
+					testAccVerifyBeanstalkConfig(&app, []string{"ENV_STATIC", "ENV_UPDATE"}),
+				),
+			},
+			resource.TestStep{
+				Config: testAccBeanstalkEnvConfig_settings_update(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBeanstalkEnvExists("aws_elastic_beanstalk_environment.tfenvtest", &app),
+					testAccVerifyBeanstalkConfig(&app, []string{"ENV_STATIC", "ENV_UPDATE"}),
 				),
 			},
 			resource.TestStep{
@@ -273,7 +280,7 @@ func testAccVerifyBeanstalkConfig(env *elasticbeanstalk.EnvironmentDescription, 
 		cs := resp.ConfigurationSettings[0]
 
 		var foundEnvs []string
-		testStrings := []string{"TF_LOG", "TF_SOME_VAR"}
+		testStrings := []string{"ENV_STATIC", "ENV_UPDATE"}
 		for _, os := range cs.OptionSettings {
 			for _, k := range testStrings {
 				if *os.OptionName == k {
@@ -497,13 +504,74 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "TF_LOG"
+    name      = "ENV_STATIC"
     value     = "true"
   }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "TF_SOME_VAR"
+    name      = "ENV_UPDATE"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ENV_REMOVE"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource  = "ScheduledAction01"
+    name      = "MinSize"
+    value     = 2
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource  = "ScheduledAction01"
+    name      = "MaxSize"
+    value     = 3
+  }
+
+  setting {
+    namespace = "aws:autoscaling:scheduledaction"
+    resource  = "ScheduledAction01"
+    name      = "StartTime"
+    value     = "2016-07-28T04:07:02Z"
+  }
+}`, r, r)
+}
+
+func testAccBeanstalkEnvConfig_settings_update(r int) string {
+	return fmt.Sprintf(`
+resource "aws_elastic_beanstalk_application" "tftest" {
+  name = "tf-test-name-%d"
+  description = "tf-test-desc"
+}
+
+resource "aws_elastic_beanstalk_environment" "tfenvtest" {
+  name                = "tf-test-name-%d"
+  application         = "${aws_elastic_beanstalk_application.tftest.name}"
+  solution_stack_name = "64bit Amazon Linux running Python"
+
+        wait_for_ready_timeout = "15m"
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ENV_STATIC"
+    value     = "true"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ENV_UPDATE"
+    value     = "false"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "ENV_ADD"
     value     = "true"
   }
 

@@ -73,7 +73,7 @@ interpolation.
     will be deleted on termination.
   * `block_device_mappings.#.ebs.encrypted` - `true` if the EBS volume
     is encrypted.
-  * `block_device_mappings.#.ebs.encrypted` - `0` if the EBS volume
+  * `block_device_mappings.#.ebs.iops` - `0` if the EBS volume is
     not a provisioned IOPS image, otherwise the supported IOPS count.
   * `block_device_mappings.#.ebs.snapshot_id` - The ID of the snapshot.
   * `block_device_mappings.#.ebs.volume_size` - The size of the volume, in GiB.

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/panicwrap"
@@ -25,6 +26,11 @@ func main() {
 
 func realMain() int {
 	var wrapConfig panicwrap.WrapConfig
+
+	// don't re-exec terraform as a child process for easier debugging
+	if os.Getenv("TF_FORK") == "0" {
+		return wrappedMain()
+	}
 
 	if !panicwrap.Wrapped(&wrapConfig) {
 		// Determine where logs should go in general (requested by the user)
@@ -81,6 +87,9 @@ func realMain() int {
 }
 
 func wrappedMain() int {
+	// We always need to close the DebugInfo before we exit.
+	defer terraform.CloseDebugInfo()
+
 	log.SetOutput(os.Stderr)
 	log.Printf(
 		"[INFO] Terraform version: %s %s %s",

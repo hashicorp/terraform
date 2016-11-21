@@ -26,7 +26,7 @@ func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	case TypeList:
 		return readListField(r, address, schema)
 	case TypeMap:
-		return r.readMap(k)
+		return r.readMap(k, schema)
 	case TypeSet:
 		return r.readSet(address, schema)
 	case typeObject:
@@ -36,7 +36,7 @@ func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	}
 }
 
-func (r *MapFieldReader) readMap(k string) (FieldReadResult, error) {
+func (r *MapFieldReader) readMap(k string, schema *Schema) (FieldReadResult, error) {
 	result := make(map[string]interface{})
 	resultSet := false
 
@@ -60,6 +60,11 @@ func (r *MapFieldReader) readMap(k string) (FieldReadResult, error) {
 
 		return true
 	})
+
+	err := mapValuesToPrimitive(result, schema)
+	if err != nil {
+		return FieldReadResult{}, nil
+	}
 
 	var resultVal interface{}
 	if resultSet {

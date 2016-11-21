@@ -36,7 +36,7 @@ resource "aws_route53_zone" "dev" {
 }
 
 resource "aws_route53_record" "dev-ns" {
-    zone_id = "${aws_route53_zone.main.zone_id}"
+    zone_id = "${aws_route53_zone.dev.zone_id}"
     name = "dev.example.com"
     type = "NS"
     ttl = "30"
@@ -59,7 +59,7 @@ The following arguments are supported:
 * `vpc_id` - (Optional) The VPC to associate with a private hosted zone. Specifying `vpc_id` will create a private hosted zone.
   Conflicts w/ `delegation_set_id` as delegation sets can only be used for public zones.
 * `vpc_region` - (Optional) The VPC's region. Defaults to the region of the AWS provider.
-* `delegation_set_id` - (Optional) The ID of the reusable delgation set whose NS records you want to assign to the hosted zone.
+* `delegation_set_id` - (Optional) The ID of the reusable delegation set whose NS records you want to assign to the hosted zone.
   Conflicts w/ `vpc_id` as delegation sets can only be used for public zones.
 * `force_destroy` - (Optional) Whether to destroy all records (possibly managed outside of Terraform)
   in the zone when destroying the zone.

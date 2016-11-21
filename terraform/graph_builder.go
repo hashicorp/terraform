@@ -1,7 +1,9 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/config/module"
 )
@@ -21,18 +23,48 @@ type GraphBuilder interface {
 type BasicGraphBuilder struct {
 	Steps    []GraphTransformer
 	Validate bool
+	// Optional name to add to the graph debug log
+	Name string
 }
 
 func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 	g := &Graph{Path: path}
+
+	debugName := "graph.json"
+	if b.Name != "" {
+		debugName = b.Name + "-" + debugName
+	}
+	debugBuf := dbug.NewFileWriter(debugName)
+	g.SetDebugWriter(debugBuf)
+	defer debugBuf.Close()
+
 	for _, step := range b.Steps {
-		if err := step.Transform(g); err != nil {
-			return g, err
+		if step == nil {
+			continue
 		}
+
+		stepName := fmt.Sprintf("%T", step)
+		dot := strings.LastIndex(stepName, ".")
+		if dot >= 0 {
+			stepName = stepName[dot+1:]
+		}
+
+		debugOp := g.DebugOperation(stepName, "")
+		err := step.Transform(g)
+
+		errMsg := ""
+		if err != nil {
+			errMsg = err.Error()
+		}
+		debugOp.End(errMsg)
 
 		log.Printf(
 			"[TRACE] Graph after step %T:\n\n%s",
 			step, g.StringWithNodeTypes())
+
+		if err != nil {
+			return g, err
+		}
 	}
 
 	// Validate the graph structure
@@ -93,6 +125,7 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 	basic := &BasicGraphBuilder{
 		Steps:    b.Steps(path),
 		Validate: b.Validate,
+		Name:     "BuiltinGraphBuilder",
 	}
 
 	return basic.Build(path)
@@ -103,7 +136,7 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 	steps := []GraphTransformer{
 		// Create all our resources from the configuration and state
-		&ConfigTransformer{Module: b.Root},
+		&ConfigTransformerOld{Module: b.Root},
 		&OrphanTransformer{
 			State:  b.State,
 			Module: b.Root,
@@ -115,7 +148,7 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
-		&DisableProviderTransformer{},
+		&DisableProviderTransformerOld{},
 
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
@@ -145,6 +178,9 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 			// Optionally reduces the graph to a user-specified list of targets and
 			// their dependencies.
 			&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
+
+			// Create orphan output nodes
+			&OrphanOutputTransformer{Module: b.Root, State: b.State},
 
 			// Prune the providers. This must happen only once because flattened
 			// modules might depend on empty providers.

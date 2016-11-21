@@ -2,10 +2,15 @@ package aws
 
 import (
 	"log"
+	"regexp"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elbv2"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -15,6 +20,14 @@ func tagsSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeMap,
 		Optional: true,
+	}
+}
+
+func tagsSchemaComputed() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeMap,
+		Optional: true,
+		Computed: true,
 	}
 }
 
@@ -66,20 +79,40 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 
 		// Set tags
 		if len(remove) > 0 {
-			log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
-			_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
-				Resources: []*string{aws.String(d.Id())},
-				Tags:      remove,
+			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+				log.Printf("[DEBUG] Removing tags: %#v from %s", remove, d.Id())
+				_, err := conn.DeleteTags(&ec2.DeleteTagsInput{
+					Resources: []*string{aws.String(d.Id())},
+					Tags:      remove,
+				})
+				if err != nil {
+					ec2err, ok := err.(awserr.Error)
+					if ok && strings.Contains(ec2err.Code(), ".NotFound") {
+						return resource.RetryableError(err) // retry
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
 			})
 			if err != nil {
 				return err
 			}
 		}
 		if len(create) > 0 {
-			log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
-			_, err := conn.CreateTags(&ec2.CreateTagsInput{
-				Resources: []*string{aws.String(d.Id())},
-				Tags:      create,
+			err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+				log.Printf("[DEBUG] Creating tags: %s for %s", create, d.Id())
+				_, err := conn.CreateTags(&ec2.CreateTagsInput{
+					Resources: []*string{aws.String(d.Id())},
+					Tags:      create,
+				})
+				if err != nil {
+					ec2err, ok := err.(awserr.Error)
+					if ok && strings.Contains(ec2err.Code(), ".NotFound") {
+						return resource.RetryableError(err) // retry
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
 			})
 			if err != nil {
 				return err
@@ -105,7 +138,6 @@ func diffTags(oldTags, newTags []*ec2.Tag) ([]*ec2.Tag, []*ec2.Tag) {
 	for _, t := range oldTags {
 		old, ok := create[*t.Key]
 		if !ok || old != *t.Value {
-			// Delete it!
 			remove = append(remove, t)
 		}
 	}
@@ -117,10 +149,13 @@ func diffTags(oldTags, newTags []*ec2.Tag) ([]*ec2.Tag, []*ec2.Tag) {
 func tagsFromMap(m map[string]interface{}) []*ec2.Tag {
 	result := make([]*ec2.Tag, 0, len(m))
 	for k, v := range m {
-		result = append(result, &ec2.Tag{
+		t := &ec2.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnored(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
@@ -130,7 +165,9 @@ func tagsFromMap(m map[string]interface{}) []*ec2.Tag {
 func tagsToMap(ts []*ec2.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnored(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
@@ -160,7 +197,9 @@ func diffElbV2Tags(oldTags, newTags []*elbv2.Tag) ([]*elbv2.Tag, []*elbv2.Tag) {
 func tagsToMapELBv2(ts []*elbv2.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[*t.Key] = *t.Value
+		if !tagIgnoredELBv2(t) {
+			result[*t.Key] = *t.Value
+		}
 	}
 
 	return result
@@ -170,11 +209,41 @@ func tagsToMapELBv2(ts []*elbv2.Tag) map[string]string {
 func tagsFromMapELBv2(m map[string]interface{}) []*elbv2.Tag {
 	var result []*elbv2.Tag
 	for k, v := range m {
-		result = append(result, &elbv2.Tag{
+		t := &elbv2.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
-		})
+		}
+		if !tagIgnoredELBv2(t) {
+			result = append(result, t)
+		}
 	}
 
 	return result
+}
+
+// tagIgnored compares a tag against a list of strings and checks if it should
+// be ignored or not
+func tagIgnored(t *ec2.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
+}
+
+// and for ELBv2 as well
+func tagIgnoredELBv2(t *elbv2.Tag) bool {
+	filter := []string{"^aws:*"}
+	for _, v := range filter {
+		log.Printf("[DEBUG] Matching %v with %v\n", v, *t.Key)
+		if r, _ := regexp.MatchString(v, *t.Key); r == true {
+			log.Printf("[DEBUG] Found AWS specific tag %s (val: %s), ignoring.\n", *t.Key, *t.Value)
+			return true
+		}
+	}
+	return false
 }

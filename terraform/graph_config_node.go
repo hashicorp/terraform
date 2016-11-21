@@ -24,8 +24,6 @@ type graphNodeConfig interface {
 // configuration graph need to implement in order to be be addressed / targeted
 // properly.
 type GraphNodeAddressable interface {
-	graphNodeConfig
-
 	ResourceAddress() *ResourceAddress
 }
 
@@ -35,7 +33,5 @@ type GraphNodeAddressable interface {
 // provided will contain every target provided, and each implementing graph
 // node must filter this list to targets considered relevant.
 type GraphNodeTargetable interface {
-	GraphNodeAddressable
-
 	SetTargets([]ResourceAddress)
 }

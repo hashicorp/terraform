@@ -17,11 +17,11 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 	}{
 		"Default": {
 			Config: testConfig(t, map[string]interface{}{
-				"node_name":              "nodename1",
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "validator.pem",
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
 			}),
 
 			Commands: map[string]bool{
@@ -35,13 +35,13 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 
 		"Proxy": {
 			Config: testConfig(t, map[string]interface{}{
-				"http_proxy":             "http://proxy.local",
-				"no_proxy":               []interface{}{"http://local.local", "http://local.org"},
-				"node_name":              "nodename1",
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "validator.pem",
+				"http_proxy": "http://proxy.local",
+				"no_proxy":   []interface{}{"http://local.local", "http://local.org"},
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
 			}),
 
 			Commands: map[string]bool{
@@ -55,12 +55,12 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 
 		"Version": {
 			Config: testConfig(t, map[string]interface{}{
-				"node_name":              "nodename1",
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "validator.pem",
-				"version":                "11.18.6",
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
+				"version":    "11.18.6",
 			}),
 
 			Commands: map[string]bool{
@@ -103,13 +103,13 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 	}{
 		"Default": {
 			Config: testConfig(t, map[string]interface{}{
-				"ohai_hints":             []interface{}{"test-fixtures/ohaihint.json"},
-				"node_name":              "nodename1",
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
+				"ohai_hints": []interface{}{"test-fixtures/ohaihint.json"},
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"secret_key": "SECRET-KEY",
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
 			}),
 
 			Commands: map[string]bool{
@@ -121,25 +121,25 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 
 			Uploads: map[string]string{
 				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
-				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
+				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
 				windowsConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
 				windowsConfDir + "/ohai/hints/ohaihint.json":  "OHAI-HINT-FILE",
-				windowsConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
+				windowsConfDir + "/bob.pem":                   "USER-KEY",
 			},
 		},
 
 		"Proxy": {
 			Config: testConfig(t, map[string]interface{}{
-				"http_proxy":             "http://proxy.local",
-				"https_proxy":            "https://proxy.local",
-				"no_proxy":               []interface{}{"http://local.local", "https://local.local"},
-				"node_name":              "nodename1",
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
-				"server_url":             "https://chef.local",
-				"ssl_verify_mode":        "verify_none",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
+				"http_proxy":      "http://proxy.local",
+				"https_proxy":     "https://proxy.local",
+				"no_proxy":        []interface{}{"http://local.local", "https://local.local"},
+				"node_name":       "nodename1",
+				"run_list":        []interface{}{"cookbook::recipe"},
+				"secret_key":      "SECRET-KEY",
+				"server_url":      "https://chef.local",
+				"ssl_verify_mode": "verify_none",
+				"user_name":       "bob",
+				"user_key":        "USER-KEY",
 			}),
 
 			Commands: map[string]bool{
@@ -149,52 +149,8 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			Uploads: map[string]string{
 				windowsConfDir + "/client.rb":                 proxyWindowsClientConf,
 				windowsConfDir + "/first-boot.json":           `{"run_list":["cookbook::recipe"]}`,
-				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
-				windowsConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
-			},
-		},
-
-		"Attributes": {
-			Config: testConfig(t, map[string]interface{}{
-				"attributes": []map[string]interface{}{
-					map[string]interface{}{
-						"key1": []map[string]interface{}{
-							map[string]interface{}{
-								"subkey1": []map[string]interface{}{
-									map[string]interface{}{
-										"subkey2a": []interface{}{
-											"val1", "val2", "val3",
-										},
-										"subkey2b": []map[string]interface{}{
-											map[string]interface{}{
-												"subkey3": "value3",
-											},
-										},
-									},
-								},
-							},
-						},
-						"key2": "value2",
-					},
-				},
-				"node_name":              "nodename1",
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
-			}),
-
-			Commands: map[string]bool{
-				fmt.Sprintf("cmd /c if not exist %q mkdir %q", windowsConfDir, windowsConfDir): true,
-			},
-
-			Uploads: map[string]string{
-				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
-				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
-				windowsConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
-				windowsConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
-					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
+				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
+				windowsConfDir + "/bob.pem":                   "USER-KEY",
 			},
 		},
 
@@ -202,12 +158,12 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"attributes_json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2"}`,
-				"node_name":              "nodename1",
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"secret_key_path":        "test-fixtures/encrypted_data_bag_secret",
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"secret_key": "SECRET-KEY",
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
 			}),
 
 			Commands: map[string]bool{
@@ -216,8 +172,8 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 
 			Uploads: map[string]string{
 				windowsConfDir + "/client.rb":                 defaultWindowsClientConf,
-				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY-FILE",
-				windowsConfDir + "/validation.pem":            "VALIDATOR-PEM-FILE",
+				windowsConfDir + "/encrypted_data_bag_secret": "SECRET-KEY",
+				windowsConfDir + "/bob.pem":                   "USER-KEY",
 				windowsConfDir + "/first-boot.json": `{"key1":{"subkey1":{"subkey2a":["val1","val2","val3"],` +
 					`"subkey2b":{"subkey3":"value3"}}},"key2":"value2","run_list":["cookbook::recipe"]}`,
 			},
@@ -358,13 +314,11 @@ Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 `
 
 const defaultWindowsClientConf = `log_location            STDOUT
-chef_server_url         "https://chef.local"
-validation_client_name  "validator"
+chef_server_url         "https://chef.local/"
 node_name               "nodename1"`
 
 const proxyWindowsClientConf = `log_location            STDOUT
-chef_server_url         "https://chef.local"
-validation_client_name  "validator"
+chef_server_url         "https://chef.local/"
 node_name               "nodename1"
 
 http_proxy          "http://proxy.local"

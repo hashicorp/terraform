@@ -29,6 +29,25 @@ func (self *Client) InviteUsers(emails []string) error {
 		reqInviteUsers{Emails: emails}, nil)
 }
 
+// CreateUser creates an user account for an email address
+func (self *Client) CreateUser(handle, name string) (*User, error) {
+	in := struct {
+		Handle string `json:"handle"`
+		Name   string `json:"name"`
+	}{
+		Handle: handle,
+		Name:   name,
+	}
+
+	out := struct {
+		*User `json:"user"`
+	}{}
+	if err := self.doJsonRequest("POST", "/v1/user", in, &out); err != nil {
+		return nil, err
+	}
+	return out.User, nil
+}
+
 // internal type to retrieve users from the api
 type usersData struct {
 	Users []User `json:"users"`

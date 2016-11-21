@@ -11,11 +11,15 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
-// Overview This reference guide provides descriptions of the AWS CodeDeploy
-// APIs. For more information about AWS CodeDeploy, see the AWS CodeDeploy User
-// Guide (docs.aws.amazon.com/codedeploy/latest/userguide).
+// Overview
 //
-// Using the APIs You can use the AWS CodeDeploy APIs to work with the following:
+// This reference guide provides descriptions of the AWS CodeDeploy APIs. For
+// more information about AWS CodeDeploy, see the AWS CodeDeploy User Guide
+// (http://docs.aws.amazon.com/codedeploy/latest/userguide).
+//
+//  Using the APIs
+//
+// You can use the AWS CodeDeploy APIs to work with the following:
 //
 //   Applications are unique identifiers used by AWS CodeDeploy to ensure the
 // correct combinations of revisions, deployment configurations, and deployment
@@ -51,7 +55,7 @@ import (
 // code, web pages, executable files, and deployment scripts) along with an
 // application specification (AppSpec) file. (The AppSpec file is unique to
 // AWS CodeDeploy; it defines the deployment actions you want AWS CodeDeploy
-// to execute.) Ffor application revisions stored in Amazon S3 buckets, an application
+// to execute.) For application revisions stored in Amazon S3 buckets, an application
 // revision is uniquely identified by its Amazon S3 object key and its ETag,
 // version, or both. For application revisions stored in GitHub repositories,
 // an application revision is uniquely identified by its repository name and

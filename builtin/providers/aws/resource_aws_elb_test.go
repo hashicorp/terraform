@@ -248,6 +248,36 @@ func TestAccAWSELB_iam_server_cert(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_swap_subnets(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.ourapp",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig_subnets,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBConfig_subnet_swap,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccLoadTags(conf *elb.LoadBalancerDescription, td *elb.TagDescription) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).elbconn
@@ -1329,3 +1359,127 @@ resource "aws_elb" "bar" {
 }
 `, certName)
 }
+
+const testAccAWSELBConfig_subnets = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_one.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`
+
+const testAccAWSELBConfig_subnet_swap = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_two.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`

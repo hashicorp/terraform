@@ -24,10 +24,30 @@ func TestAccAWSCloudWatchMetricAlarm_basic(t *testing.T) {
 					testAccCheckCloudWatchMetricAlarmExists("aws_cloudwatch_metric_alarm.foobar", &alarm),
 					resource.TestCheckResourceAttr("aws_cloudwatch_metric_alarm.foobar", "metric_name", "CPUUtilization"),
 					resource.TestCheckResourceAttr("aws_cloudwatch_metric_alarm.foobar", "statistic", "Average"),
+					testAccCheckCloudWatchMetricAlarmDimension(
+						"aws_cloudwatch_metric_alarm.foobar", "InstanceId", "i-abc123"),
 				),
 			},
 		},
 	})
+}
+
+func testAccCheckCloudWatchMetricAlarmDimension(n, k, v string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+		key := fmt.Sprintf("dimensions.%s", k)
+		val, ok := rs.Primary.Attributes[key]
+		if !ok {
+			return fmt.Errorf("Could not find dimension: %s", k)
+		}
+		if val != v {
+			return fmt.Errorf("Expected dimension %s => %s; got: %s", k, v, val)
+		}
+		return nil
+	}
 }
 
 func testAccCheckCloudWatchMetricAlarmExists(n string, alarm *cloudwatch.MetricAlarm) resource.TestCheckFunc {
@@ -81,15 +101,18 @@ func testAccCheckAWSCloudWatchMetricAlarmDestroy(s *terraform.State) error {
 
 var testAccAWSCloudWatchMetricAlarmConfig = fmt.Sprintf(`
 resource "aws_cloudwatch_metric_alarm" "foobar" {
-    alarm_name = "terraform-test-foobar5"
-    comparison_operator = "GreaterThanOrEqualToThreshold"
-    evaluation_periods = "2"
-    metric_name = "CPUUtilization"
-    namespace = "AWS/EC2"
-    period = "120"
-    statistic = "Average"
-    threshold = "80"
-    alarm_description = "This metric monitor ec2 cpu utilization"
-    insufficient_data_actions = []
+  alarm_name                = "terraform-test-foobar5"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = "2"
+  metric_name               = "CPUUtilization"
+  namespace                 = "AWS/EC2"
+  period                    = "120"
+  statistic                 = "Average"
+  threshold                 = "80"
+  alarm_description         = "This metric monitors ec2 cpu utilization"
+  insufficient_data_actions = []
+  dimensions {
+    InstanceId = "i-abc123"
+  }
 }
 `)

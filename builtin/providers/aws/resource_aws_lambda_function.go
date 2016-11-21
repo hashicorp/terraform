@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+const awsMutexLambdaKey = `aws_lambda_function`
+
 func resourceAwsLambdaFunction() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsLambdaFunctionCreate,
@@ -154,6 +156,11 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 
 	var functionCode *lambda.FunctionCode
 	if v, ok := d.GetOk("filename"); ok {
+		// Grab an exclusive lock so that we're only reading one function into
+		// memory at a time.
+		// See https://github.com/hashicorp/terraform/issues/9364
+		awsMutexKV.Lock(awsMutexLambdaKey)
+		defer awsMutexKV.Unlock(awsMutexLambdaKey)
 		file, err := loadFileContent(v.(string))
 		if err != nil {
 			return fmt.Errorf("Unable to load %q: %s", v.(string), err)
@@ -216,7 +223,7 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	// IAM profiles can take ~10 seconds to propagate in AWS:
 	// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
 	// Error creating Lambda function: InvalidParameterValueException: The role defined for the task cannot be assumed by Lambda.
-	err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+	err := resource.Retry(10*time.Minute, func() *resource.RetryError {
 		_, err := conn.CreateFunction(params)
 		if err != nil {
 			log.Printf("[ERROR] Received %q, retrying CreateFunction", err)
@@ -361,6 +368,11 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		if v, ok := d.GetOk("filename"); ok {
+			// Grab an exclusive lock so that we're only reading one function into
+			// memory at a time.
+			// See https://github.com/hashicorp/terraform/issues/9364
+			awsMutexKV.Lock(awsMutexLambdaKey)
+			defer awsMutexKV.Unlock(awsMutexLambdaKey)
 			file, err := loadFileContent(v.(string))
 			if err != nil {
 				return fmt.Errorf("Unable to load %q: %s", v.(string), err)

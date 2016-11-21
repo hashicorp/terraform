@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 type NotFoundError struct {
@@ -41,6 +42,7 @@ func (e *UnexpectedStateError) Error() string {
 type TimeoutError struct {
 	LastError     error
 	LastState     string
+	Timeout       time.Duration
 	ExpectedState []string
 }
 
@@ -50,16 +52,24 @@ func (e *TimeoutError) Error() string {
 		expectedState = fmt.Sprintf("state to become '%s'", strings.Join(e.ExpectedState, ", "))
 	}
 
-	lastState := ""
+	extraInfo := make([]string, 0)
 	if e.LastState != "" {
-		lastState = fmt.Sprintf(" (last state: '%s')", e.LastState)
+		extraInfo = append(extraInfo, fmt.Sprintf("last state: '%s'", e.LastState))
+	}
+	if e.Timeout > 0 {
+		extraInfo = append(extraInfo, fmt.Sprintf("timeout: %s", e.Timeout.String()))
+	}
+
+	suffix := ""
+	if len(extraInfo) > 0 {
+		suffix = fmt.Sprintf(" (%s)", strings.Join(extraInfo, ", "))
 	}
 
 	if e.LastError != nil {
 		return fmt.Sprintf("timeout while waiting for %s%s: %s",
-			expectedState, lastState, e.LastError)
+			expectedState, suffix, e.LastError)
 	}
 
 	return fmt.Sprintf("timeout while waiting for %s%s",
-		expectedState, lastState)
+		expectedState, suffix)
 }

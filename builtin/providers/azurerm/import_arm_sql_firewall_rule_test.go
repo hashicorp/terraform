@@ -27,7 +27,7 @@ func TestAccAzureRMSqlFirewallRule_importBasic(t *testing.T) {
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"resource_group_name", "server_name"},
+				ImportStateVerifyIgnore: []string{"server_name"},
 			},
 		},
 	})

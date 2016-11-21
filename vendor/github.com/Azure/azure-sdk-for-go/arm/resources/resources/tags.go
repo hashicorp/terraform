@@ -345,7 +345,7 @@ func (client TagsClient) ListResponder(resp *http.Response) (result TagsListResu
 func (client TagsClient) ListNextResults(lastResults TagsListResult) (result TagsListResult, err error) {
 	req, err := lastResults.TagsListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.TagsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.TagsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -354,12 +354,12 @@ func (client TagsClient) ListNextResults(lastResults TagsListResult) (result Tag
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.TagsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.TagsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "resources.TagsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "resources.TagsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

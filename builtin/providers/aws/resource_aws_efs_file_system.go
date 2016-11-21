@@ -27,22 +27,23 @@ func resourceAwsEfsFileSystem() *schema.Resource {
 			"creation_token": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validateMaxLength(64),
 			},
 
 			"reference_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				Deprecated:    "Please use attribute `creation_token' instead. This attribute might be removed in future releases.",
-				ConflictsWith: []string{"creation_token"},
-				ValidateFunc:  validateReferenceName,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				Deprecated:   "Please use attribute `creation_token' instead. This attribute might be removed in future releases.",
+				ValidateFunc: validateReferenceName,
 			},
 
 			"performance_mode": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				Computed:     true,
 				ForceNew:     true,
 				ValidateFunc: validatePerformanceModeType,
 			},
@@ -160,6 +161,22 @@ func resourceAwsEfsFileSystemRead(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
+
+	var fs *efs.FileSystemDescription
+	for _, f := range resp.FileSystems {
+		if d.Id() == *f.FileSystemId {
+			fs = f
+			break
+		}
+	}
+	if fs == nil {
+		log.Printf("[WARN] EFS (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	d.Set("creation_token", fs.CreationToken)
+	d.Set("performance_mode", fs.PerformanceMode)
 
 	return nil
 }

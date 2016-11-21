@@ -13,6 +13,42 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestValidateRedshiftClusterDbName(t *testing.T) {
+	validNames := []string{
+		"testdbname",
+		"test_dbname",
+		"testdbname123",
+		"TestDBname",
+		"testdbname$hashicorp",
+		"_dbname",
+	}
+	for _, v := range validNames {
+		_, errors := validateRedshiftClusterDbName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Redshift DBName: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"!",
+		"/",
+		" ",
+		":",
+		";",
+		"test name",
+		"/slash-at-the-beginning",
+		"slash-at-the-end/",
+		"",
+		randomString(100),
+	}
+	for _, v := range invalidNames {
+		_, errors := validateRedshiftClusterDbName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Redshift DBName", v)
+		}
+	}
+}
+
 func TestAccAWSRedshiftCluster_basic(t *testing.T) {
 	var v redshift.Cluster
 
@@ -32,6 +68,38 @@ func TestAccAWSRedshiftCluster_basic(t *testing.T) {
 						"aws_redshift_cluster.default", "cluster_type", "single-node"),
 					resource.TestCheckResourceAttr(
 						"aws_redshift_cluster.default", "publicly_accessible", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRedshiftCluster_enhancedVpcRoutingEnabled(t *testing.T) {
+	var v redshift.Cluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	preConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_enhancedVpcRoutingEnabled, ri)
+	postConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_enhancedVpcRoutingDisabled, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "enhanced_vpc_routing", "true"),
+				),
+			},
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "enhanced_vpc_routing", "false"),
 				),
 			},
 		},
@@ -308,42 +376,6 @@ func TestResourceAWSRedshiftClusterIdentifierValidation(t *testing.T) {
 	}
 }
 
-func TestResourceAWSRedshiftClusterDbNameValidation(t *testing.T) {
-	cases := []struct {
-		Value    string
-		ErrCount int
-	}{
-		{
-			Value:    "tEsting",
-			ErrCount: 1,
-		},
-		{
-			Value:    "testing1",
-			ErrCount: 0,
-		},
-		{
-			Value:    "testing-",
-			ErrCount: 1,
-		},
-		{
-			Value:    "",
-			ErrCount: 2,
-		},
-		{
-			Value:    randomString(65),
-			ErrCount: 1,
-		},
-	}
-
-	for _, tc := range cases {
-		_, errors := validateRedshiftClusterDbName(tc.Value, "aws_redshift_cluster_database_name")
-
-		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Redshift Cluster database_name to trigger a validation error")
-		}
-	}
-}
-
 func TestResourceAWSRedshiftClusterFinalSnapshotIdentifierValidation(t *testing.T) {
 	cases := []struct {
 		Value    string
@@ -469,6 +501,34 @@ resource "aws_redshift_cluster" "default" {
   automated_snapshot_retention_period = 0
   allow_version_upgrade = false
 }`
+
+var testAccAWSRedshiftClusterConfig_enhancedVpcRoutingEnabled = `
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  enhanced_vpc_routing = true
+}
+`
+
+var testAccAWSRedshiftClusterConfig_enhancedVpcRoutingDisabled = `
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  enhanced_vpc_routing = false
+}
+`
 
 var testAccAWSRedshiftClusterConfig_loggingDisabled = `
 resource "aws_redshift_cluster" "default" {
