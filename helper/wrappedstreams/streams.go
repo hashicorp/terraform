@@ -38,10 +38,15 @@ func Stderr() *os.File {
 	return stderr
 }
 
-// These are the wrapped streams. There doesn't appear to be a negative
-// impact of opening these files even if the file descriptor doesn't exist.
+// These are the wrapped standard streams. These are setup by the
+// platform specific code in initPlatform.
 var (
-	wrappedStdin  = os.NewFile(uintptr(3), "stdin")
-	wrappedStdout = os.NewFile(uintptr(4), "stdout")
-	wrappedStderr = os.NewFile(uintptr(5), "stderr")
+	wrappedStdin  *os.File
+	wrappedStdout *os.File
+	wrappedStderr *os.File
 )
+
+func init() {
+	// Initialize the platform-specific code
+	initPlatform()
+}

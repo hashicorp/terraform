@@ -1915,10 +1915,10 @@
 			"revision": "314aad379a39f6ad5bcca278e6757d9abbb3a52e"
 		},
 		{
-			"checksumSHA1": "wqU8bs9c+xm0f07t6ajQFWYS+rE=",
+			"checksumSHA1": "kTntIB9SdU1NsCqKwDkUr99qaj0=",
 			"path": "github.com/mitchellh/panicwrap",
-			"revision": "168f3680ad986108df63bae07da2978f51c4ac8e",
-			"revisionTime": "2016-11-14T06:37:33Z"
+			"revision": "fde185d0dfb5ecac6e6b201e8855da798ebcd76f",
+			"revisionTime": "2016-11-21T18:34:54Z"
 		},
 		{
 			"path": "github.com/mitchellh/prefixedio",
