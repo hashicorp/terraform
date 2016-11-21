@@ -294,6 +294,43 @@ func TestAccAWSAutoScalingGroup_enablingMetrics(t *testing.T) {
 	})
 }
 
+func TestAccAWSAutoScalingGroup_suspendingProcesses(t *testing.T) {
+	var group autoscaling.Group
+	randName := fmt.Sprintf("terraform-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSAutoScalingGroupConfig(randName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.#", "0"),
+				),
+			},
+			{
+				Config: testAccAWSAutoScalingGroupConfigWithSuspendedProcesses(randName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.#", "2"),
+				),
+			},
+			{
+				Config: testAccAWSAutoScalingGroupConfigWithSuspendedProcessesUpdated(randName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.#", "2"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSAutoScalingGroup_withMetrics(t *testing.T) {
 	var group autoscaling.Group
 
@@ -1487,3 +1524,73 @@ resource "aws_autoscaling_group" "bar" {
   launch_configuration      = "${aws_launch_configuration.foobar.name}"
 }
 `
+
+func testAccAWSAutoScalingGroupConfigWithSuspendedProcesses(name string) string {
+	return fmt.Sprintf(`
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_placement_group" "test" {
+  name = "asg_pg_%s"
+  strategy = "cluster"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  name = "%s"
+  max_size = 5
+  min_size = 2
+  health_check_type = "ELB"
+  desired_capacity = 4
+  force_delete = true
+  termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
+
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+
+  suspended_processes = ["AlarmNotification","ScheduledActions"]
+
+  tag {
+    key = "Foo"
+    value = "foo-bar"
+    propagate_at_launch = true
+  }
+}
+`, name, name)
+}
+
+func testAccAWSAutoScalingGroupConfigWithSuspendedProcessesUpdated(name string) string {
+	return fmt.Sprintf(`
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_placement_group" "test" {
+  name = "asg_pg_%s"
+  strategy = "cluster"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  name = "%s"
+  max_size = 5
+  min_size = 2
+  health_check_type = "ELB"
+  desired_capacity = 4
+  force_delete = true
+  termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
+
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+
+  suspended_processes = ["AZRebalance","ScheduledActions"]
+
+  tag {
+    key = "Foo"
+    value = "foo-bar"
+    propagate_at_launch = true
+  }
+}
+`, name, name)
+}
