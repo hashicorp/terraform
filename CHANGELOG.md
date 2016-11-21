@@ -107,6 +107,7 @@ IMPROVEMENTS:
  * provider/aws: Add name_prefix to aws_iam_policy [GH-10178]
  * provider/aws: Add ability to select aws_prefix_list data source by name [GH-10248]
  * provider/aws Return service CIDR blocks from aws_vpc_endpoint resource [GH-10254]
+ * provider/aws: Added `environment` configuration for AWS Lambda Functions [GH-10275]
 
 BUG FIXES:
 
