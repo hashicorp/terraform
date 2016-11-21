@@ -47,8 +47,8 @@ func waitForASGCapacity(
 			// d.SetId("")
 			return nil
 		}
-		lbis, err := getLBInstanceStates(g, meta)
 		significantLbs := getSignificantLbsNames(d)
+		lbis, err := getLBInstanceStates(significantLbs, meta)
 
 		if err != nil {
 			return resource.NonRetryableError(err)

@@ -804,13 +804,13 @@ func updateASGMetricsCollection(d *schema.ResourceData, conn *autoscaling.AutoSc
 // provided ASG.
 //
 // Nested like: lbName -> instanceId -> instanceState
-func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map[string]string, error) {
+func getLBInstanceStates(lbNames []string, meta interface{}) (map[string]map[string]string, error) {
 	lbInstanceStates := make(map[string]map[string]string)
 	elbconn := meta.(*AWSClient).elbconn
 
-	for _, lbName := range g.LoadBalancerNames {
-		lbInstanceStates[*lbName] = make(map[string]string)
-		opts := &elb.DescribeInstanceHealthInput{LoadBalancerName: lbName}
+	for _, lbName := range lbNames {
+		lbInstanceStates[lbName] = make(map[string]string)
+		opts := &elb.DescribeInstanceHealthInput{LoadBalancerName: &lbName}
 		r, err := elbconn.DescribeInstanceHealth(opts)
 		if err != nil {
 			return nil, err
@@ -819,7 +819,7 @@ func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map
 			if is.InstanceId == nil || is.State == nil {
 				continue
 			}
-			lbInstanceStates[*lbName][*is.InstanceId] = *is.State
+			lbInstanceStates[lbName][*is.InstanceId] = *is.State
 		}
 	}
 
