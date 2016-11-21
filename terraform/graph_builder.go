@@ -30,7 +30,7 @@ type BasicGraphBuilder struct {
 func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 	g := &Graph{Path: path}
 
-	debugName := "build-graph.json"
+	debugName := "graph.json"
 	if b.Name != "" {
 		debugName = b.Name + "-" + debugName
 	}
@@ -58,18 +58,9 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 		}
 		debugOp.End(errMsg)
 
-		// always log the graph state to see what transformations may have happened
-		debugName := "build-" + stepName
-		if b.Name != "" {
-			debugName = b.Name + "-" + debugName
-		}
-
 		log.Printf(
 			"[TRACE] Graph after step %T:\n\n%s",
 			step, g.StringWithNodeTypes())
-
-		// TODO: replace entirely with the json logs
-		dbug.WriteGraph(debugName, g)
 
 		if err != nil {
 			return g, err
@@ -134,7 +125,7 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 	basic := &BasicGraphBuilder{
 		Steps:    b.Steps(path),
 		Validate: b.Validate,
-		Name:     "builtin",
+		Name:     "BuiltinGraphBuilder",
 	}
 
 	return basic.Build(path)

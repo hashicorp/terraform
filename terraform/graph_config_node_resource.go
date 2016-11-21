@@ -191,7 +191,11 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	steps = append(steps, &RootTransformer{})
 
 	// Build the graph
-	b := &BasicGraphBuilder{Steps: steps, Validate: true}
+	b := &BasicGraphBuilder{
+		Steps:    steps,
+		Validate: true,
+		Name:     "GraphNodeConfigResource",
+	}
 	return b.Build(ctx.Path())
 }
 
