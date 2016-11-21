@@ -1050,6 +1050,16 @@ func flattenCloudFormationOutputs(cfOutputs []*cloudformation.Output) map[string
 	return outputs
 }
 
+func flattenAsgSuspendedProcesses(list []*autoscaling.SuspendedProcess) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.ProcessName != nil {
+			strs = append(strs, *r.ProcessName)
+		}
+	}
+	return strs
+}
+
 func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {
 	strs := make([]string, 0, len(list))
 	for _, r := range list {
