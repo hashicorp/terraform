@@ -108,6 +108,40 @@ func TestAccNetworkingV2Network_timeout(t *testing.T) {
 	})
 }
 
+func TestAccNetworkingV2Network_with_multiple_segment_mappings(t *testing.T) {
+	region := os.Getenv(OS_REGION_NAME)
+
+	var network networks.Network
+
+	var testAccNetworkingV2Network_with_multiple_segment_mappings = fmt.Sprintf(`
+		resource "openstack_networking_network_v2" "foo" {
+			region = "%s"
+			name = "network_1"
+			segments =[
+                          {
+                            segmentation_id: "2",
+                            physical_network: "vlan",
+                            network_type: "vlan"
+                          }
+                        ],
+			admin_state_up = "true"
+		}`, region)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2NetworkDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2Network_with_multiple_segment_mappings,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckNetworkingV2NetworkDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)

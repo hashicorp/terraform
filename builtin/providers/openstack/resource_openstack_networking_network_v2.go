@@ -58,6 +58,34 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"segments": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"physical_network": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Computed: true,
+						},
+						"network_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Computed: true,
+						},
+						"segmentation_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"value_specs": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
@@ -100,6 +128,20 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 		createOpts.Shared = &shared
 	}
 
+	segmentDetails, err := getSegments(d)
+	if err != nil {
+		return err
+	}
+	segments := make([]networks.Segment, len(segmentDetails))
+	for i, segment := range segmentDetails {
+		segments[i] = networks.Segment{
+			PhysicalNetwork: segment["physical_network"].(string),
+			NetworkType:     segment["network_type"].(string),
+			SegmentationID:  segment["segmentation_id"].(string),
+		}
+	}
+	createOpts.Segments = segments
+
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	n, err := networks.Create(networkingClient, createOpts).Extract()
 	if err != nil {
@@ -123,6 +165,27 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 	d.SetId(n.ID)
 
 	return resourceNetworkingNetworkV2Read(d, meta)
+}
+
+func getSegments(d *schema.ResourceData) ([]map[string]interface{}, error) {
+	rawSegments := d.Get("segments").([]interface{})
+	newSegments := make([]map[string]interface{}, 0, len(rawSegments))
+
+	for _, raw := range rawSegments {
+		if raw == nil {
+			continue
+		}
+
+		rawMap := raw.(map[string]interface{})
+
+		newSegments = append(newSegments, map[string]interface{}{
+			"physical_network": rawMap["physical_network"].(string),
+			"network_type":     rawMap["network_type"].(string),
+			"segmentation_id":  rawMap["segmentation_id"].(string),
+		})
+
+	}
+	return newSegments, nil
 }
 
 func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) error {

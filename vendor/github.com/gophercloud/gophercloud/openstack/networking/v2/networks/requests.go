@@ -72,6 +72,13 @@ type CreateOpts struct {
 	Name         string `json:"name,omitempty"`
 	Shared       *bool  `json:"shared,omitempty"`
 	TenantID     string `json:"tenant_id,omitempty"`
+	Segments     []Segment `json:"segments,omitempty"`
+}
+
+type Segment struct {
+	PhysicalNetwork string `json:"provider:physical_network,omitempty"`
+	NetworkType     string `json:"provider:network_type,omitempty"`
+	SegmentationID  string `json:"provider:segmentation_id,omitempty"`
 }
 
 // ToNetworkCreateMap casts a CreateOpts struct to a map.
