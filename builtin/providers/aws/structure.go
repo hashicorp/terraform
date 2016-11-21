@@ -950,6 +950,19 @@ func flattenDSVpcSettings(
 	return []map[string]interface{}{settings}
 }
 
+func flattenLambdaEnvironment(variables map[string]*string) []interface{} {
+	envs := make(map[string]interface{})
+	en := make(map[string]string)
+	for k, v := range variables {
+		en[k] = *v
+	}
+	if len(en) > 0 {
+		envs["variables"] = en
+	}
+
+	return []interface{}{envs}
+}
+
 func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]interface{} {
 	settings := make(map[string]interface{}, 0)
 
@@ -957,7 +970,11 @@ func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]in
 		return nil
 	}
 
-	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && s.VpcId == nil {
+	var emptyVpc bool
+	if s.VpcId == nil || *s.VpcId == "" {
+		emptyVpc = true
+	}
+	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && emptyVpc {
 		return nil
 	}
 
