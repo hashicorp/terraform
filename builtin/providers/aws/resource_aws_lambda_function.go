@@ -323,14 +323,19 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("runtime", function.Runtime)
 	d.Set("timeout", function.Timeout)
 	d.Set("kms_key_arn", function.KMSKeyArn)
-	if config := flattenLambdaVpcConfigResponse(function.VpcConfig); len(config) > 0 {
-		log.Printf("[INFO] Setting Lambda %s VPC config %#v from API", d.Id(), config)
-		err := d.Set("vpc_config", config)
-		if err != nil {
-			return fmt.Errorf("Failed setting vpc_config: %s", err)
-		}
+
+	config := flattenLambdaVpcConfigResponse(function.VpcConfig)
+	log.Printf("[INFO] Setting Lambda %s VPC config %#v from API", d.Id(), config)
+	vpcSetErr := d.Set("vpc_config", config)
+	if vpcSetErr != nil {
+		return fmt.Errorf("Failed setting vpc_config: %s", vpcSetErr)
 	}
+
 	d.Set("source_code_hash", function.CodeSha256)
+
+	if err := d.Set("environment", flattenLambdaEnvironment(function.Environment.Variables)); err != nil {
+		log.Printf("[ERR] Error setting environment for Lambda Function (%s): %s", d.Id(), err)
+	}
 
 	// List is sorted from oldest to latest
 	// so this may get costly over time :'(
