@@ -113,7 +113,7 @@ func stateAddFunc_Module_Module(s *State, fromAddr, addr *ResourceAddress, raw i
 		addrCopy.Type = resourceKey.Type
 		addrCopy.Name = resourceKey.Name
 		addrCopy.Index = resourceKey.Index
-		//addrCopy.Mode = resourceKey.Mode
+		addrCopy.Mode = resourceKey.Mode
 
 		// Perform an add
 		if err := s.Add(fromAddr.String(), addrCopy.String(), v); err != nil {
@@ -333,7 +333,7 @@ func stateAddInitAddr(s *State, addr *ResourceAddress) (interface{}, bool) {
 		Name:  addr.Name,
 		Type:  addr.Type,
 		Index: addr.Index,
-		//Mode:  addr.Mode,
+		Mode:  addr.Mode,
 	}).String()
 	exists = true
 	resource, ok := mod.Resources[resourceKey]

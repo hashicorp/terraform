@@ -627,6 +627,41 @@ func TestStateAdd(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			"ModuleState => Module Addr (new with data source)",
+			false,
+			"",
+			"module.foo",
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"data.test_instance.foo": &ResourceState{
+						Type: "test_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "foo"},
+						Resources: map[string]*ResourceState{
+							"data.test_instance.foo": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
