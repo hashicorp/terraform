@@ -20,6 +20,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: escape sequence for " works (0.8 beta regression) [GH-10236]
+ * core: Terraform starts on Windows (0.8 beta2 regression) [GH-10266]
 
 PLUGIN CHANGES:
 
