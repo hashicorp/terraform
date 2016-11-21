@@ -160,6 +160,18 @@ func TestResourceConfigGet(t *testing.T) {
 			Key:   "mapname.0.listkey.0.key",
 			Value: 3,
 		},
+
+		// A map assigned to a list via interpolation should Get a non-existent
+		// value. The test code now also checks that Get doesn't return (nil,
+		// true), which it previously did for this configuration.
+		{
+			Config: map[string]interface{}{
+				"maplist": "${var.maplist}",
+			},
+			Key:   "maplist.0",
+			Value: nil,
+		},
+
 		// FIXME: this is ambiguous, and matches the nested map
 		//        leaving here to catch this behaviour if it changes.
 		{
@@ -226,7 +238,11 @@ func TestResourceConfigGet(t *testing.T) {
 
 		// Test getting a key
 		t.Run(fmt.Sprintf("get-%d", i), func(t *testing.T) {
-			v, _ := rc.Get(tc.Key)
+			v, ok := rc.Get(tc.Key)
+			if ok && v == nil {
+				t.Fatal("(nil, true) returned from Get")
+			}
+
 			if !reflect.DeepEqual(v, tc.Value) {
 				t.Fatalf("%d bad: %#v", i, v)
 			}
