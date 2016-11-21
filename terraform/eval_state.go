@@ -107,9 +107,10 @@ type EvalUpdateStateHook struct{}
 func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 	state, lock := ctx.State()
 
-	// Get a read lock so it doesn't change while we're calling this
-	lock.RLock()
-	defer lock.RUnlock()
+	// Get a full lock. Even calling something like WriteState can modify
+	// (prune) the state, so we need the full lock.
+	lock.Lock()
+	defer lock.Unlock()
 
 	// Call the hook
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
