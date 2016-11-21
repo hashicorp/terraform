@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"runtime"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -151,7 +152,13 @@ func Wrap(c *WrapConfig) (int, error) {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = stdout_w
 	cmd.Stderr = stderr_w
-	cmd.ExtraFiles = []*os.File{os.Stdin, os.Stdout, os.Stderr}
+
+	// Windows doesn't support this, but on other platforms pass in
+	// the original file descriptors so they can be used.
+	if runtime.GOOS != "windows" {
+		cmd.ExtraFiles = []*os.File{os.Stdin, os.Stdout, os.Stderr}
+	}
+
 	if err := cmd.Start(); err != nil {
 		return 1, err
 	}
