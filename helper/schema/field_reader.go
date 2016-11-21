@@ -214,6 +214,33 @@ func readObjectField(
 	}, nil
 }
 
+// convert map values to the proper primitive type based on schema.Elem
+func mapValuesToPrimitive(m map[string]interface{}, schema *Schema) error {
+
+	elemType := TypeString
+	if et, ok := schema.Elem.(ValueType); ok {
+		elemType = et
+	}
+
+	switch elemType {
+	case TypeInt, TypeFloat, TypeBool:
+		for k, v := range m {
+			vs, ok := v.(string)
+			if !ok {
+				continue
+			}
+
+			v, err := stringToPrimitive(vs, false, &Schema{Type: elemType})
+			if err != nil {
+				return err
+			}
+
+			m[k] = v
+		}
+	}
+	return nil
+}
+
 func stringToPrimitive(
 	value string, computed bool, schema *Schema) (interface{}, error) {
 	var returnVal interface{}

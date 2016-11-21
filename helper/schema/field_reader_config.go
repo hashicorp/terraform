@@ -85,7 +85,7 @@ func (r *ConfigFieldReader) readField(
 	case TypeList:
 		return readListField(&nestedConfigFieldReader{r}, address, schema)
 	case TypeMap:
-		return r.readMap(k)
+		return r.readMap(k, schema)
 	case TypeSet:
 		return r.readSet(address, schema)
 	case typeObject:
@@ -97,7 +97,7 @@ func (r *ConfigFieldReader) readField(
 	}
 }
 
-func (r *ConfigFieldReader) readMap(k string) (FieldReadResult, error) {
+func (r *ConfigFieldReader) readMap(k string, schema *Schema) (FieldReadResult, error) {
 	// We want both the raw value and the interpolated. We use the interpolated
 	// to store actual values and we use the raw one to check for
 	// computed keys. Actual values are obtained in the switch, depending on
@@ -168,6 +168,11 @@ func (r *ConfigFieldReader) readMap(k string) (FieldReadResult, error) {
 		}
 	default:
 		panic(fmt.Sprintf("unknown type: %#v", mraw))
+	}
+
+	err := mapValuesToPrimitive(result, schema)
+	if err != nil {
+		return FieldReadResult{}, nil
 	}
 
 	var value interface{}
