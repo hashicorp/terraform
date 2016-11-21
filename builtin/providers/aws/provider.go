@@ -215,6 +215,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_codedeploy_deployment_group":              resourceAwsCodeDeployDeploymentGroup(),
 			"aws_codecommit_repository":                    resourceAwsCodeCommitRepository(),
 			"aws_codecommit_trigger":                       resourceAwsCodeCommitTrigger(),
+			"aws_configservice_inventory":                  resourceAwsConfigServiceInventory(),
 			"aws_customer_gateway":                         resourceAwsCustomerGateway(),
 			"aws_db_event_subscription":                    resourceAwsDbEventSubscription(),
 			"aws_db_instance":                              resourceAwsDbInstance(),
