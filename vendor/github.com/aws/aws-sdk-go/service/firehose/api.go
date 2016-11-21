@@ -58,7 +58,7 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 //
 // Creates a delivery stream.
 //
-//  CreateDeliveryStream is an asynchronous operation that immediately returns.
+// CreateDeliveryStream is an asynchronous operation that immediately returns.
 // The initial status of the delivery stream is CREATING. After the delivery
 // stream is created, its status is ACTIVE and it now accepts data. Attempts
 // to send data to a delivery stream that is not in the ACTIVE state cause an
@@ -88,20 +88,20 @@ func (c *Firehose) CreateDeliveryStreamRequest(input *CreateDeliveryStreamInput)
 //
 // A few notes about RedshiftDestinationConfiguration:
 //
-//   An Amazon Redshift destination requires an S3 bucket as intermediate location,
-// as Firehose first delivers data to S3 and then uses COPY syntax to load data
-// into an Amazon Redshift table. This is specified in the RedshiftDestinationConfiguration.S3Configuration
-// parameter element.
+//    * An Amazon Redshift destination requires an S3 bucket as intermediate
+//    location, as Firehose first delivers data to S3 and then uses COPY syntax
+//    to load data into an Amazon Redshift table. This is specified in the RedshiftDestinationConfiguration.S3Configuration
+//    parameter element.
 //
-//   The compression formats SNAPPY or ZIP cannot be specified in RedshiftDestinationConfiguration.S3Configuration
-// because the Amazon Redshift COPY operation that reads from the S3 bucket
-// doesn't support these compression formats.
+//    * The compression formats SNAPPY or ZIP cannot be specified in RedshiftDestinationConfiguration.S3Configuration
+//    because the Amazon Redshift COPY operation that reads from the S3 bucket
+//    doesn't support these compression formats.
 //
-//   We strongly recommend that the username and password provided is used
-// exclusively for Firehose purposes, and that the permissions for the account
-// are restricted for Amazon Redshift INSERT permissions.
+//    * We strongly recommend that the username and password provided is used
+//    exclusively for Firehose purposes, and that the permissions for the account
+//    are restricted for Amazon Redshift INSERT permissions.
 //
-//   Firehose assumes the IAM role that is configured as part of destinations.
+// Firehose assumes the IAM role that is configured as part of destinations.
 // The IAM role should allow the Firehose principal to assume the role, and
 // the role should have permissions that allows the service to deliver the data.
 // For more information, see Amazon S3 Bucket Access (http://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3)
@@ -625,11 +625,11 @@ func (c *Firehose) UpdateDestinationRequest(input *UpdateDestinationInput) (req 
 // Elasticsearch destination, you can only update an existing Elasticsearch
 // destination with this operation.
 //
-// This operation can be used to change the destination type (for example,
-// to replace the Amazon S3 destination with Amazon Redshift) or change the
-// parameters associated with a given destination (for example, to change the
-// bucket name of the Amazon S3 destination). The update may not occur immediately.
-// The target delivery stream remains active while the configurations are updated,
+// This operation can be used to change the destination type (for example, to
+// replace the Amazon S3 destination with Amazon Redshift) or change the parameters
+// associated with a given destination (for example, to change the bucket name
+// of the Amazon S3 destination). The update may not occur immediately. The
+// target delivery stream remains active while the configurations are updated,
 // so data writes to the delivery stream can continue during this process. The
 // updated configurations are normally effective within a few minutes.
 //
@@ -725,6 +725,18 @@ func (s *BufferingHints) Validate() error {
 	return nil
 }
 
+// SetIntervalInSeconds sets the IntervalInSeconds field's value.
+func (s *BufferingHints) SetIntervalInSeconds(v int64) *BufferingHints {
+	s.IntervalInSeconds = &v
+	return s
+}
+
+// SetSizeInMBs sets the SizeInMBs field's value.
+func (s *BufferingHints) SetSizeInMBs(v int64) *BufferingHints {
+	s.SizeInMBs = &v
+	return s
+}
+
 // Describes CloudWatch logging options for your delivery stream.
 type CloudWatchLoggingOptions struct {
 	_ struct{} `type:"structure"`
@@ -751,6 +763,24 @@ func (s CloudWatchLoggingOptions) GoString() string {
 	return s.String()
 }
 
+// SetEnabled sets the Enabled field's value.
+func (s *CloudWatchLoggingOptions) SetEnabled(v bool) *CloudWatchLoggingOptions {
+	s.Enabled = &v
+	return s
+}
+
+// SetLogGroupName sets the LogGroupName field's value.
+func (s *CloudWatchLoggingOptions) SetLogGroupName(v string) *CloudWatchLoggingOptions {
+	s.LogGroupName = &v
+	return s
+}
+
+// SetLogStreamName sets the LogStreamName field's value.
+func (s *CloudWatchLoggingOptions) SetLogStreamName(v string) *CloudWatchLoggingOptions {
+	s.LogStreamName = &v
+	return s
+}
+
 // Describes a COPY command for Amazon Redshift.
 type CopyCommand struct {
 	_ struct{} `type:"structure"`
@@ -760,18 +790,18 @@ type CopyCommand struct {
 	// command (http://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html). Some
 	// possible examples that would apply to Firehose are as follows.
 	//
-	//  delimiter '\t' lzop; - fields are delimited with "\t" (TAB character) and
+	// delimiter '\t' lzop; - fields are delimited with "\t" (TAB character) and
 	// compressed using lzop.
 	//
-	//  delimiter '| - fields are delimited with "|" (this is the default delimiter).
+	// delimiter '| - fields are delimited with "|" (this is the default delimiter).
 	//
-	//  delimiter '|' escape - the delimiter should be escaped.
+	// delimiter '|' escape - the delimiter should be escaped.
 	//
-	//  fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'
+	// fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'
 	// - fields are fixed width in the source, with each width specified after every
 	// column in the table.
 	//
-	//  JSON 's3://mybucket/jsonpaths.txt' - data is in JSON format, and the path
+	// JSON 's3://mybucket/jsonpaths.txt' - data is in JSON format, and the path
 	// specified is the format of the data.
 	//
 	// For more examples, see Amazon Redshift COPY command examples (http://docs.aws.amazon.com/redshift/latest/dg/r_COPY_command_examples.html).
@@ -810,6 +840,24 @@ func (s *CopyCommand) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCopyOptions sets the CopyOptions field's value.
+func (s *CopyCommand) SetCopyOptions(v string) *CopyCommand {
+	s.CopyOptions = &v
+	return s
+}
+
+// SetDataTableColumns sets the DataTableColumns field's value.
+func (s *CopyCommand) SetDataTableColumns(v string) *CopyCommand {
+	s.DataTableColumns = &v
+	return s
+}
+
+// SetDataTableName sets the DataTableName field's value.
+func (s *CopyCommand) SetDataTableName(v string) *CopyCommand {
+	s.DataTableName = &v
+	return s
 }
 
 // Contains the parameters for CreateDeliveryStream.
@@ -877,6 +925,30 @@ func (s *CreateDeliveryStreamInput) Validate() error {
 	return nil
 }
 
+// SetDeliveryStreamName sets the DeliveryStreamName field's value.
+func (s *CreateDeliveryStreamInput) SetDeliveryStreamName(v string) *CreateDeliveryStreamInput {
+	s.DeliveryStreamName = &v
+	return s
+}
+
+// SetElasticsearchDestinationConfiguration sets the ElasticsearchDestinationConfiguration field's value.
+func (s *CreateDeliveryStreamInput) SetElasticsearchDestinationConfiguration(v *ElasticsearchDestinationConfiguration) *CreateDeliveryStreamInput {
+	s.ElasticsearchDestinationConfiguration = v
+	return s
+}
+
+// SetRedshiftDestinationConfiguration sets the RedshiftDestinationConfiguration field's value.
+func (s *CreateDeliveryStreamInput) SetRedshiftDestinationConfiguration(v *RedshiftDestinationConfiguration) *CreateDeliveryStreamInput {
+	s.RedshiftDestinationConfiguration = v
+	return s
+}
+
+// SetS3DestinationConfiguration sets the S3DestinationConfiguration field's value.
+func (s *CreateDeliveryStreamInput) SetS3DestinationConfiguration(v *S3DestinationConfiguration) *CreateDeliveryStreamInput {
+	s.S3DestinationConfiguration = v
+	return s
+}
+
 // Contains the output of CreateDeliveryStream.
 type CreateDeliveryStreamOutput struct {
 	_ struct{} `type:"structure"`
@@ -893,6 +965,12 @@ func (s CreateDeliveryStreamOutput) String() string {
 // GoString returns the string representation
 func (s CreateDeliveryStreamOutput) GoString() string {
 	return s.String()
+}
+
+// SetDeliveryStreamARN sets the DeliveryStreamARN field's value.
+func (s *CreateDeliveryStreamOutput) SetDeliveryStreamARN(v string) *CreateDeliveryStreamOutput {
+	s.DeliveryStreamARN = &v
+	return s
 }
 
 // Contains the parameters for DeleteDeliveryStream.
@@ -929,6 +1007,12 @@ func (s *DeleteDeliveryStreamInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDeliveryStreamName sets the DeliveryStreamName field's value.
+func (s *DeleteDeliveryStreamInput) SetDeliveryStreamName(v string) *DeleteDeliveryStreamInput {
+	s.DeliveryStreamName = &v
+	return s
 }
 
 // Contains the output of DeleteDeliveryStream.
@@ -1001,6 +1085,54 @@ func (s DeliveryStreamDescription) GoString() string {
 	return s.String()
 }
 
+// SetCreateTimestamp sets the CreateTimestamp field's value.
+func (s *DeliveryStreamDescription) SetCreateTimestamp(v time.Time) *DeliveryStreamDescription {
+	s.CreateTimestamp = &v
+	return s
+}
+
+// SetDeliveryStreamARN sets the DeliveryStreamARN field's value.
+func (s *DeliveryStreamDescription) SetDeliveryStreamARN(v string) *DeliveryStreamDescription {
+	s.DeliveryStreamARN = &v
+	return s
+}
+
+// SetDeliveryStreamName sets the DeliveryStreamName field's value.
+func (s *DeliveryStreamDescription) SetDeliveryStreamName(v string) *DeliveryStreamDescription {
+	s.DeliveryStreamName = &v
+	return s
+}
+
+// SetDeliveryStreamStatus sets the DeliveryStreamStatus field's value.
+func (s *DeliveryStreamDescription) SetDeliveryStreamStatus(v string) *DeliveryStreamDescription {
+	s.DeliveryStreamStatus = &v
+	return s
+}
+
+// SetDestinations sets the Destinations field's value.
+func (s *DeliveryStreamDescription) SetDestinations(v []*DestinationDescription) *DeliveryStreamDescription {
+	s.Destinations = v
+	return s
+}
+
+// SetHasMoreDestinations sets the HasMoreDestinations field's value.
+func (s *DeliveryStreamDescription) SetHasMoreDestinations(v bool) *DeliveryStreamDescription {
+	s.HasMoreDestinations = &v
+	return s
+}
+
+// SetLastUpdateTimestamp sets the LastUpdateTimestamp field's value.
+func (s *DeliveryStreamDescription) SetLastUpdateTimestamp(v time.Time) *DeliveryStreamDescription {
+	s.LastUpdateTimestamp = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *DeliveryStreamDescription) SetVersionId(v string) *DeliveryStreamDescription {
+	s.VersionId = &v
+	return s
+}
+
 // Contains the parameters for DescribeDeliveryStream.
 type DescribeDeliveryStreamInput struct {
 	_ struct{} `type:"structure"`
@@ -1051,6 +1183,24 @@ func (s *DescribeDeliveryStreamInput) Validate() error {
 	return nil
 }
 
+// SetDeliveryStreamName sets the DeliveryStreamName field's value.
+func (s *DescribeDeliveryStreamInput) SetDeliveryStreamName(v string) *DescribeDeliveryStreamInput {
+	s.DeliveryStreamName = &v
+	return s
+}
+
+// SetExclusiveStartDestinationId sets the ExclusiveStartDestinationId field's value.
+func (s *DescribeDeliveryStreamInput) SetExclusiveStartDestinationId(v string) *DescribeDeliveryStreamInput {
+	s.ExclusiveStartDestinationId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeDeliveryStreamInput) SetLimit(v int64) *DescribeDeliveryStreamInput {
+	s.Limit = &v
+	return s
+}
+
 // Contains the output of DescribeDeliveryStream.
 type DescribeDeliveryStreamOutput struct {
 	_ struct{} `type:"structure"`
@@ -1069,6 +1219,12 @@ func (s DescribeDeliveryStreamOutput) String() string {
 // GoString returns the string representation
 func (s DescribeDeliveryStreamOutput) GoString() string {
 	return s.String()
+}
+
+// SetDeliveryStreamDescription sets the DeliveryStreamDescription field's value.
+func (s *DescribeDeliveryStreamOutput) SetDeliveryStreamDescription(v *DeliveryStreamDescription) *DescribeDeliveryStreamOutput {
+	s.DeliveryStreamDescription = v
+	return s
 }
 
 // Describes the destination for a delivery stream.
@@ -1098,6 +1254,30 @@ func (s DestinationDescription) String() string {
 // GoString returns the string representation
 func (s DestinationDescription) GoString() string {
 	return s.String()
+}
+
+// SetDestinationId sets the DestinationId field's value.
+func (s *DestinationDescription) SetDestinationId(v string) *DestinationDescription {
+	s.DestinationId = &v
+	return s
+}
+
+// SetElasticsearchDestinationDescription sets the ElasticsearchDestinationDescription field's value.
+func (s *DestinationDescription) SetElasticsearchDestinationDescription(v *ElasticsearchDestinationDescription) *DestinationDescription {
+	s.ElasticsearchDestinationDescription = v
+	return s
+}
+
+// SetRedshiftDestinationDescription sets the RedshiftDestinationDescription field's value.
+func (s *DestinationDescription) SetRedshiftDestinationDescription(v *RedshiftDestinationDescription) *DestinationDescription {
+	s.RedshiftDestinationDescription = v
+	return s
+}
+
+// SetS3DestinationDescription sets the S3DestinationDescription field's value.
+func (s *DestinationDescription) SetS3DestinationDescription(v *S3DestinationDescription) *DestinationDescription {
+	s.S3DestinationDescription = v
+	return s
 }
 
 // Describes the buffering to perform before delivering data to the Amazon ES
@@ -1142,6 +1322,18 @@ func (s *ElasticsearchBufferingHints) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetIntervalInSeconds sets the IntervalInSeconds field's value.
+func (s *ElasticsearchBufferingHints) SetIntervalInSeconds(v int64) *ElasticsearchBufferingHints {
+	s.IntervalInSeconds = &v
+	return s
+}
+
+// SetSizeInMBs sets the SizeInMBs field's value.
+func (s *ElasticsearchBufferingHints) SetSizeInMBs(v int64) *ElasticsearchBufferingHints {
+	s.SizeInMBs = &v
+	return s
 }
 
 // Describes the configuration of a destination in Amazon ES.
@@ -1262,6 +1454,66 @@ func (s *ElasticsearchDestinationConfiguration) Validate() error {
 	return nil
 }
 
+// SetBufferingHints sets the BufferingHints field's value.
+func (s *ElasticsearchDestinationConfiguration) SetBufferingHints(v *ElasticsearchBufferingHints) *ElasticsearchDestinationConfiguration {
+	s.BufferingHints = v
+	return s
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *ElasticsearchDestinationConfiguration) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *ElasticsearchDestinationConfiguration {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetDomainARN sets the DomainARN field's value.
+func (s *ElasticsearchDestinationConfiguration) SetDomainARN(v string) *ElasticsearchDestinationConfiguration {
+	s.DomainARN = &v
+	return s
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *ElasticsearchDestinationConfiguration) SetIndexName(v string) *ElasticsearchDestinationConfiguration {
+	s.IndexName = &v
+	return s
+}
+
+// SetIndexRotationPeriod sets the IndexRotationPeriod field's value.
+func (s *ElasticsearchDestinationConfiguration) SetIndexRotationPeriod(v string) *ElasticsearchDestinationConfiguration {
+	s.IndexRotationPeriod = &v
+	return s
+}
+
+// SetRetryOptions sets the RetryOptions field's value.
+func (s *ElasticsearchDestinationConfiguration) SetRetryOptions(v *ElasticsearchRetryOptions) *ElasticsearchDestinationConfiguration {
+	s.RetryOptions = v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *ElasticsearchDestinationConfiguration) SetRoleARN(v string) *ElasticsearchDestinationConfiguration {
+	s.RoleARN = &v
+	return s
+}
+
+// SetS3BackupMode sets the S3BackupMode field's value.
+func (s *ElasticsearchDestinationConfiguration) SetS3BackupMode(v string) *ElasticsearchDestinationConfiguration {
+	s.S3BackupMode = &v
+	return s
+}
+
+// SetS3Configuration sets the S3Configuration field's value.
+func (s *ElasticsearchDestinationConfiguration) SetS3Configuration(v *S3DestinationConfiguration) *ElasticsearchDestinationConfiguration {
+	s.S3Configuration = v
+	return s
+}
+
+// SetTypeName sets the TypeName field's value.
+func (s *ElasticsearchDestinationConfiguration) SetTypeName(v string) *ElasticsearchDestinationConfiguration {
+	s.TypeName = &v
+	return s
+}
+
 // The destination description in Amazon ES.
 type ElasticsearchDestinationDescription struct {
 	_ struct{} `type:"structure"`
@@ -1305,6 +1557,66 @@ func (s ElasticsearchDestinationDescription) String() string {
 // GoString returns the string representation
 func (s ElasticsearchDestinationDescription) GoString() string {
 	return s.String()
+}
+
+// SetBufferingHints sets the BufferingHints field's value.
+func (s *ElasticsearchDestinationDescription) SetBufferingHints(v *ElasticsearchBufferingHints) *ElasticsearchDestinationDescription {
+	s.BufferingHints = v
+	return s
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *ElasticsearchDestinationDescription) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *ElasticsearchDestinationDescription {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetDomainARN sets the DomainARN field's value.
+func (s *ElasticsearchDestinationDescription) SetDomainARN(v string) *ElasticsearchDestinationDescription {
+	s.DomainARN = &v
+	return s
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *ElasticsearchDestinationDescription) SetIndexName(v string) *ElasticsearchDestinationDescription {
+	s.IndexName = &v
+	return s
+}
+
+// SetIndexRotationPeriod sets the IndexRotationPeriod field's value.
+func (s *ElasticsearchDestinationDescription) SetIndexRotationPeriod(v string) *ElasticsearchDestinationDescription {
+	s.IndexRotationPeriod = &v
+	return s
+}
+
+// SetRetryOptions sets the RetryOptions field's value.
+func (s *ElasticsearchDestinationDescription) SetRetryOptions(v *ElasticsearchRetryOptions) *ElasticsearchDestinationDescription {
+	s.RetryOptions = v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *ElasticsearchDestinationDescription) SetRoleARN(v string) *ElasticsearchDestinationDescription {
+	s.RoleARN = &v
+	return s
+}
+
+// SetS3BackupMode sets the S3BackupMode field's value.
+func (s *ElasticsearchDestinationDescription) SetS3BackupMode(v string) *ElasticsearchDestinationDescription {
+	s.S3BackupMode = &v
+	return s
+}
+
+// SetS3DestinationDescription sets the S3DestinationDescription field's value.
+func (s *ElasticsearchDestinationDescription) SetS3DestinationDescription(v *S3DestinationDescription) *ElasticsearchDestinationDescription {
+	s.S3DestinationDescription = v
+	return s
+}
+
+// SetTypeName sets the TypeName field's value.
+func (s *ElasticsearchDestinationDescription) SetTypeName(v string) *ElasticsearchDestinationDescription {
+	s.TypeName = &v
+	return s
 }
 
 // Describes an update for a destination in Amazon ES.
@@ -1390,6 +1702,60 @@ func (s *ElasticsearchDestinationUpdate) Validate() error {
 	return nil
 }
 
+// SetBufferingHints sets the BufferingHints field's value.
+func (s *ElasticsearchDestinationUpdate) SetBufferingHints(v *ElasticsearchBufferingHints) *ElasticsearchDestinationUpdate {
+	s.BufferingHints = v
+	return s
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *ElasticsearchDestinationUpdate) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *ElasticsearchDestinationUpdate {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetDomainARN sets the DomainARN field's value.
+func (s *ElasticsearchDestinationUpdate) SetDomainARN(v string) *ElasticsearchDestinationUpdate {
+	s.DomainARN = &v
+	return s
+}
+
+// SetIndexName sets the IndexName field's value.
+func (s *ElasticsearchDestinationUpdate) SetIndexName(v string) *ElasticsearchDestinationUpdate {
+	s.IndexName = &v
+	return s
+}
+
+// SetIndexRotationPeriod sets the IndexRotationPeriod field's value.
+func (s *ElasticsearchDestinationUpdate) SetIndexRotationPeriod(v string) *ElasticsearchDestinationUpdate {
+	s.IndexRotationPeriod = &v
+	return s
+}
+
+// SetRetryOptions sets the RetryOptions field's value.
+func (s *ElasticsearchDestinationUpdate) SetRetryOptions(v *ElasticsearchRetryOptions) *ElasticsearchDestinationUpdate {
+	s.RetryOptions = v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *ElasticsearchDestinationUpdate) SetRoleARN(v string) *ElasticsearchDestinationUpdate {
+	s.RoleARN = &v
+	return s
+}
+
+// SetS3Update sets the S3Update field's value.
+func (s *ElasticsearchDestinationUpdate) SetS3Update(v *S3DestinationUpdate) *ElasticsearchDestinationUpdate {
+	s.S3Update = v
+	return s
+}
+
+// SetTypeName sets the TypeName field's value.
+func (s *ElasticsearchDestinationUpdate) SetTypeName(v string) *ElasticsearchDestinationUpdate {
+	s.TypeName = &v
+	return s
+}
+
 // Configures retry behavior in the event that Firehose is unable to deliver
 // documents to Amazon ES.
 type ElasticsearchRetryOptions struct {
@@ -1411,6 +1777,12 @@ func (s ElasticsearchRetryOptions) String() string {
 // GoString returns the string representation
 func (s ElasticsearchRetryOptions) GoString() string {
 	return s.String()
+}
+
+// SetDurationInSeconds sets the DurationInSeconds field's value.
+func (s *ElasticsearchRetryOptions) SetDurationInSeconds(v int64) *ElasticsearchRetryOptions {
+	s.DurationInSeconds = &v
+	return s
 }
 
 // Describes the encryption for a destination in Amazon S3.
@@ -1450,6 +1822,18 @@ func (s *EncryptionConfiguration) Validate() error {
 	return nil
 }
 
+// SetKMSEncryptionConfig sets the KMSEncryptionConfig field's value.
+func (s *EncryptionConfiguration) SetKMSEncryptionConfig(v *KMSEncryptionConfig) *EncryptionConfiguration {
+	s.KMSEncryptionConfig = v
+	return s
+}
+
+// SetNoEncryptionConfig sets the NoEncryptionConfig field's value.
+func (s *EncryptionConfiguration) SetNoEncryptionConfig(v string) *EncryptionConfiguration {
+	s.NoEncryptionConfig = &v
+	return s
+}
+
 // Describes an encryption key for a destination in Amazon S3.
 type KMSEncryptionConfig struct {
 	_ struct{} `type:"structure"`
@@ -1485,6 +1869,12 @@ func (s *KMSEncryptionConfig) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAWSKMSKeyARN sets the AWSKMSKeyARN field's value.
+func (s *KMSEncryptionConfig) SetAWSKMSKeyARN(v string) *KMSEncryptionConfig {
+	s.AWSKMSKeyARN = &v
+	return s
 }
 
 // Contains the parameters for ListDeliveryStreams.
@@ -1524,6 +1914,18 @@ func (s *ListDeliveryStreamsInput) Validate() error {
 	return nil
 }
 
+// SetExclusiveStartDeliveryStreamName sets the ExclusiveStartDeliveryStreamName field's value.
+func (s *ListDeliveryStreamsInput) SetExclusiveStartDeliveryStreamName(v string) *ListDeliveryStreamsInput {
+	s.ExclusiveStartDeliveryStreamName = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListDeliveryStreamsInput) SetLimit(v int64) *ListDeliveryStreamsInput {
+	s.Limit = &v
+	return s
+}
+
 // Contains the output of ListDeliveryStreams.
 type ListDeliveryStreamsOutput struct {
 	_ struct{} `type:"structure"`
@@ -1547,6 +1949,18 @@ func (s ListDeliveryStreamsOutput) String() string {
 // GoString returns the string representation
 func (s ListDeliveryStreamsOutput) GoString() string {
 	return s.String()
+}
+
+// SetDeliveryStreamNames sets the DeliveryStreamNames field's value.
+func (s *ListDeliveryStreamsOutput) SetDeliveryStreamNames(v []*string) *ListDeliveryStreamsOutput {
+	s.DeliveryStreamNames = v
+	return s
+}
+
+// SetHasMoreDeliveryStreams sets the HasMoreDeliveryStreams field's value.
+func (s *ListDeliveryStreamsOutput) SetHasMoreDeliveryStreams(v bool) *ListDeliveryStreamsOutput {
+	s.HasMoreDeliveryStreams = &v
+	return s
 }
 
 // Contains the parameters for PutRecordBatch.
@@ -1606,6 +2020,18 @@ func (s *PutRecordBatchInput) Validate() error {
 	return nil
 }
 
+// SetDeliveryStreamName sets the DeliveryStreamName field's value.
+func (s *PutRecordBatchInput) SetDeliveryStreamName(v string) *PutRecordBatchInput {
+	s.DeliveryStreamName = &v
+	return s
+}
+
+// SetRecords sets the Records field's value.
+func (s *PutRecordBatchInput) SetRecords(v []*Record) *PutRecordBatchInput {
+	s.Records = v
+	return s
+}
+
 // Contains the output of PutRecordBatch.
 type PutRecordBatchOutput struct {
 	_ struct{} `type:"structure"`
@@ -1630,6 +2056,18 @@ func (s PutRecordBatchOutput) String() string {
 // GoString returns the string representation
 func (s PutRecordBatchOutput) GoString() string {
 	return s.String()
+}
+
+// SetFailedPutCount sets the FailedPutCount field's value.
+func (s *PutRecordBatchOutput) SetFailedPutCount(v int64) *PutRecordBatchOutput {
+	s.FailedPutCount = &v
+	return s
+}
+
+// SetRequestResponses sets the RequestResponses field's value.
+func (s *PutRecordBatchOutput) SetRequestResponses(v []*PutRecordBatchResponseEntry) *PutRecordBatchOutput {
+	s.RequestResponses = v
+	return s
 }
 
 // Contains the result for an individual record from a PutRecordBatch request.
@@ -1657,6 +2095,24 @@ func (s PutRecordBatchResponseEntry) String() string {
 // GoString returns the string representation
 func (s PutRecordBatchResponseEntry) GoString() string {
 	return s.String()
+}
+
+// SetErrorCode sets the ErrorCode field's value.
+func (s *PutRecordBatchResponseEntry) SetErrorCode(v string) *PutRecordBatchResponseEntry {
+	s.ErrorCode = &v
+	return s
+}
+
+// SetErrorMessage sets the ErrorMessage field's value.
+func (s *PutRecordBatchResponseEntry) SetErrorMessage(v string) *PutRecordBatchResponseEntry {
+	s.ErrorMessage = &v
+	return s
+}
+
+// SetRecordId sets the RecordId field's value.
+func (s *PutRecordBatchResponseEntry) SetRecordId(v string) *PutRecordBatchResponseEntry {
+	s.RecordId = &v
+	return s
 }
 
 // Contains the parameters for PutRecord.
@@ -1708,6 +2164,18 @@ func (s *PutRecordInput) Validate() error {
 	return nil
 }
 
+// SetDeliveryStreamName sets the DeliveryStreamName field's value.
+func (s *PutRecordInput) SetDeliveryStreamName(v string) *PutRecordInput {
+	s.DeliveryStreamName = &v
+	return s
+}
+
+// SetRecord sets the Record field's value.
+func (s *PutRecordInput) SetRecord(v *Record) *PutRecordInput {
+	s.Record = v
+	return s
+}
+
 // Contains the output of PutRecord.
 type PutRecordOutput struct {
 	_ struct{} `type:"structure"`
@@ -1726,6 +2194,12 @@ func (s PutRecordOutput) String() string {
 // GoString returns the string representation
 func (s PutRecordOutput) GoString() string {
 	return s.String()
+}
+
+// SetRecordId sets the RecordId field's value.
+func (s *PutRecordOutput) SetRecordId(v string) *PutRecordOutput {
+	s.RecordId = &v
+	return s
 }
 
 // The unit of data in a delivery stream.
@@ -1762,6 +2236,12 @@ func (s *Record) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetData sets the Data field's value.
+func (s *Record) SetData(v []byte) *Record {
+	s.Data = v
+	return s
 }
 
 // Describes the configuration of a destination in Amazon Redshift.
@@ -1871,6 +2351,54 @@ func (s *RedshiftDestinationConfiguration) Validate() error {
 	return nil
 }
 
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *RedshiftDestinationConfiguration) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *RedshiftDestinationConfiguration {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetClusterJDBCURL sets the ClusterJDBCURL field's value.
+func (s *RedshiftDestinationConfiguration) SetClusterJDBCURL(v string) *RedshiftDestinationConfiguration {
+	s.ClusterJDBCURL = &v
+	return s
+}
+
+// SetCopyCommand sets the CopyCommand field's value.
+func (s *RedshiftDestinationConfiguration) SetCopyCommand(v *CopyCommand) *RedshiftDestinationConfiguration {
+	s.CopyCommand = v
+	return s
+}
+
+// SetPassword sets the Password field's value.
+func (s *RedshiftDestinationConfiguration) SetPassword(v string) *RedshiftDestinationConfiguration {
+	s.Password = &v
+	return s
+}
+
+// SetRetryOptions sets the RetryOptions field's value.
+func (s *RedshiftDestinationConfiguration) SetRetryOptions(v *RedshiftRetryOptions) *RedshiftDestinationConfiguration {
+	s.RetryOptions = v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *RedshiftDestinationConfiguration) SetRoleARN(v string) *RedshiftDestinationConfiguration {
+	s.RoleARN = &v
+	return s
+}
+
+// SetS3Configuration sets the S3Configuration field's value.
+func (s *RedshiftDestinationConfiguration) SetS3Configuration(v *S3DestinationConfiguration) *RedshiftDestinationConfiguration {
+	s.S3Configuration = v
+	return s
+}
+
+// SetUsername sets the Username field's value.
+func (s *RedshiftDestinationConfiguration) SetUsername(v string) *RedshiftDestinationConfiguration {
+	s.Username = &v
+	return s
+}
+
 // Describes a destination in Amazon Redshift.
 type RedshiftDestinationDescription struct {
 	_ struct{} `type:"structure"`
@@ -1916,6 +2444,48 @@ func (s RedshiftDestinationDescription) String() string {
 // GoString returns the string representation
 func (s RedshiftDestinationDescription) GoString() string {
 	return s.String()
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *RedshiftDestinationDescription) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *RedshiftDestinationDescription {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetClusterJDBCURL sets the ClusterJDBCURL field's value.
+func (s *RedshiftDestinationDescription) SetClusterJDBCURL(v string) *RedshiftDestinationDescription {
+	s.ClusterJDBCURL = &v
+	return s
+}
+
+// SetCopyCommand sets the CopyCommand field's value.
+func (s *RedshiftDestinationDescription) SetCopyCommand(v *CopyCommand) *RedshiftDestinationDescription {
+	s.CopyCommand = v
+	return s
+}
+
+// SetRetryOptions sets the RetryOptions field's value.
+func (s *RedshiftDestinationDescription) SetRetryOptions(v *RedshiftRetryOptions) *RedshiftDestinationDescription {
+	s.RetryOptions = v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *RedshiftDestinationDescription) SetRoleARN(v string) *RedshiftDestinationDescription {
+	s.RoleARN = &v
+	return s
+}
+
+// SetS3DestinationDescription sets the S3DestinationDescription field's value.
+func (s *RedshiftDestinationDescription) SetS3DestinationDescription(v *S3DestinationDescription) *RedshiftDestinationDescription {
+	s.S3DestinationDescription = v
+	return s
+}
+
+// SetUsername sets the Username field's value.
+func (s *RedshiftDestinationDescription) SetUsername(v string) *RedshiftDestinationDescription {
+	s.Username = &v
+	return s
 }
 
 // Describes an update for a destination in Amazon Redshift.
@@ -1994,6 +2564,54 @@ func (s *RedshiftDestinationUpdate) Validate() error {
 	return nil
 }
 
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *RedshiftDestinationUpdate) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *RedshiftDestinationUpdate {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetClusterJDBCURL sets the ClusterJDBCURL field's value.
+func (s *RedshiftDestinationUpdate) SetClusterJDBCURL(v string) *RedshiftDestinationUpdate {
+	s.ClusterJDBCURL = &v
+	return s
+}
+
+// SetCopyCommand sets the CopyCommand field's value.
+func (s *RedshiftDestinationUpdate) SetCopyCommand(v *CopyCommand) *RedshiftDestinationUpdate {
+	s.CopyCommand = v
+	return s
+}
+
+// SetPassword sets the Password field's value.
+func (s *RedshiftDestinationUpdate) SetPassword(v string) *RedshiftDestinationUpdate {
+	s.Password = &v
+	return s
+}
+
+// SetRetryOptions sets the RetryOptions field's value.
+func (s *RedshiftDestinationUpdate) SetRetryOptions(v *RedshiftRetryOptions) *RedshiftDestinationUpdate {
+	s.RetryOptions = v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *RedshiftDestinationUpdate) SetRoleARN(v string) *RedshiftDestinationUpdate {
+	s.RoleARN = &v
+	return s
+}
+
+// SetS3Update sets the S3Update field's value.
+func (s *RedshiftDestinationUpdate) SetS3Update(v *S3DestinationUpdate) *RedshiftDestinationUpdate {
+	s.S3Update = v
+	return s
+}
+
+// SetUsername sets the Username field's value.
+func (s *RedshiftDestinationUpdate) SetUsername(v string) *RedshiftDestinationUpdate {
+	s.Username = &v
+	return s
+}
+
 // Configures retry behavior in the event that Firehose is unable to deliver
 // documents to Amazon Redshift.
 type RedshiftRetryOptions struct {
@@ -2015,6 +2633,12 @@ func (s RedshiftRetryOptions) String() string {
 // GoString returns the string representation
 func (s RedshiftRetryOptions) GoString() string {
 	return s.String()
+}
+
+// SetDurationInSeconds sets the DurationInSeconds field's value.
+func (s *RedshiftRetryOptions) SetDurationInSeconds(v int64) *RedshiftRetryOptions {
+	s.DurationInSeconds = &v
+	return s
 }
 
 // Describes the configuration of a destination in Amazon S3.
@@ -2100,6 +2724,48 @@ func (s *S3DestinationConfiguration) Validate() error {
 	return nil
 }
 
+// SetBucketARN sets the BucketARN field's value.
+func (s *S3DestinationConfiguration) SetBucketARN(v string) *S3DestinationConfiguration {
+	s.BucketARN = &v
+	return s
+}
+
+// SetBufferingHints sets the BufferingHints field's value.
+func (s *S3DestinationConfiguration) SetBufferingHints(v *BufferingHints) *S3DestinationConfiguration {
+	s.BufferingHints = v
+	return s
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *S3DestinationConfiguration) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *S3DestinationConfiguration {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetCompressionFormat sets the CompressionFormat field's value.
+func (s *S3DestinationConfiguration) SetCompressionFormat(v string) *S3DestinationConfiguration {
+	s.CompressionFormat = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *S3DestinationConfiguration) SetEncryptionConfiguration(v *EncryptionConfiguration) *S3DestinationConfiguration {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *S3DestinationConfiguration) SetPrefix(v string) *S3DestinationConfiguration {
+	s.Prefix = &v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *S3DestinationConfiguration) SetRoleARN(v string) *S3DestinationConfiguration {
+	s.RoleARN = &v
+	return s
+}
+
 // Describes a destination in Amazon S3.
 type S3DestinationDescription struct {
 	_ struct{} `type:"structure"`
@@ -2151,6 +2817,48 @@ func (s S3DestinationDescription) String() string {
 // GoString returns the string representation
 func (s S3DestinationDescription) GoString() string {
 	return s.String()
+}
+
+// SetBucketARN sets the BucketARN field's value.
+func (s *S3DestinationDescription) SetBucketARN(v string) *S3DestinationDescription {
+	s.BucketARN = &v
+	return s
+}
+
+// SetBufferingHints sets the BufferingHints field's value.
+func (s *S3DestinationDescription) SetBufferingHints(v *BufferingHints) *S3DestinationDescription {
+	s.BufferingHints = v
+	return s
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *S3DestinationDescription) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *S3DestinationDescription {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetCompressionFormat sets the CompressionFormat field's value.
+func (s *S3DestinationDescription) SetCompressionFormat(v string) *S3DestinationDescription {
+	s.CompressionFormat = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *S3DestinationDescription) SetEncryptionConfiguration(v *EncryptionConfiguration) *S3DestinationDescription {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *S3DestinationDescription) SetPrefix(v string) *S3DestinationDescription {
+	s.Prefix = &v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *S3DestinationDescription) SetRoleARN(v string) *S3DestinationDescription {
+	s.RoleARN = &v
+	return s
 }
 
 // Describes an update for a destination in Amazon S3.
@@ -2224,6 +2932,48 @@ func (s *S3DestinationUpdate) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucketARN sets the BucketARN field's value.
+func (s *S3DestinationUpdate) SetBucketARN(v string) *S3DestinationUpdate {
+	s.BucketARN = &v
+	return s
+}
+
+// SetBufferingHints sets the BufferingHints field's value.
+func (s *S3DestinationUpdate) SetBufferingHints(v *BufferingHints) *S3DestinationUpdate {
+	s.BufferingHints = v
+	return s
+}
+
+// SetCloudWatchLoggingOptions sets the CloudWatchLoggingOptions field's value.
+func (s *S3DestinationUpdate) SetCloudWatchLoggingOptions(v *CloudWatchLoggingOptions) *S3DestinationUpdate {
+	s.CloudWatchLoggingOptions = v
+	return s
+}
+
+// SetCompressionFormat sets the CompressionFormat field's value.
+func (s *S3DestinationUpdate) SetCompressionFormat(v string) *S3DestinationUpdate {
+	s.CompressionFormat = &v
+	return s
+}
+
+// SetEncryptionConfiguration sets the EncryptionConfiguration field's value.
+func (s *S3DestinationUpdate) SetEncryptionConfiguration(v *EncryptionConfiguration) *S3DestinationUpdate {
+	s.EncryptionConfiguration = v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *S3DestinationUpdate) SetPrefix(v string) *S3DestinationUpdate {
+	s.Prefix = &v
+	return s
+}
+
+// SetRoleARN sets the RoleARN field's value.
+func (s *S3DestinationUpdate) SetRoleARN(v string) *S3DestinationUpdate {
+	s.RoleARN = &v
+	return s
 }
 
 // Contains the parameters for UpdateDestination.
@@ -2311,6 +3061,42 @@ func (s *UpdateDestinationInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCurrentDeliveryStreamVersionId sets the CurrentDeliveryStreamVersionId field's value.
+func (s *UpdateDestinationInput) SetCurrentDeliveryStreamVersionId(v string) *UpdateDestinationInput {
+	s.CurrentDeliveryStreamVersionId = &v
+	return s
+}
+
+// SetDeliveryStreamName sets the DeliveryStreamName field's value.
+func (s *UpdateDestinationInput) SetDeliveryStreamName(v string) *UpdateDestinationInput {
+	s.DeliveryStreamName = &v
+	return s
+}
+
+// SetDestinationId sets the DestinationId field's value.
+func (s *UpdateDestinationInput) SetDestinationId(v string) *UpdateDestinationInput {
+	s.DestinationId = &v
+	return s
+}
+
+// SetElasticsearchDestinationUpdate sets the ElasticsearchDestinationUpdate field's value.
+func (s *UpdateDestinationInput) SetElasticsearchDestinationUpdate(v *ElasticsearchDestinationUpdate) *UpdateDestinationInput {
+	s.ElasticsearchDestinationUpdate = v
+	return s
+}
+
+// SetRedshiftDestinationUpdate sets the RedshiftDestinationUpdate field's value.
+func (s *UpdateDestinationInput) SetRedshiftDestinationUpdate(v *RedshiftDestinationUpdate) *UpdateDestinationInput {
+	s.RedshiftDestinationUpdate = v
+	return s
+}
+
+// SetS3DestinationUpdate sets the S3DestinationUpdate field's value.
+func (s *UpdateDestinationInput) SetS3DestinationUpdate(v *S3DestinationUpdate) *UpdateDestinationInput {
+	s.S3DestinationUpdate = v
+	return s
 }
 
 // Contains the output of UpdateDestination.
