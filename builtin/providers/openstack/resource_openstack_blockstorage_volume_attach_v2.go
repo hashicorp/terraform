@@ -16,7 +16,6 @@ func resourceBlockStorageVolumeAttachV2() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceBlockStorageVolumeAttachV2Create,
 		Read:   resourceBlockStorageVolumeAttachV2Read,
-		Update: nil,
 		Delete: resourceBlockStorageVolumeAttachV2Delete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -233,6 +232,7 @@ func blockStorageVolumeAttachV2AttachMode(v string) (volumeactions.AttachMode, e
 	var attachError error
 	switch v {
 	case "":
+		attachMode = ""
 	case "ro":
 		attachMode = volumeactions.ReadOnly
 	case "rw":

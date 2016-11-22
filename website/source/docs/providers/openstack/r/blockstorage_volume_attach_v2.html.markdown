@@ -53,6 +53,7 @@ The following arguments are supported:
 
 * `attach_mode` - (Optional) Specify whether to attach the volume as Read-Only
   (`ro`) or Read-Write (`rw`). Only values of `ro` and `rw` are accepted.
+  If left unspecified, the Block Storage API will apply a default of `rw`.
 
 ## Attributes Reference
 
