@@ -1,0 +1,182 @@
+package aws
+
+import (
+	"fmt"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/hashicorp/terraform/helper/schema"
+)
+
+func dataSourceAwsDbSnapshot() *schema.Resource {
+	return &schema.Resource{
+		Read: dataSourceAwsDbSnapshotRead,
+
+		Schema: map[string]*schema.Schema{
+			//selection criteria
+			"filter": dataSourceFiltersSchema(),
+
+			"db_instance_identifier": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"db_snapshot_identifier": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"snapshot_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"include_shared": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"include_public": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			//Computed values returned
+			"allocated_storage": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"availability_zone": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"db_snapshot_arn": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"encrypted": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"engine": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"engine_version": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"iops": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"kms_key_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"license_model": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"option_group_name": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"port": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"source_db_snapshot_identifier": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"source_region": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"status": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"storage_type": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"vpc_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func dataSourceAwsDbSnapshotRead(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).rdsconn
+
+	instanceIdentifier, instanceIdentifierOk := d.GetOk("db_instance_identifier")
+	filters, filtersOk := d.GetOk("filter")
+	snapshotIdentifier, snapshotIdentifierOk := d.GetOk("db_snapshot_identifier")
+
+	if instanceIdentifierOk == false && filtersOk == false && snapshotIdentifierOk == false {
+		return fmt.Errorf("One of db_snapshot_indentifier, db_instance_identifier or filter must be assigned")
+	}
+
+	params := &rds.DescribeDBSnapshotsInput{}
+	if instanceIdentifierOk {
+		params.DBInstanceIdentifier = aws.String(instanceIdentifier.(string))
+	}
+	if snapshotIdentifierOk {
+		params.DBSnapshotIdentifier = aws.String(snapshotIdentifier.(string))
+	}
+	if filtersOk {
+		params.Filters = buildAwsDataSourceFilters(filters.(*schema.Set))
+	}
+
+	if v, ok := d.GetOk("include_shared"); ok {
+		params.IncludeShared = aws.Bool(v.(bool))
+	}
+
+	if v, ok := d.GetOk("include_public"); ok {
+		params.IncludePublic = aws.Bool(v.(bool))
+	}
+
+	resp, err := conn.DescribeDBSnapshots(params)
+	if err != nil {
+		return err
+	}
+
+	if len(resp.DBSnapshots) < 1 {
+		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
+	}
+
+	if len(resp.DBSnapshots) > 1 {
+		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria.")
+	}
+
+	return dbSnapshotDescriptionAttributes(d, resp.DBSnapshots[0])
+}
+
+func dbSnapshotDescriptionAttributes(d *schema.ResourceData, snapshot *rds.DBSnapshot) error {
+	d.SetId(*snapshot.DBInstanceIdentifier)
+	d.Set("db_instance_identifier", snapshot.DBInstanceIdentifier)
+	d.Set("db_snapshot_identifier", snapshot.DBSnapshotIdentifier)
+	d.Set("snapshot_type", snapshot.SnapshotType)
+
+	d.Set("allocated_storage", snapshot.AllocatedStorage)
+	d.Set("availability_zone", snapshot.AvailabilityZone)
+	d.Set("db_snapshot_arn", snapshot.DBSnapshotArn)
+	d.Set("encrypted", snapshot.Encrypted)
+	d.Set("engine", snapshot.Engine)
+	d.Set("engine_version", snapshot.EngineVersion)
+	d.Set("iops", snapshot.Iops)
+	d.Set("kms_key_id", snapshot.KmsKeyId)
+	d.Set("license_model", snapshot.LicenseModel)
+	d.Set("option_group_name", snapshot.OptionGroupName)
+	d.Set("port", snapshot.Port)
+	d.Set("source_db_snapshot_identifier", snapshot.SourceDBSnapshotIdentifier)
+	d.Set("source_region", snapshot.SourceRegion)
+	d.Set("sstatus", snapshot.Status)
+	d.Set("vpc_id", snapshot.VpcId)
+
+	return nil
+}
