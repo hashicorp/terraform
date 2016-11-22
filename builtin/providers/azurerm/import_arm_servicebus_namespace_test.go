@@ -8,16 +8,16 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAzureRMSqlFirewallRule_importBasic(t *testing.T) {
-	resourceName := "azurerm_sql_firewall_rule.test"
+func TestAccAzureRMServiceBusNamespace_importBasic(t *testing.T) {
+	resourceName := "azurerm_servicebus_namespace.test"
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMSqlFirewallRule_basic, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMServiceBusNamespace_basic, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMSqlFirewallRuleDestroy,
+		CheckDestroy: testCheckAzureRMServiceBusNamespaceDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: config,

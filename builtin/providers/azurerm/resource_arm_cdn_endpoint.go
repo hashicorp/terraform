@@ -18,6 +18,9 @@ func resourceArmCdnEndpoint() *schema.Resource {
 		Read:   resourceArmCdnEndpointRead,
 		Update: resourceArmCdnEndpointUpdate,
 		Delete: resourceArmCdnEndpointDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -234,6 +237,9 @@ func resourceArmCdnEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
+	d.Set("profile_name", profileName)
 	d.Set("host_name", resp.Properties.HostName)
 	d.Set("is_compression_enabled", resp.Properties.IsCompressionEnabled)
 	d.Set("is_http_allowed", resp.Properties.IsHTTPAllowed)
@@ -245,7 +251,7 @@ func resourceArmCdnEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	if resp.Properties.OriginPath != nil && *resp.Properties.OriginPath != "" {
 		d.Set("origin_path", resp.Properties.OriginPath)
 	}
-	if resp.Properties.ContentTypesToCompress != nil && len(*resp.Properties.ContentTypesToCompress) > 0 {
+	if resp.Properties.ContentTypesToCompress != nil {
 		d.Set("content_types_to_compress", flattenAzureRMCdnEndpointContentTypes(resp.Properties.ContentTypesToCompress))
 	}
 	d.Set("origin", flattenAzureRMCdnEndpointOrigin(resp.Properties.Origins))

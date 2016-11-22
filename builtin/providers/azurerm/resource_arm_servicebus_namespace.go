@@ -145,6 +145,8 @@ func resourceArmServiceBusNamespaceRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("sku", strings.ToLower(string(resp.Sku.Name)))
 	d.Set("capacity", resp.Sku.Capacity)
 
