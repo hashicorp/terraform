@@ -270,12 +270,30 @@ func (r *ConfigFieldReader) hasComputedSubKeys(key string, schema *Schema) bool 
 	switch t := schema.Elem.(type) {
 	case *Resource:
 		for k, schema := range t.Schema {
-			if r.Config.IsComputed(prefix + k) {
+			addr := prefix + k
+			if r.Config.IsComputed(addr) {
 				return true
 			}
 
-			if r.hasComputedSubKeys(prefix+k, schema) {
-				return true
+			// We need to loop into sets and lists to ensure we pass the correct
+			// address to the raw config - otherwise for sets we get something like
+			// set.0.set.item instead of set.0.set.0.item, which renders an
+			// inaccurate result.
+			if schema.Type == TypeSet || schema.Type == TypeList {
+				raw, err := readListField(&nestedConfigFieldReader{r}, strings.Split(addr, "."), schema)
+				if err != nil {
+					panic(fmt.Errorf("readListField failed when field was supposed to be list-like: %v", err))
+				}
+				// Just range into the address space here, we don't need the value.
+				for i := range raw.Value.([]interface{}) {
+					if r.hasComputedSubKeys(addr+"."+strconv.Itoa(i), schema) {
+						return true
+					}
+				}
+			} else {
+				if r.hasComputedSubKeys(addr, schema) {
+					return true
+				}
 			}
 		}
 	}
