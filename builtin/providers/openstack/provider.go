@@ -125,6 +125,13 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("OS_KEY", ""),
 				Description: descriptions["key"],
 			},
+
+			"swauth": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_SWAUTH", ""),
+				Description: descriptions["swauth"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -196,6 +203,9 @@ func init() {
 		"cert": "A client certificate to authenticate with.",
 
 		"key": "A client private key to authenticate with.",
+
+		"swauth": "Use Swift's authentication system instead of Keystone. Only used for\n" +
+			"interaction with Swift.",
 	}
 }
 
@@ -210,6 +220,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		IdentityEndpoint: d.Get("auth_url").(string),
 		Insecure:         d.Get("insecure").(bool),
 		Password:         d.Get("password").(string),
+		Swauth:           d.Get("swauth").(bool),
 		Token:            d.Get("token").(string),
 		TenantID:         d.Get("tenant_id").(string),
 		TenantName:       d.Get("tenant_name").(string),

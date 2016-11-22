@@ -1378,6 +1378,12 @@
 			"revisionTime": "2016-10-31T15:28:56Z"
 		},
 		{
+			"checksumSHA1": "roxPPVwS2CjJhf0CApHNQxAX7EA=",
+			"path": "github.com/gophercloud/gophercloud/openstack/objectstorage/v1/swauth",
+			"revision": "d5eda9707e146108e4d424062b602fd97a71c2e6",
+			"revisionTime": "2016-11-14T18:28:31Z"
+		},
+		{
 			"checksumSHA1": "TDOZnaS0TO0NirpxV1QwPerAQTY=",
 			"path": "github.com/gophercloud/gophercloud/openstack/utils",
 			"revision": "e3d6384a3714b335d075862e6eb0a681180643df",
