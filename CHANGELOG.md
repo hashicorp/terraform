@@ -15,6 +15,7 @@ IMPROVEMENTS:
  * provider/aws: Addition of suspended_processes to aws_autoscaling_group [GH-10096]
  * provider/aws: added auto_minor_version_upgrade on aws_rds_cluster_insstance [GH-10284]
  * provider/aws: Add JSON validation to the aws_iam_policy resource [GH-10239]
+ * provider/azurerm: enable import of more resources [GH-10195]
  * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file [GH-10105]
  * provider/google: Add Service Accounts resource [GH-9946]
  * provider/nomad: Update to support Nomad 0.5.0
