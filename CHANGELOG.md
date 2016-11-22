@@ -13,6 +13,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: Addition of suspended_processes to aws_autoscaling_group [GH-10096]
+ * provider/aws: added auto_minor_version_upgrade on aws_rds_cluster_insstance [GH-10284]
  * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file [GH-10105]
  * provider/google: Add Service Accounts resource [GH-9946]
  * provider/nomad: Update to support Nomad 0.5.0
