@@ -1150,6 +1150,12 @@
 			"revisionTime": "2016-10-25T18:03:21Z"
 		},
 		{
+			"checksumSHA1": "XAKLUSwXSMGtbp+U874qU4MzT/A=",
+			"path": "github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions",
+			"revision": "d5eda9707e146108e4d424062b602fd97a71c2e6",
+			"revisionTime": "2016-11-14T18:28:31Z"
+		},
+		{
 			"checksumSHA1": "PFD8SEqhArAy/6jRbIlYb5lp64k=",
 			"path": "github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes",
 			"revision": "e3d6384a3714b335d075862e6eb0a681180643df",
