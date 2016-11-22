@@ -57,6 +57,9 @@ The following arguments are supported:
   for connecting to the Docker host via TLS. If this is blank, the
   `DOCKER_CERT_PATH` will also be checked.
 
+* `ca_material`, `cert_material`, `key_material`, - (Optional) Content of `ca.pem`, `cert.pem`, and `key.pem` files
+  for TLS authentication. Cannot be used together with `cert_path`.
+
 ~> **NOTE on Certificates and `docker-machine`:**  As per [Docker Remote API
 documentation](https://docs.docker.com/engine/reference/api/docker_remote_api/),
 in any docker-machine environment, the Docker daemon uses an encrypted TCP
