@@ -95,6 +95,12 @@ func (s *Scanner) next() rune {
 		s.srcPos.Column = 0
 	}
 
+	// If we see a null character with data left, then that is an error
+	if ch == '\x00' && s.buf.Len() > 0 {
+		s.err("unexpected null character (0x00)")
+		return eof
+	}
+
 	// debug
 	// fmt.Printf("ch: %q, offset:column: %d:%d\n", ch, s.srcPos.Offset, s.srcPos.Column)
 	return ch
