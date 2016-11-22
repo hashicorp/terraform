@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -196,10 +195,9 @@ func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta inte
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "[DEBUG] Creating new Region Backend Service: %#v", service) // DO NOT SUBMIT
 	log.Printf("[DEBUG] Creating new Region Backend Service: %#v", service)
 
-	op, err := config.clientComputeBeta.RegionBackendServices.Insert(
+	op, err := config.clientCompute.RegionBackendServices.Insert(
 		project, region, &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating backend service: %s", err)
@@ -209,7 +207,7 @@ func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta inte
 
 	d.SetId(service.Name)
 
-	err = computeOperationWaitGlobalBeta(config, op, project, "Creating Backend Service")
+	err = computeOperationWaitRegion(config, op, project, region, "Creating Region Backend Service")
 	if err != nil {
 		return err
 	}
@@ -230,7 +228,7 @@ func resourceComputeRegionBackendServiceRead(d *schema.ResourceData, meta interf
 		return err
 	}
 
-	service, err := config.clientComputeBeta.RegionBackendServices.Get(
+	service, err := config.clientCompute.RegionBackendServices.Get(
 		project, region, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
@@ -310,7 +308,7 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 	}
 
 	log.Printf("[DEBUG] Updating existing Backend Service %q: %#v", d.Id(), service)
-	op, err := config.clientComputeBeta.RegionBackendServices.Update(
+	op, err := config.clientCompute.RegionBackendServices.Update(
 		project, region, d.Id(), &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error updating backend service: %s", err)
@@ -318,7 +316,7 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 
 	d.SetId(service.Name)
 
-	err = computeOperationWaitGlobalBeta(config, op, project, "Updating Backend Service")
+	err = computeOperationWaitRegion(config, op, project, region, "Updating Backend Service")
 	if err != nil {
 		return err
 	}
@@ -340,13 +338,13 @@ func resourceComputeRegionBackendServiceDelete(d *schema.ResourceData, meta inte
 	}
 
 	log.Printf("[DEBUG] Deleting backend service %s", d.Id())
-	op, err := config.clientComputeBeta.RegionBackendServices.Delete(
+	op, err := config.clientCompute.RegionBackendServices.Delete(
 		project, region, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting backend service: %s", err)
 	}
 
-	err = computeOperationWaitGlobalBeta(config, op, project, "Deleting Backend Service")
+	err = computeOperationWaitRegion(config, op, project, region, "Deleting Backend Service")
 	if err != nil {
 		return err
 	}
@@ -354,61 +352,6 @@ func resourceComputeRegionBackendServiceDelete(d *schema.ResourceData, meta inte
 	d.SetId("")
 	return nil
 }
-
-// func expandBackends(configured []interface{}) []*compute.Backend {
-// 	backends := make([]*compute.Backend, 0, len(configured))
-
-// 	for _, raw := range configured {
-// 		data := raw.(map[string]interface{})
-
-// 		b := compute.Backend{
-// 			Group: data["group"].(string),
-// 		}
-
-// 		if v, ok := data["balancing_mode"]; ok {
-// 			b.BalancingMode = v.(string)
-// 		}
-// 		if v, ok := data["capacity_scaler"]; ok {
-// 			b.CapacityScaler = v.(float64)
-// 		}
-// 		if v, ok := data["description"]; ok {
-// 			b.Description = v.(string)
-// 		}
-// 		if v, ok := data["max_rate"]; ok {
-// 			b.MaxRate = int64(v.(int))
-// 		}
-// 		if v, ok := data["max_rate_per_instance"]; ok {
-// 			b.MaxRatePerInstance = v.(float64)
-// 		}
-// 		if v, ok := data["max_utilization"]; ok {
-// 			b.MaxUtilization = v.(float64)
-// 		}
-
-// 		backends = append(backends, &b)
-// 	}
-
-// 	return backends
-// }
-
-// func flattenBackends(backends []*compute.Backend) []map[string]interface{} {
-// 	result := make([]map[string]interface{}, 0, len(backends))
-
-// 	for _, b := range backends {
-// 		data := make(map[string]interface{})
-
-// 		data["balancing_mode"] = b.BalancingMode
-// 		data["capacity_scaler"] = b.CapacityScaler
-// 		data["description"] = b.Description
-// 		data["group"] = b.Group
-// 		data["max_rate"] = b.MaxRate
-// 		data["max_rate_per_instance"] = b.MaxRatePerInstance
-// 		data["max_utilization"] = b.MaxUtilization
-
-// 		result = append(result, data)
-// 	}
-
-// 	return result
-// }
 
 func resourceGoogleComputeRegionBackendServiceBackendHash(v interface{}) int {
 	if v == nil {

@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -69,12 +69,20 @@ func resourceComputeForwardingRule() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"port_range": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"ports": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+				Set:      schema.HashString,
 			},
 
 			"project": &schema.Schema{
@@ -100,6 +108,7 @@ func resourceComputeForwardingRule() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 		},
 	}
@@ -118,6 +127,12 @@ func resourceComputeForwardingRuleCreate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
+	ps := d.Get("ports").(*schema.Set).List()
+	ports := make([]string, 0, len(ps))
+	for _, v := range ps {
+		ports = append(ports, v.(string))
+	}
+
 	frule := &compute.ForwardingRule{
 		BackendService:      d.Get("backend_service").(string),
 		IPAddress:           d.Get("ip_address").(string),
@@ -127,12 +142,13 @@ func resourceComputeForwardingRuleCreate(d *schema.ResourceData, meta interface{
 		Name:                d.Get("name").(string),
 		Network:             d.Get("network").(string),
 		PortRange:           d.Get("port_range").(string),
+		Ports:               ports,
 		Subnetwork:          d.Get("subnetwork").(string),
 		Target:              d.Get("target").(string),
 	}
 
 	log.Printf("[DEBUG] ForwardingRule insert request: %#v", frule)
-	op, err := config.clientComputeBeta.ForwardingRules.Insert(
+	op, err := config.clientCompute.ForwardingRules.Insert(
 		project, region, frule).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating ForwardingRule: %s", err)
@@ -141,7 +157,7 @@ func resourceComputeForwardingRuleCreate(d *schema.ResourceData, meta interface{
 	// It probably maybe worked, so store the ID now
 	d.SetId(frule.Name)
 
-	err = computeOperationWaitRegionBeta(config, op, project, region, "Creating Fowarding Rule")
+	err = computeOperationWaitRegion(config, op, project, region, "Creating Fowarding Rule")
 	if err != nil {
 		return err
 	}
@@ -167,13 +183,13 @@ func resourceComputeForwardingRuleUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("target") {
 		target_name := d.Get("target").(string)
 		target_ref := &compute.TargetReference{Target: target_name}
-		op, err := config.clientComputeBeta.ForwardingRules.SetTarget(
+		op, err := config.clientCompute.ForwardingRules.SetTarget(
 			project, region, d.Id(), target_ref).Do()
 		if err != nil {
 			return fmt.Errorf("Error updating target: %s", err)
 		}
 
-		err = computeOperationWaitRegionBeta(config, op, project, region, "Updating Forwarding Rule")
+		err = computeOperationWaitRegion(config, op, project, region, "Updating Forwarding Rule")
 		if err != nil {
 			return err
 		}
@@ -199,7 +215,7 @@ func resourceComputeForwardingRuleRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	frule, err := config.clientComputeBeta.ForwardingRules.Get(
+	frule, err := config.clientCompute.ForwardingRules.Get(
 		project, region, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
@@ -220,6 +236,7 @@ func resourceComputeForwardingRuleRead(d *schema.ResourceData, meta interface{})
 	d.Set("load_balancing_scheme", frule.LoadBalancingScheme)
 	d.Set("network", frule.Network)
 	d.Set("port_range", frule.PortRange)
+	d.Set("ports", frule.Ports)
 	d.Set("project", project)
 	d.Set("region", region)
 	d.Set("subnetwork", frule.Subnetwork)
@@ -244,13 +261,13 @@ func resourceComputeForwardingRuleDelete(d *schema.ResourceData, meta interface{
 
 	// Delete the ForwardingRule
 	log.Printf("[DEBUG] ForwardingRule delete request")
-	op, err := config.clientComputeBeta.ForwardingRules.Delete(
+	op, err := config.clientCompute.ForwardingRules.Delete(
 		project, region, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting ForwardingRule: %s", err)
 	}
 
-	err = computeOperationWaitRegionBeta(config, op, project, region, "Deleting Forwarding Rule")
+	err = computeOperationWaitRegion(config, op, project, region, "Deleting Forwarding Rule")
 	if err != nil {
 		return err
 	}

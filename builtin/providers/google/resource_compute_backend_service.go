@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -100,12 +99,6 @@ func resourceComputeBackendService() *schema.Resource {
 				Computed: true,
 			},
 
-			"load_balancing_scheme": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
 			"port_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -192,22 +185,13 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 		service.EnableCDN = v.(bool)
 	}
 
-	if v, ok := d.GetOk("load_balancing_scheme"); ok {
-		service.LoadBalancingScheme = v.(string)
-	}
-
-	if v, ok := d.GetOk("region"); ok {
-		service.Region = v.(string)
-	}
-
 	project, err := getProject(d, config)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "[DEBUG] Creating new Backend Service: %#v", service)
 	log.Printf("[DEBUG] Creating new Backend Service: %#v", service)
-	op, err := config.clientComputeBeta.BackendServices.Insert(
+	op, err := config.clientCompute.BackendServices.Insert(
 		project, &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating backend service: %s", err)
@@ -217,7 +201,7 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 
 	d.SetId(service.Name)
 
-	err = computeOperationWaitGlobalBeta(config, op, project, "Creating Backend Service")
+	err = computeOperationWaitGlobal(config, op, project, "Creating Backend Service")
 	if err != nil {
 		return err
 	}
@@ -233,7 +217,7 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	service, err := config.clientComputeBeta.BackendServices.Get(
+	service, err := config.clientCompute.BackendServices.Get(
 		project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
@@ -254,7 +238,6 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	d.Set("session_affinity", service.SessionAffinity)
 	d.Set("timeout_sec", service.TimeoutSec)
 	d.Set("fingerprint", service.Fingerprint)
-	d.Set("load_balancing_scheme", service.LoadBalancingScheme)
 	d.Set("self_link", service.SelfLink)
 
 	d.Set("backend", flattenBackends(service.Backends))
@@ -304,16 +287,12 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 		service.SessionAffinity = d.Get("session_affinity").(string)
 	}
 
-	if v, ok := d.GetOk("load_balancing_scheme"); ok {
-		service.LoadBalancingScheme = v.(string)
-	}
-
 	if d.HasChange("enable_cdn") {
 		service.EnableCDN = d.Get("enable_cdn").(bool)
 	}
 
 	log.Printf("[DEBUG] Updating existing Backend Service %q: %#v", d.Id(), service)
-	op, err := config.clientComputeBeta.BackendServices.Update(
+	op, err := config.clientCompute.BackendServices.Update(
 		project, d.Id(), &service).Do()
 	if err != nil {
 		return fmt.Errorf("Error updating backend service: %s", err)
@@ -321,7 +300,7 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 
 	d.SetId(service.Name)
 
-	err = computeOperationWaitGlobalBeta(config, op, project, "Updating Backend Service")
+	err = computeOperationWaitGlobal(config, op, project, "Updating Backend Service")
 	if err != nil {
 		return err
 	}
@@ -338,13 +317,13 @@ func resourceComputeBackendServiceDelete(d *schema.ResourceData, meta interface{
 	}
 
 	log.Printf("[DEBUG] Deleting backend service %s", d.Id())
-	op, err := config.clientComputeBeta.BackendServices.Delete(
+	op, err := config.clientCompute.BackendServices.Delete(
 		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting backend service: %s", err)
 	}
 
-	err = computeOperationWaitGlobalBeta(config, op, project, "Deleting Backend Service")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Backend Service")
 	if err != nil {
 		return err
 	}

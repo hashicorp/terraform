@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
-	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -25,15 +24,6 @@ const (
 type ComputeOperationWaiter struct {
 	Service *compute.Service
 	Op      *compute.Operation
-	Project string
-	Region  string
-	Type    ComputeOperationWaitType
-	Zone    string
-}
-
-type ComputeOperationWaiterBeta struct {
-	Service *computeBeta.Service
-	Op      *computeBeta.Operation
 	Project string
 	Region  string
 	Type    ComputeOperationWaitType
@@ -70,45 +60,7 @@ func (w *ComputeOperationWaiter) RefreshFunc() resource.StateRefreshFunc {
 	}
 }
 
-func (w *ComputeOperationWaiterBeta) RefreshFunc() resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		var op *computeBeta.Operation
-		var err error
-
-		switch w.Type {
-		case ComputeOperationWaitGlobal:
-			op, err = w.Service.GlobalOperations.Get(
-				w.Project, w.Op.Name).Do()
-		case ComputeOperationWaitRegion:
-			op, err = w.Service.RegionOperations.Get(
-				w.Project, w.Region, w.Op.Name).Do()
-		case ComputeOperationWaitZone:
-			op, err = w.Service.ZoneOperations.Get(
-				w.Project, w.Zone, w.Op.Name).Do()
-		default:
-			return nil, "bad-type", fmt.Errorf(
-				"Invalid wait type: %#v", w.Type)
-		}
-
-		if err != nil {
-			return nil, "", err
-		}
-
-		log.Printf("[DEBUG] Got %q when asking for operation %q", op.Status, w.Op.Name)
-
-		return op, op.Status, nil
-	}
-}
-
 func (w *ComputeOperationWaiter) Conf() *resource.StateChangeConf {
-	return &resource.StateChangeConf{
-		Pending: []string{"PENDING", "RUNNING"},
-		Target:  []string{"DONE"},
-		Refresh: w.RefreshFunc(),
-	}
-}
-
-func (w *ComputeOperationWaiterBeta) Conf() *resource.StateChangeConf {
 	return &resource.StateChangeConf{
 		Pending: []string{"PENDING", "RUNNING"},
 		Target:  []string{"DONE"},
@@ -119,19 +71,8 @@ func (w *ComputeOperationWaiterBeta) Conf() *resource.StateChangeConf {
 // ComputeOperationError wraps compute.OperationError and implements the
 // error interface so it can be returned.
 type ComputeOperationError compute.OperationError
-type ComputeOperationErrorBeta computeBeta.OperationError
 
 func (e ComputeOperationError) Error() string {
-	var buf bytes.Buffer
-
-	for _, err := range e.Errors {
-		buf.WriteString(err.Message + "\n")
-	}
-
-	return buf.String()
-}
-
-func (e ComputeOperationErrorBeta) Error() string {
 	var buf bytes.Buffer
 
 	for _, err := range e.Errors {
@@ -170,31 +111,6 @@ func computeOperationWaitGlobalTime(config *Config, op *compute.Operation, proje
 	return nil
 }
 
-func computeOperationWaitGlobalBeta(config *Config, op *computeBeta.Operation, project string, activity string) error {
-	w := &ComputeOperationWaiterBeta{
-		Service: config.clientComputeBeta,
-		Op:      op,
-		Project: project,
-		Type:    ComputeOperationWaitGlobal,
-	}
-
-	state := w.Conf()
-	state.Delay = 10 * time.Second
-	state.Timeout = 4 * time.Minute
-	state.MinTimeout = 2 * time.Second
-	opRaw, err := state.WaitForState()
-	if err != nil {
-		return fmt.Errorf("Error waiting for %s: %s", activity, err)
-	}
-
-	op = opRaw.(*computeBeta.Operation)
-	if op.Error != nil {
-		return ComputeOperationErrorBeta(*op.Error)
-	}
-
-	return nil
-}
-
 func computeOperationWaitRegion(config *Config, op *compute.Operation, project string, region, activity string) error {
 	w := &ComputeOperationWaiter{
 		Service: config.clientCompute,
@@ -216,32 +132,6 @@ func computeOperationWaitRegion(config *Config, op *compute.Operation, project s
 	op = opRaw.(*compute.Operation)
 	if op.Error != nil {
 		return ComputeOperationError(*op.Error)
-	}
-
-	return nil
-}
-
-func computeOperationWaitRegionBeta(config *Config, op *computeBeta.Operation, project string, region, activity string) error {
-	w := &ComputeOperationWaiterBeta{
-		Service: config.clientComputeBeta,
-		Op:      op,
-		Project: project,
-		Type:    ComputeOperationWaitRegion,
-		Region:  region,
-	}
-
-	state := w.Conf()
-	state.Delay = 10 * time.Second
-	state.Timeout = 4 * time.Minute
-	state.MinTimeout = 2 * time.Second
-	opRaw, err := state.WaitForState()
-	if err != nil {
-		return fmt.Errorf("Error waiting for %s: %s", activity, err)
-	}
-
-	op = opRaw.(*computeBeta.Operation)
-	if op.Error != nil {
-		return ComputeOperationErrorBeta(*op.Error)
 	}
 
 	return nil
