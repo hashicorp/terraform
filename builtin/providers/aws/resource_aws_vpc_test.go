@@ -28,6 +28,8 @@ func TestAccAWSVpc_basic(t *testing.T) {
 						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
 					resource.TestCheckResourceAttrSet(
 						"aws_vpc.foo", "default_route_table_id"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "enable_dns_support", "true"),
 				),
 			},
 		},
@@ -298,7 +300,7 @@ resource "aws_vpc" "bar" {
 
 const testAccVpcConfig_DisabledDnsSupport = `
 provider "aws" {
-	region = "eu-central-1"
+	region = "us-west-2"
 }
 
 resource "aws_vpc" "bar" {
