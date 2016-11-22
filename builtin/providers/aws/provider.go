@@ -277,6 +277,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_db_option_group":                          resourceAwsDbOptionGroup(),
 			"aws_db_parameter_group":                       resourceAwsDbParameterGroup(),
 			"aws_db_security_group":                        resourceAwsDbSecurityGroup(),
+			"aws_db_snapshot":                              resourceAwsDbSnapshot(),
 			"aws_db_subnet_group":                          resourceAwsDbSubnetGroup(),
 			"aws_directory_service_directory":              resourceAwsDirectoryServiceDirectory(),
 			"aws_dms_certificate":                          resourceAwsDmsCertificate(),
