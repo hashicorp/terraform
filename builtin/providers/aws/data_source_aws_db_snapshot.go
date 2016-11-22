@@ -2,6 +2,9 @@ package aws
 
 import (
 	"fmt"
+	"log"
+	"sort"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
@@ -14,31 +17,42 @@ func dataSourceAwsDbSnapshot() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			//selection criteria
-			"filter": dataSourceFiltersSchema(),
-
 			"db_instance_identifier": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"db_snapshot_identifier": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"snapshot_type": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"include_shared": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
+				Default:  false,
 			},
 
 			"include_public": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
+			"most_recent": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
 			},
 
 			//Computed values returned
@@ -94,6 +108,10 @@ func dataSourceAwsDbSnapshot() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"snapshot_create_time": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"status": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -114,30 +132,24 @@ func dataSourceAwsDbSnapshotRead(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).rdsconn
 
 	instanceIdentifier, instanceIdentifierOk := d.GetOk("db_instance_identifier")
-	filters, filtersOk := d.GetOk("filter")
 	snapshotIdentifier, snapshotIdentifierOk := d.GetOk("db_snapshot_identifier")
 
-	if instanceIdentifierOk == false && filtersOk == false && snapshotIdentifierOk == false {
-		return fmt.Errorf("One of db_snapshot_indentifier, db_instance_identifier or filter must be assigned")
+	if !instanceIdentifierOk && !snapshotIdentifierOk {
+		return fmt.Errorf("One of db_snapshot_indentifier or db_instance_identifier must be assigned")
 	}
 
-	params := &rds.DescribeDBSnapshotsInput{}
+	params := &rds.DescribeDBSnapshotsInput{
+		IncludePublic: aws.Bool(d.Get("include_public").(bool)),
+		IncludeShared: aws.Bool(d.Get("include_shared").(bool)),
+	}
+	if v, ok := d.GetOk("snapshot_type"); ok {
+		params.SnapshotType = aws.String(v.(string))
+	}
 	if instanceIdentifierOk {
 		params.DBInstanceIdentifier = aws.String(instanceIdentifier.(string))
 	}
 	if snapshotIdentifierOk {
 		params.DBSnapshotIdentifier = aws.String(snapshotIdentifier.(string))
-	}
-	if filtersOk {
-		params.Filters = buildAwsDataSourceFilters(filters.(*schema.Set))
-	}
-
-	if v, ok := d.GetOk("include_shared"); ok {
-		params.IncludeShared = aws.Bool(v.(bool))
-	}
-
-	if v, ok := d.GetOk("include_public"); ok {
-		params.IncludePublic = aws.Bool(v.(bool))
 	}
 
 	resp, err := conn.DescribeDBSnapshots(params)
@@ -149,11 +161,34 @@ func dataSourceAwsDbSnapshotRead(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
 	}
 
+	var snapshot *rds.DBSnapshot
 	if len(resp.DBSnapshots) > 1 {
-		return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria.")
+		recent := d.Get("most_recent").(bool)
+		log.Printf("[DEBUG] aws_db_snapshot - multiple results found and `most_recent` is set to: %t", recent)
+		if recent {
+			snapshot = mostRecentDbSnapshot(resp.DBSnapshots)
+		} else {
+			return fmt.Errorf("Your query returned more than one result. Please try a more specific search criteria.")
+		}
+	} else {
+		snapshot = resp.DBSnapshots[0]
 	}
 
-	return dbSnapshotDescriptionAttributes(d, resp.DBSnapshots[0])
+	return dbSnapshotDescriptionAttributes(d, snapshot)
+}
+
+type rdsSnapshotSort []*rds.DBSnapshot
+
+func (a rdsSnapshotSort) Len() int      { return len(a) }
+func (a rdsSnapshotSort) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a rdsSnapshotSort) Less(i, j int) bool {
+	return (*a[i].SnapshotCreateTime).Before(*a[j].SnapshotCreateTime)
+}
+
+func mostRecentDbSnapshot(snapshots []*rds.DBSnapshot) *rds.DBSnapshot {
+	sortedSnapshots := snapshots
+	sort.Sort(rdsSnapshotSort(sortedSnapshots))
+	return sortedSnapshots[len(sortedSnapshots)-1]
 }
 
 func dbSnapshotDescriptionAttributes(d *schema.ResourceData, snapshot *rds.DBSnapshot) error {
@@ -161,7 +196,6 @@ func dbSnapshotDescriptionAttributes(d *schema.ResourceData, snapshot *rds.DBSna
 	d.Set("db_instance_identifier", snapshot.DBInstanceIdentifier)
 	d.Set("db_snapshot_identifier", snapshot.DBSnapshotIdentifier)
 	d.Set("snapshot_type", snapshot.SnapshotType)
-
 	d.Set("allocated_storage", snapshot.AllocatedStorage)
 	d.Set("availability_zone", snapshot.AvailabilityZone)
 	d.Set("db_snapshot_arn", snapshot.DBSnapshotArn)
@@ -175,8 +209,9 @@ func dbSnapshotDescriptionAttributes(d *schema.ResourceData, snapshot *rds.DBSna
 	d.Set("port", snapshot.Port)
 	d.Set("source_db_snapshot_identifier", snapshot.SourceDBSnapshotIdentifier)
 	d.Set("source_region", snapshot.SourceRegion)
-	d.Set("sstatus", snapshot.Status)
+	d.Set("status", snapshot.Status)
 	d.Set("vpc_id", snapshot.VpcId)
+	d.Set("snapshot_create_time", snapshot.SnapshotCreateTime.Format(time.RFC3339))
 
 	return nil
 }
