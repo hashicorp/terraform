@@ -1,7 +1,12 @@
 package aws
 
 import (
+	"fmt"
+	"log"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -109,6 +114,12 @@ func resourceAwsDbSnapshotCreate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 	d.SetId(d.Get("db_snapshot_identifier").(string))
+
+	_, err = resourceAwsDbSnapshotWaitForAvailable(d.Id(), conn)
+	if err != nil {
+		return err
+	}
+
 	return resourceAwsDbSnapshotRead(d, meta)
 }
 
@@ -157,4 +168,48 @@ func resourceAwsDbSnapshotDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	return nil
+}
+
+func resourceAwsDbSnapshotWaitForAvailable(id string, conn *rds.RDS) (*rds.DBSnapshot, error) {
+	log.Printf("Waiting for Snapshot %s to become available...", id)
+
+	req := &rds.DescribeDBSnapshotsInput{
+		DBSnapshotIdentifier: aws.String(id),
+	}
+	pollsWhereNotFound := 0
+	for {
+		res, err := conn.DescribeDBSnapshots(req)
+		if err != nil {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "DBSnapshotNotFound" {
+				pollsWhereNotFound++
+				// We arbitrarily stop polling after getting a "not found" error five times,
+				// assuming that the Snapshot has been deleted by something other than Terraform.
+				if pollsWhereNotFound > 100 {
+					return nil, fmt.Errorf("gave up waiting for Snapshot to be created: %s", err)
+				}
+				time.Sleep(30 * time.Second)
+				continue
+			}
+			return nil, fmt.Errorf("error reading DB Snapshot: %s", err)
+		}
+
+		if len(res.DBSnapshots) != 1 {
+			return nil, fmt.Errorf("new Snapshot vanished while pending")
+		}
+
+		state := *res.DBSnapshots[0].Status
+
+		if state == "creating" {
+			// Give it a few seconds before we poll again.
+			time.Sleep(4 * time.Second)
+			continue
+		}
+
+		if state == "available" {
+			// We're done!
+			return res.DBSnapshots[0], nil
+		}
+
+		return nil, fmt.Errorf("new Snapshot became %s while pending", state)
+	}
 }
