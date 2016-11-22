@@ -49,6 +49,23 @@ func (a *ZipArchiver) ArchiveFile(infilename string) error {
 	return a.ArchiveContent(content, fi.Name())
 }
 
+func (a *ZipArchiver) ArchiveMultiple(content map[string][]byte) error {
+	if err := a.open(); err != nil {
+		return err
+	}
+	defer a.close()
+	for filename, contents := range content {
+		f, err := a.writer.Create(filename)
+		if err != nil {
+			return err
+		}
+		_, err = f.Write(contents)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (a *ZipArchiver) ArchiveDir(indirname string) error {
 	_, err := assertValidDir(indirname)
 	if err != nil {
