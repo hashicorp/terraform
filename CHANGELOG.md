@@ -117,6 +117,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * core: Data sources in modules lose their `data.` prefix when moved within the state [GH-9996]
  * provider/aws: Fixed issue with `enable_dns_support` on creation in `aws_vpc` [GH-10171]
  * provider/aws: Add CertificateNotFound retry waiter to aws_alb_listener [GH-10180]
  * provider/aws: Remove IAM user's MFA devices with `force_destroy` [GH-10262]
