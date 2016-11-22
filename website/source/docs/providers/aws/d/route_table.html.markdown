@@ -17,7 +17,7 @@ the Route Table.
 ## Example Usage
 
 The following example shows how one might accept a Route Table id as a variable
-and use this data source to obtain the data necessary to create a subnet.
+and use this data source to obtain the data necessary to create a route.
 
 ```
 variable "subnet_id" {}
