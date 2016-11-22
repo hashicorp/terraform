@@ -792,7 +792,9 @@ func flattenAzureRmVirtualMachineDiagnosticsProfile(profile *compute.BootDiagnos
 	result := make(map[string]interface{})
 
 	result["enabled"] = *profile.Enabled
-	result["storage_uri"] = *profile.StorageURI
+	if profile.StorageURI != nil {
+		result["storage_uri"] = *profile.StorageURI
+	}
 
 	return []interface{}{result}
 }
