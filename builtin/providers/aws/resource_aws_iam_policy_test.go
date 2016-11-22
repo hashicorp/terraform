@@ -28,6 +28,18 @@ func TestAWSPolicy_namePrefix(t *testing.T) {
 						"aws_iam_policy.policy", "test-policy-"),
 				),
 			},
+			resource.TestStep{
+			  Config: testAccIAMPolicyConfig,
+			  Check: resource.ComposeTestCheckFunc(
+			  	testAccCheckAWSPolicyExists("aws_iam_policy.foo", &out),
+			  ),
+			},
+			resource.TestStep{
+			  Config: testAccIAMPolicyConfigUpdate,
+			  Check: resource.ComposeTestCheckFunc(
+			  	testAccCheckAWSPolicyExists("aws_iam_policy.foo", &out),
+			  ),
+			},
 		},
 	})
 }
@@ -122,5 +134,19 @@ resource "aws_iam_policy" "policy" {
   ]
 }
 EOF
+}
+`
+
+const testAccIAMPolicyConfig = `
+resource "aws_iam_policy" "foo" {
+  name = "foo_policy"
+  policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+}
+`
+
+const testAccIAMPolicyConfigUpdate = `
+resource "aws_iam_policy" "foo" {
+  name = "foo_policy"
+  policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"ec2:Describe*\",\"Resource\":\"*\"}}"
 }
 `
