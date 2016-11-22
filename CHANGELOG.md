@@ -8,6 +8,8 @@ FEATURES:
  * core: allow outputs to have descriptions [GH-9722]
  * state/azure: support passing of lease ID when writing storage blob [GH-10115]
  * **New Resource:** `aws_ebs_snapshot` [GH-10017]
+ * **New Resource:** `openstack_blockstorage_volume_attach_v2` [GH-10259]
+ * **New Resource:** `openstack_compute_volume_attach_v2` [GH-10260]
  * **New Data Source:** `aws_ebs_snapshot` [GH-10017]
 
 IMPROVEMENTS:
