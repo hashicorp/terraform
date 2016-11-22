@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 )
 
 func TestAccComputeBackendService_basic(t *testing.T) {
@@ -122,7 +122,7 @@ func testAccCheckComputeBackendServiceDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := config.clientComputeBeta.BackendServices.Get(
+		_, err := config.clientCompute.BackendServices.Get(
 			config.Project, rs.Primary.ID).Do()
 		if err == nil {
 			return fmt.Errorf("Backend service still exists")
@@ -145,7 +145,7 @@ func testAccCheckComputeBackendServiceExists(n string, svc *compute.BackendServi
 
 		config := testAccProvider.Meta().(*Config)
 
-		found, err := config.clientComputeBeta.BackendServices.Get(
+		found, err := config.clientCompute.BackendServices.Get(
 			config.Project, rs.Primary.ID).Do()
 		if err != nil {
 			return err
@@ -221,39 +221,11 @@ func TestAccComputeBackendService_withSessionAffinity(t *testing.T) {
 	}
 }
 
-func TestAccComputeBackendService_withInternalLoadBalancing(t *testing.T) {
-	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
-	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
-	var svc compute.BackendService
-
-	// config := testAccProvider.Meta().(*Config)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeBackendService_withInternalLoadBalancing(
-					serviceName, checkName, "us-central1"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeBackendServiceExists(
-						"google_compute_backend_service.foobar", &svc),
-				),
-			},
-		},
-	})
-
-	if svc.LoadBalancingScheme != "INTERNAL" {
-		t.Errorf("Expected LoadBalancingScheme == INTERNAL, got %q", svc.EnableCDN)
-	}
-}
-
 func testAccComputeBackendService_basic(serviceName, checkName string) string {
 	return fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
   name          = "%s"
-  health_checks = ["${google_compute_http_health_check.zero.name}"]
+  health_checks = ["${google_compute_http_health_check.zero.self_link}"]
 }
 
 resource "google_compute_http_health_check" "zero" {
@@ -280,25 +252,6 @@ resource "google_compute_http_health_check" "zero" {
   timeout_sec        = 1
 }
 `, serviceName, checkName)
-}
-
-func testAccComputeBackendService_withInternalLoadBalancing(serviceName, checkName, region string) string {
-
-	return fmt.Sprintf(`
-resource "google_compute_backend_service" "foobar" {
-  name                  = "%s"
-  health_checks         = ["${google_compute_http_health_check.zero.self_link}"]
-  load_balancing_scheme = "INTERNAL"
-  region                = "%s"
-}
-
-resource "google_compute_http_health_check" "zero" {
-  name               = "%s"
-  request_path       = "/"
-  check_interval_sec = 1
-  timeout_sec        = 1
-}
-`, serviceName, region, checkName)
 }
 
 func testAccComputeBackendService_basicModified(serviceName, checkOne, checkTwo string) string {

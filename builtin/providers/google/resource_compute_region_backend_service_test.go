@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 )
 
 func TestAccComputeRegionBackendService_basic(t *testing.T) {
@@ -122,7 +122,7 @@ func testAccCheckComputeRegionBackendServiceDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := config.clientComputeBeta.RegionBackendServices.Get(
+		_, err := config.clientCompute.RegionBackendServices.Get(
 			config.Project, config.Region, rs.Primary.ID).Do()
 		if err == nil {
 			return fmt.Errorf("Backend service still exists")
@@ -145,7 +145,7 @@ func testAccCheckComputeRegionBackendServiceExists(n string, svc *compute.Backen
 
 		config := testAccProvider.Meta().(*Config)
 
-		found, err := config.clientComputeBeta.RegionBackendServices.Get(
+		found, err := config.clientCompute.RegionBackendServices.Get(
 			config.Project, config.Region, rs.Primary.ID).Do()
 		if err != nil {
 			return err
@@ -259,13 +259,14 @@ resource "google_compute_region_backend_service" "foobar" {
   name                  = "%s"
   health_checks         = ["${google_compute_health_check.zero.self_link}"]
   load_balancing_scheme = "INTERNAL"
+  region                = "%s"
 }
 
 resource "google_compute_health_check" "zero" {
   name               = "%s"
   check_interval_sec = 1
   timeout_sec        = 1
-  
+
   tcp_health_check {
     port = "80"
   }
