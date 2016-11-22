@@ -17,6 +17,7 @@ IMPROVEMENTS:
  * provider/aws: Add JSON validation to the aws_iam_policy resource [GH-10239]
  * provider/azurerm: enable import of more resources [GH-10195]
  * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file [GH-10105]
+ * provider/docker: authentication via values instead of files [GH-10151]
  * provider/google: Add Service Accounts resource [GH-9946]
  * provider/nomad: Update to support Nomad 0.5.0
 
