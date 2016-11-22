@@ -22,53 +22,53 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"identifier": &schema.Schema{
+			"identifier": {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validateRdsId,
 			},
 
-			"db_subnet_group_name": &schema.Schema{
+			"db_subnet_group_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"writer": &schema.Schema{
+			"writer": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
 
-			"cluster_identifier": &schema.Schema{
+			"cluster_identifier": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"port": &schema.Schema{
+			"port": {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
 
-			"publicly_accessible": &schema.Schema{
+			"publicly_accessible": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"instance_class": &schema.Schema{
+			"instance_class": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"db_parameter_group_name": &schema.Schema{
+			"db_parameter_group_name": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -77,35 +77,41 @@ func resourceAwsRDSClusterInstance() *schema.Resource {
 			// apply_immediately is used to determine when the update modifications
 			// take place.
 			// See http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html
-			"apply_immediately": &schema.Schema{
+			"apply_immediately": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 			},
 
-			"kms_key_id": &schema.Schema{
+			"kms_key_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"storage_encrypted": &schema.Schema{
+			"storage_encrypted": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
 
-			"monitoring_role_arn": &schema.Schema{
+			"auto_minor_version_upgrade": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+
+			"monitoring_role_arn": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 
-			"monitoring_interval": &schema.Schema{
+			"monitoring_interval": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  0,
 			},
 
-			"promotion_tier": &schema.Schema{
+			"promotion_tier": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  0,
@@ -121,12 +127,13 @@ func resourceAwsRDSClusterInstanceCreate(d *schema.ResourceData, meta interface{
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 
 	createOpts := &rds.CreateDBInstanceInput{
-		DBInstanceClass:     aws.String(d.Get("instance_class").(string)),
-		DBClusterIdentifier: aws.String(d.Get("cluster_identifier").(string)),
-		Engine:              aws.String("aurora"),
-		PubliclyAccessible:  aws.Bool(d.Get("publicly_accessible").(bool)),
-		PromotionTier:       aws.Int64(int64(d.Get("promotion_tier").(int))),
-		Tags:                tags,
+		DBInstanceClass:         aws.String(d.Get("instance_class").(string)),
+		DBClusterIdentifier:     aws.String(d.Get("cluster_identifier").(string)),
+		Engine:                  aws.String("aurora"),
+		PubliclyAccessible:      aws.Bool(d.Get("publicly_accessible").(bool)),
+		PromotionTier:           aws.Int64(int64(d.Get("promotion_tier").(int))),
+		AutoMinorVersionUpgrade: aws.Bool(d.Get("auto_minor_version_upgrade").(bool)),
+		Tags: tags,
 	}
 
 	if attr, ok := d.GetOk("db_parameter_group_name"); ok {
@@ -230,6 +237,7 @@ func resourceAwsRDSClusterInstanceRead(d *schema.ResourceData, meta interface{})
 	d.Set("identifier", db.DBInstanceIdentifier)
 	d.Set("storage_encrypted", db.StorageEncrypted)
 	d.Set("kms_key_id", db.KmsKeyId)
+	d.Set("auto_minor_version_upgrade", db.AutoMinorVersionUpgrade)
 	d.Set("promotion_tier", db.PromotionTier)
 
 	if db.MonitoringInterval != nil {
@@ -269,13 +277,11 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("db_parameter_group_name") {
 		req.DBParameterGroupName = aws.String(d.Get("db_parameter_group_name").(string))
 		requestUpdate = true
-
 	}
 
 	if d.HasChange("instance_class") {
 		req.DBInstanceClass = aws.String(d.Get("instance_class").(string))
 		requestUpdate = true
-
 	}
 
 	if d.HasChange("monitoring_role_arn") {
@@ -287,6 +293,12 @@ func resourceAwsRDSClusterInstanceUpdate(d *schema.ResourceData, meta interface{
 	if d.HasChange("monitoring_interval") {
 		d.SetPartial("monitoring_interval")
 		req.MonitoringInterval = aws.Int64(int64(d.Get("monitoring_interval").(int)))
+		requestUpdate = true
+	}
+
+	if d.HasChange("auto_minor_version_upgrade") {
+		d.SetPartial("auto_minor_version_upgrade")
+		req.AutoMinorVersionUpgrade = aws.Bool(d.Get("auto_minor_version_upgrade").(bool))
 		requestUpdate = true
 	}
 
