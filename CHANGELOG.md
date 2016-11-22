@@ -20,6 +20,7 @@ IMPROVEMENTS:
  * provider/docker: authentication via values instead of files [GH-10151]
  * provider/google: Add Service Accounts resource [GH-9946]
  * provider/nomad: Update to support Nomad 0.5.0
+ * provider/openstack: Add Swauth/Swift Authentication
 
 BUG FIXES:
 
