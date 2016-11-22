@@ -2356,10 +2356,10 @@
 			"revisionTime": "2016-03-24T17:48:31Z"
 		},
 		{
-			"checksumSHA1": "K2ewXgyH/uLdvOdg2ad02Z6Jym0=",
+			"checksumSHA1": "wIomSQkpEQ6U71+hZStbt7+ttOQ=",
 			"path": "google.golang.org/api/compute/v1",
-			"revision": "3f131f305a2ae45080e71fdb780128cc92e8745e",
-			"revisionTime": "2016-08-05T04:28:55Z"
+			"revision": "c8d75a8ec737f9b8b1ed2676c28feedbe21f543f",
+			"revisionTime": "2016-11-21T18:05:46Z"
 		},
 		{
 			"checksumSHA1": "vnUDudEduSBUqwC+jVs6xt1Sm0w=",
