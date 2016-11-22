@@ -105,3 +105,11 @@ used to represent a lengh of time. The supported format is documented [here](htt
 The following attributes are exported:
 
 * `id` - The ServiceBus Subscription ID.
+
+## Import
+
+Service Bus Subscriptions can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_servicebus_subscription.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.servicebus/namespaces/sbns1/topics/sntopic1/subscriptions/sbsub1
+```

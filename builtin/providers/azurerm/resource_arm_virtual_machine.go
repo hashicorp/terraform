@@ -20,6 +20,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 		Read:   resourceArmVirtualMachineRead,
 		Update: resourceArmVirtualMachineCreate,
 		Delete: resourceArmVirtualMachineDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -44,7 +47,6 @@ func resourceArmVirtualMachine() *schema.Resource {
 			"plan": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -558,6 +560,10 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 		}
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine %s: %s", name, err)
 	}
+
+	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", resp.Location)
 
 	if resp.Plan != nil {
 		if err := d.Set("plan", flattenAzureRmVirtualMachinePlan(resp.Plan)); err != nil {
