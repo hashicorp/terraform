@@ -102,31 +102,33 @@ BUG FIXES:
   * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
   * command/fmt: Multiline comments aren't indented every fmt. ([#6524](https://github.com/hashicorp/terraform/issues/6524))
 
-## 0.7.12 (Unreleased)
+## 0.7.12 (November 22, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * provider/cloudstack: `cloudstack_port_forward` has now deprecated `network_id` [GH-10204]
+ * provider/cloudstack: `cloudstack_port_forward` has now deprecated `network_id` ([#10204](https://github.com/hashicorp/terraform/issues/10204))
 
 FEATURES:
- * **New Data Source:** `aws_alb_listener` [GH-10181]
- * **New Data Source:** `aws_alb` [GH-10196]
- * **New Resource:** `github_label` [GH-10213]
+
+ * *New Data Source:* `aws_alb_listener` ([#10181](https://github.com/hashicorp/terraform/issues/10181))
+ * *New Resource:* `github_label` ([#10213](https://github.com/hashicorp/terraform/issues/10213))
 
 IMPROVEMENTS:
- * provider/aws: Add name_prefix to aws_iam_policy [GH-10178]
- * provider/aws: Add ability to select aws_prefix_list data source by name [GH-10248]
- * provider/aws Return service CIDR blocks from aws_vpc_endpoint resource [GH-10254]
- * provider/aws: Added `environment` configuration for AWS Lambda Functions [GH-10275]
+
+ * core: Experimental feature failures are less verbose. ([#10276](https://github.com/hashicorp/terraform/issues/10276))
+ * provider/aws: Add name_prefix to aws_iam_policy ([#10178](https://github.com/hashicorp/terraform/issues/10178))
+ * provider/aws: Add ability to select aws_prefix_list data source by name ([#10248](https://github.com/hashicorp/terraform/issues/10248))
+ * provider/aws Return service CIDR blocks from aws_vpc_endpoint resource ([#10254](https://github.com/hashicorp/terraform/issues/10254))
+ * provider/aws: Added `environment` configuration for AWS Lambda Functions ([#10275](https://github.com/hashicorp/terraform/issues/10275))
 
 BUG FIXES:
 
- * core: Data sources in modules lose their `data.` prefix when moved within the state [GH-9996]
- * provider/aws: Fixed issue with `enable_dns_support` on creation in `aws_vpc` [GH-10171]
- * provider/aws: Add CertificateNotFound retry waiter to aws_alb_listener [GH-10180]
- * provider/aws: Remove IAM user's MFA devices with `force_destroy` [GH-10262]
- * provider/aws: aws_autoscaling_group ALB target group capacity support [GH-10243]
- * provider/scaleway: improve volume attachment [GH-10084]
+ * core: Fix potential crashing race condition on state write ([#10277](https://github.com/hashicorp/terraform/issues/10277))
+ * core: Data sources in modules lose their `data.` prefix when moved within the state ([#9996](https://github.com/hashicorp/terraform/issues/9996))
+ * provider/aws: Fixed issue with `enable_dns_support` on creation in `aws_vpc` ([#10171](https://github.com/hashicorp/terraform/issues/10171))
+ * provider/aws: Add CertificateNotFound retry waiter to aws_alb_listener ([#10180](https://github.com/hashicorp/terraform/issues/10180))
+ * provider/aws: Remove IAM user's MFA devices with `force_destroy` ([#10262](https://github.com/hashicorp/terraform/issues/10262))
+ * provider/scaleway: improve volume attachment ([#10084](https://github.com/hashicorp/terraform/issues/10084))
 
 ## 0.7.11 (November 15, 2016)
 
