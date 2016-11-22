@@ -19,6 +19,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * core: Catch parse errors for null characters mid-file [GH-9134]
  * core: escape sequence for " works (0.8 beta regression) [GH-10236]
  * core: Terraform starts on Windows (0.8 beta2 regression) [GH-10266]
 
