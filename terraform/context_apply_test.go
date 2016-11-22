@@ -2007,6 +2007,115 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_moduleInheritAlias(t *testing.T) {
+	m := testModule(t, "apply-module-provider-inherit-alias")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if _, ok := c.Get("child"); !ok {
+			return nil
+		}
+
+		if _, ok := c.Get("root"); ok {
+			return fmt.Errorf("child should not get root")
+		}
+
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+    provider = aws.eu
+	`)
+}
+
+func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
+	m := testModule(t, "apply-module-provider-inherit-alias-orphan")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	called := false
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		called = true
+
+		if _, ok := c.Get("child"); !ok {
+			return nil
+		}
+
+		if _, ok := c.Get("root"); ok {
+			return fmt.Errorf("child should not get root")
+		}
+
+		return nil
+	}
+
+	// Create a state with an orphan module
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+						Provider: "aws.eu",
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		State:  state,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !called {
+		t.Fatal("must call configure")
+	}
+
+	checkStateString(t, state, `
+module.child:
+  <no state>
+  `)
+}
+
 func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 	m := testModule(t, "apply-module-orphan-provider-inherit")
 	p := testProvider("aws")
