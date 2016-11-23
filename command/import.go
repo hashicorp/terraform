@@ -32,6 +32,7 @@ func (c *ImportCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&configPath, "config", pwd, "path")
+	cmdFlags.StringVar(&c.Meta.provider, "provider", "", "provider")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -62,8 +63,9 @@ func (c *ImportCommand) Run(args []string) int {
 	newState, err := ctx.Import(&terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
-				Addr: args[0],
-				ID:   args[1],
+				Addr:     args[0],
+				ID:       args[1],
+				Provider: c.Meta.provider,
 			},
 		},
 	})
@@ -137,6 +139,8 @@ Options:
 
   -state-out=path     Path to write updated state file. By default, the
                       "-state" path will be used.
+
+  -provider=provider  Provider used for import. Defaults to: ""
 
 `
 	return strings.TrimSpace(helpText)
