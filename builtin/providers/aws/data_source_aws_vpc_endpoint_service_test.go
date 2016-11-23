@@ -2,29 +2,28 @@ package aws
 
 import (
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccDataSourceAwsVpcEndpointServices(t *testing.T) {
+func TestAccDataSourceAwsVpcEndpointService(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDataSourceAwsVpcEndpointServicesConfig,
+				Config: testAccDataSourceAwsVpcEndpointServiceConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceAwsVpcEndpointServicesCheck("data.aws_vpc_endpoint_services.endpoint_services"),
+					testAccDataSourceAwsVpcEndpointServiceCheck("data.aws_vpc_endpoint_service.s3"),
 				),
 			},
 		},
 	})
 }
 
-func testAccDataSourceAwsVpcEndpointServicesCheck(name string) resource.TestCheckFunc {
+func testAccDataSourceAwsVpcEndpointServiceCheck(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
@@ -33,26 +32,21 @@ func testAccDataSourceAwsVpcEndpointServicesCheck(name string) resource.TestChec
 
 		attr := rs.Primary.Attributes
 
-		var (
-			n   int
-			err error
-		)
-
-		if n, err = strconv.Atoi(attr["names.#"]); err != nil {
-			return err
-		}
-		if n < 1 {
-			return fmt.Errorf("Number of services seem suspiciously low: %d", n)
+		name := attr["service_name"]
+		if name != "com.amazonaws.us-west-2.s3" {
+			return fmt.Errorf("bad service name %s", name)
 		}
 
 		return nil
 	}
 }
 
-const testAccDataSourceAwsVpcEndpointServicesConfig = `
+const testAccDataSourceAwsVpcEndpointServiceConfig = `
 provider "aws" {
   region = "us-west-2"
 }
 
-data "aws_vpc_endpoint_services" "endpoint_services" {}
+data "aws_vpc_endpoint_service" "s3" {
+  service = "s3"
+}
 `
