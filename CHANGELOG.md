@@ -111,6 +111,7 @@ BUG FIXES:
 IMPROVEMENTS:
 
 BUG FIXES:
+ * provider/aws: fix crash on aws_lambda with empty environment. [GH-10306]
 
 ## 0.7.12 (November 22, 2016)
 
