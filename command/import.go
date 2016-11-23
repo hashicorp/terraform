@@ -134,13 +134,15 @@ Options:
 
   -no-color           If specified, output won't contain any color.
 
+  -provider=provider  Specific provider to use for import. This is used for
+                      specifying aliases, such as "aws.eu". Defaults to the
+                      normal provider prefix of the resource being imported.
+
   -state=path         Path to read and save state (unless state-out
                       is specified). Defaults to "terraform.tfstate".
 
   -state-out=path     Path to write updated state file. By default, the
                       "-state" path will be used.
-
-  -provider=provider  Provider used for import. Defaults to: ""
 
 `
 	return strings.TrimSpace(helpText)

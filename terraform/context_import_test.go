@@ -1,4 +1,3 @@
-// TODO
 package terraform
 
 import (
