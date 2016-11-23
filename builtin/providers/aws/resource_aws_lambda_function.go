@@ -333,7 +333,7 @@ func resourceAwsLambdaFunctionRead(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("source_code_hash", function.CodeSha256)
 
-	if err := d.Set("environment", flattenLambdaEnvironment(function.Environment.Variables)); err != nil {
+	if err := d.Set("environment", flattenLambdaEnvironment(function.Environment)); err != nil {
 		log.Printf("[ERR] Error setting environment for Lambda Function (%s): %s", d.Id(), err)
 	}
 
