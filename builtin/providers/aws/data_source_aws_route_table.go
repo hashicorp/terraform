@@ -13,19 +13,19 @@ func dataSourceAwsRouteTable() *schema.Resource {
 		Read: dataSourceAwsRouteTableRead,
 
 		Schema: map[string]*schema.Schema{
-			"subnet_id": &schema.Schema{
+			"subnet_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
 			"filter": ec2CustomFiltersSchema(),
 
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -72,7 +72,6 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	rt := resp.RouteTables[0]
 
 	d.SetId(*rt.RouteTableId)
-	d.Set("id", *rt.RouteTableId)
 	d.Set("vpc_id", rt.VpcId)
 	d.Set("tags", tagsToMap(rt.Tags))
 
