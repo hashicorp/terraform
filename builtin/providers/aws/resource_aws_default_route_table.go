@@ -188,6 +188,11 @@ func revokeAllRouteTableRules(defaultRouteTableId string, meta interface{}) erro
 		if r.GatewayId != nil && *r.GatewayId == "local" {
 			continue
 		}
+		if r.DestinationPrefixListId != nil {
+			// Skipping because VPC endpoint routes are handled separately
+			// See aws_vpc_endpoint
+			continue
+		}
 		log.Printf(
 			"[INFO] Deleting route from %s: %s",
 			defaultRouteTableId, *r.DestinationCidrBlock)
