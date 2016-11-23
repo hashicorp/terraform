@@ -1,5 +1,11 @@
 ## 0.8.0-rc1 (unreleased)
 
+BASED ON: 0.7.13 (includes any changes up to that point as well)
+
+**Please read prior beta notes, as those are also included. The 0.8 changes
+will be coalesced for a 0.8 final, but will remain separate for the pre-release
+period.**
+
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * The chef provider now accepts `key_material` as an alternative to `private_key_pem`. `private_key_pem` will be deprecated in a future release
@@ -109,12 +115,15 @@ BUG FIXES:
   * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
   * command/fmt: Multiline comments aren't indented every fmt. ([#6524](https://github.com/hashicorp/terraform/issues/6524))
 
-## 0.7.13 (Unreleased)
+## 0.7.14 (unreleased)
 
-IMPROVEMENTS:
+
+
+## 0.7.13 (November 23, 2016)
 
 BUG FIXES:
- * provider/aws: fix crash on aws_lambda with empty environment. [GH-10306]
+
+ * core: New graph records dependencies for explicit self references [GH-10319]
 
 ## 0.7.12 (November 22, 2016)
 
