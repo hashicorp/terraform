@@ -22,6 +22,9 @@ func TestAccConsulKeys_basic(t *testing.T) {
 					testAccCheckConsulKeysValue("consul_keys.app", "enabled", "true"),
 					testAccCheckConsulKeysValue("consul_keys.app", "set", "acceptance"),
 					testAccCheckConsulKeysValue("consul_keys.app", "remove_one", "hello"),
+					testAccCheckConsulKeysValue("consul_keys.app", "remove_one", "hello"),
+					testAccCheckConsulKeysValue("consul_keys.app", "test_dot_env_a", "42"),
+					testAccCheckConsulKeysValue("consul_keys.app", "test_dot_env_b", "21"),
 				),
 			},
 			resource.TestStep{
@@ -30,7 +33,10 @@ func TestAccConsulKeys_basic(t *testing.T) {
 					testAccCheckConsulKeysExists(),
 					testAccCheckConsulKeysValue("consul_keys.app", "enabled", "true"),
 					testAccCheckConsulKeysValue("consul_keys.app", "set", "acceptanceUpdated"),
+					testAccCheckConsulKeysValue("consul_keys.app", "test_dot_env_a", "42"),
+					testAccCheckConsulKeysValue("consul_keys.app", "test_dot_env_c", "21"),
 					testAccCheckConsulKeysRemoved("consul_keys.app", "remove_one"),
+					testAccCheckConsulKeysRemoved("consul_keys.app", "test_dot_env_b"),
 				),
 			},
 		},
@@ -119,6 +125,11 @@ resource "consul_keys" "app" {
 		value = "hello"
 		delete = true
 	}
+
+	dot_env {
+       file = "test_dot_env_a=42\ntest_dot_env_b=21\n"
+       base_path = "test"
+    }
 }
 `
 
@@ -136,5 +147,10 @@ resource "consul_keys" "app" {
 		value = "acceptanceUpdated"
 		delete = true
 	}
+
+	dot_env {
+       file = "test_dot_env_a=42\ntest_dot_env_c=21\n"
+       base_path = "test"
+    }
 }
 `

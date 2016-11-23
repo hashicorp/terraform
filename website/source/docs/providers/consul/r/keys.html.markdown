@@ -21,6 +21,14 @@ remove errant keys not present in the configuration, consider using the
 ## Example Usage
 
 ```
+data "template_file" "dot_env" {
+    template = "${file("${path.module}/.env.tpl")}"
+
+    vars {
+        app_dns_name = "${aws_elb.app.dns_name}"
+    }
+}
+
 resource "consul_keys" "app" {
     datacenter = "nyc1"
     token = "abcd"
@@ -31,7 +39,29 @@ resource "consul_keys" "app" {
         path = "service/app/elb_address"
         value = "${aws_elb.app.dns_name}"
     }
+
+    # Import k/v from a .env file
+    dot_env {
+        file = "${file("${path.module}/.env")}"
+        base_path = "service/app"
+    }
+
+    # Import k/v from a templated .env.dist file
+    dot_env {
+        file = "${data.template_file.dot_env.rendered}"
+        base_path = "service/app"
+    }
 }
+```
+
+```
+# .env
+ELB_PORT=80
+```
+
+```
+# .env.tpl
+APP_PATH=http://${app_dns_name}:80/v1
 ```
 
 ## Argument Reference
@@ -44,7 +74,10 @@ The following arguments are supported:
 * `token` - (Optional) The ACL token to use. This overrides the
   token that the agent provides by default.
 
-* `key` - (Required) Specifies a key in Consul to be written.
+* `key` - (Optional) Specifies a key in Consul to be written.
+  Supported values documented below.
+
+* `dot_env` - (Optional) Specifies .env file to be loaded into Consul.
   Supported values documented below.
 
 The `key` block supports the following:
@@ -57,6 +90,12 @@ The `key` block supports the following:
   either its configuration block is removed from the configuration or
   the entire resource is destroyed. Otherwise, it will be left in Consul.
   Defaults to false.
+
+The `key` block supports the following:
+
+* `base_path` - (Required) This is the path prefix in Consul that should be written to.
+
+* `file` - (Required) The path of the .env to load into Consul.
 
 ### Deprecated `key` arguments
 
