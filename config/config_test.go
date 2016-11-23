@@ -161,6 +161,13 @@ func TestConfigValidate_table(t *testing.T) {
 			true,
 			"non-existent module 'foo'",
 		},
+
+		{
+			"data source with provisioners",
+			"validate-data-provisioner",
+			true,
+			"data sources cannot have",
+		},
 	}
 
 	for i, tc := range cases {
