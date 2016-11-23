@@ -72,11 +72,14 @@ type Meta struct {
 	// allowed when walking the graph
 	//
 	// shadow is used to enable/disable the shadow graph
+	//
+	// provider is to specify specific resource providers
 	statePath    string
 	stateOutPath string
 	backupPath   string
 	parallelism  int
 	shadow       bool
+	provider     string
 }
 
 // initStatePaths is used to initialize the default values for

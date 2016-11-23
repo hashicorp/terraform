@@ -49,6 +49,9 @@ The command-line flags are all optional. The list of available flags are:
   the state path. Ignored when [remote state](/docs/state/remote/index.html) is
   used.
 
+* `-provider=provider` - Provider used for import. Defaults to the default
+  provider of the resource to import.
+
 ## Provider Configuration
 
 Terraform will attempt to load configuration files that configure the
