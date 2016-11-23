@@ -16,10 +16,9 @@ func TestAccDataSourceAwsRouteTable(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataSourceAwsRouteTableGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_id"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_tag"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_filter"),
-					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_subnet_id"),
+					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_subnet"),
 				),
 			},
 		},
@@ -29,6 +28,7 @@ func TestAccDataSourceAwsRouteTable(t *testing.T) {
 func testAccDataSourceAwsRouteTableCheck(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
+
 		if !ok {
 			return fmt.Errorf("root module has no resource called %s", name)
 		}
@@ -40,6 +40,10 @@ func testAccDataSourceAwsRouteTableCheck(name string) resource.TestCheckFunc {
 		vpcRs, ok := s.RootModule().Resources["aws_vpc.test"]
 		if !ok {
 			return fmt.Errorf("can't find aws_vpc.test in state")
+		}
+		subnetRs, ok := s.RootModule().Resources["aws_subnet.test"]
+		if !ok {
+			return fmt.Errorf("can't find aws_subnet.test in state")
 		}
 		attr := rs.Primary.Attributes
 
@@ -61,6 +65,13 @@ func testAccDataSourceAwsRouteTableCheck(name string) resource.TestCheckFunc {
 
 		if attr["tags.Name"] != "terraform-testacc-routetable-data-source" {
 			return fmt.Errorf("bad Name tag %s", attr["tags.Name"])
+		}
+		if attr["associations.0.subnet_id"] != subnetRs.Primary.Attributes["id"] {
+			return fmt.Errorf(
+				"subnet_id  is %v; want %s",
+				attr["associations.0.subnet_id"],
+				subnetRs.Primary.Attributes["id"],
+			)
 		}
 
 		return nil
@@ -99,25 +110,23 @@ resource "aws_route_table_association" "a" {
     route_table_id = "${aws_route_table.test.id}"
 }
 
-data "aws_route_table" "by_id" {
-  id = "${aws_route_table.test.id}"
-}
-
-data "aws_route_table" "by_subnet_id" {
-  subnet_id = "${aws_subnet.test.id}"
+data "aws_route_table" "by_filter" {
+  filter {
+    name = "association.route-table-association-id"
+    values = ["${aws_route_table_association.a.id}"]
+  }
   depends_on = ["aws_route_table_association.a"]
 }
+
 data "aws_route_table" "by_tag" {
   tags {
     Name = "${aws_route_table.test.tags["Name"]}"
   }
-}
-
-data "aws_route_table" "by_filter" {
-  filter {
-    name = "association.subnet-id"
-    values = ["${aws_subnet.test.id}"]
-  }
   depends_on = ["aws_route_table_association.a"]
 }
+data "aws_route_table" "by_subnet" {
+  subnet_id = "${aws_subnet.test.id}"
+  depends_on = ["aws_route_table_association.a"]
+}
+
 `

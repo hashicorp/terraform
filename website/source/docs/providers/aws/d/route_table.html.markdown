@@ -67,3 +67,20 @@ result attributes. This data source will complete the data by populating
 any fields that are not included in the configuration with the data for
 the selected Route Table.
 
+`routes` are also exported with the following attributes, when there are relevants:
+Each route supports the following:
+
+* `cidr_block` - The CIDR block of the route.
+* `gateway_id` - The Internet Gateway ID.
+* `nat_gateway_id` - The NAT Gateway ID.
+* `instance_id` - The EC2 instance ID.
+* `vpc_peering_connection_id` - The VPC Peering ID.
+* `network_interface_id` - The ID of the elastic network interface (eni) to use.
+
+
+`associations` are also exported with the following attributes:
+
+* `route_table_association_id` - The Association ID .
+* `route_table_id` - The Route Table ID.
+* `subnet_id` - The Subnet ID.
+* `main` - If the Association due to the Main Route Table.
