@@ -51,6 +51,16 @@ func resourceArmApplicationInsights() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validateApplicationInsightsApplicationType,
 			},
+
+			"app_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"instrumentation_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -119,6 +129,9 @@ func resourceArmApplicationInsightsRead(d *schema.ResourceData, meta interface{}
 
 	d.Set("application_id", resp.Properties.ApplicationID)
 	d.Set("application_type", resp.Properties.ApplicationType)
+
+	d.Set("app_id", resp.Properties.AppID)
+	d.Set("instrumentation_key", resp.Properties.InstrumentationKey)
 
 	return nil
 }
