@@ -1,42 +1,4 @@
-## 0.8.0 (unreleased)
-
-BACKWARDS INCOMPATIBILITIES / NOTES:
-
- * `template_file` _inline_ templates must escape their variable usage. What
-      was previously `${foo}` must now be `$${foo}`. Note that this is only
-      for _inline_ templates. Templates read from files are unchanged. ([#9698](https://github.com/hashicorp/terraform/issues/9698))
- * Escape sequences used to require double-escaping when used within interpolations.
-      You now must only escape once (which is the expected/typical behavior).
-      For example: `${replace(var.foo, "\\", "\\\\")}` is correct. Before,
-      that would cause very strange behavior. However, this may break existing
-      configurations which found a level of escape sequences to work. Check
-      `terraform plan` for incorrect output.
-
-FEATURES:
-
- * **New provider:** `nomad` ([#9538](https://github.com/hashicorp/terraform/issues/9538))
- * **New provider:** `vault` ([#9158](https://github.com/hashicorp/terraform/issues/9158))
- * The `import` command will now read provider configuration from Terraform
-   configuration files (including loading tfvars files and so on). ([#9809](https://github.com/hashicorp/terraform/issues/9809))
- * Providers and resources are now notified by Terraform core to "stop" when
-   an interrupt is received, allowing resources to gracefully exit much, much
-   faster. ([#9607](https://github.com/hashicorp/terraform/issues/9607))
-
-IMPROVEMENTS:
-
-  * helper/schema: only map, list, and set elements that are actually causing
-      a resource to destroy/create are marked as "requires new". ([#9613](https://github.com/hashicorp/terraform/issues/9613))
-
-BUG FIXES:
-
-  * core: Escape sequences in interpolations work in every case. ([#8709](https://github.com/hashicorp/terraform/issues/8709))
-  * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
-  * command/fmt: Multiline comments aren't indented every fmt. ([#6524](https://github.com/hashicorp/terraform/issues/6524))
-
-
-## 0.7.13 (Unreleased)
-
-IMPROVEMENTS:
+## 0.7.13 (November 23, 2016)
 
 BUG FIXES:
 
