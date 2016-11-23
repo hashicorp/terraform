@@ -22,7 +22,6 @@ func TestAccConsulKeys_basic(t *testing.T) {
 					testAccCheckConsulKeysValue("consul_keys.app", "enabled", "true"),
 					testAccCheckConsulKeysValue("consul_keys.app", "set", "acceptance"),
 					testAccCheckConsulKeysValue("consul_keys.app", "remove_one", "hello"),
-					testAccCheckConsulKeysValue("consul_keys.app", "remove_one", "hello"),
 					testAccCheckConsulKeysValue("consul_keys.app", "test_dot_env_a", "42"),
 					testAccCheckConsulKeysValue("consul_keys.app", "test_dot_env_b", "21"),
 				),
