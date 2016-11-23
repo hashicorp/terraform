@@ -2,6 +2,8 @@ package consul
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -35,9 +37,22 @@ func resourceConsulKeyPrefix() *schema.Resource {
 
 			"subkeys": &schema.Schema{
 				Type:     schema.TypeMap,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
+				},
+			},
+
+			"file": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				StateFunc: func(v interface{}) string {
+					switch v.(type) {
+					case string:
+						return serializeKvMap(fileToKvMap(v.(string)))
+					default:
+						return ""
+					}
 				},
 			},
 		},
@@ -57,8 +72,15 @@ func resourceConsulKeyPrefixCreate(d *schema.ResourceData, meta interface{}) err
 
 	pathPrefix := d.Get("path_prefix").(string)
 	subKeys := map[string]string{}
+
 	for k, vI := range d.Get("subkeys").(map[string]interface{}) {
 		subKeys[k] = vI.(string)
+	}
+
+	file := d.Get("file").(string)
+	kvMap := fileToKvMap(file)
+	for k, v := range kvMap {
+		subKeys[k] = v
 	}
 
 	// To reduce the impact of mistakes, we will only "create" a prefix that
@@ -114,6 +136,29 @@ func resourceConsulKeyPrefixUpdate(d *schema.ResourceData, meta interface{}) err
 	keyClient := newKeyClient(kv, dc, token)
 
 	pathPrefix := d.Id()
+
+	if d.HasChange("file") {
+		o, n := d.GetChange("file")
+
+		oKvMap := fileToKvMap(o.(string))
+		nKvMap := fileToKvMap(n.(string))
+
+		// We will check what keys have to be created or removed
+		toPut, toRemove := diffKvFile(oKvMap, nKvMap)
+
+		for k, v := range toPut {
+			fullPath := pathPrefix + k
+			if err := keyClient.Put(fullPath, v); err != nil {
+				return err
+			}
+		}
+		for _, k := range toRemove {
+			fullPath := pathPrefix + k
+			if err := keyClient.Delete(fullPath); err != nil {
+				return err
+			}
+		}
+	}
 
 	if d.HasChange("subkeys") {
 		o, n := d.GetChange("subkeys")
@@ -186,7 +231,18 @@ func resourceConsulKeyPrefixRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
+	oFile := d.Get("file").(string)
+	oKvMap := fileToKvMap(oFile)
+	nKvMap := map[string]string{}
+	for k, v := range subKeys {
+		if _, ok := oKvMap[k]; ok == true {
+			nKvMap[k] = v
+			delete(subKeys, k)
+		}
+	}
+
 	d.Set("subkeys", subKeys)
+	d.Set("file", serializeKvMap(nKvMap))
 
 	// Store the datacenter on this resource, which can be helpful for reference
 	// in case it was read from the provider
@@ -218,4 +274,56 @@ func resourceConsulKeyPrefixDelete(d *schema.ResourceData, meta interface{}) err
 	d.SetId("")
 
 	return nil
+}
+
+// convert lines into a map of kv
+func fileToKvMap(file string) map[string]string {
+	variables := map[string]string{}
+
+	lines := strings.Split(file, "\n")
+	for _, line := range lines {
+		kv := strings.SplitN(line, "=", 2)
+
+		if len(kv) < 2 {
+			continue
+		}
+
+		k, v := kv[0], kv[1]
+		variables[k] = v
+	}
+
+	return variables
+}
+
+func diffKvFile(oldKv map[string]string, newKv map[string]string) (map[string]string, []string) {
+	toPut, toRemove := map[string]string{}, []string{}
+
+	for k, v := range newKv {
+		if o, ok := oldKv[k]; ok == false || o != v {
+			toPut[k] = v
+		}
+	}
+
+	for k, _ := range oldKv {
+		if _, ok := newKv[k]; ok == false {
+			toRemove = append(toRemove, k)
+		}
+	}
+
+	return toPut, toRemove
+}
+
+// Sort by alphabetical order and write a file
+func serializeKvMap(kv map[string]string) string {
+	var keys []string
+	for k, _ := range kv {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	str := ""
+	for _, k := range keys {
+		str += k + "=" + kv[k] + "\n"
+	}
+	return str
 }

@@ -34,6 +34,14 @@ those keys were created outside of Terraform.
 ## Example Usage
 
 ```
+data "template_file" "dot_env" {
+    template = "${file("${path.module}/.env.tpl")}"
+ 
+    vars {
+        app_dns_name = "${aws_elb.app.dns_name}"
+    }
+}
+
 resource "consul_key_prefix" "myapp_config" {
     datacenter = "nyc1"
     token = "abcd"
@@ -50,7 +58,21 @@ resource "consul_key_prefix" "myapp_config" {
         "database/password" = "${aws_db_instance.app.password}"
         "database/name" = "${aws_db_instance.app.name}"
     }
+
+    file = "${data.template_file.dot_env.rendered}"
+    # or
+    file = "${file("${path.module}/.env")}"
 }
+```
+
+```
+# .env
+ELB_PORT=80
+```
+
+```
+# .env.tpl
+API_PATH=http://${app_dns_name}:80/v1
 ```
 
 ## Argument Reference
@@ -67,10 +89,22 @@ The following arguments are supported:
   that will be managed by this resource instance. In most cases this will
   end with a slash, to manage a "folder" of keys.
 
-* `subkeys` - (Required) A mapping from subkey name (which will be appended
+* `subkeys` - (Optional) A mapping from subkey name (which will be appended
   to the give `path_prefix`) to the value that should be stored at that key.
   Use slashes as shown in the above example to create "sub-folders" under
   the given path prefix.
+
+* `file` - (Optional) Specifies key/value file to be loaded into Consul.
+  The file has to respect the following syntax:
+  ```
+  VAR1=val1
+  # This is a comment
+  VAR2=val2
+  deep/VAR3=val3
+  ```
+  Use slashes to create "sub-folders" under the given path prefix.
+  The file can be templated by using `template_file` data source as shown
+  in the above example.
 
 ## Attributes Reference
 
