@@ -61,12 +61,12 @@ func (c *ElastiCache) AddTagsToResourceRequest(input *AddTagsToResourceInput) (r
 // tag is a key-value pair where the key and value are case-sensitive. You can
 // use cost allocation tags to categorize and track your AWS costs.
 //
-//  When you apply tags to your ElastiCache resources, AWS generates a cost
-// allocation report as a comma-separated value (CSV) file with your usage and
-// costs aggregated by your tags. You can apply tags that represent business
-// categories (such as cost centers, application names, or owners) to organize
-// your costs across multiple services. For more information, see Using Cost
-// Allocation Tags in Amazon ElastiCache (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Tagging.html)
+// When you apply tags to your ElastiCache resources, AWS generates a cost allocation
+// report as a comma-separated value (CSV) file with your usage and costs aggregated
+// by your tags. You can apply tags that represent business categories (such
+// as cost centers, application names, or owners) to organize your costs across
+// multiple services. For more information, see Using Cost Allocation Tags in
+// Amazon ElastiCache (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Tagging.html)
 // in the ElastiCache User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -146,7 +146,7 @@ func (c *ElastiCache) AuthorizeCacheSecurityGroupIngressRequest(input *Authorize
 // must be running on Amazon EC2, and Amazon EC2 security groups are used as
 // the authorization mechanism.
 //
-//  You cannot authorize ingress from an Amazon EC2 security group in one region
+// You cannot authorize ingress from an Amazon EC2 security group in one region
 // to an ElastiCache cluster in another region.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -227,66 +227,69 @@ func (c *ElastiCache) CopySnapshotRequest(input *CopySnapshotInput) (req *reques
 //
 // Makes a copy of an existing snapshot.
 //
-//  This operation is valid for Redis only.
+// This operation is valid for Redis only.
 //
-//   Users or groups that have permissions to use the CopySnapshot operation
-// can create their own Amazon S3 buckets and copy snapshots to it. To control
-// access to your snapshots, use an IAM policy to control who has the ability
-// to use the CopySnapshot operation. For more information about using IAM to
-// control the use of ElastiCache operations, see Exporting Snapshots (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html)
+// Users or groups that have permissions to use the CopySnapshot operation can
+// create their own Amazon S3 buckets and copy snapshots to it. To control access
+// to your snapshots, use an IAM policy to control who has the ability to use
+// the CopySnapshot operation. For more information about using IAM to control
+// the use of ElastiCache operations, see Exporting Snapshots (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html)
 // and Authentication & Access Control (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/IAM.html).
 //
-//  You could receive the following error messages.
+// You could receive the following error messages.
 //
-//  Error Messages     Error Message: The S3 bucket %s is outside of the region.
+// Error Messages
 //
-//  Solution: Create an Amazon S3 bucket in the same region as your snapshot.
-// For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
-// in the ElastiCache User Guide.
+//    * Error Message: The S3 bucket %s is outside of the region.
 //
-//    Error Message: The S3 bucket %s does not exist.
+// Solution: Create an Amazon S3 bucket in the same region as your snapshot.
+//    For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
+//    in the ElastiCache User Guide.
 //
-//  Solution: Create an Amazon S3 bucket in the same region as your snapshot.
-// For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
-// in the ElastiCache User Guide.
+//    * Error Message: The S3 bucket %s does not exist.
 //
-//    Error Message: The S3 bucket %s is not owned by the authenticated user.
+// Solution: Create an Amazon S3 bucket in the same region as your snapshot.
+//    For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
+//    in the ElastiCache User Guide.
 //
-//  Solution: Create an Amazon S3 bucket in the same region as your snapshot.
-// For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
-// in the ElastiCache User Guide.
+//    * Error Message: The S3 bucket %s is not owned by the authenticated user.
 //
-//    Error Message: The authenticated user does not have sufficient permissions
-// to perform the desired activity.
+// Solution: Create an Amazon S3 bucket in the same region as your snapshot.
+//    For more information, see Step 1: Create an Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.CreateBucket)
+//    in the ElastiCache User Guide.
 //
-//  Solution: Contact your system administrator to get the needed permissions.
+//    * Error Message: The authenticated user does not have sufficient permissions
+//    to perform the desired activity.
 //
-//    Error Message: The S3 bucket %s already contains an object with key %s.
+// Solution: Contact your system administrator to get the needed permissions.
 //
-//  Solution: Give the TargetSnapshotName a new and unique value. If exporting
-// a snapshot, you could alternatively create a new Amazon S3 bucket and use
-// this same value for TargetSnapshotName.
+//    * Error Message: The S3 bucket %s already contains an object with key
+//    %s.
 //
-//    Error Message:  ElastiCache has not been granted READ permissions %s
-// on the S3 Bucket.
+// Solution: Give the TargetSnapshotName a new and unique value. If exporting
+//    a snapshot, you could alternatively create a new Amazon S3 bucket and
+//    use this same value for TargetSnapshotName.
 //
-//  Solution: Add List and Read permissions on the bucket. For more information,
-// see Step 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
-// in the ElastiCache User Guide.
+//    * Error Message:  ElastiCache has not been granted READ permissions %s
+//    on the S3 Bucket.
 //
-//    Error Message:  ElastiCache has not been granted WRITE permissions %s
-// on the S3 Bucket.
+// Solution: Add List and Read permissions on the bucket. For more information,
+//    see Step 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
+//    in the ElastiCache User Guide.
 //
-//  Solution: Add Upload/Delete permissions on the bucket. For more information,
-// see Step 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
-// in the ElastiCache User Guide.
+//    * Error Message:  ElastiCache has not been granted WRITE permissions %s
+//    on the S3 Bucket.
 //
-//    Error Message:  ElastiCache has not been granted READ_ACP permissions
-// %s on the S3 Bucket.
+// Solution: Add Upload/Delete permissions on the bucket. For more information,
+//    see Step 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
+//    in the ElastiCache User Guide.
 //
-//  Solution: Add View Permissions on the bucket. For more information, see
-// Step 2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
-// in the ElastiCache User Guide.
+//    * Error Message:  ElastiCache has not been granted READ_ACP permissions
+//    %s on the S3 Bucket.
+//
+// Solution: Add View Permissions on the bucket. For more information, see Step
+//    2: Grant ElastiCache Access to Your Amazon S3 Bucket (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Snapshots.Exporting.html#Snapshots.Exporting.GrantAccess)
+//    in the ElastiCache User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -370,7 +373,7 @@ func (c *ElastiCache) CreateCacheClusterRequest(input *CreateCacheClusterInput) 
 // Creates a cache cluster. All nodes in the cache cluster run the same protocol-compliant
 // cache engine software, either Memcached or Redis.
 //
-//  Due to current limitations on Redis (cluster mode disabled), this operation
+// Due to current limitations on Redis (cluster mode disabled), this operation
 // or parameter is not supported on Redis (cluster mode enabled) replication
 // groups.
 //
@@ -739,9 +742,9 @@ func (c *ElastiCache) CreateReplicationGroupRequest(input *CreateReplicationGrou
 // When a Redis (cluster mode disabled) replication group has been successfully
 // created, you can add one or more read replicas to it, up to a total of 5
 // read replicas. You cannot alter a Redis (cluster mode enabled) replication
-// group once it has been created.
+// group after it has been created.
 //
-//  This operation is valid for Redis only.
+// This operation is valid for Redis only.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -860,7 +863,7 @@ func (c *ElastiCache) CreateSnapshotRequest(input *CreateSnapshotInput) (req *re
 // Creates a copy of an entire cache cluster or replication group at a specific
 // moment in time.
 //
-//  This operation is valid for Redis only.
+// This operation is valid for Redis only.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -892,13 +895,13 @@ func (c *ElastiCache) CreateSnapshotRequest(input *CreateSnapshotInput) (req *re
 //   * SnapshotFeatureNotSupportedFault
 //   You attempted one of the following operations:
 //
-//     Creating a snapshot of a Redis cache cluster running on a cache.t1.micro
-//   cache node.
+//      * Creating a snapshot of a Redis cache cluster running on a cache.t1.micro
+//      cache node.
 //
-//     Creating a snapshot of a cache cluster that is running Memcached rather
-//   than Redis.
+//      * Creating a snapshot of a cache cluster that is running Memcached rather
+//      than Redis.
 //
-//     Neither of these are supported by ElastiCache.
+//   Neither of these are supported by ElastiCache.
 //
 //   * InvalidParameterCombination
 //   Two or more incompatible parameters were specified.
@@ -968,7 +971,7 @@ func (c *ElastiCache) DeleteCacheClusterRequest(input *DeleteCacheClusterInput) 
 // mode enabled or a cache cluster from a Redis (cluster mode enabled) replication
 // group.
 //
-//  Due to current limitations on Redis (cluster mode disabled), this operation
+// Due to current limitations on Redis (cluster mode disabled), this operation
 // or parameter is not supported on Redis (cluster mode enabled) replication
 // groups.
 //
@@ -992,13 +995,13 @@ func (c *ElastiCache) DeleteCacheClusterRequest(input *DeleteCacheClusterInput) 
 //   * SnapshotFeatureNotSupportedFault
 //   You attempted one of the following operations:
 //
-//     Creating a snapshot of a Redis cache cluster running on a cache.t1.micro
-//   cache node.
+//      * Creating a snapshot of a Redis cache cluster running on a cache.t1.micro
+//      cache node.
 //
-//     Creating a snapshot of a cache cluster that is running Memcached rather
-//   than Redis.
+//      * Creating a snapshot of a cache cluster that is running Memcached rather
+//      than Redis.
 //
-//     Neither of these are supported by ElastiCache.
+//   Neither of these are supported by ElastiCache.
 //
 //   * SnapshotQuotaExceededFault
 //   The request cannot be processed because it would exceed the maximum number
@@ -1143,7 +1146,7 @@ func (c *ElastiCache) DeleteCacheSecurityGroupRequest(input *DeleteCacheSecurity
 //
 // Deletes a cache security group.
 //
-//  You cannot delete a cache security group if it is associated with any cache
+// You cannot delete a cache security group if it is associated with any cache
 // clusters.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1222,7 +1225,7 @@ func (c *ElastiCache) DeleteCacheSubnetGroupRequest(input *DeleteCacheSubnetGrou
 //
 // Deletes a cache subnet group.
 //
-//  You cannot delete a cache subnet group if it is associated with any cache
+// You cannot delete a cache subnet group if it is associated with any cache
 // clusters.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1301,7 +1304,7 @@ func (c *ElastiCache) DeleteReplicationGroupRequest(input *DeleteReplicationGrou
 // immediately begins deleting the selected resources; you cannot cancel or
 // revert this operation.
 //
-//  This operation is valid for Redis only.
+// This operation is valid for Redis only.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1323,13 +1326,13 @@ func (c *ElastiCache) DeleteReplicationGroupRequest(input *DeleteReplicationGrou
 //   * SnapshotFeatureNotSupportedFault
 //   You attempted one of the following operations:
 //
-//     Creating a snapshot of a Redis cache cluster running on a cache.t1.micro
-//   cache node.
+//      * Creating a snapshot of a Redis cache cluster running on a cache.t1.micro
+//      cache node.
 //
-//     Creating a snapshot of a cache cluster that is running Memcached rather
-//   than Redis.
+//      * Creating a snapshot of a cache cluster that is running Memcached rather
+//      than Redis.
 //
-//     Neither of these are supported by ElastiCache.
+//   Neither of these are supported by ElastiCache.
 //
 //   * SnapshotQuotaExceededFault
 //   The request cannot be processed because it would exceed the maximum number
@@ -1396,7 +1399,7 @@ func (c *ElastiCache) DeleteSnapshotRequest(input *DeleteSnapshotInput) (req *re
 // this operation, ElastiCache immediately begins deleting the snapshot; you
 // cannot cancel or revert this operation.
 //
-//  This operation is valid for Redis only.
+// This operation is valid for Redis only.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1485,11 +1488,11 @@ func (c *ElastiCache) DescribeCacheClustersRequest(input *DescribeCacheClustersI
 // about the cache nodes associated with the cache clusters. These details include
 // the DNS address and port for the cache node endpoint.
 //
-// If the cluster is in the CREATING state, only cluster-level information
-// is displayed until all of the nodes are successfully provisioned.
+// If the cluster is in the CREATING state, only cluster-level information is
+// displayed until all of the nodes are successfully provisioned.
 //
-// If the cluster is in the DELETING state, only cluster-level information
-// is displayed.
+// If the cluster is in the DELETING state, only cluster-level information is
+// displayed.
 //
 // If cache nodes are currently being added to the cache cluster, node endpoint
 // information and creation time for the additional nodes are not displayed
@@ -2301,7 +2304,7 @@ func (c *ElastiCache) DescribeReplicationGroupsRequest(input *DescribeReplicatio
 // is specified, DescribeReplicationGroups returns information about all replication
 // groups.
 //
-//  This operation is valid for Redis only.
+// This operation is valid for Redis only.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2610,7 +2613,7 @@ func (c *ElastiCache) DescribeSnapshotsRequest(input *DescribeSnapshotsInput) (r
 // describe a single snapshot, or just the snapshots associated with a particular
 // cache cluster.
 //
-//  This operation is valid for Redis only.
+// This operation is valid for Redis only.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3118,11 +3121,11 @@ func (c *ElastiCache) ModifyReplicationGroupRequest(input *ModifyReplicationGrou
 //
 // Modifies the settings for a replication group.
 //
-//  Due to current limitations on Redis (cluster mode disabled), this operation
+// Due to current limitations on Redis (cluster mode disabled), this operation
 // or parameter is not supported on Redis (cluster mode enabled) replication
 // groups.
 //
-//   This operation is valid for Redis only.
+// This operation is valid for Redis only.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -3612,6 +3615,18 @@ func (s *AddTagsToResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceName sets the ResourceName field's value.
+func (s *AddTagsToResourceInput) SetResourceName(v string) *AddTagsToResourceInput {
+	s.ResourceName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *AddTagsToResourceInput) SetTags(v []*Tag) *AddTagsToResourceInput {
+	s.Tags = v
+	return s
+}
+
 // Represents the input of an AuthorizeCacheSecurityGroupIngress operation.
 type AuthorizeCacheSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
@@ -3664,16 +3679,34 @@ func (s *AuthorizeCacheSecurityGroupIngressInput) Validate() error {
 	return nil
 }
 
+// SetCacheSecurityGroupName sets the CacheSecurityGroupName field's value.
+func (s *AuthorizeCacheSecurityGroupIngressInput) SetCacheSecurityGroupName(v string) *AuthorizeCacheSecurityGroupIngressInput {
+	s.CacheSecurityGroupName = &v
+	return s
+}
+
+// SetEC2SecurityGroupName sets the EC2SecurityGroupName field's value.
+func (s *AuthorizeCacheSecurityGroupIngressInput) SetEC2SecurityGroupName(v string) *AuthorizeCacheSecurityGroupIngressInput {
+	s.EC2SecurityGroupName = &v
+	return s
+}
+
+// SetEC2SecurityGroupOwnerId sets the EC2SecurityGroupOwnerId field's value.
+func (s *AuthorizeCacheSecurityGroupIngressInput) SetEC2SecurityGroupOwnerId(v string) *AuthorizeCacheSecurityGroupIngressInput {
+	s.EC2SecurityGroupOwnerId = &v
+	return s
+}
+
 type AuthorizeCacheSecurityGroupIngressOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Represents the output of one of the following operations:
 	//
-	//    AuthorizeCacheSecurityGroupIngress
+	//    * AuthorizeCacheSecurityGroupIngress
 	//
-	//    CreateCacheSecurityGroup
+	//    * CreateCacheSecurityGroup
 	//
-	//    RevokeCacheSecurityGroupIngress
+	//    * RevokeCacheSecurityGroupIngress
 	CacheSecurityGroup *CacheSecurityGroup `type:"structure"`
 }
 
@@ -3685,6 +3718,12 @@ func (s AuthorizeCacheSecurityGroupIngressOutput) String() string {
 // GoString returns the string representation
 func (s AuthorizeCacheSecurityGroupIngressOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheSecurityGroup sets the CacheSecurityGroup field's value.
+func (s *AuthorizeCacheSecurityGroupIngressOutput) SetCacheSecurityGroup(v *CacheSecurityGroup) *AuthorizeCacheSecurityGroupIngressOutput {
+	s.CacheSecurityGroup = v
+	return s
 }
 
 // Describes an Availability Zone in which the cache cluster is launched.
@@ -3703,6 +3742,12 @@ func (s AvailabilityZone) String() string {
 // GoString returns the string representation
 func (s AvailabilityZone) GoString() string {
 	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *AvailabilityZone) SetName(v string) *AvailabilityZone {
+	s.Name = &v
+	return s
 }
 
 // Contains all of the attributes of a specific cache cluster.
@@ -3728,37 +3773,37 @@ type CacheCluster struct {
 	//
 	// Valid node types are as follows:
 	//
-	//   General purpose:
+	//    * General purpose:
 	//
-	//   Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
-	// cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
-	// cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
+	// Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
+	//    cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
+	//    cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
 	//
-	//   Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium,
-	// cache.m1.large, cache.m1.xlarge
+	// Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	//    cache.m1.xlarge
 	//
-	//     Compute optimized: cache.c1.xlarge
+	//    * Compute optimized: cache.c1.xlarge
 	//
-	//   Memory optimized:
+	//    * Memory optimized:
 	//
-	//   Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge,
-	// cache.r3.4xlarge, cache.r3.8xlarge
+	// Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
+	//    cache.r3.8xlarge
 	//
-	//   Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
+	// Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
 	//
-	//      Notes:
+	// Notes:
 	//
-	//   All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
-	// VPC).
+	//    * All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
+	//    VPC).
 	//
-	//   Redis backup/restore is not supported for Redis (cluster mode disabled)
-	// T1 and T2 instances. Backup/restore is supported on Redis (cluster mode enabled)
-	// T2 instances.
+	//    * Redis backup/restore is not supported for Redis (cluster mode disabled)
+	//    T1 and T2 instances. Backup/restore is supported on Redis (cluster mode
+	//    enabled) T2 instances.
 	//
-	//   Redis Append-only files (AOF) functionality is not supported for T1 or
-	// T2 instances.
+	//    * Redis Append-only files (AOF) functionality is not supported for T1
+	//    or T2 instances.
 	//
-	//   For a complete listing of node types and specifications, see Amazon ElastiCache
+	// For a complete listing of node types and specifications, see Amazon ElastiCache
 	// Product Features and Details (http://aws.amazon.com/elasticache/details)
 	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
 	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
@@ -3816,21 +3861,21 @@ type CacheCluster struct {
 	//
 	// Valid values for ddd are:
 	//
-	//    sun
+	//    * sun
 	//
-	//    mon
+	//    * mon
 	//
-	//    tue
+	//    * tue
 	//
-	//    wed
+	//    * wed
 	//
-	//    thu
+	//    * thu
 	//
-	//    fri
+	//    * fri
 	//
-	//    sat
+	//    * sat
 	//
-	//   Example: sun:23:00-mon:01:30
+	// Example: sun:23:00-mon:01:30
 	PreferredMaintenanceWindow *string `type:"string"`
 
 	// The replication group to which this cache cluster belongs. If this field
@@ -3845,8 +3890,8 @@ type CacheCluster struct {
 	// to 5, a snapshot that was taken today is retained for 5 days before being
 	// deleted.
 	//
-	//   If the value of SnapshotRetentionLimit is set to zero (0), backups are
-	// turned off.
+	// If the value of SnapshotRetentionLimit is set to zero (0), backups are turned
+	// off.
 	SnapshotRetentionLimit *int64 `type:"integer"`
 
 	// The daily time range (in UTC) during which ElastiCache begins taking a daily
@@ -3864,6 +3909,138 @@ func (s CacheCluster) String() string {
 // GoString returns the string representation
 func (s CacheCluster) GoString() string {
 	return s.String()
+}
+
+// SetAutoMinorVersionUpgrade sets the AutoMinorVersionUpgrade field's value.
+func (s *CacheCluster) SetAutoMinorVersionUpgrade(v bool) *CacheCluster {
+	s.AutoMinorVersionUpgrade = &v
+	return s
+}
+
+// SetCacheClusterCreateTime sets the CacheClusterCreateTime field's value.
+func (s *CacheCluster) SetCacheClusterCreateTime(v time.Time) *CacheCluster {
+	s.CacheClusterCreateTime = &v
+	return s
+}
+
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *CacheCluster) SetCacheClusterId(v string) *CacheCluster {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetCacheClusterStatus sets the CacheClusterStatus field's value.
+func (s *CacheCluster) SetCacheClusterStatus(v string) *CacheCluster {
+	s.CacheClusterStatus = &v
+	return s
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *CacheCluster) SetCacheNodeType(v string) *CacheCluster {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetCacheNodes sets the CacheNodes field's value.
+func (s *CacheCluster) SetCacheNodes(v []*CacheNode) *CacheCluster {
+	s.CacheNodes = v
+	return s
+}
+
+// SetCacheParameterGroup sets the CacheParameterGroup field's value.
+func (s *CacheCluster) SetCacheParameterGroup(v *CacheParameterGroupStatus) *CacheCluster {
+	s.CacheParameterGroup = v
+	return s
+}
+
+// SetCacheSecurityGroups sets the CacheSecurityGroups field's value.
+func (s *CacheCluster) SetCacheSecurityGroups(v []*CacheSecurityGroupMembership) *CacheCluster {
+	s.CacheSecurityGroups = v
+	return s
+}
+
+// SetCacheSubnetGroupName sets the CacheSubnetGroupName field's value.
+func (s *CacheCluster) SetCacheSubnetGroupName(v string) *CacheCluster {
+	s.CacheSubnetGroupName = &v
+	return s
+}
+
+// SetClientDownloadLandingPage sets the ClientDownloadLandingPage field's value.
+func (s *CacheCluster) SetClientDownloadLandingPage(v string) *CacheCluster {
+	s.ClientDownloadLandingPage = &v
+	return s
+}
+
+// SetConfigurationEndpoint sets the ConfigurationEndpoint field's value.
+func (s *CacheCluster) SetConfigurationEndpoint(v *Endpoint) *CacheCluster {
+	s.ConfigurationEndpoint = v
+	return s
+}
+
+// SetEngine sets the Engine field's value.
+func (s *CacheCluster) SetEngine(v string) *CacheCluster {
+	s.Engine = &v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *CacheCluster) SetEngineVersion(v string) *CacheCluster {
+	s.EngineVersion = &v
+	return s
+}
+
+// SetNotificationConfiguration sets the NotificationConfiguration field's value.
+func (s *CacheCluster) SetNotificationConfiguration(v *NotificationConfiguration) *CacheCluster {
+	s.NotificationConfiguration = v
+	return s
+}
+
+// SetNumCacheNodes sets the NumCacheNodes field's value.
+func (s *CacheCluster) SetNumCacheNodes(v int64) *CacheCluster {
+	s.NumCacheNodes = &v
+	return s
+}
+
+// SetPendingModifiedValues sets the PendingModifiedValues field's value.
+func (s *CacheCluster) SetPendingModifiedValues(v *PendingModifiedValues) *CacheCluster {
+	s.PendingModifiedValues = v
+	return s
+}
+
+// SetPreferredAvailabilityZone sets the PreferredAvailabilityZone field's value.
+func (s *CacheCluster) SetPreferredAvailabilityZone(v string) *CacheCluster {
+	s.PreferredAvailabilityZone = &v
+	return s
+}
+
+// SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
+func (s *CacheCluster) SetPreferredMaintenanceWindow(v string) *CacheCluster {
+	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *CacheCluster) SetReplicationGroupId(v string) *CacheCluster {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *CacheCluster) SetSecurityGroups(v []*SecurityGroupMembership) *CacheCluster {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetSnapshotRetentionLimit sets the SnapshotRetentionLimit field's value.
+func (s *CacheCluster) SetSnapshotRetentionLimit(v int64) *CacheCluster {
+	s.SnapshotRetentionLimit = &v
+	return s
+}
+
+// SetSnapshotWindow sets the SnapshotWindow field's value.
+func (s *CacheCluster) SetSnapshotWindow(v string) *CacheCluster {
+	s.SnapshotWindow = &v
+	return s
 }
 
 // Provides all of the details about a particular cache engine version.
@@ -3898,43 +4075,73 @@ func (s CacheEngineVersion) GoString() string {
 	return s.String()
 }
 
+// SetCacheEngineDescription sets the CacheEngineDescription field's value.
+func (s *CacheEngineVersion) SetCacheEngineDescription(v string) *CacheEngineVersion {
+	s.CacheEngineDescription = &v
+	return s
+}
+
+// SetCacheEngineVersionDescription sets the CacheEngineVersionDescription field's value.
+func (s *CacheEngineVersion) SetCacheEngineVersionDescription(v string) *CacheEngineVersion {
+	s.CacheEngineVersionDescription = &v
+	return s
+}
+
+// SetCacheParameterGroupFamily sets the CacheParameterGroupFamily field's value.
+func (s *CacheEngineVersion) SetCacheParameterGroupFamily(v string) *CacheEngineVersion {
+	s.CacheParameterGroupFamily = &v
+	return s
+}
+
+// SetEngine sets the Engine field's value.
+func (s *CacheEngineVersion) SetEngine(v string) *CacheEngineVersion {
+	s.Engine = &v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *CacheEngineVersion) SetEngineVersion(v string) *CacheEngineVersion {
+	s.EngineVersion = &v
+	return s
+}
+
 // Represents an individual cache node within a cache cluster. Each cache node
 // runs its own instance of the cluster's protocol-compliant caching software
 // - either Memcached or Redis.
 //
 // Valid node types are as follows:
 //
-//   General purpose:
+//    * General purpose:
 //
-//   Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
-// cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
-// cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
+// Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
+//    cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
+//    cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
 //
-//   Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium,
-// cache.m1.large, cache.m1.xlarge
+// Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+//    cache.m1.xlarge
 //
-//     Compute optimized: cache.c1.xlarge
+//    * Compute optimized: cache.c1.xlarge
 //
-//   Memory optimized:
+//    * Memory optimized:
 //
-//   Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge,
-// cache.r3.4xlarge, cache.r3.8xlarge
+// Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
+//    cache.r3.8xlarge
 //
-//   Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
+// Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
 //
-//      Notes:
+// Notes:
 //
-//   All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
-// VPC).
+//    * All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
+//    VPC).
 //
-//   Redis backup/restore is not supported for Redis (cluster mode disabled)
-// T1 and T2 instances. Backup/restore is supported on Redis (cluster mode enabled)
-// T2 instances.
+//    * Redis backup/restore is not supported for Redis (cluster mode disabled)
+//    T1 and T2 instances. Backup/restore is supported on Redis (cluster mode
+//    enabled) T2 instances.
 //
-//   Redis Append-only files (AOF) functionality is not supported for T1 or
-// T2 instances.
+//    * Redis Append-only files (AOF) functionality is not supported for T1
+//    or T2 instances.
 //
-//   For a complete listing of node types and specifications, see Amazon ElastiCache
+// For a complete listing of node types and specifications, see Amazon ElastiCache
 // Product Features and Details (http://aws.amazon.com/elasticache/details)
 // and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
 // or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
@@ -3975,6 +4182,48 @@ func (s CacheNode) String() string {
 // GoString returns the string representation
 func (s CacheNode) GoString() string {
 	return s.String()
+}
+
+// SetCacheNodeCreateTime sets the CacheNodeCreateTime field's value.
+func (s *CacheNode) SetCacheNodeCreateTime(v time.Time) *CacheNode {
+	s.CacheNodeCreateTime = &v
+	return s
+}
+
+// SetCacheNodeId sets the CacheNodeId field's value.
+func (s *CacheNode) SetCacheNodeId(v string) *CacheNode {
+	s.CacheNodeId = &v
+	return s
+}
+
+// SetCacheNodeStatus sets the CacheNodeStatus field's value.
+func (s *CacheNode) SetCacheNodeStatus(v string) *CacheNode {
+	s.CacheNodeStatus = &v
+	return s
+}
+
+// SetCustomerAvailabilityZone sets the CustomerAvailabilityZone field's value.
+func (s *CacheNode) SetCustomerAvailabilityZone(v string) *CacheNode {
+	s.CustomerAvailabilityZone = &v
+	return s
+}
+
+// SetEndpoint sets the Endpoint field's value.
+func (s *CacheNode) SetEndpoint(v *Endpoint) *CacheNode {
+	s.Endpoint = v
+	return s
+}
+
+// SetParameterGroupStatus sets the ParameterGroupStatus field's value.
+func (s *CacheNode) SetParameterGroupStatus(v string) *CacheNode {
+	s.ParameterGroupStatus = &v
+	return s
+}
+
+// SetSourceCacheNodeId sets the SourceCacheNodeId field's value.
+func (s *CacheNode) SetSourceCacheNodeId(v string) *CacheNode {
+	s.SourceCacheNodeId = &v
+	return s
 }
 
 // A parameter that has a different value for each cache node type it is applied
@@ -4026,6 +4275,60 @@ func (s CacheNodeTypeSpecificParameter) GoString() string {
 	return s.String()
 }
 
+// SetAllowedValues sets the AllowedValues field's value.
+func (s *CacheNodeTypeSpecificParameter) SetAllowedValues(v string) *CacheNodeTypeSpecificParameter {
+	s.AllowedValues = &v
+	return s
+}
+
+// SetCacheNodeTypeSpecificValues sets the CacheNodeTypeSpecificValues field's value.
+func (s *CacheNodeTypeSpecificParameter) SetCacheNodeTypeSpecificValues(v []*CacheNodeTypeSpecificValue) *CacheNodeTypeSpecificParameter {
+	s.CacheNodeTypeSpecificValues = v
+	return s
+}
+
+// SetChangeType sets the ChangeType field's value.
+func (s *CacheNodeTypeSpecificParameter) SetChangeType(v string) *CacheNodeTypeSpecificParameter {
+	s.ChangeType = &v
+	return s
+}
+
+// SetDataType sets the DataType field's value.
+func (s *CacheNodeTypeSpecificParameter) SetDataType(v string) *CacheNodeTypeSpecificParameter {
+	s.DataType = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CacheNodeTypeSpecificParameter) SetDescription(v string) *CacheNodeTypeSpecificParameter {
+	s.Description = &v
+	return s
+}
+
+// SetIsModifiable sets the IsModifiable field's value.
+func (s *CacheNodeTypeSpecificParameter) SetIsModifiable(v bool) *CacheNodeTypeSpecificParameter {
+	s.IsModifiable = &v
+	return s
+}
+
+// SetMinimumEngineVersion sets the MinimumEngineVersion field's value.
+func (s *CacheNodeTypeSpecificParameter) SetMinimumEngineVersion(v string) *CacheNodeTypeSpecificParameter {
+	s.MinimumEngineVersion = &v
+	return s
+}
+
+// SetParameterName sets the ParameterName field's value.
+func (s *CacheNodeTypeSpecificParameter) SetParameterName(v string) *CacheNodeTypeSpecificParameter {
+	s.ParameterName = &v
+	return s
+}
+
+// SetSource sets the Source field's value.
+func (s *CacheNodeTypeSpecificParameter) SetSource(v string) *CacheNodeTypeSpecificParameter {
+	s.Source = &v
+	return s
+}
+
 // A value that applies only to a certain cache node type.
 type CacheNodeTypeSpecificValue struct {
 	_ struct{} `type:"structure"`
@@ -4045,6 +4348,18 @@ func (s CacheNodeTypeSpecificValue) String() string {
 // GoString returns the string representation
 func (s CacheNodeTypeSpecificValue) GoString() string {
 	return s.String()
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *CacheNodeTypeSpecificValue) SetCacheNodeType(v string) *CacheNodeTypeSpecificValue {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *CacheNodeTypeSpecificValue) SetValue(v string) *CacheNodeTypeSpecificValue {
+	s.Value = &v
+	return s
 }
 
 // Represents the output of a CreateCacheParameterGroup operation.
@@ -4074,11 +4389,29 @@ func (s CacheParameterGroup) GoString() string {
 	return s.String()
 }
 
+// SetCacheParameterGroupFamily sets the CacheParameterGroupFamily field's value.
+func (s *CacheParameterGroup) SetCacheParameterGroupFamily(v string) *CacheParameterGroup {
+	s.CacheParameterGroupFamily = &v
+	return s
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *CacheParameterGroup) SetCacheParameterGroupName(v string) *CacheParameterGroup {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CacheParameterGroup) SetDescription(v string) *CacheParameterGroup {
+	s.Description = &v
+	return s
+}
+
 // Represents the output of one of the following operations:
 //
-//    ModifyCacheParameterGroup
+//    * ModifyCacheParameterGroup
 //
-//    ResetCacheParameterGroup
+//    * ResetCacheParameterGroup
 type CacheParameterGroupNameMessage struct {
 	_ struct{} `type:"structure"`
 
@@ -4094,6 +4427,12 @@ func (s CacheParameterGroupNameMessage) String() string {
 // GoString returns the string representation
 func (s CacheParameterGroupNameMessage) GoString() string {
 	return s.String()
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *CacheParameterGroupNameMessage) SetCacheParameterGroupName(v string) *CacheParameterGroupNameMessage {
+	s.CacheParameterGroupName = &v
+	return s
 }
 
 // Status of the cache parameter group.
@@ -4121,13 +4460,31 @@ func (s CacheParameterGroupStatus) GoString() string {
 	return s.String()
 }
 
+// SetCacheNodeIdsToReboot sets the CacheNodeIdsToReboot field's value.
+func (s *CacheParameterGroupStatus) SetCacheNodeIdsToReboot(v []*string) *CacheParameterGroupStatus {
+	s.CacheNodeIdsToReboot = v
+	return s
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *CacheParameterGroupStatus) SetCacheParameterGroupName(v string) *CacheParameterGroupStatus {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetParameterApplyStatus sets the ParameterApplyStatus field's value.
+func (s *CacheParameterGroupStatus) SetParameterApplyStatus(v string) *CacheParameterGroupStatus {
+	s.ParameterApplyStatus = &v
+	return s
+}
+
 // Represents the output of one of the following operations:
 //
-//    AuthorizeCacheSecurityGroupIngress
+//    * AuthorizeCacheSecurityGroupIngress
 //
-//    CreateCacheSecurityGroup
+//    * CreateCacheSecurityGroup
 //
-//    RevokeCacheSecurityGroupIngress
+//    * RevokeCacheSecurityGroupIngress
 type CacheSecurityGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -4155,6 +4512,30 @@ func (s CacheSecurityGroup) GoString() string {
 	return s.String()
 }
 
+// SetCacheSecurityGroupName sets the CacheSecurityGroupName field's value.
+func (s *CacheSecurityGroup) SetCacheSecurityGroupName(v string) *CacheSecurityGroup {
+	s.CacheSecurityGroupName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CacheSecurityGroup) SetDescription(v string) *CacheSecurityGroup {
+	s.Description = &v
+	return s
+}
+
+// SetEC2SecurityGroups sets the EC2SecurityGroups field's value.
+func (s *CacheSecurityGroup) SetEC2SecurityGroups(v []*EC2SecurityGroup) *CacheSecurityGroup {
+	s.EC2SecurityGroups = v
+	return s
+}
+
+// SetOwnerId sets the OwnerId field's value.
+func (s *CacheSecurityGroup) SetOwnerId(v string) *CacheSecurityGroup {
+	s.OwnerId = &v
+	return s
+}
+
 // Represents a cache cluster's status within a particular cache security group.
 type CacheSecurityGroupMembership struct {
 	_ struct{} `type:"structure"`
@@ -4178,11 +4559,23 @@ func (s CacheSecurityGroupMembership) GoString() string {
 	return s.String()
 }
 
+// SetCacheSecurityGroupName sets the CacheSecurityGroupName field's value.
+func (s *CacheSecurityGroupMembership) SetCacheSecurityGroupName(v string) *CacheSecurityGroupMembership {
+	s.CacheSecurityGroupName = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *CacheSecurityGroupMembership) SetStatus(v string) *CacheSecurityGroupMembership {
+	s.Status = &v
+	return s
+}
+
 // Represents the output of one of the following operations:
 //
-//    CreateCacheSubnetGroup
+//    * CreateCacheSubnetGroup
 //
-//    ModifyCacheSubnetGroup
+//    * ModifyCacheSubnetGroup
 type CacheSubnetGroup struct {
 	_ struct{} `type:"structure"`
 
@@ -4208,6 +4601,30 @@ func (s CacheSubnetGroup) String() string {
 // GoString returns the string representation
 func (s CacheSubnetGroup) GoString() string {
 	return s.String()
+}
+
+// SetCacheSubnetGroupDescription sets the CacheSubnetGroupDescription field's value.
+func (s *CacheSubnetGroup) SetCacheSubnetGroupDescription(v string) *CacheSubnetGroup {
+	s.CacheSubnetGroupDescription = &v
+	return s
+}
+
+// SetCacheSubnetGroupName sets the CacheSubnetGroupName field's value.
+func (s *CacheSubnetGroup) SetCacheSubnetGroupName(v string) *CacheSubnetGroup {
+	s.CacheSubnetGroupName = &v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *CacheSubnetGroup) SetSubnets(v []*Subnet) *CacheSubnetGroup {
+	s.Subnets = v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *CacheSubnetGroup) SetVpcId(v string) *CacheSubnetGroup {
+	s.VpcId = &v
+	return s
 }
 
 // Represents the input of a CopySnapshotMessage operation.
@@ -4265,6 +4682,24 @@ func (s *CopySnapshotInput) Validate() error {
 	return nil
 }
 
+// SetSourceSnapshotName sets the SourceSnapshotName field's value.
+func (s *CopySnapshotInput) SetSourceSnapshotName(v string) *CopySnapshotInput {
+	s.SourceSnapshotName = &v
+	return s
+}
+
+// SetTargetBucket sets the TargetBucket field's value.
+func (s *CopySnapshotInput) SetTargetBucket(v string) *CopySnapshotInput {
+	s.TargetBucket = &v
+	return s
+}
+
+// SetTargetSnapshotName sets the TargetSnapshotName field's value.
+func (s *CopySnapshotInput) SetTargetSnapshotName(v string) *CopySnapshotInput {
+	s.TargetSnapshotName = &v
+	return s
+}
+
 type CopySnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4283,6 +4718,12 @@ func (s CopySnapshotOutput) GoString() string {
 	return s.String()
 }
 
+// SetSnapshot sets the Snapshot field's value.
+func (s *CopySnapshotOutput) SetSnapshot(v *Snapshot) *CopySnapshotOutput {
+	s.Snapshot = v
+	return s
+}
+
 // Represents the input of a CreateCacheCluster operation.
 type CreateCacheClusterInput struct {
 	_ struct{} `type:"structure"`
@@ -4297,19 +4738,33 @@ type CreateCacheClusterInput struct {
 	// assumes single-az mode.
 	AZMode *string `type:"string" enum:"AZMode"`
 
+	// The password used to access a password protected server.
+	//
+	// Password constraints:
+	//
+	//    * Must be only printable ASCII characters.
+	//
+	//    * Must be at least 16 characters and no more than 128 characters in length.
+	//
+	//    * Cannot contain any of the following characters: '/', '"', or "@".
+	//
+	// For more information, see AUTH password (http://redis.io/commands/AUTH) at
+	// Redis.
+	AuthToken *string `type:"string"`
+
 	// This parameter is currently disabled.
 	AutoMinorVersionUpgrade *bool `type:"boolean"`
 
 	// The node group (shard) identifier. This parameter is stored as a lowercase
 	// string.
 	//
-	//  Constraints:
+	// Constraints:
 	//
-	//   A name must contain from 1 to 20 alphanumeric characters or hyphens.
+	//    * A name must contain from 1 to 20 alphanumeric characters or hyphens.
 	//
-	//   The first character must be a letter.
+	//    * The first character must be a letter.
 	//
-	//   A name cannot end with a hyphen or contain two consecutive hyphens.
+	//    * A name cannot end with a hyphen or contain two consecutive hyphens.
 	//
 	// CacheClusterId is a required field
 	CacheClusterId *string `type:"string" required:"true"`
@@ -4318,37 +4773,37 @@ type CreateCacheClusterInput struct {
 	//
 	// Valid node types are as follows:
 	//
-	//   General purpose:
+	//    * General purpose:
 	//
-	//   Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
-	// cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
-	// cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
+	// Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
+	//    cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
+	//    cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
 	//
-	//   Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium,
-	// cache.m1.large, cache.m1.xlarge
+	// Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	//    cache.m1.xlarge
 	//
-	//     Compute optimized: cache.c1.xlarge
+	//    * Compute optimized: cache.c1.xlarge
 	//
-	//   Memory optimized:
+	//    * Memory optimized:
 	//
-	//   Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge,
-	// cache.r3.4xlarge, cache.r3.8xlarge
+	// Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
+	//    cache.r3.8xlarge
 	//
-	//   Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
+	// Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
 	//
-	//      Notes:
+	// Notes:
 	//
-	//   All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
-	// VPC).
+	//    * All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
+	//    VPC).
 	//
-	//   Redis backup/restore is not supported for Redis (cluster mode disabled)
-	// T1 and T2 instances. Backup/restore is supported on Redis (cluster mode enabled)
-	// T2 instances.
+	//    * Redis backup/restore is not supported for Redis (cluster mode disabled)
+	//    T1 and T2 instances. Backup/restore is supported on Redis (cluster mode
+	//    enabled) T2 instances.
 	//
-	//   Redis Append-only files (AOF) functionality is not supported for T1 or
-	// T2 instances.
+	//    * Redis Append-only files (AOF) functionality is not supported for T1
+	//    or T2 instances.
 	//
-	//   For a complete listing of node types and specifications, see Amazon ElastiCache
+	// For a complete listing of node types and specifications, see Amazon ElastiCache
 	// Product Features and Details (http://aws.amazon.com/elasticache/details)
 	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
 	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
@@ -4371,7 +4826,7 @@ type CreateCacheClusterInput struct {
 	// Use this parameter only when you are creating a cache cluster in an Amazon
 	// Virtual Private Cloud (Amazon VPC).
 	//
-	//  If you're going to launch your cluster in an Amazon VPC, you need to create
+	// If you're going to launch your cluster in an Amazon VPC, you need to create
 	// a subnet group before you start creating a cluster. For more information,
 	// see Subnets and Subnet Groups (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SubnetGroups.html).
 	CacheSubnetGroupName *string `type:"string"`
@@ -4385,7 +4840,7 @@ type CreateCacheClusterInput struct {
 	// To view the supported cache engine versions, use the DescribeCacheEngineVersions
 	// operation.
 	//
-	//  Important: You can upgrade to a newer engine version (see Selecting a Cache
+	// Important: You can upgrade to a newer engine version (see Selecting a Cache
 	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
 	// but you cannot downgrade to an earlier engine version. If you want to use
 	// an earlier engine version, you must delete the existing cache cluster or
@@ -4395,7 +4850,7 @@ type CreateCacheClusterInput struct {
 	// The Amazon Resource Name (ARN) of the Amazon Simple Notification Service
 	// (SNS) topic to which notifications are sent.
 	//
-	//  The Amazon SNS topic owner must be the same as the cache cluster owner.
+	// The Amazon SNS topic owner must be the same as the cache cluster owner.
 	NotificationTopicArn *string `type:"string"`
 
 	// The initial number of cache nodes that the cache cluster has.
@@ -4425,13 +4880,13 @@ type CreateCacheClusterInput struct {
 	//
 	// This option is only supported on Memcached.
 	//
-	//  If you are creating your cache cluster in an Amazon VPC (recommended) you
+	// If you are creating your cache cluster in an Amazon VPC (recommended) you
 	// can only locate nodes in Availability Zones that are associated with the
 	// subnets in the selected subnet group.
 	//
 	// The number of Availability Zones listed must equal the value of NumCacheNodes.
 	//
-	//  If you want all the nodes in the same Availability Zone, use PreferredAvailabilityZone
+	// If you want all the nodes in the same Availability Zone, use PreferredAvailabilityZone
 	// instead, or repeat the Availability Zone multiple times in the list.
 	//
 	// Default: System chosen Availability Zones.
@@ -4442,34 +4897,34 @@ type CreateCacheClusterInput struct {
 	// (24H Clock UTC). The minimum maintenance window is a 60 minute period. Valid
 	// values for ddd are:
 	//
-	// Specifies the weekly time range during which maintenance on the cluster
-	// is performed. It is specified as a range in the format ddd:hh24:mi-ddd:hh24:mi
+	// Specifies the weekly time range during which maintenance on the cluster is
+	// performed. It is specified as a range in the format ddd:hh24:mi-ddd:hh24:mi
 	// (24H Clock UTC). The minimum maintenance window is a 60 minute period.
 	//
 	// Valid values for ddd are:
 	//
-	//    sun
+	//    * sun
 	//
-	//    mon
+	//    * mon
 	//
-	//    tue
+	//    * tue
 	//
-	//    wed
+	//    * wed
 	//
-	//    thu
+	//    * thu
 	//
-	//    fri
+	//    * fri
 	//
-	//    sat
+	//    * sat
 	//
-	//   Example: sun:23:00-mon:01:30
+	// Example: sun:23:00-mon:01:30
 	PreferredMaintenanceWindow *string `type:"string"`
 
 	// Due to current limitations on Redis (cluster mode disabled), this operation
 	// or parameter is not supported on Redis (cluster mode enabled) replication
 	// groups.
 	//
-	//  The ID of the replication group to which this cache cluster should belong.
+	// The ID of the replication group to which this cache cluster should belong.
 	// If this parameter is specified, the cache cluster is added to the specified
 	// replication group as a read replica; otherwise, the cache cluster is a standalone
 	// primary that is not part of any replication group.
@@ -4478,7 +4933,7 @@ type CreateCacheClusterInput struct {
 	// Zone is not specified, the cache cluster is created in Availability Zones
 	// that provide the best spread of read replicas across Availability Zones.
 	//
-	//  This parameter is only valid if the Engine parameter is redis.
+	// This parameter is only valid if the Engine parameter is redis.
 	ReplicationGroupId *string `type:"string"`
 
 	// One or more VPC security groups associated with the cache cluster.
@@ -4492,25 +4947,25 @@ type CreateCacheClusterInput struct {
 	// file is used to populate the node group (shard). The Amazon S3 object name
 	// in the ARN cannot contain any commas.
 	//
-	//  This parameter is only valid if the Engine parameter is redis.
+	// This parameter is only valid if the Engine parameter is redis.
 	//
-	//  Example of an Amazon S3 ARN: arn:aws:s3:::my_bucket/snapshot1.rdb
+	// Example of an Amazon S3 ARN: arn:aws:s3:::my_bucket/snapshot1.rdb
 	SnapshotArns []*string `locationNameList:"SnapshotArn" type:"list"`
 
 	// The name of a Redis snapshot from which to restore data into the new node
 	// group (shard). The snapshot status changes to restoring while the new node
 	// group (shard) is being created.
 	//
-	//  This parameter is only valid if the Engine parameter is redis.
+	// This parameter is only valid if the Engine parameter is redis.
 	SnapshotName *string `type:"string"`
 
 	// The number of days for which ElastiCache retains automatic snapshots before
 	// deleting them. For example, if you set SnapshotRetentionLimit to 5, a snapshot
 	// taken today is retained for 5 days before being deleted.
 	//
-	//  This parameter is only valid if the Engine parameter is redis.
+	// This parameter is only valid if the Engine parameter is redis.
 	//
-	//  Default: 0 (i.e., automatic backups are disabled for this cache cluster).
+	// Default: 0 (i.e., automatic backups are disabled for this cache cluster).
 	SnapshotRetentionLimit *int64 `type:"integer"`
 
 	// The daily time range (in UTC) during which ElastiCache begins taking a daily
@@ -4518,10 +4973,10 @@ type CreateCacheClusterInput struct {
 	//
 	// Example: 05:00-09:00
 	//
-	// If you do not specify this parameter, ElastiCache automatically chooses
-	// an appropriate time range.
+	// If you do not specify this parameter, ElastiCache automatically chooses an
+	// appropriate time range.
 	//
-	//  Note: This parameter is only valid if the Engine parameter is redis.
+	// Note: This parameter is only valid if the Engine parameter is redis.
 	SnapshotWindow *string `type:"string"`
 
 	// A list of cost allocation tags to be added to this resource. A tag is a key-value
@@ -4552,6 +5007,144 @@ func (s *CreateCacheClusterInput) Validate() error {
 	return nil
 }
 
+// SetAZMode sets the AZMode field's value.
+func (s *CreateCacheClusterInput) SetAZMode(v string) *CreateCacheClusterInput {
+	s.AZMode = &v
+	return s
+}
+
+// SetAuthToken sets the AuthToken field's value.
+func (s *CreateCacheClusterInput) SetAuthToken(v string) *CreateCacheClusterInput {
+	s.AuthToken = &v
+	return s
+}
+
+// SetAutoMinorVersionUpgrade sets the AutoMinorVersionUpgrade field's value.
+func (s *CreateCacheClusterInput) SetAutoMinorVersionUpgrade(v bool) *CreateCacheClusterInput {
+	s.AutoMinorVersionUpgrade = &v
+	return s
+}
+
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *CreateCacheClusterInput) SetCacheClusterId(v string) *CreateCacheClusterInput {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *CreateCacheClusterInput) SetCacheNodeType(v string) *CreateCacheClusterInput {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *CreateCacheClusterInput) SetCacheParameterGroupName(v string) *CreateCacheClusterInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetCacheSecurityGroupNames sets the CacheSecurityGroupNames field's value.
+func (s *CreateCacheClusterInput) SetCacheSecurityGroupNames(v []*string) *CreateCacheClusterInput {
+	s.CacheSecurityGroupNames = v
+	return s
+}
+
+// SetCacheSubnetGroupName sets the CacheSubnetGroupName field's value.
+func (s *CreateCacheClusterInput) SetCacheSubnetGroupName(v string) *CreateCacheClusterInput {
+	s.CacheSubnetGroupName = &v
+	return s
+}
+
+// SetEngine sets the Engine field's value.
+func (s *CreateCacheClusterInput) SetEngine(v string) *CreateCacheClusterInput {
+	s.Engine = &v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *CreateCacheClusterInput) SetEngineVersion(v string) *CreateCacheClusterInput {
+	s.EngineVersion = &v
+	return s
+}
+
+// SetNotificationTopicArn sets the NotificationTopicArn field's value.
+func (s *CreateCacheClusterInput) SetNotificationTopicArn(v string) *CreateCacheClusterInput {
+	s.NotificationTopicArn = &v
+	return s
+}
+
+// SetNumCacheNodes sets the NumCacheNodes field's value.
+func (s *CreateCacheClusterInput) SetNumCacheNodes(v int64) *CreateCacheClusterInput {
+	s.NumCacheNodes = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *CreateCacheClusterInput) SetPort(v int64) *CreateCacheClusterInput {
+	s.Port = &v
+	return s
+}
+
+// SetPreferredAvailabilityZone sets the PreferredAvailabilityZone field's value.
+func (s *CreateCacheClusterInput) SetPreferredAvailabilityZone(v string) *CreateCacheClusterInput {
+	s.PreferredAvailabilityZone = &v
+	return s
+}
+
+// SetPreferredAvailabilityZones sets the PreferredAvailabilityZones field's value.
+func (s *CreateCacheClusterInput) SetPreferredAvailabilityZones(v []*string) *CreateCacheClusterInput {
+	s.PreferredAvailabilityZones = v
+	return s
+}
+
+// SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
+func (s *CreateCacheClusterInput) SetPreferredMaintenanceWindow(v string) *CreateCacheClusterInput {
+	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *CreateCacheClusterInput) SetReplicationGroupId(v string) *CreateCacheClusterInput {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// SetSecurityGroupIds sets the SecurityGroupIds field's value.
+func (s *CreateCacheClusterInput) SetSecurityGroupIds(v []*string) *CreateCacheClusterInput {
+	s.SecurityGroupIds = v
+	return s
+}
+
+// SetSnapshotArns sets the SnapshotArns field's value.
+func (s *CreateCacheClusterInput) SetSnapshotArns(v []*string) *CreateCacheClusterInput {
+	s.SnapshotArns = v
+	return s
+}
+
+// SetSnapshotName sets the SnapshotName field's value.
+func (s *CreateCacheClusterInput) SetSnapshotName(v string) *CreateCacheClusterInput {
+	s.SnapshotName = &v
+	return s
+}
+
+// SetSnapshotRetentionLimit sets the SnapshotRetentionLimit field's value.
+func (s *CreateCacheClusterInput) SetSnapshotRetentionLimit(v int64) *CreateCacheClusterInput {
+	s.SnapshotRetentionLimit = &v
+	return s
+}
+
+// SetSnapshotWindow sets the SnapshotWindow field's value.
+func (s *CreateCacheClusterInput) SetSnapshotWindow(v string) *CreateCacheClusterInput {
+	s.SnapshotWindow = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateCacheClusterInput) SetTags(v []*Tag) *CreateCacheClusterInput {
+	s.Tags = v
+	return s
+}
+
 type CreateCacheClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4567,6 +5160,12 @@ func (s CreateCacheClusterOutput) String() string {
 // GoString returns the string representation
 func (s CreateCacheClusterOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheCluster sets the CacheCluster field's value.
+func (s *CreateCacheClusterOutput) SetCacheCluster(v *CacheCluster) *CreateCacheClusterOutput {
+	s.CacheCluster = v
+	return s
 }
 
 // Represents the input of a CreateCacheParameterGroup operation.
@@ -4621,6 +5220,24 @@ func (s *CreateCacheParameterGroupInput) Validate() error {
 	return nil
 }
 
+// SetCacheParameterGroupFamily sets the CacheParameterGroupFamily field's value.
+func (s *CreateCacheParameterGroupInput) SetCacheParameterGroupFamily(v string) *CreateCacheParameterGroupInput {
+	s.CacheParameterGroupFamily = &v
+	return s
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *CreateCacheParameterGroupInput) SetCacheParameterGroupName(v string) *CreateCacheParameterGroupInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateCacheParameterGroupInput) SetDescription(v string) *CreateCacheParameterGroupInput {
+	s.Description = &v
+	return s
+}
+
 type CreateCacheParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4636,6 +5253,12 @@ func (s CreateCacheParameterGroupOutput) String() string {
 // GoString returns the string representation
 func (s CreateCacheParameterGroupOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheParameterGroup sets the CacheParameterGroup field's value.
+func (s *CreateCacheParameterGroupOutput) SetCacheParameterGroup(v *CacheParameterGroup) *CreateCacheParameterGroupOutput {
+	s.CacheParameterGroup = v
+	return s
 }
 
 // Represents the input of a CreateCacheSecurityGroup operation.
@@ -4685,16 +5308,28 @@ func (s *CreateCacheSecurityGroupInput) Validate() error {
 	return nil
 }
 
+// SetCacheSecurityGroupName sets the CacheSecurityGroupName field's value.
+func (s *CreateCacheSecurityGroupInput) SetCacheSecurityGroupName(v string) *CreateCacheSecurityGroupInput {
+	s.CacheSecurityGroupName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateCacheSecurityGroupInput) SetDescription(v string) *CreateCacheSecurityGroupInput {
+	s.Description = &v
+	return s
+}
+
 type CreateCacheSecurityGroupOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Represents the output of one of the following operations:
 	//
-	//    AuthorizeCacheSecurityGroupIngress
+	//    * AuthorizeCacheSecurityGroupIngress
 	//
-	//    CreateCacheSecurityGroup
+	//    * CreateCacheSecurityGroup
 	//
-	//    RevokeCacheSecurityGroupIngress
+	//    * RevokeCacheSecurityGroupIngress
 	CacheSecurityGroup *CacheSecurityGroup `type:"structure"`
 }
 
@@ -4706,6 +5341,12 @@ func (s CreateCacheSecurityGroupOutput) String() string {
 // GoString returns the string representation
 func (s CreateCacheSecurityGroupOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheSecurityGroup sets the CacheSecurityGroup field's value.
+func (s *CreateCacheSecurityGroupOutput) SetCacheSecurityGroup(v *CacheSecurityGroup) *CreateCacheSecurityGroupOutput {
+	s.CacheSecurityGroup = v
+	return s
 }
 
 // Represents the input of a CreateCacheSubnetGroup operation.
@@ -4761,14 +5402,32 @@ func (s *CreateCacheSubnetGroupInput) Validate() error {
 	return nil
 }
 
+// SetCacheSubnetGroupDescription sets the CacheSubnetGroupDescription field's value.
+func (s *CreateCacheSubnetGroupInput) SetCacheSubnetGroupDescription(v string) *CreateCacheSubnetGroupInput {
+	s.CacheSubnetGroupDescription = &v
+	return s
+}
+
+// SetCacheSubnetGroupName sets the CacheSubnetGroupName field's value.
+func (s *CreateCacheSubnetGroupInput) SetCacheSubnetGroupName(v string) *CreateCacheSubnetGroupInput {
+	s.CacheSubnetGroupName = &v
+	return s
+}
+
+// SetSubnetIds sets the SubnetIds field's value.
+func (s *CreateCacheSubnetGroupInput) SetSubnetIds(v []*string) *CreateCacheSubnetGroupInput {
+	s.SubnetIds = v
+	return s
+}
+
 type CreateCacheSubnetGroupOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Represents the output of one of the following operations:
 	//
-	//    CreateCacheSubnetGroup
+	//    * CreateCacheSubnetGroup
 	//
-	//    ModifyCacheSubnetGroup
+	//    * ModifyCacheSubnetGroup
 	CacheSubnetGroup *CacheSubnetGroup `type:"structure"`
 }
 
@@ -4782,9 +5441,29 @@ func (s CreateCacheSubnetGroupOutput) GoString() string {
 	return s.String()
 }
 
+// SetCacheSubnetGroup sets the CacheSubnetGroup field's value.
+func (s *CreateCacheSubnetGroupOutput) SetCacheSubnetGroup(v *CacheSubnetGroup) *CreateCacheSubnetGroupOutput {
+	s.CacheSubnetGroup = v
+	return s
+}
+
 // Represents the input of a CreateReplicationGroup operation.
 type CreateReplicationGroupInput struct {
 	_ struct{} `type:"structure"`
+
+	// The password used to access a password protected server.
+	//
+	// Password constraints:
+	//
+	//    * Must be only printable ASCII characters.
+	//
+	//    * Must be at least 16 characters and no more than 128 characters in length.
+	//
+	//    * Cannot contain any of the following characters: '/', '"', or "@".
+	//
+	// For more information, see AUTH password (http://redis.io/commands/AUTH) at
+	// Redis.
+	AuthToken *string `type:"string"`
 
 	// This parameter is currently disabled.
 	AutoMinorVersionUpgrade *bool `type:"boolean"`
@@ -4795,16 +5474,16 @@ type CreateReplicationGroupInput struct {
 	// If true, Multi-AZ is enabled for this replication group. If false, Multi-AZ
 	// is disabled for this replication group.
 	//
-	//  AutomaticFailoverEnabled must be enabled for Redis (cluster mode enabled)
+	// AutomaticFailoverEnabled must be enabled for Redis (cluster mode enabled)
 	// replication groups.
 	//
 	// Default: false
 	//
-	//  ElastiCache Multi-AZ replication groups is not supported on:
+	// ElastiCache Multi-AZ replication groups is not supported on:
 	//
-	//   Redis versions earlier than 2.8.6.
+	// Redis versions earlier than 2.8.6.
 	//
-	//   Redis (cluster mode disabled): T1 and T2 node types.
+	// Redis (cluster mode disabled): T1 and T2 node types.
 	//
 	// Redis (cluster mode enabled): T2 node types.
 	AutomaticFailoverEnabled *bool `type:"boolean"`
@@ -4813,37 +5492,37 @@ type CreateReplicationGroupInput struct {
 	//
 	// Valid node types are as follows:
 	//
-	//   General purpose:
+	//    * General purpose:
 	//
-	//   Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
-	// cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
-	// cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
+	// Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
+	//    cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
+	//    cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
 	//
-	//   Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium,
-	// cache.m1.large, cache.m1.xlarge
+	// Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	//    cache.m1.xlarge
 	//
-	//     Compute optimized: cache.c1.xlarge
+	//    * Compute optimized: cache.c1.xlarge
 	//
-	//   Memory optimized:
+	//    * Memory optimized:
 	//
-	//   Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge,
-	// cache.r3.4xlarge, cache.r3.8xlarge
+	// Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
+	//    cache.r3.8xlarge
 	//
-	//   Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
+	// Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
 	//
-	//      Notes:
+	// Notes:
 	//
-	//   All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
-	// VPC).
+	//    * All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
+	//    VPC).
 	//
-	//   Redis backup/restore is not supported for Redis (cluster mode disabled)
-	// T1 and T2 instances. Backup/restore is supported on Redis (cluster mode enabled)
-	// T2 instances.
+	//    * Redis backup/restore is not supported for Redis (cluster mode disabled)
+	//    T1 and T2 instances. Backup/restore is supported on Redis (cluster mode
+	//    enabled) T2 instances.
 	//
-	//   Redis Append-only files (AOF) functionality is not supported for T1 or
-	// T2 instances.
+	//    * Redis Append-only files (AOF) functionality is not supported for T1
+	//    or T2 instances.
 	//
-	//   For a complete listing of node types and specifications, see Amazon ElastiCache
+	// For a complete listing of node types and specifications, see Amazon ElastiCache
 	// Product Features and Details (http://aws.amazon.com/elasticache/details)
 	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
 	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
@@ -4857,9 +5536,9 @@ type CreateReplicationGroupInput struct {
 	// and want to use a default parameter group, we recommend that you specify
 	// the parameter group by name.
 	//
-	//   To create a Redis (cluster mode disabled) replication group, use CacheParameterGroupName=default.redis3.2.
+	//    * To create a Redis (cluster mode disabled) replication group, use CacheParameterGroupName=default.redis3.2.
 	//
-	//   To create a Redis (cluster mode enabled) replication group, use CacheParameterGroupName=default.redis3.2.cluster.on.
+	//    * To create a Redis (cluster mode enabled) replication group, use CacheParameterGroupName=default.redis3.2.cluster.on.
 	CacheParameterGroupName *string `type:"string"`
 
 	// A list of cache security group names to associate with this replication group.
@@ -4867,7 +5546,7 @@ type CreateReplicationGroupInput struct {
 
 	// The name of the cache subnet group to be used for the replication group.
 	//
-	//  If you're going to launch your cluster in an Amazon VPC, you need to create
+	// If you're going to launch your cluster in an Amazon VPC, you need to create
 	// a subnet group before you start creating a cluster. For more information,
 	// see Subnets and Subnet Groups (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SubnetGroups.html).
 	CacheSubnetGroupName *string `type:"string"`
@@ -4880,7 +5559,7 @@ type CreateReplicationGroupInput struct {
 	// in this replication group. To view the supported cache engine versions, use
 	// the DescribeCacheEngineVersions operation.
 	//
-	//  Important: You can upgrade to a newer engine version (see Selecting a Cache
+	// Important: You can upgrade to a newer engine version (see Selecting a Cache
 	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement))
 	// in the ElastiCache User Guide, but you cannot downgrade to an earlier engine
 	// version. If you want to use an earlier engine version, you must delete the
@@ -4900,7 +5579,7 @@ type CreateReplicationGroupInput struct {
 	// The Amazon Resource Name (ARN) of the Amazon Simple Notification Service
 	// (SNS) topic to which notifications are sent.
 	//
-	//  The Amazon SNS topic owner must be the same as the cache cluster owner.
+	// The Amazon SNS topic owner must be the same as the cache cluster owner.
 	NotificationTopicArn *string `type:"string"`
 
 	// The number of clusters this replication group initially has.
@@ -4911,9 +5590,6 @@ type CreateReplicationGroupInput struct {
 	// If Multi-AZ is enabled, the value of this parameter must be at least 2.
 	//
 	// The maximum permitted value for NumCacheClusters is 6 (primary plus 5 replicas).
-	// If you need to exceed this limit, fill out the ElastiCache Limit Increase
-	// Request form at http://aws.amazon.com/contact-us/elasticache-node-limit-request/
-	// (http://aws.amazon.com/contact-us/elasticache-node-limit-request/).
 	NumCacheClusters *int64 `type:"integer"`
 
 	// An optional parameter that specifies the number of node groups (shards) for
@@ -4934,13 +5610,13 @@ type CreateReplicationGroupInput struct {
 	// This parameter is not used if there is more than one node group (shard).
 	// You should use NodeGroupConfiguration instead.
 	//
-	//  If you are creating your replication group in an Amazon VPC (recommended),
+	// If you are creating your replication group in an Amazon VPC (recommended),
 	// you can only locate cache clusters in Availability Zones associated with
 	// the subnets in the selected subnet group.
 	//
 	// The number of Availability Zones listed must equal the value of NumCacheClusters.
 	//
-	//  Default: system chosen Availability Zones.
+	// Default: system chosen Availability Zones.
 	PreferredCacheClusterAZs []*string `locationNameList:"AvailabilityZone" type:"list"`
 
 	// Specifies the weekly time range during which maintenance on the cache cluster
@@ -4948,27 +5624,27 @@ type CreateReplicationGroupInput struct {
 	// (24H Clock UTC). The minimum maintenance window is a 60 minute period. Valid
 	// values for ddd are:
 	//
-	// Specifies the weekly time range during which maintenance on the cluster
-	// is performed. It is specified as a range in the format ddd:hh24:mi-ddd:hh24:mi
+	// Specifies the weekly time range during which maintenance on the cluster is
+	// performed. It is specified as a range in the format ddd:hh24:mi-ddd:hh24:mi
 	// (24H Clock UTC). The minimum maintenance window is a 60 minute period.
 	//
 	// Valid values for ddd are:
 	//
-	//    sun
+	//    * sun
 	//
-	//    mon
+	//    * mon
 	//
-	//    tue
+	//    * tue
 	//
-	//    wed
+	//    * wed
 	//
-	//    thu
+	//    * thu
 	//
-	//    fri
+	//    * fri
 	//
-	//    sat
+	//    * sat
 	//
-	//   Example: sun:23:00-mon:01:30
+	// Example: sun:23:00-mon:01:30
 	PreferredMaintenanceWindow *string `type:"string"`
 
 	// The identifier of the cache cluster that serves as the primary for this replication
@@ -4992,19 +5668,19 @@ type CreateReplicationGroupInput struct {
 	//
 	// Constraints:
 	//
-	//   A name must contain from 1 to 20 alphanumeric characters or hyphens.
+	//    * A name must contain from 1 to 20 alphanumeric characters or hyphens.
 	//
-	//   The first character must be a letter.
+	//    * The first character must be a letter.
 	//
-	//   A name cannot end with a hyphen or contain two consecutive hyphens.
+	//    * A name cannot end with a hyphen or contain two consecutive hyphens.
 	//
 	// ReplicationGroupId is a required field
 	ReplicationGroupId *string `type:"string" required:"true"`
 
 	// One or more Amazon VPC security groups associated with this replication group.
 	//
-	// Use this parameter only when you are creating a replication group in an
-	// Amazon Virtual Private Cloud (Amazon VPC).
+	// Use this parameter only when you are creating a replication group in an Amazon
+	// Virtual Private Cloud (Amazon VPC).
 	SecurityGroupIds []*string `locationNameList:"SecurityGroupId" type:"list"`
 
 	// A list of Amazon Resource Names (ARN) that uniquely identify the Redis RDB
@@ -5013,25 +5689,25 @@ type CreateReplicationGroupInput struct {
 	// any commas. The list must match the number of node groups (shards) in the
 	// replication group, which means you cannot repartition.
 	//
-	//  This parameter is only valid if the Engine parameter is redis.
+	// This parameter is only valid if the Engine parameter is redis.
 	//
-	//  Example of an Amazon S3 ARN: arn:aws:s3:::my_bucket/snapshot1.rdb
+	// Example of an Amazon S3 ARN: arn:aws:s3:::my_bucket/snapshot1.rdb
 	SnapshotArns []*string `locationNameList:"SnapshotArn" type:"list"`
 
 	// The name of a snapshot from which to restore data into the new replication
 	// group. The snapshot status changes to restoring while the new replication
 	// group is being created.
 	//
-	//  This parameter is only valid if the Engine parameter is redis.
+	// This parameter is only valid if the Engine parameter is redis.
 	SnapshotName *string `type:"string"`
 
 	// The number of days for which ElastiCache retains automatic snapshots before
 	// deleting them. For example, if you set SnapshotRetentionLimit to 5, a snapshot
 	// that was taken today is retained for 5 days before being deleted.
 	//
-	//  This parameter is only valid if the Engine parameter is redis.
+	// This parameter is only valid if the Engine parameter is redis.
 	//
-	//  Default: 0 (i.e., automatic backups are disabled for this cache cluster).
+	// Default: 0 (i.e., automatic backups are disabled for this cache cluster).
 	SnapshotRetentionLimit *int64 `type:"integer"`
 
 	// The daily time range (in UTC) during which ElastiCache begins taking a daily
@@ -5039,10 +5715,10 @@ type CreateReplicationGroupInput struct {
 	//
 	// Example: 05:00-09:00
 	//
-	// If you do not specify this parameter, ElastiCache automatically chooses
-	// an appropriate time range.
+	// If you do not specify this parameter, ElastiCache automatically chooses an
+	// appropriate time range.
 	//
-	//  This parameter is only valid if the Engine parameter is redis.
+	// This parameter is only valid if the Engine parameter is redis.
 	SnapshotWindow *string `type:"string"`
 
 	// A list of cost allocation tags to be added to this resource. A tag is a key-value
@@ -5076,6 +5752,162 @@ func (s *CreateReplicationGroupInput) Validate() error {
 	return nil
 }
 
+// SetAuthToken sets the AuthToken field's value.
+func (s *CreateReplicationGroupInput) SetAuthToken(v string) *CreateReplicationGroupInput {
+	s.AuthToken = &v
+	return s
+}
+
+// SetAutoMinorVersionUpgrade sets the AutoMinorVersionUpgrade field's value.
+func (s *CreateReplicationGroupInput) SetAutoMinorVersionUpgrade(v bool) *CreateReplicationGroupInput {
+	s.AutoMinorVersionUpgrade = &v
+	return s
+}
+
+// SetAutomaticFailoverEnabled sets the AutomaticFailoverEnabled field's value.
+func (s *CreateReplicationGroupInput) SetAutomaticFailoverEnabled(v bool) *CreateReplicationGroupInput {
+	s.AutomaticFailoverEnabled = &v
+	return s
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *CreateReplicationGroupInput) SetCacheNodeType(v string) *CreateReplicationGroupInput {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *CreateReplicationGroupInput) SetCacheParameterGroupName(v string) *CreateReplicationGroupInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetCacheSecurityGroupNames sets the CacheSecurityGroupNames field's value.
+func (s *CreateReplicationGroupInput) SetCacheSecurityGroupNames(v []*string) *CreateReplicationGroupInput {
+	s.CacheSecurityGroupNames = v
+	return s
+}
+
+// SetCacheSubnetGroupName sets the CacheSubnetGroupName field's value.
+func (s *CreateReplicationGroupInput) SetCacheSubnetGroupName(v string) *CreateReplicationGroupInput {
+	s.CacheSubnetGroupName = &v
+	return s
+}
+
+// SetEngine sets the Engine field's value.
+func (s *CreateReplicationGroupInput) SetEngine(v string) *CreateReplicationGroupInput {
+	s.Engine = &v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *CreateReplicationGroupInput) SetEngineVersion(v string) *CreateReplicationGroupInput {
+	s.EngineVersion = &v
+	return s
+}
+
+// SetNodeGroupConfiguration sets the NodeGroupConfiguration field's value.
+func (s *CreateReplicationGroupInput) SetNodeGroupConfiguration(v []*NodeGroupConfiguration) *CreateReplicationGroupInput {
+	s.NodeGroupConfiguration = v
+	return s
+}
+
+// SetNotificationTopicArn sets the NotificationTopicArn field's value.
+func (s *CreateReplicationGroupInput) SetNotificationTopicArn(v string) *CreateReplicationGroupInput {
+	s.NotificationTopicArn = &v
+	return s
+}
+
+// SetNumCacheClusters sets the NumCacheClusters field's value.
+func (s *CreateReplicationGroupInput) SetNumCacheClusters(v int64) *CreateReplicationGroupInput {
+	s.NumCacheClusters = &v
+	return s
+}
+
+// SetNumNodeGroups sets the NumNodeGroups field's value.
+func (s *CreateReplicationGroupInput) SetNumNodeGroups(v int64) *CreateReplicationGroupInput {
+	s.NumNodeGroups = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *CreateReplicationGroupInput) SetPort(v int64) *CreateReplicationGroupInput {
+	s.Port = &v
+	return s
+}
+
+// SetPreferredCacheClusterAZs sets the PreferredCacheClusterAZs field's value.
+func (s *CreateReplicationGroupInput) SetPreferredCacheClusterAZs(v []*string) *CreateReplicationGroupInput {
+	s.PreferredCacheClusterAZs = v
+	return s
+}
+
+// SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
+func (s *CreateReplicationGroupInput) SetPreferredMaintenanceWindow(v string) *CreateReplicationGroupInput {
+	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetPrimaryClusterId sets the PrimaryClusterId field's value.
+func (s *CreateReplicationGroupInput) SetPrimaryClusterId(v string) *CreateReplicationGroupInput {
+	s.PrimaryClusterId = &v
+	return s
+}
+
+// SetReplicasPerNodeGroup sets the ReplicasPerNodeGroup field's value.
+func (s *CreateReplicationGroupInput) SetReplicasPerNodeGroup(v int64) *CreateReplicationGroupInput {
+	s.ReplicasPerNodeGroup = &v
+	return s
+}
+
+// SetReplicationGroupDescription sets the ReplicationGroupDescription field's value.
+func (s *CreateReplicationGroupInput) SetReplicationGroupDescription(v string) *CreateReplicationGroupInput {
+	s.ReplicationGroupDescription = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *CreateReplicationGroupInput) SetReplicationGroupId(v string) *CreateReplicationGroupInput {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// SetSecurityGroupIds sets the SecurityGroupIds field's value.
+func (s *CreateReplicationGroupInput) SetSecurityGroupIds(v []*string) *CreateReplicationGroupInput {
+	s.SecurityGroupIds = v
+	return s
+}
+
+// SetSnapshotArns sets the SnapshotArns field's value.
+func (s *CreateReplicationGroupInput) SetSnapshotArns(v []*string) *CreateReplicationGroupInput {
+	s.SnapshotArns = v
+	return s
+}
+
+// SetSnapshotName sets the SnapshotName field's value.
+func (s *CreateReplicationGroupInput) SetSnapshotName(v string) *CreateReplicationGroupInput {
+	s.SnapshotName = &v
+	return s
+}
+
+// SetSnapshotRetentionLimit sets the SnapshotRetentionLimit field's value.
+func (s *CreateReplicationGroupInput) SetSnapshotRetentionLimit(v int64) *CreateReplicationGroupInput {
+	s.SnapshotRetentionLimit = &v
+	return s
+}
+
+// SetSnapshotWindow sets the SnapshotWindow field's value.
+func (s *CreateReplicationGroupInput) SetSnapshotWindow(v string) *CreateReplicationGroupInput {
+	s.SnapshotWindow = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateReplicationGroupInput) SetTags(v []*Tag) *CreateReplicationGroupInput {
+	s.Tags = v
+	return s
+}
+
 type CreateReplicationGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5091,6 +5923,12 @@ func (s CreateReplicationGroupOutput) String() string {
 // GoString returns the string representation
 func (s CreateReplicationGroupOutput) GoString() string {
 	return s.String()
+}
+
+// SetReplicationGroup sets the ReplicationGroup field's value.
+func (s *CreateReplicationGroupOutput) SetReplicationGroup(v *ReplicationGroup) *CreateReplicationGroupOutput {
+	s.ReplicationGroup = v
+	return s
 }
 
 // Represents the input of a CreateSnapshot operation.
@@ -5134,6 +5972,24 @@ func (s *CreateSnapshotInput) Validate() error {
 	return nil
 }
 
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *CreateSnapshotInput) SetCacheClusterId(v string) *CreateSnapshotInput {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *CreateSnapshotInput) SetReplicationGroupId(v string) *CreateSnapshotInput {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// SetSnapshotName sets the SnapshotName field's value.
+func (s *CreateSnapshotInput) SetSnapshotName(v string) *CreateSnapshotInput {
+	s.SnapshotName = &v
+	return s
+}
+
 type CreateSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5150,6 +6006,12 @@ func (s CreateSnapshotOutput) String() string {
 // GoString returns the string representation
 func (s CreateSnapshotOutput) GoString() string {
 	return s.String()
+}
+
+// SetSnapshot sets the Snapshot field's value.
+func (s *CreateSnapshotOutput) SetSnapshot(v *Snapshot) *CreateSnapshotOutput {
+	s.Snapshot = v
+	return s
 }
 
 // Represents the input of a DeleteCacheCluster operation.
@@ -5191,6 +6053,18 @@ func (s *DeleteCacheClusterInput) Validate() error {
 	return nil
 }
 
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *DeleteCacheClusterInput) SetCacheClusterId(v string) *DeleteCacheClusterInput {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetFinalSnapshotIdentifier sets the FinalSnapshotIdentifier field's value.
+func (s *DeleteCacheClusterInput) SetFinalSnapshotIdentifier(v string) *DeleteCacheClusterInput {
+	s.FinalSnapshotIdentifier = &v
+	return s
+}
+
 type DeleteCacheClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5208,13 +6082,19 @@ func (s DeleteCacheClusterOutput) GoString() string {
 	return s.String()
 }
 
+// SetCacheCluster sets the CacheCluster field's value.
+func (s *DeleteCacheClusterOutput) SetCacheCluster(v *CacheCluster) *DeleteCacheClusterOutput {
+	s.CacheCluster = v
+	return s
+}
+
 // Represents the input of a DeleteCacheParameterGroup operation.
 type DeleteCacheParameterGroupInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the cache parameter group to delete.
 	//
-	//  The specified cache security group must not be associated with any cache
+	// The specified cache security group must not be associated with any cache
 	// clusters.
 	//
 	// CacheParameterGroupName is a required field
@@ -5244,6 +6124,12 @@ func (s *DeleteCacheParameterGroupInput) Validate() error {
 	return nil
 }
 
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *DeleteCacheParameterGroupInput) SetCacheParameterGroupName(v string) *DeleteCacheParameterGroupInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
 type DeleteCacheParameterGroupOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5264,7 +6150,7 @@ type DeleteCacheSecurityGroupInput struct {
 
 	// The name of the cache security group to delete.
 	//
-	//  You cannot delete the default security group.
+	// You cannot delete the default security group.
 	//
 	// CacheSecurityGroupName is a required field
 	CacheSecurityGroupName *string `type:"string" required:"true"`
@@ -5291,6 +6177,12 @@ func (s *DeleteCacheSecurityGroupInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCacheSecurityGroupName sets the CacheSecurityGroupName field's value.
+func (s *DeleteCacheSecurityGroupInput) SetCacheSecurityGroupName(v string) *DeleteCacheSecurityGroupInput {
+	s.CacheSecurityGroupName = &v
+	return s
 }
 
 type DeleteCacheSecurityGroupOutput struct {
@@ -5340,6 +6232,12 @@ func (s *DeleteCacheSubnetGroupInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCacheSubnetGroupName sets the CacheSubnetGroupName field's value.
+func (s *DeleteCacheSubnetGroupInput) SetCacheSubnetGroupName(v string) *DeleteCacheSubnetGroupInput {
+	s.CacheSubnetGroupName = &v
+	return s
 }
 
 type DeleteCacheSubnetGroupOutput struct {
@@ -5400,6 +6298,24 @@ func (s *DeleteReplicationGroupInput) Validate() error {
 	return nil
 }
 
+// SetFinalSnapshotIdentifier sets the FinalSnapshotIdentifier field's value.
+func (s *DeleteReplicationGroupInput) SetFinalSnapshotIdentifier(v string) *DeleteReplicationGroupInput {
+	s.FinalSnapshotIdentifier = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *DeleteReplicationGroupInput) SetReplicationGroupId(v string) *DeleteReplicationGroupInput {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// SetRetainPrimaryCluster sets the RetainPrimaryCluster field's value.
+func (s *DeleteReplicationGroupInput) SetRetainPrimaryCluster(v bool) *DeleteReplicationGroupInput {
+	s.RetainPrimaryCluster = &v
+	return s
+}
+
 type DeleteReplicationGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5415,6 +6331,12 @@ func (s DeleteReplicationGroupOutput) String() string {
 // GoString returns the string representation
 func (s DeleteReplicationGroupOutput) GoString() string {
 	return s.String()
+}
+
+// SetReplicationGroup sets the ReplicationGroup field's value.
+func (s *DeleteReplicationGroupOutput) SetReplicationGroup(v *ReplicationGroup) *DeleteReplicationGroupOutput {
+	s.ReplicationGroup = v
+	return s
 }
 
 // Represents the input of a DeleteSnapshot operation.
@@ -5450,6 +6372,12 @@ func (s *DeleteSnapshotInput) Validate() error {
 	return nil
 }
 
+// SetSnapshotName sets the SnapshotName field's value.
+func (s *DeleteSnapshotInput) SetSnapshotName(v string) *DeleteSnapshotInput {
+	s.SnapshotName = &v
+	return s
+}
+
 type DeleteSnapshotOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5466,6 +6394,12 @@ func (s DeleteSnapshotOutput) String() string {
 // GoString returns the string representation
 func (s DeleteSnapshotOutput) GoString() string {
 	return s.String()
+}
+
+// SetSnapshot sets the Snapshot field's value.
+func (s *DeleteSnapshotOutput) SetSnapshot(v *Snapshot) *DeleteSnapshotOutput {
+	s.Snapshot = v
+	return s
 }
 
 // Represents the input of a DescribeCacheClusters operation.
@@ -5506,6 +6440,30 @@ func (s DescribeCacheClustersInput) GoString() string {
 	return s.String()
 }
 
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *DescribeCacheClustersInput) SetCacheClusterId(v string) *DescribeCacheClustersInput {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheClustersInput) SetMarker(v string) *DescribeCacheClustersInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeCacheClustersInput) SetMaxRecords(v int64) *DescribeCacheClustersInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetShowCacheNodeInfo sets the ShowCacheNodeInfo field's value.
+func (s *DescribeCacheClustersInput) SetShowCacheNodeInfo(v bool) *DescribeCacheClustersInput {
+	s.ShowCacheNodeInfo = &v
+	return s
+}
+
 // Represents the output of a DescribeCacheClusters operation.
 type DescribeCacheClustersOutput struct {
 	_ struct{} `type:"structure"`
@@ -5528,6 +6486,18 @@ func (s DescribeCacheClustersOutput) GoString() string {
 	return s.String()
 }
 
+// SetCacheClusters sets the CacheClusters field's value.
+func (s *DescribeCacheClustersOutput) SetCacheClusters(v []*CacheCluster) *DescribeCacheClustersOutput {
+	s.CacheClusters = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheClustersOutput) SetMarker(v string) *DescribeCacheClustersOutput {
+	s.Marker = &v
+	return s
+}
+
 // Represents the input of a DescribeCacheEngineVersions operation.
 type DescribeCacheEngineVersionsInput struct {
 	_ struct{} `type:"structure"`
@@ -5538,11 +6508,11 @@ type DescribeCacheEngineVersionsInput struct {
 	//
 	// Constraints:
 	//
-	//   Must be 1 to 255 alphanumeric characters
+	//    * Must be 1 to 255 alphanumeric characters
 	//
-	//   First character must be a letter
+	//    * First character must be a letter
 	//
-	//   Cannot end with a hyphen or contain two consecutive hyphens
+	//    * Cannot end with a hyphen or contain two consecutive hyphens
 	CacheParameterGroupFamily *string `type:"string"`
 
 	// If true, specifies that only the default version of the specified engine
@@ -5582,6 +6552,42 @@ func (s DescribeCacheEngineVersionsInput) GoString() string {
 	return s.String()
 }
 
+// SetCacheParameterGroupFamily sets the CacheParameterGroupFamily field's value.
+func (s *DescribeCacheEngineVersionsInput) SetCacheParameterGroupFamily(v string) *DescribeCacheEngineVersionsInput {
+	s.CacheParameterGroupFamily = &v
+	return s
+}
+
+// SetDefaultOnly sets the DefaultOnly field's value.
+func (s *DescribeCacheEngineVersionsInput) SetDefaultOnly(v bool) *DescribeCacheEngineVersionsInput {
+	s.DefaultOnly = &v
+	return s
+}
+
+// SetEngine sets the Engine field's value.
+func (s *DescribeCacheEngineVersionsInput) SetEngine(v string) *DescribeCacheEngineVersionsInput {
+	s.Engine = &v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *DescribeCacheEngineVersionsInput) SetEngineVersion(v string) *DescribeCacheEngineVersionsInput {
+	s.EngineVersion = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheEngineVersionsInput) SetMarker(v string) *DescribeCacheEngineVersionsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeCacheEngineVersionsInput) SetMaxRecords(v int64) *DescribeCacheEngineVersionsInput {
+	s.MaxRecords = &v
+	return s
+}
+
 // Represents the output of a DescribeCacheEngineVersions operation.
 type DescribeCacheEngineVersionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -5602,6 +6608,18 @@ func (s DescribeCacheEngineVersionsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeCacheEngineVersionsOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheEngineVersions sets the CacheEngineVersions field's value.
+func (s *DescribeCacheEngineVersionsOutput) SetCacheEngineVersions(v []*CacheEngineVersion) *DescribeCacheEngineVersionsOutput {
+	s.CacheEngineVersions = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheEngineVersionsOutput) SetMarker(v string) *DescribeCacheEngineVersionsOutput {
+	s.Marker = &v
+	return s
 }
 
 // Represents the input of a DescribeCacheParameterGroups operation.
@@ -5636,6 +6654,24 @@ func (s DescribeCacheParameterGroupsInput) GoString() string {
 	return s.String()
 }
 
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *DescribeCacheParameterGroupsInput) SetCacheParameterGroupName(v string) *DescribeCacheParameterGroupsInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheParameterGroupsInput) SetMarker(v string) *DescribeCacheParameterGroupsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeCacheParameterGroupsInput) SetMaxRecords(v int64) *DescribeCacheParameterGroupsInput {
+	s.MaxRecords = &v
+	return s
+}
+
 // Represents the output of a DescribeCacheParameterGroups operation.
 type DescribeCacheParameterGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -5656,6 +6692,18 @@ func (s DescribeCacheParameterGroupsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeCacheParameterGroupsOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheParameterGroups sets the CacheParameterGroups field's value.
+func (s *DescribeCacheParameterGroupsOutput) SetCacheParameterGroups(v []*CacheParameterGroup) *DescribeCacheParameterGroupsOutput {
+	s.CacheParameterGroups = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheParameterGroupsOutput) SetMarker(v string) *DescribeCacheParameterGroupsOutput {
+	s.Marker = &v
+	return s
 }
 
 // Represents the input of a DescribeCacheParameters operation.
@@ -5710,6 +6758,30 @@ func (s *DescribeCacheParametersInput) Validate() error {
 	return nil
 }
 
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *DescribeCacheParametersInput) SetCacheParameterGroupName(v string) *DescribeCacheParametersInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheParametersInput) SetMarker(v string) *DescribeCacheParametersInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeCacheParametersInput) SetMaxRecords(v int64) *DescribeCacheParametersInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetSource sets the Source field's value.
+func (s *DescribeCacheParametersInput) SetSource(v string) *DescribeCacheParametersInput {
+	s.Source = &v
+	return s
+}
+
 // Represents the output of a DescribeCacheParameters operation.
 type DescribeCacheParametersOutput struct {
 	_ struct{} `type:"structure"`
@@ -5733,6 +6805,24 @@ func (s DescribeCacheParametersOutput) String() string {
 // GoString returns the string representation
 func (s DescribeCacheParametersOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheNodeTypeSpecificParameters sets the CacheNodeTypeSpecificParameters field's value.
+func (s *DescribeCacheParametersOutput) SetCacheNodeTypeSpecificParameters(v []*CacheNodeTypeSpecificParameter) *DescribeCacheParametersOutput {
+	s.CacheNodeTypeSpecificParameters = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheParametersOutput) SetMarker(v string) *DescribeCacheParametersOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *DescribeCacheParametersOutput) SetParameters(v []*Parameter) *DescribeCacheParametersOutput {
+	s.Parameters = v
+	return s
 }
 
 // Represents the input of a DescribeCacheSecurityGroups operation.
@@ -5767,6 +6857,24 @@ func (s DescribeCacheSecurityGroupsInput) GoString() string {
 	return s.String()
 }
 
+// SetCacheSecurityGroupName sets the CacheSecurityGroupName field's value.
+func (s *DescribeCacheSecurityGroupsInput) SetCacheSecurityGroupName(v string) *DescribeCacheSecurityGroupsInput {
+	s.CacheSecurityGroupName = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheSecurityGroupsInput) SetMarker(v string) *DescribeCacheSecurityGroupsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeCacheSecurityGroupsInput) SetMaxRecords(v int64) *DescribeCacheSecurityGroupsInput {
+	s.MaxRecords = &v
+	return s
+}
+
 // Represents the output of a DescribeCacheSecurityGroups operation.
 type DescribeCacheSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -5787,6 +6895,18 @@ func (s DescribeCacheSecurityGroupsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeCacheSecurityGroupsOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheSecurityGroups sets the CacheSecurityGroups field's value.
+func (s *DescribeCacheSecurityGroupsOutput) SetCacheSecurityGroups(v []*CacheSecurityGroup) *DescribeCacheSecurityGroupsOutput {
+	s.CacheSecurityGroups = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheSecurityGroupsOutput) SetMarker(v string) *DescribeCacheSecurityGroupsOutput {
+	s.Marker = &v
+	return s
 }
 
 // Represents the input of a DescribeCacheSubnetGroups operation.
@@ -5821,6 +6941,24 @@ func (s DescribeCacheSubnetGroupsInput) GoString() string {
 	return s.String()
 }
 
+// SetCacheSubnetGroupName sets the CacheSubnetGroupName field's value.
+func (s *DescribeCacheSubnetGroupsInput) SetCacheSubnetGroupName(v string) *DescribeCacheSubnetGroupsInput {
+	s.CacheSubnetGroupName = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheSubnetGroupsInput) SetMarker(v string) *DescribeCacheSubnetGroupsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeCacheSubnetGroupsInput) SetMaxRecords(v int64) *DescribeCacheSubnetGroupsInput {
+	s.MaxRecords = &v
+	return s
+}
+
 // Represents the output of a DescribeCacheSubnetGroups operation.
 type DescribeCacheSubnetGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -5841,6 +6979,18 @@ func (s DescribeCacheSubnetGroupsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeCacheSubnetGroupsOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheSubnetGroups sets the CacheSubnetGroups field's value.
+func (s *DescribeCacheSubnetGroupsOutput) SetCacheSubnetGroups(v []*CacheSubnetGroup) *DescribeCacheSubnetGroupsOutput {
+	s.CacheSubnetGroups = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeCacheSubnetGroupsOutput) SetMarker(v string) *DescribeCacheSubnetGroupsOutput {
+	s.Marker = &v
+	return s
 }
 
 // Represents the input of a DescribeEngineDefaultParameters operation.
@@ -5892,6 +7042,24 @@ func (s *DescribeEngineDefaultParametersInput) Validate() error {
 	return nil
 }
 
+// SetCacheParameterGroupFamily sets the CacheParameterGroupFamily field's value.
+func (s *DescribeEngineDefaultParametersInput) SetCacheParameterGroupFamily(v string) *DescribeEngineDefaultParametersInput {
+	s.CacheParameterGroupFamily = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeEngineDefaultParametersInput) SetMarker(v string) *DescribeEngineDefaultParametersInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeEngineDefaultParametersInput) SetMaxRecords(v int64) *DescribeEngineDefaultParametersInput {
+	s.MaxRecords = &v
+	return s
+}
+
 type DescribeEngineDefaultParametersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5907,6 +7075,12 @@ func (s DescribeEngineDefaultParametersOutput) String() string {
 // GoString returns the string representation
 func (s DescribeEngineDefaultParametersOutput) GoString() string {
 	return s.String()
+}
+
+// SetEngineDefaults sets the EngineDefaults field's value.
+func (s *DescribeEngineDefaultParametersOutput) SetEngineDefaults(v *EngineDefaults) *DescribeEngineDefaultParametersOutput {
+	s.EngineDefaults = v
+	return s
 }
 
 // Represents the input of a DescribeEvents operation.
@@ -5957,6 +7131,48 @@ func (s DescribeEventsInput) GoString() string {
 	return s.String()
 }
 
+// SetDuration sets the Duration field's value.
+func (s *DescribeEventsInput) SetDuration(v int64) *DescribeEventsInput {
+	s.Duration = &v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *DescribeEventsInput) SetEndTime(v time.Time) *DescribeEventsInput {
+	s.EndTime = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeEventsInput) SetMarker(v string) *DescribeEventsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeEventsInput) SetMaxRecords(v int64) *DescribeEventsInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetSourceIdentifier sets the SourceIdentifier field's value.
+func (s *DescribeEventsInput) SetSourceIdentifier(v string) *DescribeEventsInput {
+	s.SourceIdentifier = &v
+	return s
+}
+
+// SetSourceType sets the SourceType field's value.
+func (s *DescribeEventsInput) SetSourceType(v string) *DescribeEventsInput {
+	s.SourceType = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *DescribeEventsInput) SetStartTime(v time.Time) *DescribeEventsInput {
+	s.StartTime = &v
+	return s
+}
+
 // Represents the output of a DescribeEvents operation.
 type DescribeEventsOutput struct {
 	_ struct{} `type:"structure"`
@@ -5977,6 +7193,18 @@ func (s DescribeEventsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeEventsOutput) GoString() string {
 	return s.String()
+}
+
+// SetEvents sets the Events field's value.
+func (s *DescribeEventsOutput) SetEvents(v []*Event) *DescribeEventsOutput {
+	s.Events = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeEventsOutput) SetMarker(v string) *DescribeEventsOutput {
+	s.Marker = &v
+	return s
 }
 
 // Represents the input of a DescribeReplicationGroups operation.
@@ -6000,8 +7228,8 @@ type DescribeReplicationGroupsInput struct {
 	// The identifier for the replication group to be described. This parameter
 	// is not case sensitive.
 	//
-	// If you do not specify this parameter, information about all replication
-	// groups is returned.
+	// If you do not specify this parameter, information about all replication groups
+	// is returned.
 	ReplicationGroupId *string `type:"string"`
 }
 
@@ -6013,6 +7241,24 @@ func (s DescribeReplicationGroupsInput) String() string {
 // GoString returns the string representation
 func (s DescribeReplicationGroupsInput) GoString() string {
 	return s.String()
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeReplicationGroupsInput) SetMarker(v string) *DescribeReplicationGroupsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeReplicationGroupsInput) SetMaxRecords(v int64) *DescribeReplicationGroupsInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *DescribeReplicationGroupsInput) SetReplicationGroupId(v string) *DescribeReplicationGroupsInput {
+	s.ReplicationGroupId = &v
+	return s
 }
 
 // Represents the output of a DescribeReplicationGroups operation.
@@ -6037,6 +7283,18 @@ func (s DescribeReplicationGroupsOutput) GoString() string {
 	return s.String()
 }
 
+// SetMarker sets the Marker field's value.
+func (s *DescribeReplicationGroupsOutput) SetMarker(v string) *DescribeReplicationGroupsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetReplicationGroups sets the ReplicationGroups field's value.
+func (s *DescribeReplicationGroupsOutput) SetReplicationGroups(v []*ReplicationGroup) *DescribeReplicationGroupsOutput {
+	s.ReplicationGroups = v
+	return s
+}
+
 // Represents the input of a DescribeReservedCacheNodes operation.
 type DescribeReservedCacheNodesInput struct {
 	_ struct{} `type:"structure"`
@@ -6046,37 +7304,37 @@ type DescribeReservedCacheNodesInput struct {
 	//
 	// Valid node types are as follows:
 	//
-	//   General purpose:
+	//    * General purpose:
 	//
-	//   Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
-	// cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
-	// cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
+	// Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
+	//    cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
+	//    cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
 	//
-	//   Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium,
-	// cache.m1.large, cache.m1.xlarge
+	// Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	//    cache.m1.xlarge
 	//
-	//     Compute optimized: cache.c1.xlarge
+	//    * Compute optimized: cache.c1.xlarge
 	//
-	//   Memory optimized:
+	//    * Memory optimized:
 	//
-	//   Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge,
-	// cache.r3.4xlarge, cache.r3.8xlarge
+	// Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
+	//    cache.r3.8xlarge
 	//
-	//   Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
+	// Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
 	//
-	//      Notes:
+	// Notes:
 	//
-	//   All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
-	// VPC).
+	//    * All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
+	//    VPC).
 	//
-	//   Redis backup/restore is not supported for Redis (cluster mode disabled)
-	// T1 and T2 instances. Backup/restore is supported on Redis (cluster mode enabled)
-	// T2 instances.
+	//    * Redis backup/restore is not supported for Redis (cluster mode disabled)
+	//    T1 and T2 instances. Backup/restore is supported on Redis (cluster mode
+	//    enabled) T2 instances.
 	//
-	//   Redis Append-only files (AOF) functionality is not supported for T1 or
-	// T2 instances.
+	//    * Redis Append-only files (AOF) functionality is not supported for T1
+	//    or T2 instances.
 	//
-	//   For a complete listing of node types and specifications, see Amazon ElastiCache
+	// For a complete listing of node types and specifications, see Amazon ElastiCache
 	// Product Features and Details (http://aws.amazon.com/elasticache/details)
 	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
 	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
@@ -6131,6 +7389,54 @@ func (s DescribeReservedCacheNodesInput) GoString() string {
 	return s.String()
 }
 
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *DescribeReservedCacheNodesInput) SetCacheNodeType(v string) *DescribeReservedCacheNodesInput {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *DescribeReservedCacheNodesInput) SetDuration(v string) *DescribeReservedCacheNodesInput {
+	s.Duration = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeReservedCacheNodesInput) SetMarker(v string) *DescribeReservedCacheNodesInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeReservedCacheNodesInput) SetMaxRecords(v int64) *DescribeReservedCacheNodesInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetOfferingType sets the OfferingType field's value.
+func (s *DescribeReservedCacheNodesInput) SetOfferingType(v string) *DescribeReservedCacheNodesInput {
+	s.OfferingType = &v
+	return s
+}
+
+// SetProductDescription sets the ProductDescription field's value.
+func (s *DescribeReservedCacheNodesInput) SetProductDescription(v string) *DescribeReservedCacheNodesInput {
+	s.ProductDescription = &v
+	return s
+}
+
+// SetReservedCacheNodeId sets the ReservedCacheNodeId field's value.
+func (s *DescribeReservedCacheNodesInput) SetReservedCacheNodeId(v string) *DescribeReservedCacheNodesInput {
+	s.ReservedCacheNodeId = &v
+	return s
+}
+
+// SetReservedCacheNodesOfferingId sets the ReservedCacheNodesOfferingId field's value.
+func (s *DescribeReservedCacheNodesInput) SetReservedCacheNodesOfferingId(v string) *DescribeReservedCacheNodesInput {
+	s.ReservedCacheNodesOfferingId = &v
+	return s
+}
+
 // Represents the input of a DescribeReservedCacheNodesOfferings operation.
 type DescribeReservedCacheNodesOfferingsInput struct {
 	_ struct{} `type:"structure"`
@@ -6140,37 +7446,37 @@ type DescribeReservedCacheNodesOfferingsInput struct {
 	//
 	// Valid node types are as follows:
 	//
-	//   General purpose:
+	//    * General purpose:
 	//
-	//   Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
-	// cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
-	// cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
+	// Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
+	//    cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
+	//    cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
 	//
-	//   Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium,
-	// cache.m1.large, cache.m1.xlarge
+	// Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	//    cache.m1.xlarge
 	//
-	//     Compute optimized: cache.c1.xlarge
+	//    * Compute optimized: cache.c1.xlarge
 	//
-	//   Memory optimized:
+	//    * Memory optimized:
 	//
-	//   Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge,
-	// cache.r3.4xlarge, cache.r3.8xlarge
+	// Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
+	//    cache.r3.8xlarge
 	//
-	//   Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
+	// Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
 	//
-	//      Notes:
+	// Notes:
 	//
-	//   All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
-	// VPC).
+	//    * All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
+	//    VPC).
 	//
-	//   Redis backup/restore is not supported for Redis (cluster mode disabled)
-	// T1 and T2 instances. Backup/restore is supported on Redis (cluster mode enabled)
-	// T2 instances.
+	//    * Redis backup/restore is not supported for Redis (cluster mode disabled)
+	//    T1 and T2 instances. Backup/restore is supported on Redis (cluster mode
+	//    enabled) T2 instances.
 	//
-	//   Redis Append-only files (AOF) functionality is not supported for T1 or
-	// T2 instances.
+	//    * Redis Append-only files (AOF) functionality is not supported for T1
+	//    or T2 instances.
 	//
-	//   For a complete listing of node types and specifications, see Amazon ElastiCache
+	// For a complete listing of node types and specifications, see Amazon ElastiCache
 	// Product Features and Details (http://aws.amazon.com/elasticache/details)
 	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
 	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
@@ -6223,6 +7529,48 @@ func (s DescribeReservedCacheNodesOfferingsInput) GoString() string {
 	return s.String()
 }
 
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *DescribeReservedCacheNodesOfferingsInput) SetCacheNodeType(v string) *DescribeReservedCacheNodesOfferingsInput {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *DescribeReservedCacheNodesOfferingsInput) SetDuration(v string) *DescribeReservedCacheNodesOfferingsInput {
+	s.Duration = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeReservedCacheNodesOfferingsInput) SetMarker(v string) *DescribeReservedCacheNodesOfferingsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeReservedCacheNodesOfferingsInput) SetMaxRecords(v int64) *DescribeReservedCacheNodesOfferingsInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetOfferingType sets the OfferingType field's value.
+func (s *DescribeReservedCacheNodesOfferingsInput) SetOfferingType(v string) *DescribeReservedCacheNodesOfferingsInput {
+	s.OfferingType = &v
+	return s
+}
+
+// SetProductDescription sets the ProductDescription field's value.
+func (s *DescribeReservedCacheNodesOfferingsInput) SetProductDescription(v string) *DescribeReservedCacheNodesOfferingsInput {
+	s.ProductDescription = &v
+	return s
+}
+
+// SetReservedCacheNodesOfferingId sets the ReservedCacheNodesOfferingId field's value.
+func (s *DescribeReservedCacheNodesOfferingsInput) SetReservedCacheNodesOfferingId(v string) *DescribeReservedCacheNodesOfferingsInput {
+	s.ReservedCacheNodesOfferingId = &v
+	return s
+}
+
 // Represents the output of a DescribeReservedCacheNodesOfferings operation.
 type DescribeReservedCacheNodesOfferingsOutput struct {
 	_ struct{} `type:"structure"`
@@ -6245,6 +7593,18 @@ func (s DescribeReservedCacheNodesOfferingsOutput) GoString() string {
 	return s.String()
 }
 
+// SetMarker sets the Marker field's value.
+func (s *DescribeReservedCacheNodesOfferingsOutput) SetMarker(v string) *DescribeReservedCacheNodesOfferingsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetReservedCacheNodesOfferings sets the ReservedCacheNodesOfferings field's value.
+func (s *DescribeReservedCacheNodesOfferingsOutput) SetReservedCacheNodesOfferings(v []*ReservedCacheNodesOffering) *DescribeReservedCacheNodesOfferingsOutput {
+	s.ReservedCacheNodesOfferings = v
+	return s
+}
+
 // Represents the output of a DescribeReservedCacheNodes operation.
 type DescribeReservedCacheNodesOutput struct {
 	_ struct{} `type:"structure"`
@@ -6265,6 +7625,18 @@ func (s DescribeReservedCacheNodesOutput) String() string {
 // GoString returns the string representation
 func (s DescribeReservedCacheNodesOutput) GoString() string {
 	return s.String()
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeReservedCacheNodesOutput) SetMarker(v string) *DescribeReservedCacheNodesOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetReservedCacheNodes sets the ReservedCacheNodes field's value.
+func (s *DescribeReservedCacheNodesOutput) SetReservedCacheNodes(v []*ReservedCacheNode) *DescribeReservedCacheNodesOutput {
+	s.ReservedCacheNodes = v
+	return s
 }
 
 // Represents the input of a DescribeSnapshotsMessage operation.
@@ -6293,7 +7665,7 @@ type DescribeSnapshotsInput struct {
 	// only snapshots associated with that specific replication group are described.
 	ReplicationGroupId *string `type:"string"`
 
-	// A boolean value which if true, the node group (shard) configuration is included
+	// A Boolean value which if true, the node group (shard) configuration is included
 	// in the snapshot description.
 	ShowNodeGroupConfig *bool `type:"boolean"`
 
@@ -6316,6 +7688,48 @@ func (s DescribeSnapshotsInput) String() string {
 // GoString returns the string representation
 func (s DescribeSnapshotsInput) GoString() string {
 	return s.String()
+}
+
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *DescribeSnapshotsInput) SetCacheClusterId(v string) *DescribeSnapshotsInput {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeSnapshotsInput) SetMarker(v string) *DescribeSnapshotsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxRecords sets the MaxRecords field's value.
+func (s *DescribeSnapshotsInput) SetMaxRecords(v int64) *DescribeSnapshotsInput {
+	s.MaxRecords = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *DescribeSnapshotsInput) SetReplicationGroupId(v string) *DescribeSnapshotsInput {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// SetShowNodeGroupConfig sets the ShowNodeGroupConfig field's value.
+func (s *DescribeSnapshotsInput) SetShowNodeGroupConfig(v bool) *DescribeSnapshotsInput {
+	s.ShowNodeGroupConfig = &v
+	return s
+}
+
+// SetSnapshotName sets the SnapshotName field's value.
+func (s *DescribeSnapshotsInput) SetSnapshotName(v string) *DescribeSnapshotsInput {
+	s.SnapshotName = &v
+	return s
+}
+
+// SetSnapshotSource sets the SnapshotSource field's value.
+func (s *DescribeSnapshotsInput) SetSnapshotSource(v string) *DescribeSnapshotsInput {
+	s.SnapshotSource = &v
+	return s
 }
 
 // Represents the output of a DescribeSnapshots operation.
@@ -6342,6 +7756,18 @@ func (s DescribeSnapshotsOutput) GoString() string {
 	return s.String()
 }
 
+// SetMarker sets the Marker field's value.
+func (s *DescribeSnapshotsOutput) SetMarker(v string) *DescribeSnapshotsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetSnapshots sets the Snapshots field's value.
+func (s *DescribeSnapshotsOutput) SetSnapshots(v []*Snapshot) *DescribeSnapshotsOutput {
+	s.Snapshots = v
+	return s
+}
+
 // Provides ownership and status information for an Amazon EC2 security group.
 type EC2SecurityGroup struct {
 	_ struct{} `type:"structure"`
@@ -6366,6 +7792,24 @@ func (s EC2SecurityGroup) GoString() string {
 	return s.String()
 }
 
+// SetEC2SecurityGroupName sets the EC2SecurityGroupName field's value.
+func (s *EC2SecurityGroup) SetEC2SecurityGroupName(v string) *EC2SecurityGroup {
+	s.EC2SecurityGroupName = &v
+	return s
+}
+
+// SetEC2SecurityGroupOwnerId sets the EC2SecurityGroupOwnerId field's value.
+func (s *EC2SecurityGroup) SetEC2SecurityGroupOwnerId(v string) *EC2SecurityGroup {
+	s.EC2SecurityGroupOwnerId = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *EC2SecurityGroup) SetStatus(v string) *EC2SecurityGroup {
+	s.Status = &v
+	return s
+}
+
 // Represents the information required for client programs to connect to a cache
 // node.
 type Endpoint struct {
@@ -6386,6 +7830,18 @@ func (s Endpoint) String() string {
 // GoString returns the string representation
 func (s Endpoint) GoString() string {
 	return s.String()
+}
+
+// SetAddress sets the Address field's value.
+func (s *Endpoint) SetAddress(v string) *Endpoint {
+	s.Address = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *Endpoint) SetPort(v int64) *Endpoint {
+	s.Port = &v
+	return s
 }
 
 // Represents the output of a DescribeEngineDefaultParameters operation.
@@ -6417,6 +7873,30 @@ func (s EngineDefaults) String() string {
 // GoString returns the string representation
 func (s EngineDefaults) GoString() string {
 	return s.String()
+}
+
+// SetCacheNodeTypeSpecificParameters sets the CacheNodeTypeSpecificParameters field's value.
+func (s *EngineDefaults) SetCacheNodeTypeSpecificParameters(v []*CacheNodeTypeSpecificParameter) *EngineDefaults {
+	s.CacheNodeTypeSpecificParameters = v
+	return s
+}
+
+// SetCacheParameterGroupFamily sets the CacheParameterGroupFamily field's value.
+func (s *EngineDefaults) SetCacheParameterGroupFamily(v string) *EngineDefaults {
+	s.CacheParameterGroupFamily = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *EngineDefaults) SetMarker(v string) *EngineDefaults {
+	s.Marker = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *EngineDefaults) SetParameters(v []*Parameter) *EngineDefaults {
+	s.Parameters = v
+	return s
 }
 
 // Represents a single occurrence of something interesting within the system.
@@ -6451,6 +7931,30 @@ func (s Event) GoString() string {
 	return s.String()
 }
 
+// SetDate sets the Date field's value.
+func (s *Event) SetDate(v time.Time) *Event {
+	s.Date = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *Event) SetMessage(v string) *Event {
+	s.Message = &v
+	return s
+}
+
+// SetSourceIdentifier sets the SourceIdentifier field's value.
+func (s *Event) SetSourceIdentifier(v string) *Event {
+	s.SourceIdentifier = &v
+	return s
+}
+
+// SetSourceType sets the SourceType field's value.
+func (s *Event) SetSourceType(v string) *Event {
+	s.SourceType = &v
+	return s
+}
+
 // The input parameters for the ListAllowedNodeTypeModifications operation.
 type ListAllowedNodeTypeModificationsInput struct {
 	_ struct{} `type:"structure"`
@@ -6460,7 +7964,7 @@ type ListAllowedNodeTypeModificationsInput struct {
 	// this cluster and from that to create a list of node types you can scale up
 	// to.
 	//
-	//  You must provide a value for either the CacheClusterId or the ReplicationGroupId.
+	// You must provide a value for either the CacheClusterId or the ReplicationGroupId.
 	CacheClusterId *string `type:"string"`
 
 	// The name of the replication group want to scale up to a larger node type.
@@ -6468,7 +7972,7 @@ type ListAllowedNodeTypeModificationsInput struct {
 	// being used by this replication group, and from that to create a list of node
 	// types you can scale up to.
 	//
-	//  You must provide a value for either the CacheClusterId or the ReplicationGroupId.
+	// You must provide a value for either the CacheClusterId or the ReplicationGroupId.
 	ReplicationGroupId *string `type:"string"`
 }
 
@@ -6480,6 +7984,18 @@ func (s ListAllowedNodeTypeModificationsInput) String() string {
 // GoString returns the string representation
 func (s ListAllowedNodeTypeModificationsInput) GoString() string {
 	return s.String()
+}
+
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *ListAllowedNodeTypeModificationsInput) SetCacheClusterId(v string) *ListAllowedNodeTypeModificationsInput {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *ListAllowedNodeTypeModificationsInput) SetReplicationGroupId(v string) *ListAllowedNodeTypeModificationsInput {
+	s.ReplicationGroupId = &v
+	return s
 }
 
 type ListAllowedNodeTypeModificationsOutput struct {
@@ -6496,6 +8012,12 @@ func (s ListAllowedNodeTypeModificationsOutput) String() string {
 // GoString returns the string representation
 func (s ListAllowedNodeTypeModificationsOutput) GoString() string {
 	return s.String()
+}
+
+// SetScaleUpModifications sets the ScaleUpModifications field's value.
+func (s *ListAllowedNodeTypeModificationsOutput) SetScaleUpModifications(v []*string) *ListAllowedNodeTypeModificationsOutput {
+	s.ScaleUpModifications = v
+	return s
 }
 
 // The input parameters for the ListTagsForResource operation.
@@ -6536,6 +8058,12 @@ func (s *ListTagsForResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceName sets the ResourceName field's value.
+func (s *ListTagsForResourceInput) SetResourceName(v string) *ListTagsForResourceInput {
+	s.ResourceName = &v
+	return s
+}
+
 // Represents the input of a ModifyCacheCluster operation.
 type ModifyCacheClusterInput struct {
 	_ struct{} `type:"structure"`
@@ -6547,8 +8075,8 @@ type ModifyCacheClusterInput struct {
 	//
 	// This option is only supported for Memcached cache clusters.
 	//
-	//  You cannot specify single-az if the Memcached cache cluster already has
-	// cache nodes in different Availability Zones. If cross-az is specified, existing
+	// You cannot specify single-az if the Memcached cache cluster already has cache
+	// nodes in different Availability Zones. If cross-az is specified, existing
 	// Memcached nodes remain in their current Availability Zone.
 	//
 	// Only newly created nodes are located in different Availability Zones. For
@@ -6564,10 +8092,10 @@ type ModifyCacheClusterInput struct {
 	// If false, changes to the cache cluster are applied on the next maintenance
 	// reboot, or the next failure reboot, whichever occurs first.
 	//
-	//  If you perform a ModifyCacheCluster before a pending modification is applied,
+	// If you perform a ModifyCacheCluster before a pending modification is applied,
 	// the pending modification is replaced by the newer modification.
 	//
-	//  Valid values: true | false
+	// Valid values: true | false
 	//
 	// Default: false
 	ApplyImmediately *bool `type:"boolean"`
@@ -6612,7 +8140,7 @@ type ModifyCacheClusterInput struct {
 
 	// The upgraded version of the cache engine to be run on the cache nodes.
 	//
-	//  Important: You can upgrade to a newer engine version (see Selecting a Cache
+	// Important: You can upgrade to a newer engine version (see Selecting a Cache
 	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
 	// but you cannot downgrade to an earlier engine version. If you want to use
 	// an earlier engine version, you must delete the existing cache cluster and
@@ -6630,18 +8158,19 @@ type ModifyCacheClusterInput struct {
 	//
 	// Scenarios:
 	//
-	//    Scenario 1: You have 3 active nodes and wish to add 2 nodes. Specify
-	// NumCacheNodes=5 (3 + 2) and optionally specify two Availability Zones for
-	// the two new nodes.
+	//    * Scenario 1: You have 3 active nodes and wish to add 2 nodes. Specify
+	//    NumCacheNodes=5 (3 + 2) and optionally specify two Availability Zones
+	//    for the two new nodes.
 	//
-	//    Scenario 2: You have 3 active nodes and 2 nodes pending creation (from
-	// the scenario 1 call) and want to add 1 more node. Specify NumCacheNodes=6
-	// ((3 + 2) + 1) and optionally specify an Availability Zone for the new node.
+	//    * Scenario 2: You have 3 active nodes and 2 nodes pending creation (from
+	//    the scenario 1 call) and want to add 1 more node. Specify NumCacheNodes=6
+	//    ((3 + 2) + 1) and optionally specify an Availability Zone for the new
+	//    node.
 	//
-	//    Scenario 3: You want to cancel all pending operations. Specify NumCacheNodes=3
-	// to cancel all pending operations.
+	//    * Scenario 3: You want to cancel all pending operations. Specify NumCacheNodes=3
+	//    to cancel all pending operations.
 	//
-	//   The Availability Zone placement of nodes pending creation cannot be modified.
+	// The Availability Zone placement of nodes pending creation cannot be modified.
 	// If you wish to cancel any nodes pending creation, add 0 nodes by setting
 	// NumCacheNodes to the number of current nodes.
 	//
@@ -6651,49 +8180,49 @@ type ModifyCacheClusterInput struct {
 	// Availability Zones, see the Availability Zone Considerations section of Cache
 	// Node Considerations for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheNode.Memcached.html).
 	//
-	//  Impact of new add/remove requests upon pending requests
+	// Impact of new add/remove requests upon pending requests
 	//
-	//   Scenario-1
+	//    * Scenario-1
 	//
-	//   Pending Action: Delete
+	// Pending Action: Delete
 	//
-	//   New Request: Delete
+	// New Request: Delete
 	//
-	//   Result: The new delete, pending or immediate, replaces the pending delete.
+	// Result: The new delete, pending or immediate, replaces the pending delete.
 	//
-	//     Scenario-2
+	//    * Scenario-2
 	//
-	//   Pending Action: Delete
+	// Pending Action: Delete
 	//
-	//   New Request: Create
+	// New Request: Create
 	//
-	//   Result: The new create, pending or immediate, replaces the pending delete.
+	// Result: The new create, pending or immediate, replaces the pending delete.
 	//
-	//     Scenario-3
+	//    * Scenario-3
 	//
-	//   Pending Action: Create
+	// Pending Action: Create
 	//
-	//   New Request: Delete
+	// New Request: Delete
 	//
-	//   Result: The new delete, pending or immediate, replaces the pending create.
+	// Result: The new delete, pending or immediate, replaces the pending create.
 	//
-	//     Scenario-4
+	//    * Scenario-4
 	//
-	//   Pending Action: Create
+	// Pending Action: Create
 	//
-	//   New Request: Create
+	// New Request: Create
 	//
-	//   Result: The new create is added to the pending create.
+	// Result: The new create is added to the pending create.
 	//
-	//   Important: If the new create request is Apply Immediately - Yes, all creates
-	// are performed immediately. If the new create request is Apply Immediately
-	// - No, all creates are pending.
+	// Important: If the new create request is Apply Immediately - Yes, all creates
+	//    are performed immediately. If the new create request is Apply Immediately
+	//    - No, all creates are pending.
 	NewAvailabilityZones []*string `locationNameList:"PreferredAvailabilityZone" type:"list"`
 
 	// The Amazon Resource Name (ARN) of the Amazon SNS topic to which notifications
 	// are sent.
 	//
-	//  The Amazon SNS topic owner must be same as the cache cluster owner.
+	// The Amazon SNS topic owner must be same as the cache cluster owner.
 	NotificationTopicArn *string `type:"string"`
 
 	// The status of the Amazon SNS notification topic. Notifications are sent only
@@ -6715,8 +8244,8 @@ type ModifyCacheClusterInput struct {
 	// For clusters running Redis, this value must be 1. For clusters running Memcached,
 	// this value must be between 1 and 20.
 	//
-	//  Adding or removing Memcached cache nodes can be applied immediately or
-	// as a pending operation (see ApplyImmediately).
+	// Adding or removing Memcached cache nodes can be applied immediately or as
+	// a pending operation (see ApplyImmediately).
 	//
 	// A pending operation to modify the number of cache nodes in a cluster during
 	// its maintenance window, whether by adding or removing nodes in accordance
@@ -6741,21 +8270,21 @@ type ModifyCacheClusterInput struct {
 	//
 	// Valid values for ddd are:
 	//
-	//    sun
+	//    * sun
 	//
-	//    mon
+	//    * mon
 	//
-	//    tue
+	//    * tue
 	//
-	//    wed
+	//    * wed
 	//
-	//    thu
+	//    * thu
 	//
-	//    fri
+	//    * fri
 	//
-	//    sat
+	//    * sat
 	//
-	//   Example: sun:23:00-mon:01:30
+	// Example: sun:23:00-mon:01:30
 	PreferredMaintenanceWindow *string `type:"string"`
 
 	// Specifies the VPC Security Groups associated with the cache cluster.
@@ -6769,8 +8298,8 @@ type ModifyCacheClusterInput struct {
 	// to 5, a snapshot that was taken today is retained for 5 days before being
 	// deleted.
 	//
-	//  If the value of SnapshotRetentionLimit is set to zero (0), backups are
-	// turned off.
+	// If the value of SnapshotRetentionLimit is set to zero (0), backups are turned
+	// off.
 	SnapshotRetentionLimit *int64 `type:"integer"`
 
 	// The daily time range (in UTC) during which ElastiCache begins taking a daily
@@ -6801,6 +8330,108 @@ func (s *ModifyCacheClusterInput) Validate() error {
 	return nil
 }
 
+// SetAZMode sets the AZMode field's value.
+func (s *ModifyCacheClusterInput) SetAZMode(v string) *ModifyCacheClusterInput {
+	s.AZMode = &v
+	return s
+}
+
+// SetApplyImmediately sets the ApplyImmediately field's value.
+func (s *ModifyCacheClusterInput) SetApplyImmediately(v bool) *ModifyCacheClusterInput {
+	s.ApplyImmediately = &v
+	return s
+}
+
+// SetAutoMinorVersionUpgrade sets the AutoMinorVersionUpgrade field's value.
+func (s *ModifyCacheClusterInput) SetAutoMinorVersionUpgrade(v bool) *ModifyCacheClusterInput {
+	s.AutoMinorVersionUpgrade = &v
+	return s
+}
+
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *ModifyCacheClusterInput) SetCacheClusterId(v string) *ModifyCacheClusterInput {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetCacheNodeIdsToRemove sets the CacheNodeIdsToRemove field's value.
+func (s *ModifyCacheClusterInput) SetCacheNodeIdsToRemove(v []*string) *ModifyCacheClusterInput {
+	s.CacheNodeIdsToRemove = v
+	return s
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *ModifyCacheClusterInput) SetCacheNodeType(v string) *ModifyCacheClusterInput {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *ModifyCacheClusterInput) SetCacheParameterGroupName(v string) *ModifyCacheClusterInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetCacheSecurityGroupNames sets the CacheSecurityGroupNames field's value.
+func (s *ModifyCacheClusterInput) SetCacheSecurityGroupNames(v []*string) *ModifyCacheClusterInput {
+	s.CacheSecurityGroupNames = v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *ModifyCacheClusterInput) SetEngineVersion(v string) *ModifyCacheClusterInput {
+	s.EngineVersion = &v
+	return s
+}
+
+// SetNewAvailabilityZones sets the NewAvailabilityZones field's value.
+func (s *ModifyCacheClusterInput) SetNewAvailabilityZones(v []*string) *ModifyCacheClusterInput {
+	s.NewAvailabilityZones = v
+	return s
+}
+
+// SetNotificationTopicArn sets the NotificationTopicArn field's value.
+func (s *ModifyCacheClusterInput) SetNotificationTopicArn(v string) *ModifyCacheClusterInput {
+	s.NotificationTopicArn = &v
+	return s
+}
+
+// SetNotificationTopicStatus sets the NotificationTopicStatus field's value.
+func (s *ModifyCacheClusterInput) SetNotificationTopicStatus(v string) *ModifyCacheClusterInput {
+	s.NotificationTopicStatus = &v
+	return s
+}
+
+// SetNumCacheNodes sets the NumCacheNodes field's value.
+func (s *ModifyCacheClusterInput) SetNumCacheNodes(v int64) *ModifyCacheClusterInput {
+	s.NumCacheNodes = &v
+	return s
+}
+
+// SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
+func (s *ModifyCacheClusterInput) SetPreferredMaintenanceWindow(v string) *ModifyCacheClusterInput {
+	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetSecurityGroupIds sets the SecurityGroupIds field's value.
+func (s *ModifyCacheClusterInput) SetSecurityGroupIds(v []*string) *ModifyCacheClusterInput {
+	s.SecurityGroupIds = v
+	return s
+}
+
+// SetSnapshotRetentionLimit sets the SnapshotRetentionLimit field's value.
+func (s *ModifyCacheClusterInput) SetSnapshotRetentionLimit(v int64) *ModifyCacheClusterInput {
+	s.SnapshotRetentionLimit = &v
+	return s
+}
+
+// SetSnapshotWindow sets the SnapshotWindow field's value.
+func (s *ModifyCacheClusterInput) SetSnapshotWindow(v string) *ModifyCacheClusterInput {
+	s.SnapshotWindow = &v
+	return s
+}
+
 type ModifyCacheClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6816,6 +8447,12 @@ func (s ModifyCacheClusterOutput) String() string {
 // GoString returns the string representation
 func (s ModifyCacheClusterOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheCluster sets the CacheCluster field's value.
+func (s *ModifyCacheClusterOutput) SetCacheCluster(v *CacheCluster) *ModifyCacheClusterOutput {
+	s.CacheCluster = v
+	return s
 }
 
 // Represents the input of a ModifyCacheParameterGroup operation.
@@ -6859,6 +8496,18 @@ func (s *ModifyCacheParameterGroupInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *ModifyCacheParameterGroupInput) SetCacheParameterGroupName(v string) *ModifyCacheParameterGroupInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetParameterNameValues sets the ParameterNameValues field's value.
+func (s *ModifyCacheParameterGroupInput) SetParameterNameValues(v []*ParameterNameValue) *ModifyCacheParameterGroupInput {
+	s.ParameterNameValues = v
+	return s
 }
 
 // Represents the input of a ModifyCacheSubnetGroup operation.
@@ -6905,14 +8554,32 @@ func (s *ModifyCacheSubnetGroupInput) Validate() error {
 	return nil
 }
 
+// SetCacheSubnetGroupDescription sets the CacheSubnetGroupDescription field's value.
+func (s *ModifyCacheSubnetGroupInput) SetCacheSubnetGroupDescription(v string) *ModifyCacheSubnetGroupInput {
+	s.CacheSubnetGroupDescription = &v
+	return s
+}
+
+// SetCacheSubnetGroupName sets the CacheSubnetGroupName field's value.
+func (s *ModifyCacheSubnetGroupInput) SetCacheSubnetGroupName(v string) *ModifyCacheSubnetGroupInput {
+	s.CacheSubnetGroupName = &v
+	return s
+}
+
+// SetSubnetIds sets the SubnetIds field's value.
+func (s *ModifyCacheSubnetGroupInput) SetSubnetIds(v []*string) *ModifyCacheSubnetGroupInput {
+	s.SubnetIds = v
+	return s
+}
+
 type ModifyCacheSubnetGroupOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Represents the output of one of the following operations:
 	//
-	//    CreateCacheSubnetGroup
+	//    * CreateCacheSubnetGroup
 	//
-	//    ModifyCacheSubnetGroup
+	//    * ModifyCacheSubnetGroup
 	CacheSubnetGroup *CacheSubnetGroup `type:"structure"`
 }
 
@@ -6924,6 +8591,12 @@ func (s ModifyCacheSubnetGroupOutput) String() string {
 // GoString returns the string representation
 func (s ModifyCacheSubnetGroupOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheSubnetGroup sets the CacheSubnetGroup field's value.
+func (s *ModifyCacheSubnetGroupOutput) SetCacheSubnetGroup(v *CacheSubnetGroup) *ModifyCacheSubnetGroupOutput {
+	s.CacheSubnetGroup = v
+	return s
 }
 
 // Represents the input of a ModifyReplicationGroups operation.
@@ -6951,11 +8624,11 @@ type ModifyReplicationGroupInput struct {
 	//
 	// Valid values: true | false
 	//
-	//  ElastiCache Multi-AZ replication groups are not supported on:
+	// ElastiCache Multi-AZ replication groups are not supported on:
 	//
-	//   Redis versions earlier than 2.8.6.
+	// Redis versions earlier than 2.8.6.
 	//
-	//   Redis (cluster mode disabled):T1 and T2 cache node types.
+	// Redis (cluster mode disabled):T1 and T2 cache node types.
 	//
 	// Redis (cluster mode enabled): T1 node types.
 	AutomaticFailoverEnabled *bool `type:"boolean"`
@@ -6972,8 +8645,8 @@ type ModifyReplicationGroupInput struct {
 	// A list of cache security group names to authorize for the clusters in this
 	// replication group. This change is asynchronously applied as soon as possible.
 	//
-	// This parameter can be used only with replication group containing cache
-	// clusters running outside of an Amazon Virtual Private Cloud (Amazon VPC).
+	// This parameter can be used only with replication group containing cache clusters
+	// running outside of an Amazon Virtual Private Cloud (Amazon VPC).
 	//
 	// Constraints: Must contain no more than 255 alphanumeric characters. Must
 	// not be Default.
@@ -6982,7 +8655,7 @@ type ModifyReplicationGroupInput struct {
 	// The upgraded version of the cache engine to be run on the cache clusters
 	// in the replication group.
 	//
-	//  Important: You can upgrade to a newer engine version (see Selecting a Cache
+	// Important: You can upgrade to a newer engine version (see Selecting a Cache
 	// Engine and Version (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/SelectEngine.html#VersionManagement)),
 	// but you cannot downgrade to an earlier engine version. If you want to use
 	// an earlier engine version, you must delete the existing replication group
@@ -6992,7 +8665,7 @@ type ModifyReplicationGroupInput struct {
 	// The Amazon Resource Name (ARN) of the Amazon SNS topic to which notifications
 	// are sent.
 	//
-	//  The Amazon SNS topic owner must be same as the replication group owner.
+	// The Amazon SNS topic owner must be same as the replication group owner.
 	NotificationTopicArn *string `type:"string"`
 
 	// The status of the Amazon SNS notification topic for the replication group.
@@ -7007,21 +8680,21 @@ type ModifyReplicationGroupInput struct {
 	//
 	// Valid values for ddd are:
 	//
-	//    sun
+	//    * sun
 	//
-	//    mon
+	//    * mon
 	//
-	//    tue
+	//    * tue
 	//
-	//    wed
+	//    * wed
 	//
-	//    thu
+	//    * thu
 	//
-	//    fri
+	//    * fri
 	//
-	//    sat
+	//    * sat
 	//
-	//   Example: sun:23:00-mon:01:30
+	// Example: sun:23:00-mon:01:30
 	PreferredMaintenanceWindow *string `type:"string"`
 
 	// For replication groups with a single primary, if this parameter is specified,
@@ -7041,8 +8714,8 @@ type ModifyReplicationGroupInput struct {
 	// Specifies the VPC Security Groups associated with the cache clusters in the
 	// replication group.
 	//
-	// This parameter can be used only with replication group containing cache
-	// clusters running in an Amazon Virtual Private Cloud (Amazon VPC).
+	// This parameter can be used only with replication group containing cache clusters
+	// running in an Amazon Virtual Private Cloud (Amazon VPC).
 	SecurityGroupIds []*string `locationNameList:"SecurityGroupId" type:"list"`
 
 	// The number of days for which ElastiCache retains automatic node group (shard)
@@ -7050,7 +8723,7 @@ type ModifyReplicationGroupInput struct {
 	// to 5, a snapshot that was taken today is retained for 5 days before being
 	// deleted.
 	//
-	//  Important If the value of SnapshotRetentionLimit is set to zero (0), backups
+	// Important If the value of SnapshotRetentionLimit is set to zero (0), backups
 	// are turned off.
 	SnapshotRetentionLimit *int64 `type:"integer"`
 
@@ -7059,8 +8732,8 @@ type ModifyReplicationGroupInput struct {
 	//
 	// Example: 05:00-09:00
 	//
-	// If you do not specify this parameter, ElastiCache automatically chooses
-	// an appropriate time range.
+	// If you do not specify this parameter, ElastiCache automatically chooses an
+	// appropriate time range.
 	SnapshotWindow *string `type:"string"`
 
 	// The cache cluster ID that is used as the daily snapshot source for the replication
@@ -7092,6 +8765,108 @@ func (s *ModifyReplicationGroupInput) Validate() error {
 	return nil
 }
 
+// SetApplyImmediately sets the ApplyImmediately field's value.
+func (s *ModifyReplicationGroupInput) SetApplyImmediately(v bool) *ModifyReplicationGroupInput {
+	s.ApplyImmediately = &v
+	return s
+}
+
+// SetAutoMinorVersionUpgrade sets the AutoMinorVersionUpgrade field's value.
+func (s *ModifyReplicationGroupInput) SetAutoMinorVersionUpgrade(v bool) *ModifyReplicationGroupInput {
+	s.AutoMinorVersionUpgrade = &v
+	return s
+}
+
+// SetAutomaticFailoverEnabled sets the AutomaticFailoverEnabled field's value.
+func (s *ModifyReplicationGroupInput) SetAutomaticFailoverEnabled(v bool) *ModifyReplicationGroupInput {
+	s.AutomaticFailoverEnabled = &v
+	return s
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *ModifyReplicationGroupInput) SetCacheNodeType(v string) *ModifyReplicationGroupInput {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *ModifyReplicationGroupInput) SetCacheParameterGroupName(v string) *ModifyReplicationGroupInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetCacheSecurityGroupNames sets the CacheSecurityGroupNames field's value.
+func (s *ModifyReplicationGroupInput) SetCacheSecurityGroupNames(v []*string) *ModifyReplicationGroupInput {
+	s.CacheSecurityGroupNames = v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *ModifyReplicationGroupInput) SetEngineVersion(v string) *ModifyReplicationGroupInput {
+	s.EngineVersion = &v
+	return s
+}
+
+// SetNotificationTopicArn sets the NotificationTopicArn field's value.
+func (s *ModifyReplicationGroupInput) SetNotificationTopicArn(v string) *ModifyReplicationGroupInput {
+	s.NotificationTopicArn = &v
+	return s
+}
+
+// SetNotificationTopicStatus sets the NotificationTopicStatus field's value.
+func (s *ModifyReplicationGroupInput) SetNotificationTopicStatus(v string) *ModifyReplicationGroupInput {
+	s.NotificationTopicStatus = &v
+	return s
+}
+
+// SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
+func (s *ModifyReplicationGroupInput) SetPreferredMaintenanceWindow(v string) *ModifyReplicationGroupInput {
+	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetPrimaryClusterId sets the PrimaryClusterId field's value.
+func (s *ModifyReplicationGroupInput) SetPrimaryClusterId(v string) *ModifyReplicationGroupInput {
+	s.PrimaryClusterId = &v
+	return s
+}
+
+// SetReplicationGroupDescription sets the ReplicationGroupDescription field's value.
+func (s *ModifyReplicationGroupInput) SetReplicationGroupDescription(v string) *ModifyReplicationGroupInput {
+	s.ReplicationGroupDescription = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *ModifyReplicationGroupInput) SetReplicationGroupId(v string) *ModifyReplicationGroupInput {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// SetSecurityGroupIds sets the SecurityGroupIds field's value.
+func (s *ModifyReplicationGroupInput) SetSecurityGroupIds(v []*string) *ModifyReplicationGroupInput {
+	s.SecurityGroupIds = v
+	return s
+}
+
+// SetSnapshotRetentionLimit sets the SnapshotRetentionLimit field's value.
+func (s *ModifyReplicationGroupInput) SetSnapshotRetentionLimit(v int64) *ModifyReplicationGroupInput {
+	s.SnapshotRetentionLimit = &v
+	return s
+}
+
+// SetSnapshotWindow sets the SnapshotWindow field's value.
+func (s *ModifyReplicationGroupInput) SetSnapshotWindow(v string) *ModifyReplicationGroupInput {
+	s.SnapshotWindow = &v
+	return s
+}
+
+// SetSnapshottingClusterId sets the SnapshottingClusterId field's value.
+func (s *ModifyReplicationGroupInput) SetSnapshottingClusterId(v string) *ModifyReplicationGroupInput {
+	s.SnapshottingClusterId = &v
+	return s
+}
+
 type ModifyReplicationGroupOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7109,8 +8884,14 @@ func (s ModifyReplicationGroupOutput) GoString() string {
 	return s.String()
 }
 
+// SetReplicationGroup sets the ReplicationGroup field's value.
+func (s *ModifyReplicationGroupOutput) SetReplicationGroup(v *ReplicationGroup) *ModifyReplicationGroupOutput {
+	s.ReplicationGroup = v
+	return s
+}
+
 // Represents a collection of cache nodes in a replication group. One node in
-// the node group is the read/write Primary node. All the other nodes are read-only
+// the node group is the read/write primary node. All the other nodes are read-only
 // Replica nodes.
 type NodeGroup struct {
 	_ struct{} `type:"structure"`
@@ -7143,6 +8924,36 @@ func (s NodeGroup) String() string {
 // GoString returns the string representation
 func (s NodeGroup) GoString() string {
 	return s.String()
+}
+
+// SetNodeGroupId sets the NodeGroupId field's value.
+func (s *NodeGroup) SetNodeGroupId(v string) *NodeGroup {
+	s.NodeGroupId = &v
+	return s
+}
+
+// SetNodeGroupMembers sets the NodeGroupMembers field's value.
+func (s *NodeGroup) SetNodeGroupMembers(v []*NodeGroupMember) *NodeGroup {
+	s.NodeGroupMembers = v
+	return s
+}
+
+// SetPrimaryEndpoint sets the PrimaryEndpoint field's value.
+func (s *NodeGroup) SetPrimaryEndpoint(v *Endpoint) *NodeGroup {
+	s.PrimaryEndpoint = v
+	return s
+}
+
+// SetSlots sets the Slots field's value.
+func (s *NodeGroup) SetSlots(v string) *NodeGroup {
+	s.Slots = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *NodeGroup) SetStatus(v string) *NodeGroup {
+	s.Status = &v
+	return s
 }
 
 // node group (shard) configuration options. Each node group (shard) configuration
@@ -7180,6 +8991,30 @@ func (s NodeGroupConfiguration) GoString() string {
 	return s.String()
 }
 
+// SetPrimaryAvailabilityZone sets the PrimaryAvailabilityZone field's value.
+func (s *NodeGroupConfiguration) SetPrimaryAvailabilityZone(v string) *NodeGroupConfiguration {
+	s.PrimaryAvailabilityZone = &v
+	return s
+}
+
+// SetReplicaAvailabilityZones sets the ReplicaAvailabilityZones field's value.
+func (s *NodeGroupConfiguration) SetReplicaAvailabilityZones(v []*string) *NodeGroupConfiguration {
+	s.ReplicaAvailabilityZones = v
+	return s
+}
+
+// SetReplicaCount sets the ReplicaCount field's value.
+func (s *NodeGroupConfiguration) SetReplicaCount(v int64) *NodeGroupConfiguration {
+	s.ReplicaCount = &v
+	return s
+}
+
+// SetSlots sets the Slots field's value.
+func (s *NodeGroupConfiguration) SetSlots(v string) *NodeGroupConfiguration {
+	s.Slots = &v
+	return s
+}
+
 // Represents a single node within a node group (shard).
 type NodeGroupMember struct {
 	_ struct{} `type:"structure"`
@@ -7210,6 +9045,36 @@ func (s NodeGroupMember) String() string {
 // GoString returns the string representation
 func (s NodeGroupMember) GoString() string {
 	return s.String()
+}
+
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *NodeGroupMember) SetCacheClusterId(v string) *NodeGroupMember {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetCacheNodeId sets the CacheNodeId field's value.
+func (s *NodeGroupMember) SetCacheNodeId(v string) *NodeGroupMember {
+	s.CacheNodeId = &v
+	return s
+}
+
+// SetCurrentRole sets the CurrentRole field's value.
+func (s *NodeGroupMember) SetCurrentRole(v string) *NodeGroupMember {
+	s.CurrentRole = &v
+	return s
+}
+
+// SetPreferredAvailabilityZone sets the PreferredAvailabilityZone field's value.
+func (s *NodeGroupMember) SetPreferredAvailabilityZone(v string) *NodeGroupMember {
+	s.PreferredAvailabilityZone = &v
+	return s
+}
+
+// SetReadEndpoint sets the ReadEndpoint field's value.
+func (s *NodeGroupMember) SetReadEndpoint(v *Endpoint) *NodeGroupMember {
+	s.ReadEndpoint = v
+	return s
 }
 
 // Represents an individual cache node in a snapshot of a cache cluster.
@@ -7249,6 +9114,48 @@ func (s NodeSnapshot) GoString() string {
 	return s.String()
 }
 
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *NodeSnapshot) SetCacheClusterId(v string) *NodeSnapshot {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetCacheNodeCreateTime sets the CacheNodeCreateTime field's value.
+func (s *NodeSnapshot) SetCacheNodeCreateTime(v time.Time) *NodeSnapshot {
+	s.CacheNodeCreateTime = &v
+	return s
+}
+
+// SetCacheNodeId sets the CacheNodeId field's value.
+func (s *NodeSnapshot) SetCacheNodeId(v string) *NodeSnapshot {
+	s.CacheNodeId = &v
+	return s
+}
+
+// SetCacheSize sets the CacheSize field's value.
+func (s *NodeSnapshot) SetCacheSize(v string) *NodeSnapshot {
+	s.CacheSize = &v
+	return s
+}
+
+// SetNodeGroupConfiguration sets the NodeGroupConfiguration field's value.
+func (s *NodeSnapshot) SetNodeGroupConfiguration(v *NodeGroupConfiguration) *NodeSnapshot {
+	s.NodeGroupConfiguration = v
+	return s
+}
+
+// SetNodeGroupId sets the NodeGroupId field's value.
+func (s *NodeSnapshot) SetNodeGroupId(v string) *NodeSnapshot {
+	s.NodeGroupId = &v
+	return s
+}
+
+// SetSnapshotCreateTime sets the SnapshotCreateTime field's value.
+func (s *NodeSnapshot) SetSnapshotCreateTime(v time.Time) *NodeSnapshot {
+	s.SnapshotCreateTime = &v
+	return s
+}
+
 // Describes a notification topic and its status. Notification topics are used
 // for publishing ElastiCache events to subscribers using Amazon Simple Notification
 // Service (SNS).
@@ -7270,6 +9177,18 @@ func (s NotificationConfiguration) String() string {
 // GoString returns the string representation
 func (s NotificationConfiguration) GoString() string {
 	return s.String()
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *NotificationConfiguration) SetTopicArn(v string) *NotificationConfiguration {
+	s.TopicArn = &v
+	return s
+}
+
+// SetTopicStatus sets the TopicStatus field's value.
+func (s *NotificationConfiguration) SetTopicStatus(v string) *NotificationConfiguration {
+	s.TopicStatus = &v
+	return s
 }
 
 // Describes an individual setting that controls some aspect of ElastiCache
@@ -7320,6 +9239,60 @@ func (s Parameter) GoString() string {
 	return s.String()
 }
 
+// SetAllowedValues sets the AllowedValues field's value.
+func (s *Parameter) SetAllowedValues(v string) *Parameter {
+	s.AllowedValues = &v
+	return s
+}
+
+// SetChangeType sets the ChangeType field's value.
+func (s *Parameter) SetChangeType(v string) *Parameter {
+	s.ChangeType = &v
+	return s
+}
+
+// SetDataType sets the DataType field's value.
+func (s *Parameter) SetDataType(v string) *Parameter {
+	s.DataType = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Parameter) SetDescription(v string) *Parameter {
+	s.Description = &v
+	return s
+}
+
+// SetIsModifiable sets the IsModifiable field's value.
+func (s *Parameter) SetIsModifiable(v bool) *Parameter {
+	s.IsModifiable = &v
+	return s
+}
+
+// SetMinimumEngineVersion sets the MinimumEngineVersion field's value.
+func (s *Parameter) SetMinimumEngineVersion(v string) *Parameter {
+	s.MinimumEngineVersion = &v
+	return s
+}
+
+// SetParameterName sets the ParameterName field's value.
+func (s *Parameter) SetParameterName(v string) *Parameter {
+	s.ParameterName = &v
+	return s
+}
+
+// SetParameterValue sets the ParameterValue field's value.
+func (s *Parameter) SetParameterValue(v string) *Parameter {
+	s.ParameterValue = &v
+	return s
+}
+
+// SetSource sets the Source field's value.
+func (s *Parameter) SetSource(v string) *Parameter {
+	s.Source = &v
+	return s
+}
+
 // Describes a name-value pair that is used to update the value of a parameter.
 type ParameterNameValue struct {
 	_ struct{} `type:"structure"`
@@ -7339,6 +9312,18 @@ func (s ParameterNameValue) String() string {
 // GoString returns the string representation
 func (s ParameterNameValue) GoString() string {
 	return s.String()
+}
+
+// SetParameterName sets the ParameterName field's value.
+func (s *ParameterNameValue) SetParameterName(v string) *ParameterNameValue {
+	s.ParameterName = &v
+	return s
+}
+
+// SetParameterValue sets the ParameterValue field's value.
+func (s *ParameterNameValue) SetParameterValue(v string) *ParameterNameValue {
+	s.ParameterValue = &v
+	return s
 }
 
 // A group of settings that are applied to the cache cluster in the future,
@@ -7374,6 +9359,30 @@ func (s PendingModifiedValues) GoString() string {
 	return s.String()
 }
 
+// SetCacheNodeIdsToRemove sets the CacheNodeIdsToRemove field's value.
+func (s *PendingModifiedValues) SetCacheNodeIdsToRemove(v []*string) *PendingModifiedValues {
+	s.CacheNodeIdsToRemove = v
+	return s
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *PendingModifiedValues) SetCacheNodeType(v string) *PendingModifiedValues {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *PendingModifiedValues) SetEngineVersion(v string) *PendingModifiedValues {
+	s.EngineVersion = &v
+	return s
+}
+
+// SetNumCacheNodes sets the NumCacheNodes field's value.
+func (s *PendingModifiedValues) SetNumCacheNodes(v int64) *PendingModifiedValues {
+	s.NumCacheNodes = &v
+	return s
+}
+
 // Represents the input of a PurchaseReservedCacheNodesOffering operation.
 type PurchaseReservedCacheNodesOfferingInput struct {
 	_ struct{} `type:"structure"`
@@ -7385,11 +9394,11 @@ type PurchaseReservedCacheNodesOfferingInput struct {
 
 	// A customer-specified identifier to track this reservation.
 	//
-	//  The Reserved Cache Node ID is an unique customer-specified identifier to
+	// The Reserved Cache Node ID is an unique customer-specified identifier to
 	// track this reservation. If this parameter is not specified, ElastiCache automatically
 	// generates an identifier for the reservation.
 	//
-	//  Example: myreservationID
+	// Example: myreservationID
 	ReservedCacheNodeId *string `type:"string"`
 
 	// The ID of the reserved cache node offering to purchase.
@@ -7423,6 +9432,24 @@ func (s *PurchaseReservedCacheNodesOfferingInput) Validate() error {
 	return nil
 }
 
+// SetCacheNodeCount sets the CacheNodeCount field's value.
+func (s *PurchaseReservedCacheNodesOfferingInput) SetCacheNodeCount(v int64) *PurchaseReservedCacheNodesOfferingInput {
+	s.CacheNodeCount = &v
+	return s
+}
+
+// SetReservedCacheNodeId sets the ReservedCacheNodeId field's value.
+func (s *PurchaseReservedCacheNodesOfferingInput) SetReservedCacheNodeId(v string) *PurchaseReservedCacheNodesOfferingInput {
+	s.ReservedCacheNodeId = &v
+	return s
+}
+
+// SetReservedCacheNodesOfferingId sets the ReservedCacheNodesOfferingId field's value.
+func (s *PurchaseReservedCacheNodesOfferingInput) SetReservedCacheNodesOfferingId(v string) *PurchaseReservedCacheNodesOfferingInput {
+	s.ReservedCacheNodesOfferingId = &v
+	return s
+}
+
 type PurchaseReservedCacheNodesOfferingOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7438,6 +9465,12 @@ func (s PurchaseReservedCacheNodesOfferingOutput) String() string {
 // GoString returns the string representation
 func (s PurchaseReservedCacheNodesOfferingOutput) GoString() string {
 	return s.String()
+}
+
+// SetReservedCacheNode sets the ReservedCacheNode field's value.
+func (s *PurchaseReservedCacheNodesOfferingOutput) SetReservedCacheNode(v *ReservedCacheNode) *PurchaseReservedCacheNodesOfferingOutput {
+	s.ReservedCacheNode = v
+	return s
 }
 
 // Represents the input of a RebootCacheCluster operation.
@@ -7483,6 +9516,18 @@ func (s *RebootCacheClusterInput) Validate() error {
 	return nil
 }
 
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *RebootCacheClusterInput) SetCacheClusterId(v string) *RebootCacheClusterInput {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetCacheNodeIdsToReboot sets the CacheNodeIdsToReboot field's value.
+func (s *RebootCacheClusterInput) SetCacheNodeIdsToReboot(v []*string) *RebootCacheClusterInput {
+	s.CacheNodeIdsToReboot = v
+	return s
+}
+
 type RebootCacheClusterOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7498,6 +9543,12 @@ func (s RebootCacheClusterOutput) String() string {
 // GoString returns the string representation
 func (s RebootCacheClusterOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheCluster sets the CacheCluster field's value.
+func (s *RebootCacheClusterOutput) SetCacheCluster(v *CacheCluster) *RebootCacheClusterOutput {
+	s.CacheCluster = v
+	return s
 }
 
 // Contains the specific price and frequency of a recurring charges for a reserved
@@ -7520,6 +9571,18 @@ func (s RecurringCharge) String() string {
 // GoString returns the string representation
 func (s RecurringCharge) GoString() string {
 	return s.String()
+}
+
+// SetRecurringChargeAmount sets the RecurringChargeAmount field's value.
+func (s *RecurringCharge) SetRecurringChargeAmount(v float64) *RecurringCharge {
+	s.RecurringChargeAmount = &v
+	return s
+}
+
+// SetRecurringChargeFrequency sets the RecurringChargeFrequency field's value.
+func (s *RecurringCharge) SetRecurringChargeFrequency(v string) *RecurringCharge {
+	s.RecurringChargeFrequency = &v
+	return s
 }
 
 // Represents the input of a RemoveTagsFromResource operation.
@@ -7568,17 +9631,29 @@ func (s *RemoveTagsFromResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceName sets the ResourceName field's value.
+func (s *RemoveTagsFromResourceInput) SetResourceName(v string) *RemoveTagsFromResourceInput {
+	s.ResourceName = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *RemoveTagsFromResourceInput) SetTagKeys(v []*string) *RemoveTagsFromResourceInput {
+	s.TagKeys = v
+	return s
+}
+
 // Contains all of the attributes of a specific Redis replication group.
 type ReplicationGroup struct {
 	_ struct{} `type:"structure"`
 
 	// Indicates the status of Multi-AZ for this replication group.
 	//
-	//  ElastiCache Multi-AZ replication groups are not supported on:
+	// ElastiCache Multi-AZ replication groups are not supported on:
 	//
-	//   Redis versions earlier than 2.8.6.
+	// Redis versions earlier than 2.8.6.
 	//
-	//   Redis (cluster mode disabled):T1 and T2 cache node types.
+	// Redis (cluster mode disabled):T1 and T2 cache node types.
 	//
 	// Redis (cluster mode enabled): T1 node types.
 	AutomaticFailover *string `type:"string" enum:"AutomaticFailoverStatus"`
@@ -7609,8 +9684,8 @@ type ReplicationGroup struct {
 	// to 5, a snapshot that was taken today is retained for 5 days before being
 	// deleted.
 	//
-	//   If the value of SnapshotRetentionLimit is set to zero (0), backups are
-	// turned off.
+	// If the value of SnapshotRetentionLimit is set to zero (0), backups are turned
+	// off.
 	SnapshotRetentionLimit *int64 `type:"integer"`
 
 	// The daily time range (in UTC) during which ElastiCache begins taking a daily
@@ -7618,17 +9693,18 @@ type ReplicationGroup struct {
 	//
 	// Example: 05:00-09:00
 	//
-	// If you do not specify this parameter, ElastiCache automatically chooses
-	// an appropriate time range.
+	// If you do not specify this parameter, ElastiCache automatically chooses an
+	// appropriate time range.
 	//
-	//  Note: This parameter is only valid if the Engine parameter is redis.
+	// Note: This parameter is only valid if the Engine parameter is redis.
 	SnapshotWindow *string `type:"string"`
 
 	// The cache cluster ID that is used as the daily snapshot source for the replication
 	// group.
 	SnapshottingClusterId *string `type:"string"`
 
-	// The current state of this replication group - creating, available, etc.
+	// The current state of this replication group - creating, available, modifying,
+	// deleting, create-failed, snapshotting.
 	Status *string `type:"string"`
 }
 
@@ -7642,6 +9718,72 @@ func (s ReplicationGroup) GoString() string {
 	return s.String()
 }
 
+// SetAutomaticFailover sets the AutomaticFailover field's value.
+func (s *ReplicationGroup) SetAutomaticFailover(v string) *ReplicationGroup {
+	s.AutomaticFailover = &v
+	return s
+}
+
+// SetConfigurationEndpoint sets the ConfigurationEndpoint field's value.
+func (s *ReplicationGroup) SetConfigurationEndpoint(v *Endpoint) *ReplicationGroup {
+	s.ConfigurationEndpoint = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *ReplicationGroup) SetDescription(v string) *ReplicationGroup {
+	s.Description = &v
+	return s
+}
+
+// SetMemberClusters sets the MemberClusters field's value.
+func (s *ReplicationGroup) SetMemberClusters(v []*string) *ReplicationGroup {
+	s.MemberClusters = v
+	return s
+}
+
+// SetNodeGroups sets the NodeGroups field's value.
+func (s *ReplicationGroup) SetNodeGroups(v []*NodeGroup) *ReplicationGroup {
+	s.NodeGroups = v
+	return s
+}
+
+// SetPendingModifiedValues sets the PendingModifiedValues field's value.
+func (s *ReplicationGroup) SetPendingModifiedValues(v *ReplicationGroupPendingModifiedValues) *ReplicationGroup {
+	s.PendingModifiedValues = v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *ReplicationGroup) SetReplicationGroupId(v string) *ReplicationGroup {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// SetSnapshotRetentionLimit sets the SnapshotRetentionLimit field's value.
+func (s *ReplicationGroup) SetSnapshotRetentionLimit(v int64) *ReplicationGroup {
+	s.SnapshotRetentionLimit = &v
+	return s
+}
+
+// SetSnapshotWindow sets the SnapshotWindow field's value.
+func (s *ReplicationGroup) SetSnapshotWindow(v string) *ReplicationGroup {
+	s.SnapshotWindow = &v
+	return s
+}
+
+// SetSnapshottingClusterId sets the SnapshottingClusterId field's value.
+func (s *ReplicationGroup) SetSnapshottingClusterId(v string) *ReplicationGroup {
+	s.SnapshottingClusterId = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ReplicationGroup) SetStatus(v string) *ReplicationGroup {
+	s.Status = &v
+	return s
+}
+
 // The settings to be applied to the Redis replication group, either immediately
 // or during the next maintenance window.
 type ReplicationGroupPendingModifiedValues struct {
@@ -7649,11 +9791,11 @@ type ReplicationGroupPendingModifiedValues struct {
 
 	// Indicates the status of Multi-AZ for this Redis replication group.
 	//
-	//  ElastiCache Multi-AZ replication groups are not supported on:
+	// ElastiCache Multi-AZ replication groups are not supported on:
 	//
-	//   Redis versions earlier than 2.8.6.
+	// Redis versions earlier than 2.8.6.
 	//
-	//   Redis (cluster mode disabled):T1 and T2 cache node types.
+	// Redis (cluster mode disabled):T1 and T2 cache node types.
 	//
 	// Redis (cluster mode enabled): T1 node types.
 	AutomaticFailoverStatus *string `type:"string" enum:"PendingAutomaticFailoverStatus"`
@@ -7673,6 +9815,18 @@ func (s ReplicationGroupPendingModifiedValues) GoString() string {
 	return s.String()
 }
 
+// SetAutomaticFailoverStatus sets the AutomaticFailoverStatus field's value.
+func (s *ReplicationGroupPendingModifiedValues) SetAutomaticFailoverStatus(v string) *ReplicationGroupPendingModifiedValues {
+	s.AutomaticFailoverStatus = &v
+	return s
+}
+
+// SetPrimaryClusterId sets the PrimaryClusterId field's value.
+func (s *ReplicationGroupPendingModifiedValues) SetPrimaryClusterId(v string) *ReplicationGroupPendingModifiedValues {
+	s.PrimaryClusterId = &v
+	return s
+}
+
 // Represents the output of a PurchaseReservedCacheNodesOffering operation.
 type ReservedCacheNode struct {
 	_ struct{} `type:"structure"`
@@ -7684,37 +9838,37 @@ type ReservedCacheNode struct {
 	//
 	// Valid node types are as follows:
 	//
-	//   General purpose:
+	//    * General purpose:
 	//
-	//   Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
-	// cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
-	// cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
+	// Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
+	//    cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
+	//    cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
 	//
-	//   Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium,
-	// cache.m1.large, cache.m1.xlarge
+	// Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	//    cache.m1.xlarge
 	//
-	//     Compute optimized: cache.c1.xlarge
+	//    * Compute optimized: cache.c1.xlarge
 	//
-	//   Memory optimized:
+	//    * Memory optimized:
 	//
-	//   Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge,
-	// cache.r3.4xlarge, cache.r3.8xlarge
+	// Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
+	//    cache.r3.8xlarge
 	//
-	//   Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
+	// Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
 	//
-	//      Notes:
+	// Notes:
 	//
-	//   All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
-	// VPC).
+	//    * All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
+	//    VPC).
 	//
-	//   Redis backup/restore is not supported for Redis (cluster mode disabled)
-	// T1 and T2 instances. Backup/restore is supported on Redis (cluster mode enabled)
-	// T2 instances.
+	//    * Redis backup/restore is not supported for Redis (cluster mode disabled)
+	//    T1 and T2 instances. Backup/restore is supported on Redis (cluster mode
+	//    enabled) T2 instances.
 	//
-	//   Redis Append-only files (AOF) functionality is not supported for T1 or
-	// T2 instances.
+	//    * Redis Append-only files (AOF) functionality is not supported for T1
+	//    or T2 instances.
 	//
-	//   For a complete listing of node types and specifications, see Amazon ElastiCache
+	// For a complete listing of node types and specifications, see Amazon ElastiCache
 	// Product Features and Details (http://aws.amazon.com/elasticache/details)
 	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
 	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
@@ -7761,6 +9915,78 @@ func (s ReservedCacheNode) GoString() string {
 	return s.String()
 }
 
+// SetCacheNodeCount sets the CacheNodeCount field's value.
+func (s *ReservedCacheNode) SetCacheNodeCount(v int64) *ReservedCacheNode {
+	s.CacheNodeCount = &v
+	return s
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *ReservedCacheNode) SetCacheNodeType(v string) *ReservedCacheNode {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *ReservedCacheNode) SetDuration(v int64) *ReservedCacheNode {
+	s.Duration = &v
+	return s
+}
+
+// SetFixedPrice sets the FixedPrice field's value.
+func (s *ReservedCacheNode) SetFixedPrice(v float64) *ReservedCacheNode {
+	s.FixedPrice = &v
+	return s
+}
+
+// SetOfferingType sets the OfferingType field's value.
+func (s *ReservedCacheNode) SetOfferingType(v string) *ReservedCacheNode {
+	s.OfferingType = &v
+	return s
+}
+
+// SetProductDescription sets the ProductDescription field's value.
+func (s *ReservedCacheNode) SetProductDescription(v string) *ReservedCacheNode {
+	s.ProductDescription = &v
+	return s
+}
+
+// SetRecurringCharges sets the RecurringCharges field's value.
+func (s *ReservedCacheNode) SetRecurringCharges(v []*RecurringCharge) *ReservedCacheNode {
+	s.RecurringCharges = v
+	return s
+}
+
+// SetReservedCacheNodeId sets the ReservedCacheNodeId field's value.
+func (s *ReservedCacheNode) SetReservedCacheNodeId(v string) *ReservedCacheNode {
+	s.ReservedCacheNodeId = &v
+	return s
+}
+
+// SetReservedCacheNodesOfferingId sets the ReservedCacheNodesOfferingId field's value.
+func (s *ReservedCacheNode) SetReservedCacheNodesOfferingId(v string) *ReservedCacheNode {
+	s.ReservedCacheNodesOfferingId = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *ReservedCacheNode) SetStartTime(v time.Time) *ReservedCacheNode {
+	s.StartTime = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *ReservedCacheNode) SetState(v string) *ReservedCacheNode {
+	s.State = &v
+	return s
+}
+
+// SetUsagePrice sets the UsagePrice field's value.
+func (s *ReservedCacheNode) SetUsagePrice(v float64) *ReservedCacheNode {
+	s.UsagePrice = &v
+	return s
+}
+
 // Describes all of the attributes of a reserved cache node offering.
 type ReservedCacheNodesOffering struct {
 	_ struct{} `type:"structure"`
@@ -7769,37 +9995,37 @@ type ReservedCacheNodesOffering struct {
 	//
 	// Valid node types are as follows:
 	//
-	//   General purpose:
+	//    * General purpose:
 	//
-	//   Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
-	// cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
-	// cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
+	// Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
+	//    cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
+	//    cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
 	//
-	//   Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium,
-	// cache.m1.large, cache.m1.xlarge
+	// Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	//    cache.m1.xlarge
 	//
-	//     Compute optimized: cache.c1.xlarge
+	//    * Compute optimized: cache.c1.xlarge
 	//
-	//   Memory optimized:
+	//    * Memory optimized:
 	//
-	//   Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge,
-	// cache.r3.4xlarge, cache.r3.8xlarge
+	// Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
+	//    cache.r3.8xlarge
 	//
-	//   Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
+	// Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
 	//
-	//      Notes:
+	// Notes:
 	//
-	//   All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
-	// VPC).
+	//    * All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
+	//    VPC).
 	//
-	//   Redis backup/restore is not supported for Redis (cluster mode disabled)
-	// T1 and T2 instances. Backup/restore is supported on Redis (cluster mode enabled)
-	// T2 instances.
+	//    * Redis backup/restore is not supported for Redis (cluster mode disabled)
+	//    T1 and T2 instances. Backup/restore is supported on Redis (cluster mode
+	//    enabled) T2 instances.
 	//
-	//   Redis Append-only files (AOF) functionality is not supported for T1 or
-	// T2 instances.
+	//    * Redis Append-only files (AOF) functionality is not supported for T1
+	//    or T2 instances.
 	//
-	//   For a complete listing of node types and specifications, see Amazon ElastiCache
+	// For a complete listing of node types and specifications, see Amazon ElastiCache
 	// Product Features and Details (http://aws.amazon.com/elasticache/details)
 	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
 	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
@@ -7835,6 +10061,54 @@ func (s ReservedCacheNodesOffering) String() string {
 // GoString returns the string representation
 func (s ReservedCacheNodesOffering) GoString() string {
 	return s.String()
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *ReservedCacheNodesOffering) SetCacheNodeType(v string) *ReservedCacheNodesOffering {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetDuration sets the Duration field's value.
+func (s *ReservedCacheNodesOffering) SetDuration(v int64) *ReservedCacheNodesOffering {
+	s.Duration = &v
+	return s
+}
+
+// SetFixedPrice sets the FixedPrice field's value.
+func (s *ReservedCacheNodesOffering) SetFixedPrice(v float64) *ReservedCacheNodesOffering {
+	s.FixedPrice = &v
+	return s
+}
+
+// SetOfferingType sets the OfferingType field's value.
+func (s *ReservedCacheNodesOffering) SetOfferingType(v string) *ReservedCacheNodesOffering {
+	s.OfferingType = &v
+	return s
+}
+
+// SetProductDescription sets the ProductDescription field's value.
+func (s *ReservedCacheNodesOffering) SetProductDescription(v string) *ReservedCacheNodesOffering {
+	s.ProductDescription = &v
+	return s
+}
+
+// SetRecurringCharges sets the RecurringCharges field's value.
+func (s *ReservedCacheNodesOffering) SetRecurringCharges(v []*RecurringCharge) *ReservedCacheNodesOffering {
+	s.RecurringCharges = v
+	return s
+}
+
+// SetReservedCacheNodesOfferingId sets the ReservedCacheNodesOfferingId field's value.
+func (s *ReservedCacheNodesOffering) SetReservedCacheNodesOfferingId(v string) *ReservedCacheNodesOffering {
+	s.ReservedCacheNodesOfferingId = &v
+	return s
+}
+
+// SetUsagePrice sets the UsagePrice field's value.
+func (s *ReservedCacheNodesOffering) SetUsagePrice(v float64) *ReservedCacheNodesOffering {
+	s.UsagePrice = &v
+	return s
 }
 
 // Represents the input of a ResetCacheParameterGroup operation.
@@ -7880,6 +10154,24 @@ func (s *ResetCacheParameterGroupInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *ResetCacheParameterGroupInput) SetCacheParameterGroupName(v string) *ResetCacheParameterGroupInput {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetParameterNameValues sets the ParameterNameValues field's value.
+func (s *ResetCacheParameterGroupInput) SetParameterNameValues(v []*ParameterNameValue) *ResetCacheParameterGroupInput {
+	s.ParameterNameValues = v
+	return s
+}
+
+// SetResetAllParameters sets the ResetAllParameters field's value.
+func (s *ResetCacheParameterGroupInput) SetResetAllParameters(v bool) *ResetCacheParameterGroupInput {
+	s.ResetAllParameters = &v
+	return s
 }
 
 // Represents the input of a RevokeCacheSecurityGroupIngress operation.
@@ -7933,16 +10225,34 @@ func (s *RevokeCacheSecurityGroupIngressInput) Validate() error {
 	return nil
 }
 
+// SetCacheSecurityGroupName sets the CacheSecurityGroupName field's value.
+func (s *RevokeCacheSecurityGroupIngressInput) SetCacheSecurityGroupName(v string) *RevokeCacheSecurityGroupIngressInput {
+	s.CacheSecurityGroupName = &v
+	return s
+}
+
+// SetEC2SecurityGroupName sets the EC2SecurityGroupName field's value.
+func (s *RevokeCacheSecurityGroupIngressInput) SetEC2SecurityGroupName(v string) *RevokeCacheSecurityGroupIngressInput {
+	s.EC2SecurityGroupName = &v
+	return s
+}
+
+// SetEC2SecurityGroupOwnerId sets the EC2SecurityGroupOwnerId field's value.
+func (s *RevokeCacheSecurityGroupIngressInput) SetEC2SecurityGroupOwnerId(v string) *RevokeCacheSecurityGroupIngressInput {
+	s.EC2SecurityGroupOwnerId = &v
+	return s
+}
+
 type RevokeCacheSecurityGroupIngressOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Represents the output of one of the following operations:
 	//
-	//    AuthorizeCacheSecurityGroupIngress
+	//    * AuthorizeCacheSecurityGroupIngress
 	//
-	//    CreateCacheSecurityGroup
+	//    * CreateCacheSecurityGroup
 	//
-	//    RevokeCacheSecurityGroupIngress
+	//    * RevokeCacheSecurityGroupIngress
 	CacheSecurityGroup *CacheSecurityGroup `type:"structure"`
 }
 
@@ -7954,6 +10264,12 @@ func (s RevokeCacheSecurityGroupIngressOutput) String() string {
 // GoString returns the string representation
 func (s RevokeCacheSecurityGroupIngressOutput) GoString() string {
 	return s.String()
+}
+
+// SetCacheSecurityGroup sets the CacheSecurityGroup field's value.
+func (s *RevokeCacheSecurityGroupIngressOutput) SetCacheSecurityGroup(v *CacheSecurityGroup) *RevokeCacheSecurityGroupIngressOutput {
+	s.CacheSecurityGroup = v
+	return s
 }
 
 // Represents a single cache security group and its status.
@@ -7979,6 +10295,18 @@ func (s SecurityGroupMembership) GoString() string {
 	return s.String()
 }
 
+// SetSecurityGroupId sets the SecurityGroupId field's value.
+func (s *SecurityGroupMembership) SetSecurityGroupId(v string) *SecurityGroupMembership {
+	s.SecurityGroupId = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *SecurityGroupMembership) SetStatus(v string) *SecurityGroupMembership {
+	s.Status = &v
+	return s
+}
+
 // Represents a copy of an entire Redis cache cluster as of the time when the
 // snapshot was taken.
 type Snapshot struct {
@@ -7989,11 +10317,11 @@ type Snapshot struct {
 
 	// Indicates the status of Multi-AZ for the source replication group.
 	//
-	//  ElastiCache Multi-AZ replication groups are not supported on:
+	// ElastiCache Multi-AZ replication groups are not supported on:
 	//
-	//   Redis versions earlier than 2.8.6.
+	// Redis versions earlier than 2.8.6.
 	//
-	//   Redis (cluster mode disabled):T1 and T2 cache node types.
+	// Redis (cluster mode disabled):T1 and T2 cache node types.
 	//
 	// Redis (cluster mode enabled): T1 node types.
 	AutomaticFailover *string `type:"string" enum:"AutomaticFailoverStatus"`
@@ -8009,37 +10337,37 @@ type Snapshot struct {
 	//
 	// Valid node types are as follows:
 	//
-	//   General purpose:
+	//    * General purpose:
 	//
-	//   Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
-	// cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
-	// cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
+	// Current generation: cache.t2.micro, cache.t2.small, cache.t2.medium, cache.m3.medium,
+	//    cache.m3.large, cache.m3.xlarge, cache.m3.2xlarge, cache.m4.large, cache.m4.xlarge,
+	//    cache.m4.2xlarge, cache.m4.4xlarge, cache.m4.10xlarge
 	//
-	//   Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium,
-	// cache.m1.large, cache.m1.xlarge
+	// Previous generation: cache.t1.micro, cache.m1.small, cache.m1.medium, cache.m1.large,
+	//    cache.m1.xlarge
 	//
-	//     Compute optimized: cache.c1.xlarge
+	//    * Compute optimized: cache.c1.xlarge
 	//
-	//   Memory optimized:
+	//    * Memory optimized:
 	//
-	//   Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge,
-	// cache.r3.4xlarge, cache.r3.8xlarge
+	// Current generation: cache.r3.large, cache.r3.xlarge, cache.r3.2xlarge, cache.r3.4xlarge,
+	//    cache.r3.8xlarge
 	//
-	//   Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
+	// Previous generation: cache.m2.xlarge, cache.m2.2xlarge, cache.m2.4xlarge
 	//
-	//      Notes:
+	// Notes:
 	//
-	//   All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
-	// VPC).
+	//    * All T2 instances are created in an Amazon Virtual Private Cloud (Amazon
+	//    VPC).
 	//
-	//   Redis backup/restore is not supported for Redis (cluster mode disabled)
-	// T1 and T2 instances. Backup/restore is supported on Redis (cluster mode enabled)
-	// T2 instances.
+	//    * Redis backup/restore is not supported for Redis (cluster mode disabled)
+	//    T1 and T2 instances. Backup/restore is supported on Redis (cluster mode
+	//    enabled) T2 instances.
 	//
-	//   Redis Append-only files (AOF) functionality is not supported for T1 or
-	// T2 instances.
+	//    * Redis Append-only files (AOF) functionality is not supported for T1
+	//    or T2 instances.
 	//
-	//   For a complete listing of node types and specifications, see Amazon ElastiCache
+	// For a complete listing of node types and specifications, see Amazon ElastiCache
 	// Product Features and Details (http://aws.amazon.com/elasticache/details)
 	// and either Cache Node Type-Specific Parameters for Memcached (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Memcached.html#ParameterGroups.Memcached.NodeSpecific)
 	// or Cache Node Type-Specific Parameters for Redis (http://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/CacheParameterGroups.Redis.html#ParameterGroups.Redis.NodeSpecific).
@@ -8085,21 +10413,21 @@ type Snapshot struct {
 	//
 	// Valid values for ddd are:
 	//
-	//    sun
+	//    * sun
 	//
-	//    mon
+	//    * mon
 	//
-	//    tue
+	//    * tue
 	//
-	//    wed
+	//    * wed
 	//
-	//    thu
+	//    * thu
 	//
-	//    fri
+	//    * fri
 	//
-	//    sat
+	//    * sat
 	//
-	//   Example: sun:23:00-mon:01:30
+	// Example: sun:23:00-mon:01:30
 	PreferredMaintenanceWindow *string `type:"string"`
 
 	// A description of the source replication group.
@@ -8120,7 +10448,7 @@ type Snapshot struct {
 	// ignored: Manual snapshots do not expire, and can only be deleted using the
 	// DeleteSnapshot operation.
 	//
-	//  Important If the value of SnapshotRetentionLimit is set to zero (0), backups
+	// Important If the value of SnapshotRetentionLimit is set to zero (0), backups
 	// are turned off.
 	SnapshotRetentionLimit *int64 `type:"integer"`
 
@@ -8155,6 +10483,150 @@ func (s Snapshot) GoString() string {
 	return s.String()
 }
 
+// SetAutoMinorVersionUpgrade sets the AutoMinorVersionUpgrade field's value.
+func (s *Snapshot) SetAutoMinorVersionUpgrade(v bool) *Snapshot {
+	s.AutoMinorVersionUpgrade = &v
+	return s
+}
+
+// SetAutomaticFailover sets the AutomaticFailover field's value.
+func (s *Snapshot) SetAutomaticFailover(v string) *Snapshot {
+	s.AutomaticFailover = &v
+	return s
+}
+
+// SetCacheClusterCreateTime sets the CacheClusterCreateTime field's value.
+func (s *Snapshot) SetCacheClusterCreateTime(v time.Time) *Snapshot {
+	s.CacheClusterCreateTime = &v
+	return s
+}
+
+// SetCacheClusterId sets the CacheClusterId field's value.
+func (s *Snapshot) SetCacheClusterId(v string) *Snapshot {
+	s.CacheClusterId = &v
+	return s
+}
+
+// SetCacheNodeType sets the CacheNodeType field's value.
+func (s *Snapshot) SetCacheNodeType(v string) *Snapshot {
+	s.CacheNodeType = &v
+	return s
+}
+
+// SetCacheParameterGroupName sets the CacheParameterGroupName field's value.
+func (s *Snapshot) SetCacheParameterGroupName(v string) *Snapshot {
+	s.CacheParameterGroupName = &v
+	return s
+}
+
+// SetCacheSubnetGroupName sets the CacheSubnetGroupName field's value.
+func (s *Snapshot) SetCacheSubnetGroupName(v string) *Snapshot {
+	s.CacheSubnetGroupName = &v
+	return s
+}
+
+// SetEngine sets the Engine field's value.
+func (s *Snapshot) SetEngine(v string) *Snapshot {
+	s.Engine = &v
+	return s
+}
+
+// SetEngineVersion sets the EngineVersion field's value.
+func (s *Snapshot) SetEngineVersion(v string) *Snapshot {
+	s.EngineVersion = &v
+	return s
+}
+
+// SetNodeSnapshots sets the NodeSnapshots field's value.
+func (s *Snapshot) SetNodeSnapshots(v []*NodeSnapshot) *Snapshot {
+	s.NodeSnapshots = v
+	return s
+}
+
+// SetNumCacheNodes sets the NumCacheNodes field's value.
+func (s *Snapshot) SetNumCacheNodes(v int64) *Snapshot {
+	s.NumCacheNodes = &v
+	return s
+}
+
+// SetNumNodeGroups sets the NumNodeGroups field's value.
+func (s *Snapshot) SetNumNodeGroups(v int64) *Snapshot {
+	s.NumNodeGroups = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *Snapshot) SetPort(v int64) *Snapshot {
+	s.Port = &v
+	return s
+}
+
+// SetPreferredAvailabilityZone sets the PreferredAvailabilityZone field's value.
+func (s *Snapshot) SetPreferredAvailabilityZone(v string) *Snapshot {
+	s.PreferredAvailabilityZone = &v
+	return s
+}
+
+// SetPreferredMaintenanceWindow sets the PreferredMaintenanceWindow field's value.
+func (s *Snapshot) SetPreferredMaintenanceWindow(v string) *Snapshot {
+	s.PreferredMaintenanceWindow = &v
+	return s
+}
+
+// SetReplicationGroupDescription sets the ReplicationGroupDescription field's value.
+func (s *Snapshot) SetReplicationGroupDescription(v string) *Snapshot {
+	s.ReplicationGroupDescription = &v
+	return s
+}
+
+// SetReplicationGroupId sets the ReplicationGroupId field's value.
+func (s *Snapshot) SetReplicationGroupId(v string) *Snapshot {
+	s.ReplicationGroupId = &v
+	return s
+}
+
+// SetSnapshotName sets the SnapshotName field's value.
+func (s *Snapshot) SetSnapshotName(v string) *Snapshot {
+	s.SnapshotName = &v
+	return s
+}
+
+// SetSnapshotRetentionLimit sets the SnapshotRetentionLimit field's value.
+func (s *Snapshot) SetSnapshotRetentionLimit(v int64) *Snapshot {
+	s.SnapshotRetentionLimit = &v
+	return s
+}
+
+// SetSnapshotSource sets the SnapshotSource field's value.
+func (s *Snapshot) SetSnapshotSource(v string) *Snapshot {
+	s.SnapshotSource = &v
+	return s
+}
+
+// SetSnapshotStatus sets the SnapshotStatus field's value.
+func (s *Snapshot) SetSnapshotStatus(v string) *Snapshot {
+	s.SnapshotStatus = &v
+	return s
+}
+
+// SetSnapshotWindow sets the SnapshotWindow field's value.
+func (s *Snapshot) SetSnapshotWindow(v string) *Snapshot {
+	s.SnapshotWindow = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *Snapshot) SetTopicArn(v string) *Snapshot {
+	s.TopicArn = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *Snapshot) SetVpcId(v string) *Snapshot {
+	s.VpcId = &v
+	return s
+}
+
 // Represents the subnet associated with a cache cluster. This parameter refers
 // to subnets defined in Amazon Virtual Private Cloud (Amazon VPC) and used
 // with ElastiCache.
@@ -8176,6 +10648,18 @@ func (s Subnet) String() string {
 // GoString returns the string representation
 func (s Subnet) GoString() string {
 	return s.String()
+}
+
+// SetSubnetAvailabilityZone sets the SubnetAvailabilityZone field's value.
+func (s *Subnet) SetSubnetAvailabilityZone(v *AvailabilityZone) *Subnet {
+	s.SubnetAvailabilityZone = v
+	return s
+}
+
+// SetSubnetIdentifier sets the SubnetIdentifier field's value.
+func (s *Subnet) SetSubnetIdentifier(v string) *Subnet {
+	s.SubnetIdentifier = &v
+	return s
 }
 
 // A cost allocation Tag that can be added to an ElastiCache cluster or replication
@@ -8201,6 +10685,18 @@ func (s Tag) GoString() string {
 	return s.String()
 }
 
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
 // Represents the output from the AddTagsToResource, ListTagsOnResource, and
 // RemoveTagsFromResource operations.
 type TagListMessage struct {
@@ -8218,6 +10714,12 @@ func (s TagListMessage) String() string {
 // GoString returns the string representation
 func (s TagListMessage) GoString() string {
 	return s.String()
+}
+
+// SetTagList sets the TagList field's value.
+func (s *TagListMessage) SetTagList(v []*Tag) *TagListMessage {
+	s.TagList = v
+	return s
 }
 
 const (

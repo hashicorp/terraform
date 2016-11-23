@@ -3826,6 +3826,12 @@ func (s AbortIncompleteMultipartUpload) GoString() string {
 	return s.String()
 }
 
+// SetDaysAfterInitiation sets the DaysAfterInitiation field's value.
+func (s *AbortIncompleteMultipartUpload) SetDaysAfterInitiation(v int64) *AbortIncompleteMultipartUpload {
+	s.DaysAfterInitiation = &v
+	return s
+}
+
 type AbortMultipartUploadInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3877,6 +3883,30 @@ func (s *AbortMultipartUploadInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *AbortMultipartUploadInput) SetBucket(v string) *AbortMultipartUploadInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *AbortMultipartUploadInput) SetKey(v string) *AbortMultipartUploadInput {
+	s.Key = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *AbortMultipartUploadInput) SetRequestPayer(v string) *AbortMultipartUploadInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *AbortMultipartUploadInput) SetUploadId(v string) *AbortMultipartUploadInput {
+	s.UploadId = &v
+	return s
+}
+
 type AbortMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3895,6 +3925,12 @@ func (s AbortMultipartUploadOutput) GoString() string {
 	return s.String()
 }
 
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *AbortMultipartUploadOutput) SetRequestCharged(v string) *AbortMultipartUploadOutput {
+	s.RequestCharged = &v
+	return s
+}
+
 type AccelerateConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -3910,6 +3946,12 @@ func (s AccelerateConfiguration) String() string {
 // GoString returns the string representation
 func (s AccelerateConfiguration) GoString() string {
 	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *AccelerateConfiguration) SetStatus(v string) *AccelerateConfiguration {
+	s.Status = &v
+	return s
 }
 
 type AccessControlPolicy struct {
@@ -3951,6 +3993,18 @@ func (s *AccessControlPolicy) Validate() error {
 	return nil
 }
 
+// SetGrants sets the Grants field's value.
+func (s *AccessControlPolicy) SetGrants(v []*Grant) *AccessControlPolicy {
+	s.Grants = v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *AccessControlPolicy) SetOwner(v *Owner) *AccessControlPolicy {
+	s.Owner = v
+	return s
+}
+
 type Bucket struct {
 	_ struct{} `type:"structure"`
 
@@ -3969,6 +4023,18 @@ func (s Bucket) String() string {
 // GoString returns the string representation
 func (s Bucket) GoString() string {
 	return s.String()
+}
+
+// SetCreationDate sets the CreationDate field's value.
+func (s *Bucket) SetCreationDate(v time.Time) *Bucket {
+	s.CreationDate = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *Bucket) SetName(v string) *Bucket {
+	s.Name = &v
+	return s
 }
 
 type BucketLifecycleConfiguration struct {
@@ -4011,6 +4077,12 @@ func (s *BucketLifecycleConfiguration) Validate() error {
 	return nil
 }
 
+// SetRules sets the Rules field's value.
+func (s *BucketLifecycleConfiguration) SetRules(v []*LifecycleRule) *BucketLifecycleConfiguration {
+	s.Rules = v
+	return s
+}
+
 type BucketLoggingStatus struct {
 	_ struct{} `type:"structure"`
 
@@ -4040,6 +4112,12 @@ func (s *BucketLoggingStatus) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetLoggingEnabled sets the LoggingEnabled field's value.
+func (s *BucketLoggingStatus) SetLoggingEnabled(v *LoggingEnabled) *BucketLoggingStatus {
+	s.LoggingEnabled = v
+	return s
 }
 
 type CORSConfiguration struct {
@@ -4080,6 +4158,12 @@ func (s *CORSConfiguration) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCORSRules sets the CORSRules field's value.
+func (s *CORSConfiguration) SetCORSRules(v []*CORSRule) *CORSConfiguration {
+	s.CORSRules = v
+	return s
 }
 
 type CORSRule struct {
@@ -4135,6 +4219,36 @@ func (s *CORSRule) Validate() error {
 	return nil
 }
 
+// SetAllowedHeaders sets the AllowedHeaders field's value.
+func (s *CORSRule) SetAllowedHeaders(v []*string) *CORSRule {
+	s.AllowedHeaders = v
+	return s
+}
+
+// SetAllowedMethods sets the AllowedMethods field's value.
+func (s *CORSRule) SetAllowedMethods(v []*string) *CORSRule {
+	s.AllowedMethods = v
+	return s
+}
+
+// SetAllowedOrigins sets the AllowedOrigins field's value.
+func (s *CORSRule) SetAllowedOrigins(v []*string) *CORSRule {
+	s.AllowedOrigins = v
+	return s
+}
+
+// SetExposeHeaders sets the ExposeHeaders field's value.
+func (s *CORSRule) SetExposeHeaders(v []*string) *CORSRule {
+	s.ExposeHeaders = v
+	return s
+}
+
+// SetMaxAgeSeconds sets the MaxAgeSeconds field's value.
+func (s *CORSRule) SetMaxAgeSeconds(v int64) *CORSRule {
+	s.MaxAgeSeconds = &v
+	return s
+}
+
 type CloudFunctionConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -4162,6 +4276,36 @@ func (s CloudFunctionConfiguration) GoString() string {
 	return s.String()
 }
 
+// SetCloudFunction sets the CloudFunction field's value.
+func (s *CloudFunctionConfiguration) SetCloudFunction(v string) *CloudFunctionConfiguration {
+	s.CloudFunction = &v
+	return s
+}
+
+// SetEvent sets the Event field's value.
+func (s *CloudFunctionConfiguration) SetEvent(v string) *CloudFunctionConfiguration {
+	s.Event = &v
+	return s
+}
+
+// SetEvents sets the Events field's value.
+func (s *CloudFunctionConfiguration) SetEvents(v []*string) *CloudFunctionConfiguration {
+	s.Events = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *CloudFunctionConfiguration) SetId(v string) *CloudFunctionConfiguration {
+	s.Id = &v
+	return s
+}
+
+// SetInvocationRole sets the InvocationRole field's value.
+func (s *CloudFunctionConfiguration) SetInvocationRole(v string) *CloudFunctionConfiguration {
+	s.InvocationRole = &v
+	return s
+}
+
 type CommonPrefix struct {
 	_ struct{} `type:"structure"`
 
@@ -4176,6 +4320,12 @@ func (s CommonPrefix) String() string {
 // GoString returns the string representation
 func (s CommonPrefix) GoString() string {
 	return s.String()
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *CommonPrefix) SetPrefix(v string) *CommonPrefix {
+	s.Prefix = &v
+	return s
 }
 
 type CompleteMultipartUploadInput struct {
@@ -4231,6 +4381,36 @@ func (s *CompleteMultipartUploadInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *CompleteMultipartUploadInput) SetBucket(v string) *CompleteMultipartUploadInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *CompleteMultipartUploadInput) SetKey(v string) *CompleteMultipartUploadInput {
+	s.Key = &v
+	return s
+}
+
+// SetMultipartUpload sets the MultipartUpload field's value.
+func (s *CompleteMultipartUploadInput) SetMultipartUpload(v *CompletedMultipartUpload) *CompleteMultipartUploadInput {
+	s.MultipartUpload = v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *CompleteMultipartUploadInput) SetRequestPayer(v string) *CompleteMultipartUploadInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *CompleteMultipartUploadInput) SetUploadId(v string) *CompleteMultipartUploadInput {
+	s.UploadId = &v
+	return s
+}
+
 type CompleteMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4273,6 +4453,60 @@ func (s CompleteMultipartUploadOutput) GoString() string {
 	return s.String()
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *CompleteMultipartUploadOutput) SetBucket(v string) *CompleteMultipartUploadOutput {
+	s.Bucket = &v
+	return s
+}
+
+// SetETag sets the ETag field's value.
+func (s *CompleteMultipartUploadOutput) SetETag(v string) *CompleteMultipartUploadOutput {
+	s.ETag = &v
+	return s
+}
+
+// SetExpiration sets the Expiration field's value.
+func (s *CompleteMultipartUploadOutput) SetExpiration(v string) *CompleteMultipartUploadOutput {
+	s.Expiration = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *CompleteMultipartUploadOutput) SetKey(v string) *CompleteMultipartUploadOutput {
+	s.Key = &v
+	return s
+}
+
+// SetLocation sets the Location field's value.
+func (s *CompleteMultipartUploadOutput) SetLocation(v string) *CompleteMultipartUploadOutput {
+	s.Location = &v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *CompleteMultipartUploadOutput) SetRequestCharged(v string) *CompleteMultipartUploadOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *CompleteMultipartUploadOutput) SetSSEKMSKeyId(v string) *CompleteMultipartUploadOutput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *CompleteMultipartUploadOutput) SetServerSideEncryption(v string) *CompleteMultipartUploadOutput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *CompleteMultipartUploadOutput) SetVersionId(v string) *CompleteMultipartUploadOutput {
+	s.VersionId = &v
+	return s
+}
+
 type CompletedMultipartUpload struct {
 	_ struct{} `type:"structure"`
 
@@ -4287,6 +4521,12 @@ func (s CompletedMultipartUpload) String() string {
 // GoString returns the string representation
 func (s CompletedMultipartUpload) GoString() string {
 	return s.String()
+}
+
+// SetParts sets the Parts field's value.
+func (s *CompletedMultipartUpload) SetParts(v []*CompletedPart) *CompletedMultipartUpload {
+	s.Parts = v
+	return s
 }
 
 type CompletedPart struct {
@@ -4308,6 +4548,18 @@ func (s CompletedPart) String() string {
 // GoString returns the string representation
 func (s CompletedPart) GoString() string {
 	return s.String()
+}
+
+// SetETag sets the ETag field's value.
+func (s *CompletedPart) SetETag(v string) *CompletedPart {
+	s.ETag = &v
+	return s
+}
+
+// SetPartNumber sets the PartNumber field's value.
+func (s *CompletedPart) SetPartNumber(v int64) *CompletedPart {
+	s.PartNumber = &v
+	return s
 }
 
 type Condition struct {
@@ -4338,6 +4590,18 @@ func (s Condition) String() string {
 // GoString returns the string representation
 func (s Condition) GoString() string {
 	return s.String()
+}
+
+// SetHttpErrorCodeReturnedEquals sets the HttpErrorCodeReturnedEquals field's value.
+func (s *Condition) SetHttpErrorCodeReturnedEquals(v string) *Condition {
+	s.HttpErrorCodeReturnedEquals = &v
+	return s
+}
+
+// SetKeyPrefixEquals sets the KeyPrefixEquals field's value.
+func (s *Condition) SetKeyPrefixEquals(v string) *Condition {
+	s.KeyPrefixEquals = &v
+	return s
 }
 
 type CopyObjectInput struct {
@@ -4495,6 +4759,192 @@ func (s *CopyObjectInput) Validate() error {
 	return nil
 }
 
+// SetACL sets the ACL field's value.
+func (s *CopyObjectInput) SetACL(v string) *CopyObjectInput {
+	s.ACL = &v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *CopyObjectInput) SetBucket(v string) *CopyObjectInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetCacheControl sets the CacheControl field's value.
+func (s *CopyObjectInput) SetCacheControl(v string) *CopyObjectInput {
+	s.CacheControl = &v
+	return s
+}
+
+// SetContentDisposition sets the ContentDisposition field's value.
+func (s *CopyObjectInput) SetContentDisposition(v string) *CopyObjectInput {
+	s.ContentDisposition = &v
+	return s
+}
+
+// SetContentEncoding sets the ContentEncoding field's value.
+func (s *CopyObjectInput) SetContentEncoding(v string) *CopyObjectInput {
+	s.ContentEncoding = &v
+	return s
+}
+
+// SetContentLanguage sets the ContentLanguage field's value.
+func (s *CopyObjectInput) SetContentLanguage(v string) *CopyObjectInput {
+	s.ContentLanguage = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *CopyObjectInput) SetContentType(v string) *CopyObjectInput {
+	s.ContentType = &v
+	return s
+}
+
+// SetCopySource sets the CopySource field's value.
+func (s *CopyObjectInput) SetCopySource(v string) *CopyObjectInput {
+	s.CopySource = &v
+	return s
+}
+
+// SetCopySourceIfMatch sets the CopySourceIfMatch field's value.
+func (s *CopyObjectInput) SetCopySourceIfMatch(v string) *CopyObjectInput {
+	s.CopySourceIfMatch = &v
+	return s
+}
+
+// SetCopySourceIfModifiedSince sets the CopySourceIfModifiedSince field's value.
+func (s *CopyObjectInput) SetCopySourceIfModifiedSince(v time.Time) *CopyObjectInput {
+	s.CopySourceIfModifiedSince = &v
+	return s
+}
+
+// SetCopySourceIfNoneMatch sets the CopySourceIfNoneMatch field's value.
+func (s *CopyObjectInput) SetCopySourceIfNoneMatch(v string) *CopyObjectInput {
+	s.CopySourceIfNoneMatch = &v
+	return s
+}
+
+// SetCopySourceIfUnmodifiedSince sets the CopySourceIfUnmodifiedSince field's value.
+func (s *CopyObjectInput) SetCopySourceIfUnmodifiedSince(v time.Time) *CopyObjectInput {
+	s.CopySourceIfUnmodifiedSince = &v
+	return s
+}
+
+// SetCopySourceSSECustomerAlgorithm sets the CopySourceSSECustomerAlgorithm field's value.
+func (s *CopyObjectInput) SetCopySourceSSECustomerAlgorithm(v string) *CopyObjectInput {
+	s.CopySourceSSECustomerAlgorithm = &v
+	return s
+}
+
+// SetCopySourceSSECustomerKey sets the CopySourceSSECustomerKey field's value.
+func (s *CopyObjectInput) SetCopySourceSSECustomerKey(v string) *CopyObjectInput {
+	s.CopySourceSSECustomerKey = &v
+	return s
+}
+
+// SetCopySourceSSECustomerKeyMD5 sets the CopySourceSSECustomerKeyMD5 field's value.
+func (s *CopyObjectInput) SetCopySourceSSECustomerKeyMD5(v string) *CopyObjectInput {
+	s.CopySourceSSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetExpires sets the Expires field's value.
+func (s *CopyObjectInput) SetExpires(v time.Time) *CopyObjectInput {
+	s.Expires = &v
+	return s
+}
+
+// SetGrantFullControl sets the GrantFullControl field's value.
+func (s *CopyObjectInput) SetGrantFullControl(v string) *CopyObjectInput {
+	s.GrantFullControl = &v
+	return s
+}
+
+// SetGrantRead sets the GrantRead field's value.
+func (s *CopyObjectInput) SetGrantRead(v string) *CopyObjectInput {
+	s.GrantRead = &v
+	return s
+}
+
+// SetGrantReadACP sets the GrantReadACP field's value.
+func (s *CopyObjectInput) SetGrantReadACP(v string) *CopyObjectInput {
+	s.GrantReadACP = &v
+	return s
+}
+
+// SetGrantWriteACP sets the GrantWriteACP field's value.
+func (s *CopyObjectInput) SetGrantWriteACP(v string) *CopyObjectInput {
+	s.GrantWriteACP = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *CopyObjectInput) SetKey(v string) *CopyObjectInput {
+	s.Key = &v
+	return s
+}
+
+// SetMetadata sets the Metadata field's value.
+func (s *CopyObjectInput) SetMetadata(v map[string]*string) *CopyObjectInput {
+	s.Metadata = v
+	return s
+}
+
+// SetMetadataDirective sets the MetadataDirective field's value.
+func (s *CopyObjectInput) SetMetadataDirective(v string) *CopyObjectInput {
+	s.MetadataDirective = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *CopyObjectInput) SetRequestPayer(v string) *CopyObjectInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *CopyObjectInput) SetSSECustomerAlgorithm(v string) *CopyObjectInput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKey sets the SSECustomerKey field's value.
+func (s *CopyObjectInput) SetSSECustomerKey(v string) *CopyObjectInput {
+	s.SSECustomerKey = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *CopyObjectInput) SetSSECustomerKeyMD5(v string) *CopyObjectInput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *CopyObjectInput) SetSSEKMSKeyId(v string) *CopyObjectInput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *CopyObjectInput) SetServerSideEncryption(v string) *CopyObjectInput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *CopyObjectInput) SetStorageClass(v string) *CopyObjectInput {
+	s.StorageClass = &v
+	return s
+}
+
+// SetWebsiteRedirectLocation sets the WebsiteRedirectLocation field's value.
+func (s *CopyObjectInput) SetWebsiteRedirectLocation(v string) *CopyObjectInput {
+	s.WebsiteRedirectLocation = &v
+	return s
+}
+
 type CopyObjectOutput struct {
 	_ struct{} `type:"structure" payload:"CopyObjectResult"`
 
@@ -4541,6 +4991,60 @@ func (s CopyObjectOutput) GoString() string {
 	return s.String()
 }
 
+// SetCopyObjectResult sets the CopyObjectResult field's value.
+func (s *CopyObjectOutput) SetCopyObjectResult(v *CopyObjectResult) *CopyObjectOutput {
+	s.CopyObjectResult = v
+	return s
+}
+
+// SetCopySourceVersionId sets the CopySourceVersionId field's value.
+func (s *CopyObjectOutput) SetCopySourceVersionId(v string) *CopyObjectOutput {
+	s.CopySourceVersionId = &v
+	return s
+}
+
+// SetExpiration sets the Expiration field's value.
+func (s *CopyObjectOutput) SetExpiration(v string) *CopyObjectOutput {
+	s.Expiration = &v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *CopyObjectOutput) SetRequestCharged(v string) *CopyObjectOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *CopyObjectOutput) SetSSECustomerAlgorithm(v string) *CopyObjectOutput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *CopyObjectOutput) SetSSECustomerKeyMD5(v string) *CopyObjectOutput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *CopyObjectOutput) SetSSEKMSKeyId(v string) *CopyObjectOutput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *CopyObjectOutput) SetServerSideEncryption(v string) *CopyObjectOutput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *CopyObjectOutput) SetVersionId(v string) *CopyObjectOutput {
+	s.VersionId = &v
+	return s
+}
+
 type CopyObjectResult struct {
 	_ struct{} `type:"structure"`
 
@@ -4557,6 +5061,18 @@ func (s CopyObjectResult) String() string {
 // GoString returns the string representation
 func (s CopyObjectResult) GoString() string {
 	return s.String()
+}
+
+// SetETag sets the ETag field's value.
+func (s *CopyObjectResult) SetETag(v string) *CopyObjectResult {
+	s.ETag = &v
+	return s
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *CopyObjectResult) SetLastModified(v time.Time) *CopyObjectResult {
+	s.LastModified = &v
+	return s
 }
 
 type CopyPartResult struct {
@@ -4579,6 +5095,18 @@ func (s CopyPartResult) GoString() string {
 	return s.String()
 }
 
+// SetETag sets the ETag field's value.
+func (s *CopyPartResult) SetETag(v string) *CopyPartResult {
+	s.ETag = &v
+	return s
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *CopyPartResult) SetLastModified(v time.Time) *CopyPartResult {
+	s.LastModified = &v
+	return s
+}
+
 type CreateBucketConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -4595,6 +5123,12 @@ func (s CreateBucketConfiguration) String() string {
 // GoString returns the string representation
 func (s CreateBucketConfiguration) GoString() string {
 	return s.String()
+}
+
+// SetLocationConstraint sets the LocationConstraint field's value.
+func (s *CreateBucketConfiguration) SetLocationConstraint(v string) *CreateBucketConfiguration {
+	s.LocationConstraint = &v
+	return s
 }
 
 type CreateBucketInput struct {
@@ -4648,6 +5182,54 @@ func (s *CreateBucketInput) Validate() error {
 	return nil
 }
 
+// SetACL sets the ACL field's value.
+func (s *CreateBucketInput) SetACL(v string) *CreateBucketInput {
+	s.ACL = &v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *CreateBucketInput) SetBucket(v string) *CreateBucketInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetCreateBucketConfiguration sets the CreateBucketConfiguration field's value.
+func (s *CreateBucketInput) SetCreateBucketConfiguration(v *CreateBucketConfiguration) *CreateBucketInput {
+	s.CreateBucketConfiguration = v
+	return s
+}
+
+// SetGrantFullControl sets the GrantFullControl field's value.
+func (s *CreateBucketInput) SetGrantFullControl(v string) *CreateBucketInput {
+	s.GrantFullControl = &v
+	return s
+}
+
+// SetGrantRead sets the GrantRead field's value.
+func (s *CreateBucketInput) SetGrantRead(v string) *CreateBucketInput {
+	s.GrantRead = &v
+	return s
+}
+
+// SetGrantReadACP sets the GrantReadACP field's value.
+func (s *CreateBucketInput) SetGrantReadACP(v string) *CreateBucketInput {
+	s.GrantReadACP = &v
+	return s
+}
+
+// SetGrantWrite sets the GrantWrite field's value.
+func (s *CreateBucketInput) SetGrantWrite(v string) *CreateBucketInput {
+	s.GrantWrite = &v
+	return s
+}
+
+// SetGrantWriteACP sets the GrantWriteACP field's value.
+func (s *CreateBucketInput) SetGrantWriteACP(v string) *CreateBucketInput {
+	s.GrantWriteACP = &v
+	return s
+}
+
 type CreateBucketOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4662,6 +5244,12 @@ func (s CreateBucketOutput) String() string {
 // GoString returns the string representation
 func (s CreateBucketOutput) GoString() string {
 	return s.String()
+}
+
+// SetLocation sets the Location field's value.
+func (s *CreateBucketOutput) SetLocation(v string) *CreateBucketOutput {
+	s.Location = &v
+	return s
 }
 
 type CreateMultipartUploadInput struct {
@@ -4780,6 +5368,138 @@ func (s *CreateMultipartUploadInput) Validate() error {
 	return nil
 }
 
+// SetACL sets the ACL field's value.
+func (s *CreateMultipartUploadInput) SetACL(v string) *CreateMultipartUploadInput {
+	s.ACL = &v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *CreateMultipartUploadInput) SetBucket(v string) *CreateMultipartUploadInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetCacheControl sets the CacheControl field's value.
+func (s *CreateMultipartUploadInput) SetCacheControl(v string) *CreateMultipartUploadInput {
+	s.CacheControl = &v
+	return s
+}
+
+// SetContentDisposition sets the ContentDisposition field's value.
+func (s *CreateMultipartUploadInput) SetContentDisposition(v string) *CreateMultipartUploadInput {
+	s.ContentDisposition = &v
+	return s
+}
+
+// SetContentEncoding sets the ContentEncoding field's value.
+func (s *CreateMultipartUploadInput) SetContentEncoding(v string) *CreateMultipartUploadInput {
+	s.ContentEncoding = &v
+	return s
+}
+
+// SetContentLanguage sets the ContentLanguage field's value.
+func (s *CreateMultipartUploadInput) SetContentLanguage(v string) *CreateMultipartUploadInput {
+	s.ContentLanguage = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *CreateMultipartUploadInput) SetContentType(v string) *CreateMultipartUploadInput {
+	s.ContentType = &v
+	return s
+}
+
+// SetExpires sets the Expires field's value.
+func (s *CreateMultipartUploadInput) SetExpires(v time.Time) *CreateMultipartUploadInput {
+	s.Expires = &v
+	return s
+}
+
+// SetGrantFullControl sets the GrantFullControl field's value.
+func (s *CreateMultipartUploadInput) SetGrantFullControl(v string) *CreateMultipartUploadInput {
+	s.GrantFullControl = &v
+	return s
+}
+
+// SetGrantRead sets the GrantRead field's value.
+func (s *CreateMultipartUploadInput) SetGrantRead(v string) *CreateMultipartUploadInput {
+	s.GrantRead = &v
+	return s
+}
+
+// SetGrantReadACP sets the GrantReadACP field's value.
+func (s *CreateMultipartUploadInput) SetGrantReadACP(v string) *CreateMultipartUploadInput {
+	s.GrantReadACP = &v
+	return s
+}
+
+// SetGrantWriteACP sets the GrantWriteACP field's value.
+func (s *CreateMultipartUploadInput) SetGrantWriteACP(v string) *CreateMultipartUploadInput {
+	s.GrantWriteACP = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *CreateMultipartUploadInput) SetKey(v string) *CreateMultipartUploadInput {
+	s.Key = &v
+	return s
+}
+
+// SetMetadata sets the Metadata field's value.
+func (s *CreateMultipartUploadInput) SetMetadata(v map[string]*string) *CreateMultipartUploadInput {
+	s.Metadata = v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *CreateMultipartUploadInput) SetRequestPayer(v string) *CreateMultipartUploadInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *CreateMultipartUploadInput) SetSSECustomerAlgorithm(v string) *CreateMultipartUploadInput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKey sets the SSECustomerKey field's value.
+func (s *CreateMultipartUploadInput) SetSSECustomerKey(v string) *CreateMultipartUploadInput {
+	s.SSECustomerKey = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *CreateMultipartUploadInput) SetSSECustomerKeyMD5(v string) *CreateMultipartUploadInput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *CreateMultipartUploadInput) SetSSEKMSKeyId(v string) *CreateMultipartUploadInput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *CreateMultipartUploadInput) SetServerSideEncryption(v string) *CreateMultipartUploadInput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *CreateMultipartUploadInput) SetStorageClass(v string) *CreateMultipartUploadInput {
+	s.StorageClass = &v
+	return s
+}
+
+// SetWebsiteRedirectLocation sets the WebsiteRedirectLocation field's value.
+func (s *CreateMultipartUploadInput) SetWebsiteRedirectLocation(v string) *CreateMultipartUploadInput {
+	s.WebsiteRedirectLocation = &v
+	return s
+}
+
 type CreateMultipartUploadOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4832,6 +5552,66 @@ func (s CreateMultipartUploadOutput) GoString() string {
 	return s.String()
 }
 
+// SetAbortDate sets the AbortDate field's value.
+func (s *CreateMultipartUploadOutput) SetAbortDate(v time.Time) *CreateMultipartUploadOutput {
+	s.AbortDate = &v
+	return s
+}
+
+// SetAbortRuleId sets the AbortRuleId field's value.
+func (s *CreateMultipartUploadOutput) SetAbortRuleId(v string) *CreateMultipartUploadOutput {
+	s.AbortRuleId = &v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *CreateMultipartUploadOutput) SetBucket(v string) *CreateMultipartUploadOutput {
+	s.Bucket = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *CreateMultipartUploadOutput) SetKey(v string) *CreateMultipartUploadOutput {
+	s.Key = &v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *CreateMultipartUploadOutput) SetRequestCharged(v string) *CreateMultipartUploadOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *CreateMultipartUploadOutput) SetSSECustomerAlgorithm(v string) *CreateMultipartUploadOutput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *CreateMultipartUploadOutput) SetSSECustomerKeyMD5(v string) *CreateMultipartUploadOutput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *CreateMultipartUploadOutput) SetSSEKMSKeyId(v string) *CreateMultipartUploadOutput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *CreateMultipartUploadOutput) SetServerSideEncryption(v string) *CreateMultipartUploadOutput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *CreateMultipartUploadOutput) SetUploadId(v string) *CreateMultipartUploadOutput {
+	s.UploadId = &v
+	return s
+}
+
 type Delete struct {
 	_ struct{} `type:"structure"`
 
@@ -4876,6 +5656,18 @@ func (s *Delete) Validate() error {
 	return nil
 }
 
+// SetObjects sets the Objects field's value.
+func (s *Delete) SetObjects(v []*ObjectIdentifier) *Delete {
+	s.Objects = v
+	return s
+}
+
+// SetQuiet sets the Quiet field's value.
+func (s *Delete) SetQuiet(v bool) *Delete {
+	s.Quiet = &v
+	return s
+}
+
 type DeleteBucketCorsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4904,6 +5696,12 @@ func (s *DeleteBucketCorsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *DeleteBucketCorsInput) SetBucket(v string) *DeleteBucketCorsInput {
+	s.Bucket = &v
+	return s
 }
 
 type DeleteBucketCorsOutput struct {
@@ -4950,6 +5748,12 @@ func (s *DeleteBucketInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *DeleteBucketInput) SetBucket(v string) *DeleteBucketInput {
+	s.Bucket = &v
+	return s
+}
+
 type DeleteBucketLifecycleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4978,6 +5782,12 @@ func (s *DeleteBucketLifecycleInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *DeleteBucketLifecycleInput) SetBucket(v string) *DeleteBucketLifecycleInput {
+	s.Bucket = &v
+	return s
 }
 
 type DeleteBucketLifecycleOutput struct {
@@ -5038,6 +5848,12 @@ func (s *DeleteBucketPolicyInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *DeleteBucketPolicyInput) SetBucket(v string) *DeleteBucketPolicyInput {
+	s.Bucket = &v
+	return s
+}
+
 type DeleteBucketPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5080,6 +5896,12 @@ func (s *DeleteBucketReplicationInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *DeleteBucketReplicationInput) SetBucket(v string) *DeleteBucketReplicationInput {
+	s.Bucket = &v
+	return s
 }
 
 type DeleteBucketReplicationOutput struct {
@@ -5126,6 +5948,12 @@ func (s *DeleteBucketTaggingInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *DeleteBucketTaggingInput) SetBucket(v string) *DeleteBucketTaggingInput {
+	s.Bucket = &v
+	return s
+}
+
 type DeleteBucketTaggingOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5170,6 +5998,12 @@ func (s *DeleteBucketWebsiteInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *DeleteBucketWebsiteInput) SetBucket(v string) *DeleteBucketWebsiteInput {
+	s.Bucket = &v
+	return s
+}
+
 type DeleteBucketWebsiteOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5211,6 +6045,36 @@ func (s DeleteMarkerEntry) String() string {
 // GoString returns the string representation
 func (s DeleteMarkerEntry) GoString() string {
 	return s.String()
+}
+
+// SetIsLatest sets the IsLatest field's value.
+func (s *DeleteMarkerEntry) SetIsLatest(v bool) *DeleteMarkerEntry {
+	s.IsLatest = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *DeleteMarkerEntry) SetKey(v string) *DeleteMarkerEntry {
+	s.Key = &v
+	return s
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *DeleteMarkerEntry) SetLastModified(v time.Time) *DeleteMarkerEntry {
+	s.LastModified = &v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *DeleteMarkerEntry) SetOwner(v *Owner) *DeleteMarkerEntry {
+	s.Owner = v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *DeleteMarkerEntry) SetVersionId(v string) *DeleteMarkerEntry {
+	s.VersionId = &v
+	return s
 }
 
 type DeleteObjectInput struct {
@@ -5265,6 +6129,36 @@ func (s *DeleteObjectInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *DeleteObjectInput) SetBucket(v string) *DeleteObjectInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *DeleteObjectInput) SetKey(v string) *DeleteObjectInput {
+	s.Key = &v
+	return s
+}
+
+// SetMFA sets the MFA field's value.
+func (s *DeleteObjectInput) SetMFA(v string) *DeleteObjectInput {
+	s.MFA = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *DeleteObjectInput) SetRequestPayer(v string) *DeleteObjectInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *DeleteObjectInput) SetVersionId(v string) *DeleteObjectInput {
+	s.VersionId = &v
+	return s
+}
+
 type DeleteObjectOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5289,6 +6183,24 @@ func (s DeleteObjectOutput) String() string {
 // GoString returns the string representation
 func (s DeleteObjectOutput) GoString() string {
 	return s.String()
+}
+
+// SetDeleteMarker sets the DeleteMarker field's value.
+func (s *DeleteObjectOutput) SetDeleteMarker(v bool) *DeleteObjectOutput {
+	s.DeleteMarker = &v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *DeleteObjectOutput) SetRequestCharged(v string) *DeleteObjectOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *DeleteObjectOutput) SetVersionId(v string) *DeleteObjectOutput {
+	s.VersionId = &v
+	return s
 }
 
 type DeleteObjectsInput struct {
@@ -5342,6 +6254,30 @@ func (s *DeleteObjectsInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *DeleteObjectsInput) SetBucket(v string) *DeleteObjectsInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetDelete sets the Delete field's value.
+func (s *DeleteObjectsInput) SetDelete(v *Delete) *DeleteObjectsInput {
+	s.Delete = v
+	return s
+}
+
+// SetMFA sets the MFA field's value.
+func (s *DeleteObjectsInput) SetMFA(v string) *DeleteObjectsInput {
+	s.MFA = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *DeleteObjectsInput) SetRequestPayer(v string) *DeleteObjectsInput {
+	s.RequestPayer = &v
+	return s
+}
+
 type DeleteObjectsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5364,6 +6300,24 @@ func (s DeleteObjectsOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeleted sets the Deleted field's value.
+func (s *DeleteObjectsOutput) SetDeleted(v []*DeletedObject) *DeleteObjectsOutput {
+	s.Deleted = v
+	return s
+}
+
+// SetErrors sets the Errors field's value.
+func (s *DeleteObjectsOutput) SetErrors(v []*Error) *DeleteObjectsOutput {
+	s.Errors = v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *DeleteObjectsOutput) SetRequestCharged(v string) *DeleteObjectsOutput {
+	s.RequestCharged = &v
+	return s
+}
+
 type DeletedObject struct {
 	_ struct{} `type:"structure"`
 
@@ -5384,6 +6338,30 @@ func (s DeletedObject) String() string {
 // GoString returns the string representation
 func (s DeletedObject) GoString() string {
 	return s.String()
+}
+
+// SetDeleteMarker sets the DeleteMarker field's value.
+func (s *DeletedObject) SetDeleteMarker(v bool) *DeletedObject {
+	s.DeleteMarker = &v
+	return s
+}
+
+// SetDeleteMarkerVersionId sets the DeleteMarkerVersionId field's value.
+func (s *DeletedObject) SetDeleteMarkerVersionId(v string) *DeletedObject {
+	s.DeleteMarkerVersionId = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *DeletedObject) SetKey(v string) *DeletedObject {
+	s.Key = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *DeletedObject) SetVersionId(v string) *DeletedObject {
+	s.VersionId = &v
+	return s
 }
 
 type Destination struct {
@@ -5422,6 +6400,18 @@ func (s *Destination) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *Destination) SetBucket(v string) *Destination {
+	s.Bucket = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *Destination) SetStorageClass(v string) *Destination {
+	s.StorageClass = &v
+	return s
+}
+
 type Error struct {
 	_ struct{} `type:"structure"`
 
@@ -5442,6 +6432,30 @@ func (s Error) String() string {
 // GoString returns the string representation
 func (s Error) GoString() string {
 	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *Error) SetCode(v string) *Error {
+	s.Code = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *Error) SetKey(v string) *Error {
+	s.Key = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *Error) SetMessage(v string) *Error {
+	s.Message = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *Error) SetVersionId(v string) *Error {
+	s.VersionId = &v
+	return s
 }
 
 type ErrorDocument struct {
@@ -5479,6 +6493,12 @@ func (s *ErrorDocument) Validate() error {
 	return nil
 }
 
+// SetKey sets the Key field's value.
+func (s *ErrorDocument) SetKey(v string) *ErrorDocument {
+	s.Key = &v
+	return s
+}
+
 // Container for key value pair that defines the criteria for the filter rule.
 type FilterRule struct {
 	_ struct{} `type:"structure"`
@@ -5487,7 +6507,6 @@ type FilterRule struct {
 	// the filtering rule applies. Maximum prefix length can be up to 1,024 characters.
 	// Overlapping prefixes and suffixes are not supported. For more information,
 	// go to Configuring Event Notifications (http://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html)
-	// in the Amazon Simple Storage Service Developer Guide.
 	Name *string `type:"string" enum:"FilterRuleName"`
 
 	Value *string `type:"string"`
@@ -5501,6 +6520,18 @@ func (s FilterRule) String() string {
 // GoString returns the string representation
 func (s FilterRule) GoString() string {
 	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *FilterRule) SetName(v string) *FilterRule {
+	s.Name = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *FilterRule) SetValue(v string) *FilterRule {
+	s.Value = &v
+	return s
 }
 
 type GetBucketAccelerateConfigurationInput struct {
@@ -5535,6 +6566,12 @@ func (s *GetBucketAccelerateConfigurationInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketAccelerateConfigurationInput) SetBucket(v string) *GetBucketAccelerateConfigurationInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketAccelerateConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5550,6 +6587,12 @@ func (s GetBucketAccelerateConfigurationOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketAccelerateConfigurationOutput) GoString() string {
 	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *GetBucketAccelerateConfigurationOutput) SetStatus(v string) *GetBucketAccelerateConfigurationOutput {
+	s.Status = &v
+	return s
 }
 
 type GetBucketAclInput struct {
@@ -5582,6 +6625,12 @@ func (s *GetBucketAclInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketAclInput) SetBucket(v string) *GetBucketAclInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketAclOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5599,6 +6648,18 @@ func (s GetBucketAclOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketAclOutput) GoString() string {
 	return s.String()
+}
+
+// SetGrants sets the Grants field's value.
+func (s *GetBucketAclOutput) SetGrants(v []*Grant) *GetBucketAclOutput {
+	s.Grants = v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *GetBucketAclOutput) SetOwner(v *Owner) *GetBucketAclOutput {
+	s.Owner = v
+	return s
 }
 
 type GetBucketCorsInput struct {
@@ -5631,6 +6692,12 @@ func (s *GetBucketCorsInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketCorsInput) SetBucket(v string) *GetBucketCorsInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketCorsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5645,6 +6712,12 @@ func (s GetBucketCorsOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketCorsOutput) GoString() string {
 	return s.String()
+}
+
+// SetCORSRules sets the CORSRules field's value.
+func (s *GetBucketCorsOutput) SetCORSRules(v []*CORSRule) *GetBucketCorsOutput {
+	s.CORSRules = v
+	return s
 }
 
 type GetBucketLifecycleConfigurationInput struct {
@@ -5677,6 +6750,12 @@ func (s *GetBucketLifecycleConfigurationInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketLifecycleConfigurationInput) SetBucket(v string) *GetBucketLifecycleConfigurationInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketLifecycleConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5691,6 +6770,12 @@ func (s GetBucketLifecycleConfigurationOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketLifecycleConfigurationOutput) GoString() string {
 	return s.String()
+}
+
+// SetRules sets the Rules field's value.
+func (s *GetBucketLifecycleConfigurationOutput) SetRules(v []*LifecycleRule) *GetBucketLifecycleConfigurationOutput {
+	s.Rules = v
+	return s
 }
 
 type GetBucketLifecycleInput struct {
@@ -5723,6 +6808,12 @@ func (s *GetBucketLifecycleInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketLifecycleInput) SetBucket(v string) *GetBucketLifecycleInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketLifecycleOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5737,6 +6828,12 @@ func (s GetBucketLifecycleOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketLifecycleOutput) GoString() string {
 	return s.String()
+}
+
+// SetRules sets the Rules field's value.
+func (s *GetBucketLifecycleOutput) SetRules(v []*Rule) *GetBucketLifecycleOutput {
+	s.Rules = v
+	return s
 }
 
 type GetBucketLocationInput struct {
@@ -5769,6 +6866,12 @@ func (s *GetBucketLocationInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketLocationInput) SetBucket(v string) *GetBucketLocationInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketLocationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5783,6 +6886,12 @@ func (s GetBucketLocationOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketLocationOutput) GoString() string {
 	return s.String()
+}
+
+// SetLocationConstraint sets the LocationConstraint field's value.
+func (s *GetBucketLocationOutput) SetLocationConstraint(v string) *GetBucketLocationOutput {
+	s.LocationConstraint = &v
+	return s
 }
 
 type GetBucketLoggingInput struct {
@@ -5815,6 +6924,12 @@ func (s *GetBucketLoggingInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketLoggingInput) SetBucket(v string) *GetBucketLoggingInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketLoggingOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5829,6 +6944,12 @@ func (s GetBucketLoggingOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketLoggingOutput) GoString() string {
 	return s.String()
+}
+
+// SetLoggingEnabled sets the LoggingEnabled field's value.
+func (s *GetBucketLoggingOutput) SetLoggingEnabled(v *LoggingEnabled) *GetBucketLoggingOutput {
+	s.LoggingEnabled = v
+	return s
 }
 
 type GetBucketNotificationConfigurationRequest struct {
@@ -5863,6 +6984,12 @@ func (s *GetBucketNotificationConfigurationRequest) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketNotificationConfigurationRequest) SetBucket(v string) *GetBucketNotificationConfigurationRequest {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5893,6 +7020,12 @@ func (s *GetBucketPolicyInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketPolicyInput) SetBucket(v string) *GetBucketPolicyInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketPolicyOutput struct {
 	_ struct{} `type:"structure" payload:"Policy"`
 
@@ -5908,6 +7041,12 @@ func (s GetBucketPolicyOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketPolicyOutput) GoString() string {
 	return s.String()
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *GetBucketPolicyOutput) SetPolicy(v string) *GetBucketPolicyOutput {
+	s.Policy = &v
+	return s
 }
 
 type GetBucketReplicationInput struct {
@@ -5940,6 +7079,12 @@ func (s *GetBucketReplicationInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketReplicationInput) SetBucket(v string) *GetBucketReplicationInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketReplicationOutput struct {
 	_ struct{} `type:"structure" payload:"ReplicationConfiguration"`
 
@@ -5956,6 +7101,12 @@ func (s GetBucketReplicationOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketReplicationOutput) GoString() string {
 	return s.String()
+}
+
+// SetReplicationConfiguration sets the ReplicationConfiguration field's value.
+func (s *GetBucketReplicationOutput) SetReplicationConfiguration(v *ReplicationConfiguration) *GetBucketReplicationOutput {
+	s.ReplicationConfiguration = v
+	return s
 }
 
 type GetBucketRequestPaymentInput struct {
@@ -5988,6 +7139,12 @@ func (s *GetBucketRequestPaymentInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketRequestPaymentInput) SetBucket(v string) *GetBucketRequestPaymentInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketRequestPaymentOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6003,6 +7160,12 @@ func (s GetBucketRequestPaymentOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketRequestPaymentOutput) GoString() string {
 	return s.String()
+}
+
+// SetPayer sets the Payer field's value.
+func (s *GetBucketRequestPaymentOutput) SetPayer(v string) *GetBucketRequestPaymentOutput {
+	s.Payer = &v
+	return s
 }
 
 type GetBucketTaggingInput struct {
@@ -6035,6 +7198,12 @@ func (s *GetBucketTaggingInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketTaggingInput) SetBucket(v string) *GetBucketTaggingInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketTaggingOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6050,6 +7219,12 @@ func (s GetBucketTaggingOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketTaggingOutput) GoString() string {
 	return s.String()
+}
+
+// SetTagSet sets the TagSet field's value.
+func (s *GetBucketTaggingOutput) SetTagSet(v []*Tag) *GetBucketTaggingOutput {
+	s.TagSet = v
+	return s
 }
 
 type GetBucketVersioningInput struct {
@@ -6082,6 +7257,12 @@ func (s *GetBucketVersioningInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketVersioningInput) SetBucket(v string) *GetBucketVersioningInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketVersioningOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6102,6 +7283,18 @@ func (s GetBucketVersioningOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketVersioningOutput) GoString() string {
 	return s.String()
+}
+
+// SetMFADelete sets the MFADelete field's value.
+func (s *GetBucketVersioningOutput) SetMFADelete(v string) *GetBucketVersioningOutput {
+	s.MFADelete = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *GetBucketVersioningOutput) SetStatus(v string) *GetBucketVersioningOutput {
+	s.Status = &v
+	return s
 }
 
 type GetBucketWebsiteInput struct {
@@ -6134,6 +7327,12 @@ func (s *GetBucketWebsiteInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetBucketWebsiteInput) SetBucket(v string) *GetBucketWebsiteInput {
+	s.Bucket = &v
+	return s
+}
+
 type GetBucketWebsiteOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6154,6 +7353,30 @@ func (s GetBucketWebsiteOutput) String() string {
 // GoString returns the string representation
 func (s GetBucketWebsiteOutput) GoString() string {
 	return s.String()
+}
+
+// SetErrorDocument sets the ErrorDocument field's value.
+func (s *GetBucketWebsiteOutput) SetErrorDocument(v *ErrorDocument) *GetBucketWebsiteOutput {
+	s.ErrorDocument = v
+	return s
+}
+
+// SetIndexDocument sets the IndexDocument field's value.
+func (s *GetBucketWebsiteOutput) SetIndexDocument(v *IndexDocument) *GetBucketWebsiteOutput {
+	s.IndexDocument = v
+	return s
+}
+
+// SetRedirectAllRequestsTo sets the RedirectAllRequestsTo field's value.
+func (s *GetBucketWebsiteOutput) SetRedirectAllRequestsTo(v *RedirectAllRequestsTo) *GetBucketWebsiteOutput {
+	s.RedirectAllRequestsTo = v
+	return s
+}
+
+// SetRoutingRules sets the RoutingRules field's value.
+func (s *GetBucketWebsiteOutput) SetRoutingRules(v []*RoutingRule) *GetBucketWebsiteOutput {
+	s.RoutingRules = v
+	return s
 }
 
 type GetObjectAclInput struct {
@@ -6204,6 +7427,30 @@ func (s *GetObjectAclInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetObjectAclInput) SetBucket(v string) *GetObjectAclInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *GetObjectAclInput) SetKey(v string) *GetObjectAclInput {
+	s.Key = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *GetObjectAclInput) SetRequestPayer(v string) *GetObjectAclInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *GetObjectAclInput) SetVersionId(v string) *GetObjectAclInput {
+	s.VersionId = &v
+	return s
+}
+
 type GetObjectAclOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6225,6 +7472,24 @@ func (s GetObjectAclOutput) String() string {
 // GoString returns the string representation
 func (s GetObjectAclOutput) GoString() string {
 	return s.String()
+}
+
+// SetGrants sets the Grants field's value.
+func (s *GetObjectAclOutput) SetGrants(v []*Grant) *GetObjectAclOutput {
+	s.Grants = v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *GetObjectAclOutput) SetOwner(v *Owner) *GetObjectAclOutput {
+	s.Owner = v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *GetObjectAclOutput) SetRequestCharged(v string) *GetObjectAclOutput {
+	s.RequestCharged = &v
+	return s
 }
 
 type GetObjectInput struct {
@@ -6331,6 +7596,120 @@ func (s *GetObjectInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *GetObjectInput) SetBucket(v string) *GetObjectInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetIfMatch sets the IfMatch field's value.
+func (s *GetObjectInput) SetIfMatch(v string) *GetObjectInput {
+	s.IfMatch = &v
+	return s
+}
+
+// SetIfModifiedSince sets the IfModifiedSince field's value.
+func (s *GetObjectInput) SetIfModifiedSince(v time.Time) *GetObjectInput {
+	s.IfModifiedSince = &v
+	return s
+}
+
+// SetIfNoneMatch sets the IfNoneMatch field's value.
+func (s *GetObjectInput) SetIfNoneMatch(v string) *GetObjectInput {
+	s.IfNoneMatch = &v
+	return s
+}
+
+// SetIfUnmodifiedSince sets the IfUnmodifiedSince field's value.
+func (s *GetObjectInput) SetIfUnmodifiedSince(v time.Time) *GetObjectInput {
+	s.IfUnmodifiedSince = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *GetObjectInput) SetKey(v string) *GetObjectInput {
+	s.Key = &v
+	return s
+}
+
+// SetPartNumber sets the PartNumber field's value.
+func (s *GetObjectInput) SetPartNumber(v int64) *GetObjectInput {
+	s.PartNumber = &v
+	return s
+}
+
+// SetRange sets the Range field's value.
+func (s *GetObjectInput) SetRange(v string) *GetObjectInput {
+	s.Range = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *GetObjectInput) SetRequestPayer(v string) *GetObjectInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetResponseCacheControl sets the ResponseCacheControl field's value.
+func (s *GetObjectInput) SetResponseCacheControl(v string) *GetObjectInput {
+	s.ResponseCacheControl = &v
+	return s
+}
+
+// SetResponseContentDisposition sets the ResponseContentDisposition field's value.
+func (s *GetObjectInput) SetResponseContentDisposition(v string) *GetObjectInput {
+	s.ResponseContentDisposition = &v
+	return s
+}
+
+// SetResponseContentEncoding sets the ResponseContentEncoding field's value.
+func (s *GetObjectInput) SetResponseContentEncoding(v string) *GetObjectInput {
+	s.ResponseContentEncoding = &v
+	return s
+}
+
+// SetResponseContentLanguage sets the ResponseContentLanguage field's value.
+func (s *GetObjectInput) SetResponseContentLanguage(v string) *GetObjectInput {
+	s.ResponseContentLanguage = &v
+	return s
+}
+
+// SetResponseContentType sets the ResponseContentType field's value.
+func (s *GetObjectInput) SetResponseContentType(v string) *GetObjectInput {
+	s.ResponseContentType = &v
+	return s
+}
+
+// SetResponseExpires sets the ResponseExpires field's value.
+func (s *GetObjectInput) SetResponseExpires(v time.Time) *GetObjectInput {
+	s.ResponseExpires = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *GetObjectInput) SetSSECustomerAlgorithm(v string) *GetObjectInput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKey sets the SSECustomerKey field's value.
+func (s *GetObjectInput) SetSSECustomerKey(v string) *GetObjectInput {
+	s.SSECustomerKey = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *GetObjectInput) SetSSECustomerKeyMD5(v string) *GetObjectInput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *GetObjectInput) SetVersionId(v string) *GetObjectInput {
+	s.VersionId = &v
+	return s
 }
 
 type GetObjectOutput struct {
@@ -6445,6 +7824,168 @@ func (s GetObjectOutput) GoString() string {
 	return s.String()
 }
 
+// SetAcceptRanges sets the AcceptRanges field's value.
+func (s *GetObjectOutput) SetAcceptRanges(v string) *GetObjectOutput {
+	s.AcceptRanges = &v
+	return s
+}
+
+// SetBody sets the Body field's value.
+func (s *GetObjectOutput) SetBody(v io.ReadCloser) *GetObjectOutput {
+	s.Body = v
+	return s
+}
+
+// SetCacheControl sets the CacheControl field's value.
+func (s *GetObjectOutput) SetCacheControl(v string) *GetObjectOutput {
+	s.CacheControl = &v
+	return s
+}
+
+// SetContentDisposition sets the ContentDisposition field's value.
+func (s *GetObjectOutput) SetContentDisposition(v string) *GetObjectOutput {
+	s.ContentDisposition = &v
+	return s
+}
+
+// SetContentEncoding sets the ContentEncoding field's value.
+func (s *GetObjectOutput) SetContentEncoding(v string) *GetObjectOutput {
+	s.ContentEncoding = &v
+	return s
+}
+
+// SetContentLanguage sets the ContentLanguage field's value.
+func (s *GetObjectOutput) SetContentLanguage(v string) *GetObjectOutput {
+	s.ContentLanguage = &v
+	return s
+}
+
+// SetContentLength sets the ContentLength field's value.
+func (s *GetObjectOutput) SetContentLength(v int64) *GetObjectOutput {
+	s.ContentLength = &v
+	return s
+}
+
+// SetContentRange sets the ContentRange field's value.
+func (s *GetObjectOutput) SetContentRange(v string) *GetObjectOutput {
+	s.ContentRange = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *GetObjectOutput) SetContentType(v string) *GetObjectOutput {
+	s.ContentType = &v
+	return s
+}
+
+// SetDeleteMarker sets the DeleteMarker field's value.
+func (s *GetObjectOutput) SetDeleteMarker(v bool) *GetObjectOutput {
+	s.DeleteMarker = &v
+	return s
+}
+
+// SetETag sets the ETag field's value.
+func (s *GetObjectOutput) SetETag(v string) *GetObjectOutput {
+	s.ETag = &v
+	return s
+}
+
+// SetExpiration sets the Expiration field's value.
+func (s *GetObjectOutput) SetExpiration(v string) *GetObjectOutput {
+	s.Expiration = &v
+	return s
+}
+
+// SetExpires sets the Expires field's value.
+func (s *GetObjectOutput) SetExpires(v string) *GetObjectOutput {
+	s.Expires = &v
+	return s
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *GetObjectOutput) SetLastModified(v time.Time) *GetObjectOutput {
+	s.LastModified = &v
+	return s
+}
+
+// SetMetadata sets the Metadata field's value.
+func (s *GetObjectOutput) SetMetadata(v map[string]*string) *GetObjectOutput {
+	s.Metadata = v
+	return s
+}
+
+// SetMissingMeta sets the MissingMeta field's value.
+func (s *GetObjectOutput) SetMissingMeta(v int64) *GetObjectOutput {
+	s.MissingMeta = &v
+	return s
+}
+
+// SetPartsCount sets the PartsCount field's value.
+func (s *GetObjectOutput) SetPartsCount(v int64) *GetObjectOutput {
+	s.PartsCount = &v
+	return s
+}
+
+// SetReplicationStatus sets the ReplicationStatus field's value.
+func (s *GetObjectOutput) SetReplicationStatus(v string) *GetObjectOutput {
+	s.ReplicationStatus = &v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *GetObjectOutput) SetRequestCharged(v string) *GetObjectOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetRestore sets the Restore field's value.
+func (s *GetObjectOutput) SetRestore(v string) *GetObjectOutput {
+	s.Restore = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *GetObjectOutput) SetSSECustomerAlgorithm(v string) *GetObjectOutput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *GetObjectOutput) SetSSECustomerKeyMD5(v string) *GetObjectOutput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *GetObjectOutput) SetSSEKMSKeyId(v string) *GetObjectOutput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *GetObjectOutput) SetServerSideEncryption(v string) *GetObjectOutput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *GetObjectOutput) SetStorageClass(v string) *GetObjectOutput {
+	s.StorageClass = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *GetObjectOutput) SetVersionId(v string) *GetObjectOutput {
+	s.VersionId = &v
+	return s
+}
+
+// SetWebsiteRedirectLocation sets the WebsiteRedirectLocation field's value.
+func (s *GetObjectOutput) SetWebsiteRedirectLocation(v string) *GetObjectOutput {
+	s.WebsiteRedirectLocation = &v
+	return s
+}
+
 type GetObjectTorrentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6490,6 +8031,24 @@ func (s *GetObjectTorrentInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *GetObjectTorrentInput) SetBucket(v string) *GetObjectTorrentInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *GetObjectTorrentInput) SetKey(v string) *GetObjectTorrentInput {
+	s.Key = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *GetObjectTorrentInput) SetRequestPayer(v string) *GetObjectTorrentInput {
+	s.RequestPayer = &v
+	return s
+}
+
 type GetObjectTorrentOutput struct {
 	_ struct{} `type:"structure" payload:"Body"`
 
@@ -6508,6 +8067,18 @@ func (s GetObjectTorrentOutput) String() string {
 // GoString returns the string representation
 func (s GetObjectTorrentOutput) GoString() string {
 	return s.String()
+}
+
+// SetBody sets the Body field's value.
+func (s *GetObjectTorrentOutput) SetBody(v io.ReadCloser) *GetObjectTorrentOutput {
+	s.Body = v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *GetObjectTorrentOutput) SetRequestCharged(v string) *GetObjectTorrentOutput {
+	s.RequestCharged = &v
+	return s
 }
 
 type Grant struct {
@@ -6542,6 +8113,18 @@ func (s *Grant) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetGrantee sets the Grantee field's value.
+func (s *Grant) SetGrantee(v *Grantee) *Grant {
+	s.Grantee = v
+	return s
+}
+
+// SetPermission sets the Permission field's value.
+func (s *Grant) SetPermission(v string) *Grant {
+	s.Permission = &v
+	return s
 }
 
 type Grantee struct {
@@ -6588,6 +8171,36 @@ func (s *Grantee) Validate() error {
 	return nil
 }
 
+// SetDisplayName sets the DisplayName field's value.
+func (s *Grantee) SetDisplayName(v string) *Grantee {
+	s.DisplayName = &v
+	return s
+}
+
+// SetEmailAddress sets the EmailAddress field's value.
+func (s *Grantee) SetEmailAddress(v string) *Grantee {
+	s.EmailAddress = &v
+	return s
+}
+
+// SetID sets the ID field's value.
+func (s *Grantee) SetID(v string) *Grantee {
+	s.ID = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *Grantee) SetType(v string) *Grantee {
+	s.Type = &v
+	return s
+}
+
+// SetURI sets the URI field's value.
+func (s *Grantee) SetURI(v string) *Grantee {
+	s.URI = &v
+	return s
+}
+
 type HeadBucketInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6616,6 +8229,12 @@ func (s *HeadBucketInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *HeadBucketInput) SetBucket(v string) *HeadBucketInput {
+	s.Bucket = &v
+	return s
 }
 
 type HeadBucketOutput struct {
@@ -6719,6 +8338,84 @@ func (s *HeadObjectInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *HeadObjectInput) SetBucket(v string) *HeadObjectInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetIfMatch sets the IfMatch field's value.
+func (s *HeadObjectInput) SetIfMatch(v string) *HeadObjectInput {
+	s.IfMatch = &v
+	return s
+}
+
+// SetIfModifiedSince sets the IfModifiedSince field's value.
+func (s *HeadObjectInput) SetIfModifiedSince(v time.Time) *HeadObjectInput {
+	s.IfModifiedSince = &v
+	return s
+}
+
+// SetIfNoneMatch sets the IfNoneMatch field's value.
+func (s *HeadObjectInput) SetIfNoneMatch(v string) *HeadObjectInput {
+	s.IfNoneMatch = &v
+	return s
+}
+
+// SetIfUnmodifiedSince sets the IfUnmodifiedSince field's value.
+func (s *HeadObjectInput) SetIfUnmodifiedSince(v time.Time) *HeadObjectInput {
+	s.IfUnmodifiedSince = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *HeadObjectInput) SetKey(v string) *HeadObjectInput {
+	s.Key = &v
+	return s
+}
+
+// SetPartNumber sets the PartNumber field's value.
+func (s *HeadObjectInput) SetPartNumber(v int64) *HeadObjectInput {
+	s.PartNumber = &v
+	return s
+}
+
+// SetRange sets the Range field's value.
+func (s *HeadObjectInput) SetRange(v string) *HeadObjectInput {
+	s.Range = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *HeadObjectInput) SetRequestPayer(v string) *HeadObjectInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *HeadObjectInput) SetSSECustomerAlgorithm(v string) *HeadObjectInput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKey sets the SSECustomerKey field's value.
+func (s *HeadObjectInput) SetSSECustomerKey(v string) *HeadObjectInput {
+	s.SSECustomerKey = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *HeadObjectInput) SetSSECustomerKeyMD5(v string) *HeadObjectInput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *HeadObjectInput) SetVersionId(v string) *HeadObjectInput {
+	s.VersionId = &v
+	return s
 }
 
 type HeadObjectOutput struct {
@@ -6827,6 +8524,156 @@ func (s HeadObjectOutput) GoString() string {
 	return s.String()
 }
 
+// SetAcceptRanges sets the AcceptRanges field's value.
+func (s *HeadObjectOutput) SetAcceptRanges(v string) *HeadObjectOutput {
+	s.AcceptRanges = &v
+	return s
+}
+
+// SetCacheControl sets the CacheControl field's value.
+func (s *HeadObjectOutput) SetCacheControl(v string) *HeadObjectOutput {
+	s.CacheControl = &v
+	return s
+}
+
+// SetContentDisposition sets the ContentDisposition field's value.
+func (s *HeadObjectOutput) SetContentDisposition(v string) *HeadObjectOutput {
+	s.ContentDisposition = &v
+	return s
+}
+
+// SetContentEncoding sets the ContentEncoding field's value.
+func (s *HeadObjectOutput) SetContentEncoding(v string) *HeadObjectOutput {
+	s.ContentEncoding = &v
+	return s
+}
+
+// SetContentLanguage sets the ContentLanguage field's value.
+func (s *HeadObjectOutput) SetContentLanguage(v string) *HeadObjectOutput {
+	s.ContentLanguage = &v
+	return s
+}
+
+// SetContentLength sets the ContentLength field's value.
+func (s *HeadObjectOutput) SetContentLength(v int64) *HeadObjectOutput {
+	s.ContentLength = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *HeadObjectOutput) SetContentType(v string) *HeadObjectOutput {
+	s.ContentType = &v
+	return s
+}
+
+// SetDeleteMarker sets the DeleteMarker field's value.
+func (s *HeadObjectOutput) SetDeleteMarker(v bool) *HeadObjectOutput {
+	s.DeleteMarker = &v
+	return s
+}
+
+// SetETag sets the ETag field's value.
+func (s *HeadObjectOutput) SetETag(v string) *HeadObjectOutput {
+	s.ETag = &v
+	return s
+}
+
+// SetExpiration sets the Expiration field's value.
+func (s *HeadObjectOutput) SetExpiration(v string) *HeadObjectOutput {
+	s.Expiration = &v
+	return s
+}
+
+// SetExpires sets the Expires field's value.
+func (s *HeadObjectOutput) SetExpires(v string) *HeadObjectOutput {
+	s.Expires = &v
+	return s
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *HeadObjectOutput) SetLastModified(v time.Time) *HeadObjectOutput {
+	s.LastModified = &v
+	return s
+}
+
+// SetMetadata sets the Metadata field's value.
+func (s *HeadObjectOutput) SetMetadata(v map[string]*string) *HeadObjectOutput {
+	s.Metadata = v
+	return s
+}
+
+// SetMissingMeta sets the MissingMeta field's value.
+func (s *HeadObjectOutput) SetMissingMeta(v int64) *HeadObjectOutput {
+	s.MissingMeta = &v
+	return s
+}
+
+// SetPartsCount sets the PartsCount field's value.
+func (s *HeadObjectOutput) SetPartsCount(v int64) *HeadObjectOutput {
+	s.PartsCount = &v
+	return s
+}
+
+// SetReplicationStatus sets the ReplicationStatus field's value.
+func (s *HeadObjectOutput) SetReplicationStatus(v string) *HeadObjectOutput {
+	s.ReplicationStatus = &v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *HeadObjectOutput) SetRequestCharged(v string) *HeadObjectOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetRestore sets the Restore field's value.
+func (s *HeadObjectOutput) SetRestore(v string) *HeadObjectOutput {
+	s.Restore = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *HeadObjectOutput) SetSSECustomerAlgorithm(v string) *HeadObjectOutput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *HeadObjectOutput) SetSSECustomerKeyMD5(v string) *HeadObjectOutput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *HeadObjectOutput) SetSSEKMSKeyId(v string) *HeadObjectOutput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *HeadObjectOutput) SetServerSideEncryption(v string) *HeadObjectOutput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *HeadObjectOutput) SetStorageClass(v string) *HeadObjectOutput {
+	s.StorageClass = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *HeadObjectOutput) SetVersionId(v string) *HeadObjectOutput {
+	s.VersionId = &v
+	return s
+}
+
+// SetWebsiteRedirectLocation sets the WebsiteRedirectLocation field's value.
+func (s *HeadObjectOutput) SetWebsiteRedirectLocation(v string) *HeadObjectOutput {
+	s.WebsiteRedirectLocation = &v
+	return s
+}
+
 type IndexDocument struct {
 	_ struct{} `type:"structure"`
 
@@ -6862,6 +8709,12 @@ func (s *IndexDocument) Validate() error {
 	return nil
 }
 
+// SetSuffix sets the Suffix field's value.
+func (s *IndexDocument) SetSuffix(v string) *IndexDocument {
+	s.Suffix = &v
+	return s
+}
+
 type Initiator struct {
 	_ struct{} `type:"structure"`
 
@@ -6883,6 +8736,18 @@ func (s Initiator) GoString() string {
 	return s.String()
 }
 
+// SetDisplayName sets the DisplayName field's value.
+func (s *Initiator) SetDisplayName(v string) *Initiator {
+	s.DisplayName = &v
+	return s
+}
+
+// SetID sets the ID field's value.
+func (s *Initiator) SetID(v string) *Initiator {
+	s.ID = &v
+	return s
+}
+
 // Container for object key name prefix and suffix filtering rules.
 type KeyFilter struct {
 	_ struct{} `type:"structure"`
@@ -6902,6 +8767,12 @@ func (s KeyFilter) GoString() string {
 	return s.String()
 }
 
+// SetFilterRules sets the FilterRules field's value.
+func (s *KeyFilter) SetFilterRules(v []*FilterRule) *KeyFilter {
+	s.FilterRules = v
+	return s
+}
+
 // Container for specifying the AWS Lambda notification configuration.
 type LambdaFunctionConfiguration struct {
 	_ struct{} `type:"structure"`
@@ -6911,7 +8782,6 @@ type LambdaFunctionConfiguration struct {
 
 	// Container for object key name filtering rules. For information about key
 	// name filtering, go to Configuring Event Notifications (http://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html)
-	// in the Amazon Simple Storage Service Developer Guide.
 	Filter *NotificationConfigurationFilter `type:"structure"`
 
 	// Optional unique identifier for configurations in a notification configuration.
@@ -6949,6 +8819,30 @@ func (s *LambdaFunctionConfiguration) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetEvents sets the Events field's value.
+func (s *LambdaFunctionConfiguration) SetEvents(v []*string) *LambdaFunctionConfiguration {
+	s.Events = v
+	return s
+}
+
+// SetFilter sets the Filter field's value.
+func (s *LambdaFunctionConfiguration) SetFilter(v *NotificationConfigurationFilter) *LambdaFunctionConfiguration {
+	s.Filter = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *LambdaFunctionConfiguration) SetId(v string) *LambdaFunctionConfiguration {
+	s.Id = &v
+	return s
+}
+
+// SetLambdaFunctionArn sets the LambdaFunctionArn field's value.
+func (s *LambdaFunctionConfiguration) SetLambdaFunctionArn(v string) *LambdaFunctionConfiguration {
+	s.LambdaFunctionArn = &v
+	return s
 }
 
 type LifecycleConfiguration struct {
@@ -6991,6 +8885,12 @@ func (s *LifecycleConfiguration) Validate() error {
 	return nil
 }
 
+// SetRules sets the Rules field's value.
+func (s *LifecycleConfiguration) SetRules(v []*Rule) *LifecycleConfiguration {
+	s.Rules = v
+	return s
+}
+
 type LifecycleExpiration struct {
 	_ struct{} `type:"structure"`
 
@@ -7017,6 +8917,24 @@ func (s LifecycleExpiration) String() string {
 // GoString returns the string representation
 func (s LifecycleExpiration) GoString() string {
 	return s.String()
+}
+
+// SetDate sets the Date field's value.
+func (s *LifecycleExpiration) SetDate(v time.Time) *LifecycleExpiration {
+	s.Date = &v
+	return s
+}
+
+// SetDays sets the Days field's value.
+func (s *LifecycleExpiration) SetDays(v int64) *LifecycleExpiration {
+	s.Days = &v
+	return s
+}
+
+// SetExpiredObjectDeleteMarker sets the ExpiredObjectDeleteMarker field's value.
+func (s *LifecycleExpiration) SetExpiredObjectDeleteMarker(v bool) *LifecycleExpiration {
+	s.ExpiredObjectDeleteMarker = &v
+	return s
 }
 
 type LifecycleRule struct {
@@ -7080,6 +8998,54 @@ func (s *LifecycleRule) Validate() error {
 	return nil
 }
 
+// SetAbortIncompleteMultipartUpload sets the AbortIncompleteMultipartUpload field's value.
+func (s *LifecycleRule) SetAbortIncompleteMultipartUpload(v *AbortIncompleteMultipartUpload) *LifecycleRule {
+	s.AbortIncompleteMultipartUpload = v
+	return s
+}
+
+// SetExpiration sets the Expiration field's value.
+func (s *LifecycleRule) SetExpiration(v *LifecycleExpiration) *LifecycleRule {
+	s.Expiration = v
+	return s
+}
+
+// SetID sets the ID field's value.
+func (s *LifecycleRule) SetID(v string) *LifecycleRule {
+	s.ID = &v
+	return s
+}
+
+// SetNoncurrentVersionExpiration sets the NoncurrentVersionExpiration field's value.
+func (s *LifecycleRule) SetNoncurrentVersionExpiration(v *NoncurrentVersionExpiration) *LifecycleRule {
+	s.NoncurrentVersionExpiration = v
+	return s
+}
+
+// SetNoncurrentVersionTransitions sets the NoncurrentVersionTransitions field's value.
+func (s *LifecycleRule) SetNoncurrentVersionTransitions(v []*NoncurrentVersionTransition) *LifecycleRule {
+	s.NoncurrentVersionTransitions = v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *LifecycleRule) SetPrefix(v string) *LifecycleRule {
+	s.Prefix = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *LifecycleRule) SetStatus(v string) *LifecycleRule {
+	s.Status = &v
+	return s
+}
+
+// SetTransitions sets the Transitions field's value.
+func (s *LifecycleRule) SetTransitions(v []*Transition) *LifecycleRule {
+	s.Transitions = v
+	return s
+}
+
 type ListBucketsInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -7110,6 +9076,18 @@ func (s ListBucketsOutput) String() string {
 // GoString returns the string representation
 func (s ListBucketsOutput) GoString() string {
 	return s.String()
+}
+
+// SetBuckets sets the Buckets field's value.
+func (s *ListBucketsOutput) SetBuckets(v []*Bucket) *ListBucketsOutput {
+	s.Buckets = v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *ListBucketsOutput) SetOwner(v *Owner) *ListBucketsOutput {
+	s.Owner = v
+	return s
 }
 
 type ListMultipartUploadsInput struct {
@@ -7171,6 +9149,48 @@ func (s *ListMultipartUploadsInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *ListMultipartUploadsInput) SetBucket(v string) *ListMultipartUploadsInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetDelimiter sets the Delimiter field's value.
+func (s *ListMultipartUploadsInput) SetDelimiter(v string) *ListMultipartUploadsInput {
+	s.Delimiter = &v
+	return s
+}
+
+// SetEncodingType sets the EncodingType field's value.
+func (s *ListMultipartUploadsInput) SetEncodingType(v string) *ListMultipartUploadsInput {
+	s.EncodingType = &v
+	return s
+}
+
+// SetKeyMarker sets the KeyMarker field's value.
+func (s *ListMultipartUploadsInput) SetKeyMarker(v string) *ListMultipartUploadsInput {
+	s.KeyMarker = &v
+	return s
+}
+
+// SetMaxUploads sets the MaxUploads field's value.
+func (s *ListMultipartUploadsInput) SetMaxUploads(v int64) *ListMultipartUploadsInput {
+	s.MaxUploads = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ListMultipartUploadsInput) SetPrefix(v string) *ListMultipartUploadsInput {
+	s.Prefix = &v
+	return s
+}
+
+// SetUploadIdMarker sets the UploadIdMarker field's value.
+func (s *ListMultipartUploadsInput) SetUploadIdMarker(v string) *ListMultipartUploadsInput {
+	s.UploadIdMarker = &v
+	return s
+}
+
 type ListMultipartUploadsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7223,6 +9243,78 @@ func (s ListMultipartUploadsOutput) String() string {
 // GoString returns the string representation
 func (s ListMultipartUploadsOutput) GoString() string {
 	return s.String()
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *ListMultipartUploadsOutput) SetBucket(v string) *ListMultipartUploadsOutput {
+	s.Bucket = &v
+	return s
+}
+
+// SetCommonPrefixes sets the CommonPrefixes field's value.
+func (s *ListMultipartUploadsOutput) SetCommonPrefixes(v []*CommonPrefix) *ListMultipartUploadsOutput {
+	s.CommonPrefixes = v
+	return s
+}
+
+// SetDelimiter sets the Delimiter field's value.
+func (s *ListMultipartUploadsOutput) SetDelimiter(v string) *ListMultipartUploadsOutput {
+	s.Delimiter = &v
+	return s
+}
+
+// SetEncodingType sets the EncodingType field's value.
+func (s *ListMultipartUploadsOutput) SetEncodingType(v string) *ListMultipartUploadsOutput {
+	s.EncodingType = &v
+	return s
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListMultipartUploadsOutput) SetIsTruncated(v bool) *ListMultipartUploadsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetKeyMarker sets the KeyMarker field's value.
+func (s *ListMultipartUploadsOutput) SetKeyMarker(v string) *ListMultipartUploadsOutput {
+	s.KeyMarker = &v
+	return s
+}
+
+// SetMaxUploads sets the MaxUploads field's value.
+func (s *ListMultipartUploadsOutput) SetMaxUploads(v int64) *ListMultipartUploadsOutput {
+	s.MaxUploads = &v
+	return s
+}
+
+// SetNextKeyMarker sets the NextKeyMarker field's value.
+func (s *ListMultipartUploadsOutput) SetNextKeyMarker(v string) *ListMultipartUploadsOutput {
+	s.NextKeyMarker = &v
+	return s
+}
+
+// SetNextUploadIdMarker sets the NextUploadIdMarker field's value.
+func (s *ListMultipartUploadsOutput) SetNextUploadIdMarker(v string) *ListMultipartUploadsOutput {
+	s.NextUploadIdMarker = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ListMultipartUploadsOutput) SetPrefix(v string) *ListMultipartUploadsOutput {
+	s.Prefix = &v
+	return s
+}
+
+// SetUploadIdMarker sets the UploadIdMarker field's value.
+func (s *ListMultipartUploadsOutput) SetUploadIdMarker(v string) *ListMultipartUploadsOutput {
+	s.UploadIdMarker = &v
+	return s
+}
+
+// SetUploads sets the Uploads field's value.
+func (s *ListMultipartUploadsOutput) SetUploads(v []*MultipartUpload) *ListMultipartUploadsOutput {
+	s.Uploads = v
+	return s
 }
 
 type ListObjectVersionsInput struct {
@@ -7279,6 +9371,48 @@ func (s *ListObjectVersionsInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *ListObjectVersionsInput) SetBucket(v string) *ListObjectVersionsInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetDelimiter sets the Delimiter field's value.
+func (s *ListObjectVersionsInput) SetDelimiter(v string) *ListObjectVersionsInput {
+	s.Delimiter = &v
+	return s
+}
+
+// SetEncodingType sets the EncodingType field's value.
+func (s *ListObjectVersionsInput) SetEncodingType(v string) *ListObjectVersionsInput {
+	s.EncodingType = &v
+	return s
+}
+
+// SetKeyMarker sets the KeyMarker field's value.
+func (s *ListObjectVersionsInput) SetKeyMarker(v string) *ListObjectVersionsInput {
+	s.KeyMarker = &v
+	return s
+}
+
+// SetMaxKeys sets the MaxKeys field's value.
+func (s *ListObjectVersionsInput) SetMaxKeys(v int64) *ListObjectVersionsInput {
+	s.MaxKeys = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ListObjectVersionsInput) SetPrefix(v string) *ListObjectVersionsInput {
+	s.Prefix = &v
+	return s
+}
+
+// SetVersionIdMarker sets the VersionIdMarker field's value.
+func (s *ListObjectVersionsInput) SetVersionIdMarker(v string) *ListObjectVersionsInput {
+	s.VersionIdMarker = &v
+	return s
+}
+
 type ListObjectVersionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7326,6 +9460,84 @@ func (s ListObjectVersionsOutput) String() string {
 // GoString returns the string representation
 func (s ListObjectVersionsOutput) GoString() string {
 	return s.String()
+}
+
+// SetCommonPrefixes sets the CommonPrefixes field's value.
+func (s *ListObjectVersionsOutput) SetCommonPrefixes(v []*CommonPrefix) *ListObjectVersionsOutput {
+	s.CommonPrefixes = v
+	return s
+}
+
+// SetDeleteMarkers sets the DeleteMarkers field's value.
+func (s *ListObjectVersionsOutput) SetDeleteMarkers(v []*DeleteMarkerEntry) *ListObjectVersionsOutput {
+	s.DeleteMarkers = v
+	return s
+}
+
+// SetDelimiter sets the Delimiter field's value.
+func (s *ListObjectVersionsOutput) SetDelimiter(v string) *ListObjectVersionsOutput {
+	s.Delimiter = &v
+	return s
+}
+
+// SetEncodingType sets the EncodingType field's value.
+func (s *ListObjectVersionsOutput) SetEncodingType(v string) *ListObjectVersionsOutput {
+	s.EncodingType = &v
+	return s
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListObjectVersionsOutput) SetIsTruncated(v bool) *ListObjectVersionsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetKeyMarker sets the KeyMarker field's value.
+func (s *ListObjectVersionsOutput) SetKeyMarker(v string) *ListObjectVersionsOutput {
+	s.KeyMarker = &v
+	return s
+}
+
+// SetMaxKeys sets the MaxKeys field's value.
+func (s *ListObjectVersionsOutput) SetMaxKeys(v int64) *ListObjectVersionsOutput {
+	s.MaxKeys = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ListObjectVersionsOutput) SetName(v string) *ListObjectVersionsOutput {
+	s.Name = &v
+	return s
+}
+
+// SetNextKeyMarker sets the NextKeyMarker field's value.
+func (s *ListObjectVersionsOutput) SetNextKeyMarker(v string) *ListObjectVersionsOutput {
+	s.NextKeyMarker = &v
+	return s
+}
+
+// SetNextVersionIdMarker sets the NextVersionIdMarker field's value.
+func (s *ListObjectVersionsOutput) SetNextVersionIdMarker(v string) *ListObjectVersionsOutput {
+	s.NextVersionIdMarker = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ListObjectVersionsOutput) SetPrefix(v string) *ListObjectVersionsOutput {
+	s.Prefix = &v
+	return s
+}
+
+// SetVersionIdMarker sets the VersionIdMarker field's value.
+func (s *ListObjectVersionsOutput) SetVersionIdMarker(v string) *ListObjectVersionsOutput {
+	s.VersionIdMarker = &v
+	return s
+}
+
+// SetVersions sets the Versions field's value.
+func (s *ListObjectVersionsOutput) SetVersions(v []*ObjectVersion) *ListObjectVersionsOutput {
+	s.Versions = v
+	return s
 }
 
 type ListObjectsInput struct {
@@ -7384,6 +9596,48 @@ func (s *ListObjectsInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *ListObjectsInput) SetBucket(v string) *ListObjectsInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetDelimiter sets the Delimiter field's value.
+func (s *ListObjectsInput) SetDelimiter(v string) *ListObjectsInput {
+	s.Delimiter = &v
+	return s
+}
+
+// SetEncodingType sets the EncodingType field's value.
+func (s *ListObjectsInput) SetEncodingType(v string) *ListObjectsInput {
+	s.EncodingType = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListObjectsInput) SetMarker(v string) *ListObjectsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxKeys sets the MaxKeys field's value.
+func (s *ListObjectsInput) SetMaxKeys(v int64) *ListObjectsInput {
+	s.MaxKeys = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ListObjectsInput) SetPrefix(v string) *ListObjectsInput {
+	s.Prefix = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *ListObjectsInput) SetRequestPayer(v string) *ListObjectsInput {
+	s.RequestPayer = &v
+	return s
+}
+
 type ListObjectsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7426,6 +9680,66 @@ func (s ListObjectsOutput) String() string {
 // GoString returns the string representation
 func (s ListObjectsOutput) GoString() string {
 	return s.String()
+}
+
+// SetCommonPrefixes sets the CommonPrefixes field's value.
+func (s *ListObjectsOutput) SetCommonPrefixes(v []*CommonPrefix) *ListObjectsOutput {
+	s.CommonPrefixes = v
+	return s
+}
+
+// SetContents sets the Contents field's value.
+func (s *ListObjectsOutput) SetContents(v []*Object) *ListObjectsOutput {
+	s.Contents = v
+	return s
+}
+
+// SetDelimiter sets the Delimiter field's value.
+func (s *ListObjectsOutput) SetDelimiter(v string) *ListObjectsOutput {
+	s.Delimiter = &v
+	return s
+}
+
+// SetEncodingType sets the EncodingType field's value.
+func (s *ListObjectsOutput) SetEncodingType(v string) *ListObjectsOutput {
+	s.EncodingType = &v
+	return s
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListObjectsOutput) SetIsTruncated(v bool) *ListObjectsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListObjectsOutput) SetMarker(v string) *ListObjectsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxKeys sets the MaxKeys field's value.
+func (s *ListObjectsOutput) SetMaxKeys(v int64) *ListObjectsOutput {
+	s.MaxKeys = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ListObjectsOutput) SetName(v string) *ListObjectsOutput {
+	s.Name = &v
+	return s
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *ListObjectsOutput) SetNextMarker(v string) *ListObjectsOutput {
+	s.NextMarker = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ListObjectsOutput) SetPrefix(v string) *ListObjectsOutput {
+	s.Prefix = &v
+	return s
 }
 
 type ListObjectsV2Input struct {
@@ -7492,6 +9806,60 @@ func (s *ListObjectsV2Input) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *ListObjectsV2Input) SetBucket(v string) *ListObjectsV2Input {
+	s.Bucket = &v
+	return s
+}
+
+// SetContinuationToken sets the ContinuationToken field's value.
+func (s *ListObjectsV2Input) SetContinuationToken(v string) *ListObjectsV2Input {
+	s.ContinuationToken = &v
+	return s
+}
+
+// SetDelimiter sets the Delimiter field's value.
+func (s *ListObjectsV2Input) SetDelimiter(v string) *ListObjectsV2Input {
+	s.Delimiter = &v
+	return s
+}
+
+// SetEncodingType sets the EncodingType field's value.
+func (s *ListObjectsV2Input) SetEncodingType(v string) *ListObjectsV2Input {
+	s.EncodingType = &v
+	return s
+}
+
+// SetFetchOwner sets the FetchOwner field's value.
+func (s *ListObjectsV2Input) SetFetchOwner(v bool) *ListObjectsV2Input {
+	s.FetchOwner = &v
+	return s
+}
+
+// SetMaxKeys sets the MaxKeys field's value.
+func (s *ListObjectsV2Input) SetMaxKeys(v int64) *ListObjectsV2Input {
+	s.MaxKeys = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ListObjectsV2Input) SetPrefix(v string) *ListObjectsV2Input {
+	s.Prefix = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *ListObjectsV2Input) SetRequestPayer(v string) *ListObjectsV2Input {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetStartAfter sets the StartAfter field's value.
+func (s *ListObjectsV2Input) SetStartAfter(v string) *ListObjectsV2Input {
+	s.StartAfter = &v
+	return s
+}
+
 type ListObjectsV2Output struct {
 	_ struct{} `type:"structure"`
 
@@ -7551,6 +9919,78 @@ func (s ListObjectsV2Output) String() string {
 // GoString returns the string representation
 func (s ListObjectsV2Output) GoString() string {
 	return s.String()
+}
+
+// SetCommonPrefixes sets the CommonPrefixes field's value.
+func (s *ListObjectsV2Output) SetCommonPrefixes(v []*CommonPrefix) *ListObjectsV2Output {
+	s.CommonPrefixes = v
+	return s
+}
+
+// SetContents sets the Contents field's value.
+func (s *ListObjectsV2Output) SetContents(v []*Object) *ListObjectsV2Output {
+	s.Contents = v
+	return s
+}
+
+// SetContinuationToken sets the ContinuationToken field's value.
+func (s *ListObjectsV2Output) SetContinuationToken(v string) *ListObjectsV2Output {
+	s.ContinuationToken = &v
+	return s
+}
+
+// SetDelimiter sets the Delimiter field's value.
+func (s *ListObjectsV2Output) SetDelimiter(v string) *ListObjectsV2Output {
+	s.Delimiter = &v
+	return s
+}
+
+// SetEncodingType sets the EncodingType field's value.
+func (s *ListObjectsV2Output) SetEncodingType(v string) *ListObjectsV2Output {
+	s.EncodingType = &v
+	return s
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListObjectsV2Output) SetIsTruncated(v bool) *ListObjectsV2Output {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetKeyCount sets the KeyCount field's value.
+func (s *ListObjectsV2Output) SetKeyCount(v int64) *ListObjectsV2Output {
+	s.KeyCount = &v
+	return s
+}
+
+// SetMaxKeys sets the MaxKeys field's value.
+func (s *ListObjectsV2Output) SetMaxKeys(v int64) *ListObjectsV2Output {
+	s.MaxKeys = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ListObjectsV2Output) SetName(v string) *ListObjectsV2Output {
+	s.Name = &v
+	return s
+}
+
+// SetNextContinuationToken sets the NextContinuationToken field's value.
+func (s *ListObjectsV2Output) SetNextContinuationToken(v string) *ListObjectsV2Output {
+	s.NextContinuationToken = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ListObjectsV2Output) SetPrefix(v string) *ListObjectsV2Output {
+	s.Prefix = &v
+	return s
+}
+
+// SetStartAfter sets the StartAfter field's value.
+func (s *ListObjectsV2Output) SetStartAfter(v string) *ListObjectsV2Output {
+	s.StartAfter = &v
+	return s
 }
 
 type ListPartsInput struct {
@@ -7613,6 +10053,42 @@ func (s *ListPartsInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *ListPartsInput) SetBucket(v string) *ListPartsInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *ListPartsInput) SetKey(v string) *ListPartsInput {
+	s.Key = &v
+	return s
+}
+
+// SetMaxParts sets the MaxParts field's value.
+func (s *ListPartsInput) SetMaxParts(v int64) *ListPartsInput {
+	s.MaxParts = &v
+	return s
+}
+
+// SetPartNumberMarker sets the PartNumberMarker field's value.
+func (s *ListPartsInput) SetPartNumberMarker(v int64) *ListPartsInput {
+	s.PartNumberMarker = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *ListPartsInput) SetRequestPayer(v string) *ListPartsInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *ListPartsInput) SetUploadId(v string) *ListPartsInput {
+	s.UploadId = &v
+	return s
+}
+
 type ListPartsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -7671,6 +10147,90 @@ func (s ListPartsOutput) GoString() string {
 	return s.String()
 }
 
+// SetAbortDate sets the AbortDate field's value.
+func (s *ListPartsOutput) SetAbortDate(v time.Time) *ListPartsOutput {
+	s.AbortDate = &v
+	return s
+}
+
+// SetAbortRuleId sets the AbortRuleId field's value.
+func (s *ListPartsOutput) SetAbortRuleId(v string) *ListPartsOutput {
+	s.AbortRuleId = &v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *ListPartsOutput) SetBucket(v string) *ListPartsOutput {
+	s.Bucket = &v
+	return s
+}
+
+// SetInitiator sets the Initiator field's value.
+func (s *ListPartsOutput) SetInitiator(v *Initiator) *ListPartsOutput {
+	s.Initiator = v
+	return s
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListPartsOutput) SetIsTruncated(v bool) *ListPartsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *ListPartsOutput) SetKey(v string) *ListPartsOutput {
+	s.Key = &v
+	return s
+}
+
+// SetMaxParts sets the MaxParts field's value.
+func (s *ListPartsOutput) SetMaxParts(v int64) *ListPartsOutput {
+	s.MaxParts = &v
+	return s
+}
+
+// SetNextPartNumberMarker sets the NextPartNumberMarker field's value.
+func (s *ListPartsOutput) SetNextPartNumberMarker(v int64) *ListPartsOutput {
+	s.NextPartNumberMarker = &v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *ListPartsOutput) SetOwner(v *Owner) *ListPartsOutput {
+	s.Owner = v
+	return s
+}
+
+// SetPartNumberMarker sets the PartNumberMarker field's value.
+func (s *ListPartsOutput) SetPartNumberMarker(v int64) *ListPartsOutput {
+	s.PartNumberMarker = &v
+	return s
+}
+
+// SetParts sets the Parts field's value.
+func (s *ListPartsOutput) SetParts(v []*Part) *ListPartsOutput {
+	s.Parts = v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *ListPartsOutput) SetRequestCharged(v string) *ListPartsOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *ListPartsOutput) SetStorageClass(v string) *ListPartsOutput {
+	s.StorageClass = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *ListPartsOutput) SetUploadId(v string) *ListPartsOutput {
+	s.UploadId = &v
+	return s
+}
+
 type LoggingEnabled struct {
 	_ struct{} `type:"structure"`
 
@@ -7719,6 +10279,24 @@ func (s *LoggingEnabled) Validate() error {
 	return nil
 }
 
+// SetTargetBucket sets the TargetBucket field's value.
+func (s *LoggingEnabled) SetTargetBucket(v string) *LoggingEnabled {
+	s.TargetBucket = &v
+	return s
+}
+
+// SetTargetGrants sets the TargetGrants field's value.
+func (s *LoggingEnabled) SetTargetGrants(v []*TargetGrant) *LoggingEnabled {
+	s.TargetGrants = v
+	return s
+}
+
+// SetTargetPrefix sets the TargetPrefix field's value.
+func (s *LoggingEnabled) SetTargetPrefix(v string) *LoggingEnabled {
+	s.TargetPrefix = &v
+	return s
+}
+
 type MultipartUpload struct {
 	_ struct{} `type:"structure"`
 
@@ -7750,6 +10328,42 @@ func (s MultipartUpload) GoString() string {
 	return s.String()
 }
 
+// SetInitiated sets the Initiated field's value.
+func (s *MultipartUpload) SetInitiated(v time.Time) *MultipartUpload {
+	s.Initiated = &v
+	return s
+}
+
+// SetInitiator sets the Initiator field's value.
+func (s *MultipartUpload) SetInitiator(v *Initiator) *MultipartUpload {
+	s.Initiator = v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *MultipartUpload) SetKey(v string) *MultipartUpload {
+	s.Key = &v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *MultipartUpload) SetOwner(v *Owner) *MultipartUpload {
+	s.Owner = v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *MultipartUpload) SetStorageClass(v string) *MultipartUpload {
+	s.StorageClass = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *MultipartUpload) SetUploadId(v string) *MultipartUpload {
+	s.UploadId = &v
+	return s
+}
+
 // Specifies when noncurrent object versions expire. Upon expiration, Amazon
 // S3 permanently deletes the noncurrent object versions. You set this lifecycle
 // configuration action on a bucket that has versioning enabled (or suspended)
@@ -7761,8 +10375,7 @@ type NoncurrentVersionExpiration struct {
 	// Specifies the number of days an object is noncurrent before Amazon S3 can
 	// perform the associated action. For information about the noncurrent days
 	// calculations, see How Amazon S3 Calculates When an Object Became Noncurrent
-	// (http://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html) in
-	// the Amazon Simple Storage Service Developer Guide.
+	// (http://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)
 	NoncurrentDays *int64 `type:"integer"`
 }
 
@@ -7776,6 +10389,12 @@ func (s NoncurrentVersionExpiration) GoString() string {
 	return s.String()
 }
 
+// SetNoncurrentDays sets the NoncurrentDays field's value.
+func (s *NoncurrentVersionExpiration) SetNoncurrentDays(v int64) *NoncurrentVersionExpiration {
+	s.NoncurrentDays = &v
+	return s
+}
+
 // Container for the transition rule that describes when noncurrent objects
 // transition to the STANDARD_IA or GLACIER storage class. If your bucket is
 // versioning-enabled (or versioning is suspended), you can set this action
@@ -7787,8 +10406,7 @@ type NoncurrentVersionTransition struct {
 	// Specifies the number of days an object is noncurrent before Amazon S3 can
 	// perform the associated action. For information about the noncurrent days
 	// calculations, see How Amazon S3 Calculates When an Object Became Noncurrent
-	// (http://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html) in
-	// the Amazon Simple Storage Service Developer Guide.
+	// (http://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html)
 	NoncurrentDays *int64 `type:"integer"`
 
 	// The class of storage used to store the object.
@@ -7803,6 +10421,18 @@ func (s NoncurrentVersionTransition) String() string {
 // GoString returns the string representation
 func (s NoncurrentVersionTransition) GoString() string {
 	return s.String()
+}
+
+// SetNoncurrentDays sets the NoncurrentDays field's value.
+func (s *NoncurrentVersionTransition) SetNoncurrentDays(v int64) *NoncurrentVersionTransition {
+	s.NoncurrentDays = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *NoncurrentVersionTransition) SetStorageClass(v string) *NoncurrentVersionTransition {
+	s.StorageClass = &v
+	return s
 }
 
 // Container for specifying the notification configuration of the bucket. If
@@ -7867,6 +10497,24 @@ func (s *NotificationConfiguration) Validate() error {
 	return nil
 }
 
+// SetLambdaFunctionConfigurations sets the LambdaFunctionConfigurations field's value.
+func (s *NotificationConfiguration) SetLambdaFunctionConfigurations(v []*LambdaFunctionConfiguration) *NotificationConfiguration {
+	s.LambdaFunctionConfigurations = v
+	return s
+}
+
+// SetQueueConfigurations sets the QueueConfigurations field's value.
+func (s *NotificationConfiguration) SetQueueConfigurations(v []*QueueConfiguration) *NotificationConfiguration {
+	s.QueueConfigurations = v
+	return s
+}
+
+// SetTopicConfigurations sets the TopicConfigurations field's value.
+func (s *NotificationConfiguration) SetTopicConfigurations(v []*TopicConfiguration) *NotificationConfiguration {
+	s.TopicConfigurations = v
+	return s
+}
+
 type NotificationConfigurationDeprecated struct {
 	_ struct{} `type:"structure"`
 
@@ -7887,9 +10535,26 @@ func (s NotificationConfigurationDeprecated) GoString() string {
 	return s.String()
 }
 
+// SetCloudFunctionConfiguration sets the CloudFunctionConfiguration field's value.
+func (s *NotificationConfigurationDeprecated) SetCloudFunctionConfiguration(v *CloudFunctionConfiguration) *NotificationConfigurationDeprecated {
+	s.CloudFunctionConfiguration = v
+	return s
+}
+
+// SetQueueConfiguration sets the QueueConfiguration field's value.
+func (s *NotificationConfigurationDeprecated) SetQueueConfiguration(v *QueueConfigurationDeprecated) *NotificationConfigurationDeprecated {
+	s.QueueConfiguration = v
+	return s
+}
+
+// SetTopicConfiguration sets the TopicConfiguration field's value.
+func (s *NotificationConfigurationDeprecated) SetTopicConfiguration(v *TopicConfigurationDeprecated) *NotificationConfigurationDeprecated {
+	s.TopicConfiguration = v
+	return s
+}
+
 // Container for object key name filtering rules. For information about key
 // name filtering, go to Configuring Event Notifications (http://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html)
-// in the Amazon Simple Storage Service Developer Guide.
 type NotificationConfigurationFilter struct {
 	_ struct{} `type:"structure"`
 
@@ -7905,6 +10570,12 @@ func (s NotificationConfigurationFilter) String() string {
 // GoString returns the string representation
 func (s NotificationConfigurationFilter) GoString() string {
 	return s.String()
+}
+
+// SetKey sets the Key field's value.
+func (s *NotificationConfigurationFilter) SetKey(v *KeyFilter) *NotificationConfigurationFilter {
+	s.Key = v
+	return s
 }
 
 type Object struct {
@@ -7932,6 +10603,42 @@ func (s Object) String() string {
 // GoString returns the string representation
 func (s Object) GoString() string {
 	return s.String()
+}
+
+// SetETag sets the ETag field's value.
+func (s *Object) SetETag(v string) *Object {
+	s.ETag = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *Object) SetKey(v string) *Object {
+	s.Key = &v
+	return s
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *Object) SetLastModified(v time.Time) *Object {
+	s.LastModified = &v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *Object) SetOwner(v *Owner) *Object {
+	s.Owner = v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *Object) SetSize(v int64) *Object {
+	s.Size = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *Object) SetStorageClass(v string) *Object {
+	s.StorageClass = &v
+	return s
 }
 
 type ObjectIdentifier struct {
@@ -7972,6 +10679,18 @@ func (s *ObjectIdentifier) Validate() error {
 	return nil
 }
 
+// SetKey sets the Key field's value.
+func (s *ObjectIdentifier) SetKey(v string) *ObjectIdentifier {
+	s.Key = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *ObjectIdentifier) SetVersionId(v string) *ObjectIdentifier {
+	s.VersionId = &v
+	return s
+}
+
 type ObjectVersion struct {
 	_ struct{} `type:"structure"`
 
@@ -8009,6 +10728,54 @@ func (s ObjectVersion) GoString() string {
 	return s.String()
 }
 
+// SetETag sets the ETag field's value.
+func (s *ObjectVersion) SetETag(v string) *ObjectVersion {
+	s.ETag = &v
+	return s
+}
+
+// SetIsLatest sets the IsLatest field's value.
+func (s *ObjectVersion) SetIsLatest(v bool) *ObjectVersion {
+	s.IsLatest = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *ObjectVersion) SetKey(v string) *ObjectVersion {
+	s.Key = &v
+	return s
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *ObjectVersion) SetLastModified(v time.Time) *ObjectVersion {
+	s.LastModified = &v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *ObjectVersion) SetOwner(v *Owner) *ObjectVersion {
+	s.Owner = v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *ObjectVersion) SetSize(v int64) *ObjectVersion {
+	s.Size = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *ObjectVersion) SetStorageClass(v string) *ObjectVersion {
+	s.StorageClass = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *ObjectVersion) SetVersionId(v string) *ObjectVersion {
+	s.VersionId = &v
+	return s
+}
+
 type Owner struct {
 	_ struct{} `type:"structure"`
 
@@ -8025,6 +10792,18 @@ func (s Owner) String() string {
 // GoString returns the string representation
 func (s Owner) GoString() string {
 	return s.String()
+}
+
+// SetDisplayName sets the DisplayName field's value.
+func (s *Owner) SetDisplayName(v string) *Owner {
+	s.DisplayName = &v
+	return s
+}
+
+// SetID sets the ID field's value.
+func (s *Owner) SetID(v string) *Owner {
+	s.ID = &v
+	return s
 }
 
 type Part struct {
@@ -8052,6 +10831,30 @@ func (s Part) String() string {
 // GoString returns the string representation
 func (s Part) GoString() string {
 	return s.String()
+}
+
+// SetETag sets the ETag field's value.
+func (s *Part) SetETag(v string) *Part {
+	s.ETag = &v
+	return s
+}
+
+// SetLastModified sets the LastModified field's value.
+func (s *Part) SetLastModified(v time.Time) *Part {
+	s.LastModified = &v
+	return s
+}
+
+// SetPartNumber sets the PartNumber field's value.
+func (s *Part) SetPartNumber(v int64) *Part {
+	s.PartNumber = &v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *Part) SetSize(v int64) *Part {
+	s.Size = &v
+	return s
 }
 
 type PutBucketAccelerateConfigurationInput struct {
@@ -8092,6 +10895,18 @@ func (s *PutBucketAccelerateConfigurationInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAccelerateConfiguration sets the AccelerateConfiguration field's value.
+func (s *PutBucketAccelerateConfigurationInput) SetAccelerateConfiguration(v *AccelerateConfiguration) *PutBucketAccelerateConfigurationInput {
+	s.AccelerateConfiguration = v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketAccelerateConfigurationInput) SetBucket(v string) *PutBucketAccelerateConfigurationInput {
+	s.Bucket = &v
+	return s
 }
 
 type PutBucketAccelerateConfigurationOutput struct {
@@ -8164,6 +10979,54 @@ func (s *PutBucketAclInput) Validate() error {
 	return nil
 }
 
+// SetACL sets the ACL field's value.
+func (s *PutBucketAclInput) SetACL(v string) *PutBucketAclInput {
+	s.ACL = &v
+	return s
+}
+
+// SetAccessControlPolicy sets the AccessControlPolicy field's value.
+func (s *PutBucketAclInput) SetAccessControlPolicy(v *AccessControlPolicy) *PutBucketAclInput {
+	s.AccessControlPolicy = v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketAclInput) SetBucket(v string) *PutBucketAclInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetGrantFullControl sets the GrantFullControl field's value.
+func (s *PutBucketAclInput) SetGrantFullControl(v string) *PutBucketAclInput {
+	s.GrantFullControl = &v
+	return s
+}
+
+// SetGrantRead sets the GrantRead field's value.
+func (s *PutBucketAclInput) SetGrantRead(v string) *PutBucketAclInput {
+	s.GrantRead = &v
+	return s
+}
+
+// SetGrantReadACP sets the GrantReadACP field's value.
+func (s *PutBucketAclInput) SetGrantReadACP(v string) *PutBucketAclInput {
+	s.GrantReadACP = &v
+	return s
+}
+
+// SetGrantWrite sets the GrantWrite field's value.
+func (s *PutBucketAclInput) SetGrantWrite(v string) *PutBucketAclInput {
+	s.GrantWrite = &v
+	return s
+}
+
+// SetGrantWriteACP sets the GrantWriteACP field's value.
+func (s *PutBucketAclInput) SetGrantWriteACP(v string) *PutBucketAclInput {
+	s.GrantWriteACP = &v
+	return s
+}
+
 type PutBucketAclOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8219,6 +11082,18 @@ func (s *PutBucketCorsInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketCorsInput) SetBucket(v string) *PutBucketCorsInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetCORSConfiguration sets the CORSConfiguration field's value.
+func (s *PutBucketCorsInput) SetCORSConfiguration(v *CORSConfiguration) *PutBucketCorsInput {
+	s.CORSConfiguration = v
+	return s
+}
+
 type PutBucketCorsOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8270,6 +11145,18 @@ func (s *PutBucketLifecycleConfigurationInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketLifecycleConfigurationInput) SetBucket(v string) *PutBucketLifecycleConfigurationInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetLifecycleConfiguration sets the LifecycleConfiguration field's value.
+func (s *PutBucketLifecycleConfigurationInput) SetLifecycleConfiguration(v *BucketLifecycleConfiguration) *PutBucketLifecycleConfigurationInput {
+	s.LifecycleConfiguration = v
+	return s
+}
+
 type PutBucketLifecycleConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8319,6 +11206,18 @@ func (s *PutBucketLifecycleInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketLifecycleInput) SetBucket(v string) *PutBucketLifecycleInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetLifecycleConfiguration sets the LifecycleConfiguration field's value.
+func (s *PutBucketLifecycleInput) SetLifecycleConfiguration(v *LifecycleConfiguration) *PutBucketLifecycleInput {
+	s.LifecycleConfiguration = v
+	return s
 }
 
 type PutBucketLifecycleOutput struct {
@@ -8374,6 +11273,18 @@ func (s *PutBucketLoggingInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketLoggingInput) SetBucket(v string) *PutBucketLoggingInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetBucketLoggingStatus sets the BucketLoggingStatus field's value.
+func (s *PutBucketLoggingInput) SetBucketLoggingStatus(v *BucketLoggingStatus) *PutBucketLoggingInput {
+	s.BucketLoggingStatus = v
+	return s
 }
 
 type PutBucketLoggingOutput struct {
@@ -8434,6 +11345,18 @@ func (s *PutBucketNotificationConfigurationInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketNotificationConfigurationInput) SetBucket(v string) *PutBucketNotificationConfigurationInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetNotificationConfiguration sets the NotificationConfiguration field's value.
+func (s *PutBucketNotificationConfigurationInput) SetNotificationConfiguration(v *NotificationConfiguration) *PutBucketNotificationConfigurationInput {
+	s.NotificationConfiguration = v
+	return s
+}
+
 type PutBucketNotificationConfigurationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8482,6 +11405,18 @@ func (s *PutBucketNotificationInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketNotificationInput) SetBucket(v string) *PutBucketNotificationInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetNotificationConfiguration sets the NotificationConfiguration field's value.
+func (s *PutBucketNotificationInput) SetNotificationConfiguration(v *NotificationConfigurationDeprecated) *PutBucketNotificationInput {
+	s.NotificationConfiguration = v
+	return s
 }
 
 type PutBucketNotificationOutput struct {
@@ -8534,6 +11469,18 @@ func (s *PutBucketPolicyInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketPolicyInput) SetBucket(v string) *PutBucketPolicyInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *PutBucketPolicyInput) SetPolicy(v string) *PutBucketPolicyInput {
+	s.Policy = &v
+	return s
 }
 
 type PutBucketPolicyOutput struct {
@@ -8594,6 +11541,18 @@ func (s *PutBucketReplicationInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketReplicationInput) SetBucket(v string) *PutBucketReplicationInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetReplicationConfiguration sets the ReplicationConfiguration field's value.
+func (s *PutBucketReplicationInput) SetReplicationConfiguration(v *ReplicationConfiguration) *PutBucketReplicationInput {
+	s.ReplicationConfiguration = v
+	return s
+}
+
 type PutBucketReplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8647,6 +11606,18 @@ func (s *PutBucketRequestPaymentInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketRequestPaymentInput) SetBucket(v string) *PutBucketRequestPaymentInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetRequestPaymentConfiguration sets the RequestPaymentConfiguration field's value.
+func (s *PutBucketRequestPaymentInput) SetRequestPaymentConfiguration(v *RequestPaymentConfiguration) *PutBucketRequestPaymentInput {
+	s.RequestPaymentConfiguration = v
+	return s
 }
 
 type PutBucketRequestPaymentOutput struct {
@@ -8704,6 +11675,18 @@ func (s *PutBucketTaggingInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketTaggingInput) SetBucket(v string) *PutBucketTaggingInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetTagging sets the Tagging field's value.
+func (s *PutBucketTaggingInput) SetTagging(v *Tagging) *PutBucketTaggingInput {
+	s.Tagging = v
+	return s
+}
+
 type PutBucketTaggingOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -8756,6 +11739,24 @@ func (s *PutBucketVersioningInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketVersioningInput) SetBucket(v string) *PutBucketVersioningInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetMFA sets the MFA field's value.
+func (s *PutBucketVersioningInput) SetMFA(v string) *PutBucketVersioningInput {
+	s.MFA = &v
+	return s
+}
+
+// SetVersioningConfiguration sets the VersioningConfiguration field's value.
+func (s *PutBucketVersioningInput) SetVersioningConfiguration(v *VersioningConfiguration) *PutBucketVersioningInput {
+	s.VersioningConfiguration = v
+	return s
 }
 
 type PutBucketVersioningOutput struct {
@@ -8811,6 +11812,18 @@ func (s *PutBucketWebsiteInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutBucketWebsiteInput) SetBucket(v string) *PutBucketWebsiteInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetWebsiteConfiguration sets the WebsiteConfiguration field's value.
+func (s *PutBucketWebsiteInput) SetWebsiteConfiguration(v *WebsiteConfiguration) *PutBucketWebsiteInput {
+	s.WebsiteConfiguration = v
+	return s
 }
 
 type PutBucketWebsiteOutput struct {
@@ -8901,6 +11914,72 @@ func (s *PutObjectAclInput) Validate() error {
 	return nil
 }
 
+// SetACL sets the ACL field's value.
+func (s *PutObjectAclInput) SetACL(v string) *PutObjectAclInput {
+	s.ACL = &v
+	return s
+}
+
+// SetAccessControlPolicy sets the AccessControlPolicy field's value.
+func (s *PutObjectAclInput) SetAccessControlPolicy(v *AccessControlPolicy) *PutObjectAclInput {
+	s.AccessControlPolicy = v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutObjectAclInput) SetBucket(v string) *PutObjectAclInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetGrantFullControl sets the GrantFullControl field's value.
+func (s *PutObjectAclInput) SetGrantFullControl(v string) *PutObjectAclInput {
+	s.GrantFullControl = &v
+	return s
+}
+
+// SetGrantRead sets the GrantRead field's value.
+func (s *PutObjectAclInput) SetGrantRead(v string) *PutObjectAclInput {
+	s.GrantRead = &v
+	return s
+}
+
+// SetGrantReadACP sets the GrantReadACP field's value.
+func (s *PutObjectAclInput) SetGrantReadACP(v string) *PutObjectAclInput {
+	s.GrantReadACP = &v
+	return s
+}
+
+// SetGrantWrite sets the GrantWrite field's value.
+func (s *PutObjectAclInput) SetGrantWrite(v string) *PutObjectAclInput {
+	s.GrantWrite = &v
+	return s
+}
+
+// SetGrantWriteACP sets the GrantWriteACP field's value.
+func (s *PutObjectAclInput) SetGrantWriteACP(v string) *PutObjectAclInput {
+	s.GrantWriteACP = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *PutObjectAclInput) SetKey(v string) *PutObjectAclInput {
+	s.Key = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *PutObjectAclInput) SetRequestPayer(v string) *PutObjectAclInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *PutObjectAclInput) SetVersionId(v string) *PutObjectAclInput {
+	s.VersionId = &v
+	return s
+}
+
 type PutObjectAclOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -8917,6 +11996,12 @@ func (s PutObjectAclOutput) String() string {
 // GoString returns the string representation
 func (s PutObjectAclOutput) GoString() string {
 	return s.String()
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *PutObjectAclOutput) SetRequestCharged(v string) *PutObjectAclOutput {
+	s.RequestCharged = &v
+	return s
 }
 
 type PutObjectInput struct {
@@ -9046,6 +12131,150 @@ func (s *PutObjectInput) Validate() error {
 	return nil
 }
 
+// SetACL sets the ACL field's value.
+func (s *PutObjectInput) SetACL(v string) *PutObjectInput {
+	s.ACL = &v
+	return s
+}
+
+// SetBody sets the Body field's value.
+func (s *PutObjectInput) SetBody(v io.ReadSeeker) *PutObjectInput {
+	s.Body = v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *PutObjectInput) SetBucket(v string) *PutObjectInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetCacheControl sets the CacheControl field's value.
+func (s *PutObjectInput) SetCacheControl(v string) *PutObjectInput {
+	s.CacheControl = &v
+	return s
+}
+
+// SetContentDisposition sets the ContentDisposition field's value.
+func (s *PutObjectInput) SetContentDisposition(v string) *PutObjectInput {
+	s.ContentDisposition = &v
+	return s
+}
+
+// SetContentEncoding sets the ContentEncoding field's value.
+func (s *PutObjectInput) SetContentEncoding(v string) *PutObjectInput {
+	s.ContentEncoding = &v
+	return s
+}
+
+// SetContentLanguage sets the ContentLanguage field's value.
+func (s *PutObjectInput) SetContentLanguage(v string) *PutObjectInput {
+	s.ContentLanguage = &v
+	return s
+}
+
+// SetContentLength sets the ContentLength field's value.
+func (s *PutObjectInput) SetContentLength(v int64) *PutObjectInput {
+	s.ContentLength = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *PutObjectInput) SetContentType(v string) *PutObjectInput {
+	s.ContentType = &v
+	return s
+}
+
+// SetExpires sets the Expires field's value.
+func (s *PutObjectInput) SetExpires(v time.Time) *PutObjectInput {
+	s.Expires = &v
+	return s
+}
+
+// SetGrantFullControl sets the GrantFullControl field's value.
+func (s *PutObjectInput) SetGrantFullControl(v string) *PutObjectInput {
+	s.GrantFullControl = &v
+	return s
+}
+
+// SetGrantRead sets the GrantRead field's value.
+func (s *PutObjectInput) SetGrantRead(v string) *PutObjectInput {
+	s.GrantRead = &v
+	return s
+}
+
+// SetGrantReadACP sets the GrantReadACP field's value.
+func (s *PutObjectInput) SetGrantReadACP(v string) *PutObjectInput {
+	s.GrantReadACP = &v
+	return s
+}
+
+// SetGrantWriteACP sets the GrantWriteACP field's value.
+func (s *PutObjectInput) SetGrantWriteACP(v string) *PutObjectInput {
+	s.GrantWriteACP = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *PutObjectInput) SetKey(v string) *PutObjectInput {
+	s.Key = &v
+	return s
+}
+
+// SetMetadata sets the Metadata field's value.
+func (s *PutObjectInput) SetMetadata(v map[string]*string) *PutObjectInput {
+	s.Metadata = v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *PutObjectInput) SetRequestPayer(v string) *PutObjectInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *PutObjectInput) SetSSECustomerAlgorithm(v string) *PutObjectInput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKey sets the SSECustomerKey field's value.
+func (s *PutObjectInput) SetSSECustomerKey(v string) *PutObjectInput {
+	s.SSECustomerKey = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *PutObjectInput) SetSSECustomerKeyMD5(v string) *PutObjectInput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *PutObjectInput) SetSSEKMSKeyId(v string) *PutObjectInput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *PutObjectInput) SetServerSideEncryption(v string) *PutObjectInput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *PutObjectInput) SetStorageClass(v string) *PutObjectInput {
+	s.StorageClass = &v
+	return s
+}
+
+// SetWebsiteRedirectLocation sets the WebsiteRedirectLocation field's value.
+func (s *PutObjectInput) SetWebsiteRedirectLocation(v string) *PutObjectInput {
+	s.WebsiteRedirectLocation = &v
+	return s
+}
+
 type PutObjectOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -9092,6 +12321,54 @@ func (s PutObjectOutput) GoString() string {
 	return s.String()
 }
 
+// SetETag sets the ETag field's value.
+func (s *PutObjectOutput) SetETag(v string) *PutObjectOutput {
+	s.ETag = &v
+	return s
+}
+
+// SetExpiration sets the Expiration field's value.
+func (s *PutObjectOutput) SetExpiration(v string) *PutObjectOutput {
+	s.Expiration = &v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *PutObjectOutput) SetRequestCharged(v string) *PutObjectOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *PutObjectOutput) SetSSECustomerAlgorithm(v string) *PutObjectOutput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *PutObjectOutput) SetSSECustomerKeyMD5(v string) *PutObjectOutput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *PutObjectOutput) SetSSEKMSKeyId(v string) *PutObjectOutput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *PutObjectOutput) SetServerSideEncryption(v string) *PutObjectOutput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *PutObjectOutput) SetVersionId(v string) *PutObjectOutput {
+	s.VersionId = &v
+	return s
+}
+
 // Container for specifying an configuration when you want Amazon S3 to publish
 // events to an Amazon Simple Queue Service (Amazon SQS) queue.
 type QueueConfiguration struct {
@@ -9102,7 +12379,6 @@ type QueueConfiguration struct {
 
 	// Container for object key name filtering rules. For information about key
 	// name filtering, go to Configuring Event Notifications (http://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html)
-	// in the Amazon Simple Storage Service Developer Guide.
 	Filter *NotificationConfigurationFilter `type:"structure"`
 
 	// Optional unique identifier for configurations in a notification configuration.
@@ -9142,6 +12418,30 @@ func (s *QueueConfiguration) Validate() error {
 	return nil
 }
 
+// SetEvents sets the Events field's value.
+func (s *QueueConfiguration) SetEvents(v []*string) *QueueConfiguration {
+	s.Events = v
+	return s
+}
+
+// SetFilter sets the Filter field's value.
+func (s *QueueConfiguration) SetFilter(v *NotificationConfigurationFilter) *QueueConfiguration {
+	s.Filter = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *QueueConfiguration) SetId(v string) *QueueConfiguration {
+	s.Id = &v
+	return s
+}
+
+// SetQueueArn sets the QueueArn field's value.
+func (s *QueueConfiguration) SetQueueArn(v string) *QueueConfiguration {
+	s.QueueArn = &v
+	return s
+}
+
 type QueueConfigurationDeprecated struct {
 	_ struct{} `type:"structure"`
 
@@ -9165,6 +12465,30 @@ func (s QueueConfigurationDeprecated) String() string {
 // GoString returns the string representation
 func (s QueueConfigurationDeprecated) GoString() string {
 	return s.String()
+}
+
+// SetEvent sets the Event field's value.
+func (s *QueueConfigurationDeprecated) SetEvent(v string) *QueueConfigurationDeprecated {
+	s.Event = &v
+	return s
+}
+
+// SetEvents sets the Events field's value.
+func (s *QueueConfigurationDeprecated) SetEvents(v []*string) *QueueConfigurationDeprecated {
+	s.Events = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *QueueConfigurationDeprecated) SetId(v string) *QueueConfigurationDeprecated {
+	s.Id = &v
+	return s
+}
+
+// SetQueue sets the Queue field's value.
+func (s *QueueConfigurationDeprecated) SetQueue(v string) *QueueConfigurationDeprecated {
+	s.Queue = &v
+	return s
 }
 
 type Redirect struct {
@@ -9205,6 +12529,36 @@ func (s Redirect) GoString() string {
 	return s.String()
 }
 
+// SetHostName sets the HostName field's value.
+func (s *Redirect) SetHostName(v string) *Redirect {
+	s.HostName = &v
+	return s
+}
+
+// SetHttpRedirectCode sets the HttpRedirectCode field's value.
+func (s *Redirect) SetHttpRedirectCode(v string) *Redirect {
+	s.HttpRedirectCode = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *Redirect) SetProtocol(v string) *Redirect {
+	s.Protocol = &v
+	return s
+}
+
+// SetReplaceKeyPrefixWith sets the ReplaceKeyPrefixWith field's value.
+func (s *Redirect) SetReplaceKeyPrefixWith(v string) *Redirect {
+	s.ReplaceKeyPrefixWith = &v
+	return s
+}
+
+// SetReplaceKeyWith sets the ReplaceKeyWith field's value.
+func (s *Redirect) SetReplaceKeyWith(v string) *Redirect {
+	s.ReplaceKeyWith = &v
+	return s
+}
+
 type RedirectAllRequestsTo struct {
 	_ struct{} `type:"structure"`
 
@@ -9239,6 +12593,18 @@ func (s *RedirectAllRequestsTo) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetHostName sets the HostName field's value.
+func (s *RedirectAllRequestsTo) SetHostName(v string) *RedirectAllRequestsTo {
+	s.HostName = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *RedirectAllRequestsTo) SetProtocol(v string) *RedirectAllRequestsTo {
+	s.Protocol = &v
+	return s
 }
 
 // Container for replication rules. You can add as many as 1,000 rules. Total
@@ -9293,6 +12659,18 @@ func (s *ReplicationConfiguration) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetRole sets the Role field's value.
+func (s *ReplicationConfiguration) SetRole(v string) *ReplicationConfiguration {
+	s.Role = &v
+	return s
+}
+
+// SetRules sets the Rules field's value.
+func (s *ReplicationConfiguration) SetRules(v []*ReplicationRule) *ReplicationConfiguration {
+	s.Rules = v
+	return s
 }
 
 type ReplicationRule struct {
@@ -9351,6 +12729,30 @@ func (s *ReplicationRule) Validate() error {
 	return nil
 }
 
+// SetDestination sets the Destination field's value.
+func (s *ReplicationRule) SetDestination(v *Destination) *ReplicationRule {
+	s.Destination = v
+	return s
+}
+
+// SetID sets the ID field's value.
+func (s *ReplicationRule) SetID(v string) *ReplicationRule {
+	s.ID = &v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *ReplicationRule) SetPrefix(v string) *ReplicationRule {
+	s.Prefix = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *ReplicationRule) SetStatus(v string) *ReplicationRule {
+	s.Status = &v
+	return s
+}
+
 type RequestPaymentConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -9381,6 +12783,12 @@ func (s *RequestPaymentConfiguration) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetPayer sets the Payer field's value.
+func (s *RequestPaymentConfiguration) SetPayer(v string) *RequestPaymentConfiguration {
+	s.Payer = &v
+	return s
 }
 
 type RestoreObjectInput struct {
@@ -9437,6 +12845,36 @@ func (s *RestoreObjectInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *RestoreObjectInput) SetBucket(v string) *RestoreObjectInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *RestoreObjectInput) SetKey(v string) *RestoreObjectInput {
+	s.Key = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *RestoreObjectInput) SetRequestPayer(v string) *RestoreObjectInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetRestoreRequest sets the RestoreRequest field's value.
+func (s *RestoreObjectInput) SetRestoreRequest(v *RestoreRequest) *RestoreObjectInput {
+	s.RestoreRequest = v
+	return s
+}
+
+// SetVersionId sets the VersionId field's value.
+func (s *RestoreObjectInput) SetVersionId(v string) *RestoreObjectInput {
+	s.VersionId = &v
+	return s
+}
+
 type RestoreObjectOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -9453,6 +12891,12 @@ func (s RestoreObjectOutput) String() string {
 // GoString returns the string representation
 func (s RestoreObjectOutput) GoString() string {
 	return s.String()
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *RestoreObjectOutput) SetRequestCharged(v string) *RestoreObjectOutput {
+	s.RequestCharged = &v
+	return s
 }
 
 type RestoreRequest struct {
@@ -9485,6 +12929,12 @@ func (s *RestoreRequest) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDays sets the Days field's value.
+func (s *RestoreRequest) SetDays(v int64) *RestoreRequest {
+	s.Days = &v
+	return s
 }
 
 type RoutingRule struct {
@@ -9525,6 +12975,18 @@ func (s *RoutingRule) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCondition sets the Condition field's value.
+func (s *RoutingRule) SetCondition(v *Condition) *RoutingRule {
+	s.Condition = v
+	return s
+}
+
+// SetRedirect sets the Redirect field's value.
+func (s *RoutingRule) SetRedirect(v *Redirect) *RoutingRule {
+	s.Redirect = v
+	return s
 }
 
 type Rule struct {
@@ -9593,6 +13055,54 @@ func (s *Rule) Validate() error {
 	return nil
 }
 
+// SetAbortIncompleteMultipartUpload sets the AbortIncompleteMultipartUpload field's value.
+func (s *Rule) SetAbortIncompleteMultipartUpload(v *AbortIncompleteMultipartUpload) *Rule {
+	s.AbortIncompleteMultipartUpload = v
+	return s
+}
+
+// SetExpiration sets the Expiration field's value.
+func (s *Rule) SetExpiration(v *LifecycleExpiration) *Rule {
+	s.Expiration = v
+	return s
+}
+
+// SetID sets the ID field's value.
+func (s *Rule) SetID(v string) *Rule {
+	s.ID = &v
+	return s
+}
+
+// SetNoncurrentVersionExpiration sets the NoncurrentVersionExpiration field's value.
+func (s *Rule) SetNoncurrentVersionExpiration(v *NoncurrentVersionExpiration) *Rule {
+	s.NoncurrentVersionExpiration = v
+	return s
+}
+
+// SetNoncurrentVersionTransition sets the NoncurrentVersionTransition field's value.
+func (s *Rule) SetNoncurrentVersionTransition(v *NoncurrentVersionTransition) *Rule {
+	s.NoncurrentVersionTransition = v
+	return s
+}
+
+// SetPrefix sets the Prefix field's value.
+func (s *Rule) SetPrefix(v string) *Rule {
+	s.Prefix = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *Rule) SetStatus(v string) *Rule {
+	s.Status = &v
+	return s
+}
+
+// SetTransition sets the Transition field's value.
+func (s *Rule) SetTransition(v *Transition) *Rule {
+	s.Transition = v
+	return s
+}
+
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -9636,6 +13146,18 @@ func (s *Tag) Validate() error {
 	return nil
 }
 
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
 type Tagging struct {
 	_ struct{} `type:"structure"`
 
@@ -9676,6 +13198,12 @@ func (s *Tagging) Validate() error {
 	return nil
 }
 
+// SetTagSet sets the TagSet field's value.
+func (s *Tagging) SetTagSet(v []*Tag) *Tagging {
+	s.TagSet = v
+	return s
+}
+
 type TargetGrant struct {
 	_ struct{} `type:"structure"`
 
@@ -9710,6 +13238,18 @@ func (s *TargetGrant) Validate() error {
 	return nil
 }
 
+// SetGrantee sets the Grantee field's value.
+func (s *TargetGrant) SetGrantee(v *Grantee) *TargetGrant {
+	s.Grantee = v
+	return s
+}
+
+// SetPermission sets the Permission field's value.
+func (s *TargetGrant) SetPermission(v string) *TargetGrant {
+	s.Permission = &v
+	return s
+}
+
 // Container for specifying the configuration when you want Amazon S3 to publish
 // events to an Amazon Simple Notification Service (Amazon SNS) topic.
 type TopicConfiguration struct {
@@ -9720,7 +13260,6 @@ type TopicConfiguration struct {
 
 	// Container for object key name filtering rules. For information about key
 	// name filtering, go to Configuring Event Notifications (http://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html)
-	// in the Amazon Simple Storage Service Developer Guide.
 	Filter *NotificationConfigurationFilter `type:"structure"`
 
 	// Optional unique identifier for configurations in a notification configuration.
@@ -9760,6 +13299,30 @@ func (s *TopicConfiguration) Validate() error {
 	return nil
 }
 
+// SetEvents sets the Events field's value.
+func (s *TopicConfiguration) SetEvents(v []*string) *TopicConfiguration {
+	s.Events = v
+	return s
+}
+
+// SetFilter sets the Filter field's value.
+func (s *TopicConfiguration) SetFilter(v *NotificationConfigurationFilter) *TopicConfiguration {
+	s.Filter = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *TopicConfiguration) SetId(v string) *TopicConfiguration {
+	s.Id = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *TopicConfiguration) SetTopicArn(v string) *TopicConfiguration {
+	s.TopicArn = &v
+	return s
+}
+
 type TopicConfigurationDeprecated struct {
 	_ struct{} `type:"structure"`
 
@@ -9787,6 +13350,30 @@ func (s TopicConfigurationDeprecated) GoString() string {
 	return s.String()
 }
 
+// SetEvent sets the Event field's value.
+func (s *TopicConfigurationDeprecated) SetEvent(v string) *TopicConfigurationDeprecated {
+	s.Event = &v
+	return s
+}
+
+// SetEvents sets the Events field's value.
+func (s *TopicConfigurationDeprecated) SetEvents(v []*string) *TopicConfigurationDeprecated {
+	s.Events = v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *TopicConfigurationDeprecated) SetId(v string) *TopicConfigurationDeprecated {
+	s.Id = &v
+	return s
+}
+
+// SetTopic sets the Topic field's value.
+func (s *TopicConfigurationDeprecated) SetTopic(v string) *TopicConfigurationDeprecated {
+	s.Topic = &v
+	return s
+}
+
 type Transition struct {
 	_ struct{} `type:"structure"`
 
@@ -9810,6 +13397,24 @@ func (s Transition) String() string {
 // GoString returns the string representation
 func (s Transition) GoString() string {
 	return s.String()
+}
+
+// SetDate sets the Date field's value.
+func (s *Transition) SetDate(v time.Time) *Transition {
+	s.Date = &v
+	return s
+}
+
+// SetDays sets the Days field's value.
+func (s *Transition) SetDays(v int64) *Transition {
+	s.Days = &v
+	return s
+}
+
+// SetStorageClass sets the StorageClass field's value.
+func (s *Transition) SetStorageClass(v string) *Transition {
+	s.StorageClass = &v
+	return s
 }
 
 type UploadPartCopyInput struct {
@@ -9932,6 +13537,108 @@ func (s *UploadPartCopyInput) Validate() error {
 	return nil
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *UploadPartCopyInput) SetBucket(v string) *UploadPartCopyInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetCopySource sets the CopySource field's value.
+func (s *UploadPartCopyInput) SetCopySource(v string) *UploadPartCopyInput {
+	s.CopySource = &v
+	return s
+}
+
+// SetCopySourceIfMatch sets the CopySourceIfMatch field's value.
+func (s *UploadPartCopyInput) SetCopySourceIfMatch(v string) *UploadPartCopyInput {
+	s.CopySourceIfMatch = &v
+	return s
+}
+
+// SetCopySourceIfModifiedSince sets the CopySourceIfModifiedSince field's value.
+func (s *UploadPartCopyInput) SetCopySourceIfModifiedSince(v time.Time) *UploadPartCopyInput {
+	s.CopySourceIfModifiedSince = &v
+	return s
+}
+
+// SetCopySourceIfNoneMatch sets the CopySourceIfNoneMatch field's value.
+func (s *UploadPartCopyInput) SetCopySourceIfNoneMatch(v string) *UploadPartCopyInput {
+	s.CopySourceIfNoneMatch = &v
+	return s
+}
+
+// SetCopySourceIfUnmodifiedSince sets the CopySourceIfUnmodifiedSince field's value.
+func (s *UploadPartCopyInput) SetCopySourceIfUnmodifiedSince(v time.Time) *UploadPartCopyInput {
+	s.CopySourceIfUnmodifiedSince = &v
+	return s
+}
+
+// SetCopySourceRange sets the CopySourceRange field's value.
+func (s *UploadPartCopyInput) SetCopySourceRange(v string) *UploadPartCopyInput {
+	s.CopySourceRange = &v
+	return s
+}
+
+// SetCopySourceSSECustomerAlgorithm sets the CopySourceSSECustomerAlgorithm field's value.
+func (s *UploadPartCopyInput) SetCopySourceSSECustomerAlgorithm(v string) *UploadPartCopyInput {
+	s.CopySourceSSECustomerAlgorithm = &v
+	return s
+}
+
+// SetCopySourceSSECustomerKey sets the CopySourceSSECustomerKey field's value.
+func (s *UploadPartCopyInput) SetCopySourceSSECustomerKey(v string) *UploadPartCopyInput {
+	s.CopySourceSSECustomerKey = &v
+	return s
+}
+
+// SetCopySourceSSECustomerKeyMD5 sets the CopySourceSSECustomerKeyMD5 field's value.
+func (s *UploadPartCopyInput) SetCopySourceSSECustomerKeyMD5(v string) *UploadPartCopyInput {
+	s.CopySourceSSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *UploadPartCopyInput) SetKey(v string) *UploadPartCopyInput {
+	s.Key = &v
+	return s
+}
+
+// SetPartNumber sets the PartNumber field's value.
+func (s *UploadPartCopyInput) SetPartNumber(v int64) *UploadPartCopyInput {
+	s.PartNumber = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *UploadPartCopyInput) SetRequestPayer(v string) *UploadPartCopyInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *UploadPartCopyInput) SetSSECustomerAlgorithm(v string) *UploadPartCopyInput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKey sets the SSECustomerKey field's value.
+func (s *UploadPartCopyInput) SetSSECustomerKey(v string) *UploadPartCopyInput {
+	s.SSECustomerKey = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *UploadPartCopyInput) SetSSECustomerKeyMD5(v string) *UploadPartCopyInput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *UploadPartCopyInput) SetUploadId(v string) *UploadPartCopyInput {
+	s.UploadId = &v
+	return s
+}
+
 type UploadPartCopyOutput struct {
 	_ struct{} `type:"structure" payload:"CopyPartResult"`
 
@@ -9972,6 +13679,48 @@ func (s UploadPartCopyOutput) String() string {
 // GoString returns the string representation
 func (s UploadPartCopyOutput) GoString() string {
 	return s.String()
+}
+
+// SetCopyPartResult sets the CopyPartResult field's value.
+func (s *UploadPartCopyOutput) SetCopyPartResult(v *CopyPartResult) *UploadPartCopyOutput {
+	s.CopyPartResult = v
+	return s
+}
+
+// SetCopySourceVersionId sets the CopySourceVersionId field's value.
+func (s *UploadPartCopyOutput) SetCopySourceVersionId(v string) *UploadPartCopyOutput {
+	s.CopySourceVersionId = &v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *UploadPartCopyOutput) SetRequestCharged(v string) *UploadPartCopyOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *UploadPartCopyOutput) SetSSECustomerAlgorithm(v string) *UploadPartCopyOutput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *UploadPartCopyOutput) SetSSECustomerKeyMD5(v string) *UploadPartCopyOutput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *UploadPartCopyOutput) SetSSEKMSKeyId(v string) *UploadPartCopyOutput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *UploadPartCopyOutput) SetServerSideEncryption(v string) *UploadPartCopyOutput {
+	s.ServerSideEncryption = &v
+	return s
 }
 
 type UploadPartInput struct {
@@ -10063,6 +13812,66 @@ func (s *UploadPartInput) Validate() error {
 	return nil
 }
 
+// SetBody sets the Body field's value.
+func (s *UploadPartInput) SetBody(v io.ReadSeeker) *UploadPartInput {
+	s.Body = v
+	return s
+}
+
+// SetBucket sets the Bucket field's value.
+func (s *UploadPartInput) SetBucket(v string) *UploadPartInput {
+	s.Bucket = &v
+	return s
+}
+
+// SetContentLength sets the ContentLength field's value.
+func (s *UploadPartInput) SetContentLength(v int64) *UploadPartInput {
+	s.ContentLength = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *UploadPartInput) SetKey(v string) *UploadPartInput {
+	s.Key = &v
+	return s
+}
+
+// SetPartNumber sets the PartNumber field's value.
+func (s *UploadPartInput) SetPartNumber(v int64) *UploadPartInput {
+	s.PartNumber = &v
+	return s
+}
+
+// SetRequestPayer sets the RequestPayer field's value.
+func (s *UploadPartInput) SetRequestPayer(v string) *UploadPartInput {
+	s.RequestPayer = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *UploadPartInput) SetSSECustomerAlgorithm(v string) *UploadPartInput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKey sets the SSECustomerKey field's value.
+func (s *UploadPartInput) SetSSECustomerKey(v string) *UploadPartInput {
+	s.SSECustomerKey = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *UploadPartInput) SetSSECustomerKeyMD5(v string) *UploadPartInput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetUploadId sets the UploadId field's value.
+func (s *UploadPartInput) SetUploadId(v string) *UploadPartInput {
+	s.UploadId = &v
+	return s
+}
+
 type UploadPartOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -10102,6 +13911,42 @@ func (s UploadPartOutput) GoString() string {
 	return s.String()
 }
 
+// SetETag sets the ETag field's value.
+func (s *UploadPartOutput) SetETag(v string) *UploadPartOutput {
+	s.ETag = &v
+	return s
+}
+
+// SetRequestCharged sets the RequestCharged field's value.
+func (s *UploadPartOutput) SetRequestCharged(v string) *UploadPartOutput {
+	s.RequestCharged = &v
+	return s
+}
+
+// SetSSECustomerAlgorithm sets the SSECustomerAlgorithm field's value.
+func (s *UploadPartOutput) SetSSECustomerAlgorithm(v string) *UploadPartOutput {
+	s.SSECustomerAlgorithm = &v
+	return s
+}
+
+// SetSSECustomerKeyMD5 sets the SSECustomerKeyMD5 field's value.
+func (s *UploadPartOutput) SetSSECustomerKeyMD5(v string) *UploadPartOutput {
+	s.SSECustomerKeyMD5 = &v
+	return s
+}
+
+// SetSSEKMSKeyId sets the SSEKMSKeyId field's value.
+func (s *UploadPartOutput) SetSSEKMSKeyId(v string) *UploadPartOutput {
+	s.SSEKMSKeyId = &v
+	return s
+}
+
+// SetServerSideEncryption sets the ServerSideEncryption field's value.
+func (s *UploadPartOutput) SetServerSideEncryption(v string) *UploadPartOutput {
+	s.ServerSideEncryption = &v
+	return s
+}
+
 type VersioningConfiguration struct {
 	_ struct{} `type:"structure"`
 
@@ -10122,6 +13967,18 @@ func (s VersioningConfiguration) String() string {
 // GoString returns the string representation
 func (s VersioningConfiguration) GoString() string {
 	return s.String()
+}
+
+// SetMFADelete sets the MFADelete field's value.
+func (s *VersioningConfiguration) SetMFADelete(v string) *VersioningConfiguration {
+	s.MFADelete = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *VersioningConfiguration) SetStatus(v string) *VersioningConfiguration {
+	s.Status = &v
+	return s
 }
 
 type WebsiteConfiguration struct {
@@ -10179,6 +14036,30 @@ func (s *WebsiteConfiguration) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetErrorDocument sets the ErrorDocument field's value.
+func (s *WebsiteConfiguration) SetErrorDocument(v *ErrorDocument) *WebsiteConfiguration {
+	s.ErrorDocument = v
+	return s
+}
+
+// SetIndexDocument sets the IndexDocument field's value.
+func (s *WebsiteConfiguration) SetIndexDocument(v *IndexDocument) *WebsiteConfiguration {
+	s.IndexDocument = v
+	return s
+}
+
+// SetRedirectAllRequestsTo sets the RedirectAllRequestsTo field's value.
+func (s *WebsiteConfiguration) SetRedirectAllRequestsTo(v *RedirectAllRequestsTo) *WebsiteConfiguration {
+	s.RedirectAllRequestsTo = v
+	return s
+}
+
+// SetRoutingRules sets the RoutingRules field's value.
+func (s *WebsiteConfiguration) SetRoutingRules(v []*RoutingRule) *WebsiteConfiguration {
+	s.RoutingRules = v
+	return s
 }
 
 const (

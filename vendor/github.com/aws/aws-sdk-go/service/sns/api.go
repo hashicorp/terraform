@@ -2572,6 +2572,30 @@ func (s *AddPermissionInput) Validate() error {
 	return nil
 }
 
+// SetAWSAccountId sets the AWSAccountId field's value.
+func (s *AddPermissionInput) SetAWSAccountId(v []*string) *AddPermissionInput {
+	s.AWSAccountId = v
+	return s
+}
+
+// SetActionName sets the ActionName field's value.
+func (s *AddPermissionInput) SetActionName(v []*string) *AddPermissionInput {
+	s.ActionName = v
+	return s
+}
+
+// SetLabel sets the Label field's value.
+func (s *AddPermissionInput) SetLabel(v string) *AddPermissionInput {
+	s.Label = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *AddPermissionInput) SetTopicArn(v string) *AddPermissionInput {
+	s.TopicArn = &v
+	return s
+}
+
 type AddPermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2619,17 +2643,23 @@ func (s *CheckIfPhoneNumberIsOptedOutInput) Validate() error {
 	return nil
 }
 
+// SetPhoneNumber sets the PhoneNumber field's value.
+func (s *CheckIfPhoneNumberIsOptedOutInput) SetPhoneNumber(v string) *CheckIfPhoneNumberIsOptedOutInput {
+	s.PhoneNumber = &v
+	return s
+}
+
 // The response from the CheckIfPhoneNumberIsOptedOut action.
 type CheckIfPhoneNumberIsOptedOutOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Indicates whether the phone number is opted out:
 	//
-	//    true – The phone number is opted out, meaning you cannot publish SMS
-	// messages to it.
+	//    * true – The phone number is opted out, meaning you cannot publish SMS
+	//    messages to it.
 	//
-	//    false – The phone number is opted in, meaning you can publish SMS messages
-	// to it.
+	//    * false – The phone number is opted in, meaning you can publish SMS messages
+	//    to it.
 	IsOptedOut *bool `locationName:"isOptedOut" type:"boolean"`
 }
 
@@ -2641,6 +2671,12 @@ func (s CheckIfPhoneNumberIsOptedOutOutput) String() string {
 // GoString returns the string representation
 func (s CheckIfPhoneNumberIsOptedOutOutput) GoString() string {
 	return s.String()
+}
+
+// SetIsOptedOut sets the IsOptedOut field's value.
+func (s *CheckIfPhoneNumberIsOptedOutOutput) SetIsOptedOut(v bool) *CheckIfPhoneNumberIsOptedOutOutput {
+	s.IsOptedOut = &v
+	return s
 }
 
 // Input for ConfirmSubscription action.
@@ -2690,6 +2726,24 @@ func (s *ConfirmSubscriptionInput) Validate() error {
 	return nil
 }
 
+// SetAuthenticateOnUnsubscribe sets the AuthenticateOnUnsubscribe field's value.
+func (s *ConfirmSubscriptionInput) SetAuthenticateOnUnsubscribe(v string) *ConfirmSubscriptionInput {
+	s.AuthenticateOnUnsubscribe = &v
+	return s
+}
+
+// SetToken sets the Token field's value.
+func (s *ConfirmSubscriptionInput) SetToken(v string) *ConfirmSubscriptionInput {
+	s.Token = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *ConfirmSubscriptionInput) SetTopicArn(v string) *ConfirmSubscriptionInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for ConfirmSubscriptions action.
 type ConfirmSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
@@ -2706,6 +2760,12 @@ func (s ConfirmSubscriptionOutput) String() string {
 // GoString returns the string representation
 func (s ConfirmSubscriptionOutput) GoString() string {
 	return s.String()
+}
+
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *ConfirmSubscriptionOutput) SetSubscriptionArn(v string) *ConfirmSubscriptionOutput {
+	s.SubscriptionArn = &v
+	return s
 }
 
 // Input for CreatePlatformApplication action.
@@ -2760,6 +2820,24 @@ func (s *CreatePlatformApplicationInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *CreatePlatformApplicationInput) SetAttributes(v map[string]*string) *CreatePlatformApplicationInput {
+	s.Attributes = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreatePlatformApplicationInput) SetName(v string) *CreatePlatformApplicationInput {
+	s.Name = &v
+	return s
+}
+
+// SetPlatform sets the Platform field's value.
+func (s *CreatePlatformApplicationInput) SetPlatform(v string) *CreatePlatformApplicationInput {
+	s.Platform = &v
+	return s
+}
+
 // Response from CreatePlatformApplication action.
 type CreatePlatformApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -2776,6 +2854,12 @@ func (s CreatePlatformApplicationOutput) String() string {
 // GoString returns the string representation
 func (s CreatePlatformApplicationOutput) GoString() string {
 	return s.String()
+}
+
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *CreatePlatformApplicationOutput) SetPlatformApplicationArn(v string) *CreatePlatformApplicationOutput {
+	s.PlatformApplicationArn = &v
+	return s
 }
 
 // Input for CreatePlatformEndpoint action.
@@ -2831,6 +2915,30 @@ func (s *CreatePlatformEndpointInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *CreatePlatformEndpointInput) SetAttributes(v map[string]*string) *CreatePlatformEndpointInput {
+	s.Attributes = v
+	return s
+}
+
+// SetCustomUserData sets the CustomUserData field's value.
+func (s *CreatePlatformEndpointInput) SetCustomUserData(v string) *CreatePlatformEndpointInput {
+	s.CustomUserData = &v
+	return s
+}
+
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *CreatePlatformEndpointInput) SetPlatformApplicationArn(v string) *CreatePlatformEndpointInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
+// SetToken sets the Token field's value.
+func (s *CreatePlatformEndpointInput) SetToken(v string) *CreatePlatformEndpointInput {
+	s.Token = &v
+	return s
+}
+
 // Response from CreateEndpoint action.
 type CreatePlatformEndpointOutput struct {
 	_ struct{} `type:"structure"`
@@ -2847,6 +2955,12 @@ func (s CreatePlatformEndpointOutput) String() string {
 // GoString returns the string representation
 func (s CreatePlatformEndpointOutput) GoString() string {
 	return s.String()
+}
+
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *CreatePlatformEndpointOutput) SetEndpointArn(v string) *CreatePlatformEndpointOutput {
+	s.EndpointArn = &v
+	return s
 }
 
 // Input for CreateTopic action.
@@ -2886,6 +3000,12 @@ func (s *CreateTopicInput) Validate() error {
 	return nil
 }
 
+// SetName sets the Name field's value.
+func (s *CreateTopicInput) SetName(v string) *CreateTopicInput {
+	s.Name = &v
+	return s
+}
+
 // Response from CreateTopic action.
 type CreateTopicOutput struct {
 	_ struct{} `type:"structure"`
@@ -2902,6 +3022,12 @@ func (s CreateTopicOutput) String() string {
 // GoString returns the string representation
 func (s CreateTopicOutput) GoString() string {
 	return s.String()
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *CreateTopicOutput) SetTopicArn(v string) *CreateTopicOutput {
+	s.TopicArn = &v
+	return s
 }
 
 // Input for DeleteEndpoint action.
@@ -2935,6 +3061,12 @@ func (s *DeleteEndpointInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *DeleteEndpointInput) SetEndpointArn(v string) *DeleteEndpointInput {
+	s.EndpointArn = &v
+	return s
 }
 
 type DeleteEndpointOutput struct {
@@ -2984,6 +3116,12 @@ func (s *DeletePlatformApplicationInput) Validate() error {
 	return nil
 }
 
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *DeletePlatformApplicationInput) SetPlatformApplicationArn(v string) *DeletePlatformApplicationInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 type DeletePlatformApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3030,6 +3168,12 @@ func (s *DeleteTopicInput) Validate() error {
 	return nil
 }
 
+// SetTopicArn sets the TopicArn field's value.
+func (s *DeleteTopicInput) SetTopicArn(v string) *DeleteTopicInput {
+	s.TopicArn = &v
+	return s
+}
+
 type DeleteTopicOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3065,6 +3209,18 @@ func (s Endpoint) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *Endpoint) SetAttributes(v map[string]*string) *Endpoint {
+	s.Attributes = v
+	return s
+}
+
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *Endpoint) SetEndpointArn(v string) *Endpoint {
+	s.EndpointArn = &v
+	return s
+}
+
 // Input for GetEndpointAttributes action.
 type GetEndpointAttributesInput struct {
 	_ struct{} `type:"structure"`
@@ -3098,24 +3254,30 @@ func (s *GetEndpointAttributesInput) Validate() error {
 	return nil
 }
 
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *GetEndpointAttributesInput) SetEndpointArn(v string) *GetEndpointAttributesInput {
+	s.EndpointArn = &v
+	return s
+}
+
 // Response from GetEndpointAttributes of the EndpointArn.
 type GetEndpointAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Attributes include the following:
 	//
-	//    CustomUserData -- arbitrary user data to associate with the endpoint.
-	// Amazon SNS does not use this data. The data must be in UTF-8 format and less
-	// than 2KB.
+	//    * CustomUserData -- arbitrary user data to associate with the endpoint.
+	//    Amazon SNS does not use this data. The data must be in UTF-8 format and
+	//    less than 2KB.
 	//
-	//    Enabled -- flag that enables/disables delivery to the endpoint. Amazon
-	// SNS will set this to false when a notification service indicates to Amazon
-	// SNS that the endpoint is invalid. Users can set it back to true, typically
-	// after updating Token.
+	//    * Enabled -- flag that enables/disables delivery to the endpoint. Amazon
+	//    SNS will set this to false when a notification service indicates to Amazon
+	//    SNS that the endpoint is invalid. Users can set it back to true, typically
+	//    after updating Token.
 	//
-	//    Token -- device token, also referred to as a registration id, for an
-	// app and mobile device. This is returned from the notification service when
-	// an app and mobile device are registered with the notification service.
+	//    * Token -- device token, also referred to as a registration id, for an
+	//    app and mobile device. This is returned from the notification service
+	//    when an app and mobile device are registered with the notification service.
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -3127,6 +3289,12 @@ func (s GetEndpointAttributesOutput) String() string {
 // GoString returns the string representation
 func (s GetEndpointAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *GetEndpointAttributesOutput) SetAttributes(v map[string]*string) *GetEndpointAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // Input for GetPlatformApplicationAttributes action.
@@ -3162,24 +3330,30 @@ func (s *GetPlatformApplicationAttributesInput) Validate() error {
 	return nil
 }
 
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *GetPlatformApplicationAttributesInput) SetPlatformApplicationArn(v string) *GetPlatformApplicationAttributesInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 // Response for GetPlatformApplicationAttributes action.
 type GetPlatformApplicationAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Attributes include the following:
 	//
-	//    EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
-	// should be sent.
+	//    * EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
+	//    should be sent.
 	//
-	//    EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
-	// should be sent.
+	//    * EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
+	//    should be sent.
 	//
-	//    EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
-	// should be sent.
+	//    * EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
+	//    should be sent.
 	//
-	//    EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
-	// should be sent upon Direct Publish delivery failure (permanent) to one of
-	// the application's endpoints.
+	//    * EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
+	//    should be sent upon Direct Publish delivery failure (permanent) to one
+	//    of the application's endpoints.
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -3191,6 +3365,12 @@ func (s GetPlatformApplicationAttributesOutput) String() string {
 // GoString returns the string representation
 func (s GetPlatformApplicationAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *GetPlatformApplicationAttributesOutput) SetAttributes(v map[string]*string) *GetPlatformApplicationAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // The input for the GetSMSAttributes request.
@@ -3216,6 +3396,12 @@ func (s GetSMSAttributesInput) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *GetSMSAttributesInput) SetAttributes(v []*string) *GetSMSAttributesInput {
+	s.Attributes = v
+	return s
+}
+
 // The response from the GetSMSAttributes request.
 type GetSMSAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3232,6 +3418,12 @@ func (s GetSMSAttributesOutput) String() string {
 // GoString returns the string representation
 func (s GetSMSAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *GetSMSAttributesOutput) SetAttributes(v map[string]*string) *GetSMSAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // Input for GetSubscriptionAttributes.
@@ -3267,6 +3459,12 @@ func (s *GetSubscriptionAttributesInput) Validate() error {
 	return nil
 }
 
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *GetSubscriptionAttributesInput) SetSubscriptionArn(v string) *GetSubscriptionAttributesInput {
+	s.SubscriptionArn = &v
+	return s
+}
+
 // Response for GetSubscriptionAttributes action.
 type GetSubscriptionAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3274,21 +3472,21 @@ type GetSubscriptionAttributesOutput struct {
 	// A map of the subscription's attributes. Attributes in this map include the
 	// following:
 	//
-	//    SubscriptionArn -- the subscription's ARN
+	//    * SubscriptionArn -- the subscription's ARN
 	//
-	//    TopicArn -- the topic ARN that the subscription is associated with
+	//    * TopicArn -- the topic ARN that the subscription is associated with
 	//
-	//    Owner -- the AWS account ID of the subscription's owner
+	//    * Owner -- the AWS account ID of the subscription's owner
 	//
-	//    ConfirmationWasAuthenticated -- true if the subscription confirmation
-	// request was authenticated
+	//    * ConfirmationWasAuthenticated -- true if the subscription confirmation
+	//    request was authenticated
 	//
-	//    DeliveryPolicy -- the JSON serialization of the subscription's delivery
-	// policy
+	//    * DeliveryPolicy -- the JSON serialization of the subscription's delivery
+	//    policy
 	//
-	//    EffectiveDeliveryPolicy -- the JSON serialization of the effective delivery
-	// policy that takes into account the topic delivery policy and account system
-	// defaults
+	//    * EffectiveDeliveryPolicy -- the JSON serialization of the effective delivery
+	//    policy that takes into account the topic delivery policy and account system
+	//    defaults
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -3300,6 +3498,12 @@ func (s GetSubscriptionAttributesOutput) String() string {
 // GoString returns the string representation
 func (s GetSubscriptionAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *GetSubscriptionAttributesOutput) SetAttributes(v map[string]*string) *GetSubscriptionAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // Input for GetTopicAttributes action.
@@ -3335,33 +3539,40 @@ func (s *GetTopicAttributesInput) Validate() error {
 	return nil
 }
 
+// SetTopicArn sets the TopicArn field's value.
+func (s *GetTopicAttributesInput) SetTopicArn(v string) *GetTopicAttributesInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for GetTopicAttributes action.
 type GetTopicAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A map of the topic's attributes. Attributes in this map include the following:
 	//
-	//    TopicArn -- the topic's ARN
+	//    * TopicArn -- the topic's ARN
 	//
-	//    Owner -- the AWS account ID of the topic's owner
+	//    * Owner -- the AWS account ID of the topic's owner
 	//
-	//    Policy -- the JSON serialization of the topic's access control policy
+	//    * Policy -- the JSON serialization of the topic's access control policy
 	//
-	//    DisplayName -- the human-readable name used in the "From" field for notifications
-	// to email and email-json endpoints
+	//    * DisplayName -- the human-readable name used in the "From" field for
+	//    notifications to email and email-json endpoints
 	//
-	//    SubscriptionsPending -- the number of subscriptions pending confirmation
-	// on this topic
+	//    * SubscriptionsPending -- the number of subscriptions pending confirmation
+	//    on this topic
 	//
-	//    SubscriptionsConfirmed -- the number of confirmed subscriptions on this
-	// topic
+	//    * SubscriptionsConfirmed -- the number of confirmed subscriptions on this
+	//    topic
 	//
-	//    SubscriptionsDeleted -- the number of deleted subscriptions on this topic
+	//    * SubscriptionsDeleted -- the number of deleted subscriptions on this
+	//    topic
 	//
-	//    DeliveryPolicy -- the JSON serialization of the topic's delivery policy
+	//    * DeliveryPolicy -- the JSON serialization of the topic's delivery policy
 	//
-	//    EffectiveDeliveryPolicy -- the JSON serialization of the effective delivery
-	// policy that takes into account system defaults
+	//    * EffectiveDeliveryPolicy -- the JSON serialization of the effective delivery
+	//    policy that takes into account system defaults
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -3373,6 +3584,12 @@ func (s GetTopicAttributesOutput) String() string {
 // GoString returns the string representation
 func (s GetTopicAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *GetTopicAttributesOutput) SetAttributes(v map[string]*string) *GetTopicAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // Input for ListEndpointsByPlatformApplication action.
@@ -3413,6 +3630,18 @@ func (s *ListEndpointsByPlatformApplicationInput) Validate() error {
 	return nil
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListEndpointsByPlatformApplicationInput) SetNextToken(v string) *ListEndpointsByPlatformApplicationInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *ListEndpointsByPlatformApplicationInput) SetPlatformApplicationArn(v string) *ListEndpointsByPlatformApplicationInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 // Response for ListEndpointsByPlatformApplication action.
 type ListEndpointsByPlatformApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -3435,6 +3664,18 @@ func (s ListEndpointsByPlatformApplicationOutput) GoString() string {
 	return s.String()
 }
 
+// SetEndpoints sets the Endpoints field's value.
+func (s *ListEndpointsByPlatformApplicationOutput) SetEndpoints(v []*Endpoint) *ListEndpointsByPlatformApplicationOutput {
+	s.Endpoints = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListEndpointsByPlatformApplicationOutput) SetNextToken(v string) *ListEndpointsByPlatformApplicationOutput {
+	s.NextToken = &v
+	return s
+}
+
 // The input for the ListPhoneNumbersOptedOut action.
 type ListPhoneNumbersOptedOutInput struct {
 	_ struct{} `type:"structure"`
@@ -3453,6 +3694,12 @@ func (s ListPhoneNumbersOptedOutInput) String() string {
 // GoString returns the string representation
 func (s ListPhoneNumbersOptedOutInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPhoneNumbersOptedOutInput) SetNextToken(v string) *ListPhoneNumbersOptedOutInput {
+	s.NextToken = &v
+	return s
 }
 
 // The response from the ListPhoneNumbersOptedOut action.
@@ -3478,6 +3725,18 @@ func (s ListPhoneNumbersOptedOutOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListPhoneNumbersOptedOutOutput) SetNextToken(v string) *ListPhoneNumbersOptedOutOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPhoneNumbers sets the PhoneNumbers field's value.
+func (s *ListPhoneNumbersOptedOutOutput) SetPhoneNumbers(v []*string) *ListPhoneNumbersOptedOutOutput {
+	s.PhoneNumbers = v
+	return s
+}
+
 // Input for ListPlatformApplications action.
 type ListPlatformApplicationsInput struct {
 	_ struct{} `type:"structure"`
@@ -3495,6 +3754,12 @@ func (s ListPlatformApplicationsInput) String() string {
 // GoString returns the string representation
 func (s ListPlatformApplicationsInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPlatformApplicationsInput) SetNextToken(v string) *ListPlatformApplicationsInput {
+	s.NextToken = &v
+	return s
 }
 
 // Response for ListPlatformApplications action.
@@ -3517,6 +3782,18 @@ func (s ListPlatformApplicationsOutput) String() string {
 // GoString returns the string representation
 func (s ListPlatformApplicationsOutput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPlatformApplicationsOutput) SetNextToken(v string) *ListPlatformApplicationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPlatformApplications sets the PlatformApplications field's value.
+func (s *ListPlatformApplicationsOutput) SetPlatformApplications(v []*PlatformApplication) *ListPlatformApplicationsOutput {
+	s.PlatformApplications = v
+	return s
 }
 
 // Input for ListSubscriptionsByTopic action.
@@ -3555,6 +3832,18 @@ func (s *ListSubscriptionsByTopicInput) Validate() error {
 	return nil
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListSubscriptionsByTopicInput) SetNextToken(v string) *ListSubscriptionsByTopicInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *ListSubscriptionsByTopicInput) SetTopicArn(v string) *ListSubscriptionsByTopicInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for ListSubscriptionsByTopic action.
 type ListSubscriptionsByTopicOutput struct {
 	_ struct{} `type:"structure"`
@@ -3577,6 +3866,18 @@ func (s ListSubscriptionsByTopicOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListSubscriptionsByTopicOutput) SetNextToken(v string) *ListSubscriptionsByTopicOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSubscriptions sets the Subscriptions field's value.
+func (s *ListSubscriptionsByTopicOutput) SetSubscriptions(v []*Subscription) *ListSubscriptionsByTopicOutput {
+	s.Subscriptions = v
+	return s
+}
+
 // Input for ListSubscriptions action.
 type ListSubscriptionsInput struct {
 	_ struct{} `type:"structure"`
@@ -3593,6 +3894,12 @@ func (s ListSubscriptionsInput) String() string {
 // GoString returns the string representation
 func (s ListSubscriptionsInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListSubscriptionsInput) SetNextToken(v string) *ListSubscriptionsInput {
+	s.NextToken = &v
+	return s
 }
 
 // Response for ListSubscriptions action
@@ -3617,6 +3924,18 @@ func (s ListSubscriptionsOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListSubscriptionsOutput) SetNextToken(v string) *ListSubscriptionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSubscriptions sets the Subscriptions field's value.
+func (s *ListSubscriptionsOutput) SetSubscriptions(v []*Subscription) *ListSubscriptionsOutput {
+	s.Subscriptions = v
+	return s
+}
+
 type ListTopicsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3632,6 +3951,12 @@ func (s ListTopicsInput) String() string {
 // GoString returns the string representation
 func (s ListTopicsInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListTopicsInput) SetNextToken(v string) *ListTopicsInput {
+	s.NextToken = &v
+	return s
 }
 
 // Response for ListTopics action.
@@ -3654,6 +3979,18 @@ func (s ListTopicsOutput) String() string {
 // GoString returns the string representation
 func (s ListTopicsOutput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListTopicsOutput) SetNextToken(v string) *ListTopicsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTopics sets the Topics field's value.
+func (s *ListTopicsOutput) SetTopics(v []*Topic) *ListTopicsOutput {
+	s.Topics = v
+	return s
 }
 
 // The user-specified message attribute value. For string data types, the value
@@ -3708,6 +4045,24 @@ func (s *MessageAttributeValue) Validate() error {
 	return nil
 }
 
+// SetBinaryValue sets the BinaryValue field's value.
+func (s *MessageAttributeValue) SetBinaryValue(v []byte) *MessageAttributeValue {
+	s.BinaryValue = v
+	return s
+}
+
+// SetDataType sets the DataType field's value.
+func (s *MessageAttributeValue) SetDataType(v string) *MessageAttributeValue {
+	s.DataType = &v
+	return s
+}
+
+// SetStringValue sets the StringValue field's value.
+func (s *MessageAttributeValue) SetStringValue(v string) *MessageAttributeValue {
+	s.StringValue = &v
+	return s
+}
+
 // Input for the OptInPhoneNumber action.
 type OptInPhoneNumberInput struct {
 	_ struct{} `type:"structure"`
@@ -3739,6 +4094,12 @@ func (s *OptInPhoneNumberInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetPhoneNumber sets the PhoneNumber field's value.
+func (s *OptInPhoneNumberInput) SetPhoneNumber(v string) *OptInPhoneNumberInput {
+	s.PhoneNumber = &v
+	return s
 }
 
 // The response for the OptInPhoneNumber action.
@@ -3777,6 +4138,18 @@ func (s PlatformApplication) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *PlatformApplication) SetAttributes(v map[string]*string) *PlatformApplication {
+	s.Attributes = v
+	return s
+}
+
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *PlatformApplication) SetPlatformApplicationArn(v string) *PlatformApplication {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 // Input for Publish action.
 type PublishInput struct {
 	_ struct{} `type:"structure"`
@@ -3786,37 +4159,37 @@ type PublishInput struct {
 	// If you want to send the same message to all transport protocols, include
 	// the text of the message as a String value.
 	//
-	// If you want to send different messages for each transport protocol, set
-	// the value of the MessageStructure parameter to json and use a JSON object
-	// for the Message parameter.
+	// If you want to send different messages for each transport protocol, set the
+	// value of the MessageStructure parameter to json and use a JSON object for
+	// the Message parameter.
 	//
 	// Constraints: Messages must be UTF-8 encoded strings at most 256 KB in size
 	// (262144 bytes, not 262144 characters).
 	//
 	// JSON-specific constraints:
 	//
-	//   Keys in the JSON object that correspond to supported transport protocols
-	// must have simple JSON string values.
+	//    * Keys in the JSON object that correspond to supported transport protocols
+	//    must have simple JSON string values.
 	//
-	//   The values will be parsed (unescaped) before they are used in outgoing
-	// messages.
+	//    * The values will be parsed (unescaped) before they are used in outgoing
+	//    messages.
 	//
-	//   Outbound notifications are JSON encoded (meaning that the characters will
-	// be reescaped for sending).
+	//    * Outbound notifications are JSON encoded (meaning that the characters
+	//    will be reescaped for sending).
 	//
-	//   Values have a minimum length of 0 (the empty string, "", is allowed).
+	//    * Values have a minimum length of 0 (the empty string, "", is allowed).
 	//
-	//   Values have a maximum length bounded by the overall message size (so,
-	// including multiple protocols may limit message sizes).
+	//    * Values have a maximum length bounded by the overall message size (so,
+	//    including multiple protocols may limit message sizes).
 	//
-	//   Non-string values will cause the key to be ignored.
+	//    * Non-string values will cause the key to be ignored.
 	//
-	//   Keys that do not correspond to supported transport protocols are ignored.
+	//    * Keys that do not correspond to supported transport protocols are ignored.
 	//
-	//   Duplicate keys are not allowed.
+	//    * Duplicate keys are not allowed.
 	//
-	//   Failure to parse or validate any key or value in the message will cause
-	// the Publish call to return an error (no partial delivery).
+	//    * Failure to parse or validate any key or value in the message will cause
+	//    the Publish call to return an error (no partial delivery).
 	//
 	// Message is a required field
 	Message *string `type:"string" required:"true"`
@@ -3829,13 +4202,13 @@ type PublishInput struct {
 	// message to your SMS subscribers and a longer message to your email subscribers.
 	// If you set MessageStructure to json, the value of the Message parameter must:
 	//
-	//   be a syntactically valid JSON object; and
+	//    * be a syntactically valid JSON object; and
 	//
-	//   contain at least a top-level JSON key of "default" with a value that is
-	// a string.
+	//    * contain at least a top-level JSON key of "default" with a value that
+	//    is a string.
 	//
-	//   You can define other top-level keys that define the message you want to
-	// send to a specific transport protocol (e.g., "http").
+	// You can define other top-level keys that define the message you want to send
+	// to a specific transport protocol (e.g., "http").
 	//
 	// For information about sending different messages for each protocol using
 	// the AWS Management Console, go to Create Different Messages for Each Protocol
@@ -3906,6 +4279,48 @@ func (s *PublishInput) Validate() error {
 	return nil
 }
 
+// SetMessage sets the Message field's value.
+func (s *PublishInput) SetMessage(v string) *PublishInput {
+	s.Message = &v
+	return s
+}
+
+// SetMessageAttributes sets the MessageAttributes field's value.
+func (s *PublishInput) SetMessageAttributes(v map[string]*MessageAttributeValue) *PublishInput {
+	s.MessageAttributes = v
+	return s
+}
+
+// SetMessageStructure sets the MessageStructure field's value.
+func (s *PublishInput) SetMessageStructure(v string) *PublishInput {
+	s.MessageStructure = &v
+	return s
+}
+
+// SetPhoneNumber sets the PhoneNumber field's value.
+func (s *PublishInput) SetPhoneNumber(v string) *PublishInput {
+	s.PhoneNumber = &v
+	return s
+}
+
+// SetSubject sets the Subject field's value.
+func (s *PublishInput) SetSubject(v string) *PublishInput {
+	s.Subject = &v
+	return s
+}
+
+// SetTargetArn sets the TargetArn field's value.
+func (s *PublishInput) SetTargetArn(v string) *PublishInput {
+	s.TargetArn = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *PublishInput) SetTopicArn(v string) *PublishInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for Publish action.
 type PublishOutput struct {
 	_ struct{} `type:"structure"`
@@ -3924,6 +4339,12 @@ func (s PublishOutput) String() string {
 // GoString returns the string representation
 func (s PublishOutput) GoString() string {
 	return s.String()
+}
+
+// SetMessageId sets the MessageId field's value.
+func (s *PublishOutput) SetMessageId(v string) *PublishOutput {
+	s.MessageId = &v
+	return s
 }
 
 // Input for RemovePermission action.
@@ -3967,6 +4388,18 @@ func (s *RemovePermissionInput) Validate() error {
 	return nil
 }
 
+// SetLabel sets the Label field's value.
+func (s *RemovePermissionInput) SetLabel(v string) *RemovePermissionInput {
+	s.Label = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *RemovePermissionInput) SetTopicArn(v string) *RemovePermissionInput {
+	s.TopicArn = &v
+	return s
+}
+
 type RemovePermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3987,18 +4420,18 @@ type SetEndpointAttributesInput struct {
 
 	// A map of the endpoint attributes. Attributes in this map include the following:
 	//
-	//    CustomUserData -- arbitrary user data to associate with the endpoint.
-	// Amazon SNS does not use this data. The data must be in UTF-8 format and less
-	// than 2KB.
+	//    * CustomUserData -- arbitrary user data to associate with the endpoint.
+	//    Amazon SNS does not use this data. The data must be in UTF-8 format and
+	//    less than 2KB.
 	//
-	//    Enabled -- flag that enables/disables delivery to the endpoint. Amazon
-	// SNS will set this to false when a notification service indicates to Amazon
-	// SNS that the endpoint is invalid. Users can set it back to true, typically
-	// after updating Token.
+	//    * Enabled -- flag that enables/disables delivery to the endpoint. Amazon
+	//    SNS will set this to false when a notification service indicates to Amazon
+	//    SNS that the endpoint is invalid. Users can set it back to true, typically
+	//    after updating Token.
 	//
-	//    Token -- device token, also referred to as a registration id, for an
-	// app and mobile device. This is returned from the notification service when
-	// an app and mobile device are registered with the notification service.
+	//    * Token -- device token, also referred to as a registration id, for an
+	//    app and mobile device. This is returned from the notification service
+	//    when an app and mobile device are registered with the notification service.
 	//
 	// Attributes is a required field
 	Attributes map[string]*string `type:"map" required:"true"`
@@ -4035,6 +4468,18 @@ func (s *SetEndpointAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *SetEndpointAttributesInput) SetAttributes(v map[string]*string) *SetEndpointAttributesInput {
+	s.Attributes = v
+	return s
+}
+
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *SetEndpointAttributesInput) SetEndpointArn(v string) *SetEndpointAttributesInput {
+	s.EndpointArn = &v
+	return s
+}
+
 type SetEndpointAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4056,35 +4501,37 @@ type SetPlatformApplicationAttributesInput struct {
 	// A map of the platform application attributes. Attributes in this map include
 	// the following:
 	//
-	//    PlatformCredential -- The credential received from the notification service.
-	// For APNS/APNS_SANDBOX, PlatformCredential is private key. For GCM, PlatformCredential
-	// is "API key". For ADM, PlatformCredential is "client secret".
+	//    * PlatformCredential -- The credential received from the notification
+	//    service. For APNS/APNS_SANDBOX, PlatformCredential is private key. For
+	//    GCM, PlatformCredential is "API key". For ADM, PlatformCredential is "client
+	//    secret".
 	//
-	//    PlatformPrincipal -- The principal received from the notification service.
-	// For APNS/APNS_SANDBOX, PlatformPrincipal is SSL certificate. For GCM, PlatformPrincipal
-	// is not applicable. For ADM, PlatformPrincipal is "client id".
+	//    * PlatformPrincipal -- The principal received from the notification service.
+	//    For APNS/APNS_SANDBOX, PlatformPrincipal is SSL certificate. For GCM,
+	//    PlatformPrincipal is not applicable. For ADM, PlatformPrincipal is "client
+	//    id".
 	//
-	//    EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
-	// should be sent.
+	//    * EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
+	//    should be sent.
 	//
-	//    EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
-	// should be sent.
+	//    * EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
+	//    should be sent.
 	//
-	//    EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
-	// should be sent.
+	//    * EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
+	//    should be sent.
 	//
-	//    EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
-	// should be sent upon Direct Publish delivery failure (permanent) to one of
-	// the application's endpoints.
+	//    * EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
+	//    should be sent upon Direct Publish delivery failure (permanent) to one
+	//    of the application's endpoints.
 	//
-	//    SuccessFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write
-	// access to use CloudWatch Logs on your behalf.
+	//    * SuccessFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write
+	//    access to use CloudWatch Logs on your behalf.
 	//
-	//    FailureFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write
-	// access to use CloudWatch Logs on your behalf.
+	//    * FailureFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write
+	//    access to use CloudWatch Logs on your behalf.
 	//
-	//    SuccessFeedbackSampleRate -- Sample rate percentage (0-100) of successfully
-	// delivered messages.
+	//    * SuccessFeedbackSampleRate -- Sample rate percentage (0-100) of successfully
+	//    delivered messages.
 	//
 	// Attributes is a required field
 	Attributes map[string]*string `type:"map" required:"true"`
@@ -4121,6 +4568,18 @@ func (s *SetPlatformApplicationAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *SetPlatformApplicationAttributesInput) SetAttributes(v map[string]*string) *SetPlatformApplicationAttributesInput {
+	s.Attributes = v
+	return s
+}
+
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *SetPlatformApplicationAttributesInput) SetPlatformApplicationArn(v string) *SetPlatformApplicationAttributesInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 type SetPlatformApplicationAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4142,69 +4601,69 @@ type SetSMSAttributesInput struct {
 	// The default settings for sending SMS messages from your account. You can
 	// set values for the following attribute names:
 	//
-	//  MonthlySpendLimit – The maximum amount in USD that you are willing to spend
+	// MonthlySpendLimit – The maximum amount in USD that you are willing to spend
 	// each month to send SMS messages. When Amazon SNS determines that sending
 	// an SMS message would incur a cost that exceeds this limit, it stops sending
 	// SMS messages within minutes.
 	//
-	//  Amazon SNS stops sending SMS messages within minutes of the limit being
-	// crossed. During that interval, if you continue to send SMS messages, you
-	// will incur costs that exceed your limit.
+	// Amazon SNS stops sending SMS messages within minutes of the limit being crossed.
+	// During that interval, if you continue to send SMS messages, you will incur
+	// costs that exceed your limit.
 	//
-	//  By default, the spend limit is set to the maximum allowed by Amazon SNS.
+	// By default, the spend limit is set to the maximum allowed by Amazon SNS.
 	// If you want to exceed the maximum, contact AWS Support (https://aws.amazon.com/premiumsupport/)
 	// or your AWS sales representative for a service limit increase.
 	//
-	//  DeliveryStatusIAMRole – The ARN of the IAM role that allows Amazon SNS
-	// to write logs about SMS deliveries in CloudWatch Logs. For each SMS message
+	// DeliveryStatusIAMRole – The ARN of the IAM role that allows Amazon SNS to
+	// write logs about SMS deliveries in CloudWatch Logs. For each SMS message
 	// that you send, Amazon SNS writes a log that includes the message price, the
 	// success or failure status, the reason for failure (if the message failed),
 	// the message dwell time, and other information.
 	//
-	//  DeliveryStatusSuccessSamplingRate – The percentage of successful SMS deliveries
+	// DeliveryStatusSuccessSamplingRate – The percentage of successful SMS deliveries
 	// for which Amazon SNS will write logs in CloudWatch Logs. The value can be
 	// an integer from 0 - 100. For example, to write logs only for failed deliveries,
 	// set this value to 0. To write logs for 10% of your successful deliveries,
 	// set it to 10.
 	//
-	//  DefaultSenderID – A string, such as your business brand, that is displayed
+	// DefaultSenderID – A string, such as your business brand, that is displayed
 	// as the sender on the receiving device. Support for sender IDs varies by country.
 	// The sender ID can be 1 - 11 alphanumeric characters, and it must contain
 	// at least one letter.
 	//
-	//  DefaultSMSType – The type of SMS message that you will send by default.
-	// You can assign the following values:
+	// DefaultSMSType – The type of SMS message that you will send by default. You
+	// can assign the following values:
 	//
-	//    Promotional – (Default) Noncritical messages, such as marketing messages.
-	// Amazon SNS optimizes the message delivery to incur the lowest cost.
+	//    * Promotional – (Default) Noncritical messages, such as marketing messages.
+	//    Amazon SNS optimizes the message delivery to incur the lowest cost.
 	//
-	//    Transactional – Critical messages that support customer transactions,
-	// such as one-time passcodes for multi-factor authentication. Amazon SNS optimizes
-	// the message delivery to achieve the highest reliability.
+	//    * Transactional – Critical messages that support customer transactions,
+	//    such as one-time passcodes for multi-factor authentication. Amazon SNS
+	//    optimizes the message delivery to achieve the highest reliability.
 	//
-	//    UsageReportS3Bucket – The name of the Amazon S3 bucket to receive daily
-	// SMS usage reports from Amazon SNS. Each day, Amazon SNS will deliver a usage
+	// UsageReportS3Bucket – The name of the Amazon S3 bucket to receive daily SMS
+	// usage reports from Amazon SNS. Each day, Amazon SNS will deliver a usage
 	// report as a CSV file to the bucket. The report includes the following information
 	// for each SMS message that was successfully delivered by your account:
 	//
-	//   Time that the message was published (in UTC)
+	//    * Time that the message was published (in UTC)
 	//
-	//   Message ID
+	//    * Message ID
 	//
-	//   Destination phone number
+	//    * Destination phone number
 	//
-	//   Message type
+	//    * Message type
 	//
-	//   Delivery status
+	//    * Delivery status
 	//
-	//   Message price (in USD)
+	//    * Message price (in USD)
 	//
-	//   Part number (a message is split into multiple parts if it is too long
-	// for a single message)
+	//    * Part number (a message is split into multiple parts if it is too long
+	//    for a single message)
 	//
-	//   Total number of parts
+	//    * Total number of parts
 	//
-	//   To receive the report, the bucket must have a policy that allows the Amazon
+	// To receive the report, the bucket must have a policy that allows the Amazon
 	// SNS service principle to perform the s3:PutObject and s3:GetBucketLocation
 	// actions.
 	//
@@ -4237,6 +4696,12 @@ func (s *SetSMSAttributesInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *SetSMSAttributesInput) SetAttributes(v map[string]*string) *SetSMSAttributesInput {
+	s.Attributes = v
+	return s
 }
 
 // The response for the SetSMSAttributes action.
@@ -4301,6 +4766,24 @@ func (s *SetSubscriptionAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributeName sets the AttributeName field's value.
+func (s *SetSubscriptionAttributesInput) SetAttributeName(v string) *SetSubscriptionAttributesInput {
+	s.AttributeName = &v
+	return s
+}
+
+// SetAttributeValue sets the AttributeValue field's value.
+func (s *SetSubscriptionAttributesInput) SetAttributeValue(v string) *SetSubscriptionAttributesInput {
+	s.AttributeValue = &v
+	return s
+}
+
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *SetSubscriptionAttributesInput) SetSubscriptionArn(v string) *SetSubscriptionAttributesInput {
+	s.SubscriptionArn = &v
+	return s
+}
+
 type SetSubscriptionAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4362,6 +4845,24 @@ func (s *SetTopicAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributeName sets the AttributeName field's value.
+func (s *SetTopicAttributesInput) SetAttributeName(v string) *SetTopicAttributesInput {
+	s.AttributeName = &v
+	return s
+}
+
+// SetAttributeValue sets the AttributeValue field's value.
+func (s *SetTopicAttributesInput) SetAttributeValue(v string) *SetTopicAttributesInput {
+	s.AttributeValue = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *SetTopicAttributesInput) SetTopicArn(v string) *SetTopicAttributesInput {
+	s.TopicArn = &v
+	return s
+}
+
 type SetTopicAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4382,43 +4883,43 @@ type SubscribeInput struct {
 
 	// The endpoint that you want to receive notifications. Endpoints vary by protocol:
 	//
-	//   For the http protocol, the endpoint is an URL beginning with "http://"
+	//    * For the http protocol, the endpoint is an URL beginning with "http://"
 	//
-	//   For the https protocol, the endpoint is a URL beginning with "https://"
+	//    * For the https protocol, the endpoint is a URL beginning with "https://"
 	//
-	//   For the email protocol, the endpoint is an email address
+	//    * For the email protocol, the endpoint is an email address
 	//
-	//   For the email-json protocol, the endpoint is an email address
+	//    * For the email-json protocol, the endpoint is an email address
 	//
-	//   For the sms protocol, the endpoint is a phone number of an SMS-enabled
-	// device
+	//    * For the sms protocol, the endpoint is a phone number of an SMS-enabled
+	//    device
 	//
-	//   For the sqs protocol, the endpoint is the ARN of an Amazon SQS queue
+	//    * For the sqs protocol, the endpoint is the ARN of an Amazon SQS queue
 	//
-	//   For the application protocol, the endpoint is the EndpointArn of a mobile
-	// app and device.
+	//    * For the application protocol, the endpoint is the EndpointArn of a mobile
+	//    app and device.
 	//
-	//   For the lambda protocol, the endpoint is the ARN of an AWS Lambda function.
+	//    * For the lambda protocol, the endpoint is the ARN of an AWS Lambda function.
 	Endpoint *string `type:"string"`
 
 	// The protocol you want to use. Supported protocols include:
 	//
-	//    http -- delivery of JSON-encoded message via HTTP POST
+	//    * http -- delivery of JSON-encoded message via HTTP POST
 	//
-	//    https -- delivery of JSON-encoded message via HTTPS POST
+	//    * https -- delivery of JSON-encoded message via HTTPS POST
 	//
-	//    email -- delivery of message via SMTP
+	//    * email -- delivery of message via SMTP
 	//
-	//    email-json -- delivery of JSON-encoded message via SMTP
+	//    * email-json -- delivery of JSON-encoded message via SMTP
 	//
-	//    sms -- delivery of message via SMS
+	//    * sms -- delivery of message via SMS
 	//
-	//    sqs -- delivery of JSON-encoded message to an Amazon SQS queue
+	//    * sqs -- delivery of JSON-encoded message to an Amazon SQS queue
 	//
-	//    application -- delivery of JSON-encoded message to an EndpointArn for
-	// a mobile app and device.
+	//    * application -- delivery of JSON-encoded message to an EndpointArn for
+	//    a mobile app and device.
 	//
-	//    lambda -- delivery of JSON-encoded message to an AWS Lambda function.
+	//    * lambda -- delivery of JSON-encoded message to an AWS Lambda function.
 	//
 	// Protocol is a required field
 	Protocol *string `type:"string" required:"true"`
@@ -4455,6 +4956,24 @@ func (s *SubscribeInput) Validate() error {
 	return nil
 }
 
+// SetEndpoint sets the Endpoint field's value.
+func (s *SubscribeInput) SetEndpoint(v string) *SubscribeInput {
+	s.Endpoint = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *SubscribeInput) SetProtocol(v string) *SubscribeInput {
+	s.Protocol = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *SubscribeInput) SetTopicArn(v string) *SubscribeInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for Subscribe action.
 type SubscribeOutput struct {
 	_ struct{} `type:"structure"`
@@ -4472,6 +4991,12 @@ func (s SubscribeOutput) String() string {
 // GoString returns the string representation
 func (s SubscribeOutput) GoString() string {
 	return s.String()
+}
+
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *SubscribeOutput) SetSubscriptionArn(v string) *SubscribeOutput {
+	s.SubscriptionArn = &v
+	return s
 }
 
 // A wrapper type for the attributes of an Amazon SNS subscription.
@@ -4504,6 +5029,36 @@ func (s Subscription) GoString() string {
 	return s.String()
 }
 
+// SetEndpoint sets the Endpoint field's value.
+func (s *Subscription) SetEndpoint(v string) *Subscription {
+	s.Endpoint = &v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *Subscription) SetOwner(v string) *Subscription {
+	s.Owner = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *Subscription) SetProtocol(v string) *Subscription {
+	s.Protocol = &v
+	return s
+}
+
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *Subscription) SetSubscriptionArn(v string) *Subscription {
+	s.SubscriptionArn = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *Subscription) SetTopicArn(v string) *Subscription {
+	s.TopicArn = &v
+	return s
+}
+
 // A wrapper type for the topic's Amazon Resource Name (ARN). To retrieve a
 // topic's attributes, use GetTopicAttributes.
 type Topic struct {
@@ -4521,6 +5076,12 @@ func (s Topic) String() string {
 // GoString returns the string representation
 func (s Topic) GoString() string {
 	return s.String()
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *Topic) SetTopicArn(v string) *Topic {
+	s.TopicArn = &v
+	return s
 }
 
 // Input for Unsubscribe action.
@@ -4554,6 +5115,12 @@ func (s *UnsubscribeInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *UnsubscribeInput) SetSubscriptionArn(v string) *UnsubscribeInput {
+	s.SubscriptionArn = &v
+	return s
 }
 
 type UnsubscribeOutput struct {

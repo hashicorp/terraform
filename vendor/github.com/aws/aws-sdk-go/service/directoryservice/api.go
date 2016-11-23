@@ -62,6 +62,11 @@ func (c *DirectoryService) AddIpRoutesRequest(input *AddIpRoutesInput) (req *req
 // address block. You can also use AddIpRoutes to facilitate routing traffic
 // that uses public IP ranges from your Microsoft AD on AWS to a peer VPC.
 //
+// Before you call AddIpRoutes, ensure that all of the required permissions
+// have been explicitly granted through a policy. For details about what permissions
+// are required to run the AddIpRoutes operation, see AWS Directory Service
+// API Permissions: Actions, Resources, and Conditions Reference (http://docs.aws.amazon.com/directoryservice/latest/admin-guide/UsingWithDS_IAM_ResourcePermissions.html).
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -144,7 +149,7 @@ func (c *DirectoryService) AddTagsToResourceRequest(input *AddTagsToResourceInpu
 // AddTagsToResource API operation for AWS Directory Service.
 //
 // Adds or overwrites one or more tags for the specified Amazon Directory Services
-// directory. Each directory can have a maximum of 10 tags. Each tag consists
+// directory. Each directory can have a maximum of 50 tags. Each tag consists
 // of a key and optional value. Tag keys must be unique to each resource.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -172,6 +177,79 @@ func (c *DirectoryService) AddTagsToResourceRequest(input *AddTagsToResourceInpu
 //
 func (c *DirectoryService) AddTagsToResource(input *AddTagsToResourceInput) (*AddTagsToResourceOutput, error) {
 	req, out := c.AddTagsToResourceRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opCancelSchemaExtension = "CancelSchemaExtension"
+
+// CancelSchemaExtensionRequest generates a "aws/request.Request" representing the
+// client's request for the CancelSchemaExtension operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CancelSchemaExtension for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CancelSchemaExtension method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CancelSchemaExtensionRequest method.
+//    req, resp := client.CancelSchemaExtensionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) CancelSchemaExtensionRequest(input *CancelSchemaExtensionInput) (req *request.Request, output *CancelSchemaExtensionOutput) {
+	op := &request.Operation{
+		Name:       opCancelSchemaExtension,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CancelSchemaExtensionInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &CancelSchemaExtensionOutput{}
+	req.Data = output
+	return
+}
+
+// CancelSchemaExtension API operation for AWS Directory Service.
+//
+// Cancels an in-progress schema extension to a Microsoft AD directory. Once
+// a schema extension has started replicating to all domain controllers, the
+// task can no longer be canceled. A schema extension can be canceled during
+// any of the following states; Initializing, CreatingSnapshot, and UpdatingSchema.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Directory Service's
+// API operation CancelSchemaExtension for usage and error information.
+//
+// Returned Error Codes:
+//   * EntityDoesNotExistException
+//   The specified entity could not be found.
+//
+//   * ClientException
+//   A client exception has occurred.
+//
+//   * ServiceException
+//   An exception has occurred in AWS Directory Service.
+//
+func (c *DirectoryService) CancelSchemaExtension(input *CancelSchemaExtensionInput) (*CancelSchemaExtensionOutput, error) {
+	req, out := c.CancelSchemaExtensionRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -222,6 +300,11 @@ func (c *DirectoryService) ConnectDirectoryRequest(input *ConnectDirectoryInput)
 // ConnectDirectory API operation for AWS Directory Service.
 //
 // Creates an AD Connector to connect to an on-premises directory.
+//
+// Before you call ConnectDirectory, ensure that all of the required permissions
+// have been explicitly granted through a policy. For details about what permissions
+// are required to run the ConnectDirectory operation, see AWS Directory Service
+// API Permissions: Actions, Resources, and Conditions Reference (http://docs.aws.amazon.com/directoryservice/latest/admin-guide/UsingWithDS_IAM_ResourcePermissions.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -300,7 +383,7 @@ func (c *DirectoryService) CreateAliasRequest(input *CreateAliasInput) (req *req
 // The alias is used to construct the access URL for the directory, such as
 // http://<alias>.awsapps.com.
 //
-//  After an alias has been created, it cannot be deleted or reused, so this
+// After an alias has been created, it cannot be deleted or reused, so this
 // operation should only be used when absolutely necessary.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -549,6 +632,11 @@ func (c *DirectoryService) CreateDirectoryRequest(input *CreateDirectoryInput) (
 //
 // Creates a Simple AD directory.
 //
+// Before you call CreateDirectory, ensure that all of the required permissions
+// have been explicitly granted through a policy. For details about what permissions
+// are required to run the CreateDirectory operation, see AWS Directory Service
+// API Permissions: Actions, Resources, and Conditions Reference (http://docs.aws.amazon.com/directoryservice/latest/admin-guide/UsingWithDS_IAM_ResourcePermissions.html).
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -623,6 +711,11 @@ func (c *DirectoryService) CreateMicrosoftADRequest(input *CreateMicrosoftADInpu
 // CreateMicrosoftAD API operation for AWS Directory Service.
 //
 // Creates a Microsoft AD in the AWS cloud.
+//
+// Before you call CreateMicrosoftAD, ensure that all of the required permissions
+// have been explicitly granted through a policy. For details about what permissions
+// are required to run the CreateMicrosoftAD operation, see AWS Directory Service
+// API Permissions: Actions, Resources, and Conditions Reference (http://docs.aws.amazon.com/directoryservice/latest/admin-guide/UsingWithDS_IAM_ResourcePermissions.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -702,7 +795,7 @@ func (c *DirectoryService) CreateSnapshotRequest(input *CreateSnapshotInput) (re
 //
 // Creates a snapshot of a Simple AD or Microsoft AD directory in the AWS cloud.
 //
-//  You cannot take snapshots of AD Connector directories.
+// You cannot take snapshots of AD Connector directories.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -946,6 +1039,11 @@ func (c *DirectoryService) DeleteDirectoryRequest(input *DeleteDirectoryInput) (
 // DeleteDirectory API operation for AWS Directory Service.
 //
 // Deletes an AWS Directory Service directory.
+//
+// Before you call DeleteDirectory, ensure that all of the required permissions
+// have been explicitly granted through a policy. For details about what permissions
+// are required to run the DeleteDirectory operation, see AWS Directory Service
+// API Permissions: Actions, Resources, and Conditions Reference (http://docs.aws.amazon.com/directoryservice/latest/admin-guide/UsingWithDS_IAM_ResourcePermissions.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1240,8 +1338,8 @@ func (c *DirectoryService) DescribeConditionalForwardersRequest(input *DescribeC
 //
 // Obtains information about the conditional forwarders for this account.
 //
-// If no input parameters are provided for RemoteDomainNames, this request
-// describes all conditional forwarders for the specified directory ID.
+// If no input parameters are provided for RemoteDomainNames, this request describes
+// all conditional forwarders for the specified directory ID.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2120,6 +2218,79 @@ func (c *DirectoryService) ListIpRoutes(input *ListIpRoutesInput) (*ListIpRoutes
 	return out, err
 }
 
+const opListSchemaExtensions = "ListSchemaExtensions"
+
+// ListSchemaExtensionsRequest generates a "aws/request.Request" representing the
+// client's request for the ListSchemaExtensions operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListSchemaExtensions for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListSchemaExtensions method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListSchemaExtensionsRequest method.
+//    req, resp := client.ListSchemaExtensionsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) ListSchemaExtensionsRequest(input *ListSchemaExtensionsInput) (req *request.Request, output *ListSchemaExtensionsOutput) {
+	op := &request.Operation{
+		Name:       opListSchemaExtensions,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListSchemaExtensionsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListSchemaExtensionsOutput{}
+	req.Data = output
+	return
+}
+
+// ListSchemaExtensions API operation for AWS Directory Service.
+//
+// Lists all schema extensions applied to a Microsoft AD Directory.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Directory Service's
+// API operation ListSchemaExtensions for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidNextTokenException
+//   The NextToken value is not valid.
+//
+//   * EntityDoesNotExistException
+//   The specified entity could not be found.
+//
+//   * ClientException
+//   A client exception has occurred.
+//
+//   * ServiceException
+//   An exception has occurred in AWS Directory Service.
+//
+func (c *DirectoryService) ListSchemaExtensions(input *ListSchemaExtensionsInput) (*ListSchemaExtensionsOutput, error) {
+	req, out := c.ListSchemaExtensionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opListTagsForResource = "ListTagsForResource"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
@@ -2504,6 +2675,87 @@ func (c *DirectoryService) RestoreFromSnapshot(input *RestoreFromSnapshotInput) 
 	return out, err
 }
 
+const opStartSchemaExtension = "StartSchemaExtension"
+
+// StartSchemaExtensionRequest generates a "aws/request.Request" representing the
+// client's request for the StartSchemaExtension operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See StartSchemaExtension for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the StartSchemaExtension method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the StartSchemaExtensionRequest method.
+//    req, resp := client.StartSchemaExtensionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *DirectoryService) StartSchemaExtensionRequest(input *StartSchemaExtensionInput) (req *request.Request, output *StartSchemaExtensionOutput) {
+	op := &request.Operation{
+		Name:       opStartSchemaExtension,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &StartSchemaExtensionInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &StartSchemaExtensionOutput{}
+	req.Data = output
+	return
+}
+
+// StartSchemaExtension API operation for AWS Directory Service.
+//
+// Applies a schema extension to a Microsoft AD directory.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Directory Service's
+// API operation StartSchemaExtension for usage and error information.
+//
+// Returned Error Codes:
+//   * DirectoryUnavailableException
+//   The specified directory is unavailable or could not be found.
+//
+//   * EntityDoesNotExistException
+//   The specified entity could not be found.
+//
+//   * InvalidParameterException
+//   One or more parameters are not valid.
+//
+//   * SnapshotLimitExceededException
+//   The maximum number of manual snapshots for the directory has been reached.
+//   You can use the GetSnapshotLimits operation to determine the snapshot limits
+//   for a directory.
+//
+//   * ClientException
+//   A client exception has occurred.
+//
+//   * ServiceException
+//   An exception has occurred in AWS Directory Service.
+//
+func (c *DirectoryService) StartSchemaExtension(input *StartSchemaExtensionInput) (*StartSchemaExtensionOutput, error) {
+	req, out := c.StartSchemaExtensionRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opUpdateConditionalForwarder = "UpdateConditionalForwarder"
 
 // UpdateConditionalForwarderRequest generates a "aws/request.Request" representing the
@@ -2757,46 +3009,43 @@ type AddIpRoutesInput struct {
 	//
 	// Inbound:
 	//
-	//   Type: Custom UDP Rule, Protocol: UDP, Range: 88, Source: 0.0.0.0/0
+	//    * Type: Custom UDP Rule, Protocol: UDP, Range: 88, Source: 0.0.0.0/0
 	//
-	//   Type: Custom UDP Rule, Protocol: UDP, Range: 123, Source: 0.0.0.0/0
+	//    * Type: Custom UDP Rule, Protocol: UDP, Range: 123, Source: 0.0.0.0/0
 	//
-	//   Type: Custom UDP Rule, Protocol: UDP, Range: 138, Source: 0.0.0.0/0
+	//    * Type: Custom UDP Rule, Protocol: UDP, Range: 138, Source: 0.0.0.0/0
 	//
-	//   Type: Custom UDP Rule, Protocol: UDP, Range: 389, Source: 0.0.0.0/0
+	//    * Type: Custom UDP Rule, Protocol: UDP, Range: 389, Source: 0.0.0.0/0
 	//
-	//   Type: Custom UDP Rule, Protocol: UDP, Range: 464, Source: 0.0.0.0/0
+	//    * Type: Custom UDP Rule, Protocol: UDP, Range: 464, Source: 0.0.0.0/0
 	//
-	//   Type: Custom UDP Rule, Protocol: UDP, Range: 445, Source: 0.0.0.0/0
+	//    * Type: Custom UDP Rule, Protocol: UDP, Range: 445, Source: 0.0.0.0/0
 	//
-	//   Type: Custom TCP Rule, Protocol: TCP, Range: 88, Source: 0.0.0.0/0
+	//    * Type: Custom TCP Rule, Protocol: TCP, Range: 88, Source: 0.0.0.0/0
 	//
-	//   Type: Custom TCP Rule, Protocol: TCP, Range: 135, Source: 0.0.0.0/0
+	//    * Type: Custom TCP Rule, Protocol: TCP, Range: 135, Source: 0.0.0.0/0
 	//
-	//   Type: Custom TCP Rule, Protocol: TCP, Range: 445, Source: 0.0.0.0/0
+	//    * Type: Custom TCP Rule, Protocol: TCP, Range: 445, Source: 0.0.0.0/0
 	//
-	//   Type: Custom TCP Rule, Protocol: TCP, Range: 464, Source: 0.0.0.0/0
+	//    * Type: Custom TCP Rule, Protocol: TCP, Range: 464, Source: 0.0.0.0/0
 	//
-	//   Type: Custom TCP Rule, Protocol: TCP, Range: 636, Source: 0.0.0.0/0
+	//    * Type: Custom TCP Rule, Protocol: TCP, Range: 636, Source: 0.0.0.0/0
 	//
-	//   Type: Custom TCP Rule, Protocol: TCP, Range: 1024-65535, Source: 0.0.0.0/0
+	//    * Type: Custom TCP Rule, Protocol: TCP, Range: 1024-65535, Source: 0.0.0.0/0
 	//
-	//   Type: Custom TCP Rule, Protocol: TCP, Range: 3268-33269, Source: 0.0.0.0/0
+	//    * Type: Custom TCP Rule, Protocol: TCP, Range: 3268-33269, Source: 0.0.0.0/0
 	//
-	//   Type: DNS (UDP), Protocol: UDP, Range: 53, Source: 0.0.0.0/0
+	//    * Type: DNS (UDP), Protocol: UDP, Range: 53, Source: 0.0.0.0/0
 	//
-	//   Type: DNS (TCP), Protocol: TCP, Range: 53, Source: 0.0.0.0/0
+	//    * Type: DNS (TCP), Protocol: TCP, Range: 53, Source: 0.0.0.0/0
 	//
-	//   Type: LDAP, Protocol: TCP, Range: 389, Source: 0.0.0.0/0
+	//    * Type: LDAP, Protocol: TCP, Range: 389, Source: 0.0.0.0/0
 	//
-	//   Type: All ICMP, Protocol: All, Range: N/A, Source: 0.0.0.0/0
+	//    * Type: All ICMP, Protocol: All, Range: N/A, Source: 0.0.0.0/0
 	//
-	//    Outbound:
+	// Outbound:
 	//
-	//   Type: All traffic, Protocol: All, Range: All, Destination: 0.0.0.0/0
-	//
-	//   These security rules impact an internal network interface that is not
-	// exposed publicly.
+	// Type: All traffic, Protocol: All, Range: All, Destination: 0.0.0.0/0
 	UpdateSecurityGroupForDirectoryControllers *bool `type:"boolean"`
 }
 
@@ -2824,6 +3073,24 @@ func (s *AddIpRoutesInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *AddIpRoutesInput) SetDirectoryId(v string) *AddIpRoutesInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetIpRoutes sets the IpRoutes field's value.
+func (s *AddIpRoutesInput) SetIpRoutes(v []*IpRoute) *AddIpRoutesInput {
+	s.IpRoutes = v
+	return s
+}
+
+// SetUpdateSecurityGroupForDirectoryControllers sets the UpdateSecurityGroupForDirectoryControllers field's value.
+func (s *AddIpRoutesInput) SetUpdateSecurityGroupForDirectoryControllers(v bool) *AddIpRoutesInput {
+	s.UpdateSecurityGroupForDirectoryControllers = &v
+	return s
 }
 
 type AddIpRoutesOutput struct {
@@ -2890,6 +3157,18 @@ func (s *AddTagsToResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceId sets the ResourceId field's value.
+func (s *AddTagsToResourceInput) SetResourceId(v string) *AddTagsToResourceInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *AddTagsToResourceInput) SetTags(v []*Tag) *AddTagsToResourceInput {
+	s.Tags = v
+	return s
+}
+
 type AddTagsToResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2938,6 +3217,84 @@ func (s *Attribute) Validate() error {
 	return nil
 }
 
+// SetName sets the Name field's value.
+func (s *Attribute) SetName(v string) *Attribute {
+	s.Name = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Attribute) SetValue(v string) *Attribute {
+	s.Value = &v
+	return s
+}
+
+type CancelSchemaExtensionInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the directory whose schema extension will be canceled.
+	//
+	// DirectoryId is a required field
+	DirectoryId *string `type:"string" required:"true"`
+
+	// The identifier of the schema extension that will be canceled.
+	//
+	// SchemaExtensionId is a required field
+	SchemaExtensionId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CancelSchemaExtensionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CancelSchemaExtensionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CancelSchemaExtensionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CancelSchemaExtensionInput"}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+	if s.SchemaExtensionId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SchemaExtensionId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *CancelSchemaExtensionInput) SetDirectoryId(v string) *CancelSchemaExtensionInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetSchemaExtensionId sets the SchemaExtensionId field's value.
+func (s *CancelSchemaExtensionInput) SetSchemaExtensionId(v string) *CancelSchemaExtensionInput {
+	s.SchemaExtensionId = &v
+	return s
+}
+
+type CancelSchemaExtensionOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s CancelSchemaExtensionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CancelSchemaExtensionOutput) GoString() string {
+	return s.String()
+}
+
 // Contains information about a computer account in a directory.
 type Computer struct {
 	_ struct{} `type:"structure"`
@@ -2961,6 +3318,24 @@ func (s Computer) String() string {
 // GoString returns the string representation
 func (s Computer) GoString() string {
 	return s.String()
+}
+
+// SetComputerAttributes sets the ComputerAttributes field's value.
+func (s *Computer) SetComputerAttributes(v []*Attribute) *Computer {
+	s.ComputerAttributes = v
+	return s
+}
+
+// SetComputerId sets the ComputerId field's value.
+func (s *Computer) SetComputerId(v string) *Computer {
+	s.ComputerId = &v
+	return s
+}
+
+// SetComputerName sets the ComputerName field's value.
+func (s *Computer) SetComputerName(v string) *Computer {
+	s.ComputerName = &v
+	return s
 }
 
 // Points to a remote domain with which you are setting up a trust relationship.
@@ -2992,6 +3367,24 @@ func (s ConditionalForwarder) String() string {
 // GoString returns the string representation
 func (s ConditionalForwarder) GoString() string {
 	return s.String()
+}
+
+// SetDnsIpAddrs sets the DnsIpAddrs field's value.
+func (s *ConditionalForwarder) SetDnsIpAddrs(v []*string) *ConditionalForwarder {
+	s.DnsIpAddrs = v
+	return s
+}
+
+// SetRemoteDomainName sets the RemoteDomainName field's value.
+func (s *ConditionalForwarder) SetRemoteDomainName(v string) *ConditionalForwarder {
+	s.RemoteDomainName = &v
+	return s
+}
+
+// SetReplicationScope sets the ReplicationScope field's value.
+func (s *ConditionalForwarder) SetReplicationScope(v string) *ConditionalForwarder {
+	s.ReplicationScope = &v
+	return s
 }
 
 // Contains the inputs for the ConnectDirectory operation.
@@ -3066,6 +3459,42 @@ func (s *ConnectDirectoryInput) Validate() error {
 	return nil
 }
 
+// SetConnectSettings sets the ConnectSettings field's value.
+func (s *ConnectDirectoryInput) SetConnectSettings(v *DirectoryConnectSettings) *ConnectDirectoryInput {
+	s.ConnectSettings = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *ConnectDirectoryInput) SetDescription(v string) *ConnectDirectoryInput {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ConnectDirectoryInput) SetName(v string) *ConnectDirectoryInput {
+	s.Name = &v
+	return s
+}
+
+// SetPassword sets the Password field's value.
+func (s *ConnectDirectoryInput) SetPassword(v string) *ConnectDirectoryInput {
+	s.Password = &v
+	return s
+}
+
+// SetShortName sets the ShortName field's value.
+func (s *ConnectDirectoryInput) SetShortName(v string) *ConnectDirectoryInput {
+	s.ShortName = &v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *ConnectDirectoryInput) SetSize(v string) *ConnectDirectoryInput {
+	s.Size = &v
+	return s
+}
+
 // Contains the results of the ConnectDirectory operation.
 type ConnectDirectoryOutput struct {
 	_ struct{} `type:"structure"`
@@ -3082,6 +3511,12 @@ func (s ConnectDirectoryOutput) String() string {
 // GoString returns the string representation
 func (s ConnectDirectoryOutput) GoString() string {
 	return s.String()
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *ConnectDirectoryOutput) SetDirectoryId(v string) *ConnectDirectoryOutput {
+	s.DirectoryId = &v
+	return s
 }
 
 // Contains the inputs for the CreateAlias operation.
@@ -3131,6 +3566,18 @@ func (s *CreateAliasInput) Validate() error {
 	return nil
 }
 
+// SetAlias sets the Alias field's value.
+func (s *CreateAliasInput) SetAlias(v string) *CreateAliasInput {
+	s.Alias = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *CreateAliasInput) SetDirectoryId(v string) *CreateAliasInput {
+	s.DirectoryId = &v
+	return s
+}
+
 // Contains the results of the CreateAlias operation.
 type CreateAliasOutput struct {
 	_ struct{} `type:"structure"`
@@ -3150,6 +3597,18 @@ func (s CreateAliasOutput) String() string {
 // GoString returns the string representation
 func (s CreateAliasOutput) GoString() string {
 	return s.String()
+}
+
+// SetAlias sets the Alias field's value.
+func (s *CreateAliasOutput) SetAlias(v string) *CreateAliasOutput {
+	s.Alias = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *CreateAliasOutput) SetDirectoryId(v string) *CreateAliasOutput {
+	s.DirectoryId = &v
+	return s
 }
 
 // Contains the inputs for the CreateComputer operation.
@@ -3229,6 +3688,36 @@ func (s *CreateComputerInput) Validate() error {
 	return nil
 }
 
+// SetComputerAttributes sets the ComputerAttributes field's value.
+func (s *CreateComputerInput) SetComputerAttributes(v []*Attribute) *CreateComputerInput {
+	s.ComputerAttributes = v
+	return s
+}
+
+// SetComputerName sets the ComputerName field's value.
+func (s *CreateComputerInput) SetComputerName(v string) *CreateComputerInput {
+	s.ComputerName = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *CreateComputerInput) SetDirectoryId(v string) *CreateComputerInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetOrganizationalUnitDistinguishedName sets the OrganizationalUnitDistinguishedName field's value.
+func (s *CreateComputerInput) SetOrganizationalUnitDistinguishedName(v string) *CreateComputerInput {
+	s.OrganizationalUnitDistinguishedName = &v
+	return s
+}
+
+// SetPassword sets the Password field's value.
+func (s *CreateComputerInput) SetPassword(v string) *CreateComputerInput {
+	s.Password = &v
+	return s
+}
+
 // Contains the results for the CreateComputer operation.
 type CreateComputerOutput struct {
 	_ struct{} `type:"structure"`
@@ -3245,6 +3734,12 @@ func (s CreateComputerOutput) String() string {
 // GoString returns the string representation
 func (s CreateComputerOutput) GoString() string {
 	return s.String()
+}
+
+// SetComputer sets the Computer field's value.
+func (s *CreateComputerOutput) SetComputer(v *Computer) *CreateComputerOutput {
+	s.Computer = v
+	return s
 }
 
 // Initiates the creation of a conditional forwarder for your AWS Directory
@@ -3298,6 +3793,24 @@ func (s *CreateConditionalForwarderInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *CreateConditionalForwarderInput) SetDirectoryId(v string) *CreateConditionalForwarderInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetDnsIpAddrs sets the DnsIpAddrs field's value.
+func (s *CreateConditionalForwarderInput) SetDnsIpAddrs(v []*string) *CreateConditionalForwarderInput {
+	s.DnsIpAddrs = v
+	return s
+}
+
+// SetRemoteDomainName sets the RemoteDomainName field's value.
+func (s *CreateConditionalForwarderInput) SetRemoteDomainName(v string) *CreateConditionalForwarderInput {
+	s.RemoteDomainName = &v
+	return s
 }
 
 // The result of a CreateConditinalForwarder request.
@@ -3381,6 +3894,42 @@ func (s *CreateDirectoryInput) Validate() error {
 	return nil
 }
 
+// SetDescription sets the Description field's value.
+func (s *CreateDirectoryInput) SetDescription(v string) *CreateDirectoryInput {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateDirectoryInput) SetName(v string) *CreateDirectoryInput {
+	s.Name = &v
+	return s
+}
+
+// SetPassword sets the Password field's value.
+func (s *CreateDirectoryInput) SetPassword(v string) *CreateDirectoryInput {
+	s.Password = &v
+	return s
+}
+
+// SetShortName sets the ShortName field's value.
+func (s *CreateDirectoryInput) SetShortName(v string) *CreateDirectoryInput {
+	s.ShortName = &v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *CreateDirectoryInput) SetSize(v string) *CreateDirectoryInput {
+	s.Size = &v
+	return s
+}
+
+// SetVpcSettings sets the VpcSettings field's value.
+func (s *CreateDirectoryInput) SetVpcSettings(v *DirectoryVpcSettings) *CreateDirectoryInput {
+	s.VpcSettings = v
+	return s
+}
+
 // Contains the results of the CreateDirectory operation.
 type CreateDirectoryOutput struct {
 	_ struct{} `type:"structure"`
@@ -3397,6 +3946,12 @@ func (s CreateDirectoryOutput) String() string {
 // GoString returns the string representation
 func (s CreateDirectoryOutput) GoString() string {
 	return s.String()
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *CreateDirectoryOutput) SetDirectoryId(v string) *CreateDirectoryOutput {
+	s.DirectoryId = &v
+	return s
 }
 
 // Creates a Microsoft AD in the AWS cloud.
@@ -3464,6 +4019,36 @@ func (s *CreateMicrosoftADInput) Validate() error {
 	return nil
 }
 
+// SetDescription sets the Description field's value.
+func (s *CreateMicrosoftADInput) SetDescription(v string) *CreateMicrosoftADInput {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateMicrosoftADInput) SetName(v string) *CreateMicrosoftADInput {
+	s.Name = &v
+	return s
+}
+
+// SetPassword sets the Password field's value.
+func (s *CreateMicrosoftADInput) SetPassword(v string) *CreateMicrosoftADInput {
+	s.Password = &v
+	return s
+}
+
+// SetShortName sets the ShortName field's value.
+func (s *CreateMicrosoftADInput) SetShortName(v string) *CreateMicrosoftADInput {
+	s.ShortName = &v
+	return s
+}
+
+// SetVpcSettings sets the VpcSettings field's value.
+func (s *CreateMicrosoftADInput) SetVpcSettings(v *DirectoryVpcSettings) *CreateMicrosoftADInput {
+	s.VpcSettings = v
+	return s
+}
+
 // Result of a CreateMicrosoftAD request.
 type CreateMicrosoftADOutput struct {
 	_ struct{} `type:"structure"`
@@ -3480,6 +4065,12 @@ func (s CreateMicrosoftADOutput) String() string {
 // GoString returns the string representation
 func (s CreateMicrosoftADOutput) GoString() string {
 	return s.String()
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *CreateMicrosoftADOutput) SetDirectoryId(v string) *CreateMicrosoftADOutput {
+	s.DirectoryId = &v
+	return s
 }
 
 // Contains the inputs for the CreateSnapshot operation.
@@ -3518,6 +4109,18 @@ func (s *CreateSnapshotInput) Validate() error {
 	return nil
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *CreateSnapshotInput) SetDirectoryId(v string) *CreateSnapshotInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateSnapshotInput) SetName(v string) *CreateSnapshotInput {
+	s.Name = &v
+	return s
+}
+
 // Contains the results of the CreateSnapshot operation.
 type CreateSnapshotOutput struct {
 	_ struct{} `type:"structure"`
@@ -3534,6 +4137,12 @@ func (s CreateSnapshotOutput) String() string {
 // GoString returns the string representation
 func (s CreateSnapshotOutput) GoString() string {
 	return s.String()
+}
+
+// SetSnapshotId sets the SnapshotId field's value.
+func (s *CreateSnapshotOutput) SetSnapshotId(v string) *CreateSnapshotOutput {
+	s.SnapshotId = &v
+	return s
 }
 
 // AWS Directory Service for Microsoft Active Directory allows you to configure
@@ -3612,6 +4221,42 @@ func (s *CreateTrustInput) Validate() error {
 	return nil
 }
 
+// SetConditionalForwarderIpAddrs sets the ConditionalForwarderIpAddrs field's value.
+func (s *CreateTrustInput) SetConditionalForwarderIpAddrs(v []*string) *CreateTrustInput {
+	s.ConditionalForwarderIpAddrs = v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *CreateTrustInput) SetDirectoryId(v string) *CreateTrustInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetRemoteDomainName sets the RemoteDomainName field's value.
+func (s *CreateTrustInput) SetRemoteDomainName(v string) *CreateTrustInput {
+	s.RemoteDomainName = &v
+	return s
+}
+
+// SetTrustDirection sets the TrustDirection field's value.
+func (s *CreateTrustInput) SetTrustDirection(v string) *CreateTrustInput {
+	s.TrustDirection = &v
+	return s
+}
+
+// SetTrustPassword sets the TrustPassword field's value.
+func (s *CreateTrustInput) SetTrustPassword(v string) *CreateTrustInput {
+	s.TrustPassword = &v
+	return s
+}
+
+// SetTrustType sets the TrustType field's value.
+func (s *CreateTrustInput) SetTrustType(v string) *CreateTrustInput {
+	s.TrustType = &v
+	return s
+}
+
 // The result of a CreateTrust request.
 type CreateTrustOutput struct {
 	_ struct{} `type:"structure"`
@@ -3628,6 +4273,12 @@ func (s CreateTrustOutput) String() string {
 // GoString returns the string representation
 func (s CreateTrustOutput) GoString() string {
 	return s.String()
+}
+
+// SetTrustId sets the TrustId field's value.
+func (s *CreateTrustOutput) SetTrustId(v string) *CreateTrustOutput {
+	s.TrustId = &v
+	return s
 }
 
 // Deletes a conditional forwarder.
@@ -3670,6 +4321,18 @@ func (s *DeleteConditionalForwarderInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DeleteConditionalForwarderInput) SetDirectoryId(v string) *DeleteConditionalForwarderInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetRemoteDomainName sets the RemoteDomainName field's value.
+func (s *DeleteConditionalForwarderInput) SetRemoteDomainName(v string) *DeleteConditionalForwarderInput {
+	s.RemoteDomainName = &v
+	return s
 }
 
 // The result of a DeleteConditionalForwarder request.
@@ -3720,6 +4383,12 @@ func (s *DeleteDirectoryInput) Validate() error {
 	return nil
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DeleteDirectoryInput) SetDirectoryId(v string) *DeleteDirectoryInput {
+	s.DirectoryId = &v
+	return s
+}
+
 // Contains the results of the DeleteDirectory operation.
 type DeleteDirectoryOutput struct {
 	_ struct{} `type:"structure"`
@@ -3736,6 +4405,12 @@ func (s DeleteDirectoryOutput) String() string {
 // GoString returns the string representation
 func (s DeleteDirectoryOutput) GoString() string {
 	return s.String()
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DeleteDirectoryOutput) SetDirectoryId(v string) *DeleteDirectoryOutput {
+	s.DirectoryId = &v
+	return s
 }
 
 // Contains the inputs for the DeleteSnapshot operation.
@@ -3771,6 +4446,12 @@ func (s *DeleteSnapshotInput) Validate() error {
 	return nil
 }
 
+// SetSnapshotId sets the SnapshotId field's value.
+func (s *DeleteSnapshotInput) SetSnapshotId(v string) *DeleteSnapshotInput {
+	s.SnapshotId = &v
+	return s
+}
+
 // Contains the results of the DeleteSnapshot operation.
 type DeleteSnapshotOutput struct {
 	_ struct{} `type:"structure"`
@@ -3787,6 +4468,12 @@ func (s DeleteSnapshotOutput) String() string {
 // GoString returns the string representation
 func (s DeleteSnapshotOutput) GoString() string {
 	return s.String()
+}
+
+// SetSnapshotId sets the SnapshotId field's value.
+func (s *DeleteSnapshotOutput) SetSnapshotId(v string) *DeleteSnapshotOutput {
+	s.SnapshotId = &v
+	return s
 }
 
 // Deletes the local side of an existing trust relationship between the Microsoft
@@ -3826,6 +4513,18 @@ func (s *DeleteTrustInput) Validate() error {
 	return nil
 }
 
+// SetDeleteAssociatedConditionalForwarder sets the DeleteAssociatedConditionalForwarder field's value.
+func (s *DeleteTrustInput) SetDeleteAssociatedConditionalForwarder(v bool) *DeleteTrustInput {
+	s.DeleteAssociatedConditionalForwarder = &v
+	return s
+}
+
+// SetTrustId sets the TrustId field's value.
+func (s *DeleteTrustInput) SetTrustId(v string) *DeleteTrustInput {
+	s.TrustId = &v
+	return s
+}
+
 // The result of a DeleteTrust request.
 type DeleteTrustOutput struct {
 	_ struct{} `type:"structure"`
@@ -3842,6 +4541,12 @@ func (s DeleteTrustOutput) String() string {
 // GoString returns the string representation
 func (s DeleteTrustOutput) GoString() string {
 	return s.String()
+}
+
+// SetTrustId sets the TrustId field's value.
+func (s *DeleteTrustOutput) SetTrustId(v string) *DeleteTrustOutput {
+	s.TrustId = &v
+	return s
 }
 
 // Removes the specified directory as a publisher to the specified SNS topic.
@@ -3887,6 +4592,18 @@ func (s *DeregisterEventTopicInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DeregisterEventTopicInput) SetDirectoryId(v string) *DeregisterEventTopicInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetTopicName sets the TopicName field's value.
+func (s *DeregisterEventTopicInput) SetTopicName(v string) *DeregisterEventTopicInput {
+	s.TopicName = &v
+	return s
 }
 
 // The result of a DeregisterEventTopic request.
@@ -3942,6 +4659,18 @@ func (s *DescribeConditionalForwardersInput) Validate() error {
 	return nil
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DescribeConditionalForwardersInput) SetDirectoryId(v string) *DescribeConditionalForwardersInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetRemoteDomainNames sets the RemoteDomainNames field's value.
+func (s *DescribeConditionalForwardersInput) SetRemoteDomainNames(v []*string) *DescribeConditionalForwardersInput {
+	s.RemoteDomainNames = v
+	return s
+}
+
 // The result of a DescribeConditionalForwarder request.
 type DescribeConditionalForwardersOutput struct {
 	_ struct{} `type:"structure"`
@@ -3958,6 +4687,12 @@ func (s DescribeConditionalForwardersOutput) String() string {
 // GoString returns the string representation
 func (s DescribeConditionalForwardersOutput) GoString() string {
 	return s.String()
+}
+
+// SetConditionalForwarders sets the ConditionalForwarders field's value.
+func (s *DescribeConditionalForwardersOutput) SetConditionalForwarders(v []*ConditionalForwarder) *DescribeConditionalForwardersOutput {
+	s.ConditionalForwarders = v
+	return s
 }
 
 // Contains the inputs for the DescribeDirectories operation.
@@ -3990,6 +4725,24 @@ func (s DescribeDirectoriesInput) GoString() string {
 	return s.String()
 }
 
+// SetDirectoryIds sets the DirectoryIds field's value.
+func (s *DescribeDirectoriesInput) SetDirectoryIds(v []*string) *DescribeDirectoriesInput {
+	s.DirectoryIds = v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeDirectoriesInput) SetLimit(v int64) *DescribeDirectoriesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDirectoriesInput) SetNextToken(v string) *DescribeDirectoriesInput {
+	s.NextToken = &v
+	return s
+}
+
 // Contains the results of the DescribeDirectories operation.
 type DescribeDirectoriesOutput struct {
 	_ struct{} `type:"structure"`
@@ -4018,6 +4771,18 @@ func (s DescribeDirectoriesOutput) GoString() string {
 	return s.String()
 }
 
+// SetDirectoryDescriptions sets the DirectoryDescriptions field's value.
+func (s *DescribeDirectoriesOutput) SetDirectoryDescriptions(v []*DirectoryDescription) *DescribeDirectoriesOutput {
+	s.DirectoryDescriptions = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeDirectoriesOutput) SetNextToken(v string) *DescribeDirectoriesOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Describes event topics.
 type DescribeEventTopicsInput struct {
 	_ struct{} `type:"structure"`
@@ -4043,6 +4808,18 @@ func (s DescribeEventTopicsInput) GoString() string {
 	return s.String()
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DescribeEventTopicsInput) SetDirectoryId(v string) *DescribeEventTopicsInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetTopicNames sets the TopicNames field's value.
+func (s *DescribeEventTopicsInput) SetTopicNames(v []*string) *DescribeEventTopicsInput {
+	s.TopicNames = v
+	return s
+}
+
 // The result of a DescribeEventTopic request.
 type DescribeEventTopicsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4060,6 +4837,12 @@ func (s DescribeEventTopicsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeEventTopicsOutput) GoString() string {
 	return s.String()
+}
+
+// SetEventTopics sets the EventTopics field's value.
+func (s *DescribeEventTopicsOutput) SetEventTopics(v []*EventTopic) *DescribeEventTopicsOutput {
+	s.EventTopics = v
+	return s
 }
 
 // Contains the inputs for the DescribeSnapshots operation.
@@ -4092,6 +4875,30 @@ func (s DescribeSnapshotsInput) GoString() string {
 	return s.String()
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DescribeSnapshotsInput) SetDirectoryId(v string) *DescribeSnapshotsInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeSnapshotsInput) SetLimit(v int64) *DescribeSnapshotsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeSnapshotsInput) SetNextToken(v string) *DescribeSnapshotsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSnapshotIds sets the SnapshotIds field's value.
+func (s *DescribeSnapshotsInput) SetSnapshotIds(v []*string) *DescribeSnapshotsInput {
+	s.SnapshotIds = v
+	return s
+}
+
 // Contains the results of the DescribeSnapshots operation.
 type DescribeSnapshotsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4117,6 +4924,18 @@ func (s DescribeSnapshotsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeSnapshotsOutput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeSnapshotsOutput) SetNextToken(v string) *DescribeSnapshotsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSnapshots sets the Snapshots field's value.
+func (s *DescribeSnapshotsOutput) SetSnapshots(v []*Snapshot) *DescribeSnapshotsOutput {
+	s.Snapshots = v
+	return s
 }
 
 // Describes the trust relationships for a particular Microsoft AD in the AWS
@@ -4154,6 +4973,30 @@ func (s DescribeTrustsInput) GoString() string {
 	return s.String()
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DescribeTrustsInput) SetDirectoryId(v string) *DescribeTrustsInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *DescribeTrustsInput) SetLimit(v int64) *DescribeTrustsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeTrustsInput) SetNextToken(v string) *DescribeTrustsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTrustIds sets the TrustIds field's value.
+func (s *DescribeTrustsInput) SetTrustIds(v []*string) *DescribeTrustsInput {
+	s.TrustIds = v
+	return s
+}
+
 // The result of a DescribeTrust request.
 type DescribeTrustsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4182,6 +5025,18 @@ func (s DescribeTrustsOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeTrustsOutput) SetNextToken(v string) *DescribeTrustsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTrusts sets the Trusts field's value.
+func (s *DescribeTrustsOutput) SetTrusts(v []*Trust) *DescribeTrustsOutput {
+	s.Trusts = v
+	return s
+}
+
 // Contains information for the ConnectDirectory operation when an AD Connector
 // directory is being created.
 type DirectoryConnectSettings struct {
@@ -4196,11 +5051,11 @@ type DirectoryConnectSettings struct {
 	// The username of an account in the on-premises directory that is used to connect
 	// to the directory. This account must have the following privileges:
 	//
-	//   Read users and groups
+	//    * Read users and groups
 	//
-	//   Create computer objects
+	//    * Create computer objects
 	//
-	//   Join computers to the domain
+	//    * Join computers to the domain
 	//
 	// CustomerUserName is a required field
 	CustomerUserName *string `min:"1" type:"string" required:"true"`
@@ -4251,6 +5106,30 @@ func (s *DirectoryConnectSettings) Validate() error {
 	return nil
 }
 
+// SetCustomerDnsIps sets the CustomerDnsIps field's value.
+func (s *DirectoryConnectSettings) SetCustomerDnsIps(v []*string) *DirectoryConnectSettings {
+	s.CustomerDnsIps = v
+	return s
+}
+
+// SetCustomerUserName sets the CustomerUserName field's value.
+func (s *DirectoryConnectSettings) SetCustomerUserName(v string) *DirectoryConnectSettings {
+	s.CustomerUserName = &v
+	return s
+}
+
+// SetSubnetIds sets the SubnetIds field's value.
+func (s *DirectoryConnectSettings) SetSubnetIds(v []*string) *DirectoryConnectSettings {
+	s.SubnetIds = v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *DirectoryConnectSettings) SetVpcId(v string) *DirectoryConnectSettings {
+	s.VpcId = &v
+	return s
+}
+
 // Contains information about an AD Connector directory.
 type DirectoryConnectSettingsDescription struct {
 	_ struct{} `type:"structure"`
@@ -4282,6 +5161,42 @@ func (s DirectoryConnectSettingsDescription) String() string {
 // GoString returns the string representation
 func (s DirectoryConnectSettingsDescription) GoString() string {
 	return s.String()
+}
+
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *DirectoryConnectSettingsDescription) SetAvailabilityZones(v []*string) *DirectoryConnectSettingsDescription {
+	s.AvailabilityZones = v
+	return s
+}
+
+// SetConnectIps sets the ConnectIps field's value.
+func (s *DirectoryConnectSettingsDescription) SetConnectIps(v []*string) *DirectoryConnectSettingsDescription {
+	s.ConnectIps = v
+	return s
+}
+
+// SetCustomerUserName sets the CustomerUserName field's value.
+func (s *DirectoryConnectSettingsDescription) SetCustomerUserName(v string) *DirectoryConnectSettingsDescription {
+	s.CustomerUserName = &v
+	return s
+}
+
+// SetSecurityGroupId sets the SecurityGroupId field's value.
+func (s *DirectoryConnectSettingsDescription) SetSecurityGroupId(v string) *DirectoryConnectSettingsDescription {
+	s.SecurityGroupId = &v
+	return s
+}
+
+// SetSubnetIds sets the SubnetIds field's value.
+func (s *DirectoryConnectSettingsDescription) SetSubnetIds(v []*string) *DirectoryConnectSettingsDescription {
+	s.SubnetIds = v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *DirectoryConnectSettingsDescription) SetVpcId(v string) *DirectoryConnectSettingsDescription {
+	s.VpcId = &v
+	return s
 }
 
 // Contains information about an AWS Directory Service directory.
@@ -4366,6 +5281,114 @@ func (s DirectoryDescription) GoString() string {
 	return s.String()
 }
 
+// SetAccessUrl sets the AccessUrl field's value.
+func (s *DirectoryDescription) SetAccessUrl(v string) *DirectoryDescription {
+	s.AccessUrl = &v
+	return s
+}
+
+// SetAlias sets the Alias field's value.
+func (s *DirectoryDescription) SetAlias(v string) *DirectoryDescription {
+	s.Alias = &v
+	return s
+}
+
+// SetConnectSettings sets the ConnectSettings field's value.
+func (s *DirectoryDescription) SetConnectSettings(v *DirectoryConnectSettingsDescription) *DirectoryDescription {
+	s.ConnectSettings = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *DirectoryDescription) SetDescription(v string) *DirectoryDescription {
+	s.Description = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DirectoryDescription) SetDirectoryId(v string) *DirectoryDescription {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetDnsIpAddrs sets the DnsIpAddrs field's value.
+func (s *DirectoryDescription) SetDnsIpAddrs(v []*string) *DirectoryDescription {
+	s.DnsIpAddrs = v
+	return s
+}
+
+// SetLaunchTime sets the LaunchTime field's value.
+func (s *DirectoryDescription) SetLaunchTime(v time.Time) *DirectoryDescription {
+	s.LaunchTime = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DirectoryDescription) SetName(v string) *DirectoryDescription {
+	s.Name = &v
+	return s
+}
+
+// SetRadiusSettings sets the RadiusSettings field's value.
+func (s *DirectoryDescription) SetRadiusSettings(v *RadiusSettings) *DirectoryDescription {
+	s.RadiusSettings = v
+	return s
+}
+
+// SetRadiusStatus sets the RadiusStatus field's value.
+func (s *DirectoryDescription) SetRadiusStatus(v string) *DirectoryDescription {
+	s.RadiusStatus = &v
+	return s
+}
+
+// SetShortName sets the ShortName field's value.
+func (s *DirectoryDescription) SetShortName(v string) *DirectoryDescription {
+	s.ShortName = &v
+	return s
+}
+
+// SetSize sets the Size field's value.
+func (s *DirectoryDescription) SetSize(v string) *DirectoryDescription {
+	s.Size = &v
+	return s
+}
+
+// SetSsoEnabled sets the SsoEnabled field's value.
+func (s *DirectoryDescription) SetSsoEnabled(v bool) *DirectoryDescription {
+	s.SsoEnabled = &v
+	return s
+}
+
+// SetStage sets the Stage field's value.
+func (s *DirectoryDescription) SetStage(v string) *DirectoryDescription {
+	s.Stage = &v
+	return s
+}
+
+// SetStageLastUpdatedDateTime sets the StageLastUpdatedDateTime field's value.
+func (s *DirectoryDescription) SetStageLastUpdatedDateTime(v time.Time) *DirectoryDescription {
+	s.StageLastUpdatedDateTime = &v
+	return s
+}
+
+// SetStageReason sets the StageReason field's value.
+func (s *DirectoryDescription) SetStageReason(v string) *DirectoryDescription {
+	s.StageReason = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *DirectoryDescription) SetType(v string) *DirectoryDescription {
+	s.Type = &v
+	return s
+}
+
+// SetVpcSettings sets the VpcSettings field's value.
+func (s *DirectoryDescription) SetVpcSettings(v *DirectoryVpcSettingsDescription) *DirectoryDescription {
+	s.VpcSettings = v
+	return s
+}
+
 // Contains directory limit information for a region.
 type DirectoryLimits struct {
 	_ struct{} `type:"structure"`
@@ -4406,6 +5429,60 @@ func (s DirectoryLimits) String() string {
 // GoString returns the string representation
 func (s DirectoryLimits) GoString() string {
 	return s.String()
+}
+
+// SetCloudOnlyDirectoriesCurrentCount sets the CloudOnlyDirectoriesCurrentCount field's value.
+func (s *DirectoryLimits) SetCloudOnlyDirectoriesCurrentCount(v int64) *DirectoryLimits {
+	s.CloudOnlyDirectoriesCurrentCount = &v
+	return s
+}
+
+// SetCloudOnlyDirectoriesLimit sets the CloudOnlyDirectoriesLimit field's value.
+func (s *DirectoryLimits) SetCloudOnlyDirectoriesLimit(v int64) *DirectoryLimits {
+	s.CloudOnlyDirectoriesLimit = &v
+	return s
+}
+
+// SetCloudOnlyDirectoriesLimitReached sets the CloudOnlyDirectoriesLimitReached field's value.
+func (s *DirectoryLimits) SetCloudOnlyDirectoriesLimitReached(v bool) *DirectoryLimits {
+	s.CloudOnlyDirectoriesLimitReached = &v
+	return s
+}
+
+// SetCloudOnlyMicrosoftADCurrentCount sets the CloudOnlyMicrosoftADCurrentCount field's value.
+func (s *DirectoryLimits) SetCloudOnlyMicrosoftADCurrentCount(v int64) *DirectoryLimits {
+	s.CloudOnlyMicrosoftADCurrentCount = &v
+	return s
+}
+
+// SetCloudOnlyMicrosoftADLimit sets the CloudOnlyMicrosoftADLimit field's value.
+func (s *DirectoryLimits) SetCloudOnlyMicrosoftADLimit(v int64) *DirectoryLimits {
+	s.CloudOnlyMicrosoftADLimit = &v
+	return s
+}
+
+// SetCloudOnlyMicrosoftADLimitReached sets the CloudOnlyMicrosoftADLimitReached field's value.
+func (s *DirectoryLimits) SetCloudOnlyMicrosoftADLimitReached(v bool) *DirectoryLimits {
+	s.CloudOnlyMicrosoftADLimitReached = &v
+	return s
+}
+
+// SetConnectedDirectoriesCurrentCount sets the ConnectedDirectoriesCurrentCount field's value.
+func (s *DirectoryLimits) SetConnectedDirectoriesCurrentCount(v int64) *DirectoryLimits {
+	s.ConnectedDirectoriesCurrentCount = &v
+	return s
+}
+
+// SetConnectedDirectoriesLimit sets the ConnectedDirectoriesLimit field's value.
+func (s *DirectoryLimits) SetConnectedDirectoriesLimit(v int64) *DirectoryLimits {
+	s.ConnectedDirectoriesLimit = &v
+	return s
+}
+
+// SetConnectedDirectoriesLimitReached sets the ConnectedDirectoriesLimitReached field's value.
+func (s *DirectoryLimits) SetConnectedDirectoriesLimitReached(v bool) *DirectoryLimits {
+	s.ConnectedDirectoriesLimitReached = &v
+	return s
 }
 
 // Contains VPC information for the CreateDirectory or CreateMicrosoftAD operation.
@@ -4451,6 +5528,18 @@ func (s *DirectoryVpcSettings) Validate() error {
 	return nil
 }
 
+// SetSubnetIds sets the SubnetIds field's value.
+func (s *DirectoryVpcSettings) SetSubnetIds(v []*string) *DirectoryVpcSettings {
+	s.SubnetIds = v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *DirectoryVpcSettings) SetVpcId(v string) *DirectoryVpcSettings {
+	s.VpcId = &v
+	return s
+}
+
 // Contains information about the directory.
 type DirectoryVpcSettingsDescription struct {
 	_ struct{} `type:"structure"`
@@ -4479,6 +5568,30 @@ func (s DirectoryVpcSettingsDescription) String() string {
 // GoString returns the string representation
 func (s DirectoryVpcSettingsDescription) GoString() string {
 	return s.String()
+}
+
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *DirectoryVpcSettingsDescription) SetAvailabilityZones(v []*string) *DirectoryVpcSettingsDescription {
+	s.AvailabilityZones = v
+	return s
+}
+
+// SetSecurityGroupId sets the SecurityGroupId field's value.
+func (s *DirectoryVpcSettingsDescription) SetSecurityGroupId(v string) *DirectoryVpcSettingsDescription {
+	s.SecurityGroupId = &v
+	return s
+}
+
+// SetSubnetIds sets the SubnetIds field's value.
+func (s *DirectoryVpcSettingsDescription) SetSubnetIds(v []*string) *DirectoryVpcSettingsDescription {
+	s.SubnetIds = v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *DirectoryVpcSettingsDescription) SetVpcId(v string) *DirectoryVpcSettingsDescription {
+	s.VpcId = &v
+	return s
 }
 
 // Contains the inputs for the DisableRadius operation.
@@ -4512,6 +5625,12 @@ func (s *DisableRadiusInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DisableRadiusInput) SetDirectoryId(v string) *DisableRadiusInput {
+	s.DirectoryId = &v
+	return s
 }
 
 // Contains the results of the DisableRadius operation.
@@ -4584,6 +5703,24 @@ func (s *DisableSsoInput) Validate() error {
 	return nil
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *DisableSsoInput) SetDirectoryId(v string) *DisableSsoInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetPassword sets the Password field's value.
+func (s *DisableSsoInput) SetPassword(v string) *DisableSsoInput {
+	s.Password = &v
+	return s
+}
+
+// SetUserName sets the UserName field's value.
+func (s *DisableSsoInput) SetUserName(v string) *DisableSsoInput {
+	s.UserName = &v
+	return s
+}
+
 // Contains the results of the DisableSso operation.
 type DisableSsoOutput struct {
 	_ struct{} `type:"structure"`
@@ -4643,6 +5780,18 @@ func (s *EnableRadiusInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *EnableRadiusInput) SetDirectoryId(v string) *EnableRadiusInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetRadiusSettings sets the RadiusSettings field's value.
+func (s *EnableRadiusInput) SetRadiusSettings(v *RadiusSettings) *EnableRadiusInput {
+	s.RadiusSettings = v
+	return s
 }
 
 // Contains the results of the EnableRadius operation.
@@ -4715,6 +5864,24 @@ func (s *EnableSsoInput) Validate() error {
 	return nil
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *EnableSsoInput) SetDirectoryId(v string) *EnableSsoInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetPassword sets the Password field's value.
+func (s *EnableSsoInput) SetPassword(v string) *EnableSsoInput {
+	s.Password = &v
+	return s
+}
+
+// SetUserName sets the UserName field's value.
+func (s *EnableSsoInput) SetUserName(v string) *EnableSsoInput {
+	s.UserName = &v
+	return s
+}
+
 // Contains the results of the EnableSso operation.
 type EnableSsoOutput struct {
 	_ struct{} `type:"structure"`
@@ -4761,6 +5928,36 @@ func (s EventTopic) GoString() string {
 	return s.String()
 }
 
+// SetCreatedDateTime sets the CreatedDateTime field's value.
+func (s *EventTopic) SetCreatedDateTime(v time.Time) *EventTopic {
+	s.CreatedDateTime = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *EventTopic) SetDirectoryId(v string) *EventTopic {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *EventTopic) SetStatus(v string) *EventTopic {
+	s.Status = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *EventTopic) SetTopicArn(v string) *EventTopic {
+	s.TopicArn = &v
+	return s
+}
+
+// SetTopicName sets the TopicName field's value.
+func (s *EventTopic) SetTopicName(v string) *EventTopic {
+	s.TopicName = &v
+	return s
+}
+
 // Contains the inputs for the GetDirectoryLimits operation.
 type GetDirectoryLimitsInput struct {
 	_ struct{} `type:"structure"`
@@ -4793,6 +5990,12 @@ func (s GetDirectoryLimitsOutput) String() string {
 // GoString returns the string representation
 func (s GetDirectoryLimitsOutput) GoString() string {
 	return s.String()
+}
+
+// SetDirectoryLimits sets the DirectoryLimits field's value.
+func (s *GetDirectoryLimitsOutput) SetDirectoryLimits(v *DirectoryLimits) *GetDirectoryLimitsOutput {
+	s.DirectoryLimits = v
+	return s
 }
 
 // Contains the inputs for the GetSnapshotLimits operation.
@@ -4828,6 +6031,12 @@ func (s *GetSnapshotLimitsInput) Validate() error {
 	return nil
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *GetSnapshotLimitsInput) SetDirectoryId(v string) *GetSnapshotLimitsInput {
+	s.DirectoryId = &v
+	return s
+}
+
 // Contains the results of the GetSnapshotLimits operation.
 type GetSnapshotLimitsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4845,6 +6054,12 @@ func (s GetSnapshotLimitsOutput) String() string {
 // GoString returns the string representation
 func (s GetSnapshotLimitsOutput) GoString() string {
 	return s.String()
+}
+
+// SetSnapshotLimits sets the SnapshotLimits field's value.
+func (s *GetSnapshotLimitsOutput) SetSnapshotLimits(v *SnapshotLimits) *GetSnapshotLimitsOutput {
+	s.SnapshotLimits = v
+	return s
 }
 
 // IP address block. This is often the address block of the DNS server used
@@ -4869,6 +6084,18 @@ func (s IpRoute) String() string {
 // GoString returns the string representation
 func (s IpRoute) GoString() string {
 	return s.String()
+}
+
+// SetCidrIp sets the CidrIp field's value.
+func (s *IpRoute) SetCidrIp(v string) *IpRoute {
+	s.CidrIp = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *IpRoute) SetDescription(v string) *IpRoute {
+	s.Description = &v
+	return s
 }
 
 // Information about one or more IP address blocks.
@@ -4902,6 +6129,42 @@ func (s IpRouteInfo) String() string {
 // GoString returns the string representation
 func (s IpRouteInfo) GoString() string {
 	return s.String()
+}
+
+// SetAddedDateTime sets the AddedDateTime field's value.
+func (s *IpRouteInfo) SetAddedDateTime(v time.Time) *IpRouteInfo {
+	s.AddedDateTime = &v
+	return s
+}
+
+// SetCidrIp sets the CidrIp field's value.
+func (s *IpRouteInfo) SetCidrIp(v string) *IpRouteInfo {
+	s.CidrIp = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *IpRouteInfo) SetDescription(v string) *IpRouteInfo {
+	s.Description = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *IpRouteInfo) SetDirectoryId(v string) *IpRouteInfo {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetIpRouteStatusMsg sets the IpRouteStatusMsg field's value.
+func (s *IpRouteInfo) SetIpRouteStatusMsg(v string) *IpRouteInfo {
+	s.IpRouteStatusMsg = &v
+	return s
+}
+
+// SetIpRouteStatusReason sets the IpRouteStatusReason field's value.
+func (s *IpRouteInfo) SetIpRouteStatusReason(v string) *IpRouteInfo {
+	s.IpRouteStatusReason = &v
+	return s
 }
 
 type ListIpRoutesInput struct {
@@ -4944,6 +6207,24 @@ func (s *ListIpRoutesInput) Validate() error {
 	return nil
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *ListIpRoutesInput) SetDirectoryId(v string) *ListIpRoutesInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListIpRoutesInput) SetLimit(v int64) *ListIpRoutesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListIpRoutesInput) SetNextToken(v string) *ListIpRoutesInput {
+	s.NextToken = &v
+	return s
+}
+
 type ListIpRoutesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4964,6 +6245,110 @@ func (s ListIpRoutesOutput) String() string {
 // GoString returns the string representation
 func (s ListIpRoutesOutput) GoString() string {
 	return s.String()
+}
+
+// SetIpRoutesInfo sets the IpRoutesInfo field's value.
+func (s *ListIpRoutesOutput) SetIpRoutesInfo(v []*IpRouteInfo) *ListIpRoutesOutput {
+	s.IpRoutesInfo = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListIpRoutesOutput) SetNextToken(v string) *ListIpRoutesOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListSchemaExtensionsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the directory from which to retrieve the schema extension
+	// information.
+	//
+	// DirectoryId is a required field
+	DirectoryId *string `type:"string" required:"true"`
+
+	// The maximum number of items to return.
+	Limit *int64 `type:"integer"`
+
+	// The ListSchemaExtensions.NextToken value from a previous call to ListSchemaExtensions.
+	// Pass null if this is the first call.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ListSchemaExtensionsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListSchemaExtensionsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListSchemaExtensionsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListSchemaExtensionsInput"}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *ListSchemaExtensionsInput) SetDirectoryId(v string) *ListSchemaExtensionsInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *ListSchemaExtensionsInput) SetLimit(v int64) *ListSchemaExtensionsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListSchemaExtensionsInput) SetNextToken(v string) *ListSchemaExtensionsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListSchemaExtensionsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// If not null, more results are available. Pass this value for the NextToken
+	// parameter in a subsequent call to ListSchemaExtensions to retrieve the next
+	// set of items.
+	NextToken *string `type:"string"`
+
+	// Information about the schema extensions applied to the directory.
+	SchemaExtensionsInfo []*SchemaExtensionInfo `type:"list"`
+}
+
+// String returns the string representation
+func (s ListSchemaExtensionsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListSchemaExtensionsOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListSchemaExtensionsOutput) SetNextToken(v string) *ListSchemaExtensionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSchemaExtensionsInfo sets the SchemaExtensionsInfo field's value.
+func (s *ListSchemaExtensionsOutput) SetSchemaExtensionsInfo(v []*SchemaExtensionInfo) *ListSchemaExtensionsOutput {
+	s.SchemaExtensionsInfo = v
+	return s
 }
 
 type ListTagsForResourceInput struct {
@@ -5004,6 +6389,24 @@ func (s *ListTagsForResourceInput) Validate() error {
 	return nil
 }
 
+// SetLimit sets the Limit field's value.
+func (s *ListTagsForResourceInput) SetLimit(v int64) *ListTagsForResourceInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListTagsForResourceInput) SetNextToken(v string) *ListTagsForResourceInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *ListTagsForResourceInput) SetResourceId(v string) *ListTagsForResourceInput {
+	s.ResourceId = &v
+	return s
+}
+
 type ListTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5022,6 +6425,18 @@ func (s ListTagsForResourceOutput) String() string {
 // GoString returns the string representation
 func (s ListTagsForResourceOutput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListTagsForResourceOutput) SetNextToken(v string) *ListTagsForResourceOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsForResourceOutput) SetTags(v []*Tag) *ListTagsForResourceOutput {
+	s.Tags = v
+	return s
 }
 
 // Contains information about a Remote Authentication Dial In User Service (RADIUS)
@@ -5090,6 +6505,54 @@ func (s *RadiusSettings) Validate() error {
 	return nil
 }
 
+// SetAuthenticationProtocol sets the AuthenticationProtocol field's value.
+func (s *RadiusSettings) SetAuthenticationProtocol(v string) *RadiusSettings {
+	s.AuthenticationProtocol = &v
+	return s
+}
+
+// SetDisplayLabel sets the DisplayLabel field's value.
+func (s *RadiusSettings) SetDisplayLabel(v string) *RadiusSettings {
+	s.DisplayLabel = &v
+	return s
+}
+
+// SetRadiusPort sets the RadiusPort field's value.
+func (s *RadiusSettings) SetRadiusPort(v int64) *RadiusSettings {
+	s.RadiusPort = &v
+	return s
+}
+
+// SetRadiusRetries sets the RadiusRetries field's value.
+func (s *RadiusSettings) SetRadiusRetries(v int64) *RadiusSettings {
+	s.RadiusRetries = &v
+	return s
+}
+
+// SetRadiusServers sets the RadiusServers field's value.
+func (s *RadiusSettings) SetRadiusServers(v []*string) *RadiusSettings {
+	s.RadiusServers = v
+	return s
+}
+
+// SetRadiusTimeout sets the RadiusTimeout field's value.
+func (s *RadiusSettings) SetRadiusTimeout(v int64) *RadiusSettings {
+	s.RadiusTimeout = &v
+	return s
+}
+
+// SetSharedSecret sets the SharedSecret field's value.
+func (s *RadiusSettings) SetSharedSecret(v string) *RadiusSettings {
+	s.SharedSecret = &v
+	return s
+}
+
+// SetUseSameUsername sets the UseSameUsername field's value.
+func (s *RadiusSettings) SetUseSameUsername(v bool) *RadiusSettings {
+	s.UseSameUsername = &v
+	return s
+}
+
 // Registers a new event topic.
 type RegisterEventTopicInput struct {
 	_ struct{} `type:"structure"`
@@ -5133,6 +6596,18 @@ func (s *RegisterEventTopicInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *RegisterEventTopicInput) SetDirectoryId(v string) *RegisterEventTopicInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetTopicName sets the TopicName field's value.
+func (s *RegisterEventTopicInput) SetTopicName(v string) *RegisterEventTopicInput {
+	s.TopicName = &v
+	return s
 }
 
 // The result of a RegisterEventTopic request.
@@ -5190,6 +6665,18 @@ func (s *RemoveIpRoutesInput) Validate() error {
 	return nil
 }
 
+// SetCidrIps sets the CidrIps field's value.
+func (s *RemoveIpRoutesInput) SetCidrIps(v []*string) *RemoveIpRoutesInput {
+	s.CidrIps = v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *RemoveIpRoutesInput) SetDirectoryId(v string) *RemoveIpRoutesInput {
+	s.DirectoryId = &v
+	return s
+}
+
 type RemoveIpRoutesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5244,6 +6731,18 @@ func (s *RemoveTagsFromResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceId sets the ResourceId field's value.
+func (s *RemoveTagsFromResourceInput) SetResourceId(v string) *RemoveTagsFromResourceInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *RemoveTagsFromResourceInput) SetTagKeys(v []*string) *RemoveTagsFromResourceInput {
+	s.TagKeys = v
+	return s
+}
+
 type RemoveTagsFromResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5291,6 +6790,12 @@ func (s *RestoreFromSnapshotInput) Validate() error {
 	return nil
 }
 
+// SetSnapshotId sets the SnapshotId field's value.
+func (s *RestoreFromSnapshotInput) SetSnapshotId(v string) *RestoreFromSnapshotInput {
+	s.SnapshotId = &v
+	return s
+}
+
 // Contains the results of the RestoreFromSnapshot operation.
 type RestoreFromSnapshotOutput struct {
 	_ struct{} `type:"structure"`
@@ -5304,6 +6809,85 @@ func (s RestoreFromSnapshotOutput) String() string {
 // GoString returns the string representation
 func (s RestoreFromSnapshotOutput) GoString() string {
 	return s.String()
+}
+
+// Information about a schema extension.
+type SchemaExtensionInfo struct {
+	_ struct{} `type:"structure"`
+
+	// A description of the schema extension.
+	Description *string `type:"string"`
+
+	// The identifier of the directory to which the schema extension is applied.
+	DirectoryId *string `type:"string"`
+
+	// The date and time that the schema extension was completed.
+	EndDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The identifier of the schema extension.
+	SchemaExtensionId *string `type:"string"`
+
+	// The current status of the schema extension.
+	SchemaExtensionStatus *string `type:"string" enum:"SchemaExtensionStatus"`
+
+	// The reason for the SchemaExtensionStatus.
+	SchemaExtensionStatusReason *string `type:"string"`
+
+	// The date and time that the schema extension started being applied to the
+	// directory.
+	StartDateTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+}
+
+// String returns the string representation
+func (s SchemaExtensionInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SchemaExtensionInfo) GoString() string {
+	return s.String()
+}
+
+// SetDescription sets the Description field's value.
+func (s *SchemaExtensionInfo) SetDescription(v string) *SchemaExtensionInfo {
+	s.Description = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *SchemaExtensionInfo) SetDirectoryId(v string) *SchemaExtensionInfo {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetEndDateTime sets the EndDateTime field's value.
+func (s *SchemaExtensionInfo) SetEndDateTime(v time.Time) *SchemaExtensionInfo {
+	s.EndDateTime = &v
+	return s
+}
+
+// SetSchemaExtensionId sets the SchemaExtensionId field's value.
+func (s *SchemaExtensionInfo) SetSchemaExtensionId(v string) *SchemaExtensionInfo {
+	s.SchemaExtensionId = &v
+	return s
+}
+
+// SetSchemaExtensionStatus sets the SchemaExtensionStatus field's value.
+func (s *SchemaExtensionInfo) SetSchemaExtensionStatus(v string) *SchemaExtensionInfo {
+	s.SchemaExtensionStatus = &v
+	return s
+}
+
+// SetSchemaExtensionStatusReason sets the SchemaExtensionStatusReason field's value.
+func (s *SchemaExtensionInfo) SetSchemaExtensionStatusReason(v string) *SchemaExtensionInfo {
+	s.SchemaExtensionStatusReason = &v
+	return s
+}
+
+// SetStartDateTime sets the StartDateTime field's value.
+func (s *SchemaExtensionInfo) SetStartDateTime(v time.Time) *SchemaExtensionInfo {
+	s.StartDateTime = &v
+	return s
 }
 
 // Describes a directory snapshot.
@@ -5339,6 +6923,42 @@ func (s Snapshot) GoString() string {
 	return s.String()
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *Snapshot) SetDirectoryId(v string) *Snapshot {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *Snapshot) SetName(v string) *Snapshot {
+	s.Name = &v
+	return s
+}
+
+// SetSnapshotId sets the SnapshotId field's value.
+func (s *Snapshot) SetSnapshotId(v string) *Snapshot {
+	s.SnapshotId = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *Snapshot) SetStartTime(v time.Time) *Snapshot {
+	s.StartTime = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *Snapshot) SetStatus(v string) *Snapshot {
+	s.Status = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *Snapshot) SetType(v string) *Snapshot {
+	s.Type = &v
+	return s
+}
+
 // Contains manual snapshot limit information for a directory.
 type SnapshotLimits struct {
 	_ struct{} `type:"structure"`
@@ -5361,6 +6981,132 @@ func (s SnapshotLimits) String() string {
 // GoString returns the string representation
 func (s SnapshotLimits) GoString() string {
 	return s.String()
+}
+
+// SetManualSnapshotsCurrentCount sets the ManualSnapshotsCurrentCount field's value.
+func (s *SnapshotLimits) SetManualSnapshotsCurrentCount(v int64) *SnapshotLimits {
+	s.ManualSnapshotsCurrentCount = &v
+	return s
+}
+
+// SetManualSnapshotsLimit sets the ManualSnapshotsLimit field's value.
+func (s *SnapshotLimits) SetManualSnapshotsLimit(v int64) *SnapshotLimits {
+	s.ManualSnapshotsLimit = &v
+	return s
+}
+
+// SetManualSnapshotsLimitReached sets the ManualSnapshotsLimitReached field's value.
+func (s *SnapshotLimits) SetManualSnapshotsLimitReached(v bool) *SnapshotLimits {
+	s.ManualSnapshotsLimitReached = &v
+	return s
+}
+
+type StartSchemaExtensionInput struct {
+	_ struct{} `type:"structure"`
+
+	// If true, creates a snapshot of the directory before applying the schema extension.
+	//
+	// CreateSnapshotBeforeSchemaExtension is a required field
+	CreateSnapshotBeforeSchemaExtension *bool `type:"boolean" required:"true"`
+
+	// A description of the schema extension.
+	//
+	// Description is a required field
+	Description *string `type:"string" required:"true"`
+
+	// The identifier of the directory for which the schema extension will be applied
+	// to.
+	//
+	// DirectoryId is a required field
+	DirectoryId *string `type:"string" required:"true"`
+
+	// The LDIF file represented as a string. The file size can be no larger than
+	// 1MB.
+	//
+	// LdifContent is a required field
+	LdifContent *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s StartSchemaExtensionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartSchemaExtensionInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *StartSchemaExtensionInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "StartSchemaExtensionInput"}
+	if s.CreateSnapshotBeforeSchemaExtension == nil {
+		invalidParams.Add(request.NewErrParamRequired("CreateSnapshotBeforeSchemaExtension"))
+	}
+	if s.Description == nil {
+		invalidParams.Add(request.NewErrParamRequired("Description"))
+	}
+	if s.DirectoryId == nil {
+		invalidParams.Add(request.NewErrParamRequired("DirectoryId"))
+	}
+	if s.LdifContent == nil {
+		invalidParams.Add(request.NewErrParamRequired("LdifContent"))
+	}
+	if s.LdifContent != nil && len(*s.LdifContent) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LdifContent", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetCreateSnapshotBeforeSchemaExtension sets the CreateSnapshotBeforeSchemaExtension field's value.
+func (s *StartSchemaExtensionInput) SetCreateSnapshotBeforeSchemaExtension(v bool) *StartSchemaExtensionInput {
+	s.CreateSnapshotBeforeSchemaExtension = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *StartSchemaExtensionInput) SetDescription(v string) *StartSchemaExtensionInput {
+	s.Description = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *StartSchemaExtensionInput) SetDirectoryId(v string) *StartSchemaExtensionInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetLdifContent sets the LdifContent field's value.
+func (s *StartSchemaExtensionInput) SetLdifContent(v string) *StartSchemaExtensionInput {
+	s.LdifContent = &v
+	return s
+}
+
+type StartSchemaExtensionOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the schema extension that will be applied.
+	SchemaExtensionId *string `type:"string"`
+}
+
+// String returns the string representation
+func (s StartSchemaExtensionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s StartSchemaExtensionOutput) GoString() string {
+	return s.String()
+}
+
+// SetSchemaExtensionId sets the SchemaExtensionId field's value.
+func (s *StartSchemaExtensionOutput) SetSchemaExtensionId(v string) *StartSchemaExtensionOutput {
+	s.SchemaExtensionId = &v
+	return s
 }
 
 // Metadata assigned to an Amazon Directory Services directory consisting of
@@ -5412,6 +7158,18 @@ func (s *Tag) Validate() error {
 	return nil
 }
 
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
 // Describes a trust relationship between an Microsoft AD in the AWS cloud and
 // an external domain.
 type Trust struct {
@@ -5457,6 +7215,66 @@ func (s Trust) String() string {
 // GoString returns the string representation
 func (s Trust) GoString() string {
 	return s.String()
+}
+
+// SetCreatedDateTime sets the CreatedDateTime field's value.
+func (s *Trust) SetCreatedDateTime(v time.Time) *Trust {
+	s.CreatedDateTime = &v
+	return s
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *Trust) SetDirectoryId(v string) *Trust {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetLastUpdatedDateTime sets the LastUpdatedDateTime field's value.
+func (s *Trust) SetLastUpdatedDateTime(v time.Time) *Trust {
+	s.LastUpdatedDateTime = &v
+	return s
+}
+
+// SetRemoteDomainName sets the RemoteDomainName field's value.
+func (s *Trust) SetRemoteDomainName(v string) *Trust {
+	s.RemoteDomainName = &v
+	return s
+}
+
+// SetStateLastUpdatedDateTime sets the StateLastUpdatedDateTime field's value.
+func (s *Trust) SetStateLastUpdatedDateTime(v time.Time) *Trust {
+	s.StateLastUpdatedDateTime = &v
+	return s
+}
+
+// SetTrustDirection sets the TrustDirection field's value.
+func (s *Trust) SetTrustDirection(v string) *Trust {
+	s.TrustDirection = &v
+	return s
+}
+
+// SetTrustId sets the TrustId field's value.
+func (s *Trust) SetTrustId(v string) *Trust {
+	s.TrustId = &v
+	return s
+}
+
+// SetTrustState sets the TrustState field's value.
+func (s *Trust) SetTrustState(v string) *Trust {
+	s.TrustState = &v
+	return s
+}
+
+// SetTrustStateReason sets the TrustStateReason field's value.
+func (s *Trust) SetTrustStateReason(v string) *Trust {
+	s.TrustStateReason = &v
+	return s
+}
+
+// SetTrustType sets the TrustType field's value.
+func (s *Trust) SetTrustType(v string) *Trust {
+	s.TrustType = &v
+	return s
 }
 
 // Updates a conditional forwarder.
@@ -5509,6 +7327,24 @@ func (s *UpdateConditionalForwarderInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *UpdateConditionalForwarderInput) SetDirectoryId(v string) *UpdateConditionalForwarderInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetDnsIpAddrs sets the DnsIpAddrs field's value.
+func (s *UpdateConditionalForwarderInput) SetDnsIpAddrs(v []*string) *UpdateConditionalForwarderInput {
+	s.DnsIpAddrs = v
+	return s
+}
+
+// SetRemoteDomainName sets the RemoteDomainName field's value.
+func (s *UpdateConditionalForwarderInput) SetRemoteDomainName(v string) *UpdateConditionalForwarderInput {
+	s.RemoteDomainName = &v
+	return s
 }
 
 // The result of an UpdateConditionalForwarder request.
@@ -5572,6 +7408,18 @@ func (s *UpdateRadiusInput) Validate() error {
 	return nil
 }
 
+// SetDirectoryId sets the DirectoryId field's value.
+func (s *UpdateRadiusInput) SetDirectoryId(v string) *UpdateRadiusInput {
+	s.DirectoryId = &v
+	return s
+}
+
+// SetRadiusSettings sets the RadiusSettings field's value.
+func (s *UpdateRadiusInput) SetRadiusSettings(v *RadiusSettings) *UpdateRadiusInput {
+	s.RadiusSettings = v
+	return s
+}
+
 // Contains the results of the UpdateRadius operation.
 type UpdateRadiusOutput struct {
 	_ struct{} `type:"structure"`
@@ -5621,6 +7469,12 @@ func (s *VerifyTrustInput) Validate() error {
 	return nil
 }
 
+// SetTrustId sets the TrustId field's value.
+func (s *VerifyTrustInput) SetTrustId(v string) *VerifyTrustInput {
+	s.TrustId = &v
+	return s
+}
+
 // Result of a VerifyTrust request.
 type VerifyTrustOutput struct {
 	_ struct{} `type:"structure"`
@@ -5637,6 +7491,12 @@ func (s VerifyTrustOutput) String() string {
 // GoString returns the string representation
 func (s VerifyTrustOutput) GoString() string {
 	return s.String()
+}
+
+// SetTrustId sets the TrustId field's value.
+func (s *VerifyTrustOutput) SetTrustId(v string) *VerifyTrustOutput {
+	s.TrustId = &v
+	return s
 }
 
 const (
@@ -5741,6 +7601,35 @@ const (
 const (
 	// ReplicationScopeDomain is a ReplicationScope enum value
 	ReplicationScopeDomain = "Domain"
+)
+
+const (
+	// SchemaExtensionStatusInitializing is a SchemaExtensionStatus enum value
+	SchemaExtensionStatusInitializing = "Initializing"
+
+	// SchemaExtensionStatusCreatingSnapshot is a SchemaExtensionStatus enum value
+	SchemaExtensionStatusCreatingSnapshot = "CreatingSnapshot"
+
+	// SchemaExtensionStatusUpdatingSchema is a SchemaExtensionStatus enum value
+	SchemaExtensionStatusUpdatingSchema = "UpdatingSchema"
+
+	// SchemaExtensionStatusReplicating is a SchemaExtensionStatus enum value
+	SchemaExtensionStatusReplicating = "Replicating"
+
+	// SchemaExtensionStatusCancelInProgress is a SchemaExtensionStatus enum value
+	SchemaExtensionStatusCancelInProgress = "CancelInProgress"
+
+	// SchemaExtensionStatusRollbackInProgress is a SchemaExtensionStatus enum value
+	SchemaExtensionStatusRollbackInProgress = "RollbackInProgress"
+
+	// SchemaExtensionStatusCancelled is a SchemaExtensionStatus enum value
+	SchemaExtensionStatusCancelled = "Cancelled"
+
+	// SchemaExtensionStatusFailed is a SchemaExtensionStatus enum value
+	SchemaExtensionStatusFailed = "Failed"
+
+	// SchemaExtensionStatusCompleted is a SchemaExtensionStatus enum value
+	SchemaExtensionStatusCompleted = "Completed"
 )
 
 const (

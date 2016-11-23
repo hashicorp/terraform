@@ -157,8 +157,8 @@ func (c *CodeCommit) CreateBranchRequest(input *CreateBranchInput) (req *request
 //
 // Creates a new branch in a repository and points the branch to a commit.
 //
-// Calling the create branch operation does not set a repository's default
-// branch. To do this, call the update default branch operation.
+// Calling the create branch operation does not set a repository's default branch.
+// To do this, call the update default branch operation.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -364,8 +364,8 @@ func (c *CodeCommit) DeleteRepositoryRequest(input *DeleteRepositoryInput) (req 
 // Deletes a repository. If a specified repository was already deleted, a null
 // repository ID will be returned.
 //
-// Deleting a repository also deletes all associated objects and metadata.
-// After a repository is deleted, all future push calls to the deleted repository
+// Deleting a repository also deletes all associated objects and metadata. After
+// a repository is deleted, all future push calls to the deleted repository
 // will fail.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1606,6 +1606,12 @@ func (s *BatchGetRepositoriesInput) Validate() error {
 	return nil
 }
 
+// SetRepositoryNames sets the RepositoryNames field's value.
+func (s *BatchGetRepositoriesInput) SetRepositoryNames(v []*string) *BatchGetRepositoriesInput {
+	s.RepositoryNames = v
+	return s
+}
+
 // Represents the output of a batch get repositories operation.
 type BatchGetRepositoriesOutput struct {
 	_ struct{} `type:"structure"`
@@ -1627,6 +1633,18 @@ func (s BatchGetRepositoriesOutput) GoString() string {
 	return s.String()
 }
 
+// SetRepositories sets the Repositories field's value.
+func (s *BatchGetRepositoriesOutput) SetRepositories(v []*RepositoryMetadata) *BatchGetRepositoriesOutput {
+	s.Repositories = v
+	return s
+}
+
+// SetRepositoriesNotFound sets the RepositoriesNotFound field's value.
+func (s *BatchGetRepositoriesOutput) SetRepositoriesNotFound(v []*string) *BatchGetRepositoriesOutput {
+	s.RepositoriesNotFound = v
+	return s
+}
+
 // Returns information about a branch.
 type BranchInfo struct {
 	_ struct{} `type:"structure"`
@@ -1646,6 +1664,18 @@ func (s BranchInfo) String() string {
 // GoString returns the string representation
 func (s BranchInfo) GoString() string {
 	return s.String()
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *BranchInfo) SetBranchName(v string) *BranchInfo {
+	s.BranchName = &v
+	return s
+}
+
+// SetCommitId sets the CommitId field's value.
+func (s *BranchInfo) SetCommitId(v string) *BranchInfo {
+	s.CommitId = &v
+	return s
 }
 
 // Returns information about a specific commit.
@@ -1682,6 +1712,42 @@ func (s Commit) String() string {
 // GoString returns the string representation
 func (s Commit) GoString() string {
 	return s.String()
+}
+
+// SetAdditionalData sets the AdditionalData field's value.
+func (s *Commit) SetAdditionalData(v string) *Commit {
+	s.AdditionalData = &v
+	return s
+}
+
+// SetAuthor sets the Author field's value.
+func (s *Commit) SetAuthor(v *UserInfo) *Commit {
+	s.Author = v
+	return s
+}
+
+// SetCommitter sets the Committer field's value.
+func (s *Commit) SetCommitter(v *UserInfo) *Commit {
+	s.Committer = v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *Commit) SetMessage(v string) *Commit {
+	s.Message = &v
+	return s
+}
+
+// SetParents sets the Parents field's value.
+func (s *Commit) SetParents(v []*string) *Commit {
+	s.Parents = v
+	return s
+}
+
+// SetTreeId sets the TreeId field's value.
+func (s *Commit) SetTreeId(v string) *Commit {
+	s.TreeId = &v
+	return s
 }
 
 // Represents the input of a create branch operation.
@@ -1737,6 +1803,24 @@ func (s *CreateBranchInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetBranchName sets the BranchName field's value.
+func (s *CreateBranchInput) SetBranchName(v string) *CreateBranchInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetCommitId sets the CommitId field's value.
+func (s *CreateBranchInput) SetCommitId(v string) *CreateBranchInput {
+	s.CommitId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *CreateBranchInput) SetRepositoryName(v string) *CreateBranchInput {
+	s.RepositoryName = &v
+	return s
 }
 
 type CreateBranchOutput struct {
@@ -1804,6 +1888,18 @@ func (s *CreateRepositoryInput) Validate() error {
 	return nil
 }
 
+// SetRepositoryDescription sets the RepositoryDescription field's value.
+func (s *CreateRepositoryInput) SetRepositoryDescription(v string) *CreateRepositoryInput {
+	s.RepositoryDescription = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *CreateRepositoryInput) SetRepositoryName(v string) *CreateRepositoryInput {
+	s.RepositoryName = &v
+	return s
+}
+
 // Represents the output of a create repository operation.
 type CreateRepositoryOutput struct {
 	_ struct{} `type:"structure"`
@@ -1820,6 +1916,12 @@ func (s CreateRepositoryOutput) String() string {
 // GoString returns the string representation
 func (s CreateRepositoryOutput) GoString() string {
 	return s.String()
+}
+
+// SetRepositoryMetadata sets the RepositoryMetadata field's value.
+func (s *CreateRepositoryOutput) SetRepositoryMetadata(v *RepositoryMetadata) *CreateRepositoryOutput {
+	s.RepositoryMetadata = v
+	return s
 }
 
 // Represents the input of a delete repository operation.
@@ -1858,6 +1960,12 @@ func (s *DeleteRepositoryInput) Validate() error {
 	return nil
 }
 
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *DeleteRepositoryInput) SetRepositoryName(v string) *DeleteRepositoryInput {
+	s.RepositoryName = &v
+	return s
+}
+
 // Represents the output of a delete repository operation.
 type DeleteRepositoryOutput struct {
 	_ struct{} `type:"structure"`
@@ -1874,6 +1982,12 @@ func (s DeleteRepositoryOutput) String() string {
 // GoString returns the string representation
 func (s DeleteRepositoryOutput) GoString() string {
 	return s.String()
+}
+
+// SetRepositoryId sets the RepositoryId field's value.
+func (s *DeleteRepositoryOutput) SetRepositoryId(v string) *DeleteRepositoryOutput {
+	s.RepositoryId = &v
+	return s
 }
 
 // Represents the input of a get branch operation.
@@ -1914,6 +2028,18 @@ func (s *GetBranchInput) Validate() error {
 	return nil
 }
 
+// SetBranchName sets the BranchName field's value.
+func (s *GetBranchInput) SetBranchName(v string) *GetBranchInput {
+	s.BranchName = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetBranchInput) SetRepositoryName(v string) *GetBranchInput {
+	s.RepositoryName = &v
+	return s
+}
+
 // Represents the output of a get branch operation.
 type GetBranchOutput struct {
 	_ struct{} `type:"structure"`
@@ -1930,6 +2056,12 @@ func (s GetBranchOutput) String() string {
 // GoString returns the string representation
 func (s GetBranchOutput) GoString() string {
 	return s.String()
+}
+
+// SetBranch sets the Branch field's value.
+func (s *GetBranchOutput) SetBranch(v *BranchInfo) *GetBranchOutput {
+	s.Branch = v
+	return s
 }
 
 // Represents the input of a get commit operation.
@@ -1976,6 +2108,18 @@ func (s *GetCommitInput) Validate() error {
 	return nil
 }
 
+// SetCommitId sets the CommitId field's value.
+func (s *GetCommitInput) SetCommitId(v string) *GetCommitInput {
+	s.CommitId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetCommitInput) SetRepositoryName(v string) *GetCommitInput {
+	s.RepositoryName = &v
+	return s
+}
+
 // Represents the output of a get commit operation.
 type GetCommitOutput struct {
 	_ struct{} `type:"structure"`
@@ -1994,6 +2138,12 @@ func (s GetCommitOutput) String() string {
 // GoString returns the string representation
 func (s GetCommitOutput) GoString() string {
 	return s.String()
+}
+
+// SetCommit sets the Commit field's value.
+func (s *GetCommitOutput) SetCommit(v *Commit) *GetCommitOutput {
+	s.Commit = v
+	return s
 }
 
 // Represents the input of a get repository operation.
@@ -2032,6 +2182,12 @@ func (s *GetRepositoryInput) Validate() error {
 	return nil
 }
 
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetRepositoryInput) SetRepositoryName(v string) *GetRepositoryInput {
+	s.RepositoryName = &v
+	return s
+}
+
 // Represents the output of a get repository operation.
 type GetRepositoryOutput struct {
 	_ struct{} `type:"structure"`
@@ -2048,6 +2204,12 @@ func (s GetRepositoryOutput) String() string {
 // GoString returns the string representation
 func (s GetRepositoryOutput) GoString() string {
 	return s.String()
+}
+
+// SetRepositoryMetadata sets the RepositoryMetadata field's value.
+func (s *GetRepositoryOutput) SetRepositoryMetadata(v *RepositoryMetadata) *GetRepositoryOutput {
+	s.RepositoryMetadata = v
+	return s
 }
 
 // Represents the input of a get repository triggers operation.
@@ -2081,6 +2243,12 @@ func (s *GetRepositoryTriggersInput) Validate() error {
 	return nil
 }
 
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *GetRepositoryTriggersInput) SetRepositoryName(v string) *GetRepositoryTriggersInput {
+	s.RepositoryName = &v
+	return s
+}
+
 // Represents the output of a get repository triggers operation.
 type GetRepositoryTriggersOutput struct {
 	_ struct{} `type:"structure"`
@@ -2100,6 +2268,18 @@ func (s GetRepositoryTriggersOutput) String() string {
 // GoString returns the string representation
 func (s GetRepositoryTriggersOutput) GoString() string {
 	return s.String()
+}
+
+// SetConfigurationId sets the ConfigurationId field's value.
+func (s *GetRepositoryTriggersOutput) SetConfigurationId(v string) *GetRepositoryTriggersOutput {
+	s.ConfigurationId = &v
+	return s
+}
+
+// SetTriggers sets the Triggers field's value.
+func (s *GetRepositoryTriggersOutput) SetTriggers(v []*RepositoryTrigger) *GetRepositoryTriggersOutput {
+	s.Triggers = v
+	return s
 }
 
 // Represents the input of a list branches operation.
@@ -2141,6 +2321,18 @@ func (s *ListBranchesInput) Validate() error {
 	return nil
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListBranchesInput) SetNextToken(v string) *ListBranchesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *ListBranchesInput) SetRepositoryName(v string) *ListBranchesInput {
+	s.RepositoryName = &v
+	return s
+}
+
 // Represents the output of a list branches operation.
 type ListBranchesOutput struct {
 	_ struct{} `type:"structure"`
@@ -2160,6 +2352,18 @@ func (s ListBranchesOutput) String() string {
 // GoString returns the string representation
 func (s ListBranchesOutput) GoString() string {
 	return s.String()
+}
+
+// SetBranches sets the Branches field's value.
+func (s *ListBranchesOutput) SetBranches(v []*string) *ListBranchesOutput {
+	s.Branches = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListBranchesOutput) SetNextToken(v string) *ListBranchesOutput {
+	s.NextToken = &v
+	return s
 }
 
 // Represents the input of a list repositories operation.
@@ -2189,6 +2393,24 @@ func (s ListRepositoriesInput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListRepositoriesInput) SetNextToken(v string) *ListRepositoriesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetOrder sets the Order field's value.
+func (s *ListRepositoriesInput) SetOrder(v string) *ListRepositoriesInput {
+	s.Order = &v
+	return s
+}
+
+// SetSortBy sets the SortBy field's value.
+func (s *ListRepositoriesInput) SetSortBy(v string) *ListRepositoriesInput {
+	s.SortBy = &v
+	return s
+}
+
 // Represents the output of a list repositories operation.
 type ListRepositoriesOutput struct {
 	_ struct{} `type:"structure"`
@@ -2211,6 +2433,18 @@ func (s ListRepositoriesOutput) String() string {
 // GoString returns the string representation
 func (s ListRepositoriesOutput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListRepositoriesOutput) SetNextToken(v string) *ListRepositoriesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRepositories sets the Repositories field's value.
+func (s *ListRepositoriesOutput) SetRepositories(v []*RepositoryNameIdPair) *ListRepositoriesOutput {
+	s.Repositories = v
+	return s
 }
 
 // Represents the input ofa put repository triggers operation.
@@ -2247,6 +2481,18 @@ func (s *PutRepositoryTriggersInput) Validate() error {
 	return nil
 }
 
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *PutRepositoryTriggersInput) SetRepositoryName(v string) *PutRepositoryTriggersInput {
+	s.RepositoryName = &v
+	return s
+}
+
+// SetTriggers sets the Triggers field's value.
+func (s *PutRepositoryTriggersInput) SetTriggers(v []*RepositoryTrigger) *PutRepositoryTriggersInput {
+	s.Triggers = v
+	return s
+}
+
 // Represents the output of a put repository triggers operation.
 type PutRepositoryTriggersOutput struct {
 	_ struct{} `type:"structure"`
@@ -2263,6 +2509,12 @@ func (s PutRepositoryTriggersOutput) String() string {
 // GoString returns the string representation
 func (s PutRepositoryTriggersOutput) GoString() string {
 	return s.String()
+}
+
+// SetConfigurationId sets the ConfigurationId field's value.
+func (s *PutRepositoryTriggersOutput) SetConfigurationId(v string) *PutRepositoryTriggersOutput {
+	s.ConfigurationId = &v
+	return s
 }
 
 // Information about a repository.
@@ -2310,6 +2562,66 @@ func (s RepositoryMetadata) GoString() string {
 	return s.String()
 }
 
+// SetAccountId sets the AccountId field's value.
+func (s *RepositoryMetadata) SetAccountId(v string) *RepositoryMetadata {
+	s.AccountId = &v
+	return s
+}
+
+// SetArn sets the Arn field's value.
+func (s *RepositoryMetadata) SetArn(v string) *RepositoryMetadata {
+	s.Arn = &v
+	return s
+}
+
+// SetCloneUrlHttp sets the CloneUrlHttp field's value.
+func (s *RepositoryMetadata) SetCloneUrlHttp(v string) *RepositoryMetadata {
+	s.CloneUrlHttp = &v
+	return s
+}
+
+// SetCloneUrlSsh sets the CloneUrlSsh field's value.
+func (s *RepositoryMetadata) SetCloneUrlSsh(v string) *RepositoryMetadata {
+	s.CloneUrlSsh = &v
+	return s
+}
+
+// SetCreationDate sets the CreationDate field's value.
+func (s *RepositoryMetadata) SetCreationDate(v time.Time) *RepositoryMetadata {
+	s.CreationDate = &v
+	return s
+}
+
+// SetDefaultBranch sets the DefaultBranch field's value.
+func (s *RepositoryMetadata) SetDefaultBranch(v string) *RepositoryMetadata {
+	s.DefaultBranch = &v
+	return s
+}
+
+// SetLastModifiedDate sets the LastModifiedDate field's value.
+func (s *RepositoryMetadata) SetLastModifiedDate(v time.Time) *RepositoryMetadata {
+	s.LastModifiedDate = &v
+	return s
+}
+
+// SetRepositoryDescription sets the RepositoryDescription field's value.
+func (s *RepositoryMetadata) SetRepositoryDescription(v string) *RepositoryMetadata {
+	s.RepositoryDescription = &v
+	return s
+}
+
+// SetRepositoryId sets the RepositoryId field's value.
+func (s *RepositoryMetadata) SetRepositoryId(v string) *RepositoryMetadata {
+	s.RepositoryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *RepositoryMetadata) SetRepositoryName(v string) *RepositoryMetadata {
+	s.RepositoryName = &v
+	return s
+}
+
 // Information about a repository name and ID.
 type RepositoryNameIdPair struct {
 	_ struct{} `type:"structure"`
@@ -2329,6 +2641,18 @@ func (s RepositoryNameIdPair) String() string {
 // GoString returns the string representation
 func (s RepositoryNameIdPair) GoString() string {
 	return s.String()
+}
+
+// SetRepositoryId sets the RepositoryId field's value.
+func (s *RepositoryNameIdPair) SetRepositoryId(v string) *RepositoryNameIdPair {
+	s.RepositoryId = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *RepositoryNameIdPair) SetRepositoryName(v string) *RepositoryNameIdPair {
+	s.RepositoryName = &v
+	return s
 }
 
 // Information about a trigger for a repository.
@@ -2367,6 +2691,36 @@ func (s RepositoryTrigger) GoString() string {
 	return s.String()
 }
 
+// SetBranches sets the Branches field's value.
+func (s *RepositoryTrigger) SetBranches(v []*string) *RepositoryTrigger {
+	s.Branches = v
+	return s
+}
+
+// SetCustomData sets the CustomData field's value.
+func (s *RepositoryTrigger) SetCustomData(v string) *RepositoryTrigger {
+	s.CustomData = &v
+	return s
+}
+
+// SetDestinationArn sets the DestinationArn field's value.
+func (s *RepositoryTrigger) SetDestinationArn(v string) *RepositoryTrigger {
+	s.DestinationArn = &v
+	return s
+}
+
+// SetEvents sets the Events field's value.
+func (s *RepositoryTrigger) SetEvents(v []*string) *RepositoryTrigger {
+	s.Events = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *RepositoryTrigger) SetName(v string) *RepositoryTrigger {
+	s.Name = &v
+	return s
+}
+
 // A trigger failed to run.
 type RepositoryTriggerExecutionFailure struct {
 	_ struct{} `type:"structure"`
@@ -2386,6 +2740,18 @@ func (s RepositoryTriggerExecutionFailure) String() string {
 // GoString returns the string representation
 func (s RepositoryTriggerExecutionFailure) GoString() string {
 	return s.String()
+}
+
+// SetFailureMessage sets the FailureMessage field's value.
+func (s *RepositoryTriggerExecutionFailure) SetFailureMessage(v string) *RepositoryTriggerExecutionFailure {
+	s.FailureMessage = &v
+	return s
+}
+
+// SetTrigger sets the Trigger field's value.
+func (s *RepositoryTriggerExecutionFailure) SetTrigger(v string) *RepositoryTriggerExecutionFailure {
+	s.Trigger = &v
+	return s
 }
 
 // Represents the input of a test repository triggers operation.
@@ -2422,6 +2788,18 @@ func (s *TestRepositoryTriggersInput) Validate() error {
 	return nil
 }
 
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *TestRepositoryTriggersInput) SetRepositoryName(v string) *TestRepositoryTriggersInput {
+	s.RepositoryName = &v
+	return s
+}
+
+// SetTriggers sets the Triggers field's value.
+func (s *TestRepositoryTriggersInput) SetTriggers(v []*RepositoryTrigger) *TestRepositoryTriggersInput {
+	s.Triggers = v
+	return s
+}
+
 // Represents the output of a test repository triggers operation.
 type TestRepositoryTriggersOutput struct {
 	_ struct{} `type:"structure"`
@@ -2443,6 +2821,18 @@ func (s TestRepositoryTriggersOutput) String() string {
 // GoString returns the string representation
 func (s TestRepositoryTriggersOutput) GoString() string {
 	return s.String()
+}
+
+// SetFailedExecutions sets the FailedExecutions field's value.
+func (s *TestRepositoryTriggersOutput) SetFailedExecutions(v []*RepositoryTriggerExecutionFailure) *TestRepositoryTriggersOutput {
+	s.FailedExecutions = v
+	return s
+}
+
+// SetSuccessfulExecutions sets the SuccessfulExecutions field's value.
+func (s *TestRepositoryTriggersOutput) SetSuccessfulExecutions(v []*string) *TestRepositoryTriggersOutput {
+	s.SuccessfulExecutions = v
+	return s
 }
 
 // Represents the input of an update default branch operation.
@@ -2490,6 +2880,18 @@ func (s *UpdateDefaultBranchInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDefaultBranchName sets the DefaultBranchName field's value.
+func (s *UpdateDefaultBranchInput) SetDefaultBranchName(v string) *UpdateDefaultBranchInput {
+	s.DefaultBranchName = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *UpdateDefaultBranchInput) SetRepositoryName(v string) *UpdateDefaultBranchInput {
+	s.RepositoryName = &v
+	return s
 }
 
 type UpdateDefaultBranchOutput struct {
@@ -2544,6 +2946,18 @@ func (s *UpdateRepositoryDescriptionInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetRepositoryDescription sets the RepositoryDescription field's value.
+func (s *UpdateRepositoryDescriptionInput) SetRepositoryDescription(v string) *UpdateRepositoryDescriptionInput {
+	s.RepositoryDescription = &v
+	return s
+}
+
+// SetRepositoryName sets the RepositoryName field's value.
+func (s *UpdateRepositoryDescriptionInput) SetRepositoryName(v string) *UpdateRepositoryDescriptionInput {
+	s.RepositoryName = &v
+	return s
 }
 
 type UpdateRepositoryDescriptionOutput struct {
@@ -2607,6 +3021,18 @@ func (s *UpdateRepositoryNameInput) Validate() error {
 	return nil
 }
 
+// SetNewName sets the NewName field's value.
+func (s *UpdateRepositoryNameInput) SetNewName(v string) *UpdateRepositoryNameInput {
+	s.NewName = &v
+	return s
+}
+
+// SetOldName sets the OldName field's value.
+func (s *UpdateRepositoryNameInput) SetOldName(v string) *UpdateRepositoryNameInput {
+	s.OldName = &v
+	return s
+}
+
 type UpdateRepositoryNameOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2643,6 +3069,24 @@ func (s UserInfo) String() string {
 // GoString returns the string representation
 func (s UserInfo) GoString() string {
 	return s.String()
+}
+
+// SetDate sets the Date field's value.
+func (s *UserInfo) SetDate(v string) *UserInfo {
+	s.Date = &v
+	return s
+}
+
+// SetEmail sets the Email field's value.
+func (s *UserInfo) SetEmail(v string) *UserInfo {
+	s.Email = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UserInfo) SetName(v string) *UserInfo {
+	s.Name = &v
+	return s
 }
 
 const (
