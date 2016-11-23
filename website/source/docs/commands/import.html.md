@@ -49,8 +49,10 @@ The command-line flags are all optional. The list of available flags are:
   the state path. Ignored when [remote state](/docs/state/remote/index.html) is
   used.
 
-* `-provider=provider` - Provider used for import. Defaults to the default
-  provider of the resource to import.
+* `-provider=provider` - Specified provider to use for import. This is used for
+  specifying provider aliases, such as "aws.eu". This defaults to the normal
+  provider based on the prefix of the resource being imported. You usually
+  don't need to specify this.
 
 ## Provider Configuration
 
