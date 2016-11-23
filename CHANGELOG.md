@@ -30,6 +30,7 @@ BUG FIXES:
  * core: Catch parse errors for null characters mid-file [GH-9134]
  * core: escape sequence for " works (0.8 beta regression) [GH-10236]
  * core: Terraform starts on Windows (0.8 beta2 regression) [GH-10266]
+ * provider/aws: Skip VPC endpoint routes when removing default route table's routes [GH-10303]
  * provider/azurerm: Prevent null reference when reading boot_diagnostics settings in azurerm_virtual_machine [GH-10283]
 
 PLUGIN CHANGES:
