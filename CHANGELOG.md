@@ -33,6 +33,7 @@ BUG FIXES:
  * core: Terraform starts on Windows (0.8 beta2 regression) [GH-10266]
  * core: Remove extra dot from state command backup files [GH-10300]
  * core: Validate data sources do not have provisioners [GH-10318]
+ * core: Disable checkpoint settings take effect [GH-10206]
  * provider/aws: Skip VPC endpoint routes when removing default route table's routes [GH-10303]
  * provider/azurerm: Prevent null reference when reading boot_diagnostics settings in azurerm_virtual_machine [GH-10283]
  * provider/template: No file path error when setting template to `/` [GH-10297]
