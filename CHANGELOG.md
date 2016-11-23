@@ -1,4 +1,4 @@
-## 0.8.0-rc1 (unreleased)
+## 0.8.0-rc1 (November 23, 2016)
 
 BASED ON: 0.7.13 (includes any changes up to that point as well)
 
@@ -12,38 +12,38 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
  * The `template_file` resource no longer accepts a file path for the `template` attribute. You may still specify a file path with the `filepath` attribute. This was deprecated during 0.7.x.
 
 FEATURES:
- * core: allow outputs to have descriptions [GH-9722]
- * state/azure: support passing of lease ID when writing storage blob [GH-10115]
- * **New Resource:** `aws_ebs_snapshot` [GH-10017]
- * **New Resource:** `openstack_blockstorage_volume_attach_v2` [GH-10259]
- * **New Resource:** `openstack_compute_volume_attach_v2` [GH-10260]
- * **New Data Source:** `aws_ebs_snapshot` [GH-10017]
- * The `import` command can now specify a provider alias to use. [GH-10310]
+ * core: allow outputs to have descriptions ([#9722](https://github.com/hashicorp/terraform/issues/9722))
+ * state/azure: support passing of lease ID when writing storage blob ([#10115](https://github.com/hashicorp/terraform/issues/10115))
+ * **New Resource:** `aws_ebs_snapshot` ([#10017](https://github.com/hashicorp/terraform/issues/10017))
+ * **New Resource:** `openstack_blockstorage_volume_attach_v2` ([#10259](https://github.com/hashicorp/terraform/issues/10259))
+ * **New Resource:** `openstack_compute_volume_attach_v2` ([#10260](https://github.com/hashicorp/terraform/issues/10260))
+ * **New Data Source:** `aws_ebs_snapshot` ([#10017](https://github.com/hashicorp/terraform/issues/10017))
+ * The `import` command can now specify a provider alias to use. ([#10310](https://github.com/hashicorp/terraform/issues/10310))
 
 IMPROVEMENTS:
 
- * provider/aws: Addition of suspended_processes to aws_autoscaling_group [GH-10096]
- * provider/aws: added auto_minor_version_upgrade on aws_rds_cluster_insstance [GH-10284]
- * provider/aws: Add JSON validation to the aws_iam_policy resource [GH-10239]
- * provider/azurerm: enable import of more resources [GH-10195]
- * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file [GH-10105]
- * provider/docker: authentication via values instead of files [GH-10151]
- * provider/google: Add Service Accounts resource [GH-9946]
+ * provider/aws: Addition of suspended_processes to aws_autoscaling_group ([#10096](https://github.com/hashicorp/terraform/issues/10096))
+ * provider/aws: added auto_minor_version_upgrade on aws_rds_cluster_insstance ([#10284](https://github.com/hashicorp/terraform/issues/10284))
+ * provider/aws: Add JSON validation to the aws_iam_policy resource ([#10239](https://github.com/hashicorp/terraform/issues/10239))
+ * provider/azurerm: enable import of more resources ([#10195](https://github.com/hashicorp/terraform/issues/10195))
+ * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file ([#10105](https://github.com/hashicorp/terraform/issues/10105))
+ * provider/docker: authentication via values instead of files ([#10151](https://github.com/hashicorp/terraform/issues/10151))
+ * provider/google: Add Service Accounts resource ([#9946](https://github.com/hashicorp/terraform/issues/9946))
  * provider/nomad: Update to support Nomad 0.5.0
- * provider/openstack: Add Swauth/Swift Authentication [GH-9943]
- * state/remote/swift: Add support for versioning state file in swift and expiring versioned state [GH-10055]
+ * provider/openstack: Add Swauth/Swift Authentication ([#9943](https://github.com/hashicorp/terraform/issues/9943))
+ * state/remote/swift: Add support for versioning state file in swift and expiring versioned state ([#10055](https://github.com/hashicorp/terraform/issues/10055))
 
 BUG FIXES:
 
- * core: Catch parse errors for null characters mid-file [GH-9134]
- * core: escape sequence for " works (0.8 beta regression) [GH-10236]
- * core: Terraform starts on Windows (0.8 beta2 regression) [GH-10266]
- * core: Remove extra dot from state command backup files [GH-10300]
- * core: Validate data sources do not have provisioners [GH-10318]
- * core: Disable checkpoint settings take effect [GH-10206]
- * provider/aws: Skip VPC endpoint routes when removing default route table's routes [GH-10303]
- * provider/azurerm: Prevent null reference when reading boot_diagnostics settings in azurerm_virtual_machine [GH-10283]
- * provider/template: No file path error when setting template to `/` [GH-10297]
+ * core: Catch parse errors for null characters mid-file ([#9134](https://github.com/hashicorp/terraform/issues/9134))
+ * core: escape sequence for " works (0.8 beta regression) ([#10236](https://github.com/hashicorp/terraform/issues/10236))
+ * core: Terraform starts on Windows (0.8 beta2 regression) ([#10266](https://github.com/hashicorp/terraform/issues/10266))
+ * core: Remove extra dot from state command backup files ([#10300](https://github.com/hashicorp/terraform/issues/10300))
+ * core: Validate data sources do not have provisioners ([#10318](https://github.com/hashicorp/terraform/issues/10318))
+ * core: Disable checkpoint settings take effect ([#10206](https://github.com/hashicorp/terraform/issues/10206))
+ * provider/aws: Skip VPC endpoint routes when removing default route table's routes ([#10303](https://github.com/hashicorp/terraform/issues/10303))
+ * provider/azurerm: Prevent null reference when reading boot_diagnostics settings in azurerm_virtual_machine ([#10283](https://github.com/hashicorp/terraform/issues/10283))
+ * provider/template: No file path error when setting template to `/` ([#10297](https://github.com/hashicorp/terraform/issues/10297))
 
 PLUGIN CHANGES:
 
@@ -68,14 +68,14 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
  * **New command:** `terraform console`, an interactive console for experimenting
-   with and using interpolations. [GH-10093]
+   with and using interpolations. ([#10093](https://github.com/hashicorp/terraform/issues/10093))
  * **Terraform version requirement in configuration.** You can now specify
-   a Terraform version requirement in configuration and modules. [GH-10080]
+   a Terraform version requirement in configuration and modules. ([#10080](https://github.com/hashicorp/terraform/issues/10080))
  * **`depends_on` can reference modules.** This allows a resource or output
-   to depend on everything within a module. [GH-10076]
+   to depend on everything within a module. ([#10076](https://github.com/hashicorp/terraform/issues/10076))
  * **`output` supports `depends_on`.** This is useful when the output depends
    on a certain ordering to happen that can't be represented with interpolations.
-   [GH-10072]
+   ([#10072](https://github.com/hashicorp/terraform/issues/10072))
 
 ## 0.8.0-beta1 (November 11, 2016)
 
@@ -123,7 +123,7 @@ BUG FIXES:
 
 BUG FIXES:
 
- * core: New graph records dependencies for explicit self references [GH-10319]
+ * core: New graph records dependencies for explicit self references ([#10319](https://github.com/hashicorp/terraform/issues/10319))
 
 ## 0.7.12 (November 22, 2016)
 
