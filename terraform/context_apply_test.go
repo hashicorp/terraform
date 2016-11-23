@@ -3611,6 +3611,66 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_provisionerMultiSelfRefSingle(t *testing.T) {
+	var lock sync.Mutex
+	order := make([]string, 0, 5)
+
+	m := testModule(t, "apply-provisioner-multi-self-ref-single")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		lock.Lock()
+		defer lock.Unlock()
+
+		val, ok := c.Config["order"]
+		if !ok {
+			t.Fatalf("bad value for order: %v %#v", val, c)
+		}
+
+		order = append(order, val.(string))
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerMultiSelfRefSingleStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+
+	// Verify our result
+	sort.Strings(order)
+	expectedOrder := []string{"0", "1", "2"}
+	if !reflect.DeepEqual(order, expectedOrder) {
+		t.Fatalf("bad: %#v", order)
+	}
+}
+
 func TestContext2Apply_provisionerMultiSelfRefCount(t *testing.T) {
 	var lock sync.Mutex
 	commands := make([]string, 0, 5)
