@@ -75,7 +75,7 @@ func resourceArmApplicationInsightsCreate(d *schema.ResourceData, meta interface
 		Kind: &applicationType, // TODO: make an enum
 	}
 
-	_, err := client.CreateUpdate(resGroup, name, parameters)
+	_, err := client.CreateOrUpdate(resGroup, name, parameters)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func resourceArmApplicationInsightsCreate(d *schema.ResourceData, meta interface
 	}
 
 	if read.ID == nil {
-		return fmt.Errorf("Cannot read Application Insights %s (resource group %s) ID", name, resGroup)
+		return fmt.Errorf("Cannot read Application Insights instance %s (resource group %s) ID", name, resGroup)
 	}
 
 	d.SetId(*read.ID)
@@ -106,7 +106,7 @@ func resourceArmApplicationInsightsRead(d *schema.ResourceData, meta interface{}
 
 	resp, err := client.Get(resGroup, name)
 	if err != nil {
-		return fmt.Errorf("Error making Read request on Azure Application Insights %s: %s", name, err)
+		return fmt.Errorf("Error making Read request on Azure Application Insights instance %s: %s", name, err)
 	}
 	if resp.StatusCode == http.StatusNotFound {
 		d.SetId("")
@@ -136,7 +136,7 @@ func resourceArmApplicationInsightsDelete(d *schema.ResourceData, meta interface
 	resp, err := client.Delete(resGroup, name)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error issuing Azure ARM delete request of Application Insights'%s': %s", name, err)
+		return fmt.Errorf("Error issuing Azure ARM delete request of Application Insights instance '%s': %s", name, err)
 	}
 
 	return nil
@@ -150,7 +150,7 @@ func validateApplicationInsightsApplicationType(v interface{}, k string) (ws []s
 	}
 
 	if !skus[value] {
-		errors = append(errors, fmt.Errorf("Application Insights Application Type can only be Basic or Standard"))
+		errors = append(errors, fmt.Errorf("Application Insights Application Type can only be Web or Other"))
 	}
 	return
 }
