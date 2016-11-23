@@ -33,6 +33,15 @@ BUG FIXES:
   * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
   * command/fmt: Multiline comments aren't indented every fmt. ([#6524](https://github.com/hashicorp/terraform/issues/6524))
 
+
+## 0.7.13 (Unreleased)
+
+IMPROVEMENTS:
+
+BUG FIXES:
+ * provider/aws: fix crash on aws_lambda with empty environment. [GH-10306]
+
+
 ## 0.7.12 (November 22, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
