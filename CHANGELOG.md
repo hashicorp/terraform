@@ -12,6 +12,7 @@ FEATURES:
  * **New Resource:** `openstack_blockstorage_volume_attach_v2` [GH-10259]
  * **New Resource:** `openstack_compute_volume_attach_v2` [GH-10260]
  * **New Data Source:** `aws_ebs_snapshot` [GH-10017]
+ * The `import` command can now specify a provider alias to use. [GH-10310]
 
 IMPROVEMENTS:
 
