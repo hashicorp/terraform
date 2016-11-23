@@ -47,7 +47,10 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 	// code for this that we've used for a long time.
 	var stateDeps []string
 	{
-		oldN := &graphNodeExpandedResource{Resource: n.Config}
+		oldN := &graphNodeExpandedResource{
+			Resource: n.Config,
+			Index:    addr.Index,
+		}
 		stateDeps = oldN.StateDependencies()
 	}
 
