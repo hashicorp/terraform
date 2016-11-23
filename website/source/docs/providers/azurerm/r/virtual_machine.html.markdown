@@ -236,15 +236,15 @@ For more information on the different example configurations, please check out t
 
 `storage_image_reference` supports the following:
 
-* `publisher` - (Required) Specifies the publisher of the image used to create the virtual machine
-* `offer` - (Required) Specifies the offer of the image used to create the virtual machine.
-* `sku` - (Required) Specifies the SKU of the image used to create the virtual machine.
-* `version` - (Optional) Specifies the version of the image used to create the virtual machine.
+* `publisher` - (Required) Specifies the publisher of the image used to create the virtual machine. Changing this forces a new resource to be created.
+* `offer` - (Required) Specifies the offer of the image used to create the virtual machine. Changing this forces a new resource to be created.
+* `sku` - (Required) Specifies the SKU of the image used to create the virtual machine. Changing this forces a new resource to be created.
+* `version` - (Optional) Specifies the version of the image used to create the virtual machine. Changing this forces a new resource to be created.
 
 `storage_os_disk` supports the following:
 
 * `name` - (Required) Specifies the disk name.
-* `vhd_uri` - (Required) Specifies the vhd uri.
+* `vhd_uri` - (Required) Specifies the vhd uri. Changing this forces a new resource to be created.
 * `create_option` - (Required) Specifies how the virtual machine should be created. Possible values are `attach` and `FromImage`.
 * `caching` - (Optional) Specifies the caching requirements.
 * `image_uri` - (Optional) Specifies the image_uri in the form publisherName:offer:skus:version. `image_uri` can also specify the [VHD uri](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-cli-deploy-templates/#create-a-custom-vm-image) of a custom VM image to clone. When cloning a custom disk image the `os_type` documented below becomes required.

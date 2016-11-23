@@ -51,6 +51,14 @@ testacc: fmtcheck generate
 	fi
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
+test-compile: fmtcheck generate
+	@if [ "$(TEST)" = "./..." ]; then \
+		echo "ERROR: Set TEST to a specific package. For example,"; \
+		echo "  make test-compile TEST=./builtin/providers/aws"; \
+		exit 1; \
+	fi
+	go test -c $(TEST) $(TESTARGS)
+
 # testrace runs the race checker
 testrace: fmtcheck generate
 	TF_ACC= go test -race $(TEST) $(TESTARGS)
