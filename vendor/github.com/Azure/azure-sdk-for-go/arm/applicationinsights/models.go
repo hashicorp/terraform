@@ -19,60 +19,62 @@ package applicationinsights
 // regenerated.
 
 import (
-	"net/http"
-
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/to"
-)
+    "github.com/Azure/go-autorest/autorest"
+    "github.com/Azure/go-autorest/autorest/date"
+    "github.com/Azure/go-autorest/autorest/to"
+    "net/http"
+)    
 
 // ApplicationType enumerates the values for application type.
 type ApplicationType string
 
 const (
-	// Other specifies the other state for application type.
-	Other ApplicationType = "Other"
-	// Web specifies the web state for application type.
-	Web ApplicationType = "Web"
+    // Other specifies the other state for application type.
+    Other ApplicationType = "Other"
+    // Web specifies the web state for application type.
+    Web ApplicationType = "Web"
 )
+
 
 // Properties is an azure resource object
 type Properties struct {
-	Ver                *string         `json:"ver,omitempty"`
-	ApplicationID      *string         `json:"applicationId,omitempty"`
-	AppID              *string         `json:"appId,omitempty"`
-	ApplicationType    ApplicationType `json:"application_Type,omitempty"`
-	FlowType           *string         `json:"flow_Type,omitempty"`
-	RequestSource      *string         `json:"request_Source,omitempty"`
-	InstrumentationKey *string         `json:"instrumentationKey,omitempty"`
-	Name               *string         `json:"name,omitempty"`
-	CreationDate       *string         `json:"creationDate,omitempty"`
-	PackageID          *string         `json:"packageId,omitempty"`
-	TenantID           *string         `json:"tenantId,omitempty"`
-	HockeyAppID        *string         `json:"hockeyAppId,omitempty"`
-	HockeyAppToken     *string         `json:"hockeyAppToken,omitempty"`
+    Ver *string `json:"ver,omitempty"`
+    ApplicationID *string `json:"applicationId,omitempty"`
+    AppID *string `json:"appId,omitempty"`
+    ApplicationType ApplicationType `json:"application_Type,omitempty"`
+    FlowType *string `json:"flow_Type,omitempty"`
+    RequestSource *string `json:"request_Source,omitempty"`
+    InstrumentationKey *string `json:"instrumentationKey,omitempty"`
+    Name *string `json:"name,omitempty"`
+    CreationDate *date.Time `json:"creationDate,omitempty"`
+    PackageID *string `json:"packageId,omitempty"`
+    TenantID *string `json:"tenantId,omitempty"`
+    HockeyAppID *string `json:"hockeyAppId,omitempty"`
+    HockeyAppToken *string `json:"hockeyAppToken,omitempty"`
 }
 
 // Resource is an azure resource object
 type Resource struct {
-	autorest.Response `json:"-"`
-	ID                *string             `json:"id,omitempty"`
-	Name              *string             `json:"name,omitempty"`
-	Type              *string             `json:"type,omitempty"`
-	Location          *string             `json:"location,omitempty"`
-	Kind              *string             `json:"kind,omitempty"`
-	Properties        *Properties         `json:"properties,omitempty"`
-	Tags              *map[string]*string `json:"tags,omitempty"`
-	NextLink          *string             `json:",omitempty"`
+    autorest.Response `json:"-"`
+    ID *string `json:"id,omitempty"`
+    Name *string `json:"name,omitempty"`
+    Type *string `json:"type,omitempty"`
+    Location *string `json:"location,omitempty"`
+    Kind *string `json:"kind,omitempty"`
+    Properties *Properties `json:"properties,omitempty"`
+    Tags *map[string]*string `json:"tags,omitempty"`
+    NextLink *string `json:",omitempty"`
 }
 
 // ResourcePreparer prepares a request to retrieve the next set of results. It returns
 // nil if no more results exist.
 func (client Resource) ResourcePreparer() (*http.Request, error) {
-	if client.NextLink == nil || len(to.String(client.NextLink)) <= 0 {
-		return nil, nil
-	}
-	return autorest.Prepare(&http.Request{},
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(client.NextLink)))
+    if client.NextLink == nil || len(to.String(client.NextLink)) <= 0 {
+        return nil, nil
+    }
+    return autorest.Prepare(&http.Request{},
+        autorest.AsJSON(),
+        autorest.AsGet(),
+        autorest.WithBaseURL(to.String(client.NextLink)));
 }
+

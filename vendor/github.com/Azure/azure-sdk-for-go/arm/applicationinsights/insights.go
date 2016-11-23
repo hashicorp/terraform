@@ -19,254 +19,252 @@ package applicationinsights
 // regenerated.
 
 import (
-	"net/http"
-
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/azure"
+    "github.com/Azure/go-autorest/autorest"
+    "github.com/Azure/go-autorest/autorest/azure"
+    "net/http"
 )
 
 // InsightsClient is the azure Application Insights client
 type InsightsClient struct {
-	ManagementClient
+    ManagementClient
 }
-
 // NewInsightsClient creates an instance of the InsightsClient client.
 func NewInsightsClient(subscriptionID string) InsightsClient {
-	return NewInsightsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+    return NewInsightsClientWithBaseURI(DefaultBaseURI, subscriptionID)
 }
 
 // NewInsightsClientWithBaseURI creates an instance of the InsightsClient
 // client.
 func NewInsightsClientWithBaseURI(baseURI string, subscriptionID string) InsightsClient {
-	return InsightsClient{NewWithBaseURI(baseURI, subscriptionID)}
+    return InsightsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateUpdate creates or Updates an Application Insights instance
-func (client InsightsClient) CreateUpdate(resourceGroupName string, name string, properties Resource) (result Resource, err error) {
-	req, err := client.CreateUpdatePreparer(resourceGroupName, name, properties)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateUpdate", nil, "Failure preparing request")
-	}
+// CreateOrUpdate creates or Updates an Application Insights instance
+func (client InsightsClient) CreateOrUpdate(resourceGroupName string, name string, resource Resource) (result Resource, err error) {
+    req, err := client.CreateOrUpdatePreparer(resourceGroupName, name, resource)
+    if err != nil {
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateOrUpdate", nil , "Failure preparing request")
+    }
 
-	resp, err := client.CreateUpdateSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateUpdate", resp, "Failure sending request")
-	}
+    resp, err := client.CreateOrUpdateSender(req)
+    if err != nil {
+        result.Response = autorest.Response{Response: resp}
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateOrUpdate", resp, "Failure sending request")
+    }
 
-	result, err = client.CreateUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateUpdate", resp, "Failure responding to request")
-	}
+    result, err = client.CreateOrUpdateResponder(resp)
+    if err != nil {
+        err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateOrUpdate", resp, "Failure responding to request")
+    }
 
-	return
+    return
 }
 
-// CreateUpdatePreparer prepares the CreateUpdate request.
-func (client InsightsClient) CreateUpdatePreparer(resourceGroupName string, name string, properties Resource) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"name":              autorest.Encode("path", name),
-		"resourceGroupName": autorest.Encode("path", resourceGroupName),
-		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-	}
+// CreateOrUpdatePreparer prepares the CreateOrUpdate request.
+func (client InsightsClient) CreateOrUpdatePreparer(resourceGroupName string, name string, resource Resource) (*http.Request, error) {
+    pathParameters := map[string]interface{} {
+    "name": autorest.Encode("path",name),
+    "resourceGroupName": autorest.Encode("path", resourceGroupName),
+    "subscriptionId": autorest.Encode("path",client.SubscriptionID),
+    }
 
-	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
-	}
+    queryParameters := map[string]interface{} {
+    "api-version": client.APIVersion,
+    }
 
-	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
-		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/components/{name}", pathParameters),
-		autorest.WithJSON(properties),
-		autorest.WithQueryParameters(queryParameters))
-
-	return preparer.Prepare(&http.Request{})
+    preparer := autorest.CreatePreparer(
+                        autorest.AsJSON(),
+                        autorest.AsPut(),
+                        autorest.WithBaseURL(client.BaseURI),
+                        autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/components/{name}",pathParameters),
+                        autorest.WithJSON(resource),
+                        autorest.WithQueryParameters(queryParameters))
+    return preparer.Prepare(&http.Request{})
 }
 
-// CreateUpdateSender sends the CreateUpdate request. The method will close the
+// CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
-func (client InsightsClient) CreateUpdateSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
+func (client InsightsClient) CreateOrUpdateSender(req *http.Request) (*http.Response, error) {
+    return autorest.SendWithSender(client, req)
 }
 
-// CreateUpdateResponder handles the response to the CreateUpdate request. The method always
+// CreateOrUpdateResponder handles the response to the CreateOrUpdate request. The method always
 // closes the http.Response Body.
-func (client InsightsClient) CreateUpdateResponder(resp *http.Response) (result Resource, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNotFound),
-		autorest.ByUnmarshallingJSON(&result),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
+func (client InsightsClient) CreateOrUpdateResponder(resp *http.Response) (result Resource, err error) { 
+    err = autorest.Respond(
+            resp,
+            client.ByInspecting(),
+            azure.WithErrorUnlessStatusCode(http.StatusOK,http.StatusNotFound),
+            autorest.ByUnmarshallingJSON(&result),
+            autorest.ByClosing())
+    result.Response = autorest.Response{Response: resp}
+    return
 }
 
-// CreateUpdateNextResults retrieves the next set of results, if any.
-func (client InsightsClient) CreateUpdateNextResults(lastResults Resource) (result Resource, err error) {
-	req, err := lastResults.ResourcePreparer()
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateUpdate", nil, "Failure preparing next results request")
-	}
-	if req == nil {
-		return
-	}
+// CreateOrUpdateNextResults retrieves the next set of results, if any.
+func (client InsightsClient) CreateOrUpdateNextResults(lastResults Resource) (result Resource, err error) {
+    req, err := lastResults.ResourcePreparer()
+    if err != nil {
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateOrUpdate", nil , "Failure preparing next results request")
+    }
+    if req == nil {
+        return
+    }
 
-	resp, err := client.CreateUpdateSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateUpdate", resp, "Failure sending next results request")
-	}
+    resp, err := client.CreateOrUpdateSender(req)
+    if err != nil {
+        result.Response = autorest.Response{Response: resp}
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateOrUpdate", resp, "Failure sending next results request")
+    }
 
-	result, err = client.CreateUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateUpdate", resp, "Failure responding to next results request")
-	}
+    result, err = client.CreateOrUpdateResponder(resp)
+    if err != nil {
+        err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "CreateOrUpdate", resp, "Failure responding to next results request")
+    }
 
-	return
+    return
 }
 
 // Delete deletes an Application Insights instance
 func (client InsightsClient) Delete(resourceGroupName string, name string) (result autorest.Response, err error) {
-	req, err := client.DeletePreparer(resourceGroupName, name)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Delete", nil, "Failure preparing request")
-	}
+    req, err := client.DeletePreparer(resourceGroupName, name)
+    if err != nil {
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Delete", nil , "Failure preparing request")
+    }
 
-	resp, err := client.DeleteSender(req)
-	if err != nil {
-		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Delete", resp, "Failure sending request")
-	}
+    resp, err := client.DeleteSender(req)
+    if err != nil {
+        result.Response = resp
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Delete", resp, "Failure sending request")
+    }
 
-	result, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Delete", resp, "Failure responding to request")
-	}
+    result, err = client.DeleteResponder(resp)
+    if err != nil {
+        err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Delete", resp, "Failure responding to request")
+    }
 
-	return
+    return
 }
 
 // DeletePreparer prepares the Delete request.
 func (client InsightsClient) DeletePreparer(resourceGroupName string, name string) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"name":              autorest.Encode("path", name),
-		"resourceGroupName": autorest.Encode("path", resourceGroupName),
-		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-	}
+    pathParameters := map[string]interface{} {
+    "name": autorest.Encode("path",name),
+    "resourceGroupName": autorest.Encode("path",resourceGroupName),
+    "subscriptionId": autorest.Encode("path",client.SubscriptionID),
+    }
 
-	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
-	}
+    queryParameters := map[string]interface{} {
+    "api-version": client.APIVersion,
+    }
 
-	preparer := autorest.CreatePreparer(
-		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/components/{name}", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
+    preparer := autorest.CreatePreparer(
+                        autorest.AsDelete(),
+                        autorest.WithBaseURL(client.BaseURI),
+                        autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/components/{name}",pathParameters),
+                        autorest.WithQueryParameters(queryParameters))
+    return preparer.Prepare(&http.Request{})
 }
 
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client InsightsClient) DeleteSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
+    return autorest.SendWithSender(client, req)
 }
 
 // DeleteResponder handles the response to the Delete request. The method always
 // closes the http.Response Body.
-func (client InsightsClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusNotFound),
-		autorest.ByClosing())
-	result.Response = resp
-	return
+func (client InsightsClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) { 
+    err = autorest.Respond(
+            resp,
+            client.ByInspecting(),
+            azure.WithErrorUnlessStatusCode(http.StatusOK,http.StatusNotFound),
+            autorest.ByClosing())
+    result.Response = resp
+    return
 }
 
 // Get returns an Application Insights instance
 func (client InsightsClient) Get(resourceGroupName string, name string) (result Resource, err error) {
-	req, err := client.GetPreparer(resourceGroupName, name)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", nil, "Failure preparing request")
-	}
+    req, err := client.GetPreparer(resourceGroupName, name)
+    if err != nil {
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", nil , "Failure preparing request")
+    }
 
-	resp, err := client.GetSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", resp, "Failure sending request")
-	}
+    resp, err := client.GetSender(req)
+    if err != nil {
+        result.Response = autorest.Response{Response: resp}
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", resp, "Failure sending request")
+    }
 
-	result, err = client.GetResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", resp, "Failure responding to request")
-	}
+    result, err = client.GetResponder(resp)
+    if err != nil {
+        err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", resp, "Failure responding to request")
+    }
 
-	return
+    return
 }
 
 // GetPreparer prepares the Get request.
 func (client InsightsClient) GetPreparer(resourceGroupName string, name string) (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"name":              autorest.Encode("path", name),
-		"resourceGroupName": autorest.Encode("path", resourceGroupName),
-		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
-	}
+    pathParameters := map[string]interface{} {
+    "name": autorest.Encode("path",name),
+    "resourceGroupName": autorest.Encode("path",resourceGroupName),
+    "subscriptionId": autorest.Encode("path",client.SubscriptionID),
+    }
 
-	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
-	}
+    queryParameters := map[string]interface{} {
+    "api-version": client.APIVersion,
+    }
 
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/components/{name}", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
+    preparer := autorest.CreatePreparer(
+                        autorest.AsGet(),
+                        autorest.WithBaseURL(client.BaseURI),
+                        autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/components/{name}",pathParameters),
+                        autorest.WithQueryParameters(queryParameters))
+    return preparer.Prepare(&http.Request{})
 }
 
 // GetSender sends the Get request. The method will close the
 // http.Response Body if it receives an error.
 func (client InsightsClient) GetSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
+    return autorest.SendWithSender(client, req)
 }
 
 // GetResponder handles the response to the Get request. The method always
 // closes the http.Response Body.
-func (client InsightsClient) GetResponder(resp *http.Response) (result Resource, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
+func (client InsightsClient) GetResponder(resp *http.Response) (result Resource, err error) { 
+    err = autorest.Respond(
+            resp,
+            client.ByInspecting(),
+            azure.WithErrorUnlessStatusCode(http.StatusOK),
+            autorest.ByUnmarshallingJSON(&result),
+            autorest.ByClosing())
+    result.Response = autorest.Response{Response: resp}
+    return
 }
 
 // GetNextResults retrieves the next set of results, if any.
 func (client InsightsClient) GetNextResults(lastResults Resource) (result Resource, err error) {
-	req, err := lastResults.ResourcePreparer()
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", nil, "Failure preparing next results request")
-	}
-	if req == nil {
-		return
-	}
+    req, err := lastResults.ResourcePreparer()
+    if err != nil {
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", nil , "Failure preparing next results request")
+    }
+    if req == nil {
+        return
+    }
 
-	resp, err := client.GetSender(req)
-	if err != nil {
-		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", resp, "Failure sending next results request")
-	}
+    resp, err := client.GetSender(req)
+    if err != nil {
+        result.Response = autorest.Response{Response: resp}
+        return result, autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", resp, "Failure sending next results request")
+    }
 
-	result, err = client.GetResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", resp, "Failure responding to next results request")
-	}
+    result, err = client.GetResponder(resp)
+    if err != nil {
+        err = autorest.NewErrorWithError(err, "applicationinsights.InsightsClient", "Get", resp, "Failure responding to next results request")
+    }
 
-	return
+    return
 }
+

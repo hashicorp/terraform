@@ -4,6 +4,7 @@
 // Azure Application Insights client
 package applicationinsights
 
+
 // Copyright (c) Microsoft and contributors.  All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,7 +44,7 @@ type ManagementClient struct {
 }
 
 // New creates an instance of the ManagementClient client.
-func New(subscriptionID string) ManagementClient {
+func New(subscriptionID string)ManagementClient {
     return NewWithBaseURI(DefaultBaseURI, subscriptionID)
 }
 
