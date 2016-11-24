@@ -72,10 +72,11 @@ func zoneResource() *schema.Resource {
 				Computed: true,
 			},
 		},
-		Create: ZoneCreate,
-		Read:   ZoneRead,
-		Update: ZoneUpdate,
-		Delete: ZoneDelete,
+		Create:   ZoneCreate,
+		Read:     ZoneRead,
+		Update:   ZoneUpdate,
+		Delete:   ZoneDelete,
+		Importer: &schema.ResourceImporter{ZoneStateFunc},
 	}
 }
 
@@ -165,4 +166,9 @@ func ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	zoneToResourceData(d, z)
 	return nil
+}
+
+func ZoneStateFunc(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	d.Set("zone", d.Id())
+	return []*schema.ResourceData{d}, nil
 }

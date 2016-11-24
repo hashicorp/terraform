@@ -5,19 +5,36 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/filter"
+	"encoding/json"
+	"github.com/mitchellh/hashstructure"
 )
+
+var recordTypeStringEnum *StringEnum = NewStringEnum([]string{
+	"A",
+	"AAAA",
+	"ALIAS",
+	"AFSDB",
+	"CNAME",
+	"DNAME",
+	"HINFO",
+	"MX",
+	"NAPTR",
+	"NS",
+	"PTR",
+	"RP",
+	"SPF",
+	"SRV",
+	"TXT",
+})
 
 func recordResource() *schema.Resource {
 	return &schema.Resource{
@@ -34,17 +51,10 @@ func recordResource() *schema.Resource {
 				ForceNew: true,
 			},
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-					value := v.(string)
-					if !regexp.MustCompile(`^(A|AAAA|ALIAS|AFSDB|CNAME|DNAME|HINFO|MX|NAPTR|NS|PTR|RP|SPF|SRV|TXT)$`).MatchString(value) {
-						es = append(es, fmt.Errorf(
-							"only A, AAAA, ALIAS, AFSDB, CNAME, DNAME, HINFO, MX, NAPTR, NS, PTR, RP, SPF, SRV, TXT allowed in %q", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: recordTypeStringEnum.ValidateFunc,
 			},
 			// Optional
 			"ttl": &schema.Schema{
@@ -52,7 +62,7 @@ func recordResource() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-			"meta": metaSchema(),
+			"meta": metaSchema,
 			"link": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -76,32 +86,10 @@ func recordResource() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"meta": &schema.Schema{
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"field": &schema.Schema{
-										Type:     schema.TypeString,
-										Optional: true,
-									},
-									"feed": &schema.Schema{
-										Type:     schema.TypeString,
-										Optional: true,
-										//ConflictsWith: []string{"value"},
-									},
-									"value": &schema.Schema{
-										Type:     schema.TypeString,
-										Optional: true,
-										//ConflictsWith: []string{"feed"},
-									},
-								},
-							},
-							Set: metaToHash,
-						},
+						"meta": metaSchema,
 					},
 				},
-				Set: answersToHash,
+				Set: genericHasher,
 			},
 			"regions": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -112,33 +100,10 @@ func recordResource() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"georegion": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
-								value := v.(string)
-								if !regexp.MustCompile(`^(US-WEST|US-EAST|US-CENTRAL|EUROPE|AFRICA|ASIAPAC|SOUTH-AMERICA)$`).MatchString(value) {
-									es = append(es, fmt.Errorf(
-										"only US-WEST, US-EAST, US-CENTRAL, EUROPE, AFRICA, ASIAPAC, SOUTH-AMERICA allowed in %q", k))
-								}
-								return
-							},
-						},
-						"country": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"us_state": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"up": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
+						"meta": metaSchema,
 					},
 				},
-				Set: regionsToHash,
+				Set: genericHasher,
 			},
 			"filters": &schema.Schema{
 				Type:     schema.TypeList,
@@ -166,67 +131,20 @@ func recordResource() *schema.Resource {
 				Computed: true,
 			},
 		},
-		Create: RecordCreate,
-		Read:   RecordRead,
-		Update: RecordUpdate,
-		Delete: RecordDelete,
+		Create:   RecordCreate,
+		Read:     RecordRead,
+		Update:   RecordUpdate,
+		Delete:   RecordDelete,
+		Importer: &schema.ResourceImporter{RecordStateFunc},
 	}
 }
 
-func regionsToHash(v interface{}) int {
-	var buf bytes.Buffer
-	r := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", r["name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", r["georegion"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", r["country"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", r["us_state"].(string)))
-	buf.WriteString(fmt.Sprintf("%t-", r["up"].(bool)))
-	return hashcode.String(buf.String())
-}
-
-func answersToHash(v interface{}) int {
-	var buf bytes.Buffer
-	a := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", a["answer"].(string)))
-	if a["region"] != nil {
-		buf.WriteString(fmt.Sprintf("%s-", a["region"].(string)))
+func genericHasher(v interface{}) int {
+	hash, err := hashstructure.Hash(v, nil)
+	if err != nil {
+		panic(fmt.Sprintf("error computing hash code for %#v: %s", v, err.Error()))
 	}
-	var metas []int
-	switch t := a["meta"].(type) {
-	default:
-		panic(fmt.Sprintf("unexpected type %T", t))
-	case *schema.Set:
-		for _, meta := range t.List() {
-			metas = append(metas, metaToHash(meta))
-		}
-	case []map[string]interface{}:
-		for _, meta := range t {
-			metas = append(metas, metaToHash(meta))
-		}
-	}
-	sort.Ints(metas)
-	for _, metahash := range metas {
-		buf.WriteString(fmt.Sprintf("%d-", metahash))
-	}
-	hash := hashcode.String(buf.String())
-	log.Printf("Generated answersToHash %d from %+v\n", hash, a)
-	return hash
-}
-
-func metaToHash(v interface{}) int {
-	var buf bytes.Buffer
-	s := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", s["field"].(string)))
-	if v, ok := s["feed"]; ok && v.(string) != "" {
-		buf.WriteString(fmt.Sprintf("feed%s-", v.(string)))
-	}
-	if v, ok := s["value"]; ok && v.(string) != "" {
-		buf.WriteString(fmt.Sprintf("value%s-", v.(string)))
-	}
-
-	hash := hashcode.String(buf.String())
-	log.Printf("Generated metaToHash %d from %+v\n", hash, s)
-	return hash
+	return int(hash)
 }
 
 func recordToResourceData(d *schema.ResourceData, r *dns.Record) error {
@@ -237,6 +155,11 @@ func recordToResourceData(d *schema.ResourceData, r *dns.Record) error {
 	d.Set("ttl", r.TTL)
 	if r.Link != "" {
 		d.Set("link", r.Link)
+	}
+	if r.Meta != nil {
+		d.State()
+		t := metaStructToDynamic(r.Meta)
+		d.Set("meta", t)
 	}
 	if len(r.Filters) > 0 {
 		filters := make([]map[string]interface{}, len(r.Filters))
@@ -255,7 +178,7 @@ func recordToResourceData(d *schema.ResourceData, r *dns.Record) error {
 	}
 	if len(r.Answers) > 0 {
 		ans := &schema.Set{
-			F: answersToHash,
+			F: genericHasher,
 		}
 		log.Printf("Got back from nsone answers: %+v", r.Answers)
 		for _, answer := range r.Answers {
@@ -272,53 +195,7 @@ func recordToResourceData(d *schema.ResourceData, r *dns.Record) error {
 		for regionName, region := range r.Regions {
 			newRegion := make(map[string]interface{})
 			newRegion["name"] = regionName
-
-			meta := region.Meta
-			// TODO: support as FeedPtr
-			switch meta.Georegion.(type) {
-			case nil:
-				break
-			case []interface{}:
-				georegion := region.Meta.Georegion.([]interface{})
-				if len(georegion) > 0 {
-					newRegion["georegion"] = georegion[0]
-				}
-			default:
-				panic(fmt.Sprintf("meta.Georegion in unexpected type: %#v", meta.Georegion))
-			}
-			// TODO: support as FeedPtr
-			switch meta.Country.(type) {
-			case nil:
-				break
-			case []interface{}:
-				country := region.Meta.Country.([]interface{})
-				if len(country) > 0 {
-					newRegion["country"] = country[0]
-				}
-			default:
-				panic(fmt.Sprintf("meta.Country in unexpected type: %#v", meta.Country))
-			}
-			// TODO: support as FeedPtr
-			switch meta.USState.(type) {
-			case nil:
-				break
-			case []interface{}:
-				usState := region.Meta.USState.([]interface{})
-				if len(usState) > 0 && usState != nil {
-					newRegion["us_state"] = usState[0]
-				}
-			default:
-				panic(fmt.Sprintf("meta.USState in unexpected type: %#v", meta.USState))
-			}
-			// TODO: support as FeedPtr
-			switch meta.Up.(type) {
-			case nil:
-				break
-			case bool:
-				newRegion["up"] = region.Meta.Up.(bool)
-			default:
-				panic(fmt.Sprintf("meta.Up in unexpected type: %#v", meta.Up))
-			}
+			newRegion["meta"] = metaStructToDynamic(&region.Meta)
 			regions = append(regions, newRegion)
 		}
 		log.Printf("Setting regions %+v", regions)
@@ -332,276 +209,12 @@ func recordToResourceData(d *schema.ResourceData, r *dns.Record) error {
 
 func answerToMap(a dns.Answer) map[string]interface{} {
 	m := make(map[string]interface{})
-	m["meta"] = make([]map[string]interface{}, 0)
 	m["answer"] = strings.Join(a.Rdata, " ")
 	if a.RegionName != "" {
 		m["region"] = a.RegionName
 	}
 	if a.Meta != nil {
-		metas := &schema.Set{
-			F: metaToHash,
-		}
-		meta := a.Meta
-		// TODO: set things up to use FeedPtr
-		switch meta.Up.(type) {
-		case nil:
-			break
-		case bool:
-			up := meta.Up.(bool)
-			if up {
-				metas.Add(map[string]interface{}{
-					"field": "up",
-					"value": strconv.Itoa(btoi(up)),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Up in unexpected type: %#v", meta.Up))
-		}
-		switch meta.Connections.(type) {
-		case nil:
-			break
-		case int:
-			connections := meta.Connections.(int)
-			if connections != 0 {
-				metas.Add(map[string]interface{}{
-					"field": "connections",
-					"value": strconv.Itoa(connections),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Connections in unexpected type: %#v", meta.Connections))
-		}
-		switch meta.Requests.(type) {
-		case nil:
-			break
-		case int:
-			requests := meta.Requests.(int)
-			if requests != 0 {
-				metas.Add(map[string]interface{}{
-					"field": "requests",
-					"value": strconv.Itoa(requests),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Requests in unexpected type: %#v", meta.Requests))
-		}
-		switch meta.LoadAvg.(type) {
-		case nil:
-			break
-		case float64:
-			loadavg := meta.LoadAvg.(float64)
-			if loadavg != 0 {
-				metas.Add(map[string]interface{}{
-					"field": "loadavg",
-					"value": strconv.Itoa(int(loadavg)),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.LoadAvg in unexpected type: %#v", meta.LoadAvg))
-		}
-		switch meta.Pulsar.(type) {
-		case nil:
-			break
-		case string:
-			pulsar := meta.Pulsar.(string)
-			if pulsar != "" {
-				metas.Add(map[string]interface{}{
-					"field": "pulsar",
-					"value": pulsar,
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Pulsar in unexpected type: %#v", meta.Pulsar))
-		}
-		switch meta.Latitude.(type) {
-		case nil:
-			break
-		case float64:
-			latitude := meta.Latitude.(float64)
-			if latitude != 0 {
-				metas.Add(map[string]interface{}{
-					"field": "latitude",
-					"value": strconv.Itoa(int(latitude)),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Latitude in unexpected type: %#v", meta.Latitude))
-		}
-		switch meta.Longitude.(type) {
-		case nil:
-			break
-		case float64:
-			longitude := meta.Longitude.(float64)
-			if longitude != 0 {
-				metas.Add(map[string]interface{}{
-					"field": "longitude",
-					"value": strconv.Itoa(int(longitude)),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Longitude in unexpected type: %#v", meta.Longitude))
-		}
-		switch meta.Georegion.(type) {
-		case nil:
-			break
-		case []string:
-			georegion := meta.Georegion.([]string)
-			if len(georegion) != 0 {
-				sort.Strings(georegion)
-				metas.Add(map[string]interface{}{
-					"field": "georegion",
-					"value": strings.Join(georegion, ","),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Georegion in unexpected type: %#v", meta.Georegion))
-		}
-		switch meta.Country.(type) {
-		case nil:
-			break
-		case []string:
-			country := meta.Country.([]string)
-			if len(country) != 0 {
-				sort.Strings(country)
-				metas.Add(map[string]interface{}{
-					"field": "country",
-					"value": strings.Join(country, ","),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Country in unexpected type: %#v", meta.Country))
-		}
-		switch meta.USState.(type) {
-		case nil:
-			break
-		case []string:
-			usState := meta.USState.([]string)
-			if len(usState) != 0 {
-				sort.Strings(usState)
-				metas.Add(map[string]interface{}{
-					"field": "us_state",
-					"value": strings.Join(usState, ","),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.USState in unexpected type: %#v", meta.USState))
-		}
-		switch meta.CAProvince.(type) {
-		case nil:
-			break
-		case []string:
-			caProvince := meta.CAProvince.([]string)
-			if len(caProvince) != 0 {
-				sort.Strings(caProvince)
-				metas.Add(map[string]interface{}{
-					"field": "ca_province",
-					"value": strings.Join(caProvince, ","),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.CAProvince in unexpected type: %#v", meta.CAProvince))
-		}
-		switch meta.Note.(type) {
-		case nil:
-			break
-		case string:
-			note := meta.Note.(string)
-			if note != "" {
-				metas.Add(map[string]interface{}{
-					"field": "note",
-					"value": note,
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Note in unexpected type: %#v", meta.Note))
-		}
-		switch meta.IPPrefixes.(type) {
-		case nil:
-			break
-		case []string:
-			ipPrefixes := meta.IPPrefixes.([]string)
-			if len(ipPrefixes) != 0 {
-				sort.Strings(ipPrefixes)
-				metas.Add(map[string]interface{}{
-					"field": "ip_prefixes",
-					"value": strings.Join(ipPrefixes, ","),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.IPPrefixes in unexpected type: %#v", meta.IPPrefixes))
-		}
-		switch meta.ASN.(type) {
-		case nil:
-			break
-		case []string:
-			asn := meta.ASN.([]string)
-			if len(asn) != 0 {
-				sort.Strings(asn)
-				metas.Add(map[string]interface{}{
-					"field": "asn",
-					"value": strings.Join(asn, ","),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.ASN in unexpected type: %#v", meta.ASN))
-		}
-		switch meta.Priority.(type) {
-		case nil:
-			break
-		case int:
-			priority := meta.Priority.(int)
-			if priority != 0 {
-				metas.Add(map[string]interface{}{
-					"field": "priority",
-					"value": strconv.Itoa(priority),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Priority in unexpected type: %#v", meta.Priority))
-		}
-		switch meta.Weight.(type) {
-		case nil:
-			break
-		case float64:
-			weight := meta.Weight.(float64)
-			if weight != 0 {
-				metas.Add(map[string]interface{}{
-					"field": "weight",
-					"value": strconv.Itoa(int(weight)),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.Weight in unexpected type: %#v", meta.Weight))
-		}
-		switch meta.LowWatermark.(type) {
-		case nil:
-			break
-		case int:
-			lowWatermark := meta.LowWatermark.(int)
-			if lowWatermark != 0 {
-				metas.Add(map[string]interface{}{
-					"field": "low_watermark",
-					"value": strconv.Itoa(lowWatermark),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.LowWatermark in unexpected type: %#v", meta.LowWatermark))
-		}
-		switch meta.HighWatermark.(type) {
-		case nil:
-			break
-		case int:
-			highWatermark := meta.HighWatermark.(int)
-			if highWatermark != 0 {
-				metas.Add(map[string]interface{}{
-					"field": "high_watermark",
-					"value": strconv.Itoa(highWatermark),
-				})
-			}
-		default:
-			panic(fmt.Sprintf("meta.HighWatermark in unexpected type: %#v", meta.HighWatermark))
-		}
-		m["meta"] = metas
+		m["meta"] = metaStructToDynamic(a.Meta)
 	}
 	return m
 }
@@ -630,104 +243,9 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 			if v, ok := answer["region"]; ok {
 				a.RegionName = v.(string)
 			}
-			if metas := answer["meta"].(*schema.Set); metas.Len() > 0 {
-				for _, metaRaw := range metas.List() {
-					meta := metaRaw.(map[string]interface{})
-					key := meta["field"].(string)
-					if value, ok := meta["feed"]; ok && value.(string) != "" {
-						switch key {
-						case "up": // bool
-							a.Meta.Up = data.NewFeed(value.(string), data.Config{})
-						case "connections": // int
-							a.Meta.Connections = data.NewFeed(value.(string), data.Config{})
-						case "requests": //int
-							a.Meta.Requests = data.NewFeed(value.(string), data.Config{})
-						case "loadavg": // float64
-							a.Meta.LoadAvg = data.NewFeed(value.(string), data.Config{})
-						case "pulsar": //string
-							a.Meta.Pulsar = data.NewFeed(value.(string), data.Config{})
-						case "latitude": // float64
-							a.Meta.Latitude = data.NewFeed(value.(string), data.Config{})
-						case "longitude": // float64
-							a.Meta.Longitude = data.NewFeed(value.(string), data.Config{})
-						case "georegion": // []string
-							a.Meta.Georegion = data.NewFeed(value.(string), data.Config{})
-						case "country": // []string
-							a.Meta.Country = data.NewFeed(value.(string), data.Config{})
-						case "us_state": // []string
-							a.Meta.USState = data.NewFeed(value.(string), data.Config{})
-						case "ca_province": // []string
-							a.Meta.CAProvince = data.NewFeed(value.(string), data.Config{})
-						case "note": // string
-							a.Meta.Note = data.NewFeed(value.(string), data.Config{})
-						case "ip_prefixes": // []string
-							a.Meta.IPPrefixes = data.NewFeed(value.(string), data.Config{})
-						case "asn": // []string
-							a.Meta.ASN = data.NewFeed(value.(string), data.Config{})
-						case "priority": // int
-							a.Meta.Priority = data.NewFeed(value.(string), data.Config{})
-						case "weight": // float64
-							a.Meta.Weight = data.NewFeed(value.(string), data.Config{})
-						case "low_watermark": // int
-							a.Meta.LowWatermark = data.NewFeed(value.(string), data.Config{})
-						case "high_watermark": // int
-							a.Meta.HighWatermark = data.NewFeed(value.(string), data.Config{})
-						}
-					}
-					if value, ok := meta["value"]; ok && value.(string) != "" {
-						switch key {
-						case "up": // bool
-							a.Meta.Up = value.(string)
-						case "connections": // int
-							a.Meta.Connections = value.(string)
-						case "requests": //int
-							a.Meta.Requests = value.(string)
-						case "loadavg": // float64
-							a.Meta.LoadAvg = value.(string)
-						case "pulsar": //string
-							a.Meta.Pulsar = value.(string)
-						case "latitude": // float64
-							a.Meta.Latitude = value.(string)
-						case "longitude": // float64
-							a.Meta.Longitude = value.(string)
-						case "georegion": // []string
-							metaArray := strings.Split(value.(string), ",")
-							sort.Strings(metaArray)
-							a.Meta.Georegion = metaArray
-						case "country": // []string
-							metaArray := strings.Split(value.(string), ",")
-							sort.Strings(metaArray)
-							a.Meta.Country = metaArray
-						case "us_state": // []string
-							metaArray := strings.Split(value.(string), ",")
-							sort.Strings(metaArray)
-							a.Meta.USState = metaArray
-						case "ca_province": // []string
-							metaArray := strings.Split(value.(string), ",")
-							sort.Strings(metaArray)
-							a.Meta.CAProvince = metaArray
-						case "note": // string
-							a.Meta.Note = data.NewFeed(value.(string), data.Config{})
-						case "ip_prefixes": // []string
-							metaArray := strings.Split(value.(string), ",")
-							sort.Strings(metaArray)
-							a.Meta.IPPrefixes = metaArray
-						case "asn": // []string
 
-							metaArray := strings.Split(value.(string), ",")
-							sort.Strings(metaArray)
-							a.Meta.ASN = metaArray
-						case "priority": // int
-							a.Meta.Priority = value.(string)
-						case "weight": // float64
-							a.Meta.Weight = value.(string)
-						case "low_watermark": // int
-							a.Meta.LowWatermark = value.(string)
-						case "high_watermark": // int
-							a.Meta.HighWatermark = value.(string)
-						}
-					}
-				}
+			if v, ok := answer["meta"]; ok {
+				metaDynamicToStruct(a.Meta, v)
 			}
 			al[i] = a
 		}
@@ -741,6 +259,9 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 	}
 	if v, ok := d.GetOk("link"); ok {
 		r.LinkTo(v.(string))
+	}
+	if v, ok := d.GetOk("meta"); ok {
+		metaDynamicToStruct(r.Meta, v)
 	}
 	useClientSubnetVal := d.Get("use_client_subnet").(bool)
 	if v := strconv.FormatBool(useClientSubnetVal); v != "" {
@@ -793,20 +314,14 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 			}
 
 			rm[region["name"].(string)] = nsoneR
+
+			if v, ok := region["meta"]; ok {
+				metaDynamicToStruct(&nsoneR.Meta, v)
+			}
 		}
 		r.Regions = rm
 	}
 	return nil
-}
-
-func setToMapByKey(s *schema.Set, key string) map[string]interface{} {
-	result := make(map[string]interface{})
-	for _, rawData := range s.List() {
-		data := rawData.(map[string]interface{})
-		result[data[key].(string)] = data
-	}
-
-	return result
 }
 
 // RecordCreate creates DNS record in ns1
@@ -824,12 +339,20 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 
 // RecordRead reads the DNS record from ns1
 func RecordRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	//client := meta.(*nsone.Client)
+
+	/*
 	r, _, err := client.Records.Get(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	if err != nil {
 		return err
 	}
-	return recordToResourceData(d, r)
+	*/
+
+	var r dns.Record
+	responseBody := []byte(`{"domain":"block-api-dfw.dropbox-dns.com","zone":"dropbox-dns.com","use_client_subnet":true,"answers":[{"region":"dfw3a","meta":{"up":{"feed":"565494fa2db15678d7ddbfba"}},"answer":["45.58.75.4"],"feeds":[{"feed":"565494fa2db15678d7ddbfba","source":"3050efa1809ded58bba11547735b7fbd"}],"id":"57e2dac15927240001277046"},{"region":"dfw3a","meta":{"up":{"feed":"565494fa2db15678d7ddbfbc"}},"answer":["45.58.75.36"],"feeds":[{"feed":"565494fa2db15678d7ddbfbc","source":"3050efa1809ded58bba11547735b7fbd"}],"id":"57e2dac15927240001277047"},{"region":"dfw3b","meta":{"up":{"feed":"565494fa2db15678d7ddbfbe"}},"answer":["45.58.75.132"],"feeds":[{"feed":"565494fa2db15678d7ddbfbe","source":"3050efa1809ded58bba11547735b7fbd"}],"id":"57e2dac15927240001277048"},{"region":"dfw3b","meta":{"up":{"feed":"565494fa2db15678d7ddbfc0"}},"answer":["45.58.75.164"],"feeds":[{"feed":"565494fa2db15678d7ddbfc0","source":"3050efa1809ded58bba11547735b7fbd"}],"id":"57e2dac15927240001277049"}],"id":"57e2dac1592724000127704a","regions":{"dfw3a":{"meta":{"weight":13.0}},"dfw3b":{"meta":{"weight":54.0}}},"meta":{"low_watermark":1.0,"high_watermark":9999.0},"link":null,"filters":[{"filter":"up","config":{}},{"filter":"shed_load","config":{"metric":"loadavg"}},{"filter":"weighted_shuffle","config":{}},{"filter":"select_first_n","config":{"N":1}}],"ttl":30,"tier":3,"type":"A","networks":[0]}`)
+	json.NewDecoder(bytes.NewReader(responseBody)).Decode(&r)
+
+	return recordToResourceData(d, &r)
 }
 
 // RecordDelete deltes the DNS record from ns1
@@ -851,4 +374,17 @@ func RecordUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	return recordToResourceData(d, r)
+}
+
+func RecordStateFunc(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	parts := strings.Split(d.Id(), "/")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("Invalid record specifier.  Expecting 2 slashes (\"zone/domain/type\"), got %d.", len(parts)-1)
+	}
+
+	d.Set("zone", parts[0])
+	d.Set("domain", parts[1])
+	d.Set("type", parts[2])
+
+	return []*schema.ResourceData{d}, nil
 }
