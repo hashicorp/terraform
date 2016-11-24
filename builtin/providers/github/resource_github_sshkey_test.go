@@ -32,7 +32,6 @@ func TestAccGithubRepositorySSHKey_basic(t *testing.T) {
 				Config: testAccGithubRepositorySSHKeyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositorySSHKeyExists("github_repository_sshkey.test_repo_sshkey"),
-					testAccCheckGithubRepositorySSHKeyPermission("github_repository_sshkey.test_repo_sshkey"),
 				),
 			},
 		},
@@ -91,12 +90,6 @@ func testAccCheckGithubRepositorySSHKeyExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("ssh key does not exist")
 		}
 
-		return nil
-	}
-}
-
-func testAccCheckGithubRepositorySSHKeyPermission(n string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
 		return nil
 	}
 }

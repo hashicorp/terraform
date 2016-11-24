@@ -28,7 +28,6 @@ func TestAccGithubRepositoryFork_basic(t *testing.T) {
 				Config: testAccGithubRepositoryForkConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckGithubRepositoryCollaboratorExists("github_repository_fork.test_repo_fork"),
-					testAccCheckGithubRepositoryCollaboratorPermission("github_repository_collaborator.test_repo_collaborator"),
 				),
 			},
 		},
