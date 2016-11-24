@@ -121,6 +121,9 @@ BUG FIXES:
 
 ## 0.7.14 (unreleased)
 
+BUG FIXES:
+ * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine [GH-10340]
+
 
 
 ## 0.7.13 (November 23, 2016)
