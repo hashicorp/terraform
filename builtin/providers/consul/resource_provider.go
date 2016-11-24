@@ -64,7 +64,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"consul_keys": dataSourceConsulKeys(),
+			"consul_keys":       dataSourceConsulKeys(),
+			"consul_key_prefix": dataSourceConsulKeyPrefix(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
