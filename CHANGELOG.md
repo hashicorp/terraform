@@ -13,7 +13,7 @@ period.**
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * The chef provider now accepts `key_material` as an alternative to `private_key_pem`. `private_key_pem` will be deprecated in a future release
- * The `template_file` resource no longer accepts a file path for the `template` attribute. You may still specify a file path with the `filepath` attribute. This was deprecated during 0.7.x.
+ * The `template_file` resource no longer accepts a direct file path for the `template` attribute. You may either specify a path wrapped in the a `file` function or specify a file path with the `filepath` attribute. This was deprecated during 0.7.x.
 
 FEATURES:
  * core: allow outputs to have descriptions ([#9722](https://github.com/hashicorp/terraform/issues/9722))
