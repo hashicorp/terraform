@@ -18,7 +18,7 @@ func TestAccAzureRMNetworkSecurityGroup_basic(t *testing.T) {
 		CheckDestroy: testCheckAzureRMNetworkSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMNetworkSecurityGroup_basic(rInt()),
+				Config: testAccAzureRMNetworkSecurityGroup_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkSecurityGroupExists("azurerm_network_security_group.test"),
 				),
