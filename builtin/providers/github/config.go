@@ -29,12 +29,6 @@ type Clients struct {
 	UserClient *github.Client
 }
 
-// TODO will be deleted (not in use)
-type Organization struct {
-	name   string
-	client *github.Client
-}
-
 // Client configures and returns a fully initialized GithubClient
 func (c *Config) Clients() (*Clients, error) {
 	if c.Token != "" {

@@ -89,13 +89,3 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	return config.Clients()
 }
-
-func getValue(d *schema.ResourceData, key ...string) string {
-	for i := 0; i < len(key); i++ {
-		if key[i] != "" {
-			return d.Get(key[i]).(string)
-		}
-	}
-
-	return ""
-}
