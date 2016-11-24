@@ -54,7 +54,7 @@ func resourceGithubRepositoryForkRead(d *schema.ResourceData, meta interface{}) 
 	client := meta.(*Clients).UserClient
 	r := d.Get("repository").(string)
 
-	repositories, _, err := client.Repositories.ListForks(meta.(*Organization).name, r, &github.RepositoryListForksOptions{})
+	repositories, _, err := client.Repositories.ListForks(meta.(*Clients).OrgName, r, &github.RepositoryListForksOptions{})
 	if err != nil {
 		return err
 	}

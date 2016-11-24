@@ -109,7 +109,7 @@ func testAccCheckGithubTeamRepositoryExists(n string, repository *github.Reposit
 		t, r := parseTwoPartID(rs.Primary.ID)
 
 		repo, _, err := conn.Organizations.IsTeamRepo(toGithubID(t),
-			testAccProvider.Meta().(*Organization).name, r)
+			testAccProvider.Meta().(*Clients).OrgName, r)
 
 		if err != nil {
 			return err
@@ -129,7 +129,7 @@ func testAccCheckGithubTeamRepositoryDestroy(s *terraform.State) error {
 		t, r := parseTwoPartID(rs.Primary.ID)
 
 		repo, resp, err := conn.Organizations.IsTeamRepo(toGithubID(t),
-			testAccProvider.Meta().(*Organization).name, r)
+			testAccProvider.Meta().(*Clients).OrgName, r)
 
 		if err == nil {
 			if repo != nil &&

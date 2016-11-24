@@ -109,8 +109,8 @@ func resourceGithubRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Clients).OrgClient
 
 	repoReq := resourceGithubRepositoryObject(d)
-	log.Printf("[DEBUG] create github repository %s/%s", meta.(*Organization).name, *repoReq.Name)
-	repo, _, err := client.Repositories.Create(meta.(*Organization).name, repoReq)
+	log.Printf("[DEBUG] create github repository %s/%s", meta.(*Clients).OrgName, *repoReq.Name)
+	repo, _, err := client.Repositories.Create(meta.(*Clients).OrgName, repoReq)
 	if err != nil {
 		return err
 	}
@@ -123,13 +123,13 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*Clients).OrgClient
 	repoName := d.Id()
 
-	log.Printf("[DEBUG] read github repository %s/%s", meta.(*Organization).name, repoName)
-	repo, resp, err := client.Repositories.Get(meta.(*Organization).name, repoName)
+	log.Printf("[DEBUG] read github repository %s/%s", meta.(*Clients).OrgName, repoName)
+	repo, resp, err := client.Repositories.Get(meta.(*Clients).OrgName, repoName)
 	if err != nil {
 		if resp.StatusCode == 404 {
 			log.Printf(
 				"[WARN] removing %s/%s from state because it no longer exists in github",
-				meta.(*Organization).name,
+				meta.(*Clients).OrgName,
 				repoName,
 			)
 			d.SetId("")
@@ -157,8 +157,8 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	client := meta.(*Clients).OrgClient
 	repoReq := resourceGithubRepositoryObject(d)
 	repoName := d.Id()
-	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Organization).name, repoName)
-	repo, _, err := client.Repositories.Edit(meta.(*Organization).name, repoName, repoReq)
+	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Clients).OrgName, repoName)
+	repo, _, err := client.Repositories.Edit(meta.(*Clients).OrgName, repoName, repoReq)
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceGithubRepositoryDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Clients).OrgClient
 	repoName := d.Id()
-	log.Printf("[DEBUG] delete github repository %s/%s", meta.(*Organization).name, repoName)
-	_, err := client.Repositories.Delete(meta.(*Organization).name, repoName)
+	log.Printf("[DEBUG] delete github repository %s/%s", meta.(*Clients).OrgName, repoName)
+	_, err := client.Repositories.Delete(meta.(*Clients).OrgName, repoName)
 	return err
 }

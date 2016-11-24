@@ -40,7 +40,7 @@ func resourceGithubTeamCreate(d *schema.ResourceData, meta interface{}) error {
 	n := d.Get("name").(string)
 	desc := d.Get("description").(string)
 	p := d.Get("privacy").(string)
-	githubTeam, _, err := client.Organizations.CreateTeam(meta.(*Organization).name, &github.Team{
+	githubTeam, _, err := client.Organizations.CreateTeam(meta.(*Clients).OrgName, &github.Team{
 		Name:        &n,
 		Description: &desc,
 		Privacy:     &p,
