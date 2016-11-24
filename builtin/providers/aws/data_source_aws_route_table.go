@@ -96,22 +96,26 @@ func dataSourceAwsRouteTable() *schema.Resource {
 func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	req := &ec2.DescribeRouteTablesInput{}
+	vpcId, vpcIdOk := d.GetOk("vpc_id")
+	subnetId, subnetIdOk := d.GetOk("subnet_id")
+	tags, tagsOk := d.GetOk("tags")
+	filter, filterOk := d.GetOk("filter")
 
+	if !vpcIdOk && !subnetIdOk && !tagsOk && !filterOk {
+		return fmt.Errorf("One of vpc_id, subnet_id, filters, or tags must be assigned")
+	}
 	req.Filters = buildEC2AttributeFilterList(
 		map[string]string{
-			"vpc-id":                d.Get("vpc_id").(string),
-			"association.subnet-id": d.Get("subnet_id").(string),
+			"vpc-id":                vpcId.(string),
+			"association.subnet-id": subnetId.(string),
 		},
 	)
 	req.Filters = append(req.Filters, buildEC2TagFilterList(
-		tagsFromMap(d.Get("tags").(map[string]interface{})),
+		tagsFromMap(tags.(map[string]interface{})),
 	)...)
 	req.Filters = append(req.Filters, buildEC2CustomFilterList(
-		d.Get("filter").(*schema.Set),
+		filter.(*schema.Set),
 	)...)
-	if len(req.Filters) == 0 {
-		return fmt.Errorf("At least One filter should be setted")
-	}
 
 	log.Printf("[DEBUG] Describe Route Tables %v\n", req)
 	resp, err := conn.DescribeRouteTables(req)
@@ -119,10 +123,10 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 	if resp == nil || len(resp.RouteTables) == 0 {
-		return fmt.Errorf("no matching Route Table found")
+		return fmt.Errorf("Your query returned no results. Please change your search criteria and try again.")
 	}
 	if len(resp.RouteTables) > 1 {
-		return fmt.Errorf("multiple Route Table matched; use additional constraints to reduce matches to a single Route Table")
+		return fmt.Errorf("Multiple Route Table matched; use additional constraints to reduce matches to a single Route Table")
 	}
 
 	rt := resp.RouteTables[0]
@@ -130,10 +134,21 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 	d.SetId(*rt.RouteTableId)
 	d.Set("vpc_id", rt.VpcId)
 	d.Set("tags", tagsToMap(rt.Tags))
+	if err := d.Set("routes", dataSourceRoutesRead(rt.Routes)); err != nil {
+		return err
+	}
 
-	routes := make([]map[string]interface{}, 0, len(rt.Routes))
+	if err := d.Set("associations", dataSourceAssociationsRead(rt.Associations)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func dataSourceRoutesRead(ec2Routes []*ec2.Route) []map[string]interface{} {
+	routes := make([]map[string]interface{}, 0, len(ec2Routes))
 	// Loop through the routes and add them to the set
-	for _, r := range rt.Routes {
+	for _, r := range ec2Routes {
 		if r.GatewayId != nil && *r.GatewayId == "local" {
 			continue
 		}
@@ -171,11 +186,13 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 
 		routes = append(routes, m)
 	}
-	d.Set("routes", routes)
+	return routes
+}
 
-	associations := make([]map[string]interface{}, 0, len(rt.Associations))
+func dataSourceAssociationsRead(ec2Assocations []*ec2.RouteTableAssociation) []map[string]interface{} {
+	associations := make([]map[string]interface{}, 0, len(ec2Assocations))
 	// Loop through the routes and add them to the set
-	for _, a := range rt.Associations {
+	for _, a := range ec2Assocations {
 
 		m := make(map[string]interface{})
 		m["route_table_id"] = *a.RouteTableId
@@ -184,7 +201,5 @@ func dataSourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error
 		m["main"] = *a.Main
 		associations = append(associations, m)
 	}
-	d.Set("associations", associations)
-
-	return nil
+	return associations
 }
