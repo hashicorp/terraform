@@ -158,7 +158,7 @@ func testCheckAzureRMNetworkSecurityRuleDestroy(s *terraform.State) error {
 func testAccAzureRMNetworkSecurityRule_basic(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -187,7 +187,7 @@ resource "azurerm_network_security_rule" "test" {
 func testAccAzureRMNetworkSecurityRule_updateBasic(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test1" {
-    name = "acceptanceTestResourceGroup2"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
@@ -216,7 +216,7 @@ resource "azurerm_network_security_rule" "test1" {
 func testAccAzureRMNetworkSecurityRule_updateExtraRule(rInt int) string {
 	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test1" {
-    name = "acceptanceTestResourceGroup2"
+    name = "acctestRG-%d"
     location = "West US"
 }
 
