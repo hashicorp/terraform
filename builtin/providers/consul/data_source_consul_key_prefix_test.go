@@ -12,7 +12,7 @@ func TestAccDataConsulKeyPrefix_basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDataConsulKeysConfig,
+				Config: testAccDataConsulKeyPrefixConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckConsulKeyPrefixValue("data.consul_key_prefix.read", "read", "written"),
 				),
@@ -35,8 +35,8 @@ resource "consul_key_prefix" "write" {
 data "consul_key_prefix" "read" {
     # Create a dependency on the resource so we're sure to
     # have the value in place before we try to read it.
-    datacenter = "${consul_keys.write.datacenter}"
+    datacenter = "${consul_key_prefix.write.datacenter}"
 
-	path_prefix = "services/api/"
+    path_prefix = "services/api/"
 }
 `
