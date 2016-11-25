@@ -5,18 +5,20 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAzureRMNetworkInterface_basic(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMNetworkInterface_basic,
+				Config: testAccAzureRMNetworkInterface_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
 				),
@@ -26,13 +28,14 @@ func TestAccAzureRMNetworkInterface_basic(t *testing.T) {
 }
 
 func TestAccAzureRMNetworkInterface_disappears(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMNetworkInterface_basic,
+				Config: testAccAzureRMNetworkInterface_basic(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
 					testCheckAzureRMNetworkInterfaceDisappears("azurerm_network_interface.test"),
@@ -44,13 +47,14 @@ func TestAccAzureRMNetworkInterface_disappears(t *testing.T) {
 }
 
 func TestAccAzureRMNetworkInterface_enableIPForwarding(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMNetworkInterface_ipForwarding,
+				Config: testAccAzureRMNetworkInterface_ipForwarding(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
 					resource.TestCheckResourceAttr(
@@ -62,13 +66,14 @@ func TestAccAzureRMNetworkInterface_enableIPForwarding(t *testing.T) {
 }
 
 func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
+	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testCheckAzureRMNetworkInterfaceDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMNetworkInterface_withTags,
+				Config: testAccAzureRMNetworkInterface_withTags(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
 					resource.TestCheckResourceAttr(
@@ -80,7 +85,7 @@ func TestAccAzureRMNetworkInterface_withTags(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccAzureRMNetworkInterface_withTagsUpdate,
+				Config: testAccAzureRMNetworkInterface_withTagsUpdate(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMNetworkInterfaceExists("azurerm_network_interface.test"),
 					resource.TestCheckResourceAttr(
@@ -201,9 +206,10 @@ func testCheckAzureRMNetworkInterfaceDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAzureRMNetworkInterface_basic = `
+func testAccAzureRMNetworkInterface_basic(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctest-rg-%d"
     location = "West US"
 }
 
@@ -232,11 +238,13 @@ resource "azurerm_network_interface" "test" {
     	private_ip_address_allocation = "dynamic"
     }
 }
-`
+`, rInt)
+}
 
-var testAccAzureRMNetworkInterface_ipForwarding = `
+func testAccAzureRMNetworkInterface_ipForwarding(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctest-rg-%d"
     location = "West US"
 }
 
@@ -266,11 +274,13 @@ resource "azurerm_network_interface" "test" {
     	private_ip_address_allocation = "dynamic"
     }
 }
-`
+`, rInt)
+}
 
-var testAccAzureRMNetworkInterface_withTags = `
+func testAccAzureRMNetworkInterface_withTags(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctest-rg-%d"
     location = "West US"
 }
 
@@ -304,11 +314,13 @@ resource "azurerm_network_interface" "test" {
 	cost_center = "MSFT"
     }
 }
-`
+`, rInt)
+}
 
-var testAccAzureRMNetworkInterface_withTagsUpdate = `
+func testAccAzureRMNetworkInterface_withTagsUpdate(rInt int) string {
+	return fmt.Sprintf(`
 resource "azurerm_resource_group" "test" {
-    name = "acceptanceTestResourceGroup1"
+    name = "acctest-rg-%d"
     location = "West US"
 }
 
@@ -341,7 +353,8 @@ resource "azurerm_network_interface" "test" {
 	environment = "staging"
     }
 }
-`
+`, rInt)
+}
 
 //TODO: Re-enable this test when https://github.com/Azure/azure-sdk-for-go/issues/259 is fixed
 //var testAccAzureRMNetworkInterface_extraIpConfiguration = `
