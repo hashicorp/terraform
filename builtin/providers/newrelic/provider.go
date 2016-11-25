@@ -23,7 +23,9 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
-		DataSourcesMap: map[string]*schema.Resource{},
+		DataSourcesMap: map[string]*schema.Resource{
+			"newrelic_application": dataSourceNewRelicApplication(),
+		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"newrelic_alert_channel":        resourceNewRelicAlertChannel(),
