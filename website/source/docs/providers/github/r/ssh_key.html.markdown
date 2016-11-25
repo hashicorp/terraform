@@ -17,7 +17,7 @@ sshkey will be added into user's account with a given title
 
 ```
 # Add a user to the organization
-resource "github_membership" "membership_for_some_user" {
+resource "github_repository_sshkey" "some_key" {
     title = "ssh_key title"
     sshkey = "ssh public key"
 }
@@ -27,5 +27,5 @@ resource "github_membership" "membership_for_some_user" {
 
 The following arguments are supported:
 
-* `title` - (Required) The title to add to the user's account .
-* `sshkey` - (Required) Public ssh key that will be added to the user's account
+* `title` - (Required) The title to add to the user's account.
+* `sshkey` - (Required) Public ssh key that will be added to the user's account.
