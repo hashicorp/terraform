@@ -35,6 +35,24 @@ func TestAccGithubIssueLabel_basic(t *testing.T) {
 	})
 }
 
+func TestAccGithubIssueLabel_importBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGithubIssueLabelDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGithubIssueLabelConfig,
+			},
+			resource.TestStep{
+				ResourceName:      "github_issue_label.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckGithubIssueLabelExists(n string, label *github.Label) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -101,42 +119,16 @@ func testAccGithubIssueLabelDestroy(s *terraform.State) error {
 }
 
 var testAccGithubIssueLabelConfig string = fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name = "%s"
-  description = "Terraform acceptance tests!"
-  homepage_url = "http://example.com/"
-
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  private = false
-
-  has_issues = false
-  has_wiki = false
-  has_downloads = false
-}
 resource "github_issue_label" "test" {
-  repository = "${github_repository.foo.name}"
+  repository = "%s"
   name       = "foo"
   color      = "000000"
 }
 `, testRepo)
 
 var testAccGithubIssueLabelUpdateConfig string = fmt.Sprintf(`
-resource "github_repository" "foo" {
-  name = "%s"
-  description = "Terraform acceptance tests!"
-  homepage_url = "http://example.com/"
-
-  # So that acceptance tests can be run in a github organization
-  # with no billing
-  private = false
-
-  has_issues = false
-  has_wiki = false
-  has_downloads = false
-}
 resource "github_issue_label" "test" {
-  repository = "${github_repository.foo.name}"
+  repository = "%s"
   name       = "bar"
   color      = "FFFFFF"
 }
