@@ -192,7 +192,7 @@ func metaDynamicToStruct(m *data.Meta, raw interface{}) {
 
 	d := l[0].(map[string]interface{})
 
-	mr := reflect.ValueOf(m)
+	mr := reflect.ValueOf(m).Elem()
 	for _, f := range metaFields {
 		val, present := d[f.NameInDynamic]
 		if present {
