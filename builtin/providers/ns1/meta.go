@@ -201,7 +201,7 @@ func metaDynamicToStruct(m *data.Meta, raw interface{}) {
 		}
 
 		feed, present := d[f.NameInDynamicForFeed]
-		if present {
+		if present && feed != "" {
 			if feed == nil {
 				panic("unexpected nil")
 			}
