@@ -322,20 +322,14 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 
 // RecordRead reads the DNS record from ns1
 func RecordRead(d *schema.ResourceData, meta interface{}) error {
-	//client := meta.(*nsone.Client)
+	client := meta.(*nsone.Client)
 
-	/*
-		r, _, err := client.Records.Get(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
-		if err != nil {
-			return err
-		}
-	*/
+	r, _, err := client.Records.Get(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
+	if err != nil {
+		return err
+	}
 
-	var r dns.Record
-	responseBody := []byte(`{"domain":"block-api-dfw.dropbox-dns.com","zone":"dropbox-dns.com","use_client_subnet":true,"answers":[{"region":"dfw3a","meta":{"up":{"feed":"565494fa2db15678d7ddbfba"}},"answer":["45.58.75.4"],"feeds":[{"feed":"565494fa2db15678d7ddbfba","source":"3050efa1809ded58bba11547735b7fbd"}],"id":"57e2dac15927240001277046"},{"region":"dfw3a","meta":{"up":{"feed":"565494fa2db15678d7ddbfbc"}},"answer":["45.58.75.36"],"feeds":[{"feed":"565494fa2db15678d7ddbfbc","source":"3050efa1809ded58bba11547735b7fbd"}],"id":"57e2dac15927240001277047"},{"region":"dfw3b","meta":{"up":{"feed":"565494fa2db15678d7ddbfbe"}},"answer":["45.58.75.132"],"feeds":[{"feed":"565494fa2db15678d7ddbfbe","source":"3050efa1809ded58bba11547735b7fbd"}],"id":"57e2dac15927240001277048"},{"region":"dfw3b","meta":{"up":{"feed":"565494fa2db15678d7ddbfc0"}},"answer":["45.58.75.164"],"feeds":[{"feed":"565494fa2db15678d7ddbfc0","source":"3050efa1809ded58bba11547735b7fbd"}],"id":"57e2dac15927240001277049"}],"id":"57e2dac1592724000127704a","regions":{"dfw3a":{"meta":{"weight":13.0}},"dfw3b":{"meta":{"weight":54.0}}},"meta":{"low_watermark":1.0,"high_watermark":9999.0},"link":null,"filters":[{"filter":"up","config":{}},{"filter":"shed_load","config":{"metric":"loadavg"}},{"filter":"weighted_shuffle","config":{}},{"filter":"select_first_n","config":{"N":1}}],"ttl":30,"tier":3,"type":"A","networks":[0]}`)
-	json.NewDecoder(bytes.NewReader(responseBody)).Decode(&r)
-
-	return recordToResourceData(d, &r)
+	return recordToResourceData(d, r)
 }
 
 // RecordDelete deltes the DNS record from ns1
