@@ -141,16 +141,16 @@ func resourceAwsEMRCluster() *schema.Resource {
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"size": &schema.Schema{
+						"size": {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"type": &schema.Schema{
+						"type": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "standard",
 						},
-						"volumes_per_instance": &schema.Schema{
+						"volumes_per_instance": {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Default:  1,
@@ -392,6 +392,11 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 		coreGroup := findGroup(instanceGroups, "CORE")
 		if coreGroup != nil {
 			d.Set("core_instance_type", coreGroup.InstanceType)
+			if coreGroup.EbsBlockDevices != nil {
+				if err := d.Set("ebs_volume", flattenEbsConfiguration(coreGroup)); err != nil {
+					log.Printf("[ERR] Error setting EMR EBS block devices: %s", err)
+				}
+			}
 		}
 	}
 
@@ -416,6 +421,7 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 	if err := d.Set("ec2_attributes", flattenEc2Attributes(cluster.Ec2InstanceAttributes)); err != nil {
 		log.Printf("[ERR] Error setting EMR Ec2 Attributes: %s", err)
 	}
+
 	return nil
 }
 
@@ -585,6 +591,28 @@ func flattenEc2Attributes(ia *emr.Ec2InstanceAttributes) []map[string]interface{
 		attrs["service_access_security_group"] = *ia.ServiceAccessSecurityGroup
 	}
 
+	result = append(result, attrs)
+
+	return result
+}
+
+func flattenEbsConfiguration(ebsconfig *instanceGroups) []map[string]interface{} {
+	attrs := map[string]interface{}{}
+	result := make([]map[string]interface{}, 0)
+
+	if ebsconfig.VolumeSpecification.SizeInGB != nil {
+		attrs["size"] = *ebsconfig.VolumeSpecification.SizeInGB
+	}
+
+	if ebsconfig.VolumeSpecification.VolumeType != nil {
+		attrs["type"] = *ebsconfig.VolumesPerInstance.VolumeType
+	}
+
+	if ebsconfig.VolumesPerInstance != nil {
+		attrs["volumes_per_instance"] = *ebsconfig.VolumesPerInstance
+	}
+
+	//Add rest here
 	result = append(result, attrs)
 
 	return result
