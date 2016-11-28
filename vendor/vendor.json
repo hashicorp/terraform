@@ -244,6 +244,12 @@
 			"revision": "0290933f5e8afd933f2823fce32bf2847e6ea603"
 		},
 		{
+			"checksumSHA1": "Ae3+suk6h+vfKb2+wEU2AjmusNs=",
+			"path": "github.com/HewlettPackard/oneview-golang",
+			"revision": "824ecdf6e3094c83cb54b800a6172ad2dbf416ee",
+			"revisionTime": "2016-11-22T00:02:32Z"
+		},
+		{
 			"path": "github.com/Unknwon/com",
 			"revision": "28b053d5a2923b87ce8c5a08f3af779894a72758"
 		},
