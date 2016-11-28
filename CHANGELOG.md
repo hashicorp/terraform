@@ -1,6 +1,8 @@
 ## 0.8.0-rc2 (unreleased)
 
 IMPROVEMENTS:
+
+ * provider/github: supports importing resources [GH-10382]
  * provider/postgresql: Added 'connect_timeout' argument to provider 'postgresql' [GH-10380]
 
 
