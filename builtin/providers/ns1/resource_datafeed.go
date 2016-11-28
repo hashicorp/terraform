@@ -42,14 +42,10 @@ func dataFeedToResourceData(d *schema.ResourceData, f *data.Feed) {
 }
 
 func resourceDataToDataFeed(d *schema.ResourceData) *data.Feed {
-	config := make(data.Config)
-	for k, v := range d.Get("config").(map[string]interface{}) {
-		config[k] = v.(string)
-	}
 	return &data.Feed{
 		Name:     d.Get("name").(string),
-		Config:   config,
 		SourceID: d.Get("source_id").(string),
+		Config:   d.Get("config").(map[string]interface{}),
 	}
 }
 

@@ -21,9 +21,9 @@ func TestAccDataFeed_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataFeedBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDataFeedState("name", "terraform test"),
-					testAccCheckDataFeedExists("ns1_datafeed.foobar", "ns1_datasource.api", &dataFeed),
-					testAccCheckDataFeedAttributes(&dataFeed),
+					testAccCheckDataFeedExists("nsone_datafeed.foobar", "nsone_datasource.api", &dataFeed),
+					testAccCheckDataFeedName(&dataFeed, "terraform test"),
+					testAccCheckDataFeedConfig(&dataFeed, "label", "exampledc2"),
 				),
 			},
 		},
@@ -40,42 +40,21 @@ func TestAccDataFeed_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataFeedBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDataFeedState("name", "terraform test"),
-					testAccCheckDataFeedExists("ns1_datafeed.foobar", "ns1_datasource.api", &dataFeed),
-					testAccCheckDataFeedAttributes(&dataFeed),
+					testAccCheckDataFeedExists("nsone_datafeed.foobar", "nsone_datasource.api", &dataFeed),
+					testAccCheckDataFeedName(&dataFeed, "terraform test"),
+					testAccCheckDataFeedConfig(&dataFeed, "label", "exampledc2"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccDataFeedUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDataFeedState("name", "terraform test"),
-					testAccCheckDataFeedExists("ns1_datafeed.foobar", "ns1_datasource.api", &dataFeed),
-					testAccCheckDataFeedAttributesUpdated(&dataFeed),
+					testAccCheckDataFeedExists("nsone_datafeed.foobar", "nsone_datasource.api", &dataFeed),
+					testAccCheckDataFeedName(&dataFeed, "terraform test"),
+					testAccCheckDataFeedConfig(&dataFeed, "label", "exampledc3"),
 				),
 			},
 		},
 	})
-}
-
-func testAccCheckDataFeedState(key, value string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["ns1_datafeed.foobar"]
-		if !ok {
-			return fmt.Errorf("Not found: %s", "ns1_datafeed.foobar")
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		p := rs.Primary
-		if p.Attributes[key] != value {
-			return fmt.Errorf(
-				"%s != %s (actual: %s)", key, value, p.Attributes[key])
-		}
-
-		return nil
-	}
 }
 
 func testAccCheckDataFeedExists(n string, dsrc string, dataFeed *data.Feed) resource.TestCheckFunc {
@@ -141,22 +120,21 @@ func testAccCheckDataFeedDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDataFeedAttributes(dataFeed *data.Feed) resource.TestCheckFunc {
+func testAccCheckDataFeedName(dataFeed *data.Feed, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
-		if dataFeed.Config["label"] != "exampledc2" {
-			return fmt.Errorf("Bad value : %s", dataFeed.Config["label"])
+		if dataFeed.Name != expected {
+			return fmt.Errorf("Name: got: %#v want: %#v", dataFeed.Name, expected)
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckDataFeedAttributesUpdated(dataFeed *data.Feed) resource.TestCheckFunc {
+func testAccCheckDataFeedConfig(dataFeed *data.Feed, key, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if dataFeed.Config["label"] != "exampledc3" {
-			return fmt.Errorf("Bad value : %s", dataFeed.Config["label"])
+		if dataFeed.Config[key] != expected {
+			return fmt.Errorf("Config[%s]: got: %#v, want: %s", key, dataFeed.Config[key], expected)
 		}
 
 		return nil
@@ -164,29 +142,29 @@ func testAccCheckDataFeedAttributesUpdated(dataFeed *data.Feed) resource.TestChe
 }
 
 const testAccDataFeedBasic = `
-resource "ns1_datasource" "api" {
-	name = "terraform test"
-	sourcetype = "ns1_v1"
+resource "nsone_datasource" "api" {
+  name = "terraform test"
+  type = "nsone_v1"
 }
 
-resource "ns1_datafeed" "foobar" {
-	name = "terraform test"
-	source_id = "${ns1_datasource.api.id}"
-	config {
-		label = "exampledc2"
-	}
+resource "nsone_datafeed" "foobar" {
+  name = "terraform test"
+  source_id = "${nsone_datasource.api.id}"
+  config {
+    label = "exampledc2"
+  }
 }`
 
 const testAccDataFeedUpdated = `
-resource "ns1_datasource" "api" {
-	name = "terraform test"
-	sourcetype = "ns1_v1"
+resource "nsone_datasource" "api" {
+  name = "terraform test"
+  type = "nsone_v1"
 }
 
-resource "ns1_datafeed" "foobar" {
-	name = "terraform test"
-	source_id = "${ns1_datasource.api.id}"
+resource "nsone_datafeed" "foobar" {
+  name = "terraform test"
+  source_id = "${nsone_datasource.api.id}"
   config {
-		label = "exampledc3"
-	}
+    label = "exampledc3"
+  }
 }`
