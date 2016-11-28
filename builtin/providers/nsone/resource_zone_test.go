@@ -21,8 +21,8 @@ func TestAccZone_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccZoneBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "terraform-test-zone.io"),
 					testAccCheckZoneExists("nsone_zone.it", &zone),
+					testAccCheckZoneName(&zone, "terraform-test-zone.io"),
 					testAccCheckZoneTTL(&zone, 3600),
 					testAccCheckZoneRefresh(&zone, 43200),
 					testAccCheckZoneRetry(&zone, 7200),
@@ -44,8 +44,8 @@ func TestAccZone_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccZoneBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "terraform-test-zone.io"),
 					testAccCheckZoneExists("nsone_zone.it", &zone),
+					testAccCheckZoneName(&zone, "terraform-test-zone.io"),
 					testAccCheckZoneTTL(&zone, 3600),
 					testAccCheckZoneRefresh(&zone, 43200),
 					testAccCheckZoneRetry(&zone, 7200),
@@ -56,8 +56,8 @@ func TestAccZone_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccZoneUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckZoneState("zone", "terraform-test-zone.io"),
 					testAccCheckZoneExists("nsone_zone.it", &zone),
+					testAccCheckZoneName(&zone, "terraform-test-zone.io"),
 					testAccCheckZoneTTL(&zone, 10800),
 					testAccCheckZoneRefresh(&zone, 3600),
 					testAccCheckZoneRetry(&zone, 300),
@@ -67,27 +67,6 @@ func TestAccZone_updated(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckZoneState(key, value string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["nsone_zone.it"]
-		if !ok {
-			return fmt.Errorf("Not found: %s", "nsone_zone.it")
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		p := rs.Primary
-		if p.Attributes[key] != value {
-			return fmt.Errorf(
-				"%s != %s (actual: %s)", key, value, p.Attributes[key])
-		}
-
-		return nil
-	}
 }
 
 func testAccCheckZoneExists(n string, zone *dns.Zone) resource.TestCheckFunc {
@@ -133,11 +112,20 @@ func testAccCheckZoneDestroy(s *terraform.State) error {
 		zone, _, err := client.Zones.Get(rs.Primary.Attributes["zone"])
 
 		if err == nil {
-			return fmt.Errorf("Record still exists: %#v: %#v", err, zone)
+			return fmt.Errorf("Zone still exists: %#v: %#v", err, zone)
 		}
 	}
 
 	return nil
+}
+
+func testAccCheckZoneName(zone *dns.Zone, expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if zone.Zone != expected {
+			return fmt.Errorf("Zone: got: %s want: %s", zone.Zone, expected)
+		}
+		return nil
+	}
 }
 
 func testAccCheckZoneTTL(zone *dns.Zone, expected int) resource.TestCheckFunc {
