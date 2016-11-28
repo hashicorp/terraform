@@ -73,7 +73,6 @@ func resourceArmRouteTable() *schema.Resource {
 
 			"subnets": {
 				Type:     schema.TypeSet,
-				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
@@ -102,15 +101,16 @@ func resourceArmRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if _, ok := d.GetOk("route"); ok {
-		properties := network.RouteTablePropertiesFormat{}
 		routes, routeErr := expandAzureRmRouteTableRoutes(d)
 		if routeErr != nil {
 			return fmt.Errorf("Error Building list of Route Table Routes: %s", routeErr)
 		}
-		if len(routes) > 0 {
-			routeSet.Properties = &properties
-		}
 
+		if len(routes) > 0 {
+			routeSet.Properties = &network.RouteTablePropertiesFormat{
+				Routes: &routes,
+			}
+		}
 	}
 
 	_, err := routeTablesClient.CreateOrUpdate(resGroup, name, routeSet, make(chan struct{}))
@@ -148,6 +148,10 @@ func resourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 		return fmt.Errorf("Error making Read request on Azure Route Table %s: %s", name, err)
+	}
+
+	if resp.Properties.Routes != nil {
+		d.Set("route", schema.NewSet(resourceArmRouteTableRouteHash, flattenAzureRmRouteTableRoutes(resp.Properties.Routes)))
 	}
 
 	if resp.Properties.Subnets != nil {
@@ -215,12 +219,29 @@ func expandAzureRmRouteTableRoutes(d *schema.ResourceData) ([]network.Route, err
 	return routes, nil
 }
 
+func flattenAzureRmRouteTableRoutes(routes *[]network.Route) []interface{} {
+	results := make([]interface{}, 0, len(*routes))
+
+	for _, route := range *routes {
+		r := make(map[string]interface{})
+		r["name"] = *route.Name
+		r["address_prefix"] = *route.Properties.AddressPrefix
+		r["next_hop_type"] = string(route.Properties.NextHopType)
+		if route.Properties.NextHopIPAddress != nil {
+			r["next_hop_in_ip_address"] = *route.Properties.NextHopIPAddress
+		}
+		results = append(results, r)
+	}
+
+	return results
+}
+
 func resourceArmRouteTableRouteHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["address_prefix"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["next_hop_type"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", strings.ToLower(m["next_hop_type"].(string))))
 
 	return hashcode.String(buf.String())
 }
