@@ -317,7 +317,6 @@ func resourceServerProfileTemplateUpdate(d *schema.ResourceData, meta interface{
 	d.SetId(d.Get("name").(string))
 
 	return resourceServerProfileTemplateRead(d, meta)
-	return nil
 }
 
 func resourceServerProfileTemplateDelete(d *schema.ResourceData, meta interface{}) error {

@@ -64,8 +64,7 @@ func (c *Config) loadAndValidateICSP() error {
 
 	c.icspClient = client
 
-	session, error := c.icspClient.SessionLogin()
-	session = session
+	_, error := c.icspClient.SessionLogin()
 	if error != nil {
 		return error
 	}
