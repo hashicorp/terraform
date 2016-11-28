@@ -1,5 +1,9 @@
 ## 0.8.0-rc2 (unreleased)
 
+FEATURES:
+
+ * **New DataSource:** `aws_route_table` [GH-10301]
+
 IMPROVEMENTS:
 
  * provider/azurerm: support import of routes, fix route_table [GH-10389]
