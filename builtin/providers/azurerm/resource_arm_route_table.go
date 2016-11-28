@@ -18,6 +18,9 @@ func resourceArmRouteTable() *schema.Resource {
 		Read:   resourceArmRouteTableRead,
 		Update: resourceArmRouteTableCreate,
 		Delete: resourceArmRouteTableDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -150,23 +153,22 @@ func resourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error making Read request on Azure Route Table %s: %s", name, err)
 	}
 
+	d.Set("name", name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", resp.Location)
+
 	if resp.Properties.Routes != nil {
 		d.Set("route", schema.NewSet(resourceArmRouteTableRouteHash, flattenAzureRmRouteTableRoutes(resp.Properties.Routes)))
 	}
 
+	subnets := []string{}
 	if resp.Properties.Subnets != nil {
-		if len(*resp.Properties.Subnets) > 0 {
-			subnets := make([]string, 0, len(*resp.Properties.Subnets))
-			for _, subnet := range *resp.Properties.Subnets {
-				id := subnet.ID
-				subnets = append(subnets, *id)
-			}
-
-			if err := d.Set("subnets", subnets); err != nil {
-				return err
-			}
+		for _, subnet := range *resp.Properties.Subnets {
+			id := subnet.ID
+			subnets = append(subnets, *id)
 		}
 	}
+	d.Set("subnets", subnets)
 
 	flattenAndSetTags(d, resp.Tags)
 
