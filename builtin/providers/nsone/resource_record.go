@@ -1,7 +1,6 @@
 package nsone
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"encoding/json"
 	"github.com/mitchellh/hashstructure"
 	nsone "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
@@ -294,32 +292,17 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 		r.Filters = f
 	}
 	if regions := d.Get("regions").(*schema.Set); regions.Len() > 0 {
-		rm := make(map[string]data.Region)
 		for _, regionRaw := range regions.List() {
 			region := regionRaw.(map[string]interface{})
 			nsoneR := data.Region{
 				Meta: data.Meta{},
 			}
-			if g := region["georegion"].(string); g != "" {
-				nsoneR.Meta.Georegion = []string{g}
-			}
-			if g := region["country"].(string); g != "" {
-				nsoneR.Meta.Country = []string{g}
-			}
-			if g := region["us_state"].(string); g != "" {
-				nsoneR.Meta.USState = []string{g}
-			}
-			if g := region["up"].(bool); g {
-				nsoneR.Meta.Up = g
-			}
-
-			rm[region["name"].(string)] = nsoneR
-
 			if v, ok := region["meta"]; ok {
 				metaDynamicToStruct(&nsoneR.Meta, v)
 			}
+
+			r.Regions[region["name"].(string)] = nsoneR
 		}
-		r.Regions = rm
 	}
 	return nil
 }
