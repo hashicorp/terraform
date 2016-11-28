@@ -14,9 +14,9 @@ func TestAccNewRelicApplication_Basic(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccNewRelicApplicationConfig,
+				Config: testAccNewRelicApplicationConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					testAccNewRelicApplication("data.newrelic_application.content"),
+					testAccNewRelicApplication("data.newrelic_application.app"),
 				),
 			},
 		},
@@ -25,7 +25,6 @@ func TestAccNewRelicApplication_Basic(t *testing.T) {
 
 func testAccNewRelicApplication(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-
 		r := s.RootModule().Resources[n]
 		a := r.Primary.Attributes
 
@@ -41,11 +40,11 @@ func testAccNewRelicApplication(n string) resource.TestCheckFunc {
 	}
 }
 
-// To test this you must create an application with this name manually in New Relic.
-
-const testAccExpectedApplicationName = "service-content"
-const testAccNewRelicApplicationConfig = `
-data "newrelic_application" "content" {
-	name = "service-content"
+// The test application for this data source is created in provider_test.go
+func testAccNewRelicApplicationConfig() string {
+	return fmt.Sprintf(`
+data "newrelic_application" "app" {
+	name = "%s"
 }
-`
+`, testAccExpectedApplicationName)
+}
