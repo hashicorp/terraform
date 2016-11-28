@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+ * provider/azurerm: support import of routes, fix route_table [GH-10389]
  * provider/github: supports importing resources [GH-10382]
  * provider/postgresql: Added 'connect_timeout' argument to provider 'postgresql' [GH-10380]
 
