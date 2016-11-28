@@ -23,6 +23,10 @@ func dataSourceResource() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"config": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+			},
 		},
 		Create: DataSourceCreate,
 		Read:   DataSourceRead,
@@ -35,12 +39,14 @@ func dataSourceToResourceData(d *schema.ResourceData, s *data.Source) {
 	d.SetId(s.ID)
 	d.Set("name", s.Name)
 	d.Set("type", s.Type)
+	d.Set("config", s.Config)
 }
 
 // DataSourceCreate creates an ns1 datasource
 func DataSourceCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.Client)
 	s := data.NewSource(d.Get("name").(string), d.Get("type").(string))
+	s.Config = d.Get("config").(map[string]interface{})
 	if _, err := client.DataSources.Create(s); err != nil {
 		return err
 	}
