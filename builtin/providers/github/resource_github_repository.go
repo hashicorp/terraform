@@ -14,6 +14,9 @@ func resourceGithubRepository() *schema.Resource {
 		Read:   resourceGithubRepositoryRead,
 		Update: resourceGithubRepositoryUpdate,
 		Delete: resourceGithubRepositoryDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -134,6 +137,7 @@ func resourceGithubRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 		}
 		return err
 	}
+	d.Set("name", repoName)
 	d.Set("description", repo.Description)
 	d.Set("homepage_url", repo.Homepage)
 	d.Set("private", repo.Private)
@@ -154,10 +158,12 @@ func resourceGithubRepositoryUpdate(d *schema.ResourceData, meta interface{}) er
 	repoReq := resourceGithubRepositoryObject(d)
 	repoName := d.Id()
 	log.Printf("[DEBUG] update github repository %s/%s", meta.(*Organization).name, repoName)
-	_, _, err := client.Repositories.Edit(meta.(*Organization).name, repoName, repoReq)
+	repo, _, err := client.Repositories.Edit(meta.(*Organization).name, repoName, repoReq)
 	if err != nil {
 		return err
 	}
+	d.SetId(*repo.Name)
+
 	return resourceGithubRepositoryRead(d, meta)
 }
 
