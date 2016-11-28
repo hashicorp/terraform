@@ -36,6 +36,7 @@ import (
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
 	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
+	oneviewprovider "github.com/hashicorp/terraform/builtin/providers/oneview"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
 	pagerdutyprovider "github.com/hashicorp/terraform/builtin/providers/pagerduty"
@@ -96,6 +97,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"mysql":        mysqlprovider.Provider,
 	"nomad":        nomadprovider.Provider,
 	"null":         nullprovider.Provider,
+	"oneview":      oneviewprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"packet":       packetprovider.Provider,
 	"pagerduty":    pagerdutyprovider.Provider,
