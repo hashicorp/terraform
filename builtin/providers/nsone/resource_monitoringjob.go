@@ -19,7 +19,7 @@ func monitoringJobResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"job_type": &schema.Schema{
+			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -123,7 +123,7 @@ func monitoringJobResource() *schema.Resource {
 func monitoringJobToResourceData(d *schema.ResourceData, r *monitor.Job) error {
 	d.SetId(r.ID)
 	d.Set("name", r.Name)
-	d.Set("job_type", r.Type)
+	d.Set("type", r.Type)
 	d.Set("active", r.Active)
 	d.Set("regions", r.Regions)
 	d.Set("frequency", r.Frequency)
@@ -173,7 +173,7 @@ func monitoringJobToResourceData(d *schema.ResourceData, r *monitor.Job) error {
 func resourceDataToMonitoringJob(r *monitor.Job, d *schema.ResourceData) error {
 	r.ID = d.Id()
 	r.Name = d.Get("name").(string)
-	r.Type = d.Get("job_type").(string)
+	r.Type = d.Get("type").(string)
 	r.Active = d.Get("active").(bool)
 	rawRegions := d.Get("regions").([]interface{})
 	r.Regions = make([]string, len(rawRegions))

@@ -22,9 +22,7 @@ func TestAccMonitoringJob_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccMonitoringJobBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMonitoringJobState("name", "terraform test"),
 					testAccCheckMonitoringJobExists("nsone_monitoringjob.it", &mj),
-
 					testAccCheckMonitoringJobName(&mj, "terraform test"),
 					testAccCheckMonitoringJobActive(&mj, true),
 					testAccCheckMonitoringJobRegions(&mj, []string{"lga"}),
@@ -51,9 +49,7 @@ func TestAccMonitoringJob_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccMonitoringJobBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMonitoringJobState("name", "terraform test"),
 					testAccCheckMonitoringJobExists("nsone_monitoringjob.it", &mj),
-
 					testAccCheckMonitoringJobName(&mj, "terraform test"),
 					testAccCheckMonitoringJobActive(&mj, true),
 					testAccCheckMonitoringJobRegions(&mj, []string{"lga"}),
@@ -69,7 +65,6 @@ func TestAccMonitoringJob_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccMonitoringJobUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMonitoringJobState("name", "terraform test"),
 					testAccCheckMonitoringJobExists("nsone_monitoringjob.it", &mj),
 					testAccCheckMonitoringJobName(&mj, "terraform test"),
 					testAccCheckMonitoringJobActive(&mj, true),
@@ -85,27 +80,6 @@ func TestAccMonitoringJob_updated(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckMonitoringJobState(key, value string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["nsone_monitoringjob.it"]
-		if !ok {
-			return fmt.Errorf("Not found: %s", "nsone_monitoringjob.it")
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		p := rs.Primary
-		if p.Attributes[key] != value {
-			return fmt.Errorf(
-				"%s != %s (actual: %s)", key, value, p.Attributes[key])
-		}
-
-		return nil
-	}
 }
 
 func testAccCheckMonitoringJobExists(n string, monitoringJob *monitor.Job) resource.TestCheckFunc {
@@ -249,7 +223,7 @@ func testAccCheckMonitoringJobConfigHost(mj *monitor.Job, expected string) resou
 
 const testAccMonitoringJobBasic = `
 resource "nsone_monitoringjob" "it" {
-  job_type = "tcp"
+  type = "tcp"
   name     = "terraform test"
 
   regions   = ["lga"]
@@ -265,7 +239,7 @@ resource "nsone_monitoringjob" "it" {
 
 const testAccMonitoringJobUpdated = `
 resource "nsone_monitoringjob" "it" {
-  job_type = "tcp"
+  type = "tcp"
   name     = "terraform test"
 
   active        = true
