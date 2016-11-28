@@ -177,6 +177,10 @@ func (n *NodePlannableResourceInstance) evalTreeManagedResource(
 				OutputDiff:  &diff,
 				OutputState: &state,
 			},
+			&EvalDiffDeposed{
+				Name: stateId,
+				Diff: &diff,
+			},
 			&EvalCheckPreventDestroy{
 				Resource: n.Config,
 				Diff:     &diff,
