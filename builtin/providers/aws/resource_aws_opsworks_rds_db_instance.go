@@ -71,11 +71,8 @@ func resourceAwsOpsworksRdsDbInstanceUnregister(d *schema.ResourceData, meta int
 func resourceAwsOpsworksRdsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
 
-	arns := []string{d.Get("rds_db_instance_arn").(string)}
-
 	req := &opsworks.DescribeRdsDbInstancesInput{
-		StackId:           aws.String(d.Get("stack_id").(string)),
-		RdsDbInstanceArns: aws.StringSlice(arns),
+		StackId: aws.String(d.Get("stack_id").(string)),
 	}
 
 	log.Printf("[DEBUG] Reading OpsWorks registerd rds db instances for stack: %s", d.Get("stack_id"))

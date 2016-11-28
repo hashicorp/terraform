@@ -32,12 +32,12 @@ resource "aws_opsworks_rds_db_instance" "tf-acc-opsworks-db" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
 
   rds_db_instance_arn = "${aws_db_instance.bar.arn}"
-  db_user = "${aws_db_instance.bar.username}"
-  db_password = "${aws_db_instance.bar.password}"
+  db_user = "foo"
+  db_password = "barbarbarbar"
 }
 
 %s
 
 %s
-`, testAccAwsOpsworksStackConfigNoVpcCreate(name), testAccAWSDBInstanceConfig)
+`, testAccAwsOpsworksStackConfigVpcCreate(name), testAccAWSDBInstanceConfig)
 }
