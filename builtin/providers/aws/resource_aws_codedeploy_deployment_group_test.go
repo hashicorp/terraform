@@ -353,8 +353,7 @@ func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_delete(t *tes
 	})
 }
 
-// SKIP: This test does not pass when auto_rollback_configuration is TypeList, only TypeSet
-func skipTestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_disable(t *testing.T) {
+func TestAccAWSCodeDeployDeploymentGroup_autoRollbackConfiguration_disable(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
 	rName := acctest.RandString(5)
@@ -520,8 +519,7 @@ func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_delete(t *testing.T)
 	})
 }
 
-// SKIP: This test does not pass when alarm_configuration is TypeList, only TypeSet
-func skipTestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(t *testing.T) {
+func TestAccAWSCodeDeployDeploymentGroup_alarmConfiguration_disable(t *testing.T) {
 	var group codedeploy.DeploymentGroupInfo
 
 	rName := acctest.RandString(5)
