@@ -320,6 +320,30 @@
 			"revisionTime": "2016-11-22T00:02:32Z"
 		},
 		{
+			"checksumSHA1": "kasshieWdVIntOY0Vrz1OXNv7IA=",
+			"path": "github.com/HewlettPackard/oneview-golang/i3s",
+			"revision": "824ecdf6e3094c83cb54b800a6172ad2dbf416ee",
+			"revisionTime": "2016-11-22T00:02:32Z"
+		},
+		{
+			"checksumSHA1": "yrIv4kgbuYsHS05EqD5Va+sATQM=",
+			"path": "github.com/HewlettPackard/oneview-golang/icsp",
+			"revision": "824ecdf6e3094c83cb54b800a6172ad2dbf416ee",
+			"revisionTime": "2016-11-22T00:02:32Z"
+		},
+		{
+			"checksumSHA1": "fkacMItfVQlh7Pf9f99N/tUEpqw=",
+			"path": "github.com/HewlettPackard/oneview-golang/ov",
+			"revision": "824ecdf6e3094c83cb54b800a6172ad2dbf416ee",
+			"revisionTime": "2016-11-22T00:02:32Z"
+		},
+		{
+			"checksumSHA1": "J0F0EI5mEp6pDH/7zUJuta8PHlM=",
+			"path": "github.com/HewlettPackard/oneview-golang/utils",
+			"revision": "824ecdf6e3094c83cb54b800a6172ad2dbf416ee",
+			"revisionTime": "2016-11-22T00:02:32Z"
+		},
+		{
 			"checksumSHA1": "B+GonfgNwOAJMEe0WUHQGATRtMA=",
 			"path": "github.com/Microsoft/go-winio",
 			"revision": "562bb09f6612d9a4e91597184709d1cdba95af93",
