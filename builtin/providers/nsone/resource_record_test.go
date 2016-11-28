@@ -23,8 +23,8 @@ func TestAccRecord_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecordBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordState("domain", "test.terraform-record-test.io"),
 					testAccCheckRecordExists("nsone_record.it", &record),
+					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 60),
 					testAccCheckRecordRegionName(&record, []string{"cal"}),
 					testAccCheckRecordAnswerMetaWeight(&record, 10),
@@ -45,8 +45,8 @@ func TestAccRecord_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecordBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordState("domain", "test.terraform-record-test.io"),
 					testAccCheckRecordExists("nsone_record.it", &record),
+					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 60),
 					testAccCheckRecordRegionName(&record, []string{"cal"}),
 					testAccCheckRecordAnswerMetaWeight(&record, 10),
@@ -56,8 +56,8 @@ func TestAccRecord_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecordUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordState("domain", "test.terraform-record-test.io"),
 					testAccCheckRecordExists("nsone_record.it", &record),
+					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 120),
 					testAccCheckRecordRegionName(&record, []string{"ny", "wa"}),
 					testAccCheckRecordAnswerMetaWeight(&record, 5),
@@ -68,31 +68,9 @@ func TestAccRecord_updated(t *testing.T) {
 	})
 }
 
-func testAccCheckRecordState(key, value string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources["nsone_record.it"]
-		if !ok {
-			return fmt.Errorf("Not found: nsone_record.it")
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		p := rs.Primary
-		if p.Attributes[key] != value {
-			return fmt.Errorf(
-				"%v: want: %v got: %v", key, value, p.Attributes[key])
-		}
-
-		return nil
-	}
-}
-
 func testAccCheckRecordExists(n string, record *dns.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
-
 		if !ok {
 			return fmt.Errorf("Not found: %v", n)
 		}
@@ -106,9 +84,7 @@ func testAccCheckRecordExists(n string, record *dns.Record) resource.TestCheckFu
 		p := rs.Primary
 
 		foundRecord, _, err := client.Records.Get(p.Attributes["zone"], p.Attributes["domain"], p.Attributes["type"])
-
 		if err != nil {
-			// return err
 			return fmt.Errorf("Record not found")
 		}
 
@@ -142,12 +118,20 @@ func testAccCheckRecordDestroy(s *terraform.State) error {
 	}
 
 	foundRecord, _, err := client.Records.Get(recordDomain, recordZone, recordType)
-
 	if err != nil {
 		return fmt.Errorf("Record still exists: %#v", foundRecord)
 	}
 
 	return nil
+}
+
+func testAccCheckRecordDomain(r *dns.Record, expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if r.Domain != expected {
+			return fmt.Errorf("Domain: got: %#v want: %#v", r.Domain, expected)
+		}
+		return nil
+	}
 }
 
 func testAccCheckRecordTTL(r *dns.Record, expected int) resource.TestCheckFunc {
@@ -203,28 +187,32 @@ func testAccCheckRecordAnswerRdata(r *dns.Record, expected string) resource.Test
 const testAccRecordBasic = `
 resource "nsone_record" "it" {
   zone              = "${nsone_zone.test.zone}"
-  domain            = "test.terraform-record-test.io"
+  domain            = "test.${nsone_zone.test.zone}"
   type              = "CNAME"
   ttl               = 60
+
+  meta {
+    weight = 5
+    connections = 3
+    // up = false // Ignored by d.GetOk("meta.0.up") due to known issue
+  }
 
   answers {
     answer = "test1.terraform-record-test.io"
     region = "cal"
 
     meta {
-      field = "weight"
-      value = "10"
-    }
-
-    meta {
-      field = "up"
-      value = "1"
+      weight = 10
+      up = true
     }
   }
 
   regions {
-    name     = "cal"
-    us_state = "CA"
+    name = "cal"
+    meta {
+      up = true
+      us_state = ["CA"]
+    }
   }
 
   filters {
@@ -244,34 +232,39 @@ resource "nsone_zone" "test" {
 const testAccRecordUpdated = `
 resource "nsone_record" "it" {
   zone              = "${nsone_zone.test.zone}"
-  domain            = "test.terraform-record-test.io"
+  domain            = "test.${nsone_zone.test.zone}"
   type              = "CNAME"
   ttl               = 120
   use_client_subnet = true
+
+  meta {
+    weight = 5
+    connections = 3
+    // up = false // Ignored by d.GetOk("meta.0.up") due to known issue
+  }
 
   answers {
     answer = "test2.terraform-record-test.io"
     region = "ny"
 
     meta {
-      field = "weight"
-      value = "5"
+      weight = 5
+      up = true
     }
+  }
 
+  regions {
+    name = "wa"
     meta {
-      field = "up"
-      value = "1"
+      us_state = ["WA"]
     }
   }
 
   regions {
-    name     = "wa"
-    us_state = "WA"
-  }
-
-  regions {
-    name     = "ny"
-    us_state = "NY"
+    name = "ny"
+    meta {
+      us_state = ["NY"]
+    }
   }
 
   filters {
