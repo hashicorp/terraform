@@ -1,4 +1,4 @@
-package nsone
+package ns1
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 )
 
@@ -23,7 +23,7 @@ func TestAccTeam_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccTeamBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckTeamExists("nsone_team.foobar", &team),
+					testAccCheckTeamExists("ns1_team.foobar", &team),
 					testAccCheckTeamName(&team, "terraform test"),
 					testAccCheckTeamDNSPermission(&team, "view_zones", true),
 					testAccCheckTeamDNSPermission(&team, "zones_allow_by_default", true),
@@ -47,14 +47,14 @@ func TestAccTeam_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccTeamBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckTeamExists("nsone_team.foobar", &team),
+					testAccCheckTeamExists("ns1_team.foobar", &team),
 					testAccCheckTeamName(&team, "terraform test"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccTeamUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckTeamExists("nsone_team.foobar", &team),
+					testAccCheckTeamExists("ns1_team.foobar", &team),
 					testAccCheckTeamName(&team, "terraform test updated"),
 					testAccCheckTeamDNSPermission(&team, "view_zones", true),
 					testAccCheckTeamDNSPermission(&team, "zones_allow_by_default", true),
@@ -78,7 +78,7 @@ func testAccCheckTeamExists(n string, team *account.Team) resource.TestCheckFunc
 			return fmt.Errorf("NoID is set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.Client)
+		client := testAccProvider.Meta().(*ns1.Client)
 
 		foundTeam, _, err := client.Teams.Get(rs.Primary.Attributes["id"])
 		if err != nil {
@@ -96,10 +96,10 @@ func testAccCheckTeamExists(n string, team *account.Team) resource.TestCheckFunc
 }
 
 func testAccCheckTeamDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.Client)
+	client := testAccProvider.Meta().(*ns1.Client)
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "nsone_team" {
+		if rs.Type != "ns1_team" {
 			continue
 		}
 
@@ -187,7 +187,7 @@ func testAccCheckTeamDNSPermissionZones(team *account.Team, perm string, expecte
 }
 
 const testAccTeamBasic = `
-resource "nsone_team" "foobar" {
+resource "ns1_team" "foobar" {
   name = "terraform test"
 
   dns_view_zones = true
@@ -199,7 +199,7 @@ resource "nsone_team" "foobar" {
 }`
 
 const testAccTeamUpdated = `
-resource "nsone_team" "foobar" {
+resource "ns1_team" "foobar" {
   name = "terraform test updated"
 
   dns_view_zones = true

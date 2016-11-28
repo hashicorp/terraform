@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 )
 
@@ -23,7 +23,7 @@ func TestAccRecord_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecordBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordExists("nsone_record.it", &record),
+					testAccCheckRecordExists("ns1_record.it", &record),
 					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 60),
 					testAccCheckRecordRegionName(&record, []string{"cal"}),
@@ -45,7 +45,7 @@ func TestAccRecord_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecordBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordExists("nsone_record.it", &record),
+					testAccCheckRecordExists("ns1_record.it", &record),
 					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 60),
 					testAccCheckRecordRegionName(&record, []string{"cal"}),
@@ -56,7 +56,7 @@ func TestAccRecord_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRecordUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRecordExists("nsone_record.it", &record),
+					testAccCheckRecordExists("ns1_record.it", &record),
 					testAccCheckRecordDomain(&record, "test.terraform-record-test.io"),
 					testAccCheckRecordTTL(&record, 120),
 					testAccCheckRecordRegionName(&record, []string{"ny", "wa"}),
@@ -79,7 +79,7 @@ func testAccCheckRecordExists(n string, record *dns.Record) resource.TestCheckFu
 			return fmt.Errorf("NoID is set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.Client)
+		client := testAccProvider.Meta().(*ns1.Client)
 
 		p := rs.Primary
 
@@ -99,7 +99,7 @@ func testAccCheckRecordExists(n string, record *dns.Record) resource.TestCheckFu
 }
 
 func testAccCheckRecordDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.Client)
+	client := testAccProvider.Meta().(*ns1.Client)
 
 	var recordDomain string
 	var recordZone string
@@ -185,9 +185,9 @@ func testAccCheckRecordAnswerRdata(r *dns.Record, expected string) resource.Test
 }
 
 const testAccRecordBasic = `
-resource "nsone_record" "it" {
-  zone              = "${nsone_zone.test.zone}"
-  domain            = "test.${nsone_zone.test.zone}"
+resource "ns1_record" "it" {
+  zone              = "${ns1_zone.test.zone}"
+  domain            = "test.${ns1_zone.test.zone}"
   type              = "CNAME"
   ttl               = 60
 
@@ -230,9 +230,9 @@ resource "ns1_zone" "test" {
 `
 
 const testAccRecordUpdated = `
-resource "nsone_record" "it" {
-  zone              = "${nsone_zone.test.zone}"
-  domain            = "test.${nsone_zone.test.zone}"
+resource "ns1_record" "it" {
+  zone              = "${ns1_zone.test.zone}"
+  domain            = "test.${ns1_zone.test.zone}"
   type              = "CNAME"
   ttl               = 120
   use_client_subnet = true

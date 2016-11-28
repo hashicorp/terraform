@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/monitor"
 )
 
@@ -22,9 +22,7 @@ func TestAccMonitoringJob_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccMonitoringJobBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMonitoringJobState("name", "terraform test"),
 					testAccCheckMonitoringJobExists("ns1_monitoringjob.it", &mj),
-
 					testAccCheckMonitoringJobName(&mj, "terraform test"),
 					testAccCheckMonitoringJobActive(&mj, true),
 					testAccCheckMonitoringJobRegions(&mj, []string{"lga"}),
@@ -51,9 +49,7 @@ func TestAccMonitoringJob_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccMonitoringJobBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMonitoringJobState("name", "terraform test"),
 					testAccCheckMonitoringJobExists("ns1_monitoringjob.it", &mj),
-
 					testAccCheckMonitoringJobName(&mj, "terraform test"),
 					testAccCheckMonitoringJobActive(&mj, true),
 					testAccCheckMonitoringJobRegions(&mj, []string{"lga"}),
@@ -69,7 +65,6 @@ func TestAccMonitoringJob_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccMonitoringJobUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMonitoringJobState("name", "terraform test"),
 					testAccCheckMonitoringJobExists("ns1_monitoringjob.it", &mj),
 					testAccCheckMonitoringJobName(&mj, "terraform test"),
 					testAccCheckMonitoringJobActive(&mj, true),
@@ -121,7 +116,7 @@ func testAccCheckMonitoringJobExists(n string, monitoringJob *monitor.Job) resou
 			return fmt.Errorf("ID is not set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.Client)
+		client := testAccProvider.Meta().(*ns1.Client)
 
 		foundMj, _, err := client.Jobs.Get(id)
 
@@ -140,7 +135,7 @@ func testAccCheckMonitoringJobExists(n string, monitoringJob *monitor.Job) resou
 }
 
 func testAccCheckMonitoringJobDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.Client)
+	client := testAccProvider.Meta().(*ns1.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "ns1_monitoringjob" {
