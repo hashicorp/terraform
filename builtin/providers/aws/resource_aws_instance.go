@@ -141,6 +141,7 @@ func resourceAwsInstance() *schema.Resource {
 			"instance_state": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
 			},
 
 			"private_dns": &schema.Schema{
@@ -632,6 +633,67 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if d.HasChange("instance_state") {
+		log.Printf("[INFO] Requested State %s", d.Get("instance_state"))
+		if d.Get("instance_state") == "stopped" {
+			log.Printf("[INFO] Updating instance state to %s for Instance %s", "stopped", d.Id())
+
+			_, err := conn.StopInstances(&ec2.StopInstancesInput{
+				InstanceIds: []*string{aws.String(d.Id())},
+				DryRun:      aws.Bool(false),
+				Force:       aws.Bool(false),
+			})
+			if err != nil {
+				return err
+			}
+			log.Printf("[DEBUG] Waiting for instance (%s) to transition to state 'stopping'", d.Id())
+
+			stateConf := &resource.StateChangeConf{
+				Pending:    []string{"pending", "running", "shutting-down", "stopping"},
+				Target:     []string{"stopped"},
+				Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+				Timeout:    10 * time.Minute,
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+
+			_, err = stateConf.WaitForState()
+			if err != nil {
+				return fmt.Errorf(
+					"Error waiting for instance (%s) to stop: %s", d.Id(), err)
+			}
+
+		} else if d.Get("instance_state") == "running" {
+			log.Printf("[INFO] Updating instance state to %s for Instance %s", "running", d.Id())
+
+			_, err := conn.StartInstances(&ec2.StartInstancesInput{
+				InstanceIds:    []*string{aws.String(d.Id())},
+				AdditionalInfo: aws.String(""),
+				DryRun:         aws.Bool(false),
+			})
+			if err != nil {
+				return err
+			}
+			log.Printf("[DEBUG] Waiting for instance (%s) to transition to state 'running'", d.Id())
+
+			stateConf := &resource.StateChangeConf{
+				Pending:    []string{"pending", "shutting-down", "stopping", "stopped"},
+				Target:     []string{"running"},
+				Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+				Timeout:    10 * time.Minute,
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+
+			_, err = stateConf.WaitForState()
+			if err != nil {
+				return fmt.Errorf(
+					"Error waiting for instance (%s) to start: %s", d.Id(), err)
+			}
+
+		}
+
+	}
 	if d.HasChange("vpc_security_group_ids") {
 		var groups []*string
 		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
