@@ -534,6 +534,13 @@ func (d *InstanceDiff) GetDestroyDeposed() bool {
 	return d.DestroyDeposed
 }
 
+func (d *InstanceDiff) SetDestroyDeposed(b bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	d.DestroyDeposed = b
+}
+
 // These methods are properly locked, for use outside other InstanceDiff
 // methods but everywhere else within in the terraform package.
 // TODO refactor the locking scheme
