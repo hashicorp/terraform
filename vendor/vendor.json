@@ -332,8 +332,20 @@
 			"revisionTime": "2016-11-22T00:02:32Z"
 		},
 		{
+			"checksumSHA1": "T7C6uoGuuhXZ0UNMJr/7IyhF5ls=",
+			"path": "github.com/HewlettPackard/oneview-golang/liboneview",
+			"revision": "824ecdf6e3094c83cb54b800a6172ad2dbf416ee",
+			"revisionTime": "2016-11-22T00:02:32Z"
+		},
+		{
 			"checksumSHA1": "fkacMItfVQlh7Pf9f99N/tUEpqw=",
 			"path": "github.com/HewlettPackard/oneview-golang/ov",
+			"revision": "824ecdf6e3094c83cb54b800a6172ad2dbf416ee",
+			"revisionTime": "2016-11-22T00:02:32Z"
+		},
+		{
+			"checksumSHA1": "eNWJDvccBbdZzReOqEu2djfVsxA=",
+			"path": "github.com/HewlettPackard/oneview-golang/rest",
 			"revision": "824ecdf6e3094c83cb54b800a6172ad2dbf416ee",
 			"revisionTime": "2016-11-22T00:02:32Z"
 		},
@@ -1056,6 +1068,12 @@
 			"path": "github.com/docker/docker/api/types/swarm",
 			"revision": "96efb2cf25394b1589aced296e27f3928dc9c229",
 			"revisionTime": "2016-10-24T15:05:04Z"
+		},
+		{
+			"checksumSHA1": "pfZB2heUOImpxC+LS/xFSFDd2J8=",
+			"path": "github.com/docker/machine/libmachine/log",
+			"revision": "bb37dc7806687013c0c3097342ef7db4257655d2",
+			"revisionTime": "2016-11-22T00:40:29Z"
 		},
 		{
 			"path": "github.com/dylanmei/iso8601",
