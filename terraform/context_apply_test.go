@@ -940,6 +940,80 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 	}
 }
 
+// Test that we can perform an apply with CBD in a count with deposed instances.
+func TestContext2Apply_createBeforeDestroy_deposedCount(t *testing.T) {
+	m := testModule(t, "apply-cbd-count")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
+						},
+
+						Deposed: []*InstanceState{
+							&InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+					"aws_instance.bar.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
+						},
+
+						Deposed: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.bar.0:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.bar.1:
+  ID = foo
+  foo = bar
+  type = aws_instance
+	`)
+}
+
 func TestContext2Apply_destroyComputed(t *testing.T) {
 	m := testModule(t, "apply-destroy-computed")
 	p := testProvider("aws")
