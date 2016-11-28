@@ -12,14 +12,12 @@
 package main
 
 import (
-    "github.com/hashicorp/terraform/plugin"
-    "github.com/HewlettPackard/terraform-provider-oneview/oneview"
+	"github.com/HewlettPackard/terraform-provider-oneview/oneview"
+	"github.com/hashicorp/terraform/plugin"
 )
 
 func main() {
-  plugin.Serve(&plugin.ServeOpts{
-  	ProviderFunc:	oneview.Provider,
-  })
+	plugin.Serve(&plugin.ServeOpts{
+		ProviderFunc: oneview.Provider,
+	})
 }
- 
-
