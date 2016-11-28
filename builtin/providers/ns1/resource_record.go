@@ -1,4 +1,4 @@
-package nsone
+package ns1
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/mitchellh/hashstructure"
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/filter"
@@ -178,7 +178,7 @@ func recordToResourceData(d *schema.ResourceData, r *dns.Record) error {
 		ans := &schema.Set{
 			F: genericHasher,
 		}
-		log.Printf("Got back from nsone answers: %+v", r.Answers)
+		log.Printf("Got back from ns1 answers: %+v", r.Answers)
 		for _, answer := range r.Answers {
 			ans.Add(answerToMap(*answer))
 		}
@@ -294,14 +294,14 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 	if regions := d.Get("regions").(*schema.Set); regions.Len() > 0 {
 		for _, regionRaw := range regions.List() {
 			region := regionRaw.(map[string]interface{})
-			nsoneR := data.Region{
+			ns1R := data.Region{
 				Meta: data.Meta{},
 			}
 			if v, ok := region["meta"]; ok {
-				metaDynamicToStruct(&nsoneR.Meta, v)
+				metaDynamicToStruct(&ns1R.Meta, v)
 			}
 
-			r.Regions[region["name"].(string)] = nsoneR
+			r.Regions[region["name"].(string)] = ns1R
 		}
 	}
 	return nil
@@ -309,7 +309,7 @@ func resourceDataToRecord(r *dns.Record, d *schema.ResourceData) error {
 
 // RecordCreate creates DNS record in ns1
 func RecordCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	r := dns.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	if err := resourceDataToRecord(r, d); err != nil {
 		return err
@@ -322,7 +322,7 @@ func RecordCreate(d *schema.ResourceData, meta interface{}) error {
 
 // RecordRead reads the DNS record from ns1
 func RecordRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 
 	r, _, err := client.Records.Get(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	if err != nil {
@@ -334,7 +334,7 @@ func RecordRead(d *schema.ResourceData, meta interface{}) error {
 
 // RecordDelete deltes the DNS record from ns1
 func RecordDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	_, err := client.Records.Delete(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	d.SetId("")
 	return err
@@ -342,7 +342,7 @@ func RecordDelete(d *schema.ResourceData, meta interface{}) error {
 
 // RecordUpdate updates the given dns record in ns1
 func RecordUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	r := dns.NewRecord(d.Get("zone").(string), d.Get("domain").(string), d.Get("type").(string))
 	if err := resourceDataToRecord(r, d); err != nil {
 		return err

@@ -1,9 +1,9 @@
-package nsone
+package ns1
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 )
 
@@ -44,7 +44,7 @@ func resourceDataToTeam(t *account.Team, d *schema.ResourceData) error {
 
 // TeamCreate creates the given team in ns1
 func TeamCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	t := account.Team{}
 	if err := resourceDataToTeam(&t, d); err != nil {
 		return err
@@ -57,7 +57,7 @@ func TeamCreate(d *schema.ResourceData, meta interface{}) error {
 
 // TeamRead reads the team data from ns1
 func TeamRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	t, _, err := client.Teams.Get(d.Id())
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func TeamRead(d *schema.ResourceData, meta interface{}) error {
 
 // TeamDelete deletes the given team from ns1
 func TeamDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	_, err := client.Teams.Delete(d.Id())
 	d.SetId("")
 	return err
@@ -75,7 +75,7 @@ func TeamDelete(d *schema.ResourceData, meta interface{}) error {
 
 // TeamUpdate updates the given team in ns1
 func TeamUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	t := account.Team{
 		ID: d.Id(),
 	}

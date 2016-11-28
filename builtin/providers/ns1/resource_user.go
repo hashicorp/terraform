@@ -1,9 +1,9 @@
-package nsone
+package ns1
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 )
 
@@ -88,7 +88,7 @@ func resourceDataToUser(u *account.User, d *schema.ResourceData) error {
 
 // UserCreate creates the given user in ns1
 func UserCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	u := account.User{}
 	if err := resourceDataToUser(&u, d); err != nil {
 		return err
@@ -101,7 +101,7 @@ func UserCreate(d *schema.ResourceData, meta interface{}) error {
 
 // UserRead  reads the given users data from ns1
 func UserRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	u, _, err := client.Users.Get(d.Id())
 	if err != nil {
 		return err
@@ -111,7 +111,7 @@ func UserRead(d *schema.ResourceData, meta interface{}) error {
 
 // UserDelete deletes the given user from ns1
 func UserDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	_, err := client.Users.Delete(d.Id())
 	d.SetId("")
 	return err
@@ -119,7 +119,7 @@ func UserDelete(d *schema.ResourceData, meta interface{}) error {
 
 // UserUpdate updates the user with given parameters in ns1
 func UserUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	u := account.User{
 		Username: d.Id(),
 	}

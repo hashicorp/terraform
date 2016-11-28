@@ -1,10 +1,11 @@
-package nsone
+package ns1
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
-	"reflect"
 )
 
 type TfSchemaBuilder func(*schema.Schema)
@@ -121,9 +122,10 @@ func makeMetaSchema() *schema.Schema {
 
 	for _, f := range metaFields {
 		fieldSchema := &schema.Schema{
-			Optional:      true,
-			ForceNew:      true,
-			ConflictsWith: []string{f.NameInDynamicForFeed},
+			Optional: true,
+			ForceNew: true,
+			// TODO: Fields that arent in configuration shouldnt show up in resource data
+			// ConflictsWith: []string{f.NameInDynamicForFeed},
 		}
 		f.SchemaBuilder(fieldSchema)
 
@@ -131,10 +133,11 @@ func makeMetaSchema() *schema.Schema {
 
 		// Add an "_feed"-suffixed field for the {"feed":...} value.
 		fields[f.NameInDynamicForFeed] = &schema.Schema{
-			Optional:      true,
-			ForceNew:      true,
-			ConflictsWith: []string{f.NameInDynamic},
-			Type:          schema.TypeString,
+			Optional: true,
+			ForceNew: true,
+			// TODO: Fields that arent in configuration shouldnt show up in resource data
+			// ConflictsWith: []string{f.NameInDynamic},
+			Type: schema.TypeString,
 		}
 	}
 
@@ -187,6 +190,9 @@ func metaDynamicToStruct(m *data.Meta, raw interface{}) {
 		panic(fmt.Sprintf("list too long %#v", l))
 	}
 	if len(l) == 0 {
+		return
+	}
+	if l[0] == nil {
 		return
 	}
 

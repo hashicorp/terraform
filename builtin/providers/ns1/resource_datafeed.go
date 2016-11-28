@@ -1,9 +1,9 @@
-package nsone
+package ns1
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 )
 
@@ -51,7 +51,7 @@ func resourceDataToDataFeed(d *schema.ResourceData) *data.Feed {
 
 // DataFeedCreate creates an ns1 datafeed
 func DataFeedCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	f := resourceDataToDataFeed(d)
 	if _, err := client.DataFeeds.Create(d.Get("source_id").(string), f); err != nil {
 		return err
@@ -62,7 +62,7 @@ func DataFeedCreate(d *schema.ResourceData, meta interface{}) error {
 
 // DataFeedRead reads the datafeed for the given ID from ns1
 func DataFeedRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	f, _, err := client.DataFeeds.Get(d.Get("source_id").(string), d.Id())
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func DataFeedRead(d *schema.ResourceData, meta interface{}) error {
 
 // DataFeedDelete delets the given datafeed from ns1
 func DataFeedDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	_, err := client.DataFeeds.Delete(d.Get("source_id").(string), d.Id())
 	d.SetId("")
 	return err
@@ -81,7 +81,7 @@ func DataFeedDelete(d *schema.ResourceData, meta interface{}) error {
 
 // DataFeedUpdate updates the given datafeed with modified parameters
 func DataFeedUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	f := resourceDataToDataFeed(d)
 	f.ID = d.Id()
 	if _, err := client.DataFeeds.Update(d.Get("source_id").(string), f); err != nil {

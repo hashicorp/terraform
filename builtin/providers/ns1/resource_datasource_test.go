@@ -1,4 +1,4 @@
-package nsone
+package ns1
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 )
 
@@ -21,7 +21,7 @@ func TestAccDataSource_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataSourceBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDataSourceExists("nsone_datasource.foobar", &dataSource),
+					testAccCheckDataSourceExists("ns1_datasource.foobar", &dataSource),
 					testAccCheckDataSourceName(&dataSource, "terraform test"),
 					testAccCheckDataSourceType(&dataSource, "nsone_v1"),
 				),
@@ -40,7 +40,7 @@ func TestAccDataSource_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataSourceBasic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDataSourceExists("nsone_datasource.foobar", &dataSource),
+					testAccCheckDataSourceExists("ns1_datasource.foobar", &dataSource),
 					testAccCheckDataSourceName(&dataSource, "terraform test"),
 					testAccCheckDataSourceType(&dataSource, "nsone_v1"),
 				),
@@ -48,7 +48,7 @@ func TestAccDataSource_updated(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDataSourceUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDataSourceExists("nsone_datasource.foobar", &dataSource),
+					testAccCheckDataSourceExists("ns1_datasource.foobar", &dataSource),
 					testAccCheckDataSourceName(&dataSource, "terraform test"),
 					testAccCheckDataSourceType(&dataSource, "nsone_monitoring"),
 				),
@@ -69,7 +69,7 @@ func testAccCheckDataSourceExists(n string, dataSource *data.Source) resource.Te
 			return fmt.Errorf("NoID is set")
 		}
 
-		client := testAccProvider.Meta().(*nsone.Client)
+		client := testAccProvider.Meta().(*ns1.Client)
 
 		foundSource, _, err := client.DataSources.Get(rs.Primary.Attributes["id"])
 
@@ -90,10 +90,10 @@ func testAccCheckDataSourceExists(n string, dataSource *data.Source) resource.Te
 }
 
 func testAccCheckDataSourceDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*nsone.Client)
+	client := testAccProvider.Meta().(*ns1.Client)
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "nsone_datasource" {
+		if rs.Type != "ns1_datasource" {
 			continue
 		}
 
@@ -128,13 +128,13 @@ func testAccCheckDataSourceType(dataSource *data.Source, expected string) resour
 }
 
 const testAccDataSourceBasic = `
-resource "nsone_datasource" "foobar" {
+resource "ns1_datasource" "foobar" {
 	name = "terraform test"
 	type = "nsone_v1"
 }`
 
 const testAccDataSourceUpdated = `
-resource "nsone_datasource" "foobar" {
+resource "ns1_datasource" "foobar" {
 	name = "terraform test"
 	type = "nsone_monitoring"
 }`

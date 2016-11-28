@@ -1,4 +1,4 @@
-package nsone
+package ns1
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/monitor"
 )
 
@@ -252,7 +252,7 @@ func resourceDataToMonitoringJob(r *monitor.Job, d *schema.ResourceData) error {
 
 // MonitoringJobCreate Creates monitoring job in ns1
 func MonitoringJobCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	j := monitor.Job{}
 	if err := resourceDataToMonitoringJob(&j, d); err != nil {
 		return err
@@ -265,7 +265,7 @@ func MonitoringJobCreate(d *schema.ResourceData, meta interface{}) error {
 
 // MonitoringJobRead reads the given monitoring job from ns1
 func MonitoringJobRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	j, _, err := client.Jobs.Get(d.Id())
 	if err != nil {
 		return err
@@ -275,7 +275,7 @@ func MonitoringJobRead(d *schema.ResourceData, meta interface{}) error {
 
 // MonitoringJobDelete deteltes the given monitoring job from ns1
 func MonitoringJobDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	_, err := client.Jobs.Delete(d.Id())
 	d.SetId("")
 	return err
@@ -283,7 +283,7 @@ func MonitoringJobDelete(d *schema.ResourceData, meta interface{}) error {
 
 // MonitoringJobUpdate updates the given monitoring job
 func MonitoringJobUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	j := monitor.Job{
 		ID: d.Id(),
 	}

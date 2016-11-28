@@ -1,4 +1,4 @@
-package nsone
+package ns1
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -21,24 +21,24 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"nsone_zone":          zoneResource(),
-			"nsone_record":        recordResource(),
-			"nsone_datasource":    dataSourceResource(),
-			"nsone_datafeed":      dataFeedResource(),
-			"nsone_monitoringjob": monitoringJobResource(),
-			"nsone_user":          userResource(),
-			"nsone_apikey":        apikeyResource(),
-			"nsone_team":          teamResource(),
+			"ns1_zone":          zoneResource(),
+			"ns1_record":        recordResource(),
+			"ns1_datasource":    dataSourceResource(),
+			"ns1_datafeed":      dataFeedResource(),
+			"ns1_monitoringjob": monitoringJobResource(),
+			"ns1_user":          userResource(),
+			"ns1_apikey":        apikeyResource(),
+			"ns1_team":          teamResource(),
 		},
-		ConfigureFunc: nsoneConfigure,
+		ConfigureFunc: ns1Configure,
 	}
 }
 
-func nsoneConfigure(d *schema.ResourceData) (interface{}, error) {
+func ns1Configure(d *schema.ResourceData) (interface{}, error) {
 	httpClient := &http.Client{}
-	n := nsone.NewClient(httpClient, nsone.SetAPIKey(d.Get("apikey").(string)))
+	n := ns1.NewClient(httpClient, ns1.SetAPIKey(d.Get("apikey").(string)))
 	// FIXME: n.Debug()
-	// FIXME: n.RateLimitStrategySleep()
+	n.RateLimitStrategySleep()
 	return n, nil
 }
 
@@ -46,6 +46,6 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"api_key": "The nsone API key, this is required",
+		"api_key": "The ns1 API key, this is required",
 	}
 }

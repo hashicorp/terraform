@@ -1,4 +1,4 @@
-package nsone
+package ns1
 
 import (
 	"fmt"

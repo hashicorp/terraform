@@ -1,9 +1,9 @@
-package nsone
+package ns1
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
 
-	nsone "gopkg.in/ns1/ns1-go.v2/rest"
+	ns1 "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 )
 
@@ -64,7 +64,7 @@ func resourceDataToApikey(k *account.APIKey, d *schema.ResourceData) error {
 
 // ApikeyCreate creates ns1 API key
 func ApikeyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	k := account.APIKey{}
 	if err := resourceDataToApikey(&k, d); err != nil {
 		return err
@@ -77,7 +77,7 @@ func ApikeyCreate(d *schema.ResourceData, meta interface{}) error {
 
 // ApikeyRead reads API key from ns1
 func ApikeyRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	k, _, err := client.APIKeys.Get(d.Id())
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func ApikeyRead(d *schema.ResourceData, meta interface{}) error {
 
 //ApikeyDelete deletes the given ns1 api key
 func ApikeyDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	_, err := client.APIKeys.Delete(d.Id())
 	d.SetId("")
 	return err
@@ -95,7 +95,7 @@ func ApikeyDelete(d *schema.ResourceData, meta interface{}) error {
 
 //ApikeyUpdate updates the given api key in ns1
 func ApikeyUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*nsone.Client)
+	client := meta.(*ns1.Client)
 	k := account.APIKey{
 		ID: d.Id(),
 	}
