@@ -18,7 +18,7 @@ func dataSourceResource() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"sourcetype": &schema.Schema{
+			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -34,13 +34,13 @@ func dataSourceResource() *schema.Resource {
 func dataSourceToResourceData(d *schema.ResourceData, s *data.Source) {
 	d.SetId(s.ID)
 	d.Set("name", s.Name)
-	d.Set("sourcetype", s.Type)
+	d.Set("type", s.Type)
 }
 
 // DataSourceCreate creates an ns1 datasource
 func DataSourceCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.Client)
-	s := data.NewSource(d.Get("name").(string), d.Get("sourcetype").(string))
+	s := data.NewSource(d.Get("name").(string), d.Get("type").(string))
 	if _, err := client.DataSources.Create(s); err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func DataSourceDelete(d *schema.ResourceData, meta interface{}) error {
 // DataSourceUpdate updates the datasource with given parameters
 func DataSourceUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*nsone.Client)
-	s := data.NewSource(d.Get("name").(string), d.Get("sourcetype").(string))
+	s := data.NewSource(d.Get("name").(string), d.Get("type").(string))
 	s.ID = d.Id()
 	if _, err := client.DataSources.Update(s); err != nil {
 		return err
