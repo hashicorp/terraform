@@ -28,12 +28,8 @@ func resourceArmResourceGroup() *schema.Resource {
 				ForceNew:     true,
 				ValidateFunc: validateArmResourceGroupName,
 			},
-			"location": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+
+			"location": locationSchema(),
 
 			"tags": tagsSchema(),
 		},

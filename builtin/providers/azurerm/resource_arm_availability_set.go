@@ -33,12 +33,7 @@ func resourceArmAvailabilitySet() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"platform_update_domain_count": {
 				Type:     schema.TypeInt,
