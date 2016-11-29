@@ -322,6 +322,10 @@ func resourceAwsS3Bucket() *schema.Resource {
 func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 	awsRegion := meta.(*AWSClient).region
+	// check if region is specified
+	if v, ok := d.GetOk("region"); ok {
+		awsRegion = v.(string)
+	}
 
 	// Get the bucket and acl
 	bucket := d.Get("bucket").(string)
@@ -333,10 +337,9 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 		Bucket: aws.String(bucket),
 		ACL:    aws.String(acl),
 	}
-
-	// Special case us-east-1 region and do not set the LocationConstraint.
-	// See "Request Elements: http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketPUT.html
 	if awsRegion != "us-east-1" {
+		// If us-east-1 region, do not set the LocationConstraint.
+		// See "Request Elements: http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketPUT.html
 		req.CreateBucketConfiguration = &s3.CreateBucketConfiguration{
 			LocationConstraint: aws.String(awsRegion),
 		}
