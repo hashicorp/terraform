@@ -78,7 +78,7 @@ func testStepImportState(
 			// Find the existing resource
 			var oldR *terraform.ResourceState
 			for _, r2 := range old {
-				if r2.Primary != nil && r2.Primary.ID == r.Primary.ID {
+				if r2.Primary != nil && r2.Primary.ID == r.Primary.ID && r2.Type == r.Type {
 					oldR = r2
 					break
 				}
@@ -90,8 +90,14 @@ func testStepImportState(
 			}
 
 			// Compare their attributes
-			actual := r.Primary.Attributes
-			expected := oldR.Primary.Attributes
+			actual := make(map[string]string)
+			for k, v := range r.Primary.Attributes {
+				actual[k] = v
+			}
+			expected := make(map[string]string)
+			for k, v := range oldR.Primary.Attributes {
+				expected[k] = v
+			}
 
 			// Remove fields we're ignoring
 			for _, v := range step.ImportStateVerifyIgnore {

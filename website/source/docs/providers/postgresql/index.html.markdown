@@ -21,6 +21,7 @@ provider "postgresql" {
   username = "postgres_user"
   password = "postgres_password"
   ssl_mode = "require"
+  connect_timeout = 15
 }
 
 ```
@@ -63,5 +64,6 @@ The following arguments are supported:
 * `username` - (Required) Username for the server connection.
 * `password` - (Optional) Password for the server connection.
 * `ssl_mode` - (Optional) Set the priority for an SSL connection to the server.
+* `connect_timeout` - (Optional) Maximum wait for connection, in seconds. Zero means wait indefinitely, the default is `15`.
   The default is `prefer`; the full set of options and their implications
   can be seen [in the libpq SSL guide](http://www.postgresql.org/docs/9.4/static/libpq-ssl.html#LIBPQ-SSL-PROTECTION).

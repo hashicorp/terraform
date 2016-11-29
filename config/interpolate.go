@@ -149,6 +149,10 @@ func (v *ModuleVariable) FullKey() string {
 	return v.key
 }
 
+func (v *ModuleVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
+}
+
 func NewPathVariable(key string) (*PathVariable, error) {
 	var fieldType PathValueType
 	parts := strings.SplitN(key, ".", 2)
@@ -280,6 +284,10 @@ func NewUserVariable(key string) (*UserVariable, error) {
 	if idx := strings.Index(name, "."); idx > -1 {
 		elem = name[idx+1:]
 		name = name[:idx]
+	}
+
+	if len(elem) > 0 {
+		return nil, fmt.Errorf("Invalid dot index found: 'var.%s.%s'. Values in maps and lists can be referenced using square bracket indexing, like: 'var.mymap[\"key\"]' or 'var.mylist[1]'.", name, elem)
 	}
 
 	return &UserVariable{

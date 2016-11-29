@@ -1,7 +1,6 @@
 package cloudstack
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -24,13 +23,6 @@ func resourceCloudStackSecondaryIPAddress() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ipaddress": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `ip_address` field instead",
-			},
-
 			"nic_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -38,25 +30,10 @@ func resourceCloudStackSecondaryIPAddress() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"nicid": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `nic_id` field instead",
-			},
-
 			"virtual_machine_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				ForceNew: true,
-			},
-
-			"virtual_machine": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `virtual_machine_id` field instead",
 			},
 		},
 	}
@@ -67,23 +44,7 @@ func resourceCloudStackSecondaryIPAddressCreate(d *schema.ResourceData, meta int
 
 	nicid, ok := d.GetOk("nic_id")
 	if !ok {
-		nicid, ok = d.GetOk("nicid")
-	}
-	if !ok {
-		virtualmachine, ok := d.GetOk("virtual_machine_id")
-		if !ok {
-			virtualmachine, ok = d.GetOk("virtual_machine")
-		}
-		if !ok {
-			return errors.New(
-				"Either `virtual_machine_id` or [deprecated] `virtual_machine` must be provided.")
-		}
-
-		// Retrieve the virtual_machine ID
-		virtualmachineid, e := retrieveID(cs, "virtual_machine", virtualmachine.(string))
-		if e != nil {
-			return e.Error()
-		}
+		virtualmachineid := d.Get("virtual_machine_id").(string)
 
 		// Get the virtual machine details
 		vm, count, err := cs.VirtualMachine.GetVirtualMachineByID(virtualmachineid)
@@ -103,11 +64,7 @@ func resourceCloudStackSecondaryIPAddressCreate(d *schema.ResourceData, meta int
 	p := cs.Nic.NewAddIpToNicParams(nicid.(string))
 
 	// If there is a ipaddres supplied, add it to the parameter struct
-	ipaddress, ok := d.GetOk("ip_address")
-	if !ok {
-		ipaddress, ok = d.GetOk("ipaddress")
-	}
-	if ok {
+	if ipaddress, ok := d.GetOk("ip_address"); ok {
 		p.SetIpaddress(ipaddress.(string))
 	}
 
@@ -124,20 +81,7 @@ func resourceCloudStackSecondaryIPAddressCreate(d *schema.ResourceData, meta int
 func resourceCloudStackSecondaryIPAddressRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	virtualmachine, ok := d.GetOk("virtual_machine_id")
-	if !ok {
-		virtualmachine, ok = d.GetOk("virtual_machine")
-	}
-	if !ok {
-		return errors.New(
-			"Either `virtual_machine_id` or [deprecated] `virtual_machine` must be provided.")
-	}
-
-	// Retrieve the virtual_machine ID
-	virtualmachineid, e := retrieveID(cs, "virtual_machine", virtualmachine.(string))
-	if e != nil {
-		return e.Error()
-	}
+	virtualmachineid := d.Get("virtual_machine_id").(string)
 
 	// Get the virtual machine details
 	vm, count, err := cs.VirtualMachine.GetVirtualMachineByID(virtualmachineid)
@@ -152,9 +96,6 @@ func resourceCloudStackSecondaryIPAddressRead(d *schema.ResourceData, meta inter
 
 	nicid, ok := d.GetOk("nic_id")
 	if !ok {
-		nicid, ok = d.GetOk("nicid")
-	}
-	if !ok {
 		nicid = vm.Nic[0].Id
 	}
 
@@ -167,7 +108,7 @@ func resourceCloudStackSecondaryIPAddressRead(d *schema.ResourceData, meta inter
 	}
 
 	if l.Count == 0 {
-		log.Printf("[DEBUG] NIC %s does no longer exist", d.Get("nicid").(string))
+		log.Printf("[DEBUG] NIC %s does no longer exist", d.Get("nic_id").(string))
 		d.SetId("")
 		return nil
 	}

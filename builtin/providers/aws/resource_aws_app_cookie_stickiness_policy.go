@@ -2,7 +2,9 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -98,16 +100,28 @@ func resourceAwsAppCookieStickinessPolicyRead(d *schema.ResourceData, meta inter
 
 	getResp, err := elbconn.DescribeLoadBalancerPolicies(request)
 	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "PolicyNotFound" {
-			// The policy is gone.
-			d.SetId("")
+		if ec2err, ok := err.(awserr.Error); ok {
+			if ec2err.Code() == "PolicyNotFound" || ec2err.Code() == "LoadBalancerNotFound" {
+				d.SetId("")
+			}
 			return nil
 		}
 		return fmt.Errorf("Error retrieving policy: %s", err)
 	}
-
 	if len(getResp.PolicyDescriptions) != 1 {
 		return fmt.Errorf("Unable to find policy %#v", getResp.PolicyDescriptions)
+	}
+
+	// we know the policy exists now, but we have to check if it's assigned to a listener
+	assigned, err := resourceAwsELBSticknessPolicyAssigned(policyName, lbName, lbPort, elbconn)
+	if err != nil {
+		return err
+	}
+	if !assigned {
+		// policy exists, but isn't assigned to a listener
+		log.Printf("[DEBUG] policy '%s' exists, but isn't assigned to a listener", policyName)
+		d.SetId("")
+		return nil
 	}
 
 	// We can get away with this because there's only one attribute, the
@@ -124,6 +138,43 @@ func resourceAwsAppCookieStickinessPolicyRead(d *schema.ResourceData, meta inter
 	d.Set("lb_port", lbPort)
 
 	return nil
+}
+
+// Determine if a particular policy is assigned to an ELB listener
+func resourceAwsELBSticknessPolicyAssigned(policyName, lbName, lbPort string, elbconn *elb.ELB) (bool, error) {
+	describeElbOpts := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: []*string{aws.String(lbName)},
+	}
+	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
+	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok {
+			if ec2err.Code() == "LoadBalancerNotFound" {
+				return false, nil
+			}
+		}
+		return false, fmt.Errorf("Error retrieving ELB description: %s", err)
+	}
+
+	if len(describeResp.LoadBalancerDescriptions) != 1 {
+		return false, fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancerDescriptions)
+	}
+
+	lb := describeResp.LoadBalancerDescriptions[0]
+	assigned := false
+	for _, listener := range lb.ListenerDescriptions {
+		if lbPort != strconv.Itoa(int(*listener.Listener.LoadBalancerPort)) {
+			continue
+		}
+
+		for _, name := range listener.PolicyNames {
+			if policyName == *name {
+				assigned = true
+				break
+			}
+		}
+	}
+
+	return assigned, nil
 }
 
 func resourceAwsAppCookieStickinessPolicyDelete(d *schema.ResourceData, meta interface{}) error {

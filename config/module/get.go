@@ -37,6 +37,8 @@ func GetCopy(dst, src string) error {
 	if err != nil {
 		return err
 	}
+	// FIXME: This isn't completely safe. Creating and removing our temp path
+	//        exposes where to race to inject files.
 	if err := os.RemoveAll(tmpDir); err != nil {
 		return err
 	}

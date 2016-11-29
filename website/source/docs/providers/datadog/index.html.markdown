@@ -27,12 +27,17 @@ provider "datadog" {
 resource "datadog_monitor" "default" {
     ...
 }
+
+# Create a new timeboard
+resource "datadog_timeboard" "default" {
+    ...
+}
 ```
 
 ## Argument Reference
 
 The following arguments are supported:
 
-* `api_key` - (Required) Datadog API key
-* `app_key` - (Required) Datadog APP key
+* `api_key` - (Required) Datadog API key. This can also be set via the `DATADOG_API_KEY` environment variable.
+* `app_key` - (Required) Datadog APP key. This can also be set via the `DATADOG_APP_KEY` environment variable.
 

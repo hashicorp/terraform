@@ -8,7 +8,16 @@
             </li>
 
             <li<%= sidebar_current("docs-azurerm-index") %>>
-              <a href="/docs/providers/azurerm/index.html">Azure Resource Manager Provider</a>
+              <a href="/docs/providers/azurerm/index.html">Microsoft Azure Provider</a>
+            </li>
+
+            <li<%= sidebar_current(/^docs-azurerm-datasource/) %>>
+              <a href="#">Data Sources</a>
+              <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-azurerm-datasource-client-config") %>>
+                    <a href="/docs/providers/azurerm/d/client_config.html">azurerm_client_config</a>
+                </li>
+              </ul>
             </li>
 
             <li<%= sidebar_current(/^docs-azurerm-resource-resource/) %>>
@@ -74,12 +83,70 @@
                 </ul>
             </li>
 
+
+            <li<%= sidebar_current(/^docs-azurerm-resource-eventhub/) %>>
+              <a href="#">Event Hubs</a>
+              <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-azurerm-resource-eventhub") %>>
+                  <a href="/docs/providers/azurerm/r/eventhub.html">azurerm_eventhub</a>
+                </li>
+                <li<%= sidebar_current("docs-azurerm-resource-eventhub-namespace") %>>
+                  <a href="/docs/providers/azurerm/r/eventhub_namespace.html">azurerm_eventhub_namespace</a>
+                </li>
+              </ul>
+            </li>
+
+            <li<%= sidebar_current(/^docs-azurerm-resource-key-vault/) %>>
+              <a href="#">Key Vault Resources</a>
+              <ul class="nav nav-visible">
+
+                <li<%= sidebar_current("docs-azurerm-resource-key-vault") %>>
+                  <a href="/docs/providers/azurerm/r/key_vault.html">azurerm_key_vault</a>
+                </li>
+              </ul>
+            </li>
+
+            <li<%= sidebar_current(/^docs-azurerm-resource-loadbalancer/) %>>
+              <a href="#">Load Balancer Resources</a>
+              <ul class="nav nav-visible">
+
+                  <li<%= sidebar_current("docs-azurerm-resource-loadbalancer") %>>
+                    <a href="/docs/providers/azurerm/r/loadbalancer.html">azurerm_lb</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-azurerm-resource-loadbalancer-backend-address-pool") %>>
+                    <a href="/docs/providers/azurerm/r/loadbalancer_backend_address_pool.html">azurerm_lb_backend_address_pool</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-azurerm-resource-loadbalancer-rule") %>>
+                    <a href="/docs/providers/azurerm/r/loadbalancer_rule.html">azurerm_lb_rule</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-azurerm-resource-loadbalancer-nat-rule") %>>
+                    <a href="/docs/providers/azurerm/r/loadbalancer_nat_rule.html">azurerm_lb_nat_rule</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-azurerm-resource-loadbalancer-nat-pool") %>>
+                    <a href="/docs/providers/azurerm/r/loadbalancer_nat_pool.html">azurerm_lb_nat_pool</a>
+                  </li>
+
+                  <li<%= sidebar_current("docs-azurerm-resource-loadbalancer-probe") %>>
+                    <a href="/docs/providers/azurerm/r/loadbalancer_probe.html">azurerm_lb_probe</a>
+                  </li>
+
+              </ul>
+            </li>
+
             <li<%= sidebar_current(/^docs-azurerm-resource-network/) %>>
               <a href="#">Network Resources</a>
               <ul class="nav nav-visible">
 
                 <li<%= sidebar_current("docs-azurerm-resource-network-virtual-network") %>>
                   <a href="/docs/providers/azurerm/r/virtual_network.html">azurerm_virtual_network</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-virtual-network-peering") %>>
+                  <a href="/docs/providers/azurerm/r/virtual_network_peering.html">azurerm_virtual_network_peering</a>
                 </li>
 
                 <li<%= sidebar_current("docs-azurerm-resource-network-security-group") %>>
@@ -114,6 +181,14 @@
                   <a href="/docs/providers/azurerm/r/route.html">azurerm_route</a>
                 </li>
 
+                <li<%= sidebar_current("docs-azurerm-resource-network-traffic-manager-profile") %>>
+                  <a href="/docs/providers/azurerm/r/traffic_manager_profile.html">azurerm_traffic_manager_profile</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-network-traffic-manager-endpoint") %>>
+                  <a href="/docs/providers/azurerm/r/traffic_manager_endpoint.html">azurerm_traffic_manager_endpoint</a>
+                </li>
+
               </ul>
             </li>
 
@@ -122,6 +197,23 @@
               <ul class="nav nav-visible">
                 <li<%= sidebar_current("docs-azurerm-resource-search-service") %>>
                   <a href="/docs/providers/azurerm/r/search_service.html">azurerm_search_service</a>
+                </li>
+              </ul>
+            </li>
+
+            <li<%= sidebar_current(/^docs-azurerm-resource-servicebus/) %>>
+              <a href="#">ServiceBus</a>
+              <ul class="nav nav-visible">
+                <li<%= sidebar_current("docs-azurerm-resource-servicebus-namespace") %>>
+                  <a href="/docs/providers/azurerm/r/servicebus_namespace.html">azurerm_servicebus_namespace</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-servicebus-subscription") %>>
+                  <a href="/docs/providers/azurerm/r/servicebus_subscription.html">azurerm_servicebus_subscription</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-servicebus-topic") %>>
+                  <a href="/docs/providers/azurerm/r/servicebus_topic.html">azurerm_servicebus_topic</a>
                 </li>
               </ul>
             </li>
@@ -144,7 +236,7 @@
 
               </ul>
             </li>
-            
+
             <li<%= sidebar_current(/^docs-azurerm-resource-storage/) %>>
               <a href="#">Storage Resources</a>
               <ul class="nav nav-visible">
@@ -163,6 +255,14 @@
 
                 <li<%= sidebar_current("docs-azurerm-resource-storage-queue") %>>
                   <a href="/docs/providers/azurerm/r/storage_queue.html">azurerm_storage_queue</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-storage-share") %>>
+                  <a href="/docs/providers/azurerm/r/storage_share.html">azurerm_storage_share</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-storage-table") %>>
+                  <a href="/docs/providers/azurerm/r/storage_table.html">azurerm_storage_table</a>
                 </li>
 
               </ul>
@@ -191,9 +291,20 @@
                   <a href="/docs/providers/azurerm/r/virtual_machine.html">azurerm_virtual_machine</a>
                 </li>
 
+                <li<%= sidebar_current("docs-azurerm-resource-virtualmachine-extension") %>>
+                  <a href="/docs/providers/azurerm/r/virtual_machine_extension.html">azurerm_virtual_machine_extension</a>
+                </li>
+
+                <li<%= sidebar_current("docs-azurerm-resource-virtualmachine-scalesets") %>>
+                  <a href="/docs/providers/azurerm/r/virtual_machine_scale_sets.html">azurerm_virtual_machine_scale_set</a>
+                </li>
+
               </ul>
             </li>
 
+            <li>
+              <a href="/docs/providers/azure/index.html">Azure Service Management Provider &raquo;</a>
+            </li>
           </ul>
         </div>
     <% end %>

@@ -36,7 +36,6 @@ func testAccCheckAWSEcrRepositoryDestroy(s *terraform.State) error {
 		}
 
 		input := ecr.DescribeRepositoriesInput{
-			RegistryId:      aws.String(rs.Primary.Attributes["registry_id"]),
 			RepositoryNames: []*string{aws.String(rs.Primary.Attributes["name"])},
 		}
 
@@ -71,11 +70,6 @@ func testAccCheckAWSEcrRepositoryExists(name string) resource.TestCheckFunc {
 }
 
 var testAccAWSEcrRepository = `
-# ECR initially only available in us-east-1
-# https://aws.amazon.com/blogs/aws/ec2-container-registry-now-generally-available/
-provider "aws" {
-	region = "us-east-1"
-}
 resource "aws_ecr_repository" "default" {
 	name = "foo-repository-terraform"
 }

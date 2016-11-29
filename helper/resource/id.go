@@ -2,12 +2,20 @@ package resource
 
 import (
 	"crypto/rand"
-	"encoding/base32"
 	"fmt"
-	"strings"
+	"math/big"
+	"sync"
 )
 
 const UniqueIdPrefix = `terraform-`
+
+// idCounter is a randomly seeded monotonic counter for generating ordered
+// unique ids.  It uses a big.Int so we can easily increment a long numeric
+// string.  The max possible hex value here with 12 random bytes is
+// "01000000000000000000000000", so there's no chance of rollover during
+// operation.
+var idMutex sync.Mutex
+var idCounter = big.NewInt(0).SetBytes(randomBytes(12))
 
 // Helper for a resource to generate a unique identifier w/ default prefix
 func UniqueId() string {
@@ -16,31 +24,16 @@ func UniqueId() string {
 
 // Helper for a resource to generate a unique identifier w/ given prefix
 //
-// This uses a simple RFC 4122 v4 UUID with some basic cosmetic filters
-// applied (base32, remove padding, downcase) to make visually distinguishing
-// identifiers easier.
+// After the prefix, the ID consists of an incrementing 26 digit value (to match
+// previous timestamp output).
 func PrefixedUniqueId(prefix string) string {
-	return fmt.Sprintf("%s%s", prefix,
-		strings.ToLower(
-			strings.Replace(
-				base32.StdEncoding.EncodeToString(uuidV4()),
-				"=", "", -1)))
+	idMutex.Lock()
+	defer idMutex.Unlock()
+	return fmt.Sprintf("%s%026x", prefix, idCounter.Add(idCounter, big.NewInt(1)))
 }
 
-func uuidV4() []byte {
-	var uuid [16]byte
-
-	// Set all the other bits to randomly (or pseudo-randomly) chosen
-	// values.
-	rand.Read(uuid[:])
-
-	// Set the two most significant bits (bits 6 and 7) of the
-	// clock_seq_hi_and_reserved to zero and one, respectively.
-	uuid[8] = (uuid[8] | 0x80) & 0x8f
-
-	// Set the four most significant bits (bits 12 through 15) of the
-	// time_hi_and_version field to the 4-bit version number from Section 4.1.3.
-	uuid[6] = (uuid[6] | 0x40) & 0x4f
-
-	return uuid[:]
+func randomBytes(n int) []byte {
+	b := make([]byte, n)
+	rand.Read(b)
+	return b
 }

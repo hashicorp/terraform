@@ -5,8 +5,10 @@ import (
 	"regexp"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -46,6 +48,60 @@ func TestAccAWSLambdaEventSourceMapping_basic(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSLambdaEventSourceMapping_disappears(t *testing.T) {
+	var conf lambda.EventSourceMappingConfiguration
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaEventSourceMappingDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSLambdaEventSourceMappingConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaEventSourceMappingExists("aws_lambda_event_source_mapping.lambda_event_source_mapping_test", &conf),
+					testAccCheckAWSLambdaEventSourceMappingDisappears(&conf),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
+func testAccCheckAWSLambdaEventSourceMappingDisappears(conf *lambda.EventSourceMappingConfiguration) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).lambdaconn
+
+		params := &lambda.DeleteEventSourceMappingInput{
+			UUID: conf.UUID,
+		}
+
+		_, err := conn.DeleteEventSourceMapping(params)
+		if err != nil {
+			if err != nil {
+				return err
+			}
+		}
+
+		return resource.Retry(10*time.Minute, func() *resource.RetryError {
+			params := &lambda.GetEventSourceMappingInput{
+				UUID: conf.UUID,
+			}
+			_, err := conn.GetEventSourceMapping(params)
+			if err != nil {
+				cgw, ok := err.(awserr.Error)
+				if ok && cgw.Code() == "ResourceNotFoundException" {
+					return nil
+				}
+				return resource.NonRetryableError(
+					fmt.Errorf("Error retrieving Lambda Event Source Mapping: %s", err))
+			}
+			return resource.RetryableError(fmt.Errorf(
+				"Waiting for Lambda Event Source Mapping: %v", conf.UUID))
+		})
+	}
 }
 
 func testAccCheckLambdaEventSourceMappingDestroy(s *terraform.State) error {

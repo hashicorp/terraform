@@ -20,34 +20,39 @@ func resourceAwsApiGatewayDeployment() *schema.Resource {
 		Delete: resourceAwsApiGatewayDeploymentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"rest_api_id": &schema.Schema{
+			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"stage_name": &schema.Schema{
+			"stage_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"stage_description": &schema.Schema{
+			"stage_description": {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"variables": &schema.Schema{
+			"variables": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
 				Elem:     schema.TypeString,
+			},
+
+			"created_date": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -78,7 +83,7 @@ func resourceAwsApiGatewayDeploymentCreate(d *schema.ResourceData, meta interfac
 	d.SetId(*deployment.Id)
 	log.Printf("[DEBUG] API Gateway Deployment ID: %s", d.Id())
 
-	return nil
+	return resourceAwsApiGatewayDeploymentRead(d, meta)
 }
 
 func resourceAwsApiGatewayDeploymentRead(d *schema.ResourceData, meta interface{}) error {
@@ -97,8 +102,11 @@ func resourceAwsApiGatewayDeploymentRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 	log.Printf("[DEBUG] Received API Gateway Deployment: %s", out)
-	d.SetId(*out.Id)
 	d.Set("description", out.Description)
+
+	if err := d.Set("created_date", out.CreatedDate.Format(time.RFC3339)); err != nil {
+		log.Printf("[DEBUG] Error setting created_date: %s", err)
+	}
 
 	return nil
 }

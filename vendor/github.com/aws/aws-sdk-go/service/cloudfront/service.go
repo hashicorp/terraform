@@ -7,11 +7,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/restxml"
-	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
-// CloudFront is a client for CloudFront.
+// This is the Amazon CloudFront API Reference. This guide is for developers
+// who need detailed information about the CloudFront API actions, data types,
+// and errors. For detailed information about CloudFront features and their
+// associated API calls, see the Amazon CloudFront Developer Guide.
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type CloudFront struct {
@@ -51,14 +54,14 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 				ServiceName:   ServiceName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
-				APIVersion:    "2016-01-28",
+				APIVersion:    "2016-09-29",
 			},
 			handlers,
 		),
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBack(v4.Sign)
+	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
 	svc.Handlers.Build.PushBackNamed(restxml.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(restxml.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(restxml.UnmarshalMetaHandler)

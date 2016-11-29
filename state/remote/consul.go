@@ -24,6 +24,9 @@ func consulFactory(conf map[string]string) (Client, error) {
 	if scheme, ok := conf["scheme"]; ok && scheme != "" {
 		config.Scheme = scheme
 	}
+	if datacenter, ok := conf["datacenter"]; ok && datacenter != "" {
+		config.Datacenter = datacenter
+	}
 	if auth, ok := conf["http_auth"]; ok && auth != "" {
 		var username, password string
 		if strings.Contains(auth, ":") {

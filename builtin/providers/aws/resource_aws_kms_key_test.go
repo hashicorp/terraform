@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/jen20/awspolicyequivalence"
 )
 
 func TestAccAWSKmsKey_basic(t *testing.T) {
@@ -19,16 +20,36 @@ func TestAccAWSKmsKey_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSKmsKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsKey,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsKeyExists("aws_kms_key.foo", &keyBefore),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsKey_removedPolicy,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsKeyExists("aws_kms_key.foo", &keyAfter),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSKmsKey_policy(t *testing.T) {
+	var key kms.KeyMetadata
+	expectedPolicyText := `{"Version":"2012-10-17","Id":"kms-tf-1","Statement":[{"Sid":"Enable IAM User Permissions","Effect":"Allow","Principal":{"AWS":"*"},"Action":"kms:*","Resource":"*"}]}`
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSKmsKeyDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSKmsKey,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSKmsKeyExists("aws_kms_key.foo", &key),
+					testAccCheckAWSKmsKeyHasPolicy("aws_kms_key.foo", expectedPolicyText),
 				),
 			},
 		},
@@ -43,7 +64,7 @@ func TestAccAWSKmsKey_isEnabled(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSKmsKeyDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsKey_enabledRotation,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsKeyExists("aws_kms_key.bar", &key1),
@@ -52,7 +73,7 @@ func TestAccAWSKmsKey_isEnabled(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_kms_key.bar", "enable_key_rotation", "true"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsKey_disabled,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsKeyExists("aws_kms_key.bar", &key2),
@@ -61,7 +82,7 @@ func TestAccAWSKmsKey_isEnabled(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_kms_key.bar", "enable_key_rotation", "false"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSKmsKey_enabled,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSKmsKeyExists("aws_kms_key.bar", &key3),
@@ -72,6 +93,42 @@ func TestAccAWSKmsKey_isEnabled(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckAWSKmsKeyHasPolicy(name string, expectedPolicyText string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No KMS Key ID is set")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).kmsconn
+
+		out, err := conn.GetKeyPolicy(&kms.GetKeyPolicyInput{
+			KeyId:      aws.String(rs.Primary.ID),
+			PolicyName: aws.String("default"),
+		})
+		if err != nil {
+			return err
+		}
+
+		actualPolicyText := *out.Policy
+
+		equivalent, err := awspolicy.PoliciesAreEquivalent(actualPolicyText, expectedPolicyText)
+		if err != nil {
+			return fmt.Errorf("Error testing policy equivalence: %s", err)
+		}
+		if !equivalent {
+			return fmt.Errorf("Non-equivalent policy error:\n\nexpected: %s\n\n     got: %s\n",
+				expectedPolicyText, actualPolicyText)
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckAWSKmsKeyDestroy(s *terraform.State) error {

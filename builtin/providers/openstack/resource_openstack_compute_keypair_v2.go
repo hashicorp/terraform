@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 )
 
 func resourceComputeKeypairV2() *schema.Resource {
@@ -13,6 +13,9 @@ func resourceComputeKeypairV2() *schema.Resource {
 		Create: resourceComputeKeypairV2Create,
 		Read:   resourceComputeKeypairV2Read,
 		Delete: resourceComputeKeypairV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -31,6 +34,11 @@ func resourceComputeKeypairV2() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -42,9 +50,12 @@ func resourceComputeKeypairV2Create(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	createOpts := keypairs.CreateOpts{
-		Name:      d.Get("name").(string),
-		PublicKey: d.Get("public_key").(string),
+	createOpts := KeyPairCreateOpts{
+		keypairs.CreateOpts{
+			Name:      d.Get("name").(string),
+			PublicKey: d.Get("public_key").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)

@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 )
 
 func resourceNetworkingRouterV2() *schema.Resource {
@@ -63,50 +63,6 @@ func resourceNetworkingRouterV2() *schema.Resource {
 	}
 }
 
-// routerCreateOpts contains all the values needed to create a new router. There are
-// no required values.
-type RouterCreateOpts struct {
-	Name         string
-	AdminStateUp *bool
-	Distributed  *bool
-	TenantID     string
-	GatewayInfo  *routers.GatewayInfo
-	ValueSpecs   map[string]string
-}
-
-// ToRouterCreateMap casts a routerCreateOpts struct to a map.
-func (opts RouterCreateOpts) ToRouterCreateMap() (map[string]interface{}, error) {
-	r := make(map[string]interface{})
-
-	if gophercloud.MaybeString(opts.Name) != nil {
-		r["name"] = opts.Name
-	}
-
-	if opts.AdminStateUp != nil {
-		r["admin_state_up"] = opts.AdminStateUp
-	}
-
-	if opts.Distributed != nil {
-		r["distributed"] = opts.Distributed
-	}
-
-	if gophercloud.MaybeString(opts.TenantID) != nil {
-		r["tenant_id"] = opts.TenantID
-	}
-
-	if opts.GatewayInfo != nil {
-		r["external_gateway_info"] = opts.GatewayInfo
-	}
-
-	if opts.ValueSpecs != nil {
-		for k, v := range opts.ValueSpecs {
-			r[k] = v
-		}
-	}
-
-	return map[string]interface{}{"router": r}, nil
-}
-
 func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
@@ -115,9 +71,11 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 	}
 
 	createOpts := RouterCreateOpts{
-		Name:       d.Get("name").(string),
-		TenantID:   d.Get("tenant_id").(string),
-		ValueSpecs: routerValueSpecs(d),
+		routers.CreateOpts{
+			Name:     d.Get("name").(string),
+			TenantID: d.Get("tenant_id").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	if asuRaw, ok := d.GetOk("admin_state_up"); ok {
@@ -171,19 +129,15 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 
 	n, err := routers.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-		if !ok {
-			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
-		}
-
-		if httpError.Actual == 404 {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
 			d.SetId("")
 			return nil
 		}
+
 		return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 	}
 
-	log.Printf("[DEBUG] Retreived Router %s: %+v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved Router %s: %+v", d.Id(), n)
 
 	d.Set("name", n.Name)
 	d.Set("admin_state_up", n.AdminStateUp)
@@ -212,6 +166,15 @@ func resourceNetworkingRouterV2Update(d *schema.ResourceData, meta interface{}) 
 	if d.HasChange("admin_state_up") {
 		asu := d.Get("admin_state_up").(bool)
 		updateOpts.AdminStateUp = &asu
+	}
+	if d.HasChange("external_gateway") {
+		externalGateway := d.Get("external_gateway").(string)
+		if externalGateway != "" {
+			gatewayInfo := routers.GatewayInfo{
+				NetworkID: externalGateway,
+			}
+			updateOpts.GatewayInfo = &gatewayInfo
+		}
 	}
 
 	log.Printf("[DEBUG] Updating Router %s with options: %+v", d.Id(), updateOpts)
@@ -267,37 +230,23 @@ func waitForRouterDelete(networkingClient *gophercloud.ServiceClient, routerId s
 
 		r, err := routers.Get(networkingClient, routerId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Router %s", routerId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		err = routers.Delete(networkingClient, routerId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Router %s", routerId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Router %s still active.\n", routerId)
 		return r, "ACTIVE", nil
 	}
-}
-
-func routerValueSpecs(d *schema.ResourceData) map[string]string {
-	m := make(map[string]string)
-	for key, val := range d.Get("value_specs").(map[string]interface{}) {
-		m[key] = val.(string)
-	}
-	return m
 }

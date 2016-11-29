@@ -373,7 +373,7 @@ to a single resource. Most tests follow a similar structure.
 
 1. Pre-flight checks are made to ensure that sufficient provider configuration
    is available to be able to proceed - for example in an acceptance test
-   targetting AWS, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_KEY` must be set prior
+   targetting AWS, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` must be set prior
    to running acceptance tests. This is common to all tests exercising a single
    provider.
 

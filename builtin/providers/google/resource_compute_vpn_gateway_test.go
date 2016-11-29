@@ -22,6 +22,8 @@ func TestAccComputeVpnGateway_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeVpnGatewayExists(
 						"google_compute_vpn_gateway.foobar"),
+					testAccCheckComputeVpnGatewayExists(
+						"google_compute_vpn_gateway.baz"),
 				),
 			},
 		},
@@ -89,4 +91,9 @@ resource "google_compute_vpn_gateway" "foobar" {
 	name = "gateway-test-%s"
 	network = "${google_compute_network.foobar.self_link}"
 	region = "us-central1"
-}`, acctest.RandString(10), acctest.RandString(10))
+}
+resource "google_compute_vpn_gateway" "baz" {
+	name = "gateway-test-%s"
+	network = "${google_compute_network.foobar.name}"
+	region = "us-central1"
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

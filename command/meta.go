@@ -5,12 +5,19 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/experiment"
+	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -36,9 +43,9 @@ type Meta struct {
 
 	// Variables for the context (private)
 	autoKey       string
-	autoVariables map[string]string
+	autoVariables map[string]interface{}
 	input         bool
-	variables     map[string]string
+	variables     map[string]interface{}
 
 	// Targets for this context (private)
 	targets []string
@@ -63,10 +70,16 @@ type Meta struct {
 	//
 	// parallelism is used to control the number of concurrent operations
 	// allowed when walking the graph
+	//
+	// shadow is used to enable/disable the shadow graph
+	//
+	// provider is to specify specific resource providers
 	statePath    string
 	stateOutPath string
 	backupPath   string
 	parallelism  int
+	shadow       bool
+	provider     string
 }
 
 // initStatePaths is used to initialize the default values for
@@ -108,15 +121,25 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
-			// Setup our state
-			state, statePath, err := StateFromPlan(m.statePath, plan)
+			// Setup our state, force it to use our plan's state
+			stateOpts := m.StateOpts()
+			if plan != nil {
+				stateOpts.ForceState = plan.State
+			}
+
+			// Get the state
+			result, err := State(stateOpts)
 			if err != nil {
 				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
 
 			// Set our state
-			m.state = state
-			m.stateOutPath = statePath
+			m.state = result.State
+
+			// this is used for printing the saved location later
+			if m.stateOutPath == "" {
+				m.stateOutPath = result.StatePath
+			}
 
 			if len(m.variables) > 0 {
 				return nil, false, fmt.Errorf(
@@ -149,6 +172,17 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	var mod *module.Tree
 	if copts.Path != "" {
 		mod, err = module.NewTreeModule("", copts.Path)
+
+		// Check for the error where we have no config files but
+		// allow that. If that happens, clear the error.
+		if errwrap.ContainsType(err, new(config.ErrNoConfigsFound)) &&
+			copts.PathEmptyOk {
+			log.Printf(
+				"[WARN] Empty configuration dir, ignoring: %s", copts.Path)
+			err = nil
+			mod = module.NewEmptyTree()
+		}
+
 		if err != nil {
 			return nil, false, fmt.Errorf("Error loading config: %s", err)
 		}
@@ -161,6 +195,11 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
 	}
 
+	// Validate the module right away
+	if err := mod.Validate(); err != nil {
+		return nil, false, err
+	}
+
 	opts.Module = mod
 	opts.Parallelism = copts.Parallelism
 	opts.State = state.State()
@@ -170,7 +209,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 
 // DataDir returns the directory where local data will be stored.
 func (m *Meta) DataDir() string {
-	dataDir := DefaultDataDirectory
+	dataDir := DefaultDataDir
 	if m.dataDir != "" {
 		dataDir = m.dataDir
 	}
@@ -202,10 +241,8 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 	var mode terraform.InputMode
 	mode |= terraform.InputModeProvider
-	if len(m.variables) == 0 {
-		mode |= terraform.InputModeVar
-		mode |= terraform.InputModeVarUnset
-	}
+	mode |= terraform.InputModeVar
+	mode |= terraform.InputModeVarUnset
 
 	return mode
 }
@@ -279,18 +316,27 @@ func (m *Meta) Input() bool {
 	return !test && m.input && len(m.variables) == 0
 }
 
+// StdinPiped returns true if the input is piped.
+func (m *Meta) StdinPiped() bool {
+	fi, err := wrappedstreams.Stdin().Stat()
+	if err != nil {
+		// If there is an error, let's just say its not piped
+		return false
+	}
+
+	return fi.Mode()&os.ModeNamedPipe != 0
+}
+
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
 	var opts terraform.ContextOpts = *m.ContextOpts
-	opts.Hooks = make(
-		[]terraform.Hook,
-		len(m.ContextOpts.Hooks)+len(m.extraHooks)+1)
-	opts.Hooks[0] = m.uiHook()
-	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
-	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
 
-	vs := make(map[string]string)
+	opts.Hooks = []terraform.Hook{m.uiHook(), &terraform.DebugHook{}}
+	opts.Hooks = append(opts.Hooks, m.ContextOpts.Hooks...)
+	opts.Hooks = append(opts.Hooks, m.extraHooks...)
+
+	vs := make(map[string]interface{})
 	for k, v := range opts.Variables {
 		vs[k] = v
 	}
@@ -303,6 +349,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.Variables = vs
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
+	opts.Shadow = m.shadow
 
 	return &opts
 }
@@ -311,13 +358,19 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagKV)(&m.variables), "var", "variables")
+	f.Var((*FlagTypedKV)(&m.variables), "var", "variables")
 	f.Var((*FlagKVFile)(&m.variables), "var-file", "variable file")
 	f.Var((*FlagStringSlice)(&m.targets), "target", "resource to target")
 
 	if m.autoKey != "" {
 		f.Var((*FlagKVFile)(&m.autoVariables), m.autoKey, "variable file")
 	}
+
+	// Advanced (don't need documentation, or unlikely to be set)
+	f.BoolVar(&m.shadow, "shadow", true, "shadow graph")
+
+	// Experimental features
+	experiment.Flag(f)
 
 	// Create an io.Writer that writes to our Ui properly for errors.
 	// This is kind of a hack, but it does the job. Basically: create
@@ -434,10 +487,57 @@ func (m *Meta) addModuleDepthFlag(flags *flag.FlagSet, moduleDepth *int) {
 	}
 }
 
+// outputShadowError outputs the error from ctx.ShadowError. If the
+// error is nil then nothing happens. If output is false then it isn't
+// outputted to the user (you can define logic to guard against outputting).
+func (m *Meta) outputShadowError(err error, output bool) bool {
+	// Do nothing if no error
+	if err == nil {
+		return false
+	}
+
+	// If not outputting, do nothing
+	if !output {
+		return false
+	}
+
+	// Write the shadow error output to a file
+	path := fmt.Sprintf("terraform-error-%d.log", time.Now().UTC().Unix())
+	if err := ioutil.WriteFile(path, []byte(err.Error()), 0644); err != nil {
+		// If there is an error writing it, just let it go
+		log.Printf("[ERROR] Error writing shadow error: %s", err)
+		return false
+	}
+
+	// Output!
+	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+		"[reset][bold][yellow]\nExperimental feature failure! Please report a bug.\n\n"+
+			"This is not an error. Your Terraform operation completed successfully.\n"+
+			"Your real infrastructure is unaffected by this message.\n\n"+
+			"[reset][yellow]While running, Terraform sometimes tests experimental features in the\n"+
+			"background. These features cannot affect real state and never touch\n"+
+			"real infrastructure. If the features work properly, you see nothing.\n"+
+			"If the features fail, this message appears.\n\n"+
+			"You can report an issue at: https://github.com/hashicorp/terraform/issues\n\n"+
+			"The failure was written to %q. Please\n"+
+			"double check this file contains no sensitive information and report\n"+
+			"it with your issue.\n\n"+
+			"This is not an error. Your terraform operation completed successfully\n"+
+			"and your real infrastructure is unaffected by this message.",
+		path,
+	)))
+
+	return true
+}
+
 // contextOpts are the options used to load a context from a command.
 type contextOpts struct {
 	// Path to the directory where the root module is.
-	Path string
+	//
+	// PathEmptyOk, when set, will allow paths that have no Terraform
+	// configurations. The result in that case will be an empty module.
+	Path        string
+	PathEmptyOk bool
 
 	// StatePath is the path to the state file. If this is empty, then
 	// no state will be loaded. It is also okay for this to be a path to

@@ -7,12 +7,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	elasticsearch "github.com/aws/aws-sdk-go/service/elasticsearchservice"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSElasticSearchDomain_basic(t *testing.T) {
 	var domain elasticsearch.ElasticsearchDomainStatus
+	ri := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,9 +22,32 @@ func TestAccAWSElasticSearchDomain_basic(t *testing.T) {
 		CheckDestroy: testAccCheckESDomainDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccESDomainConfig,
+				Config: testAccESDomainConfig(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
+					resource.TestCheckResourceAttr(
+						"aws_elasticsearch_domain.example", "elasticsearch_version", "1.5"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSElasticSearchDomain_v23(t *testing.T) {
+	var domain elasticsearch.ElasticsearchDomainStatus
+	ri := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckESDomainDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccESDomainConfigV23(ri),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
+					resource.TestCheckResourceAttr(
+						"aws_elasticsearch_domain.example", "elasticsearch_version", "2.3"),
 				),
 			},
 		},
@@ -31,6 +56,7 @@ func TestAccAWSElasticSearchDomain_basic(t *testing.T) {
 
 func TestAccAWSElasticSearchDomain_complex(t *testing.T) {
 	var domain elasticsearch.ElasticsearchDomainStatus
+	ri := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -38,7 +64,7 @@ func TestAccAWSElasticSearchDomain_complex(t *testing.T) {
 		CheckDestroy: testAccCheckESDomainDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccESDomainConfig_complex,
+				Config: testAccESDomainConfig_complex(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
 				),
@@ -50,6 +76,7 @@ func TestAccAWSElasticSearchDomain_complex(t *testing.T) {
 func TestAccAWSElasticSearch_tags(t *testing.T) {
 	var domain elasticsearch.ElasticsearchDomainStatus
 	var td elasticsearch.ListTagsOutput
+	ri := acctest.RandInt()
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -57,14 +84,14 @@ func TestAccAWSElasticSearch_tags(t *testing.T) {
 		CheckDestroy: testAccCheckAWSELBDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccESDomainConfig,
+				Config: testAccESDomainConfig(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccESDomainConfig_TagUpdate,
+				Config: testAccESDomainConfig_TagUpdate(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckESDomainExists("aws_elasticsearch_domain.example", &domain),
 					testAccLoadESTags(&domain, &td),
@@ -144,26 +171,31 @@ func testAccCheckESDomainDestroy(s *terraform.State) error {
 	return nil
 }
 
-const testAccESDomainConfig = `
+func testAccESDomainConfig(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
-  domain_name = "tf-test-1"
+  domain_name = "tf-test-%d"
 }
-`
+`, randInt)
+}
 
-const testAccESDomainConfig_TagUpdate = `
+func testAccESDomainConfig_TagUpdate(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
-  domain_name = "tf-test-1"
+  domain_name = "tf-test-%d"
 
   tags {
     foo = "bar"
     new = "type"
   }
 }
-`
+`, randInt)
+}
 
-const testAccESDomainConfig_complex = `
+func testAccESDomainConfig_complex(randInt int) string {
+	return fmt.Sprintf(`
 resource "aws_elasticsearch_domain" "example" {
-  domain_name = "tf-test-2"
+  domain_name = "tf-test-%d"
 
   advanced_options {
     "indices.fielddata.cache.size" = 80
@@ -186,4 +218,14 @@ resource "aws_elasticsearch_domain" "example" {
     bar = "complex"
   }
 }
-`
+`, randInt)
+}
+
+func testAccESDomainConfigV23(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_elasticsearch_domain" "example" {
+  domain_name = "tf-test-%d"
+  elasticsearch_version = "2.3"
+}
+`, randInt)
+}

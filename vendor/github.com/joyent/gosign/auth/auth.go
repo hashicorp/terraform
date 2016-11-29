@@ -114,22 +114,19 @@ func getHashFunction(algorithm string) (hashFunc crypto.Hash) {
 }
 
 func (cred *Credentials) Region() string {
-	sdcUrl := cred.SdcEndpoint.URL
-
-	if isLocalhost(sdcUrl) {
-		return "some-region"
-	}
-	return sdcUrl[strings.LastIndex(sdcUrl, "/")+1 : strings.Index(sdcUrl, ".")]
-}
-
-func isLocalhost(u string) bool {
-	parsedUrl, err := url.Parse(u)
+	parsedUrl, err := url.Parse(cred.SdcEndpoint.URL)
 	if err != nil {
-		return false
+		// Bogus URL - no region.
+		return ""
 	}
 	if strings.HasPrefix(parsedUrl.Host, "localhost") || strings.HasPrefix(parsedUrl.Host, "127.0.0.1") {
-		return true
+		return "some-region"
 	}
 
-	return false
+	host := parsedUrl.Host
+	firstDotIdx := strings.Index(host, ".")
+	if firstDotIdx >= 0 {
+		return host[:firstDotIdx]
+	}
+	return host
 }

@@ -10,15 +10,40 @@
 				<a href="/docs/providers/consul/index.html">Consul Provider</a>
                 </li>
 
+				<li<%= sidebar_current(/^docs-consul-data-source/) %>>
+				<a href="#">Data Sources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-consul-data-source-keys") %>>
+					<a href="/docs/providers/consul/d/keys.html">consul_keys</a>
+					</li>
+				</ul>
+				</li>
+
 				<li<%= sidebar_current(/^docs-consul-resource/) %>>
 				<a href="#">Resources</a>
                 <ul class="nav nav-visible">
+                  <li<%= sidebar_current("docs-consul-resource-agent-service") %>>
+                    <a href="/docs/providers/consul/r/agent_service.html">consul_agent_service</a>
+                  </li>
+                  <li<%= sidebar_current("docs-consul-resource-catalog-entry") %>>
+                    <a href="/docs/providers/consul/r/catalog_entry.html">consul_catalog_entry</a>
+                  </li>
                     <li<%= sidebar_current("docs-consul-resource-keys") %>>
 					<a href="/docs/providers/consul/r/keys.html">consul_keys</a>
 					</li>
                     <li<%= sidebar_current("docs-consul-resource-key-prefix") %>>
 					<a href="/docs/providers/consul/r/key_prefix.html">consul_key_prefix</a>
 					</li>
+                  <li<%= sidebar_current("docs-consul-resource-node") %>>
+                    <a href="/docs/providers/consul/r/node.html">consul_node</a>
+                  </li>
+									<li<%= sidebar_current("docs-consul-resource-prepared-query") %>>
+				<a href="/docs/providers/consul/r/prepared_query.html">consul_prepared_query</a>
+				</li>
+                  <li<%= sidebar_current("docs-consul-resource-service") %>>
+                    <a href="/docs/providers/consul/r/service.html">consul_service</a>
+                  </li>
+
 				</ul>
 				</li>
 			</ul>

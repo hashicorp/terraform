@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudfront"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -19,13 +20,15 @@ import (
 // If you are testing manually and can't wait for deletion, set the
 // TF_TEST_CLOUDFRONT_RETAIN environment variable.
 func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
+	ri := acctest.RandInt()
+	testConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3Config, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudFrontDistributionS3Config,
+				Config: testConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudFrontDistributionExistence(
 						"aws_cloudfront_distribution.s3_distribution",
@@ -35,6 +38,46 @@ func TestAccAWSCloudFrontDistribution_S3Origin(t *testing.T) {
 						"hosted_zone_id",
 						"Z2FDTNDATAQYW2",
 					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSCloudFrontDistribution_S3OriginWithTags(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3ConfigWithTags, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
+	postConfig := fmt.Sprintf(testAccAWSCloudFrontDistributionS3ConfigWithTagsUpdated, ri, originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.s3_distribution",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.%", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.environment", "production"),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.account", "main"),
+				),
+			},
+			{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.s3_distribution",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.%", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_cloudfront_distribution.s3_distribution", "tags.environment", "dev"),
 				),
 			},
 		},
@@ -110,6 +153,30 @@ func TestAccAWSCloudFrontDistribution_noOptionalItemsConfig(t *testing.T) {
 	})
 }
 
+// TestAccAWSCloudFrontDistribution_HTTP11Config runs an
+// aws_cloudfront_distribution acceptance test with the HTTP version set to
+// 1.1.
+//
+// If you are testing manually and can't wait for deletion, set the
+// TF_TEST_CLOUDFRONT_RETAIN environment variable.
+func TestAccAWSCloudFrontDistribution_HTTP11Config(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudFrontDistributionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSCloudFrontDistributionHTTP11Config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudFrontDistributionExistence(
+						"aws_cloudfront_distribution.http_1_1",
+					),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -126,6 +193,23 @@ func TestAccAWSCloudFrontDistribution_noCustomErrorResponseConfig(t *testing.T) 
 			},
 		},
 	})
+}
+
+func TestResourceAWSCloudFrontDistribution_validateHTTP(t *testing.T) {
+	var value string
+	var errors []error
+
+	value = "incorrect"
+	_, errors = validateHTTP(value, "http_version")
+	if len(errors) == 0 {
+		t.Fatalf("Expected %q to trigger a validation error", value)
+	}
+
+	value = "http1.1"
+	_, errors = validateHTTP(value, "http_version")
+	if len(errors) != 0 {
+		t.Fatalf("Expected %q not to trigger a validation error", value)
+	}
 }
 
 func testAccCheckCloudFrontDistributionDestroy(s *terraform.State) error {
@@ -186,26 +270,41 @@ func testAccAWSCloudFrontDistributionRetainConfig() string {
 	return ""
 }
 
-var testAccAWSCloudFrontDistributionS3Config = fmt.Sprintf(`
+var originBucket = fmt.Sprintf(`
+resource "aws_s3_bucket" "s3_bucket_origin" {
+	bucket = "mybucket.${var.rand_id}"
+	acl = "public-read"
+}
+`)
+
+var logBucket = fmt.Sprintf(`
+resource "aws_s3_bucket" "s3_bucket_logs" {
+	bucket = "mylogs.${var.rand_id}"
+	acl = "public-read"
+}
+`)
+
+var testAccAWSCloudFrontDistributionS3Config = `
 variable rand_id {
 	default = %d
 }
 
-resource "aws_s3_bucket" "s3_bucket" {
-	bucket = "mybucket.${var.rand_id}.s3.amazonaws.com"
-	acl = "public-read"
-}
+# origin bucket
+%s
+
+# log bucket
+%s
 
 resource "aws_cloudfront_distribution" "s3_distribution" {
 	origin {
-		domain_name = "${aws_s3_bucket.s3_bucket.id}"
+		domain_name = "${aws_s3_bucket.s3_bucket_origin.id}.s3.amazonaws.com"
 		origin_id = "myS3Origin"
 	}
 	enabled = true
 	default_root_object = "index.html"
 	logging_config {
 		include_cookies = false
-		bucket = "mylogs.${var.rand_id}.s3.amazonaws.com"
+		bucket = "${aws_s3_bucket.s3_bucket_logs.id}.s3.amazonaws.com"
 		prefix = "myprefix"
 	}
 	aliases = [ "mysite.${var.rand_id}.example.com", "yoursite.${var.rand_id}.example.com" ]
@@ -236,12 +335,118 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 	}
 	%s
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
+`
+
+var testAccAWSCloudFrontDistributionS3ConfigWithTags = `
+variable rand_id {
+	default = %d
+}
+
+# origin bucket
+%s
+
+# log bucket
+%s
+
+resource "aws_cloudfront_distribution" "s3_distribution" {
+	origin {
+		domain_name = "${aws_s3_bucket.s3_bucket_origin.id}.s3.amazonaws.com"
+		origin_id = "myS3Origin"
+	}
+	enabled = true
+	default_root_object = "index.html"
+	aliases = [ "mysite.${var.rand_id}.example.com", "yoursite.${var.rand_id}.example.com" ]
+	default_cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myS3Origin"
+		forwarded_values {
+			query_string = false
+			cookies {
+				forward = "none"
+			}
+		}
+		viewer_protocol_policy = "allow-all"
+		min_ttl = 0
+		default_ttl = 3600
+		max_ttl = 86400
+	}
+	price_class = "PriceClass_200"
+	restrictions {
+		geo_restriction {
+			restriction_type = "whitelist"
+			locations = [ "US", "CA", "GB", "DE" ]
+		}
+	}
+	viewer_certificate {
+		cloudfront_default_certificate = true
+	}
+	tags {
+            environment = "production"
+            account = "main"
+	}
+	%s
+}
+`
+
+var testAccAWSCloudFrontDistributionS3ConfigWithTagsUpdated = `
+variable rand_id {
+	default = %d
+}
+
+# origin bucket
+%s
+
+# log bucket
+%s
+
+resource "aws_cloudfront_distribution" "s3_distribution" {
+	origin {
+		domain_name = "${aws_s3_bucket.s3_bucket_origin.id}.s3.amazonaws.com"
+		origin_id = "myS3Origin"
+	}
+	enabled = true
+	default_root_object = "index.html"
+	aliases = [ "mysite.${var.rand_id}.example.com", "yoursite.${var.rand_id}.example.com" ]
+	default_cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myS3Origin"
+		forwarded_values {
+			query_string = false
+			cookies {
+				forward = "none"
+			}
+		}
+		viewer_protocol_policy = "allow-all"
+		min_ttl = 0
+		default_ttl = 3600
+		max_ttl = 86400
+	}
+	price_class = "PriceClass_200"
+	restrictions {
+		geo_restriction {
+			restriction_type = "whitelist"
+			locations = [ "US", "CA", "GB", "DE" ]
+		}
+	}
+	viewer_certificate {
+		cloudfront_default_certificate = true
+	}
+	tags {
+            environment = "dev"
+	}
+	%s
+}
+`
 
 var testAccAWSCloudFrontDistributionCustomConfig = fmt.Sprintf(`
 variable rand_id {
 	default = %d
 }
+
+# log bucket
+%s
 
 resource "aws_cloudfront_distribution" "custom_distribution" {
 	origin {
@@ -259,7 +464,7 @@ resource "aws_cloudfront_distribution" "custom_distribution" {
 	default_root_object = "index.html"
 	logging_config {
 		include_cookies = false
-		bucket = "mylogs.${var.rand_id}.s3.amazonaws.com"
+		bucket = "${aws_s3_bucket.s3_bucket_logs.id}.s3.amazonaws.com"
 		prefix = "myprefix"
 	}
 	aliases = [ "mysite.${var.rand_id}.example.com", "*.yoursite.${var.rand_id}.example.com" ]
@@ -291,21 +496,22 @@ resource "aws_cloudfront_distribution" "custom_distribution" {
 	}
 	%s
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), logBucket, testAccAWSCloudFrontDistributionRetainConfig())
 
 var testAccAWSCloudFrontDistributionMultiOriginConfig = fmt.Sprintf(`
 variable rand_id {
 	default = %d
 }
 
-resource "aws_s3_bucket" "s3_bucket" {
-	bucket = "mybucket.${var.rand_id}.s3.amazonaws.com"
-	acl = "public-read"
-}
+# origin bucket
+%s
+
+# log bucket
+%s
 
 resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 	origin {
-		domain_name = "${aws_s3_bucket.s3_bucket.id}"
+		domain_name = "${aws_s3_bucket.s3_bucket_origin.id}.s3.amazonaws.com"
 		origin_id = "myS3Origin"
 	}
 	origin {
@@ -323,7 +529,7 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 	default_root_object = "index.html"
 	logging_config {
 		include_cookies = false
-		bucket = "mylogs.${var.rand_id}.s3.amazonaws.com"
+		bucket = "${aws_s3_bucket.s3_bucket_logs.id}.s3.amazonaws.com"
 		prefix = "myprefix"
 	}
 	aliases = [ "mysite.${var.rand_id}.example.com", "*.yoursite.${var.rand_id}.example.com" ]
@@ -375,6 +581,7 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 		viewer_protocol_policy = "allow-all"
 		path_pattern = "images2/*.jpg"
 	}
+
 	price_class = "PriceClass_All"
 	custom_error_response {
 		error_code = 404
@@ -392,7 +599,7 @@ resource "aws_cloudfront_distribution" "multi_origin_distribution" {
 	}
 	%s
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), originBucket, logBucket, testAccAWSCloudFrontDistributionRetainConfig())
 
 var testAccAWSCloudFrontDistributionNoCustomErroResponseInfo = fmt.Sprintf(`
 variable rand_id {
@@ -479,6 +686,54 @@ resource "aws_cloudfront_distribution" "no_optional_items" {
 		default_ttl = 3600
 		max_ttl = 86400
 	}
+	restrictions {
+		geo_restriction {
+			restriction_type = "whitelist"
+			locations = [ "US", "CA", "GB", "DE" ]
+		}
+	}
+	viewer_certificate {
+		cloudfront_default_certificate = true
+	}
+	%s
+}
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int(), testAccAWSCloudFrontDistributionRetainConfig())
+
+var testAccAWSCloudFrontDistributionHTTP11Config = fmt.Sprintf(`
+variable rand_id {
+	default = %d
+}
+
+resource "aws_cloudfront_distribution" "http_1_1" {
+	origin {
+		domain_name = "www.example.com"
+		origin_id = "myCustomOrigin"
+		custom_origin_config {
+			http_port = 80
+			https_port = 443
+			origin_protocol_policy = "http-only"
+			origin_ssl_protocols = [ "SSLv3", "TLSv1" ]
+		}
+	}
+	enabled = true
+	comment = "Some comment"
+	default_cache_behavior {
+		allowed_methods = [ "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT" ]
+		cached_methods = [ "GET", "HEAD" ]
+		target_origin_id = "myCustomOrigin"
+		smooth_streaming = false
+		forwarded_values {
+			query_string = false
+			cookies {
+				forward = "all"
+			}
+		}
+		viewer_protocol_policy = "allow-all"
+		min_ttl = 0
+		default_ttl = 3600
+		max_ttl = 86400
+	}
+	http_version = "http1.1"
 	restrictions {
 		geo_restriction {
 			restriction_type = "whitelist"

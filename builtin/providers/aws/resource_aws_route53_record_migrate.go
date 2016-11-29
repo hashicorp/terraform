@@ -12,8 +12,12 @@ func resourceAwsRoute53RecordMigrateState(
 	v int, is *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
 	switch v {
 	case 0:
-		log.Println("[INFO] Found AWS Route53 Record State v0; migrating to v1")
-		return migrateRoute53RecordStateV0toV1(is)
+		log.Println("[INFO] Found AWS Route53 Record State v0; migrating to v1 then v2")
+		v1InstanceState, err := migrateRoute53RecordStateV0toV1(is)
+		if err != nil {
+			return v1InstanceState, err
+		}
+		return migrateRoute53RecordStateV1toV2(v1InstanceState)
 	case 1:
 		log.Println("[INFO] Found AWS Route53 Record State v1; migrating to v2")
 		return migrateRoute53RecordStateV1toV2(is)

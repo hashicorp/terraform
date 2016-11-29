@@ -29,6 +29,27 @@ func TestAccAzureRMDnsCNameRecord_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMDnsCNameRecord_subdomain(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMDnsCNameRecord_subdomain, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMDnsCNameRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMDnsCNameRecordExists("azurerm_dns_cname_record.test"),
+					resource.TestCheckResourceAttr(
+						"azurerm_dns_cname_record.test", "record", "test.contoso.com"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMDnsCNameRecord_updateRecords(t *testing.T) {
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMDnsCNameRecord_basic, ri, ri, ri)
@@ -138,7 +159,7 @@ func testCheckAzureRMDnsCNameRecordDestroy(s *terraform.State) error {
 
 var testAccAzureRMDnsCNameRecord_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -151,13 +172,32 @@ resource "azurerm_dns_cname_record" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     zone_name = "${azurerm_dns_zone.test.name}"
     ttl = "300"
-    records = ["contoso.com"]
+    record = "contoso.com"
+}
+`
+
+var testAccAzureRMDnsCNameRecord_subdomain = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG_%d"
+    location = "West US"
+}
+resource "azurerm_dns_zone" "test" {
+    name = "acctestzone%d.com"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+
+resource "azurerm_dns_cname_record" "test" {
+    name = "myarecord%d"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    zone_name = "${azurerm_dns_zone.test.name}"
+    ttl = "300"
+    record = "test.contoso.com"
 }
 `
 
 var testAccAzureRMDnsCNameRecord_updateRecords = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -170,13 +210,13 @@ resource "azurerm_dns_cname_record" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     zone_name = "${azurerm_dns_zone.test.name}"
     ttl = "300"
-    records = ["contoso.co.uk"]
+    record = "contoso.co.uk"
 }
 `
 
 var testAccAzureRMDnsCNameRecord_withTags = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -189,7 +229,7 @@ resource "azurerm_dns_cname_record" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     zone_name = "${azurerm_dns_zone.test.name}"
     ttl = "300"
-    records = ["contoso.com"]
+    record = "contoso.com"
 
     tags {
 	environment = "Production"
@@ -200,7 +240,7 @@ resource "azurerm_dns_cname_record" "test" {
 
 var testAccAzureRMDnsCNameRecord_withTagsUpdate = `
 resource "azurerm_resource_group" "test" {
-    name = "acctest_rg_%d"
+    name = "acctestRG_%d"
     location = "West US"
 }
 resource "azurerm_dns_zone" "test" {
@@ -213,7 +253,7 @@ resource "azurerm_dns_cname_record" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     zone_name = "${azurerm_dns_zone.test.name}"
     ttl = "300"
-    records = ["contoso.com"]
+    record = "contoso.com"
 
     tags {
 	environment = "staging"

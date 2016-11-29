@@ -3,8 +3,12 @@ package remote
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -34,6 +38,53 @@ func TestAtlasClient(t *testing.T) {
 	}
 
 	testClient(t, client)
+}
+
+func TestAtlasClient_noRetryOnBadCerts(t *testing.T) {
+	acctest.RemoteTestPrecheck(t)
+
+	client, err := atlasFactory(map[string]string{
+		"access_token": "NOT_REQUIRED",
+		"name":         "hashicorp/test-remote-state",
+	})
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+
+	ac := client.(*AtlasClient)
+	// trigger the AtlasClient to build the http client and assign HTTPClient
+	httpClient, err := ac.http()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// remove the CA certs from the client
+	brokenCfg := &tls.Config{
+		RootCAs: new(x509.CertPool),
+	}
+	httpClient.HTTPClient.Transport.(*http.Transport).TLSClientConfig = brokenCfg
+
+	// Instrument CheckRetry to make sure we didn't retry
+	retries := 0
+	oldCheck := httpClient.CheckRetry
+	httpClient.CheckRetry = func(resp *http.Response, err error) (bool, error) {
+		if retries > 0 {
+			t.Fatal("retried after certificate error")
+		}
+		retries++
+		return oldCheck(resp, err)
+	}
+
+	_, err = client.Get()
+	if err != nil {
+		if err, ok := err.(*url.Error); ok {
+			if _, ok := err.Err.(x509.UnknownAuthorityError); ok {
+				return
+			}
+		}
+	}
+
+	t.Fatalf("expected x509.UnknownAuthorityError, got %v", err)
 }
 
 func TestAtlasClient_ReportedConflictEqualStates(t *testing.T) {
@@ -110,6 +161,9 @@ func TestAtlasClient_LegitimateConflict(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	var buf bytes.Buffer
+	terraform.WriteState(state, &buf)
 
 	// Changing the state but not the serial. Should generate a conflict.
 	state.RootModule().Outputs["drift"] = &terraform.OutputState{
@@ -194,7 +248,10 @@ func (f *fakeAtlas) Server() *httptest.Server {
 }
 
 func (f *fakeAtlas) CurrentState() *terraform.State {
-	currentState, err := terraform.ReadState(bytes.NewReader(f.state))
+	// we read the state manually here, because terraform may alter state
+	// during read
+	currentState := &terraform.State{}
+	err := json.Unmarshal(f.state, currentState)
 	if err != nil {
 		f.t.Fatalf("err: %s", err)
 	}
@@ -218,6 +275,17 @@ func (f *fakeAtlas) NoConflictAllowed(b bool) {
 }
 
 func (f *fakeAtlas) handler(resp http.ResponseWriter, req *http.Request) {
+	// access tokens should only be sent as a header
+	if req.FormValue("access_token") != "" {
+		http.Error(resp, "access_token in request params", http.StatusBadRequest)
+		return
+	}
+
+	if req.Header.Get(atlasTokenHeader) == "" {
+		http.Error(resp, "missing access token", http.StatusBadRequest)
+		return
+	}
+
 	switch req.Method {
 	case "GET":
 		// Respond with the current stored state.
@@ -227,10 +295,15 @@ func (f *fakeAtlas) handler(resp http.ResponseWriter, req *http.Request) {
 		var buf bytes.Buffer
 		buf.ReadFrom(req.Body)
 		sum := md5.Sum(buf.Bytes())
-		state, err := terraform.ReadState(&buf)
+
+		// we read the state manually here, because terraform may alter state
+		// during read
+		state := &terraform.State{}
+		err := json.Unmarshal(buf.Bytes(), state)
 		if err != nil {
 			f.t.Fatalf("err: %s", err)
 		}
+
 		conflict := f.CurrentSerial() == state.Serial && f.CurrentSum() != sum
 		conflict = conflict || f.alwaysConflict
 		if conflict {
@@ -290,7 +363,8 @@ var testStateModuleOrderChange = []byte(
 var testStateSimple = []byte(
 	`{
     "version": 3,
-    "serial": 1,
+    "serial": 2,
+    "lineage": "c00ad9ac-9b35-42fe-846e-b06f0ef877e9",
     "modules": [
         {
             "path": [
@@ -303,7 +377,8 @@ var testStateSimple = []byte(
                     "value": "bar"
                 }
             },
-            "resources": null
+            "resources": {},
+            "depends_on": []
         }
     ]
 }

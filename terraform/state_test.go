@@ -3,12 +3,49 @@ package terraform
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
 )
+
+func TestStateValidate(t *testing.T) {
+	cases := map[string]struct {
+		In  *State
+		Err bool
+	}{
+		"empty state": {
+			&State{},
+			false,
+		},
+
+		"multiple modules": {
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: []string{"root", "foo"},
+					},
+					&ModuleState{
+						Path: []string{"root", "foo"},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for name, tc := range cases {
+		// Init the state
+		tc.In.init()
+
+		err := tc.In.Validate()
+		if (err != nil) != tc.Err {
+			t.Fatalf("%s: err: %s", name, err)
+		}
+	}
+}
 
 func TestStateAddModule(t *testing.T) {
 	cases := []struct {
@@ -90,6 +127,7 @@ func TestStateOutputTypeRoundTrip(t *testing.T) {
 			},
 		},
 	}
+	state.init()
 
 	buf := new(bytes.Buffer)
 	if err := WriteState(state, buf); err != nil {
@@ -102,7 +140,8 @@ func TestStateOutputTypeRoundTrip(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(state, roundTripped) {
-		t.Fatalf("bad: %#v", roundTripped)
+		t.Logf("expected:\n%#v", state)
+		t.Fatalf("got:\n%#v", roundTripped)
 	}
 }
 
@@ -120,6 +159,8 @@ func TestStateModuleOrphans(t *testing.T) {
 			},
 		},
 	}
+
+	state.init()
 
 	config := testModule(t, "state-module-orphans").Config()
 	actual := state.ModuleOrphans(RootModulePath, config)
@@ -143,6 +184,8 @@ func TestStateModuleOrphans_nested(t *testing.T) {
 			},
 		},
 	}
+
+	state.init()
 
 	actual := state.ModuleOrphans(RootModulePath, nil)
 	expected := [][]string{
@@ -168,6 +211,8 @@ func TestStateModuleOrphans_nilConfig(t *testing.T) {
 			},
 		},
 	}
+
+	state.init()
 
 	actual := state.ModuleOrphans(RootModulePath, nil)
 	expected := [][]string{
@@ -195,6 +240,8 @@ func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
 		},
 	}
 
+	state.init()
+
 	actual := state.ModuleOrphans(RootModulePath, nil)
 	expected := [][]string{
 		[]string{RootModuleName, "parent"},
@@ -207,30 +254,68 @@ func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
 
 func TestStateDeepCopy(t *testing.T) {
 	cases := []struct {
-		One, Two *State
-		F        func(*State) interface{}
+		State *State
 	}{
 		// Version
 		{
 			&State{Version: 5},
-			&State{Version: 5},
-			func(s *State) interface{} { return s.Version },
 		},
-
 		// TFVersion
 		{
 			&State{TFVersion: "5"},
-			&State{TFVersion: "5"},
-			func(s *State) interface{} { return s.TFVersion },
+		},
+		// Modules
+		{
+			&State{
+				Version: 6,
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		// Deposed
+		// The nil values shouldn't be there if the State was properly init'ed,
+		// but the Copy should still work anyway.
+		{
+			&State{
+				Version: 6,
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{},
+								},
+								Deposed: []*InstanceState{
+									{ID: "test"},
+									nil,
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
 	for i, tc := range cases {
-		actual := tc.F(tc.One.DeepCopy())
-		expected := tc.F(tc.Two)
-		if !reflect.DeepEqual(actual, expected) {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, actual, expected)
-		}
+		t.Run(fmt.Sprintf("copy-%d", i), func(t *testing.T) {
+			actual := tc.State.DeepCopy()
+			expected := tc.State
+			if !reflect.DeepEqual(actual, expected) {
+				t.Fatalf("Expected: %#v\nRecevied: %#v\n", expected, actual)
+			}
+		})
 	}
 }
 
@@ -338,6 +423,156 @@ func TestStateEqual(t *testing.T) {
 	}
 }
 
+func TestStateCompareAges(t *testing.T) {
+	cases := []struct {
+		Result   StateAgeComparison
+		Err      bool
+		One, Two *State
+	}{
+		{
+			StateAgeEqual, false,
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+		},
+		{
+			StateAgeReceiverOlder, false,
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+			&State{
+				Lineage: "1",
+				Serial:  3,
+			},
+		},
+		{
+			StateAgeReceiverNewer, false,
+			&State{
+				Lineage: "1",
+				Serial:  3,
+			},
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+		},
+		{
+			StateAgeEqual, true,
+			&State{
+				Lineage: "1",
+				Serial:  2,
+			},
+			&State{
+				Lineage: "2",
+				Serial:  2,
+			},
+		},
+		{
+			StateAgeEqual, true,
+			&State{
+				Lineage: "1",
+				Serial:  3,
+			},
+			&State{
+				Lineage: "2",
+				Serial:  2,
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		result, err := tc.One.CompareAges(tc.Two)
+
+		if err != nil && !tc.Err {
+			t.Errorf(
+				"%d: got error, but want success\n\n%s\n\n%s",
+				i, tc.One, tc.Two,
+			)
+			continue
+		}
+
+		if err == nil && tc.Err {
+			t.Errorf(
+				"%d: got success, but want error\n\n%s\n\n%s",
+				i, tc.One, tc.Two,
+			)
+			continue
+		}
+
+		if result != tc.Result {
+			t.Errorf(
+				"%d: got result %d, but want %d\n\n%s\n\n%s",
+				i, result, tc.Result, tc.One, tc.Two,
+			)
+			continue
+		}
+	}
+}
+
+func TestStateSameLineage(t *testing.T) {
+	cases := []struct {
+		Result   bool
+		One, Two *State
+	}{
+		{
+			true,
+			&State{
+				Lineage: "1",
+			},
+			&State{
+				Lineage: "1",
+			},
+		},
+		{
+			// Empty lineage is compatible with all
+			true,
+			&State{
+				Lineage: "",
+			},
+			&State{
+				Lineage: "1",
+			},
+		},
+		{
+			// Empty lineage is compatible with all
+			true,
+			&State{
+				Lineage: "1",
+			},
+			&State{
+				Lineage: "",
+			},
+		},
+		{
+			false,
+			&State{
+				Lineage: "1",
+			},
+			&State{
+				Lineage: "2",
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		result := tc.One.SameLineage(tc.Two)
+
+		if result != tc.Result {
+			t.Errorf(
+				"%d: got %v, but want %v\n\n%s\n\n%s",
+				i, result, tc.Result, tc.One, tc.Two,
+			)
+			continue
+		}
+	}
+}
+
 func TestStateIncrementSerialMaybe(t *testing.T) {
 	cases := map[string]struct {
 		S1, S2 *State
@@ -440,6 +675,13 @@ func TestStateRemove(t *testing.T) {
 									ID: "foo",
 								},
 							},
+
+							"test_instance.bar": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
 						},
 					},
 				},
@@ -447,8 +689,15 @@ func TestStateRemove(t *testing.T) {
 			&State{
 				Modules: []*ModuleState{
 					&ModuleState{
-						Path:      rootModulePath,
-						Resources: map[string]*ResourceState{},
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.bar": &ResourceState{
+								Type: "test_instance",
+								Primary: &InstanceState{
+									ID: "foo",
+								},
+							},
+						},
 					},
 				},
 			},
@@ -986,6 +1235,64 @@ func TestStateEmpty(t *testing.T) {
 	}
 }
 
+func TestStateHasResources(t *testing.T) {
+	cases := []struct {
+		In     *State
+		Result bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&State{},
+			false,
+		},
+		{
+			&State{
+				Remote: &RemoteState{Type: "foo"},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{
+						Resources: map[string]*ResourceState{
+							"foo.foo": &ResourceState{},
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.In.HasResources() != tc.Result {
+			t.Fatalf("bad %d %#v:\n\n%#v", i, tc.Result, tc.In)
+		}
+	}
+}
+
 func TestStateFromFutureTerraform(t *testing.T) {
 	cases := []struct {
 		In     string
@@ -1129,7 +1436,8 @@ func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
 
 func TestReadWriteState(t *testing.T) {
 	state := &State{
-		Serial: 9,
+		Serial:  9,
+		Lineage: "5d1ad1a1-4027-4665-a908-dbe6adff11d8",
 		Remote: &RemoteState{
 			Type: "http",
 			Config: map[string]string{
@@ -1159,6 +1467,7 @@ func TestReadWriteState(t *testing.T) {
 			},
 		},
 	}
+	state.init()
 
 	buf := new(bytes.Buffer)
 	if err := WriteState(state, buf); err != nil {
@@ -1178,9 +1487,11 @@ func TestReadWriteState(t *testing.T) {
 	// ReadState should not restore sensitive information!
 	mod := state.RootModule()
 	mod.Resources["foo"].Primary.Ephemeral = EphemeralState{}
+	mod.Resources["foo"].Primary.Ephemeral.init()
 
 	if !reflect.DeepEqual(actual, state) {
-		t.Fatalf("bad: %#v", actual)
+		t.Logf("expected:\n%#v", state)
+		t.Fatalf("got:\n%#v", actual)
 	}
 }
 
@@ -1198,7 +1509,7 @@ func TestReadStateNewVersion(t *testing.T) {
 	if s != nil {
 		t.Fatalf("unexpected: %#v", s)
 	}
-	if !strings.Contains(err.Error(), "not supported") {
+	if !strings.Contains(err.Error(), "does not support state version") {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -1360,6 +1671,40 @@ func TestParseResourceStateKey(t *testing.T) {
 		}
 		if (err != nil) != tc.ExpectedErr {
 			t.Fatalf("%s: expected err: %t, got %s", tc.Input, tc.ExpectedErr, err)
+		}
+	}
+}
+
+func TestStateModuleOrphans_empty(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "foo", "bar"},
+			},
+			&ModuleState{
+				Path: []string{},
+			},
+			nil,
+		},
+	}
+
+	state.init()
+
+	// just calling this to check for panic
+	state.ModuleOrphans(RootModulePath, nil)
+
+	for _, mod := range state.Modules {
+		if mod == nil {
+			t.Fatal("found nil module")
+		}
+		if mod.Path == nil {
+			t.Fatal("found nil module path")
+		}
+		if len(mod.Path) == 0 {
+			t.Fatal("found empty module path")
 		}
 	}
 }

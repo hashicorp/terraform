@@ -69,7 +69,7 @@ func unmarshalInvalidChangeBatchError(r *request.Request, requestBody []byte) {
 	}
 
 	r.Error = awserr.NewRequestFailure(
-		awserr.NewBatchError(errorCode, "ChangeBatch errors occured", errors),
+		awserr.NewBatchError(errorCode, "ChangeBatch errors occurred", errors),
 		r.HTTPResponse.StatusCode,
 		r.RequestID,
 	)

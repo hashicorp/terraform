@@ -62,6 +62,11 @@ func (e *RoleService) Create(role *Role) (data *RoleCreateResult, err error) {
 // Delete a role from the Chef server.
 //
 // Chef API docs: http://docs.getchef.com/api_chef_server.html#id33
+func (e *RoleService) Delete(name string) (err error) {
+	path := fmt.Sprintf("roles/%s", name)
+	err = e.client.magicRequestDecoder("DELETE", path, nil, nil)
+	return
+}
 
 // Get gets a role from the Chef server.
 //

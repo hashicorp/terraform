@@ -31,9 +31,6 @@ The following arguments are supported:
 * `network_id` - (Required) The network ID for which to create the egress
     firewall rules. Changing this forces a new resource to be created.
 
-* `network` - (Required, Deprecated) The network for which to create the egress
-    firewall rules. Changing this forces a new resource to be created.
-
 * `managed` - (Optional) USE WITH CAUTION! If enabled all the egress firewall
     rules for this network will be managed by this resource. This means it will
     delete all firewall rules that are not in your config! (defaults false)
@@ -47,9 +44,6 @@ The following arguments are supported:
 The `rule` block supports:
 
 * `cidr_list` - (Required) A CIDR list to allow access to the given ports.
-
-* `source_cidr` - (Optional, Deprecated) The source CIDR to allow access to the
-    given ports. This attribute is deprecated, please use `cidr_list` instead.
 
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp` and `icmp`.

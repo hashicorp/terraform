@@ -32,9 +32,42 @@ func TestContextImport_basic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testImportStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextImport_countIndex(t *testing.T) {
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	state, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: "aws_instance.foo[0]",
+				ID:   "bar",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testImportCountIndexStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
@@ -172,6 +205,91 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	expected := strings.TrimSpace(testImportStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+// Test that import will interpolate provider configuration and use
+// that configuration for import.
+func TestContextImport_providerVarConfig(t *testing.T) {
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "import-provider-vars"),
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]interface{}{
+			"foo": "bar",
+		},
+	})
+
+	configured := false
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		configured = true
+
+		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
+			return fmt.Errorf("bad value: %#v", v)
+		}
+
+		return nil
+	}
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	state, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: "aws_instance.foo",
+				ID:   "bar",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !configured {
+		t.Fatal("didn't configure provider")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testImportStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+// Test that provider configs can't reference resources.
+func TestContextImport_providerNonVarConfig(t *testing.T) {
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: testModule(t, "import-provider-non-vars"),
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	_, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: "aws_instance.foo",
+				ID:   "bar",
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("should error")
 	}
 }
 
@@ -502,8 +620,49 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	}
 }
 
+func TestContextImport_customProvider(t *testing.T) {
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ImportStateReturn = []*InstanceState{
+		&InstanceState{
+			ID:        "foo",
+			Ephemeral: EphemeralState{Type: "aws_instance"},
+		},
+	}
+
+	state, err := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr:     "aws_instance.foo",
+				ID:       "bar",
+				Provider: "aws.alias",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testImportCustomProviderStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 const testImportStr = `
 aws_instance.foo:
+  ID = foo
+  provider = aws
+`
+
+const testImportCountIndexStr = `
+aws_instance.foo.0:
   ID = foo
   provider = aws
 `
@@ -574,4 +733,10 @@ aws_instance.foo:
   ID = foo
   provider = aws
   foo = bar
+`
+
+const testImportCustomProviderStr = `
+aws_instance.foo:
+  ID = foo
+  provider = aws.alias
 `

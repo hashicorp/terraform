@@ -37,17 +37,9 @@ The following arguments are supported:
     traffic will be load balanced from. Changing this forces a new resource
     to be created.
 
-* `ipaddress` - (Required, Deprecated) Public IP address from where the
-    network traffic will be load balanced from. Changing this forces a new
-    resource to be created.
-
 * `network_id` - (Optional) The network ID this rule will be created for.
     Required when public IP address is not associated with any network yet
     (VPC case).
-
-* `network` - (Optional, Deprecated) The network this rule will be created
-    for. Required when public IP address is not associated with any network
-    yet (VPC case).
 
 * `algorithm` - (Required) Load balancer rule algorithm (source, roundrobin,
     leastconn). Changing this forces a new resource to be created.
@@ -63,8 +55,8 @@ The following arguments are supported:
 * `member_ids` - (Required) List of instance IDs to assign to the load balancer
     rule. Changing this forces a new resource to be created.
 
-* `members` - (Required, Deprecated) List of instances to assign to the load
-    balancer rule. Changing this forces a new resource to be created.
+* `project` - (Optional) The name or ID of the project to deploy this
+    instance to. Changing this forces a new resource to be created.
 
 ## Attributes Reference
 

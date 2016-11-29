@@ -84,8 +84,10 @@ func (h *UiHook) PreApply(
 	// Get all the attributes that are changing, and sort them. Also
 	// determine the longest key so that we can align them all.
 	keyLen := 0
-	keys := make([]string, 0, len(d.Attributes))
-	for key, _ := range d.Attributes {
+
+	dAttrs := d.CopyAttributes()
+	keys := make([]string, 0, len(dAttrs))
+	for key, _ := range dAttrs {
 		// Skip the ID since we do that specially
 		if key == "id" {
 			continue
@@ -100,7 +102,7 @@ func (h *UiHook) PreApply(
 
 	// Go through and output each attribute
 	for _, attrK := range keys {
-		attrDiff := d.Attributes[attrK]
+		attrDiff, _ := d.GetAttribute(attrK)
 
 		v := attrDiff.New
 		u := attrDiff.Old
@@ -127,7 +129,7 @@ func (h *UiHook) PreApply(
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s[reset_bold]%s",
+		"[reset][bold]%s: %s[reset]%s",
 		id,
 		operation,
 		attrString)))
@@ -163,7 +165,7 @@ func (h *UiHook) stillApplying(id string) {
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s (%s elapsed)[reset_bold]",
+		"[reset][bold]%s: %s (%s elapsed)[reset]",
 		id,
 		msg,
 		time.Now().Round(time.Second).Sub(state.Start),
@@ -202,7 +204,7 @@ func (h *UiHook) PostApply(
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s[reset_bold]",
+		"[reset][bold]%s: %s[reset]",
 		id, msg)))
 
 	return terraform.HookActionContinue, nil
@@ -219,7 +221,7 @@ func (h *UiHook) PreProvision(
 	provId string) (terraform.HookAction, error) {
 	id := n.HumanId()
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Provisioning with '%s'...[reset_bold]",
+		"[reset][bold]%s: Provisioning with '%s'...[reset]",
 		id, provId)))
 	return terraform.HookActionContinue, nil
 }

@@ -87,10 +87,10 @@ the process more straightforwarded, it is documented here:
 1. Log into the [Google Developers Console](https://console.developers.google.com)
    and select a project.
 
-2. Click the menu button in the top left corner, and navigate to "Permissions",
-   then "Service accounts", and finally "Create service account".
+2. The API Manager view should be selected, click on "Credentials" on the left,
+   then "Create credentials", and finally "Service account key".
 
-3. Provide a name and ID in the corresponding fields, select
-   "Furnish a new private key", and select "JSON" as the key type.
+3. Select "Compute Engine default service account" in the "Service account"
+   dropdown, and select "JSON" as the key type.
 
 4. Clicking "Create" will download your `credentials`.

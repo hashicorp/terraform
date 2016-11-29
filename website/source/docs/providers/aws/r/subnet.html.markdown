@@ -44,3 +44,12 @@ The following attributes are exported:
 * `cidr_block` - The CIDR block for the subnet.
 * `vpc_id` - The VPC ID.
 
+
+
+## Import
+
+Subnets can be imported using the `subnet id`, e.g. 
+
+```
+$ terraform import aws_subnet.public_subnet subnet-9d4a7b6c
+```

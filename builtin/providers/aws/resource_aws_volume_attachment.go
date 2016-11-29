@@ -21,25 +21,30 @@ func resourceAwsVolumeAttachment() *schema.Resource {
 		Delete: resourceAwsVolumeAttachmentDelete,
 
 		Schema: map[string]*schema.Schema{
-			"device_name": &schema.Schema{
+			"device_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"instance_id": &schema.Schema{
+			"instance_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"volume_id": &schema.Schema{
+			"volume_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"force_detach": &schema.Schema{
+			"force_detach": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"skip_destroy": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
@@ -136,7 +141,7 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	_, err := conn.DescribeVolumes(request)
+	vols, err := conn.DescribeVolumes(request)
 	if err != nil {
 		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVolume.NotFound" {
 			d.SetId("")
@@ -144,11 +149,23 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 		}
 		return fmt.Errorf("Error reading EC2 volume %s for instance: %s: %#v", d.Get("volume_id").(string), d.Get("instance_id").(string), err)
 	}
+
+	if len(vols.Volumes) == 0 || *vols.Volumes[0].State == "available" {
+		log.Printf("[DEBUG] Volume Attachment (%s) not found, removing from state", d.Id())
+		d.SetId("")
+	}
+
 	return nil
 }
 
 func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+
+	if _, ok := d.GetOk("skip_destroy"); ok {
+		log.Printf("[INFO] Found skip_destroy to be true, removing attachment %q from state", d.Id())
+		d.SetId("")
+		return nil
+	}
 
 	vID := d.Get("volume_id").(string)
 	iID := d.Get("instance_id").(string)
@@ -161,6 +178,10 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	_, err := conn.DetachVolume(opts)
+	if err != nil {
+		return fmt.Errorf("Failed to detach Volume (%s) from Instance (%s): %s",
+			vID, iID, err)
+	}
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"detaching"},
 		Target:     []string{"detached"},

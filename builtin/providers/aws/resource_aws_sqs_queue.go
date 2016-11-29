@@ -1,13 +1,14 @@
 package aws
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -34,61 +35,58 @@ func resourceAwsSqsQueue() *schema.Resource {
 		Read:   resourceAwsSqsQueueRead,
 		Update: resourceAwsSqsQueueUpdate,
 		Delete: resourceAwsSqsQueueDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"delay_seconds": &schema.Schema{
+			"delay_seconds": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  0,
 			},
-			"max_message_size": &schema.Schema{
+			"max_message_size": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  262144,
 			},
-			"message_retention_seconds": &schema.Schema{
+			"message_retention_seconds": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  345600,
 			},
-			"receive_wait_time_seconds": &schema.Schema{
+			"receive_wait_time_seconds": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  0,
 			},
-			"visibility_timeout_seconds": &schema.Schema{
+			"visibility_timeout_seconds": {
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
+				Default:  30,
 			},
-			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+			"policy": {
+				Type:             schema.TypeString,
+				Optional:         true,
+				Computed:         true,
+				ValidateFunc:     validateJsonString,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
+			},
+			"redrive_policy": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateJsonString,
 				StateFunc: func(v interface{}) string {
-					s, ok := v.(string)
-					if !ok || s == "" {
-						return ""
-					}
-					jsonb := []byte(s)
-					buffer := new(bytes.Buffer)
-					if err := json.Compact(buffer, jsonb); err != nil {
-						log.Printf("[WARN] Error compacting JSON for Policy in SNS Queue, using raw string: %s", err)
-						return s
-					}
-					return buffer.String()
+					json, _ := normalizeJsonString(v)
+					return json
 				},
 			},
-			"redrive_policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				StateFunc: normalizeJson,
-			},
-			"arn": &schema.Schema{
+			"arn": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -163,7 +161,9 @@ func resourceAwsSqsQueueUpdate(d *schema.ResourceData, meta interface{}) error {
 			QueueUrl:   aws.String(d.Id()),
 			Attributes: attributes,
 		}
-		sqsconn.SetQueueAttributes(req)
+		if _, err := sqsconn.SetQueueAttributes(req); err != nil {
+			return fmt.Errorf("[ERR] Error updating SQS attributes: %s", err)
+		}
 	}
 
 	return resourceAwsSqsQueueRead(d, meta)
@@ -188,6 +188,12 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 		}
 		return err
 	}
+
+	name, err := extractNameFromSqsQueueUrl(d.Id())
+	if err != nil {
+		return err
+	}
+	d.Set("name", name)
 
 	if attributeOutput.Attributes != nil && len(attributeOutput.Attributes) > 0 {
 		attrmap := attributeOutput.Attributes
@@ -224,4 +230,19 @@ func resourceAwsSqsQueueDelete(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func extractNameFromSqsQueueUrl(queue string) (string, error) {
+	//http://sqs.us-west-2.amazonaws.com/123456789012/queueName
+	u, err := url.Parse(queue)
+	if err != nil {
+		return "", err
+	}
+	segments := strings.Split(u.Path, "/")
+	if len(segments) != 3 {
+		return "", fmt.Errorf("SQS Url not parsed correctly")
+	}
+
+	return segments[2], nil
+
 }

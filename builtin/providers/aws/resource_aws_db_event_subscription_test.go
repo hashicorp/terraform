@@ -49,6 +49,46 @@ func TestAccAWSDBEventSubscription_basicUpdate(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBEventSubscription_withSourceIds(t *testing.T) {
+	var v rds.EventSubscription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBEventSubscriptionDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSDBEventSubscriptionConfigWithSourceIds,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBEventSubscriptionExists("aws_db_event_subscription.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_event_subscription.bar", "enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_db_event_subscription.bar", "source_type", "db-parameter-group"),
+					resource.TestCheckResourceAttr(
+						"aws_db_event_subscription.bar", "name", "tf-acc-test-rds-event-subs-with-ids"),
+					resource.TestCheckResourceAttr(
+						"aws_db_event_subscription.bar", "source_ids.#", "1"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSDBEventSubscriptionConfigUpdateSourceIds,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBEventSubscriptionExists("aws_db_event_subscription.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_event_subscription.bar", "enabled", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_db_event_subscription.bar", "source_type", "db-parameter-group"),
+					resource.TestCheckResourceAttr(
+						"aws_db_event_subscription.bar", "name", "tf-acc-test-rds-event-subs-with-ids"),
+					resource.TestCheckResourceAttr(
+						"aws_db_event_subscription.bar", "source_ids.#", "2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSDBEventSubscriptionExists(n string, v *rds.EventSubscription) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -157,6 +197,62 @@ resource "aws_db_event_subscription" "bar" {
   ]
   tags {
     Name = "new-name"
+  }
+}
+`
+
+var testAccAWSDBEventSubscriptionConfigWithSourceIds = `
+resource "aws_sns_topic" "aws_sns_topic" {
+  name = "tf-acc-test-rds-event-subs-sns-topic"
+}
+
+resource "aws_db_parameter_group" "bar" {
+  name = "db-parameter-group-event-1"
+  family = "mysql5.6"
+  description = "Test parameter group for terraform"
+}
+
+resource "aws_db_event_subscription" "bar" {
+  name = "tf-acc-test-rds-event-subs-with-ids"
+  sns_topic = "${aws_sns_topic.aws_sns_topic.arn}"
+  source_type = "db-parameter-group"
+  source_ids = ["${aws_db_parameter_group.bar.id}"]
+  event_categories = [
+    "configuration change"
+  ]
+  tags {
+    Name = "name"
+  }
+}
+`
+
+var testAccAWSDBEventSubscriptionConfigUpdateSourceIds = `
+resource "aws_sns_topic" "aws_sns_topic" {
+  name = "tf-acc-test-rds-event-subs-sns-topic"
+}
+
+resource "aws_db_parameter_group" "bar" {
+  name = "db-parameter-group-event-1"
+  family = "mysql5.6"
+  description = "Test parameter group for terraform"
+}
+
+resource "aws_db_parameter_group" "foo" {
+  name = "db-parameter-group-event-2"
+  family = "mysql5.6"
+  description = "Test parameter group for terraform"
+}
+
+resource "aws_db_event_subscription" "bar" {
+  name = "tf-acc-test-rds-event-subs-with-ids"
+  sns_topic = "${aws_sns_topic.aws_sns_topic.arn}"
+  source_type = "db-parameter-group"
+  source_ids = ["${aws_db_parameter_group.bar.id}","${aws_db_parameter_group.foo.id}"]
+  event_categories = [
+    "configuration change"
+  ]
+  tags {
+    Name = "name"
   }
 }
 `

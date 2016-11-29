@@ -26,7 +26,7 @@ func TestAccComputeInstanceTemplate_basic(t *testing.T) {
 						"google_compute_instance_template.foobar", &instanceTemplate),
 					testAccCheckComputeInstanceTemplateTag(&instanceTemplate, "foo"),
 					testAccCheckComputeInstanceTemplateMetadata(&instanceTemplate, "foo", "bar"),
-					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20160301", true, true),
+					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-8-jessie-v20160803", true, true),
 				),
 			},
 		},
@@ -66,7 +66,7 @@ func TestAccComputeInstanceTemplate_disks(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceTemplateExists(
 						"google_compute_instance_template.foobar", &instanceTemplate),
-					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20160301", true, true),
+					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-8-jessie-v20160803", true, true),
 					testAccCheckComputeInstanceTemplateDisk(&instanceTemplate, "terraform-test-foobar", false, false),
 				),
 			},
@@ -276,7 +276,7 @@ resource "google_compute_instance_template" "foobar" {
 	tags = ["foo", "bar"]
 
 	disk {
-		source_image = "debian-7-wheezy-v20160301"
+		source_image = "debian-8-jessie-v20160803"
 		auto_delete = true
 		boot = true
 	}
@@ -310,7 +310,7 @@ resource "google_compute_instance_template" "foobar" {
 	tags = ["foo", "bar"]
 
 	disk {
-		source_image = "debian-7-wheezy-v20160301"
+		source_image = "debian-8-jessie-v20160803"
 	}
 
 	network_interface {
@@ -328,7 +328,7 @@ resource "google_compute_instance_template" "foobar" {
 var testAccComputeInstanceTemplate_disks = fmt.Sprintf(`
 resource "google_compute_disk" "foobar" {
 	name = "instancet-test-%s"
-	image = "debian-7-wheezy-v20160301"
+	image = "debian-8-jessie-v20160803"
 	size = 10
 	type = "pd-ssd"
 	zone = "us-central1-a"
@@ -339,7 +339,7 @@ resource "google_compute_instance_template" "foobar" {
 	machine_type = "n1-standard-1"
 
 	disk {
-		source_image = "debian-7-wheezy-v20160301"
+		source_image = "debian-8-jessie-v20160803"
 		auto_delete = true
 		disk_size_gb = 100
 		boot = true
@@ -372,7 +372,7 @@ func testAccComputeInstanceTemplate_subnet_auto(network string) string {
 		machine_type = "n1-standard-1"
 
 		disk {
-			source_image = "debian-7-wheezy-v20160211"
+			source_image = "debian-8-jessie-v20160803"
 			auto_delete = true
 			disk_size_gb = 10
 			boot = true
@@ -407,7 +407,7 @@ resource "google_compute_instance_template" "foobar" {
 	region = "us-central1"
 
 	disk {
-		source_image = "debian-7-wheezy-v20160211"
+		source_image = "debian-8-jessie-v20160803"
 		auto_delete = true
 		disk_size_gb = 10
 		boot = true

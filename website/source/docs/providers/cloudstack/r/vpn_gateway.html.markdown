@@ -27,9 +27,6 @@ The following arguments are supported:
 * `vpc_id` - (Required) The ID of the VPC for which to create the VPN Gateway.
     Changing this forces a new resource to be created.
 
-* `vpc` - (Required, Deprecated) The name or ID of the VPC for which to create
-    the VPN Gateway. Changing this forces a new resource to be created.
-
 ## Attributes Reference
 
 The following attributes are exported:

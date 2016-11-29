@@ -121,8 +121,9 @@ resource "aws_s3_bucket" "bucket" {
 			days = 90
 		}
 	}
+
 	lifecycle_rule {
-		id = "log"
+		id = "tmp"
 		prefix = "tmp/"
 		enabled = true
 
@@ -173,6 +174,12 @@ The following arguments are supported:
 * `logging` - (Optional) A settings of [bucket logging](https://docs.aws.amazon.com/AmazonS3/latest/UG/ManagingBucketLogging.html) (documented below).
 * `lifecycle_rule` - (Optional) A configuration of [object lifecycle management](http://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html) (documented below).
 * `acceleration_status` - (Optional) Sets the accelerate configuration of an existing bucket. Can be `Enabled` or `Suspended`.
+* `request_payer` - (Optional) Specifies who should bear the cost of Amazon S3 data transfer.
+Can be either `BucketOwner` or `Requester`. By default, the owner of the S3 bucket would incur
+the costs of any data transfer. See [Requester Pays Buckets](http://docs.aws.amazon.com/AmazonS3/latest/dev/RequesterPaysBuckets.html)
+developer guide for more information.
+
+~> **NOTE:** You cannot use `acceleration_status` in `cn-north-1` or `us-gov-west-1`
 
 The `website` object supports the following:
 
@@ -216,7 +223,7 @@ The `expiration` object supports the following
 
 * `date` (Optional) Specifies the date after which you want the corresponding action to take effect.
 * `days` (Optional) Specifies the number of days after object creation when the specific rule action takes effect.
-* `expired_object_delete_marker` (Optional) On a versioned bucket (versioning-enabled or versioning-suspended bucket), you can add this element in the lifecycle configuration to direct Amazon S3 to delete expired object delete markers. 
+* `expired_object_delete_marker` (Optional) On a versioned bucket (versioning-enabled or versioning-suspended bucket), you can add this element in the lifecycle configuration to direct Amazon S3 to delete expired object delete markers.
 
 The `transition` object supports the following
 
@@ -243,3 +250,11 @@ The following attributes are exported:
 * `region` - The AWS region this bucket resides in.
 * `website_endpoint` - The website endpoint, if the bucket is configured with a website. If not, this will be an empty string.
 * `website_domain` - The domain of the website endpoint, if the bucket is configured with a website. If not, this will be an empty string. This is used to create Route 53 alias records.
+
+## Import
+
+S3 bucket can be imported using the `bucket`, e.g. 
+
+```
+$ terraform import aws_s3_bucket.bucket bucket-name
+```

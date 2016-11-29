@@ -25,7 +25,7 @@ terraform remote config \
 ## Example Referencing
 
 ```
-resource "terraform_remote_state" "foo" {
+data "terraform_remote_state" "foo" {
 	backend = "consul"
 	config {
 		path = "full/path"
@@ -44,5 +44,6 @@ The following configuration options / environment variables are supported:
  * `scheme` - (Optional) Specifies what protocol to use when talking to the given
    `address`, either `http` or `https`. SSL support can also be triggered
    by setting then environment variable `CONSUL_HTTP_SSL` to `true`.
+ * `datacenter` - (Optional) The datacenter to use. Defaults to that of the agent.
  * `http_auth` / `CONSUL_HTTP_AUTH` - (Optional) HTTP Basic Authentication credentials to be used when
    communicating with Consul, in the format of either `user` or `user:pass`.

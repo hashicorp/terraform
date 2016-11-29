@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -17,6 +18,9 @@ func resourceAwsIamUser() *schema.Resource {
 		Read:   resourceAwsIamUserRead,
 		Update: resourceAwsIamUserUpdate,
 		Delete: resourceAwsIamUserDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -27,7 +31,7 @@ func resourceAwsIamUser() *schema.Resource {
 				The UniqueID could be used as the Id(), but none of the API
 				calls allow specifying a user by the UniqueID: they require the
 				name. The only way to locate a user by UniqueID is to list them
-				all and that would make this provider unnecessarilly complex
+				all and that would make this provider unnecessarily complex
 				and inefficient. Still, there are other reasons one might want
 				the UniqueID, so we can make it available.
 			*/
@@ -36,14 +40,21 @@ func resourceAwsIamUser() *schema.Resource {
 				Computed: true,
 			},
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateAwsIamUserName,
 			},
 			"path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "/",
 				ForceNew: true,
+			},
+			"force_destroy": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Delete user even if it has non-Terraform-managed IAM access keys, login profile or MFA devices",
 			},
 		},
 	}
@@ -64,14 +75,15 @@ func resourceAwsIamUserCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Error creating IAM User %s: %s", name, err)
 	}
+	d.SetId(*createResp.User.UserName)
 	return resourceAwsIamUserReadResult(d, createResp.User)
 }
 
 func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
-	name := d.Get("name").(string)
+
 	request := &iam.GetUserInput{
-		UserName: aws.String(name),
+		UserName: aws.String(d.Id()),
 	}
 
 	getResp, err := iamconn.GetUser(request)
@@ -87,7 +99,6 @@ func resourceAwsIamUserRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsIamUserReadResult(d *schema.ResourceData, user *iam.User) error {
-	d.SetId(*user.UserName)
 	if err := d.Set("name", user.UserName); err != nil {
 		return err
 	}
@@ -129,44 +140,90 @@ func resourceAwsIamUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 	return nil
 }
+
 func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
 	// IAM Users must be removed from all groups before they can be deleted
 	var groups []string
-	var marker *string
-	truncated := aws.Bool(true)
-
-	for *truncated == true {
-		listOpts := iam.ListGroupsForUserInput{
-			UserName: aws.String(d.Id()),
-		}
-
-		if marker != nil {
-			listOpts.Marker = marker
-		}
-
-		r, err := iamconn.ListGroupsForUser(&listOpts)
-		if err != nil {
-			return err
-		}
-
-		for _, g := range r.Groups {
+	listGroups := &iam.ListGroupsForUserInput{
+		UserName: aws.String(d.Id()),
+	}
+	pageOfGroups := func(page *iam.ListGroupsForUserOutput, lastPage bool) (shouldContinue bool) {
+		for _, g := range page.Groups {
 			groups = append(groups, *g.GroupName)
 		}
-
-		// if there's a marker present, we need to save it for pagination
-		if r.Marker != nil {
-			*marker = *r.Marker
-		}
-		*truncated = *r.IsTruncated
+		return !lastPage
 	}
-
+	err := iamconn.ListGroupsForUserPages(listGroups, pageOfGroups)
+	if err != nil {
+		return fmt.Errorf("Error removing user %q from all groups: %s", d.Id(), err)
+	}
 	for _, g := range groups {
 		// use iam group membership func to remove user from all groups
 		log.Printf("[DEBUG] Removing IAM User %s from IAM Group %s", d.Id(), g)
 		if err := removeUsersFromGroup(iamconn, []*string{aws.String(d.Id())}, g); err != nil {
 			return err
+		}
+	}
+
+	// All access keys, MFA devices and login profile for the user must be removed
+	if d.Get("force_destroy").(bool) {
+		var accessKeys []string
+		listAccessKeys := &iam.ListAccessKeysInput{
+			UserName: aws.String(d.Id()),
+		}
+		pageOfAccessKeys := func(page *iam.ListAccessKeysOutput, lastPage bool) (shouldContinue bool) {
+			for _, k := range page.AccessKeyMetadata {
+				accessKeys = append(accessKeys, *k.AccessKeyId)
+			}
+			return !lastPage
+		}
+		err = iamconn.ListAccessKeysPages(listAccessKeys, pageOfAccessKeys)
+		if err != nil {
+			return fmt.Errorf("Error removing access keys of user %s: %s", d.Id(), err)
+		}
+		for _, k := range accessKeys {
+			_, err := iamconn.DeleteAccessKey(&iam.DeleteAccessKeyInput{
+				UserName:    aws.String(d.Id()),
+				AccessKeyId: aws.String(k),
+			})
+			if err != nil {
+				return fmt.Errorf("Error deleting access key %s: %s", k, err)
+			}
+		}
+
+		var MFADevices []string
+		listMFADevices := &iam.ListMFADevicesInput{
+			UserName: aws.String(d.Id()),
+		}
+		pageOfMFADevices := func(page *iam.ListMFADevicesOutput, lastPage bool) (shouldContinue bool) {
+			for _, m := range page.MFADevices {
+				MFADevices = append(MFADevices, *m.SerialNumber)
+			}
+			return !lastPage
+		}
+		err = iamconn.ListMFADevicesPages(listMFADevices, pageOfMFADevices)
+		if err != nil {
+			return fmt.Errorf("Error removing MFA devices of user %s: %s", d.Id(), err)
+		}
+		for _, m := range MFADevices {
+			_, err := iamconn.DeactivateMFADevice(&iam.DeactivateMFADeviceInput{
+				UserName:     aws.String(d.Id()),
+				SerialNumber: aws.String(m),
+			})
+			if err != nil {
+				return fmt.Errorf("Error deactivating MFA device %s: %s", m, err)
+			}
+		}
+
+		_, err = iamconn.DeleteLoginProfile(&iam.DeleteLoginProfileInput{
+			UserName: aws.String(d.Id()),
+		})
+		if err != nil {
+			if iamerr, ok := err.(awserr.Error); !ok || iamerr.Code() != "NoSuchEntity" {
+				return fmt.Errorf("Error deleting Account Login Profile: %s", err)
+			}
 		}
 	}
 
@@ -179,4 +236,14 @@ func resourceAwsIamUserDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error deleting IAM User %s: %s", d.Id(), err)
 	}
 	return nil
+}
+
+func validateAwsIamUserName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[0-9A-Za-z=,.@\-_+]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"only alphanumeric characters, hyphens, underscores, commas, periods, @ symbols, plus and equals signs allowed in %q: %q",
+			k, value))
+	}
+	return
 }

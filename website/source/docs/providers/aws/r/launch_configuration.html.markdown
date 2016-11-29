@@ -13,10 +13,23 @@ Provides a resource to create a new launch configuration, used for autoscaling g
 ## Example Usage
 
 ```
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["hvm"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
 resource "aws_launch_configuration" "as_conf" {
     name = "web_config"
-    image_id = "ami-408c7f28"
-    instance_type = "t1.micro"
+    image_id = "${data.aws_ami.ubuntu.id}"
+    instance_type = "t2.micro"
 }
 ```
 
@@ -31,10 +44,23 @@ Either omit the Launch Configuration `name` attribute, or specify a partial name
 with `name_prefix`.  Example:
 
 ```
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["hvm"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
 resource "aws_launch_configuration" "as_conf" {
     name_prefix = "terraform-lc-example-"
-    image_id = "ami-408c7f28"
-    instance_type = "t1.micro"
+    image_id = "${data.aws_ami.ubuntu.id}"
+    instance_type = "t2.micro"
 
     lifecycle {
       create_before_destroy = true
@@ -65,9 +91,22 @@ documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-in
 for more information or how to launch [Spot Instances][3] with Terraform.
 
 ```
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["hvm"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
 resource "aws_launch_configuration" "as_conf" {
-    image_id = "ami-408c7f28"
-    instance_type = "t1.micro"
+    image_id = "${data.aws_ami.ubuntu.id}"
+    instance_type = "m4.large"
     spot_price = "0.001"
     lifecycle {
       create_before_destroy = true
@@ -95,6 +134,8 @@ The following arguments are supported:
 * `key_name` - (Optional) The key name that should be used for the instance.
 * `security_groups` - (Optional) A list of associated security group IDS.
 * `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
+* `vpc_classic_link_id` - (Optional) The ID of a ClassicLink-enabled VPC. Only applies to EC2-Classic instances. (eg. `vpc-2730681a`)
+* `vpc_classic_link_security_groups` - (Optional) The IDs of one or more security groups for the specified ClassicLink-enabled VPC (eg. `sg-46ae3d11`).
 * `user_data` - (Optional) The user data to provide when launching the instance.
 * `enable_monitoring` - (Optional) Enables/disables detailed monitoring. This is enabled by default.
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be EBS-optimized.
@@ -169,7 +210,16 @@ configuration, resource recreation can be manually triggered by using the
 The following attributes are exported:
 
 * `id` - The ID of the launch configuration.
+* `name` - The name of the launch configuration.
 
 [1]: /docs/providers/aws/r/autoscaling_group.html
 [2]: /docs/configuration/resources.html#lifecycle
 [3]: /docs/providers/aws/r/spot_instance_request.html
+
+## Import
+
+Launch configurations can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_launch_configuration.as_conf terraform-lg-123456
+```

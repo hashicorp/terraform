@@ -17,31 +17,23 @@ build:
 
     - script:
         name: Get dependencies
-        code: | 
+        code: |
           go get -u github.com/ctdk/goiardi/chefcrypto
-          go get -u github.com/ctdk/goiardi/authentication 
+          go get -u github.com/ctdk/goiardi/authentication
           go get -u github.com/davecgh/go-spew/spew
-          go get -u github.com/smartystreets/goconvey/convey 
-          go get -u github.com/axw/gocov/gocov
-          go get -u github.com/matm/gocov-html
+          go get -u github.com/smartystreets/goconvey/convey
           go get -u github.com/mattn/goveralls
 
-    # Using the gocov tool to test the exact package we want to test from GOPATH 
+    # Using the gocov tool to test the exact package we want to test from GOPATH
     - script:
         name: Test
         code: |
-          gocov test github.com/go-chef/chef  > coverage.json
+          go test -covermode=count -coverprofile=profile.cov
 
-    - script:
-        name: Coverage
-        code: |
-          gocov report coverage.json
-          gocov-html coverage.json > $WERCKER_REPORT_ARTIFACTS_DIR/coverage.html
-
-    - script:
-        name: Coveralls.io
-        code: |
-          goveralls -service='wercker.com' -repotoken=$COVERALLS_TOKEN -gocovdata=coverage.json
+  #    - script:
+  #      name: Coveralls.io
+  #      code: |
+  #        goveralls -service='wercker.com' -repotoken=$COVERALLS_TOKEN -coverprofile=profile.cov
 
     - script:
         name: Store cache

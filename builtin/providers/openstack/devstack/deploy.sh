@@ -19,12 +19,8 @@ export PATH=$PATH:$HOME/terraform:$HOME/go/bin
 echo 'export PATH=$PATH:$HOME/terraform:$HOME/go/bin' >> .bashrc
 source .bashrc
 
-go get github.com/tools/godep
 go get github.com/hashicorp/terraform
-cd $GOPATH/src/github.com/hashicorp/terraform
-godep restore
 
-cd
 git clone https://git.openstack.org/openstack-dev/devstack -b stable/mitaka
 cd devstack
 cat >local.conf <<EOF
@@ -70,9 +66,26 @@ enable_service q-agt
 enable_service q-dhcp
 enable_service q-l3
 enable_service q-meta
-enable_service q-metering
-enable_service q-lbaas
+enable_service q-flavors
+
+# Disable Neutron metering
+disable_service q-metering
+
+# Enable LBaaS V1
+#enable_service q-lbaas
+
+# Enable FWaaS
 enable_service q-fwaas
+
+# Enable LBaaS v2
+enable_plugin neutron-lbaas https://git.openstack.org/openstack/neutron-lbaas stable/\$OPENSTACK_VERSION
+enable_plugin octavia https://git.openstack.org/openstack/octavia stable/\$OPENSTACK_VERSION
+enable_service q-lbaasv2
+enable_service octavia
+enable_service o-cw
+enable_service o-hk
+enable_service o-hm
+enable_service o-api
 
 # Enable Trove
 enable_plugin trove git://git.openstack.org/openstack/trove.git stable/\$OPENSTACK_VERSION
@@ -83,6 +96,13 @@ disable_service tempest
 
 # Disable Horizon
 disable_service horizon
+
+# Disable Keystone v2
+#ENABLE_IDENTITY_V2=False
+
+# Enable SSL/tls
+#enable_service tls-proxy
+#USE_SSL=True
 
 # Enable Ceilometer
 #enable_service ceilometer-acompute
@@ -109,6 +129,17 @@ LOGFILE=/opt/stack/logs/stack.sh.log
 LOGDIR=/opt/stack/logs
 EOF
 ./stack.sh
+
+# Patch openrc
+#cat >> openrc <<EOF
+#
+# Currently, in order to use openstackclient with Identity API v3,
+# we need to set the domain which the user and project belong to.
+#if [ "$OS_IDENTITY_API_VERSION" = "3" ]; then
+#  export OS_USER_DOMAIN_ID=${OS_USER_DOMAIN_ID:-"default"}
+#  export OS_PROJECT_DOMAIN_ID=${OS_PROJECT_DOMAIN_ID:-"default"}
+#fi
+#EOF
 
 # Prep the testing environment by creating the required testing resources and environment variables
 source openrc admin

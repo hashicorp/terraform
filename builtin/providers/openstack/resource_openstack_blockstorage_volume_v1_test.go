@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
 )
 
 func TestAccBlockStorageV1Volume_basic(t *testing.T) {
@@ -117,13 +117,10 @@ func testAccCheckBlockStorageV1VolumeDoesNotExist(t *testing.T, n string, volume
 
 		_, err = volumes.Get(blockStorageClient, volume.ID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				return nil
 			}
+
 			return err
 		}
 
@@ -156,24 +153,20 @@ func testAccCheckBlockStorageV1VolumeMetadata(
 
 var testAccBlockStorageV1Volume_basic = fmt.Sprintf(`
 	resource "openstack_blockstorage_volume_v1" "volume_1" {
-		region = "%s"
 		name = "tf-test-volume"
 		description = "first test volume"
 		metadata{
 			foo = "bar"
 		}
 		size = 1
-	}`,
-	OS_REGION_NAME)
+	}`)
 
 var testAccBlockStorageV1Volume_update = fmt.Sprintf(`
 	resource "openstack_blockstorage_volume_v1" "volume_1" {
-		region = "%s"
 		name = "tf-test-volume-updated"
 		description = "first test volume"
 		metadata{
 			foo = "bar"
 		}
 		size = 1
-	}`,
-	OS_REGION_NAME)
+	}`)

@@ -33,9 +33,9 @@ func (b Compatibool) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
-func (b Compatibool) UnmarshalText(t []byte) error {
+func (b *Compatibool) UnmarshalText(t []byte) error {
 	if bytes.Equal(t, []byte("1")) {
-		b = Compatibool(true)
+		*b = Compatibool(true)
 	}
 	return nil
 }

@@ -19,34 +19,19 @@ func resourceCloudStackIPAddress() *schema.Resource {
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
-			},
-
-			"network": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `network_id` field instead",
 			},
 
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
-			},
-
-			"vpc": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `vpc_id` field instead",
 			},
 
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -68,44 +53,14 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 	// Create a new parameter struct
 	p := cs.Address.NewAssociateIpAddressParams()
 
-	network, ok := d.GetOk("network_id")
-	if !ok {
-		network, ok = d.GetOk("network")
-	}
-	if ok {
-		// Retrieve the network ID
-		networkid, e := retrieveID(
-			cs,
-			"network",
-			network.(string),
-			cloudstack.WithProject(d.Get("project").(string)),
-		)
-		if e != nil {
-			return e.Error()
-		}
-
+	if networkid, ok := d.GetOk("network_id"); ok {
 		// Set the networkid
-		p.SetNetworkid(networkid)
+		p.SetNetworkid(networkid.(string))
 	}
 
-	vpc, ok := d.GetOk("vpc_id")
-	if !ok {
-		vpc, ok = d.GetOk("vpc")
-	}
-	if ok {
-		// Retrieve the vpc ID
-		vpcid, e := retrieveID(
-			cs,
-			"vpc",
-			vpc.(string),
-			cloudstack.WithProject(d.Get("project").(string)),
-		)
-		if e != nil {
-			return e.Error()
-		}
-
+	if vpcid, ok := d.GetOk("vpc_id"); ok {
 		// Set the vpcid
-		p.SetVpcid(vpcid)
+		p.SetVpcid(vpcid.(string))
 	}
 
 	// If there is a project supplied, we retrieve and set the project id
@@ -146,15 +101,11 @@ func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) e
 	// Updated the IP address
 	d.Set("ip_address", ip.Ipaddress)
 
-	_, networkID := d.GetOk("network_id")
-	_, network := d.GetOk("network")
-	if networkID || network {
+	if _, ok := d.GetOk("network_id"); ok {
 		d.Set("network_id", ip.Associatednetworkid)
 	}
 
-	_, vpcID := d.GetOk("vpc_id")
-	_, vpc := d.GetOk("vpc")
-	if vpcID || vpc {
+	if _, ok := d.GetOk("vpc_id"); ok {
 		d.Set("vpc_id", ip.Vpcid)
 	}
 
@@ -185,12 +136,10 @@ func resourceCloudStackIPAddressDelete(d *schema.ResourceData, meta interface{})
 }
 
 func verifyIPAddressParams(d *schema.ResourceData) error {
-	_, networkID := d.GetOk("network_id")
-	_, network := d.GetOk("network")
-	_, vpcID := d.GetOk("vpc_id")
-	_, vpc := d.GetOk("vpc")
+	_, network := d.GetOk("network_id")
+	_, vpc := d.GetOk("vpc_id")
 
-	if (networkID || network) && (vpcID || vpc) || (!networkID && !network) && (!vpcID && !vpc) {
+	if (network && vpc) || (!network && !vpc) {
 		return fmt.Errorf(
 			"You must supply a value for either (so not both) the 'network_id' or 'vpc_id' parameter")
 	}

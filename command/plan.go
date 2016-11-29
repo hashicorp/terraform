@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -57,6 +58,9 @@ func (c *PlanCommand) Run(args []string) int {
 	countHook := new(CountHook)
 	c.Meta.extraHooks = []terraform.Hook{countHook}
 
+	// This is going to keep track of shadow errors
+	var shadowErr error
+
 	ctx, _, err := c.Context(contextOpts{
 		Destroy:     destroy,
 		Path:        path,
@@ -68,9 +72,21 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
+	err = terraform.SetDebugInfo(DefaultDataDir)
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
 	if err := ctx.Input(c.InputMode()); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
 		return 1
+	}
+
+	// Record any shadow errors for later
+	if err := ctx.ShadowError(); err != nil {
+		shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+			err, "input operation:"))
 	}
 
 	if !validateContext(ctx, c.Ui) {
@@ -138,6 +154,15 @@ func (c *PlanCommand) Run(args []string) int {
 		countHook.ToChange,
 		countHook.ToRemove+countHook.ToRemoveAndAdd)))
 
+	// Record any shadow errors for later
+	if err := ctx.ShadowError(); err != nil {
+		shadowErr = multierror.Append(shadowErr, multierror.Prefix(
+			err, "plan operation:"))
+	}
+
+	// If we have an error in the shadow graph, let the user know.
+	c.outputShadowError(shadowErr, true)
+
 	if detailed {
 		return 2
 	}
@@ -156,10 +181,6 @@ Usage: terraform plan [options] [dir]
   this plan exactly.
 
 Options:
-
-  -backup=path        Path to backup the existing state file before
-                      modifying. Defaults to the "-state-out" path with
-                      ".backup" extension. Set to "-" to disable backup.
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.

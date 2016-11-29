@@ -10,6 +10,9 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"test_resource": testResource(),
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"test_data_source": testDataSource(),
+		},
 		ConfigureFunc: providerConfigure,
 	}
 }

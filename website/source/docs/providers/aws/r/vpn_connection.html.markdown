@@ -41,7 +41,7 @@ resource "aws_vpn_connection" "main" {
 The following arguments are supported:
 
 * `customer_gateway_id` - (Required) The ID of the customer gateway.
-* `static_routes_only` - (Required) Whether the VPN connection uses static routes exclusively. Static routes must be used for devices that don't support BGP.
+* `static_routes_only` - (Optional, Default `false`) Whether the VPN connection uses static routes exclusively. Static routes must be used for devices that don't support BGP.
 * `tags` - (Optional) Tags to apply to the connection.
 * `type` - (Required) The type of VPN connection. The only type AWS supports at this time is "ipsec.1".
 * `vpn_gateway_id` - (Required) The ID of the virtual private gateway.
@@ -61,3 +61,12 @@ The following attributes are exported:
 * `tunnel2_preshared_key` - The preshared key of the second VPN tunnel.
 * `type` - The type of VPN connection.
 * `vpn_gateway_id` - The ID of the virtual private gateway to which the connection is attached.
+
+
+## Import
+
+VPN Connections can be imported using the `vpn connection id`, e.g. 
+
+```
+$ terraform import aws_vpn_connection.testvpnconnection vpn-40f41529
+```

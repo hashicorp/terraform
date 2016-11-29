@@ -164,7 +164,7 @@ type UpdateCacheSettingInput struct {
 	NewName        string             `form:"name,omitempty"`
 	Action         CacheSettingAction `form:"action,omitempty"`
 	TTL            uint               `form:"ttl,omitempty"`
-	StateTTL       uint               `form:"stale_ttl,omitempty"`
+	StaleTTL       uint               `form:"stale_ttl,omitempty"`
 	CacheCondition string             `form:"cache_condition,omitempty"`
 }
 

@@ -6,12 +6,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 )
 
 func resourceBlockStorageVolumeV1() *schema.Resource {
@@ -20,6 +20,9 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 		Read:   resourceBlockStorageVolumeV1Read,
 		Update: resourceBlockStorageVolumeV1Update,
 		Delete: resourceBlockStorageVolumeV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -166,7 +169,7 @@ func resourceBlockStorageVolumeV1Read(d *schema.ResourceData, meta interface{}) 
 		return CheckDeleted(d, err, "volume")
 	}
 
-	log.Printf("[DEBUG] Retreived volume %s: %+v", d.Id(), v)
+	log.Printf("[DEBUG] Retrieved volume %s: %+v", d.Id(), v)
 
 	d.Set("size", v.Size)
 	d.Set("description", v.Description)
@@ -177,17 +180,15 @@ func resourceBlockStorageVolumeV1Read(d *schema.ResourceData, meta interface{}) 
 	d.Set("volume_type", v.VolumeType)
 	d.Set("metadata", v.Metadata)
 
-	if len(v.Attachments) > 0 {
-		attachments := make([]map[string]interface{}, len(v.Attachments))
-		for i, attachment := range v.Attachments {
-			attachments[i] = make(map[string]interface{})
-			attachments[i]["id"] = attachment["id"]
-			attachments[i]["instance_id"] = attachment["server_id"]
-			attachments[i]["device"] = attachment["device"]
-			log.Printf("[DEBUG] attachment: %v", attachment)
-		}
-		d.Set("attachment", attachments)
+	attachments := make([]map[string]interface{}, len(v.Attachments))
+	for i, attachment := range v.Attachments {
+		attachments[i] = make(map[string]interface{})
+		attachments[i]["id"] = attachment["id"]
+		attachments[i]["instance_id"] = attachment["server_id"]
+		attachments[i]["device"] = attachment["device"]
+		log.Printf("[DEBUG] attachment: %v", attachment)
 	}
+	d.Set("attachment", attachments)
 
 	return nil
 }
@@ -305,11 +306,7 @@ func VolumeV1StateRefreshFunc(client *gophercloud.ServiceClient, volumeID string
 	return func() (interface{}, string, error) {
 		v, err := volumes.Get(client, volumeID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return nil, "", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				return v, "deleted", nil
 			}
 			return nil, "", err

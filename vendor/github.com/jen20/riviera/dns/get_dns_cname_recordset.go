@@ -8,7 +8,7 @@ type GetCNAMERecordSetResponse struct {
 	Location     string             `mapstructure:"location"`
 	Tags         map[string]*string `mapstructure:"tags"`
 	TTL          *int               `mapstructure:"TTL"`
-	CNAMERecords []CNAMERecord      `mapstructure:"CNAMERecords"`
+	CNAMERecord  CNAMERecord        `mapstructure:"CNAMERecord"`
 }
 
 type GetCNAMERecordSet struct {

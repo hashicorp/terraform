@@ -98,3 +98,11 @@ The following attributes are exported:
 * `floating_ip` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
 * `port_id` - Port UUID for this VIP at associated floating IP (if any).
+
+## Import
+
+Load Balancer VIPs can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_lb_vip_v1.vip_1 50e16b26-89c1-475e-a492-76167182511e
+```

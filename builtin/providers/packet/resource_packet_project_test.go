@@ -38,7 +38,7 @@ func testAccCheckPacketProjectDestroy(s *terraform.State) error {
 			continue
 		}
 		if _, _, err := client.Projects.Get(rs.Primary.ID); err == nil {
-			return fmt.Errorf("Project cstill exists")
+			return fmt.Errorf("Project still exists")
 		}
 	}
 

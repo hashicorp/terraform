@@ -5,9 +5,7 @@ package ssh
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -167,48 +165,6 @@ func TestStart(t *testing.T) {
 	}
 }
 
-func TestStart_KeyFile(t *testing.T) {
-	address := newMockLineServer(t)
-	parts := strings.Split(address, ":")
-
-	keyFile, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	keyFilePath := keyFile.Name()
-	keyFile.Write([]byte(testClientPrivateKey))
-	keyFile.Close()
-	defer os.Remove(keyFilePath)
-
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"key_file": keyFilePath,
-				"host":     parts[0],
-				"port":     parts[1],
-				"timeout":  "30s",
-			},
-		},
-	}
-
-	c, err := New(r)
-	if err != nil {
-		t.Fatalf("error creating communicator: %s", err)
-	}
-
-	var cmd remote.Cmd
-	stdout := new(bytes.Buffer)
-	cmd.Command = "echo foo"
-	cmd.Stdout = stdout
-
-	err = c.Start(&cmd)
-	if err != nil {
-		t.Fatalf("error executing remote command: %s", err)
-	}
-}
-
 func TestScriptPath(t *testing.T) {
 	cases := []struct {
 		Input   string
@@ -225,7 +181,18 @@ func TestScriptPath(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		comm := &Communicator{connInfo: &connectionInfo{ScriptPath: tc.Input}}
+		r := &terraform.InstanceState{
+			Ephemeral: terraform.EphemeralState{
+				ConnInfo: map[string]string{
+					"type":        "ssh",
+					"script_path": tc.Input,
+				},
+			},
+		}
+		comm, err := New(r)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
 		output := comm.ScriptPath()
 
 		match, err := regexp.Match(tc.Pattern, []byte(output))
@@ -235,6 +202,20 @@ func TestScriptPath(t *testing.T) {
 		if !match {
 			t.Fatalf("bad: %s\n\n%s", tc.Input, output)
 		}
+	}
+}
+
+func TestScriptPath_randSeed(t *testing.T) {
+	// Pre GH-4186 fix, this value was the deterministic start the pseudorandom
+	// chain of unseeded math/rand values for Int31().
+	staticSeedPath := "/tmp/terraform_1298498081.sh"
+	c, err := New(&terraform.InstanceState{})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	path := c.ScriptPath()
+	if path == staticSeedPath {
+		t.Fatalf("rand not seeded! got: %s", path)
 	}
 }
 

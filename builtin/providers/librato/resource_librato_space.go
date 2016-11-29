@@ -115,6 +115,11 @@ func resourceLibratoSpaceDelete(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[INFO] Deleting Space: %d", id)
 	_, err = client.Spaces.Delete(uint(id))
 	if err != nil {
+		if errResp, ok := err.(*librato.ErrorResponse); ok && errResp.Response.StatusCode == 404 {
+			log.Printf("Space %s not found", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error deleting space: %s", err)
 	}
 

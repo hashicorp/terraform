@@ -25,16 +25,8 @@ The following arguments are supported:
 * `network_id` - (Optional) The ID of the network for which an IP address should
     be acquired and associated. Changing this forces a new resource to be created.
 
-* `network` - (Optional, Deprecated) The name or ID of the network for which an IP
-    addess should be acquired and associated. Changing this forces a new resource
-    to be created.
-
 * `vpc_id` - (Optional) The ID of the VPC for which an IP address should be
    acquired and associated. Changing this forces a new resource to be created.
-
-* `vpc` - (Optional, Deprecated) The name or ID of the VPC for which an IP address
-    should be acquired and associated. Changing this forces a new resource to be
-    created.
 
 * `project` - (Optional) The name or ID of the project to deploy this
     instance to. Changing this forces a new resource to be created.

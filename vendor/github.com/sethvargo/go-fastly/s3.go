@@ -6,25 +6,33 @@ import (
 	"time"
 )
 
+type S3Redundancy string
+
+const (
+	S3RedundancyStandard S3Redundancy = "standard"
+	S3RedundancyReduced  S3Redundancy = "reduced_redundancy"
+)
+
 // S3 represents a S3 response from the Fastly API.
 type S3 struct {
 	ServiceID string `mapstructure:"service_id"`
 	Version   string `mapstructure:"version"`
 
-	Name              string     `mapstructure:"name"`
-	BucketName        string     `mapstructure:"bucket_name"`
-	Domain            string     `mapstructure:"domain"`
-	AccessKey         string     `mapstructure:"access_key"`
-	SecretKey         string     `mapstructure:"secret_key"`
-	Path              string     `mapstructure:"path"`
-	Period            uint       `mapstructure:"period"`
-	GzipLevel         uint       `mapstructure:"gzip_level"`
-	Format            string     `mapstructure:"format"`
-	ResponseCondition string     `mapstructure:"response_condition"`
-	TimestampFormat   string     `mapstructure:"timestamp_format"`
-	CreatedAt         *time.Time `mapstructure:"created_at"`
-	UpdatedAt         *time.Time `mapstructure:"updated_at"`
-	DeletedAt         *time.Time `mapstructure:"deleted_at"`
+	Name              string       `mapstructure:"name"`
+	BucketName        string       `mapstructure:"bucket_name"`
+	Domain            string       `mapstructure:"domain"`
+	AccessKey         string       `mapstructure:"access_key"`
+	SecretKey         string       `mapstructure:"secret_key"`
+	Path              string       `mapstructure:"path"`
+	Period            uint         `mapstructure:"period"`
+	GzipLevel         uint         `mapstructure:"gzip_level"`
+	Format            string       `mapstructure:"format"`
+	ResponseCondition string       `mapstructure:"response_condition"`
+	TimestampFormat   string       `mapstructure:"timestamp_format"`
+	Redundancy        S3Redundancy `mapstructure:"redundancy"`
+	CreatedAt         *time.Time   `mapstructure:"created_at"`
+	UpdatedAt         *time.Time   `mapstructure:"updated_at"`
+	DeletedAt         *time.Time   `mapstructure:"deleted_at"`
 }
 
 // s3sByName is a sortable list of S3s.
@@ -77,17 +85,18 @@ type CreateS3Input struct {
 	Service string
 	Version string
 
-	Name              string `form:"name,omitempty"`
-	BucketName        string `form:"bucket_name,omitempty"`
-	Domain            string `form:"domain,omitempty"`
-	AccessKey         string `form:"access_key,omitempty"`
-	SecretKey         string `form:"secret_key,omitempty"`
-	Path              string `form:"path,omitempty"`
-	Period            uint   `form:"period,omitempty"`
-	GzipLevel         uint   `form:"gzip_level,omitempty"`
-	Format            string `form:"format,omitempty"`
-	ResponseCondition string `form:"response_condition,omitempty"`
-	TimestampFormat   string `form:"timestamp_format,omitempty"`
+	Name              string       `form:"name,omitempty"`
+	BucketName        string       `form:"bucket_name,omitempty"`
+	Domain            string       `form:"domain,omitempty"`
+	AccessKey         string       `form:"access_key,omitempty"`
+	SecretKey         string       `form:"secret_key,omitempty"`
+	Path              string       `form:"path,omitempty"`
+	Period            uint         `form:"period,omitempty"`
+	GzipLevel         uint         `form:"gzip_level,omitempty"`
+	Format            string       `form:"format,omitempty"`
+	ResponseCondition string       `form:"response_condition,omitempty"`
+	TimestampFormat   string       `form:"timestamp_format,omitempty"`
+	Redundancy        S3Redundancy `form:"redundancy,omitempty"`
 }
 
 // CreateS3 creates a new Fastly S3.
@@ -161,17 +170,18 @@ type UpdateS3Input struct {
 	// Name is the name of the S3 to update.
 	Name string
 
-	NewName           string `form:"name,omitempty"`
-	BucketName        string `form:"bucket_name,omitempty"`
-	Domain            string `form:"domain,omitempty"`
-	AccessKey         string `form:"access_key,omitempty"`
-	SecretKey         string `form:"secret_key,omitempty"`
-	Path              string `form:"path,omitempty"`
-	Period            uint   `form:"period,omitempty"`
-	GzipLevel         uint   `form:"gzip_level,omitempty"`
-	Format            string `form:"format,omitempty"`
-	ResponseCondition string `form:"response_condition,omitempty"`
-	TimestampFormat   string `form:"timestamp_format,omitempty"`
+	NewName           string       `form:"name,omitempty"`
+	BucketName        string       `form:"bucket_name,omitempty"`
+	Domain            string       `form:"domain,omitempty"`
+	AccessKey         string       `form:"access_key,omitempty"`
+	SecretKey         string       `form:"secret_key,omitempty"`
+	Path              string       `form:"path,omitempty"`
+	Period            uint         `form:"period,omitempty"`
+	GzipLevel         uint         `form:"gzip_level,omitempty"`
+	Format            string       `form:"format,omitempty"`
+	ResponseCondition string       `form:"response_condition,omitempty"`
+	TimestampFormat   string       `form:"timestamp_format,omitempty"`
+	Redundancy        S3Redundancy `form:"redundancy,omitempty"`
 }
 
 // UpdateS3 updates a specific S3.

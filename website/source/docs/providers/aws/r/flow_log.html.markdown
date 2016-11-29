@@ -13,12 +13,14 @@ interface, subnet, or VPC. Logs are sent to a CloudWatch Log Group.
 
 ```
 resource "aws_flow_log" "test_flow_log" {
-  # log_group_name needs to exist before hand
-  # until we have a CloudWatch Log Group Resource
-  log_group_name = "tf-test-log-group"
+  log_group_name = "${aws_cloudwatch_log_group.test_log_group.name}"
   iam_role_arn = "${aws_iam_role.test_role.arn}"
   vpc_id = "${aws_vpc.default.id}"
   traffic_type = "ALL"
+}
+
+resource "aws_cloudwatch_log_group" "test_log_group" {
+    name = "test_log_group"
 }
 
 resource "aws_iam_role" "test_role" {
@@ -82,3 +84,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The Flow Log ID
+
+## Import
+
+Flow Logs can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_flow_log.test_flow_log fl-1a2b3c4d
+```

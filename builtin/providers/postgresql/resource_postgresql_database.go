@@ -5,38 +5,38 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lib/pq"
 )
 
-func resourcePostgresqlDatabase() *schema.Resource {
+func resourcePostgreSQLDatabase() *schema.Resource {
 	return &schema.Resource{
-		Create: resourcePostgresqlDatabaseCreate,
-		Read:   resourcePostgresqlDatabaseRead,
-		Update: resourcePostgresqlDatabaseUpdate,
-		Delete: resourcePostgresqlDatabaseDelete,
+		Create: resourcePostgreSQLDatabaseCreate,
+		Read:   resourcePostgreSQLDatabaseRead,
+		Update: resourcePostgreSQLDatabaseUpdate,
+		Delete: resourcePostgreSQLDatabaseDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"owner": &schema.Schema{
+			"owner": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
 				Computed: true,
 			},
 		},
 	}
 }
 
-func resourcePostgresqlDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLDatabaseCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error connecting to PostgreSQL: {{err}}", err)
 	}
 	defer conn.Close()
 
@@ -60,19 +60,19 @@ func resourcePostgresqlDatabaseCreate(d *schema.ResourceData, meta interface{}) 
 	query := fmt.Sprintf("CREATE DATABASE %s %s", pq.QuoteIdentifier(dbName), dbOwnerCfg)
 	_, err = conn.Query(query)
 	if err != nil {
-		return fmt.Errorf("Error creating postgresql database %s: %s", dbName, err)
+		return errwrap.Wrapf(fmt.Sprintf("Error creating database %s: {{err}}", dbName), err)
 	}
 
 	d.SetId(dbName)
 
-	return nil
+	return resourcePostgreSQLDatabaseRead(d, meta)
 }
 
-func resourcePostgresqlDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLDatabaseDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error connecting to PostgreSQL: {{err}}", err)
 	}
 	defer conn.Close()
 
@@ -88,7 +88,7 @@ func resourcePostgresqlDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 	query := fmt.Sprintf("DROP DATABASE %s", pq.QuoteIdentifier(dbName))
 	_, err = conn.Query(query)
 	if err != nil {
-		return err
+		return errwrap.Wrapf("Error dropping database: {{err}}", err)
 	}
 
 	d.SetId("")
@@ -96,7 +96,7 @@ func resourcePostgresqlDatabaseDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourcePostgresqlDatabaseRead(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLDatabaseRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -113,14 +113,14 @@ func resourcePostgresqlDatabaseRead(d *schema.ResourceData, meta interface{}) er
 		d.SetId("")
 		return nil
 	case err != nil:
-		return fmt.Errorf("Error reading info about database: %s", err)
+		return errwrap.Wrapf("Error reading database: {{err}}", err)
 	default:
 		d.Set("owner", owner)
 		return nil
 	}
 }
 
-func resourcePostgresqlDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourcePostgreSQLDatabaseUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Client)
 	conn, err := client.Connect()
 	if err != nil {
@@ -136,12 +136,12 @@ func resourcePostgresqlDatabaseUpdate(d *schema.ResourceData, meta interface{}) 
 			query := fmt.Sprintf("ALTER DATABASE %s OWNER TO %s", pq.QuoteIdentifier(dbName), pq.QuoteIdentifier(owner))
 			_, err := conn.Query(query)
 			if err != nil {
-				return fmt.Errorf("Error updating owner for database: %s", err)
+				return errwrap.Wrapf("Error updating owner: {{err}}", err)
 			}
 		}
 	}
 
-	return resourcePostgresqlDatabaseRead(d, meta)
+	return resourcePostgreSQLDatabaseRead(d, meta)
 }
 
 func grantRoleMembership(conn *sql.DB, dbOwner string, connUsername string) error {
@@ -153,7 +153,7 @@ func grantRoleMembership(conn *sql.DB, dbOwner string, connUsername string) erro
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 				return nil
 			}
-			return fmt.Errorf("Error granting membership: %s", err)
+			return errwrap.Wrapf("Error granting membership: {{err}}", err)
 		}
 	}
 	return nil

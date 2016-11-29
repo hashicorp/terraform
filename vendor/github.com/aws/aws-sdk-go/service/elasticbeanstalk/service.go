@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/query"
-	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // AWS Elastic Beanstalk makes it easy for you to create, deploy, and manage
@@ -21,7 +21,7 @@ import (
 // (http://elasticbeanstalk.s3.amazonaws.com/doc/2010-12-01/AWSElasticBeanstalk.wsdl).
 // To install the Software Development Kits (SDKs), Integrated Development Environment
 // (IDE) Toolkits, and command line tools that enable you to access the API,
-// go to Tools for Amazon Web Services (https://aws.amazon.com/tools/).
+// go to Tools for Amazon Web Services (http://aws.amazon.com/tools/).
 //
 // Endpoints
 //
@@ -74,7 +74,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBack(v4.Sign)
+	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
 	svc.Handlers.Build.PushBackNamed(query.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(query.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(query.UnmarshalMetaHandler)
