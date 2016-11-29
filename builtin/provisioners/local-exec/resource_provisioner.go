@@ -8,6 +8,7 @@ import (
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/terraform/helper/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-linereader"
 )
@@ -19,9 +20,20 @@ const (
 	maxBufSize = 8 * 1024
 )
 
-type ResourceProvisioner struct{}
+func ResourceProvisioner() terraform.ResourceProvisioner {
+	return &schema.Provisioner{
+		Schema: map[string]*schema.Schema{
+			"command": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+		ApplyFunc:    Apply,
+		ValidateFunc: Validate,
+	}
+}
 
-func (p *ResourceProvisioner) Apply(
+func Apply(
 	o terraform.UIOutput,
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
@@ -49,7 +61,7 @@ func (p *ResourceProvisioner) Apply(
 	// Setup the reader that will read the lines from the command
 	pr, pw := io.Pipe()
 	copyDoneCh := make(chan struct{})
-	go p.copyOutput(o, pr, copyDoneCh)
+	go copyOutput(o, pr, copyDoneCh)
 
 	// Setup the command
 	cmd := exec.Command(shell, flag, command)
@@ -78,14 +90,14 @@ func (p *ResourceProvisioner) Apply(
 	return nil
 }
 
-func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+func Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	validator := config.Validator{
 		Required: []string{"command"},
 	}
 	return validator.Validate(c)
 }
 
-func (p *ResourceProvisioner) copyOutput(
+func copyOutput(
 	o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
 	defer close(doneCh)
 	lr := linereader.New(r)
