@@ -166,7 +166,7 @@ func expandIPPerms(
 		// AWS's behavior in the error message.
 		if *perm.IpProtocol == "-1" && (*perm.FromPort != 0 || *perm.ToPort != 0) {
 			return nil, fmt.Errorf(
-				"from_port (%d) and to_port (%d) must both be 0 to use the the 'ALL' \"-1\" protocol!",
+				"from_port (%d) and to_port (%d) must both be 0 to use the 'ALL' \"-1\" protocol!",
 				*perm.FromPort, *perm.ToPort)
 		}
 
