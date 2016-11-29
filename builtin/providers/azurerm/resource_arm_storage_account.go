@@ -46,12 +46,7 @@ func resourceArmStorageAccount() *schema.Resource {
 				DiffSuppressFunc: resourceAzurermResourceGroupNameDiffSuppress,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"account_kind": {
 				Type:     schema.TypeString,
