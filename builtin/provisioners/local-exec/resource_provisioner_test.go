@@ -8,8 +8,19 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func TestResourceProvisioner_impl(t *testing.T) {
+	var _ terraform.ResourceProvisioner = Provisioner()
+}
+
+func TestProvisioner(t *testing.T) {
+	if err := Provisioner().(*schema.Provisioner).InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
 
 func TestResourceProvider_Apply(t *testing.T) {
 	defer os.Remove("test_out")
