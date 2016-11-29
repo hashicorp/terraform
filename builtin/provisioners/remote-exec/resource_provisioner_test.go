@@ -14,6 +14,16 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestResourceProvisioner_impl(t *testing.T) {
+	var _ terraform.ResourceProvisioner = Provisioner()
+}
+
+func TestProvisioner(t *testing.T) {
+	if err := Provisioner().(*schema.Provisioner).InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"inline": "echo foo",

@@ -14,7 +14,7 @@ const (
 	installURL = "https://www.chef.io/chef/install.sh"
 )
 
-func (p *Provisioner) linuxInstallChefClient(
+func (p *ProvisionerS) linuxInstallChefClient(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
 
@@ -26,7 +26,7 @@ func (p *Provisioner) linuxInstallChefClient(
 	if p.HTTPSProxy != "" {
 		prefix += fmt.Sprintf("https_proxy='%s' ", p.HTTPSProxy)
 	}
-	if p.NOProxy != nil {
+	if p.NOProxy != nil && len(p.NOProxy) > 0 {
 		prefix += fmt.Sprintf("no_proxy='%s' ", strings.Join(p.NOProxy, ","))
 	}
 
@@ -46,7 +46,7 @@ func (p *Provisioner) linuxInstallChefClient(
 	return p.runCommand(o, comm, fmt.Sprintf("%srm -f install.sh", prefix))
 }
 
-func (p *Provisioner) linuxCreateConfigFiles(
+func (p *ProvisionerS) linuxCreateConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
 	// Make sure the config directory exists

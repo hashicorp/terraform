@@ -15,12 +15,13 @@ import (
 	"text/template"
 	"time"
 
+	"context"
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
-	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -81,36 +82,36 @@ enable_reporting false
 {{ end }}
 `
 
-// Provisioner represents a Chef provisioner
-type Provisioner struct {
-	AttributesJSON        string   `mapstructure:"attributes_json"`
-	ClientOptions         []string `mapstructure:"client_options"`
-	DisableReporting      bool     `mapstructure:"disable_reporting"`
-	Environment           string   `mapstructure:"environment"`
-	FetchChefCertificates bool     `mapstructure:"fetch_chef_certificates"`
-	LogToFile             bool     `mapstructure:"log_to_file"`
-	UsePolicyfile         bool     `mapstructure:"use_policyfile"`
-	PolicyGroup           string   `mapstructure:"policy_group"`
-	PolicyName            string   `mapstructure:"policy_name"`
-	HTTPProxy             string   `mapstructure:"http_proxy"`
-	HTTPSProxy            string   `mapstructure:"https_proxy"`
-	NamedRunList          string   `mapstructure:"named_run_list"`
-	NOProxy               []string `mapstructure:"no_proxy"`
-	NodeName              string   `mapstructure:"node_name"`
-	OhaiHints             []string `mapstructure:"ohai_hints"`
-	OSType                string   `mapstructure:"os_type"`
-	RecreateClient        bool     `mapstructure:"recreate_client"`
-	PreventSudo           bool     `mapstructure:"prevent_sudo"`
-	RunList               []string `mapstructure:"run_list"`
-	SecretKey             string   `mapstructure:"secret_key"`
-	ServerURL             string   `mapstructure:"server_url"`
-	SkipInstall           bool     `mapstructure:"skip_install"`
-	SkipRegister          bool     `mapstructure:"skip_register"`
-	SSLVerifyMode         string   `mapstructure:"ssl_verify_mode"`
-	UserName              string   `mapstructure:"user_name"`
-	UserKey               string   `mapstructure:"user_key"`
-	VaultJSON             string   `mapstructure:"vault_json"`
-	Version               string   `mapstructure:"version"`
+// ProvisionerS represents a Chef provisioner
+type ProvisionerS struct {
+	AttributesJSON        string
+	ClientOptions         []string
+	DisableReporting      bool
+	Environment           string
+	FetchChefCertificates bool
+	LogToFile             bool
+	UsePolicyfile         bool
+	PolicyGroup           string
+	PolicyName            string
+	HTTPProxy             string
+	HTTPSProxy            string
+	NamedRunList          string
+	NOProxy               []string
+	NodeName              string
+	OhaiHints             []string
+	OSType                string
+	RecreateClient        bool
+	PreventSudo           bool
+	RunList               []string
+	SecretKey             string
+	ServerURL             string
+	SkipInstall           bool
+	SkipRegister          bool
+	SSLVerifyMode         string
+	UserName              string
+	UserKey               string
+	VaultJSON             string
+	Version               string
 
 	attributes map[string]interface{}
 	vaults     map[string][]string
@@ -125,37 +126,179 @@ type Provisioner struct {
 	useSudo               bool
 
 	// Deprecated Fields
-	ValidationClientName string `mapstructure:"validation_client_name"`
-	ValidationKey        string `mapstructure:"validation_key"`
+	ValidationClientName string
+	ValidationKey        string
 }
 
-// ResourceProvisioner represents a generic chef provisioner
-type ResourceProvisioner struct{}
+func Provisioner() terraform.ResourceProvisioner {
+	return &schema.Provisioner{
+		Schema: map[string]*schema.Schema{
+			"attributes_json": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"client_options": {
+				Type: schema.TypeList,
+				Elem: schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional: true,
+			},
+			"disable_reporting": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"environment": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"fetch_chef_certificates": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"log_to_file": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"use_policyfile": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"policy_group": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"policy_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"http_proxy": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"https_proxy": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"no_proxy": {
+				Type: schema.TypeList,
+				Elem: schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				Optional: true,
+			},
+			"named_run_list": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"node_name": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"ohai_hints": {
+				Type: schema.TypeList,
+				Elem: schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				Optional: true,
+			},
+			"os_type": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"recreate_client": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"prevent_sudo": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"run_list": {
+				Type: schema.TypeList,
+				Elem: schema.Schema{
+					Type:     schema.TypeString,
+					Optional: true,
+				},
+				Optional: true,
+			},
+			"secret_key": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"server_url": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"skip_install": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"skip_register": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"ssl_verify_mode": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"user_name": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"user_key": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"vault_json": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"version": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 
-func (r *ResourceProvisioner) Stop() error {
-	// Noop for now. TODO in the future.
-	return nil
+			// Deprecated
+			"validation_client_name": {
+				Type:       schema.TypeString,
+				Deprecated: "Please use user_name instead",
+				Optional:   true,
+			},
+
+			"validation_key": {
+				Type:       schema.TypeString,
+				Deprecated: "Please use user_key instead",
+				Optional:   true,
+			},
+		},
+		ApplyFunc:    Apply,
+		ValidateFunc: Validate,
+	}
 }
 
+// TODO: Support context cancelling (Provisioner Stop)
 // Apply executes the file provisioner
-func (r *ResourceProvisioner) Apply(
-	o terraform.UIOutput,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) error {
+func Apply(ctx context.Context) error {
+	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
+	d := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
 	// Decode the raw config for this provisioner
-	p, err := r.decodeConfig(c)
+	p, err := decodeConfig(d)
 	if err != nil {
 		return err
 	}
 
 	if p.OSType == "" {
-		switch s.Ephemeral.ConnInfo["type"] {
+		t := d.State().Ephemeral.ConnInfo["type"]
+		switch t {
 		case "ssh", "": // The default connection type is ssh, so if the type is empty assume ssh
 			p.OSType = "linux"
 		case "winrm":
 			p.OSType = "windows"
 		default:
-			return fmt.Errorf("Unsupported connection type: %s", s.Ephemeral.ConnInfo["type"])
+			return fmt.Errorf("Unsupported connection type: %s", t)
 		}
 	}
 
@@ -169,7 +312,7 @@ func (r *ResourceProvisioner) Apply(
 		p.generateClientKey = p.generateClientKeyFunc(linuxKnifeCmd, linuxConfDir, linuxNoOutput)
 		p.configureVaults = p.configureVaultsFunc(linuxGemCmd, linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
-		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
+		p.useSudo = !p.PreventSudo && d.State().Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
 		p.cleanupUserKeyCmd = fmt.Sprintf("cd %s && del /F /Q %s", windowsConfDir, p.UserName+".pem")
 		p.createConfigFiles = p.windowsCreateConfigFiles
@@ -184,7 +327,7 @@ func (r *ResourceProvisioner) Apply(
 	}
 
 	// Get a new communicator
-	comm, err := communicator.New(s)
+	comm, err := communicator.New(d.State())
 	if err != nil {
 		return err
 	}
@@ -254,21 +397,15 @@ func (r *ResourceProvisioner) Apply(
 }
 
 // Validate checks if the required arguments are configured
-func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
-	p, err := r.decodeConfig(c)
+func Validate(d *schema.ResourceData) (ws []string, es []error) {
+	p, err := decodeConfig(d)
 	if err != nil {
 		es = append(es, err)
 		return ws, es
 	}
 
-	if p.NodeName == "" {
-		es = append(es, errors.New("Key not found: node_name"))
-	}
 	if !p.UsePolicyfile && p.RunList == nil {
 		es = append(es, errors.New("Key not found: run_list"))
-	}
-	if p.ServerURL == "" {
-		es = append(es, errors.New("Key not found: server_url"))
 	}
 	if p.UsePolicyfile && p.PolicyName == "" {
 		es = append(es, errors.New("Policyfile enabled but key not found: policy_name"))
@@ -284,12 +421,7 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 		es = append(es, errors.New(
 			"One of user_key or the deprecated validation_key must be provided"))
 	}
-	if p.ValidationClientName != "" {
-		ws = append(ws, "validation_client_name is deprecated, please use user_name instead")
-	}
 	if p.ValidationKey != "" {
-		ws = append(ws, "validation_key is deprecated, please use user_key instead")
-
 		if p.RecreateClient {
 			es = append(es, errors.New(
 				"Cannot use recreate_client=true with the deprecated validation_key, please provide a user_key"))
@@ -303,38 +435,8 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	return ws, es
 }
 
-func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provisioner, error) {
-	p := new(Provisioner)
-
-	decConf := &mapstructure.DecoderConfig{
-		ErrorUnused:      true,
-		WeaklyTypedInput: true,
-		Result:           p,
-	}
-	dec, err := mapstructure.NewDecoder(decConf)
-	if err != nil {
-		return nil, err
-	}
-
-	// We need to merge both configs into a single map first. Order is
-	// important as we need to make sure interpolated values are used
-	// over raw values. This makes sure that all values are there even
-	// if some still need to be interpolated later on. Without this
-	// the validation will fail when using a variable for a required
-	// parameter (the node_name for example).
-	m := make(map[string]interface{})
-
-	for k, v := range c.Raw {
-		m[k] = v
-	}
-
-	for k, v := range c.Config {
-		m[k] = v
-	}
-
-	if err := dec.Decode(m); err != nil {
-		return nil, err
-	}
+func decodeConfig(d *schema.ResourceData) (*ProvisionerS, error) {
+	p := decodeDataToProvisioner(d)
 
 	// Make sure the supplied URL has a trailing slash
 	p.ServerURL = strings.TrimSuffix(p.ServerURL, "/") + "/"
@@ -359,17 +461,17 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.UserKey = p.ValidationKey
 	}
 
-	if attrs, ok := c.Config["attributes_json"].(string); ok && !c.IsComputed("attributes_json") {
+	if attrs, ok := d.GetOk("attributes_json"); ok {
 		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(attrs), &m); err != nil {
+		if err := json.Unmarshal([]byte(attrs.(string)), &m); err != nil {
 			return nil, fmt.Errorf("Error parsing attributes_json: %v", err)
 		}
 		p.attributes = m
 	}
 
-	if vaults, ok := c.Config["vault_json"].(string); ok && !c.IsComputed("vault_json") {
+	if vaults, ok := d.GetOk("vault_json"); ok {
 		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(vaults), &m); err != nil {
+		if err := json.Unmarshal([]byte(vaults.(string)), &m); err != nil {
 			return nil, fmt.Errorf("Error parsing vault_json: %v", err)
 		}
 
@@ -395,7 +497,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	return p, nil
 }
 
-func (p *Provisioner) deployConfigFiles(
+func (p *ProvisionerS) deployConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	confDir string) error {
@@ -469,7 +571,7 @@ func (p *Provisioner) deployConfigFiles(
 	return nil
 }
 
-func (p *Provisioner) deployOhaiHints(
+func (p *ProvisionerS) deployOhaiHints(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	hintDir string) error {
@@ -490,7 +592,7 @@ func (p *Provisioner) deployOhaiHints(
 	return nil
 }
 
-func (p *Provisioner) fetchChefCertificatesFunc(
+func (p *ProvisionerS) fetchChefCertificatesFunc(
 	knifeCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
@@ -501,7 +603,7 @@ func (p *Provisioner) fetchChefCertificatesFunc(
 	}
 }
 
-func (p *Provisioner) generateClientKeyFunc(
+func (p *ProvisionerS) generateClientKeyFunc(
 	knifeCmd string,
 	confDir string,
 	noOutput string) func(terraform.UIOutput, communicator.Communicator) error {
@@ -562,7 +664,7 @@ func (p *Provisioner) generateClientKeyFunc(
 	}
 }
 
-func (p *Provisioner) configureVaultsFunc(
+func (p *ProvisionerS) configureVaultsFunc(
 	gemCmd string,
 	knifeCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
@@ -596,7 +698,7 @@ func (p *Provisioner) configureVaultsFunc(
 	}
 }
 
-func (p *Provisioner) runChefClientFunc(
+func (p *ProvisionerS) runChefClientFunc(
 	chefCmd string,
 	confDir string) func(terraform.UIOutput, communicator.Communicator) error {
 	return func(o terraform.UIOutput, comm communicator.Communicator) error {
@@ -634,7 +736,7 @@ func (p *Provisioner) runChefClientFunc(
 }
 
 // Output implementation of terraform.UIOutput interface
-func (p *Provisioner) Output(output string) {
+func (p *ProvisionerS) Output(output string) {
 	logFile := path.Join(logfileDir, p.NodeName)
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
@@ -660,7 +762,7 @@ func (p *Provisioner) Output(output string) {
 }
 
 // runCommand is used to run already prepared commands
-func (p *Provisioner) runCommand(
+func (p *ProvisionerS) runCommand(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	command string) error {
@@ -702,7 +804,7 @@ func (p *Provisioner) runCommand(
 	return err
 }
 
-func (p *Provisioner) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
+func (p *ProvisionerS) copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
 	defer close(doneCh)
 	lr := linereader.New(r)
 	for line := range lr.Ch {
@@ -725,5 +827,60 @@ func retryFunc(timeout time.Duration, f func() error) error {
 			return err
 		case <-time.After(3 * time.Second):
 		}
+	}
+}
+
+func decodeDataToProvisioner(d *schema.ResourceData) *ProvisionerS {
+	return &ProvisionerS{
+		AttributesJSON:        d.Get("attributes_json").(string),
+		ClientOptions:         getStringList(d.Get("client_options")),
+		DisableReporting:      d.Get("disable_reporting").(bool),
+		Environment:           d.Get("environment").(string),
+		FetchChefCertificates: d.Get("fetch_chef_certificates").(bool),
+		LogToFile:             d.Get("log_to_file").(bool),
+		UsePolicyfile:         d.Get("use_policyfile").(bool),
+		PolicyGroup:           d.Get("policy_group").(string),
+		PolicyName:            d.Get("policy_name").(string),
+		HTTPProxy:             d.Get("http_proxy").(string),
+		HTTPSProxy:            d.Get("https_proxy").(string),
+		NOProxy:               getStringList(d.Get("no_proxy")),
+		NamedRunList:          d.Get("named_run_list").(string),
+		NodeName:              d.Get("node_name").(string),
+		OhaiHints:             getStringList(d.Get("ohai_hints")),
+		OSType:                d.Get("os_type").(string),
+		RecreateClient:        d.Get("recreate_client").(bool),
+		PreventSudo:           d.Get("prevent_sudo").(bool),
+		RunList:               getStringList(d.Get("run_list")),
+		SecretKey:             d.Get("secret_key").(string),
+		ServerURL:             d.Get("server_url").(string),
+		SkipInstall:           d.Get("skip_install").(bool),
+		SkipRegister:          d.Get("skip_register").(bool),
+		SSLVerifyMode:         d.Get("ssl_verify_mode").(string),
+		UserName:              d.Get("user_name").(string),
+		UserKey:               d.Get("user_key").(string),
+		VaultJSON:             d.Get("vault_json").(string),
+		Version:               d.Get("version").(string),
+
+		// Deprecated
+		ValidationClientName: d.Get("validation_client_name").(string),
+		ValidationKey:        d.Get("validation_key").(string),
+	}
+}
+
+func getStringList(v interface{}) []string {
+	if v == nil {
+		return nil
+	}
+	switch l := v.(type) {
+	case []string:
+		return l
+	case []interface{}:
+		arr := make([]string, len(l))
+		for i, x := range l {
+			arr[i] = x.(string)
+		}
+		return arr
+	default:
+		panic(fmt.Sprintf("Unsupported type: %T", v))
 	}
 }

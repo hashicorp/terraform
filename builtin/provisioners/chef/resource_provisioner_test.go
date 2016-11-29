@@ -7,11 +7,18 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestResourceProvisioner_impl(t *testing.T) {
-	var _ terraform.ResourceProvisioner = new(ResourceProvisioner)
+	var _ terraform.ResourceProvisioner = Provisioner()
+}
+
+func TestProvisioner(t *testing.T) {
+	if err := Provisioner().(*schema.Provisioner).InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 }
 
 func TestResourceProvider_Validate_good(t *testing.T) {
@@ -23,7 +30,7 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 		"user_name":   "bob",
 		"user_key":    "USER-KEY",
 	})
-	r := new(ResourceProvisioner)
+	r := Provisioner()
 	warn, errs := r.Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
@@ -37,7 +44,7 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"invalid": "nope",
 	})
-	p := new(ResourceProvisioner)
+	p := Provisioner()
 	warn, errs := p.Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
@@ -59,7 +66,7 @@ func TestResourceProvider_Validate_computedValues(t *testing.T) {
 		"user_key":        "USER-KEY",
 		"attributes_json": config.UnknownVariableValue,
 	})
-	r := new(ResourceProvisioner)
+	r := Provisioner()
 	warn, errs := r.Validate(c)
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
@@ -149,14 +156,13 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 		},
 	}
 
-	r := new(ResourceProvisioner)
 	o := new(terraform.MockUIOutput)
 	c := new(communicator.MockCommunicator)
 
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := r.decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -222,14 +228,13 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 		},
 	}
 
-	r := new(ResourceProvisioner)
 	o := new(terraform.MockUIOutput)
 	c := new(communicator.MockCommunicator)
 
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := r.decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -347,14 +352,13 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 		},
 	}
 
-	r := new(ResourceProvisioner)
 	o := new(terraform.MockUIOutput)
 	c := new(communicator.MockCommunicator)
 
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := r.decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -367,4 +371,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
 	}
+}
+
+func getTestResourceData(c *terraform.ResourceConfig) *schema.ResourceData {
+	return schema.TestResourceDataConfig(Provisioner().(*schema.Provisioner).Schema, c)
 }

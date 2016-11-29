@@ -28,3 +28,10 @@ func TestResourceDataRaw(
 
 	return result
 }
+
+func TestResourceDataConfig(schema map[string]*Schema, config *terraform.ResourceConfig) *ResourceData {
+	return &ResourceData{
+		schema: schema,
+		config: config,
+	}
+}

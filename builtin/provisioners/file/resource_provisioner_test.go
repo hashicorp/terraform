@@ -4,8 +4,19 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func TestResourceProvisioner_impl(t *testing.T) {
+	var _ terraform.ResourceProvisioner = Provisioner()
+}
+
+func TestProvisioner(t *testing.T) {
+	if err := Provisioner().(*schema.Provisioner).InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
 
 func TestResourceProvider_Validate_good_source(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
@@ -40,6 +51,20 @@ func TestResourceProvider_Validate_good_content(t *testing.T) {
 func TestResourceProvider_Validate_bad_not_destination(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"source": "nope",
+	})
+	p := Provisioner()
+	warn, errs := p.Validate(c)
+	if len(warn) > 0 {
+		t.Fatalf("Warnings: %v", warn)
+	}
+	if len(errs) == 0 {
+		t.Fatalf("Should have errors")
+	}
+}
+
+func TestResourceProvider_Validate_bad_no_source(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"destination": "/tmp/bar",
 	})
 	p := Provisioner()
 	warn, errs := p.Validate(c)

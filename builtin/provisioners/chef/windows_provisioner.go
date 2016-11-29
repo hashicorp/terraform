@@ -46,7 +46,7 @@ Write-Host 'Installing Chef Client...'
 Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 `
 
-func (p *Provisioner) windowsInstallChefClient(
+func (p *ProvisionerS) windowsInstallChefClient(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
 	script := path.Join(path.Dir(comm.ScriptPath()), "ChefClient.ps1")
@@ -62,7 +62,7 @@ func (p *Provisioner) windowsInstallChefClient(
 	return p.runCommand(o, comm, installCmd)
 }
 
-func (p *Provisioner) windowsCreateConfigFiles(
+func (p *ProvisionerS) windowsCreateConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
 	// Make sure the config directory exists
