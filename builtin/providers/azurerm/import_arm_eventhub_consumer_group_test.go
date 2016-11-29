@@ -32,3 +32,27 @@ func TestAccAzureRMEventHubConsumerGroup_importBasic(t *testing.T) {
 		},
 	})
 }
+
+func TestAccAzureRMEventHubConsumerGroup_importComplete(t *testing.T) {
+	resourceName := "azurerm_eventhub_consumer_group.test"
+
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMEventHubConsumerGroup_complete, ri, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMEventHubConsumerGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+			},
+
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
