@@ -27,9 +27,9 @@ func TestMakeProvisionerMap(t *testing.T) {
 		},
 	})
 
-	expected := `	"file": func() terraform.ResourceProvisioner { return new(fileresourceprovisioner.ResourceProvisioner) },
-	"local-exec": func() terraform.ResourceProvisioner { return new(localexecresourceprovisioner.ResourceProvisioner) },
-	"remote-exec": func() terraform.ResourceProvisioner { return new(remoteexecresourceprovisioner.ResourceProvisioner) },
+	expected := `	"file":   fileresourceprovisioner.ResourceProvisioner,
+	"local-exec":   localexecresourceprovisioner.ResourceProvisioner,
+	"remote-exec":   remoteexecresourceprovisioner.ResourceProvisioner,
 `
 
 	if p != expected {
@@ -86,7 +86,7 @@ func TestDiscoverTypesProviders(t *testing.T) {
 }
 
 func TestDiscoverTypesProvisioners(t *testing.T) {
-	plugins, err := discoverTypesInPath("../builtin/provisioners", "ResourceProvisioner", "")
+	plugins, err := discoverTypesInPath("../builtin/provisioners", "terraform.ResourceProvisioner", "ResourceProvisioner")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

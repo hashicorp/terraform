@@ -62,7 +62,6 @@ import (
 	remoteexecresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
 
 	"github.com/hashicorp/terraform/plugin"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
@@ -119,8 +118,8 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 }
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
-	"chef":        func() terraform.ResourceProvisioner { return new(chefresourceprovisioner.ResourceProvisioner) },
-	"file":        func() terraform.ResourceProvisioner { return new(fileresourceprovisioner.ResourceProvisioner) },
-	"local-exec":  func() terraform.ResourceProvisioner { return new(localexecresourceprovisioner.ResourceProvisioner) },
-	"remote-exec": func() terraform.ResourceProvisioner { return new(remoteexecresourceprovisioner.ResourceProvisioner) },
+	"chef":        chefresourceprovisioner.ResourceProvisioner,
+	"file":        fileresourceprovisioner.ResourceProvisioner,
+	"local-exec":  localexecresourceprovisioner.ResourceProvisioner,
+	"remote-exec": remoteexecresourceprovisioner.ResourceProvisioner,
 }
