@@ -48,7 +48,7 @@ func (n *NodeDestroyResource) References() []string {
 // GraphNodeDynamicExpandable
 func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// If we have no config we do nothing
-	if n.Config == nil {
+	if n.Addr == nil {
 		return nil, nil
 	}
 
@@ -62,7 +62,7 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// We want deposed resources in the state to be destroyed
 	steps = append(steps, &DeposedTransformer{
 		State: state,
-		View:  n.Config.Id(),
+		View:  n.Addr.stateId(),
 	})
 
 	// Target
@@ -85,9 +85,6 @@ func (n *NodeDestroyResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 func (n *NodeDestroyResource) EvalTree() EvalNode {
 	// stateId is the ID to put into the state
 	stateId := n.Addr.stateId()
-	if n.Addr.Index > -1 {
-		stateId = fmt.Sprintf("%s.%d", stateId, n.Addr.Index)
-	}
 
 	// Build the instance info. More of this will be populated during eval
 	info := &InstanceInfo{
