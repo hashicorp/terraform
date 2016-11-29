@@ -11,7 +11,9 @@ IMPROVEMENTS:
  * provider/github: supports importing resources [GH-10382]
  * provider/postgresql: Added 'connect_timeout' argument to provider 'postgresql' [GH-10380]
 
+BUG FIXES:
 
+  * core: Destroying deposed resources in create before destroy waits until the creation step of its specific index. (0.8 regression) [GH-10416]
 
 ## 0.8.0-rc1 (November 23, 2016)
 
