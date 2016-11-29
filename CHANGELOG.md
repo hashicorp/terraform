@@ -1,5 +1,9 @@
 ## 0.8.0-rc2 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * Strings in configuration can no longer contain unescaped newlines. For unescaped newlines, heredocs must be used.
+
 FEATURES:
 
  * **New DataSource:** `aws_route_table` [GH-10301]
