@@ -8,15 +8,36 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 )
 
-// ResourceProvisioner represents a file provisioner
-type ResourceProvisioner struct{}
+func ResourceProvisioner() terraform.ResourceProvisioner {
+	return &schema.Provisioner{
+		Schema: map[string]*schema.Schema{
+			"source": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"content"},
+			},
+			"content": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"source"},
+			},
+			"destination": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+		ApplyFunc:    Apply,
+		ValidateFunc: Validate,
+	}
+}
 
 // Apply executes the file provisioner
-func (p *ResourceProvisioner) Apply(
+func Apply(
 	o terraform.UIOutput,
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
@@ -27,7 +48,7 @@ func (p *ResourceProvisioner) Apply(
 	}
 
 	// Get the source
-	src, deleteSource, err := p.getSrc(c)
+	src, deleteSource, err := getSrc(c)
 	if err != nil {
 		return err
 	}
@@ -41,11 +62,11 @@ func (p *ResourceProvisioner) Apply(
 	if !ok {
 		return fmt.Errorf("Unsupported 'destination' type! Must be string.")
 	}
-	return p.copyFiles(comm, src, dst)
+	return copyFiles(comm, src, dst)
 }
 
 // Validate checks if the required arguments are configured
-func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
+func Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
 	numDst := 0
 	numSrc := 0
 	for name := range c.Raw {
@@ -59,13 +80,13 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 		}
 	}
 	if numSrc != 1 || numDst != 1 {
-		es = append(es, fmt.Errorf("Must provide one  of 'content' or 'source' and 'destination' to file"))
+		es = append(es, fmt.Errorf("Must provide one of 'content' or 'source' and 'destination' to file"))
 	}
 	return
 }
 
 // getSrc returns the file to use as source
-func (p *ResourceProvisioner) getSrc(c *terraform.ResourceConfig) (string, bool, error) {
+func getSrc(c *terraform.ResourceConfig) (string, bool, error) {
 	var src string
 
 	sRaw, ok := c.Config["source"]
@@ -98,7 +119,7 @@ func (p *ResourceProvisioner) getSrc(c *terraform.ResourceConfig) (string, bool,
 }
 
 // copyFiles is used to copy the files from a source to a destination
-func (p *ResourceProvisioner) copyFiles(comm communicator.Communicator, src, dst string) error {
+func copyFiles(comm communicator.Communicator, src, dst string) error {
 	// Wait and retry until we establish the connection
 	err := retryFunc(comm.Timeout(), func() error {
 		err := comm.Connect(nil)
