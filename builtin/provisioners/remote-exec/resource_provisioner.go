@@ -12,15 +12,39 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-linereader"
 )
 
-// ResourceProvisioner represents a remote exec provisioner
-type ResourceProvisioner struct{}
+func ResourceProvisioner() terraform.ResourceProvisioner {
+	return &schema.Provisioner{
+		Schema: map[string]*schema.Schema{
+			"script": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"scripts", "inline"},
+			},
+			"scripts": {
+				Type:          schema.TypeList,
+				Optional:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				ConflictsWith: []string{"script", "inline"},
+			},
+			"inline": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"script", "scripts"},
+			},
+		},
+		ApplyFunc:    Apply,
+		ValidateFunc: Validate,
+	}
+
+}
 
 // Apply executes the remote exec provisioner
-func (p *ResourceProvisioner) Apply(
+func Apply(
 	o terraform.UIOutput,
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
@@ -31,7 +55,7 @@ func (p *ResourceProvisioner) Apply(
 	}
 
 	// Collect the scripts
-	scripts, err := p.collectScripts(c)
+	scripts, err := collectScripts(c)
 	if err != nil {
 		return err
 	}
@@ -40,14 +64,14 @@ func (p *ResourceProvisioner) Apply(
 	}
 
 	// Copy and execute each script
-	if err := p.runScripts(o, comm, scripts); err != nil {
+	if err := runScripts(o, comm, scripts); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Validate checks if the required arguments are configured
-func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
+func Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
 	num := 0
 	for name := range c.Raw {
 		switch name {
@@ -65,7 +89,7 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 
 // generateScript takes the configuration and creates a script to be executed
 // from the inline configs
-func (p *ResourceProvisioner) generateScript(c *terraform.ResourceConfig) (string, error) {
+func generateScript(c *terraform.ResourceConfig) (string, error) {
 	var lines []string
 	command, ok := c.Config["inline"]
 	if ok {
@@ -93,11 +117,11 @@ func (p *ResourceProvisioner) generateScript(c *terraform.ResourceConfig) (strin
 
 // collectScripts is used to collect all the scripts we need
 // to execute in preparation for copying them.
-func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.ReadCloser, error) {
+func collectScripts(c *terraform.ResourceConfig) ([]io.ReadCloser, error) {
 	// Check if inline
 	_, ok := c.Config["inline"]
 	if ok {
-		script, err := p.generateScript(c)
+		script, err := generateScript(c)
 		if err != nil {
 			return nil, err
 		}
@@ -153,7 +177,7 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 }
 
 // runScripts is used to copy and execute a set of scripts
-func (p *ResourceProvisioner) runScripts(
+func runScripts(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	scripts []io.ReadCloser) error {
@@ -173,8 +197,8 @@ func (p *ResourceProvisioner) runScripts(
 		errR, errW := io.Pipe()
 		outDoneCh := make(chan struct{})
 		errDoneCh := make(chan struct{})
-		go p.copyOutput(o, outR, outDoneCh)
-		go p.copyOutput(o, errR, errDoneCh)
+		go copyOutput(o, outR, outDoneCh)
+		go copyOutput(o, errR, errDoneCh)
 
 		remotePath := comm.ScriptPath()
 		err = retryFunc(comm.Timeout(), func() error {
@@ -224,7 +248,7 @@ func (p *ResourceProvisioner) runScripts(
 	return nil
 }
 
-func (p *ResourceProvisioner) copyOutput(
+func copyOutput(
 	o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
 	defer close(doneCh)
 	lr := linereader.New(r)
