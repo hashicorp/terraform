@@ -17,6 +17,7 @@ import (
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
@@ -128,16 +129,21 @@ type Provisioner struct {
 	ValidationKey        string `mapstructure:"validation_key"`
 }
 
-// ResourceProvisioner represents a generic chef provisioner
-type ResourceProvisioner struct{}
+func ResourceProvisioner() terraform.ResourceProvisioner {
+	return &schema.Provisioner{
+		Schema:       nil, // TODO: Fill from Provisioner struct, note 'required' tag
+		ApplyFunc:    Apply,
+		ValidateFunc: Validate,
+	}
+}
 
 // Apply executes the file provisioner
-func (r *ResourceProvisioner) Apply(
+func Apply(
 	o terraform.UIOutput,
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
 	// Decode the raw config for this provisioner
-	p, err := r.decodeConfig(c)
+	p, err := decodeConfig(c)
 	if err != nil {
 		return err
 	}
@@ -248,8 +254,8 @@ func (r *ResourceProvisioner) Apply(
 }
 
 // Validate checks if the required arguments are configured
-func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
-	p, err := r.decodeConfig(c)
+func Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
+	p, err := decodeConfig(c)
 	if err != nil {
 		es = append(es, err)
 		return ws, es
@@ -297,7 +303,7 @@ func (r *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 	return ws, es
 }
 
-func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provisioner, error) {
+func decodeConfig(c *terraform.ResourceConfig) (*Provisioner, error) {
 	p := new(Provisioner)
 
 	decConf := &mapstructure.DecoderConfig{
