@@ -23,6 +23,40 @@ list of changes will always be the
 After reviewing this guide, we recommend reviewing the Changelog to check on
 specific notes about the resources and providers you use.
 
+## Newlines in Strings
+
+Newlines are no longer allowed in strings unless it is a heredoc or an
+interpolation. This improves the performance of IDE syntax highlighting
+of Terraform configurations and simplifies parsing.
+
+**Behavior that no longer works in Terraform 0.8:**
+
+```
+resource "null_resource" "foo" {
+  value = "foo
+bar"
+}
+```
+
+**Valid Terraform 0.8 configuration:**
+
+```
+resource "null_resource" "foo" {
+  value = "foo\nbar"
+
+  value2 = <<EOF
+foo
+bar
+EOF
+
+  # You can still have newlines within interpolations.
+  value3 = "${lookup(
+    var.foo, var.bar)}"
+}
+```
+
+**Action:** Use heredocs or escape sequences when you have a string with newlines.
+
 ## Math Order of Operations
 
 Math operations now follow standard mathematical order of operations.

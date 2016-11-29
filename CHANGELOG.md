@@ -1,5 +1,9 @@
 ## 0.8.0-rc2 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * Strings in configuration can no longer contain unescaped newlines. For unescaped newlines, heredocs must be used.
+
 FEATURES:
 
  * **New DataSource:** `aws_route_table` [GH-10301]
@@ -10,6 +14,7 @@ IMPROVEMENTS:
  * provider/azurerm: create common schema for location field, add diff suppress [GH-10409]
  * provider/github: supports importing resources [GH-10382]
  * provider/postgresql: Added 'connect_timeout' argument to provider 'postgresql' [GH-10380]
+ * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_static_nat` resource [GH-10420]
 
 BUG FIXES:
 
