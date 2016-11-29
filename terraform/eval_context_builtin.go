@@ -39,8 +39,13 @@ type BuiltinEvalContext struct {
 	DiffLock            *sync.RWMutex
 	StateValue          *State
 	StateLock           *sync.RWMutex
+	IgnoreMissingCount  bool
 
 	once sync.Once
+}
+
+func (ctx *BuiltinEvalContext) CanIgnoreMissingCountExpansion() bool {
+	return ctx.IgnoreMissingCount
 }
 
 func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
