@@ -23,9 +23,6 @@ func (n *NodeApplyableResource) EvalTree() EvalNode {
 
 	// stateId is the ID to put into the state
 	stateId := addr.stateId()
-	if addr.Index > -1 {
-		stateId = fmt.Sprintf("%s.%d", stateId, addr.Index)
-	}
 
 	// Build the instance info. More of this will be populated during eval
 	info := &InstanceInfo{
