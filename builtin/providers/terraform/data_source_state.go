@@ -13,19 +13,29 @@ func dataSourceRemoteState() *schema.Resource {
 		Read: dataSourceRemoteStateRead,
 
 		Schema: map[string]*schema.Schema{
-			"backend": &schema.Schema{
+			"backend": {
 				Type:     schema.TypeString,
 				Required: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					if vStr, ok := v.(string); ok && vStr == "_local" {
+						ws = append(ws, "Use of the %q backend is now officially "+
+							"supported as %q. Please update your configuration to ensure "+
+							"compatibility with future versions of Terraform.",
+							"_local", "local")
+					}
+
+					return
+				},
 			},
 
-			"config": &schema.Schema{
+			"config": {
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
 
-			"output": &schema.Schema{
-				Type:     schema.TypeMap,
-				Computed: true,
+			"__has_dynamic_attributes": {
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 		},
 	}
@@ -36,6 +46,12 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	config := make(map[string]string)
 	for k, v := range d.Get("config").(map[string]interface{}) {
 		config[k] = v.(string)
+	}
+
+	// Don't break people using the old _local syntax - but note warning above
+	if backend == "_local" {
+		log.Println(`[INFO] Switching old (unsupported) backend "_local" to "local"`)
+		backend = "local"
 	}
 
 	// Create the client to access our remote state
@@ -52,16 +68,24 @@ func dataSourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	var outputs map[string]interface{}
-	if !state.State().Empty() {
-		outputValueMap := make(map[string]string)
-		for key, output := range state.State().RootModule().Outputs {
-			//This is ok for 0.6.17 as outputs will have been strings
-			outputValueMap[key] = output.Value.(string)
-		}
+	d.SetId(time.Now().UTC().String())
+
+	outputMap := make(map[string]interface{})
+
+	remoteState := state.State()
+	if remoteState.Empty() {
+		log.Println("[DEBUG] empty remote state")
+		return nil
 	}
 
-	d.SetId(time.Now().UTC().String())
-	d.Set("output", outputs)
+	for key, val := range remoteState.RootModule().Outputs {
+		outputMap[key] = val.Value
+	}
+
+	mappedOutputs := remoteStateFlatten(outputMap)
+
+	for key, val := range mappedOutputs {
+		d.UnsafeSetFieldRaw(key, val)
+	}
 	return nil
 }

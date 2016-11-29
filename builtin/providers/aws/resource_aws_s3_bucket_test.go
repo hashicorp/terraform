@@ -77,6 +77,72 @@ func TestAccAWSS3Bucket_acceleration(t *testing.T) {
 	})
 }
 
+func TestAccAWSS3Bucket_RequestPayer(t *testing.T) {
+	rInt := acctest.RandInt()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigRequestPayerBucketOwner(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket",
+						"request_payer",
+						"BucketOwner"),
+					testAccCheckAWSS3RequestPayer(
+						"aws_s3_bucket.bucket",
+						"BucketOwner"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigRequestPayerRequester(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket",
+						"request_payer",
+						"Requester"),
+					testAccCheckAWSS3RequestPayer(
+						"aws_s3_bucket.bucket",
+						"Requester"),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceAWSS3BucketRequestPayer_validation(t *testing.T) {
+	_, errors := validateS3BucketRequestPayerType("incorrect", "request_payer")
+	if len(errors) == 0 {
+		t.Fatalf("Expected to trigger a validation error")
+	}
+
+	var testCases = []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "Requester",
+			ErrCount: 0,
+		},
+		{
+			Value:    "BucketOwner",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, errors := validateS3BucketRequestPayerType(tc.Value, "request_payer")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected not to trigger a validation error")
+		}
+	}
+}
+
 func TestAccAWSS3Bucket_Policy(t *testing.T) {
 	rInt := acctest.RandInt()
 
@@ -329,11 +395,61 @@ func TestAccAWSS3Bucket_Versioning(t *testing.T) {
 
 func TestAccAWSS3Bucket_Cors(t *testing.T) {
 	rInt := acctest.RandInt()
+
+	updateBucketCors := func(n string) resource.TestCheckFunc {
+		return func(s *terraform.State) error {
+			rs, ok := s.RootModule().Resources[n]
+			if !ok {
+				return fmt.Errorf("Not found: %s", n)
+			}
+
+			conn := testAccProvider.Meta().(*AWSClient).s3conn
+			_, err := conn.PutBucketCors(&s3.PutBucketCorsInput{
+				Bucket: aws.String(rs.Primary.ID),
+				CORSConfiguration: &s3.CORSConfiguration{
+					CORSRules: []*s3.CORSRule{
+						&s3.CORSRule{
+							AllowedHeaders: []*string{aws.String("*")},
+							AllowedMethods: []*string{aws.String("GET")},
+							AllowedOrigins: []*string{aws.String("https://www.example.com")},
+						},
+					},
+				},
+			})
+			if err != nil {
+				if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() != "NoSuchCORSConfiguration" {
+					return err
+				}
+			}
+			return nil
+		}
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSS3BucketDestroy,
 		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfigWithCORS(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketCors(
+						"aws_s3_bucket.bucket",
+						[]*s3.CORSRule{
+							&s3.CORSRule{
+								AllowedHeaders: []*string{aws.String("*")},
+								AllowedMethods: []*string{aws.String("PUT"), aws.String("POST")},
+								AllowedOrigins: []*string{aws.String("https://www.example.com")},
+								ExposeHeaders:  []*string{aws.String("x-amz-server-side-encryption"), aws.String("ETag")},
+								MaxAgeSeconds:  aws.Int64(3000),
+							},
+						},
+					),
+					updateBucketCors("aws_s3_bucket.bucket"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
 			resource.TestStep{
 				Config: testAccAWSS3BucketConfigWithCORS(rInt),
 				Check: resource.ComposeTestCheckFunc(
@@ -450,6 +566,12 @@ func TestAccAWSS3Bucket_Lifecycle(t *testing.T) {
 						"aws_s3_bucket.bucket", "lifecycle_rule.1.noncurrent_version_expiration.80908210.days", "365"),
 				),
 			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfig(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+				),
+			},
 		},
 	})
 }
@@ -529,13 +651,19 @@ func testAccCheckAWSS3BucketPolicy(n string, policy string) resource.TestCheckFu
 			Bucket: aws.String(rs.Primary.ID),
 		})
 
-		if err != nil {
-			if policy == "" {
+		if policy == "" {
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoSuchBucketPolicy" {
 				// expected
 				return nil
+			}
+			if err == nil {
+				return fmt.Errorf("Expected no policy, got: %#v", *out.Policy)
 			} else {
 				return fmt.Errorf("GetBucketPolicy error: %v, expected %s", err, policy)
 			}
+		}
+		if err != nil {
+			return fmt.Errorf("GetBucketPolicy error: %v, expected %s", err, policy)
 		}
 
 		if v := out.Policy; v == nil {
@@ -683,6 +811,28 @@ func testAccCheckAWSS3BucketCors(n string, corsRules []*s3.CORSRule) resource.Te
 
 		if !reflect.DeepEqual(out.CORSRules, corsRules) {
 			return fmt.Errorf("bad error cors rule, expected: %v, got %v", corsRules, out.CORSRules)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSS3RequestPayer(n, expectedPayer string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := conn.GetBucketRequestPayment(&s3.GetBucketRequestPaymentInput{
+			Bucket: aws.String(rs.Primary.ID),
+		})
+
+		if err != nil {
+			return fmt.Errorf("GetBucketRequestPayment error: %v", err)
+		}
+
+		if *out.Payer != expectedPayer {
+			return fmt.Errorf("bad error request payer type, expected: %v, got %v",
+				expectedPayer, out.Payer)
 		}
 
 		return nil
@@ -840,6 +990,26 @@ resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
 	acceleration_status = "Suspended"
+}
+`, randInt)
+}
+
+func testAccAWSS3BucketConfigRequestPayerBucketOwner(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	request_payer = "BucketOwner"
+}
+`, randInt)
+}
+
+func testAccAWSS3BucketConfigRequestPayerRequester(randInt int) string {
+	return fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+	request_payer = "Requester"
 }
 `, randInt)
 }

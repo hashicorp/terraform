@@ -13,9 +13,11 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
+	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
+	"google.golang.org/api/iam/v1"
 	"google.golang.org/api/pubsub/v1"
 	"google.golang.org/api/sqladmin/v1beta4"
 	"google.golang.org/api/storage/v1"
@@ -28,12 +30,14 @@ type Config struct {
 	Project     string
 	Region      string
 
-	clientCompute   *compute.Service
-	clientContainer *container.Service
-	clientDns       *dns.Service
-	clientStorage   *storage.Service
-	clientSqlAdmin  *sqladmin.Service
-	clientPubsub    *pubsub.Service
+	clientCompute         *compute.Service
+	clientContainer       *container.Service
+	clientDns             *dns.Service
+	clientPubsub          *pubsub.Service
+	clientResourceManager *cloudresourcemanager.Service
+	clientStorage         *storage.Service
+	clientSqlAdmin        *sqladmin.Service
+	clientIAM             *iam.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -85,11 +89,7 @@ func (c *Config) loadAndValidate() error {
 		}
 	}
 
-	versionString := terraform.Version
-	prerelease := terraform.VersionPrerelease
-	if len(prerelease) > 0 {
-		versionString = fmt.Sprintf("%s-%s", versionString, prerelease)
-	}
+	versionString := terraform.VersionString()
 	userAgent := fmt.Sprintf(
 		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
 
@@ -136,6 +136,20 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientPubsub.UserAgent = userAgent
+
+	log.Printf("[INFO] Instatiating Google Cloud ResourceManager Client...")
+	c.clientResourceManager, err = cloudresourcemanager.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientResourceManager.UserAgent = userAgent
+
+	log.Printf("[INFO] Instatiating Google Cloud IAM Client...")
+	c.clientIAM, err = iam.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientIAM.UserAgent = userAgent
 
 	return nil
 }

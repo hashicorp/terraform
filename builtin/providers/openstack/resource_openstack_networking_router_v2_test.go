@@ -2,12 +2,13 @@ package openstack
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 )
 
 func TestAccNetworkingV2Router_basic(t *testing.T) {
@@ -28,6 +29,46 @@ func TestAccNetworkingV2Router_basic(t *testing.T) {
 				Config: testAccNetworkingV2Router_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_networking_router_v2.foo", "name", "router_2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccNetworkingV2Router_update_external_gw(t *testing.T) {
+	var router routers.Router
+	externalGateway := os.Getenv("OS_EXTGW_ID")
+
+	var testAccNetworkingV2Router_update_external_gw_1 = fmt.Sprintf(`
+		resource "openstack_networking_router_v2" "foo" {
+			name = "router"
+			admin_state_up = "true"
+			distributed = "false"
+		}`)
+
+	var testAccNetworkingV2Router_update_external_gw_2 = fmt.Sprintf(`
+		resource "openstack_networking_router_v2" "foo" {
+			name = "router"
+			admin_state_up = "true"
+			distributed = "false"
+			external_gateway = "%s"
+		}`, externalGateway)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckNetworkingV2RouterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccNetworkingV2Router_update_external_gw_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckNetworkingV2RouterExists(t, "openstack_networking_router_v2.foo", &router),
+				),
+			},
+			resource.TestStep{
+				Config: testAccNetworkingV2Router_update_external_gw_2,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("openstack_networking_router_v2.foo", "external_gateway", externalGateway),
 				),
 			},
 		},

@@ -185,11 +185,9 @@ resource "aws_api_gateway_method_response" "error" {
     "application/json" = "Error"
   }
 
-	response_parameters_in_json = <<PARAMS
-	{
-		"method.response.header.Content-Type": true
+	response_parameters = {
+		"method.response.header.Content-Type" = true
 	}
-	PARAMS
 }
 
 resource "aws_api_gateway_integration" "test" {
@@ -217,11 +215,9 @@ resource "aws_api_gateway_integration_response" "test" {
     "application/xml" = "#set($inputRoot = $input.path('$'))\n{ }"
   }
 
-	response_parameters_in_json = <<PARAMS
-	{
-		"method.response.header.Content-Type": "integration.response.body.type"
+	response_parameters = {
+		"method.response.header.Content-Type" = "integration.response.body.type"
 	}
-	PARAMS
 }
 `
 
@@ -257,11 +253,9 @@ resource "aws_api_gateway_method_response" "error" {
     "application/json" = "Error"
   }
 
-	response_parameters_in_json = <<PARAMS
-	{
-		"method.response.header.Content-Type": true
+	response_parameters = {
+		"method.response.header.Content-Type" = true
 	}
-	PARAMS
 }
 
 resource "aws_api_gateway_integration" "test" {

@@ -38,3 +38,11 @@ The following attributes are exported:
 * `id` - The db subnet group name.
 * `arn` - The ARN of the db subnet group.
 
+
+## Import
+
+DB Subnet groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_db_subnet_group.default production-subnet-group
+```

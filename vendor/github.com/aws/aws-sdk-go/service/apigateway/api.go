@@ -14,7 +14,30 @@ import (
 
 const opCreateApiKey = "CreateApiKey"
 
-// CreateApiKeyRequest generates a request for the CreateApiKey operation.
+// CreateApiKeyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateApiKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateApiKey for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateApiKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateApiKeyRequest method.
+//    req, resp := client.CreateApiKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request.Request, output *ApiKey) {
 	op := &request.Operation{
 		Name:       opCreateApiKey,
@@ -32,7 +55,38 @@ func (c *APIGateway) CreateApiKeyRequest(input *CreateApiKeyInput) (req *request
 	return
 }
 
+// CreateApiKey API operation for Amazon API Gateway.
+//
 // Create an ApiKey resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/create-api-key.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateApiKey for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * LimitExceededException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) CreateApiKey(input *CreateApiKeyInput) (*ApiKey, error) {
 	req, out := c.CreateApiKeyRequest(input)
 	err := req.Send()
@@ -41,7 +95,30 @@ func (c *APIGateway) CreateApiKey(input *CreateApiKeyInput) (*ApiKey, error) {
 
 const opCreateAuthorizer = "CreateAuthorizer"
 
-// CreateAuthorizerRequest generates a request for the CreateAuthorizer operation.
+// CreateAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the CreateAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateAuthorizer for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateAuthorizerRequest method.
+//    req, resp := client.CreateAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req *request.Request, output *Authorizer) {
 	op := &request.Operation{
 		Name:       opCreateAuthorizer,
@@ -59,7 +136,35 @@ func (c *APIGateway) CreateAuthorizerRequest(input *CreateAuthorizerInput) (req 
 	return
 }
 
+// CreateAuthorizer API operation for Amazon API Gateway.
+//
 // Adds a new Authorizer resource to an existing RestApi resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/create-authorizer.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateAuthorizer for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * LimitExceededException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) CreateAuthorizer(input *CreateAuthorizerInput) (*Authorizer, error) {
 	req, out := c.CreateAuthorizerRequest(input)
 	err := req.Send()
@@ -68,7 +173,30 @@ func (c *APIGateway) CreateAuthorizer(input *CreateAuthorizerInput) (*Authorizer
 
 const opCreateBasePathMapping = "CreateBasePathMapping"
 
-// CreateBasePathMappingRequest generates a request for the CreateBasePathMapping operation.
+// CreateBasePathMappingRequest generates a "aws/request.Request" representing the
+// client's request for the CreateBasePathMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateBasePathMapping for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateBasePathMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateBasePathMappingRequest method.
+//    req, resp := client.CreateBasePathMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateBasePathMappingRequest(input *CreateBasePathMappingInput) (req *request.Request, output *BasePathMapping) {
 	op := &request.Operation{
 		Name:       opCreateBasePathMapping,
@@ -86,7 +214,33 @@ func (c *APIGateway) CreateBasePathMappingRequest(input *CreateBasePathMappingIn
 	return
 }
 
+// CreateBasePathMapping API operation for Amazon API Gateway.
+//
 // Creates a new BasePathMapping resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateBasePathMapping for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * ConflictException
+
+//
+//   * BadRequestException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) CreateBasePathMapping(input *CreateBasePathMappingInput) (*BasePathMapping, error) {
 	req, out := c.CreateBasePathMappingRequest(input)
 	err := req.Send()
@@ -95,7 +249,30 @@ func (c *APIGateway) CreateBasePathMapping(input *CreateBasePathMappingInput) (*
 
 const opCreateDeployment = "CreateDeployment"
 
-// CreateDeploymentRequest generates a request for the CreateDeployment operation.
+// CreateDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDeployment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateDeployment for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateDeployment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateDeploymentRequest method.
+//    req, resp := client.CreateDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateDeploymentRequest(input *CreateDeploymentInput) (req *request.Request, output *Deployment) {
 	op := &request.Operation{
 		Name:       opCreateDeployment,
@@ -113,8 +290,40 @@ func (c *APIGateway) CreateDeploymentRequest(input *CreateDeploymentInput) (req 
 	return
 }
 
+// CreateDeployment API operation for Amazon API Gateway.
+//
 // Creates a Deployment resource, which makes a specified RestApi callable over
 // the internet.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateDeployment for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * BadRequestException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * LimitExceededException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ServiceUnavailableException
+
+//
 func (c *APIGateway) CreateDeployment(input *CreateDeploymentInput) (*Deployment, error) {
 	req, out := c.CreateDeploymentRequest(input)
 	err := req.Send()
@@ -123,7 +332,30 @@ func (c *APIGateway) CreateDeployment(input *CreateDeploymentInput) (*Deployment
 
 const opCreateDomainName = "CreateDomainName"
 
-// CreateDomainNameRequest generates a request for the CreateDomainName operation.
+// CreateDomainNameRequest generates a "aws/request.Request" representing the
+// client's request for the CreateDomainName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateDomainName for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateDomainName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateDomainNameRequest method.
+//    req, resp := client.CreateDomainNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateDomainNameRequest(input *CreateDomainNameInput) (req *request.Request, output *DomainName) {
 	op := &request.Operation{
 		Name:       opCreateDomainName,
@@ -141,7 +373,30 @@ func (c *APIGateway) CreateDomainNameRequest(input *CreateDomainNameInput) (req 
 	return
 }
 
+// CreateDomainName API operation for Amazon API Gateway.
+//
 // Creates a new domain name.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateDomainName for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) CreateDomainName(input *CreateDomainNameInput) (*DomainName, error) {
 	req, out := c.CreateDomainNameRequest(input)
 	err := req.Send()
@@ -150,7 +405,30 @@ func (c *APIGateway) CreateDomainName(input *CreateDomainNameInput) (*DomainName
 
 const opCreateModel = "CreateModel"
 
-// CreateModelRequest generates a request for the CreateModel operation.
+// CreateModelRequest generates a "aws/request.Request" representing the
+// client's request for the CreateModel operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateModel for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateModel method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateModelRequest method.
+//    req, resp := client.CreateModelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateModelRequest(input *CreateModelInput) (req *request.Request, output *Model) {
 	op := &request.Operation{
 		Name:       opCreateModel,
@@ -168,7 +446,36 @@ func (c *APIGateway) CreateModelRequest(input *CreateModelInput) (req *request.R
 	return
 }
 
+// CreateModel API operation for Amazon API Gateway.
+//
 // Adds a new Model resource to an existing RestApi resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateModel for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * LimitExceededException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) CreateModel(input *CreateModelInput) (*Model, error) {
 	req, out := c.CreateModelRequest(input)
 	err := req.Send()
@@ -177,7 +484,30 @@ func (c *APIGateway) CreateModel(input *CreateModelInput) (*Model, error) {
 
 const opCreateResource = "CreateResource"
 
-// CreateResourceRequest generates a request for the CreateResource operation.
+// CreateResourceRequest generates a "aws/request.Request" representing the
+// client's request for the CreateResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateResource for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateResourceRequest method.
+//    req, resp := client.CreateResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateResourceRequest(input *CreateResourceInput) (req *request.Request, output *Resource) {
 	op := &request.Operation{
 		Name:       opCreateResource,
@@ -195,7 +525,36 @@ func (c *APIGateway) CreateResourceRequest(input *CreateResourceInput) (req *req
 	return
 }
 
+// CreateResource API operation for Amazon API Gateway.
+//
 // Creates a Resource resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateResource for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * LimitExceededException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) CreateResource(input *CreateResourceInput) (*Resource, error) {
 	req, out := c.CreateResourceRequest(input)
 	err := req.Send()
@@ -204,7 +563,30 @@ func (c *APIGateway) CreateResource(input *CreateResourceInput) (*Resource, erro
 
 const opCreateRestApi = "CreateRestApi"
 
-// CreateRestApiRequest generates a request for the CreateRestApi operation.
+// CreateRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the CreateRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateRestApi for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateRestApiRequest method.
+//    req, resp := client.CreateRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateRestApiRequest(input *CreateRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opCreateRestApi,
@@ -222,7 +604,30 @@ func (c *APIGateway) CreateRestApiRequest(input *CreateRestApiInput) (req *reque
 	return
 }
 
+// CreateRestApi API operation for Amazon API Gateway.
+//
 // Creates a new RestApi resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateRestApi for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * LimitExceededException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) CreateRestApi(input *CreateRestApiInput) (*RestApi, error) {
 	req, out := c.CreateRestApiRequest(input)
 	err := req.Send()
@@ -231,7 +636,30 @@ func (c *APIGateway) CreateRestApi(input *CreateRestApiInput) (*RestApi, error) 
 
 const opCreateStage = "CreateStage"
 
-// CreateStageRequest generates a request for the CreateStage operation.
+// CreateStageRequest generates a "aws/request.Request" representing the
+// client's request for the CreateStage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateStage for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateStage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateStageRequest method.
+//    req, resp := client.CreateStageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) CreateStageRequest(input *CreateStageInput) (req *request.Request, output *Stage) {
 	op := &request.Operation{
 		Name:       opCreateStage,
@@ -249,17 +677,225 @@ func (c *APIGateway) CreateStageRequest(input *CreateStageInput) (req *request.R
 	return
 }
 
+// CreateStage API operation for Amazon API Gateway.
+//
 // Creates a new Stage resource that references a pre-existing Deployment for
 // the API.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateStage for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * BadRequestException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * LimitExceededException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) CreateStage(input *CreateStageInput) (*Stage, error) {
 	req, out := c.CreateStageRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+const opCreateUsagePlan = "CreateUsagePlan"
+
+// CreateUsagePlanRequest generates a "aws/request.Request" representing the
+// client's request for the CreateUsagePlan operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateUsagePlan for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateUsagePlan method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateUsagePlanRequest method.
+//    req, resp := client.CreateUsagePlanRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) CreateUsagePlanRequest(input *CreateUsagePlanInput) (req *request.Request, output *UsagePlan) {
+	op := &request.Operation{
+		Name:       opCreateUsagePlan,
+		HTTPMethod: "POST",
+		HTTPPath:   "/usageplans",
+	}
+
+	if input == nil {
+		input = &CreateUsagePlanInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlan{}
+	req.Data = output
+	return
+}
+
+// CreateUsagePlan API operation for Amazon API Gateway.
+//
+// Creates a usage plan with the throttle and quota limits, as well as the associated
+// API stages, specified in the payload.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateUsagePlan for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * LimitExceededException
+
+//
+//   * ConflictException
+
+//
+//   * NotFoundException
+
+//
+func (c *APIGateway) CreateUsagePlan(input *CreateUsagePlanInput) (*UsagePlan, error) {
+	req, out := c.CreateUsagePlanRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opCreateUsagePlanKey = "CreateUsagePlanKey"
+
+// CreateUsagePlanKeyRequest generates a "aws/request.Request" representing the
+// client's request for the CreateUsagePlanKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateUsagePlanKey for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateUsagePlanKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateUsagePlanKeyRequest method.
+//    req, resp := client.CreateUsagePlanKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) CreateUsagePlanKeyRequest(input *CreateUsagePlanKeyInput) (req *request.Request, output *UsagePlanKey) {
+	op := &request.Operation{
+		Name:       opCreateUsagePlanKey,
+		HTTPMethod: "POST",
+		HTTPPath:   "/usageplans/{usageplanId}/keys",
+	}
+
+	if input == nil {
+		input = &CreateUsagePlanKeyInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlanKey{}
+	req.Data = output
+	return
+}
+
+// CreateUsagePlanKey API operation for Amazon API Gateway.
+//
+// Creates a usage plan key for adding an existing API key to a usage plan.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation CreateUsagePlanKey for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+func (c *APIGateway) CreateUsagePlanKey(input *CreateUsagePlanKeyInput) (*UsagePlanKey, error) {
+	req, out := c.CreateUsagePlanKeyRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDeleteApiKey = "DeleteApiKey"
 
-// DeleteApiKeyRequest generates a request for the DeleteApiKey operation.
+// DeleteApiKeyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteApiKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteApiKey for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteApiKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteApiKeyRequest method.
+//    req, resp := client.DeleteApiKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteApiKeyRequest(input *DeleteApiKeyInput) (req *request.Request, output *DeleteApiKeyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteApiKey,
@@ -279,7 +915,27 @@ func (c *APIGateway) DeleteApiKeyRequest(input *DeleteApiKeyInput) (req *request
 	return
 }
 
+// DeleteApiKey API operation for Amazon API Gateway.
+//
 // Deletes the ApiKey resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteApiKey for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) DeleteApiKey(input *DeleteApiKeyInput) (*DeleteApiKeyOutput, error) {
 	req, out := c.DeleteApiKeyRequest(input)
 	err := req.Send()
@@ -288,7 +944,30 @@ func (c *APIGateway) DeleteApiKey(input *DeleteApiKeyInput) (*DeleteApiKeyOutput
 
 const opDeleteAuthorizer = "DeleteAuthorizer"
 
-// DeleteAuthorizerRequest generates a request for the DeleteAuthorizer operation.
+// DeleteAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteAuthorizer for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteAuthorizerRequest method.
+//    req, resp := client.DeleteAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req *request.Request, output *DeleteAuthorizerOutput) {
 	op := &request.Operation{
 		Name:       opDeleteAuthorizer,
@@ -308,7 +987,35 @@ func (c *APIGateway) DeleteAuthorizerRequest(input *DeleteAuthorizerInput) (req 
 	return
 }
 
+// DeleteAuthorizer API operation for Amazon API Gateway.
+//
 // Deletes an existing Authorizer resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/delete-authorizer.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteAuthorizer for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) DeleteAuthorizer(input *DeleteAuthorizerInput) (*DeleteAuthorizerOutput, error) {
 	req, out := c.DeleteAuthorizerRequest(input)
 	err := req.Send()
@@ -317,7 +1024,30 @@ func (c *APIGateway) DeleteAuthorizer(input *DeleteAuthorizerInput) (*DeleteAuth
 
 const opDeleteBasePathMapping = "DeleteBasePathMapping"
 
-// DeleteBasePathMappingRequest generates a request for the DeleteBasePathMapping operation.
+// DeleteBasePathMappingRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteBasePathMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteBasePathMapping for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteBasePathMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteBasePathMappingRequest method.
+//    req, resp := client.DeleteBasePathMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteBasePathMappingRequest(input *DeleteBasePathMappingInput) (req *request.Request, output *DeleteBasePathMappingOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBasePathMapping,
@@ -337,7 +1067,27 @@ func (c *APIGateway) DeleteBasePathMappingRequest(input *DeleteBasePathMappingIn
 	return
 }
 
+// DeleteBasePathMapping API operation for Amazon API Gateway.
+//
 // Deletes the BasePathMapping resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteBasePathMapping for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) DeleteBasePathMapping(input *DeleteBasePathMappingInput) (*DeleteBasePathMappingOutput, error) {
 	req, out := c.DeleteBasePathMappingRequest(input)
 	err := req.Send()
@@ -346,7 +1096,30 @@ func (c *APIGateway) DeleteBasePathMapping(input *DeleteBasePathMappingInput) (*
 
 const opDeleteClientCertificate = "DeleteClientCertificate"
 
-// DeleteClientCertificateRequest generates a request for the DeleteClientCertificate operation.
+// DeleteClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteClientCertificate for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteClientCertificateRequest method.
+//    req, resp := client.DeleteClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteClientCertificateRequest(input *DeleteClientCertificateInput) (req *request.Request, output *DeleteClientCertificateOutput) {
 	op := &request.Operation{
 		Name:       opDeleteClientCertificate,
@@ -366,7 +1139,30 @@ func (c *APIGateway) DeleteClientCertificateRequest(input *DeleteClientCertifica
 	return
 }
 
+// DeleteClientCertificate API operation for Amazon API Gateway.
+//
 // Deletes the ClientCertificate resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteClientCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
+//   * NotFoundException
+
+//
 func (c *APIGateway) DeleteClientCertificate(input *DeleteClientCertificateInput) (*DeleteClientCertificateOutput, error) {
 	req, out := c.DeleteClientCertificateRequest(input)
 	err := req.Send()
@@ -375,7 +1171,30 @@ func (c *APIGateway) DeleteClientCertificate(input *DeleteClientCertificateInput
 
 const opDeleteDeployment = "DeleteDeployment"
 
-// DeleteDeploymentRequest generates a request for the DeleteDeployment operation.
+// DeleteDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDeployment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteDeployment for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteDeployment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteDeploymentRequest method.
+//    req, resp := client.DeleteDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteDeploymentRequest(input *DeleteDeploymentInput) (req *request.Request, output *DeleteDeploymentOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDeployment,
@@ -395,8 +1214,31 @@ func (c *APIGateway) DeleteDeploymentRequest(input *DeleteDeploymentInput) (req 
 	return
 }
 
+// DeleteDeployment API operation for Amazon API Gateway.
+//
 // Deletes a Deployment resource. Deleting a deployment will only succeed if
 // there are no Stage resources associated with it.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteDeployment for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) DeleteDeployment(input *DeleteDeploymentInput) (*DeleteDeploymentOutput, error) {
 	req, out := c.DeleteDeploymentRequest(input)
 	err := req.Send()
@@ -405,7 +1247,30 @@ func (c *APIGateway) DeleteDeployment(input *DeleteDeploymentInput) (*DeleteDepl
 
 const opDeleteDomainName = "DeleteDomainName"
 
-// DeleteDomainNameRequest generates a request for the DeleteDomainName operation.
+// DeleteDomainNameRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteDomainName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteDomainName for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteDomainName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteDomainNameRequest method.
+//    req, resp := client.DeleteDomainNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteDomainNameRequest(input *DeleteDomainNameInput) (req *request.Request, output *DeleteDomainNameOutput) {
 	op := &request.Operation{
 		Name:       opDeleteDomainName,
@@ -425,7 +1290,27 @@ func (c *APIGateway) DeleteDomainNameRequest(input *DeleteDomainNameInput) (req 
 	return
 }
 
+// DeleteDomainName API operation for Amazon API Gateway.
+//
 // Deletes the DomainName resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteDomainName for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) DeleteDomainName(input *DeleteDomainNameInput) (*DeleteDomainNameOutput, error) {
 	req, out := c.DeleteDomainNameRequest(input)
 	err := req.Send()
@@ -434,7 +1319,30 @@ func (c *APIGateway) DeleteDomainName(input *DeleteDomainNameInput) (*DeleteDoma
 
 const opDeleteIntegration = "DeleteIntegration"
 
-// DeleteIntegrationRequest generates a request for the DeleteIntegration operation.
+// DeleteIntegrationRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteIntegration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteIntegration for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteIntegration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteIntegrationRequest method.
+//    req, resp := client.DeleteIntegrationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteIntegrationRequest(input *DeleteIntegrationInput) (req *request.Request, output *DeleteIntegrationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteIntegration,
@@ -454,7 +1362,30 @@ func (c *APIGateway) DeleteIntegrationRequest(input *DeleteIntegrationInput) (re
 	return
 }
 
+// DeleteIntegration API operation for Amazon API Gateway.
+//
 // Represents a delete integration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteIntegration for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) DeleteIntegration(input *DeleteIntegrationInput) (*DeleteIntegrationOutput, error) {
 	req, out := c.DeleteIntegrationRequest(input)
 	err := req.Send()
@@ -463,7 +1394,30 @@ func (c *APIGateway) DeleteIntegration(input *DeleteIntegrationInput) (*DeleteIn
 
 const opDeleteIntegrationResponse = "DeleteIntegrationResponse"
 
-// DeleteIntegrationResponseRequest generates a request for the DeleteIntegrationResponse operation.
+// DeleteIntegrationResponseRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteIntegrationResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteIntegrationResponse for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteIntegrationResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteIntegrationResponseRequest method.
+//    req, resp := client.DeleteIntegrationResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteIntegrationResponseRequest(input *DeleteIntegrationResponseInput) (req *request.Request, output *DeleteIntegrationResponseOutput) {
 	op := &request.Operation{
 		Name:       opDeleteIntegrationResponse,
@@ -483,7 +1437,33 @@ func (c *APIGateway) DeleteIntegrationResponseRequest(input *DeleteIntegrationRe
 	return
 }
 
+// DeleteIntegrationResponse API operation for Amazon API Gateway.
+//
 // Represents a delete integration response.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteIntegrationResponse for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) DeleteIntegrationResponse(input *DeleteIntegrationResponseInput) (*DeleteIntegrationResponseOutput, error) {
 	req, out := c.DeleteIntegrationResponseRequest(input)
 	err := req.Send()
@@ -492,7 +1472,30 @@ func (c *APIGateway) DeleteIntegrationResponse(input *DeleteIntegrationResponseI
 
 const opDeleteMethod = "DeleteMethod"
 
-// DeleteMethodRequest generates a request for the DeleteMethod operation.
+// DeleteMethodRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteMethod for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteMethodRequest method.
+//    req, resp := client.DeleteMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteMethodRequest(input *DeleteMethodInput) (req *request.Request, output *DeleteMethodOutput) {
 	op := &request.Operation{
 		Name:       opDeleteMethod,
@@ -512,7 +1515,30 @@ func (c *APIGateway) DeleteMethodRequest(input *DeleteMethodInput) (req *request
 	return
 }
 
+// DeleteMethod API operation for Amazon API Gateway.
+//
 // Deletes an existing Method resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteMethod for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) DeleteMethod(input *DeleteMethodInput) (*DeleteMethodOutput, error) {
 	req, out := c.DeleteMethodRequest(input)
 	err := req.Send()
@@ -521,7 +1547,30 @@ func (c *APIGateway) DeleteMethod(input *DeleteMethodInput) (*DeleteMethodOutput
 
 const opDeleteMethodResponse = "DeleteMethodResponse"
 
-// DeleteMethodResponseRequest generates a request for the DeleteMethodResponse operation.
+// DeleteMethodResponseRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteMethodResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteMethodResponse for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteMethodResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteMethodResponseRequest method.
+//    req, resp := client.DeleteMethodResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteMethodResponseRequest(input *DeleteMethodResponseInput) (req *request.Request, output *DeleteMethodResponseOutput) {
 	op := &request.Operation{
 		Name:       opDeleteMethodResponse,
@@ -541,7 +1590,33 @@ func (c *APIGateway) DeleteMethodResponseRequest(input *DeleteMethodResponseInpu
 	return
 }
 
+// DeleteMethodResponse API operation for Amazon API Gateway.
+//
 // Deletes an existing MethodResponse resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteMethodResponse for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) DeleteMethodResponse(input *DeleteMethodResponseInput) (*DeleteMethodResponseOutput, error) {
 	req, out := c.DeleteMethodResponseRequest(input)
 	err := req.Send()
@@ -550,7 +1625,30 @@ func (c *APIGateway) DeleteMethodResponse(input *DeleteMethodResponseInput) (*De
 
 const opDeleteModel = "DeleteModel"
 
-// DeleteModelRequest generates a request for the DeleteModel operation.
+// DeleteModelRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteModel operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteModel for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteModel method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteModelRequest method.
+//    req, resp := client.DeleteModelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteModelRequest(input *DeleteModelInput) (req *request.Request, output *DeleteModelOutput) {
 	op := &request.Operation{
 		Name:       opDeleteModel,
@@ -570,7 +1668,33 @@ func (c *APIGateway) DeleteModelRequest(input *DeleteModelInput) (req *request.R
 	return
 }
 
+// DeleteModel API operation for Amazon API Gateway.
+//
 // Deletes a model.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteModel for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) DeleteModel(input *DeleteModelInput) (*DeleteModelOutput, error) {
 	req, out := c.DeleteModelRequest(input)
 	err := req.Send()
@@ -579,7 +1703,30 @@ func (c *APIGateway) DeleteModel(input *DeleteModelInput) (*DeleteModelOutput, e
 
 const opDeleteResource = "DeleteResource"
 
-// DeleteResourceRequest generates a request for the DeleteResource operation.
+// DeleteResourceRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteResource for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteResourceRequest method.
+//    req, resp := client.DeleteResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteResourceRequest(input *DeleteResourceInput) (req *request.Request, output *DeleteResourceOutput) {
 	op := &request.Operation{
 		Name:       opDeleteResource,
@@ -599,7 +1746,33 @@ func (c *APIGateway) DeleteResourceRequest(input *DeleteResourceInput) (req *req
 	return
 }
 
+// DeleteResource API operation for Amazon API Gateway.
+//
 // Deletes a Resource resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteResource for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) DeleteResource(input *DeleteResourceInput) (*DeleteResourceOutput, error) {
 	req, out := c.DeleteResourceRequest(input)
 	err := req.Send()
@@ -608,7 +1781,30 @@ func (c *APIGateway) DeleteResource(input *DeleteResourceInput) (*DeleteResource
 
 const opDeleteRestApi = "DeleteRestApi"
 
-// DeleteRestApiRequest generates a request for the DeleteRestApi operation.
+// DeleteRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteRestApi for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteRestApiRequest method.
+//    req, resp := client.DeleteRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteRestApiRequest(input *DeleteRestApiInput) (req *request.Request, output *DeleteRestApiOutput) {
 	op := &request.Operation{
 		Name:       opDeleteRestApi,
@@ -628,7 +1824,30 @@ func (c *APIGateway) DeleteRestApiRequest(input *DeleteRestApiInput) (req *reque
 	return
 }
 
+// DeleteRestApi API operation for Amazon API Gateway.
+//
 // Deletes the specified API.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteRestApi for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
 func (c *APIGateway) DeleteRestApi(input *DeleteRestApiInput) (*DeleteRestApiOutput, error) {
 	req, out := c.DeleteRestApiRequest(input)
 	err := req.Send()
@@ -637,7 +1856,30 @@ func (c *APIGateway) DeleteRestApi(input *DeleteRestApiInput) (*DeleteRestApiOut
 
 const opDeleteStage = "DeleteStage"
 
-// DeleteStageRequest generates a request for the DeleteStage operation.
+// DeleteStageRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteStage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteStage for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteStage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteStageRequest method.
+//    req, resp := client.DeleteStageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) DeleteStageRequest(input *DeleteStageInput) (req *request.Request, output *DeleteStageOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStage,
@@ -657,16 +1899,216 @@ func (c *APIGateway) DeleteStageRequest(input *DeleteStageInput) (req *request.R
 	return
 }
 
+// DeleteStage API operation for Amazon API Gateway.
+//
 // Deletes a Stage resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteStage for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
 func (c *APIGateway) DeleteStage(input *DeleteStageInput) (*DeleteStageOutput, error) {
 	req, out := c.DeleteStageRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+const opDeleteUsagePlan = "DeleteUsagePlan"
+
+// DeleteUsagePlanRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteUsagePlan operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteUsagePlan for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteUsagePlan method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteUsagePlanRequest method.
+//    req, resp := client.DeleteUsagePlanRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) DeleteUsagePlanRequest(input *DeleteUsagePlanInput) (req *request.Request, output *DeleteUsagePlanOutput) {
+	op := &request.Operation{
+		Name:       opDeleteUsagePlan,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/usageplans/{usageplanId}",
+	}
+
+	if input == nil {
+		input = &DeleteUsagePlanInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &DeleteUsagePlanOutput{}
+	req.Data = output
+	return
+}
+
+// DeleteUsagePlan API operation for Amazon API Gateway.
+//
+// Deletes a usage plan of a given plan Id.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteUsagePlan for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
+//   * NotFoundException
+
+//
+func (c *APIGateway) DeleteUsagePlan(input *DeleteUsagePlanInput) (*DeleteUsagePlanOutput, error) {
+	req, out := c.DeleteUsagePlanRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDeleteUsagePlanKey = "DeleteUsagePlanKey"
+
+// DeleteUsagePlanKeyRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteUsagePlanKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteUsagePlanKey for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteUsagePlanKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteUsagePlanKeyRequest method.
+//    req, resp := client.DeleteUsagePlanKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) DeleteUsagePlanKeyRequest(input *DeleteUsagePlanKeyInput) (req *request.Request, output *DeleteUsagePlanKeyOutput) {
+	op := &request.Operation{
+		Name:       opDeleteUsagePlanKey,
+		HTTPMethod: "DELETE",
+		HTTPPath:   "/usageplans/{usageplanId}/keys/{keyId}",
+	}
+
+	if input == nil {
+		input = &DeleteUsagePlanKeyInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(restjson.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &DeleteUsagePlanKeyOutput{}
+	req.Data = output
+	return
+}
+
+// DeleteUsagePlanKey API operation for Amazon API Gateway.
+//
+// Deletes a usage plan key and remove the underlying API key from the associated
+// usage plan.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation DeleteUsagePlanKey for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+func (c *APIGateway) DeleteUsagePlanKey(input *DeleteUsagePlanKeyInput) (*DeleteUsagePlanKeyOutput, error) {
+	req, out := c.DeleteUsagePlanKeyRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opFlushStageAuthorizersCache = "FlushStageAuthorizersCache"
 
-// FlushStageAuthorizersCacheRequest generates a request for the FlushStageAuthorizersCache operation.
+// FlushStageAuthorizersCacheRequest generates a "aws/request.Request" representing the
+// client's request for the FlushStageAuthorizersCache operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See FlushStageAuthorizersCache for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the FlushStageAuthorizersCache method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the FlushStageAuthorizersCacheRequest method.
+//    req, resp := client.FlushStageAuthorizersCacheRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) FlushStageAuthorizersCacheRequest(input *FlushStageAuthorizersCacheInput) (req *request.Request, output *FlushStageAuthorizersCacheOutput) {
 	op := &request.Operation{
 		Name:       opFlushStageAuthorizersCache,
@@ -686,7 +2128,30 @@ func (c *APIGateway) FlushStageAuthorizersCacheRequest(input *FlushStageAuthoriz
 	return
 }
 
+// FlushStageAuthorizersCache API operation for Amazon API Gateway.
+//
 // Flushes all authorizer cache entries on a stage.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation FlushStageAuthorizersCache for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) FlushStageAuthorizersCache(input *FlushStageAuthorizersCacheInput) (*FlushStageAuthorizersCacheOutput, error) {
 	req, out := c.FlushStageAuthorizersCacheRequest(input)
 	err := req.Send()
@@ -695,7 +2160,30 @@ func (c *APIGateway) FlushStageAuthorizersCache(input *FlushStageAuthorizersCach
 
 const opFlushStageCache = "FlushStageCache"
 
-// FlushStageCacheRequest generates a request for the FlushStageCache operation.
+// FlushStageCacheRequest generates a "aws/request.Request" representing the
+// client's request for the FlushStageCache operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See FlushStageCache for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the FlushStageCache method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the FlushStageCacheRequest method.
+//    req, resp := client.FlushStageCacheRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) FlushStageCacheRequest(input *FlushStageCacheInput) (req *request.Request, output *FlushStageCacheOutput) {
 	op := &request.Operation{
 		Name:       opFlushStageCache,
@@ -715,7 +2203,30 @@ func (c *APIGateway) FlushStageCacheRequest(input *FlushStageCacheInput) (req *r
 	return
 }
 
+// FlushStageCache API operation for Amazon API Gateway.
+//
 // Flushes a stage's cache.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation FlushStageCache for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) FlushStageCache(input *FlushStageCacheInput) (*FlushStageCacheOutput, error) {
 	req, out := c.FlushStageCacheRequest(input)
 	err := req.Send()
@@ -724,7 +2235,30 @@ func (c *APIGateway) FlushStageCache(input *FlushStageCacheInput) (*FlushStageCa
 
 const opGenerateClientCertificate = "GenerateClientCertificate"
 
-// GenerateClientCertificateRequest generates a request for the GenerateClientCertificate operation.
+// GenerateClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the GenerateClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GenerateClientCertificate for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GenerateClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GenerateClientCertificateRequest method.
+//    req, resp := client.GenerateClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GenerateClientCertificateRequest(input *GenerateClientCertificateInput) (req *request.Request, output *ClientCertificate) {
 	op := &request.Operation{
 		Name:       opGenerateClientCertificate,
@@ -742,7 +2276,27 @@ func (c *APIGateway) GenerateClientCertificateRequest(input *GenerateClientCerti
 	return
 }
 
+// GenerateClientCertificate API operation for Amazon API Gateway.
+//
 // Generates a ClientCertificate resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GenerateClientCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * LimitExceededException
+
+//
 func (c *APIGateway) GenerateClientCertificate(input *GenerateClientCertificateInput) (*ClientCertificate, error) {
 	req, out := c.GenerateClientCertificateRequest(input)
 	err := req.Send()
@@ -751,7 +2305,30 @@ func (c *APIGateway) GenerateClientCertificate(input *GenerateClientCertificateI
 
 const opGetAccount = "GetAccount"
 
-// GetAccountRequest generates a request for the GetAccount operation.
+// GetAccountRequest generates a "aws/request.Request" representing the
+// client's request for the GetAccount operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetAccount for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetAccount method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetAccountRequest method.
+//    req, resp := client.GetAccountRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetAccountRequest(input *GetAccountInput) (req *request.Request, output *Account) {
 	op := &request.Operation{
 		Name:       opGetAccount,
@@ -769,7 +2346,27 @@ func (c *APIGateway) GetAccountRequest(input *GetAccountInput) (req *request.Req
 	return
 }
 
+// GetAccount API operation for Amazon API Gateway.
+//
 // Gets information about the current Account resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetAccount for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetAccount(input *GetAccountInput) (*Account, error) {
 	req, out := c.GetAccountRequest(input)
 	err := req.Send()
@@ -778,7 +2375,30 @@ func (c *APIGateway) GetAccount(input *GetAccountInput) (*Account, error) {
 
 const opGetApiKey = "GetApiKey"
 
-// GetApiKeyRequest generates a request for the GetApiKey operation.
+// GetApiKeyRequest generates a "aws/request.Request" representing the
+// client's request for the GetApiKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetApiKey for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetApiKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetApiKeyRequest method.
+//    req, resp := client.GetApiKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetApiKeyRequest(input *GetApiKeyInput) (req *request.Request, output *ApiKey) {
 	op := &request.Operation{
 		Name:       opGetApiKey,
@@ -796,7 +2416,27 @@ func (c *APIGateway) GetApiKeyRequest(input *GetApiKeyInput) (req *request.Reque
 	return
 }
 
+// GetApiKey API operation for Amazon API Gateway.
+//
 // Gets information about the current ApiKey resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetApiKey for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetApiKey(input *GetApiKeyInput) (*ApiKey, error) {
 	req, out := c.GetApiKeyRequest(input)
 	err := req.Send()
@@ -805,7 +2445,30 @@ func (c *APIGateway) GetApiKey(input *GetApiKeyInput) (*ApiKey, error) {
 
 const opGetApiKeys = "GetApiKeys"
 
-// GetApiKeysRequest generates a request for the GetApiKeys operation.
+// GetApiKeysRequest generates a "aws/request.Request" representing the
+// client's request for the GetApiKeys operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetApiKeys for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetApiKeys method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetApiKeysRequest method.
+//    req, resp := client.GetApiKeysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetApiKeysRequest(input *GetApiKeysInput) (req *request.Request, output *GetApiKeysOutput) {
 	op := &request.Operation{
 		Name:       opGetApiKeys,
@@ -829,13 +2492,50 @@ func (c *APIGateway) GetApiKeysRequest(input *GetApiKeysInput) (req *request.Req
 	return
 }
 
+// GetApiKeys API operation for Amazon API Gateway.
+//
 // Gets information about the current ApiKeys resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetApiKeys for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetApiKeys(input *GetApiKeysInput) (*GetApiKeysOutput, error) {
 	req, out := c.GetApiKeysRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// GetApiKeysPages iterates over the pages of a GetApiKeys operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetApiKeys method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetApiKeys operation.
+//    pageNum := 0
+//    err := client.GetApiKeysPages(params,
+//        func(page *GetApiKeysOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetApiKeysPages(input *GetApiKeysInput, fn func(p *GetApiKeysOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetApiKeysRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -846,7 +2546,30 @@ func (c *APIGateway) GetApiKeysPages(input *GetApiKeysInput, fn func(p *GetApiKe
 
 const opGetAuthorizer = "GetAuthorizer"
 
-// GetAuthorizerRequest generates a request for the GetAuthorizer operation.
+// GetAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the GetAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetAuthorizer for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetAuthorizerRequest method.
+//    req, resp := client.GetAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *request.Request, output *Authorizer) {
 	op := &request.Operation{
 		Name:       opGetAuthorizer,
@@ -864,7 +2587,29 @@ func (c *APIGateway) GetAuthorizerRequest(input *GetAuthorizerInput) (req *reque
 	return
 }
 
+// GetAuthorizer API operation for Amazon API Gateway.
+//
 // Describe an existing Authorizer resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-authorizer.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetAuthorizer for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetAuthorizer(input *GetAuthorizerInput) (*Authorizer, error) {
 	req, out := c.GetAuthorizerRequest(input)
 	err := req.Send()
@@ -873,7 +2618,30 @@ func (c *APIGateway) GetAuthorizer(input *GetAuthorizerInput) (*Authorizer, erro
 
 const opGetAuthorizers = "GetAuthorizers"
 
-// GetAuthorizersRequest generates a request for the GetAuthorizers operation.
+// GetAuthorizersRequest generates a "aws/request.Request" representing the
+// client's request for the GetAuthorizers operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetAuthorizers for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetAuthorizers method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetAuthorizersRequest method.
+//    req, resp := client.GetAuthorizersRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *request.Request, output *GetAuthorizersOutput) {
 	op := &request.Operation{
 		Name:       opGetAuthorizers,
@@ -891,7 +2659,32 @@ func (c *APIGateway) GetAuthorizersRequest(input *GetAuthorizersInput) (req *req
 	return
 }
 
+// GetAuthorizers API operation for Amazon API Gateway.
+//
 // Describe an existing Authorizers resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-authorizers.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetAuthorizers for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetAuthorizers(input *GetAuthorizersInput) (*GetAuthorizersOutput, error) {
 	req, out := c.GetAuthorizersRequest(input)
 	err := req.Send()
@@ -900,7 +2693,30 @@ func (c *APIGateway) GetAuthorizers(input *GetAuthorizersInput) (*GetAuthorizers
 
 const opGetBasePathMapping = "GetBasePathMapping"
 
-// GetBasePathMappingRequest generates a request for the GetBasePathMapping operation.
+// GetBasePathMappingRequest generates a "aws/request.Request" representing the
+// client's request for the GetBasePathMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetBasePathMapping for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetBasePathMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetBasePathMappingRequest method.
+//    req, resp := client.GetBasePathMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetBasePathMappingRequest(input *GetBasePathMappingInput) (req *request.Request, output *BasePathMapping) {
 	op := &request.Operation{
 		Name:       opGetBasePathMapping,
@@ -918,7 +2734,27 @@ func (c *APIGateway) GetBasePathMappingRequest(input *GetBasePathMappingInput) (
 	return
 }
 
+// GetBasePathMapping API operation for Amazon API Gateway.
+//
 // Describe a BasePathMapping resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetBasePathMapping for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetBasePathMapping(input *GetBasePathMappingInput) (*BasePathMapping, error) {
 	req, out := c.GetBasePathMappingRequest(input)
 	err := req.Send()
@@ -927,7 +2763,30 @@ func (c *APIGateway) GetBasePathMapping(input *GetBasePathMappingInput) (*BasePa
 
 const opGetBasePathMappings = "GetBasePathMappings"
 
-// GetBasePathMappingsRequest generates a request for the GetBasePathMappings operation.
+// GetBasePathMappingsRequest generates a "aws/request.Request" representing the
+// client's request for the GetBasePathMappings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetBasePathMappings for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetBasePathMappings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetBasePathMappingsRequest method.
+//    req, resp := client.GetBasePathMappingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetBasePathMappingsRequest(input *GetBasePathMappingsInput) (req *request.Request, output *GetBasePathMappingsOutput) {
 	op := &request.Operation{
 		Name:       opGetBasePathMappings,
@@ -951,13 +2810,50 @@ func (c *APIGateway) GetBasePathMappingsRequest(input *GetBasePathMappingsInput)
 	return
 }
 
+// GetBasePathMappings API operation for Amazon API Gateway.
+//
 // Represents a collection of BasePathMapping resources.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetBasePathMappings for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetBasePathMappings(input *GetBasePathMappingsInput) (*GetBasePathMappingsOutput, error) {
 	req, out := c.GetBasePathMappingsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// GetBasePathMappingsPages iterates over the pages of a GetBasePathMappings operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetBasePathMappings method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetBasePathMappings operation.
+//    pageNum := 0
+//    err := client.GetBasePathMappingsPages(params,
+//        func(page *GetBasePathMappingsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetBasePathMappingsPages(input *GetBasePathMappingsInput, fn func(p *GetBasePathMappingsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetBasePathMappingsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -968,7 +2864,30 @@ func (c *APIGateway) GetBasePathMappingsPages(input *GetBasePathMappingsInput, f
 
 const opGetClientCertificate = "GetClientCertificate"
 
-// GetClientCertificateRequest generates a request for the GetClientCertificate operation.
+// GetClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the GetClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetClientCertificate for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetClientCertificateRequest method.
+//    req, resp := client.GetClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetClientCertificateRequest(input *GetClientCertificateInput) (req *request.Request, output *ClientCertificate) {
 	op := &request.Operation{
 		Name:       opGetClientCertificate,
@@ -986,7 +2905,27 @@ func (c *APIGateway) GetClientCertificateRequest(input *GetClientCertificateInpu
 	return
 }
 
+// GetClientCertificate API operation for Amazon API Gateway.
+//
 // Gets information about the current ClientCertificate resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetClientCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetClientCertificate(input *GetClientCertificateInput) (*ClientCertificate, error) {
 	req, out := c.GetClientCertificateRequest(input)
 	err := req.Send()
@@ -995,7 +2934,30 @@ func (c *APIGateway) GetClientCertificate(input *GetClientCertificateInput) (*Cl
 
 const opGetClientCertificates = "GetClientCertificates"
 
-// GetClientCertificatesRequest generates a request for the GetClientCertificates operation.
+// GetClientCertificatesRequest generates a "aws/request.Request" representing the
+// client's request for the GetClientCertificates operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetClientCertificates for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetClientCertificates method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetClientCertificatesRequest method.
+//    req, resp := client.GetClientCertificatesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetClientCertificatesRequest(input *GetClientCertificatesInput) (req *request.Request, output *GetClientCertificatesOutput) {
 	op := &request.Operation{
 		Name:       opGetClientCertificates,
@@ -1019,13 +2981,50 @@ func (c *APIGateway) GetClientCertificatesRequest(input *GetClientCertificatesIn
 	return
 }
 
+// GetClientCertificates API operation for Amazon API Gateway.
+//
 // Gets a collection of ClientCertificate resources.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetClientCertificates for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetClientCertificates(input *GetClientCertificatesInput) (*GetClientCertificatesOutput, error) {
 	req, out := c.GetClientCertificatesRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// GetClientCertificatesPages iterates over the pages of a GetClientCertificates operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetClientCertificates method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetClientCertificates operation.
+//    pageNum := 0
+//    err := client.GetClientCertificatesPages(params,
+//        func(page *GetClientCertificatesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetClientCertificatesPages(input *GetClientCertificatesInput, fn func(p *GetClientCertificatesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetClientCertificatesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1036,7 +3035,30 @@ func (c *APIGateway) GetClientCertificatesPages(input *GetClientCertificatesInpu
 
 const opGetDeployment = "GetDeployment"
 
-// GetDeploymentRequest generates a request for the GetDeployment operation.
+// GetDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the GetDeployment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetDeployment for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDeployment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDeploymentRequest method.
+//    req, resp := client.GetDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetDeploymentRequest(input *GetDeploymentInput) (req *request.Request, output *Deployment) {
 	op := &request.Operation{
 		Name:       opGetDeployment,
@@ -1054,7 +3076,30 @@ func (c *APIGateway) GetDeploymentRequest(input *GetDeploymentInput) (req *reque
 	return
 }
 
+// GetDeployment API operation for Amazon API Gateway.
+//
 // Gets information about a Deployment resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetDeployment for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ServiceUnavailableException
+
+//
 func (c *APIGateway) GetDeployment(input *GetDeploymentInput) (*Deployment, error) {
 	req, out := c.GetDeploymentRequest(input)
 	err := req.Send()
@@ -1063,7 +3108,30 @@ func (c *APIGateway) GetDeployment(input *GetDeploymentInput) (*Deployment, erro
 
 const opGetDeployments = "GetDeployments"
 
-// GetDeploymentsRequest generates a request for the GetDeployments operation.
+// GetDeploymentsRequest generates a "aws/request.Request" representing the
+// client's request for the GetDeployments operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetDeployments for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDeployments method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDeploymentsRequest method.
+//    req, resp := client.GetDeploymentsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetDeploymentsRequest(input *GetDeploymentsInput) (req *request.Request, output *GetDeploymentsOutput) {
 	op := &request.Operation{
 		Name:       opGetDeployments,
@@ -1087,13 +3155,53 @@ func (c *APIGateway) GetDeploymentsRequest(input *GetDeploymentsInput) (req *req
 	return
 }
 
+// GetDeployments API operation for Amazon API Gateway.
+//
 // Gets information about a Deployments collection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetDeployments for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ServiceUnavailableException
+
+//
 func (c *APIGateway) GetDeployments(input *GetDeploymentsInput) (*GetDeploymentsOutput, error) {
 	req, out := c.GetDeploymentsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// GetDeploymentsPages iterates over the pages of a GetDeployments operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetDeployments method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetDeployments operation.
+//    pageNum := 0
+//    err := client.GetDeploymentsPages(params,
+//        func(page *GetDeploymentsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetDeploymentsPages(input *GetDeploymentsInput, fn func(p *GetDeploymentsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetDeploymentsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1104,7 +3212,30 @@ func (c *APIGateway) GetDeploymentsPages(input *GetDeploymentsInput, fn func(p *
 
 const opGetDomainName = "GetDomainName"
 
-// GetDomainNameRequest generates a request for the GetDomainName operation.
+// GetDomainNameRequest generates a "aws/request.Request" representing the
+// client's request for the GetDomainName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetDomainName for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDomainName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDomainNameRequest method.
+//    req, resp := client.GetDomainNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetDomainNameRequest(input *GetDomainNameInput) (req *request.Request, output *DomainName) {
 	op := &request.Operation{
 		Name:       opGetDomainName,
@@ -1122,8 +3253,31 @@ func (c *APIGateway) GetDomainNameRequest(input *GetDomainNameInput) (req *reque
 	return
 }
 
+// GetDomainName API operation for Amazon API Gateway.
+//
 // Represents a domain name that is contained in a simpler, more intuitive URL
 // that can be called.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetDomainName for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ServiceUnavailableException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetDomainName(input *GetDomainNameInput) (*DomainName, error) {
 	req, out := c.GetDomainNameRequest(input)
 	err := req.Send()
@@ -1132,7 +3286,30 @@ func (c *APIGateway) GetDomainName(input *GetDomainNameInput) (*DomainName, erro
 
 const opGetDomainNames = "GetDomainNames"
 
-// GetDomainNamesRequest generates a request for the GetDomainNames operation.
+// GetDomainNamesRequest generates a "aws/request.Request" representing the
+// client's request for the GetDomainNames operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetDomainNames for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDomainNames method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDomainNamesRequest method.
+//    req, resp := client.GetDomainNamesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetDomainNamesRequest(input *GetDomainNamesInput) (req *request.Request, output *GetDomainNamesOutput) {
 	op := &request.Operation{
 		Name:       opGetDomainNames,
@@ -1156,13 +3333,50 @@ func (c *APIGateway) GetDomainNamesRequest(input *GetDomainNamesInput) (req *req
 	return
 }
 
+// GetDomainNames API operation for Amazon API Gateway.
+//
 // Represents a collection of DomainName resources.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetDomainNames for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetDomainNames(input *GetDomainNamesInput) (*GetDomainNamesOutput, error) {
 	req, out := c.GetDomainNamesRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// GetDomainNamesPages iterates over the pages of a GetDomainNames operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetDomainNames method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetDomainNames operation.
+//    pageNum := 0
+//    err := client.GetDomainNamesPages(params,
+//        func(page *GetDomainNamesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetDomainNamesPages(input *GetDomainNamesInput, fn func(p *GetDomainNamesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetDomainNamesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1173,7 +3387,30 @@ func (c *APIGateway) GetDomainNamesPages(input *GetDomainNamesInput, fn func(p *
 
 const opGetExport = "GetExport"
 
-// GetExportRequest generates a request for the GetExport operation.
+// GetExportRequest generates a "aws/request.Request" representing the
+// client's request for the GetExport operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetExport for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetExport method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetExportRequest method.
+//    req, resp := client.GetExportRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetExportRequest(input *GetExportInput) (req *request.Request, output *GetExportOutput) {
 	op := &request.Operation{
 		Name:       opGetExport,
@@ -1191,7 +3428,30 @@ func (c *APIGateway) GetExportRequest(input *GetExportInput) (req *request.Reque
 	return
 }
 
+// GetExport API operation for Amazon API Gateway.
+//
 // Exports a deployed version of a RestApi in a specified format.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetExport for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetExport(input *GetExportInput) (*GetExportOutput, error) {
 	req, out := c.GetExportRequest(input)
 	err := req.Send()
@@ -1200,7 +3460,30 @@ func (c *APIGateway) GetExport(input *GetExportInput) (*GetExportOutput, error) 
 
 const opGetIntegration = "GetIntegration"
 
-// GetIntegrationRequest generates a request for the GetIntegration operation.
+// GetIntegrationRequest generates a "aws/request.Request" representing the
+// client's request for the GetIntegration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetIntegration for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetIntegration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetIntegrationRequest method.
+//    req, resp := client.GetIntegrationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetIntegrationRequest(input *GetIntegrationInput) (req *request.Request, output *Integration) {
 	op := &request.Operation{
 		Name:       opGetIntegration,
@@ -1218,7 +3501,27 @@ func (c *APIGateway) GetIntegrationRequest(input *GetIntegrationInput) (req *req
 	return
 }
 
+// GetIntegration API operation for Amazon API Gateway.
+//
 // Represents a get integration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetIntegration for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetIntegration(input *GetIntegrationInput) (*Integration, error) {
 	req, out := c.GetIntegrationRequest(input)
 	err := req.Send()
@@ -1227,7 +3530,30 @@ func (c *APIGateway) GetIntegration(input *GetIntegrationInput) (*Integration, e
 
 const opGetIntegrationResponse = "GetIntegrationResponse"
 
-// GetIntegrationResponseRequest generates a request for the GetIntegrationResponse operation.
+// GetIntegrationResponseRequest generates a "aws/request.Request" representing the
+// client's request for the GetIntegrationResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetIntegrationResponse for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetIntegrationResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetIntegrationResponseRequest method.
+//    req, resp := client.GetIntegrationResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetIntegrationResponseRequest(input *GetIntegrationResponseInput) (req *request.Request, output *IntegrationResponse) {
 	op := &request.Operation{
 		Name:       opGetIntegrationResponse,
@@ -1245,7 +3571,27 @@ func (c *APIGateway) GetIntegrationResponseRequest(input *GetIntegrationResponse
 	return
 }
 
+// GetIntegrationResponse API operation for Amazon API Gateway.
+//
 // Represents a get integration response.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetIntegrationResponse for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetIntegrationResponse(input *GetIntegrationResponseInput) (*IntegrationResponse, error) {
 	req, out := c.GetIntegrationResponseRequest(input)
 	err := req.Send()
@@ -1254,7 +3600,30 @@ func (c *APIGateway) GetIntegrationResponse(input *GetIntegrationResponseInput) 
 
 const opGetMethod = "GetMethod"
 
-// GetMethodRequest generates a request for the GetMethod operation.
+// GetMethodRequest generates a "aws/request.Request" representing the
+// client's request for the GetMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetMethod for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetMethodRequest method.
+//    req, resp := client.GetMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetMethodRequest(input *GetMethodInput) (req *request.Request, output *Method) {
 	op := &request.Operation{
 		Name:       opGetMethod,
@@ -1272,7 +3641,27 @@ func (c *APIGateway) GetMethodRequest(input *GetMethodInput) (req *request.Reque
 	return
 }
 
+// GetMethod API operation for Amazon API Gateway.
+//
 // Describe an existing Method resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetMethod for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetMethod(input *GetMethodInput) (*Method, error) {
 	req, out := c.GetMethodRequest(input)
 	err := req.Send()
@@ -1281,7 +3670,30 @@ func (c *APIGateway) GetMethod(input *GetMethodInput) (*Method, error) {
 
 const opGetMethodResponse = "GetMethodResponse"
 
-// GetMethodResponseRequest generates a request for the GetMethodResponse operation.
+// GetMethodResponseRequest generates a "aws/request.Request" representing the
+// client's request for the GetMethodResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetMethodResponse for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetMethodResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetMethodResponseRequest method.
+//    req, resp := client.GetMethodResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetMethodResponseRequest(input *GetMethodResponseInput) (req *request.Request, output *MethodResponse) {
 	op := &request.Operation{
 		Name:       opGetMethodResponse,
@@ -1299,7 +3711,27 @@ func (c *APIGateway) GetMethodResponseRequest(input *GetMethodResponseInput) (re
 	return
 }
 
+// GetMethodResponse API operation for Amazon API Gateway.
+//
 // Describes a MethodResponse resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetMethodResponse for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetMethodResponse(input *GetMethodResponseInput) (*MethodResponse, error) {
 	req, out := c.GetMethodResponseRequest(input)
 	err := req.Send()
@@ -1308,7 +3740,30 @@ func (c *APIGateway) GetMethodResponse(input *GetMethodResponseInput) (*MethodRe
 
 const opGetModel = "GetModel"
 
-// GetModelRequest generates a request for the GetModel operation.
+// GetModelRequest generates a "aws/request.Request" representing the
+// client's request for the GetModel operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetModel for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetModel method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetModelRequest method.
+//    req, resp := client.GetModelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetModelRequest(input *GetModelInput) (req *request.Request, output *Model) {
 	op := &request.Operation{
 		Name:       opGetModel,
@@ -1326,7 +3781,27 @@ func (c *APIGateway) GetModelRequest(input *GetModelInput) (req *request.Request
 	return
 }
 
+// GetModel API operation for Amazon API Gateway.
+//
 // Describes an existing model defined for a RestApi resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetModel for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetModel(input *GetModelInput) (*Model, error) {
 	req, out := c.GetModelRequest(input)
 	err := req.Send()
@@ -1335,7 +3810,30 @@ func (c *APIGateway) GetModel(input *GetModelInput) (*Model, error) {
 
 const opGetModelTemplate = "GetModelTemplate"
 
-// GetModelTemplateRequest generates a request for the GetModelTemplate operation.
+// GetModelTemplateRequest generates a "aws/request.Request" representing the
+// client's request for the GetModelTemplate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetModelTemplate for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetModelTemplate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetModelTemplateRequest method.
+//    req, resp := client.GetModelTemplateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetModelTemplateRequest(input *GetModelTemplateInput) (req *request.Request, output *GetModelTemplateOutput) {
 	op := &request.Operation{
 		Name:       opGetModelTemplate,
@@ -1353,8 +3851,31 @@ func (c *APIGateway) GetModelTemplateRequest(input *GetModelTemplateInput) (req 
 	return
 }
 
+// GetModelTemplate API operation for Amazon API Gateway.
+//
 // Generates a sample mapping template that can be used to transform a payload
 // into the structure of a model.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetModelTemplate for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetModelTemplate(input *GetModelTemplateInput) (*GetModelTemplateOutput, error) {
 	req, out := c.GetModelTemplateRequest(input)
 	err := req.Send()
@@ -1363,7 +3884,30 @@ func (c *APIGateway) GetModelTemplate(input *GetModelTemplateInput) (*GetModelTe
 
 const opGetModels = "GetModels"
 
-// GetModelsRequest generates a request for the GetModels operation.
+// GetModelsRequest generates a "aws/request.Request" representing the
+// client's request for the GetModels operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetModels for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetModels method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetModelsRequest method.
+//    req, resp := client.GetModelsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetModelsRequest(input *GetModelsInput) (req *request.Request, output *GetModelsOutput) {
 	op := &request.Operation{
 		Name:       opGetModels,
@@ -1387,13 +3931,53 @@ func (c *APIGateway) GetModelsRequest(input *GetModelsInput) (req *request.Reque
 	return
 }
 
+// GetModels API operation for Amazon API Gateway.
+//
 // Describes existing Models defined for a RestApi resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetModels for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetModels(input *GetModelsInput) (*GetModelsOutput, error) {
 	req, out := c.GetModelsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// GetModelsPages iterates over the pages of a GetModels operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetModels method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetModels operation.
+//    pageNum := 0
+//    err := client.GetModelsPages(params,
+//        func(page *GetModelsOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetModelsPages(input *GetModelsInput, fn func(p *GetModelsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetModelsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1404,7 +3988,30 @@ func (c *APIGateway) GetModelsPages(input *GetModelsInput, fn func(p *GetModelsO
 
 const opGetResource = "GetResource"
 
-// GetResourceRequest generates a request for the GetResource operation.
+// GetResourceRequest generates a "aws/request.Request" representing the
+// client's request for the GetResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetResource for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetResourceRequest method.
+//    req, resp := client.GetResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetResourceRequest(input *GetResourceInput) (req *request.Request, output *Resource) {
 	op := &request.Operation{
 		Name:       opGetResource,
@@ -1422,7 +4029,27 @@ func (c *APIGateway) GetResourceRequest(input *GetResourceInput) (req *request.R
 	return
 }
 
+// GetResource API operation for Amazon API Gateway.
+//
 // Lists information about a resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetResource for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetResource(input *GetResourceInput) (*Resource, error) {
 	req, out := c.GetResourceRequest(input)
 	err := req.Send()
@@ -1431,7 +4058,30 @@ func (c *APIGateway) GetResource(input *GetResourceInput) (*Resource, error) {
 
 const opGetResources = "GetResources"
 
-// GetResourcesRequest generates a request for the GetResources operation.
+// GetResourcesRequest generates a "aws/request.Request" representing the
+// client's request for the GetResources operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetResources for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetResources method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetResourcesRequest method.
+//    req, resp := client.GetResourcesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetResourcesRequest(input *GetResourcesInput) (req *request.Request, output *GetResourcesOutput) {
 	op := &request.Operation{
 		Name:       opGetResources,
@@ -1455,13 +4105,53 @@ func (c *APIGateway) GetResourcesRequest(input *GetResourcesInput) (req *request
 	return
 }
 
+// GetResources API operation for Amazon API Gateway.
+//
 // Lists information about a collection of Resource resources.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetResources for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetResources(input *GetResourcesInput) (*GetResourcesOutput, error) {
 	req, out := c.GetResourcesRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// GetResourcesPages iterates over the pages of a GetResources operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetResources method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetResources operation.
+//    pageNum := 0
+//    err := client.GetResourcesPages(params,
+//        func(page *GetResourcesOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetResourcesPages(input *GetResourcesInput, fn func(p *GetResourcesOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetResourcesRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1472,7 +4162,30 @@ func (c *APIGateway) GetResourcesPages(input *GetResourcesInput, fn func(p *GetR
 
 const opGetRestApi = "GetRestApi"
 
-// GetRestApiRequest generates a request for the GetRestApi operation.
+// GetRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the GetRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetRestApi for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRestApiRequest method.
+//    req, resp := client.GetRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetRestApiRequest(input *GetRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opGetRestApi,
@@ -1490,7 +4203,27 @@ func (c *APIGateway) GetRestApiRequest(input *GetRestApiInput) (req *request.Req
 	return
 }
 
+// GetRestApi API operation for Amazon API Gateway.
+//
 // Lists the RestApi resource in the collection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetRestApi for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetRestApi(input *GetRestApiInput) (*RestApi, error) {
 	req, out := c.GetRestApiRequest(input)
 	err := req.Send()
@@ -1499,7 +4232,30 @@ func (c *APIGateway) GetRestApi(input *GetRestApiInput) (*RestApi, error) {
 
 const opGetRestApis = "GetRestApis"
 
-// GetRestApisRequest generates a request for the GetRestApis operation.
+// GetRestApisRequest generates a "aws/request.Request" representing the
+// client's request for the GetRestApis operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetRestApis for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetRestApis method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetRestApisRequest method.
+//    req, resp := client.GetRestApisRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetRestApisRequest(input *GetRestApisInput) (req *request.Request, output *GetRestApisOutput) {
 	op := &request.Operation{
 		Name:       opGetRestApis,
@@ -1523,13 +4279,50 @@ func (c *APIGateway) GetRestApisRequest(input *GetRestApisInput) (req *request.R
 	return
 }
 
+// GetRestApis API operation for Amazon API Gateway.
+//
 // Lists the RestApis resources for your collection.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetRestApis for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetRestApis(input *GetRestApisInput) (*GetRestApisOutput, error) {
 	req, out := c.GetRestApisRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+// GetRestApisPages iterates over the pages of a GetRestApis operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetRestApis method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetRestApis operation.
+//    pageNum := 0
+//    err := client.GetRestApisPages(params,
+//        func(page *GetRestApisOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
 func (c *APIGateway) GetRestApisPages(input *GetRestApisInput, fn func(p *GetRestApisOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.GetRestApisRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -1540,7 +4333,30 @@ func (c *APIGateway) GetRestApisPages(input *GetRestApisInput, fn func(p *GetRes
 
 const opGetSdk = "GetSdk"
 
-// GetSdkRequest generates a request for the GetSdk operation.
+// GetSdkRequest generates a "aws/request.Request" representing the
+// client's request for the GetSdk operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetSdk for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetSdk method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetSdkRequest method.
+//    req, resp := client.GetSdkRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetSdkRequest(input *GetSdkInput) (req *request.Request, output *GetSdkOutput) {
 	op := &request.Operation{
 		Name:       opGetSdk,
@@ -1558,7 +4374,30 @@ func (c *APIGateway) GetSdkRequest(input *GetSdkInput) (req *request.Request, ou
 	return
 }
 
+// GetSdk API operation for Amazon API Gateway.
+//
 // Generates a client SDK for a RestApi and Stage.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetSdk for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetSdk(input *GetSdkInput) (*GetSdkOutput, error) {
 	req, out := c.GetSdkRequest(input)
 	err := req.Send()
@@ -1567,7 +4406,30 @@ func (c *APIGateway) GetSdk(input *GetSdkInput) (*GetSdkOutput, error) {
 
 const opGetStage = "GetStage"
 
-// GetStageRequest generates a request for the GetStage operation.
+// GetStageRequest generates a "aws/request.Request" representing the
+// client's request for the GetStage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetStage for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetStage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetStageRequest method.
+//    req, resp := client.GetStageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetStageRequest(input *GetStageInput) (req *request.Request, output *Stage) {
 	op := &request.Operation{
 		Name:       opGetStage,
@@ -1585,7 +4447,27 @@ func (c *APIGateway) GetStageRequest(input *GetStageInput) (req *request.Request
 	return
 }
 
+// GetStage API operation for Amazon API Gateway.
+//
 // Gets information about a Stage resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetStage for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetStage(input *GetStageInput) (*Stage, error) {
 	req, out := c.GetStageRequest(input)
 	err := req.Send()
@@ -1594,7 +4476,30 @@ func (c *APIGateway) GetStage(input *GetStageInput) (*Stage, error) {
 
 const opGetStages = "GetStages"
 
-// GetStagesRequest generates a request for the GetStages operation.
+// GetStagesRequest generates a "aws/request.Request" representing the
+// client's request for the GetStages operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetStages for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetStages method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetStagesRequest method.
+//    req, resp := client.GetStagesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) GetStagesRequest(input *GetStagesInput) (req *request.Request, output *GetStagesOutput) {
 	op := &request.Operation{
 		Name:       opGetStages,
@@ -1612,16 +4517,600 @@ func (c *APIGateway) GetStagesRequest(input *GetStagesInput) (req *request.Reque
 	return
 }
 
+// GetStages API operation for Amazon API Gateway.
+//
 // Gets information about one or more Stage resources.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetStages for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) GetStages(input *GetStagesInput) (*GetStagesOutput, error) {
 	req, out := c.GetStagesRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+const opGetUsage = "GetUsage"
+
+// GetUsageRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetUsage for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsageRequest method.
+//    req, resp := client.GetUsageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsageRequest(input *GetUsageInput) (req *request.Request, output *Usage) {
+	op := &request.Operation{
+		Name:       opGetUsage,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans/{usageplanId}/usage",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"position"},
+			OutputTokens:    []string{"position"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetUsageInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &Usage{}
+	req.Data = output
+	return
+}
+
+// GetUsage API operation for Amazon API Gateway.
+//
+// Gets the usage data of a usage plan in a specified time interval.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetUsage for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+func (c *APIGateway) GetUsage(input *GetUsageInput) (*Usage, error) {
+	req, out := c.GetUsageRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// GetUsagePages iterates over the pages of a GetUsage operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetUsage method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetUsage operation.
+//    pageNum := 0
+//    err := client.GetUsagePages(params,
+//        func(page *Usage, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *APIGateway) GetUsagePages(input *GetUsageInput, fn func(p *Usage, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.GetUsageRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*Usage), lastPage)
+	})
+}
+
+const opGetUsagePlan = "GetUsagePlan"
+
+// GetUsagePlanRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsagePlan operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetUsagePlan for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsagePlan method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsagePlanRequest method.
+//    req, resp := client.GetUsagePlanRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsagePlanRequest(input *GetUsagePlanInput) (req *request.Request, output *UsagePlan) {
+	op := &request.Operation{
+		Name:       opGetUsagePlan,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans/{usageplanId}",
+	}
+
+	if input == nil {
+		input = &GetUsagePlanInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlan{}
+	req.Data = output
+	return
+}
+
+// GetUsagePlan API operation for Amazon API Gateway.
+//
+// Gets a usage plan of a given plan identifier.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetUsagePlan for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+func (c *APIGateway) GetUsagePlan(input *GetUsagePlanInput) (*UsagePlan, error) {
+	req, out := c.GetUsagePlanRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetUsagePlanKey = "GetUsagePlanKey"
+
+// GetUsagePlanKeyRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsagePlanKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetUsagePlanKey for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsagePlanKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsagePlanKeyRequest method.
+//    req, resp := client.GetUsagePlanKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsagePlanKeyRequest(input *GetUsagePlanKeyInput) (req *request.Request, output *UsagePlanKey) {
+	op := &request.Operation{
+		Name:       opGetUsagePlanKey,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans/{usageplanId}/keys/{keyId}",
+	}
+
+	if input == nil {
+		input = &GetUsagePlanKeyInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlanKey{}
+	req.Data = output
+	return
+}
+
+// GetUsagePlanKey API operation for Amazon API Gateway.
+//
+// Gets a usage plan key of a given key identifier.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetUsagePlanKey for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+func (c *APIGateway) GetUsagePlanKey(input *GetUsagePlanKeyInput) (*UsagePlanKey, error) {
+	req, out := c.GetUsagePlanKeyRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetUsagePlanKeys = "GetUsagePlanKeys"
+
+// GetUsagePlanKeysRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsagePlanKeys operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetUsagePlanKeys for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsagePlanKeys method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsagePlanKeysRequest method.
+//    req, resp := client.GetUsagePlanKeysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsagePlanKeysRequest(input *GetUsagePlanKeysInput) (req *request.Request, output *GetUsagePlanKeysOutput) {
+	op := &request.Operation{
+		Name:       opGetUsagePlanKeys,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans/{usageplanId}/keys",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"position"},
+			OutputTokens:    []string{"position"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetUsagePlanKeysInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetUsagePlanKeysOutput{}
+	req.Data = output
+	return
+}
+
+// GetUsagePlanKeys API operation for Amazon API Gateway.
+//
+// Gets all the usage plan keys representing the API keys added to a specified
+// usage plan.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetUsagePlanKeys for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+func (c *APIGateway) GetUsagePlanKeys(input *GetUsagePlanKeysInput) (*GetUsagePlanKeysOutput, error) {
+	req, out := c.GetUsagePlanKeysRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// GetUsagePlanKeysPages iterates over the pages of a GetUsagePlanKeys operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetUsagePlanKeys method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetUsagePlanKeys operation.
+//    pageNum := 0
+//    err := client.GetUsagePlanKeysPages(params,
+//        func(page *GetUsagePlanKeysOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *APIGateway) GetUsagePlanKeysPages(input *GetUsagePlanKeysInput, fn func(p *GetUsagePlanKeysOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.GetUsagePlanKeysRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*GetUsagePlanKeysOutput), lastPage)
+	})
+}
+
+const opGetUsagePlans = "GetUsagePlans"
+
+// GetUsagePlansRequest generates a "aws/request.Request" representing the
+// client's request for the GetUsagePlans operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetUsagePlans for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetUsagePlans method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetUsagePlansRequest method.
+//    req, resp := client.GetUsagePlansRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) GetUsagePlansRequest(input *GetUsagePlansInput) (req *request.Request, output *GetUsagePlansOutput) {
+	op := &request.Operation{
+		Name:       opGetUsagePlans,
+		HTTPMethod: "GET",
+		HTTPPath:   "/usageplans",
+		Paginator: &request.Paginator{
+			InputTokens:     []string{"position"},
+			OutputTokens:    []string{"position"},
+			LimitToken:      "limit",
+			TruncationToken: "",
+		},
+	}
+
+	if input == nil {
+		input = &GetUsagePlansInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetUsagePlansOutput{}
+	req.Data = output
+	return
+}
+
+// GetUsagePlans API operation for Amazon API Gateway.
+//
+// Gets all the usage plans of the caller's account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation GetUsagePlans for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ConflictException
+
+//
+//   * NotFoundException
+
+//
+func (c *APIGateway) GetUsagePlans(input *GetUsagePlansInput) (*GetUsagePlansOutput, error) {
+	req, out := c.GetUsagePlansRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+// GetUsagePlansPages iterates over the pages of a GetUsagePlans operation,
+// calling the "fn" function with the response data for each page. To stop
+// iterating, return false from the fn function.
+//
+// See GetUsagePlans method for more information on how to use this operation.
+//
+// Note: This operation can generate multiple requests to a service.
+//
+//    // Example iterating over at most 3 pages of a GetUsagePlans operation.
+//    pageNum := 0
+//    err := client.GetUsagePlansPages(params,
+//        func(page *GetUsagePlansOutput, lastPage bool) bool {
+//            pageNum++
+//            fmt.Println(page)
+//            return pageNum <= 3
+//        })
+//
+func (c *APIGateway) GetUsagePlansPages(input *GetUsagePlansInput, fn func(p *GetUsagePlansOutput, lastPage bool) (shouldContinue bool)) error {
+	page, _ := c.GetUsagePlansRequest(input)
+	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
+	return page.EachPage(func(p interface{}, lastPage bool) bool {
+		return fn(p.(*GetUsagePlansOutput), lastPage)
+	})
+}
+
+const opImportApiKeys = "ImportApiKeys"
+
+// ImportApiKeysRequest generates a "aws/request.Request" representing the
+// client's request for the ImportApiKeys operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ImportApiKeys for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportApiKeys method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportApiKeysRequest method.
+//    req, resp := client.ImportApiKeysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) ImportApiKeysRequest(input *ImportApiKeysInput) (req *request.Request, output *ImportApiKeysOutput) {
+	op := &request.Operation{
+		Name:       opImportApiKeys,
+		HTTPMethod: "POST",
+		HTTPPath:   "/apikeys?mode=import",
+	}
+
+	if input == nil {
+		input = &ImportApiKeysInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ImportApiKeysOutput{}
+	req.Data = output
+	return
+}
+
+// ImportApiKeys API operation for Amazon API Gateway.
+//
+// Import API keys from an external source, such as a CSV-formatted file.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation ImportApiKeys for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * LimitExceededException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
+func (c *APIGateway) ImportApiKeys(input *ImportApiKeysInput) (*ImportApiKeysOutput, error) {
+	req, out := c.ImportApiKeysRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opImportRestApi = "ImportRestApi"
 
-// ImportRestApiRequest generates a request for the ImportRestApi operation.
+// ImportRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the ImportRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ImportRestApi for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ImportRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ImportRestApiRequest method.
+//    req, resp := client.ImportRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) ImportRestApiRequest(input *ImportRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opImportRestApi,
@@ -1639,8 +5128,34 @@ func (c *APIGateway) ImportRestApiRequest(input *ImportRestApiInput) (req *reque
 	return
 }
 
+// ImportRestApi API operation for Amazon API Gateway.
+//
 // A feature of the Amazon API Gateway control service for creating a new API
 // from an external API definition file.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation ImportRestApi for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * LimitExceededException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) ImportRestApi(input *ImportRestApiInput) (*RestApi, error) {
 	req, out := c.ImportRestApiRequest(input)
 	err := req.Send()
@@ -1649,7 +5164,30 @@ func (c *APIGateway) ImportRestApi(input *ImportRestApiInput) (*RestApi, error) 
 
 const opPutIntegration = "PutIntegration"
 
-// PutIntegrationRequest generates a request for the PutIntegration operation.
+// PutIntegrationRequest generates a "aws/request.Request" representing the
+// client's request for the PutIntegration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See PutIntegration for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutIntegration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutIntegrationRequest method.
+//    req, resp := client.PutIntegrationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutIntegrationRequest(input *PutIntegrationInput) (req *request.Request, output *Integration) {
 	op := &request.Operation{
 		Name:       opPutIntegration,
@@ -1667,7 +5205,33 @@ func (c *APIGateway) PutIntegrationRequest(input *PutIntegrationInput) (req *req
 	return
 }
 
+// PutIntegration API operation for Amazon API Gateway.
+//
 // Represents a put integration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation PutIntegration for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) PutIntegration(input *PutIntegrationInput) (*Integration, error) {
 	req, out := c.PutIntegrationRequest(input)
 	err := req.Send()
@@ -1676,7 +5240,30 @@ func (c *APIGateway) PutIntegration(input *PutIntegrationInput) (*Integration, e
 
 const opPutIntegrationResponse = "PutIntegrationResponse"
 
-// PutIntegrationResponseRequest generates a request for the PutIntegrationResponse operation.
+// PutIntegrationResponseRequest generates a "aws/request.Request" representing the
+// client's request for the PutIntegrationResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See PutIntegrationResponse for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutIntegrationResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutIntegrationResponseRequest method.
+//    req, resp := client.PutIntegrationResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutIntegrationResponseRequest(input *PutIntegrationResponseInput) (req *request.Request, output *IntegrationResponse) {
 	op := &request.Operation{
 		Name:       opPutIntegrationResponse,
@@ -1694,7 +5281,36 @@ func (c *APIGateway) PutIntegrationResponseRequest(input *PutIntegrationResponse
 	return
 }
 
+// PutIntegrationResponse API operation for Amazon API Gateway.
+//
 // Represents a put integration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation PutIntegrationResponse for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * LimitExceededException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) PutIntegrationResponse(input *PutIntegrationResponseInput) (*IntegrationResponse, error) {
 	req, out := c.PutIntegrationResponseRequest(input)
 	err := req.Send()
@@ -1703,7 +5319,30 @@ func (c *APIGateway) PutIntegrationResponse(input *PutIntegrationResponseInput) 
 
 const opPutMethod = "PutMethod"
 
-// PutMethodRequest generates a request for the PutMethod operation.
+// PutMethodRequest generates a "aws/request.Request" representing the
+// client's request for the PutMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See PutMethod for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutMethodRequest method.
+//    req, resp := client.PutMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutMethodRequest(input *PutMethodInput) (req *request.Request, output *Method) {
 	op := &request.Operation{
 		Name:       opPutMethod,
@@ -1721,7 +5360,36 @@ func (c *APIGateway) PutMethodRequest(input *PutMethodInput) (req *request.Reque
 	return
 }
 
+// PutMethod API operation for Amazon API Gateway.
+//
 // Add a method to an existing Resource resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation PutMethod for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * LimitExceededException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) PutMethod(input *PutMethodInput) (*Method, error) {
 	req, out := c.PutMethodRequest(input)
 	err := req.Send()
@@ -1730,7 +5398,30 @@ func (c *APIGateway) PutMethod(input *PutMethodInput) (*Method, error) {
 
 const opPutMethodResponse = "PutMethodResponse"
 
-// PutMethodResponseRequest generates a request for the PutMethodResponse operation.
+// PutMethodResponseRequest generates a "aws/request.Request" representing the
+// client's request for the PutMethodResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See PutMethodResponse for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutMethodResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutMethodResponseRequest method.
+//    req, resp := client.PutMethodResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutMethodResponseRequest(input *PutMethodResponseInput) (req *request.Request, output *MethodResponse) {
 	op := &request.Operation{
 		Name:       opPutMethodResponse,
@@ -1748,7 +5439,36 @@ func (c *APIGateway) PutMethodResponseRequest(input *PutMethodResponseInput) (re
 	return
 }
 
+// PutMethodResponse API operation for Amazon API Gateway.
+//
 // Adds a MethodResponse to an existing Method resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation PutMethodResponse for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * LimitExceededException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) PutMethodResponse(input *PutMethodResponseInput) (*MethodResponse, error) {
 	req, out := c.PutMethodResponseRequest(input)
 	err := req.Send()
@@ -1757,7 +5477,30 @@ func (c *APIGateway) PutMethodResponse(input *PutMethodResponseInput) (*MethodRe
 
 const opPutRestApi = "PutRestApi"
 
-// PutRestApiRequest generates a request for the PutRestApi operation.
+// PutRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the PutRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See PutRestApi for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutRestApiRequest method.
+//    req, resp := client.PutRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) PutRestApiRequest(input *PutRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opPutRestApi,
@@ -1775,10 +5518,39 @@ func (c *APIGateway) PutRestApiRequest(input *PutRestApiInput) (req *request.Req
 	return
 }
 
+// PutRestApi API operation for Amazon API Gateway.
+//
 // A feature of the Amazon API Gateway control service for updating an existing
 // API with an input of external API definitions. The update can take the form
 // of merging the supplied definition into the existing API or overwriting the
 // existing API.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation PutRestApi for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * LimitExceededException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) PutRestApi(input *PutRestApiInput) (*RestApi, error) {
 	req, out := c.PutRestApiRequest(input)
 	err := req.Send()
@@ -1787,7 +5559,30 @@ func (c *APIGateway) PutRestApi(input *PutRestApiInput) (*RestApi, error) {
 
 const opTestInvokeAuthorizer = "TestInvokeAuthorizer"
 
-// TestInvokeAuthorizerRequest generates a request for the TestInvokeAuthorizer operation.
+// TestInvokeAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the TestInvokeAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See TestInvokeAuthorizer for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TestInvokeAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TestInvokeAuthorizerRequest method.
+//    req, resp := client.TestInvokeAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInput) (req *request.Request, output *TestInvokeAuthorizerOutput) {
 	op := &request.Operation{
 		Name:       opTestInvokeAuthorizer,
@@ -1805,8 +5600,33 @@ func (c *APIGateway) TestInvokeAuthorizerRequest(input *TestInvokeAuthorizerInpu
 	return
 }
 
+// TestInvokeAuthorizer API operation for Amazon API Gateway.
+//
 // Simulate the execution of an Authorizer in your RestApi with headers, parameters,
 // and an incoming request body.
+//
+// Enable custom authorizers (http://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation TestInvokeAuthorizer for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) TestInvokeAuthorizer(input *TestInvokeAuthorizerInput) (*TestInvokeAuthorizerOutput, error) {
 	req, out := c.TestInvokeAuthorizerRequest(input)
 	err := req.Send()
@@ -1815,7 +5635,30 @@ func (c *APIGateway) TestInvokeAuthorizer(input *TestInvokeAuthorizerInput) (*Te
 
 const opTestInvokeMethod = "TestInvokeMethod"
 
-// TestInvokeMethodRequest generates a request for the TestInvokeMethod operation.
+// TestInvokeMethodRequest generates a "aws/request.Request" representing the
+// client's request for the TestInvokeMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See TestInvokeMethod for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TestInvokeMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TestInvokeMethodRequest method.
+//    req, resp := client.TestInvokeMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) TestInvokeMethodRequest(input *TestInvokeMethodInput) (req *request.Request, output *TestInvokeMethodOutput) {
 	op := &request.Operation{
 		Name:       opTestInvokeMethod,
@@ -1833,8 +5676,31 @@ func (c *APIGateway) TestInvokeMethodRequest(input *TestInvokeMethodInput) (req 
 	return
 }
 
+// TestInvokeMethod API operation for Amazon API Gateway.
+//
 // Simulate the execution of a Method in your RestApi with headers, parameters,
 // and an incoming request body.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation TestInvokeMethod for usage and error information.
+//
+// Returned Error Codes:
+//   * BadRequestException
+
+//
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) TestInvokeMethod(input *TestInvokeMethodInput) (*TestInvokeMethodOutput, error) {
 	req, out := c.TestInvokeMethodRequest(input)
 	err := req.Send()
@@ -1843,7 +5709,30 @@ func (c *APIGateway) TestInvokeMethod(input *TestInvokeMethodInput) (*TestInvoke
 
 const opUpdateAccount = "UpdateAccount"
 
-// UpdateAccountRequest generates a request for the UpdateAccount operation.
+// UpdateAccountRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateAccount operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateAccount for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateAccount method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateAccountRequest method.
+//    req, resp := client.UpdateAccountRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateAccountRequest(input *UpdateAccountInput) (req *request.Request, output *Account) {
 	op := &request.Operation{
 		Name:       opUpdateAccount,
@@ -1861,7 +5750,30 @@ func (c *APIGateway) UpdateAccountRequest(input *UpdateAccountInput) (req *reque
 	return
 }
 
+// UpdateAccount API operation for Amazon API Gateway.
+//
 // Changes information about the current Account resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateAccount for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * BadRequestException
+
+//
+//   * NotFoundException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateAccount(input *UpdateAccountInput) (*Account, error) {
 	req, out := c.UpdateAccountRequest(input)
 	err := req.Send()
@@ -1870,7 +5782,30 @@ func (c *APIGateway) UpdateAccount(input *UpdateAccountInput) (*Account, error) 
 
 const opUpdateApiKey = "UpdateApiKey"
 
-// UpdateApiKeyRequest generates a request for the UpdateApiKey operation.
+// UpdateApiKeyRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateApiKey operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateApiKey for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateApiKey method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateApiKeyRequest method.
+//    req, resp := client.UpdateApiKeyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateApiKeyRequest(input *UpdateApiKeyInput) (req *request.Request, output *ApiKey) {
 	op := &request.Operation{
 		Name:       opUpdateApiKey,
@@ -1888,7 +5823,33 @@ func (c *APIGateway) UpdateApiKeyRequest(input *UpdateApiKeyInput) (req *request
 	return
 }
 
+// UpdateApiKey API operation for Amazon API Gateway.
+//
 // Changes information about an ApiKey resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateApiKey for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) UpdateApiKey(input *UpdateApiKeyInput) (*ApiKey, error) {
 	req, out := c.UpdateApiKeyRequest(input)
 	err := req.Send()
@@ -1897,7 +5858,30 @@ func (c *APIGateway) UpdateApiKey(input *UpdateApiKeyInput) (*ApiKey, error) {
 
 const opUpdateAuthorizer = "UpdateAuthorizer"
 
-// UpdateAuthorizerRequest generates a request for the UpdateAuthorizer operation.
+// UpdateAuthorizerRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateAuthorizer operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateAuthorizer for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateAuthorizer method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateAuthorizerRequest method.
+//    req, resp := client.UpdateAuthorizerRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req *request.Request, output *Authorizer) {
 	op := &request.Operation{
 		Name:       opUpdateAuthorizer,
@@ -1915,7 +5899,32 @@ func (c *APIGateway) UpdateAuthorizerRequest(input *UpdateAuthorizerInput) (req 
 	return
 }
 
+// UpdateAuthorizer API operation for Amazon API Gateway.
+//
 // Updates an existing Authorizer resource.
+//
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/update-authorizer.html)
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateAuthorizer for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateAuthorizer(input *UpdateAuthorizerInput) (*Authorizer, error) {
 	req, out := c.UpdateAuthorizerRequest(input)
 	err := req.Send()
@@ -1924,7 +5933,30 @@ func (c *APIGateway) UpdateAuthorizer(input *UpdateAuthorizerInput) (*Authorizer
 
 const opUpdateBasePathMapping = "UpdateBasePathMapping"
 
-// UpdateBasePathMappingRequest generates a request for the UpdateBasePathMapping operation.
+// UpdateBasePathMappingRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateBasePathMapping operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateBasePathMapping for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateBasePathMapping method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateBasePathMappingRequest method.
+//    req, resp := client.UpdateBasePathMappingRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateBasePathMappingRequest(input *UpdateBasePathMappingInput) (req *request.Request, output *BasePathMapping) {
 	op := &request.Operation{
 		Name:       opUpdateBasePathMapping,
@@ -1942,7 +5974,33 @@ func (c *APIGateway) UpdateBasePathMappingRequest(input *UpdateBasePathMappingIn
 	return
 }
 
+// UpdateBasePathMapping API operation for Amazon API Gateway.
+//
 // Changes information about the BasePathMapping resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateBasePathMapping for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateBasePathMapping(input *UpdateBasePathMappingInput) (*BasePathMapping, error) {
 	req, out := c.UpdateBasePathMappingRequest(input)
 	err := req.Send()
@@ -1951,7 +6009,30 @@ func (c *APIGateway) UpdateBasePathMapping(input *UpdateBasePathMappingInput) (*
 
 const opUpdateClientCertificate = "UpdateClientCertificate"
 
-// UpdateClientCertificateRequest generates a request for the UpdateClientCertificate operation.
+// UpdateClientCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateClientCertificate operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateClientCertificate for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateClientCertificate method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateClientCertificateRequest method.
+//    req, resp := client.UpdateClientCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateClientCertificateRequest(input *UpdateClientCertificateInput) (req *request.Request, output *ClientCertificate) {
 	op := &request.Operation{
 		Name:       opUpdateClientCertificate,
@@ -1969,7 +6050,30 @@ func (c *APIGateway) UpdateClientCertificateRequest(input *UpdateClientCertifica
 	return
 }
 
+// UpdateClientCertificate API operation for Amazon API Gateway.
+//
 // Changes information about an ClientCertificate resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateClientCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
+//   * NotFoundException
+
+//
 func (c *APIGateway) UpdateClientCertificate(input *UpdateClientCertificateInput) (*ClientCertificate, error) {
 	req, out := c.UpdateClientCertificateRequest(input)
 	err := req.Send()
@@ -1978,7 +6082,30 @@ func (c *APIGateway) UpdateClientCertificate(input *UpdateClientCertificateInput
 
 const opUpdateDeployment = "UpdateDeployment"
 
-// UpdateDeploymentRequest generates a request for the UpdateDeployment operation.
+// UpdateDeploymentRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateDeployment operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateDeployment for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateDeployment method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateDeploymentRequest method.
+//    req, resp := client.UpdateDeploymentRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateDeploymentRequest(input *UpdateDeploymentInput) (req *request.Request, output *Deployment) {
 	op := &request.Operation{
 		Name:       opUpdateDeployment,
@@ -1996,7 +6123,33 @@ func (c *APIGateway) UpdateDeploymentRequest(input *UpdateDeploymentInput) (req 
 	return
 }
 
+// UpdateDeployment API operation for Amazon API Gateway.
+//
 // Changes information about a Deployment resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateDeployment for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ServiceUnavailableException
+
+//
 func (c *APIGateway) UpdateDeployment(input *UpdateDeploymentInput) (*Deployment, error) {
 	req, out := c.UpdateDeploymentRequest(input)
 	err := req.Send()
@@ -2005,7 +6158,30 @@ func (c *APIGateway) UpdateDeployment(input *UpdateDeploymentInput) (*Deployment
 
 const opUpdateDomainName = "UpdateDomainName"
 
-// UpdateDomainNameRequest generates a request for the UpdateDomainName operation.
+// UpdateDomainNameRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateDomainName operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateDomainName for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateDomainName method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateDomainNameRequest method.
+//    req, resp := client.UpdateDomainNameRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateDomainNameRequest(input *UpdateDomainNameInput) (req *request.Request, output *DomainName) {
 	op := &request.Operation{
 		Name:       opUpdateDomainName,
@@ -2023,7 +6199,33 @@ func (c *APIGateway) UpdateDomainNameRequest(input *UpdateDomainNameInput) (req 
 	return
 }
 
+// UpdateDomainName API operation for Amazon API Gateway.
+//
 // Changes information about the DomainName resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateDomainName for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateDomainName(input *UpdateDomainNameInput) (*DomainName, error) {
 	req, out := c.UpdateDomainNameRequest(input)
 	err := req.Send()
@@ -2032,7 +6234,30 @@ func (c *APIGateway) UpdateDomainName(input *UpdateDomainNameInput) (*DomainName
 
 const opUpdateIntegration = "UpdateIntegration"
 
-// UpdateIntegrationRequest generates a request for the UpdateIntegration operation.
+// UpdateIntegrationRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateIntegration operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateIntegration for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateIntegration method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateIntegrationRequest method.
+//    req, resp := client.UpdateIntegrationRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateIntegrationRequest(input *UpdateIntegrationInput) (req *request.Request, output *Integration) {
 	op := &request.Operation{
 		Name:       opUpdateIntegration,
@@ -2050,7 +6275,33 @@ func (c *APIGateway) UpdateIntegrationRequest(input *UpdateIntegrationInput) (re
 	return
 }
 
+// UpdateIntegration API operation for Amazon API Gateway.
+//
 // Represents an update integration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateIntegration for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * ConflictException
+
+//
 func (c *APIGateway) UpdateIntegration(input *UpdateIntegrationInput) (*Integration, error) {
 	req, out := c.UpdateIntegrationRequest(input)
 	err := req.Send()
@@ -2059,7 +6310,30 @@ func (c *APIGateway) UpdateIntegration(input *UpdateIntegrationInput) (*Integrat
 
 const opUpdateIntegrationResponse = "UpdateIntegrationResponse"
 
-// UpdateIntegrationResponseRequest generates a request for the UpdateIntegrationResponse operation.
+// UpdateIntegrationResponseRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateIntegrationResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateIntegrationResponse for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateIntegrationResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateIntegrationResponseRequest method.
+//    req, resp := client.UpdateIntegrationResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateIntegrationResponseRequest(input *UpdateIntegrationResponseInput) (req *request.Request, output *IntegrationResponse) {
 	op := &request.Operation{
 		Name:       opUpdateIntegrationResponse,
@@ -2077,7 +6351,33 @@ func (c *APIGateway) UpdateIntegrationResponseRequest(input *UpdateIntegrationRe
 	return
 }
 
+// UpdateIntegrationResponse API operation for Amazon API Gateway.
+//
 // Represents an update integration response.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateIntegrationResponse for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateIntegrationResponse(input *UpdateIntegrationResponseInput) (*IntegrationResponse, error) {
 	req, out := c.UpdateIntegrationResponseRequest(input)
 	err := req.Send()
@@ -2086,7 +6386,30 @@ func (c *APIGateway) UpdateIntegrationResponse(input *UpdateIntegrationResponseI
 
 const opUpdateMethod = "UpdateMethod"
 
-// UpdateMethodRequest generates a request for the UpdateMethod operation.
+// UpdateMethodRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateMethod operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateMethod for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateMethod method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateMethodRequest method.
+//    req, resp := client.UpdateMethodRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateMethodRequest(input *UpdateMethodInput) (req *request.Request, output *Method) {
 	op := &request.Operation{
 		Name:       opUpdateMethod,
@@ -2104,7 +6427,33 @@ func (c *APIGateway) UpdateMethodRequest(input *UpdateMethodInput) (req *request
 	return
 }
 
+// UpdateMethod API operation for Amazon API Gateway.
+//
 // Updates an existing Method resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateMethod for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateMethod(input *UpdateMethodInput) (*Method, error) {
 	req, out := c.UpdateMethodRequest(input)
 	err := req.Send()
@@ -2113,7 +6462,30 @@ func (c *APIGateway) UpdateMethod(input *UpdateMethodInput) (*Method, error) {
 
 const opUpdateMethodResponse = "UpdateMethodResponse"
 
-// UpdateMethodResponseRequest generates a request for the UpdateMethodResponse operation.
+// UpdateMethodResponseRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateMethodResponse operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateMethodResponse for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateMethodResponse method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateMethodResponseRequest method.
+//    req, resp := client.UpdateMethodResponseRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateMethodResponseRequest(input *UpdateMethodResponseInput) (req *request.Request, output *MethodResponse) {
 	op := &request.Operation{
 		Name:       opUpdateMethodResponse,
@@ -2131,7 +6503,36 @@ func (c *APIGateway) UpdateMethodResponseRequest(input *UpdateMethodResponseInpu
 	return
 }
 
+// UpdateMethodResponse API operation for Amazon API Gateway.
+//
 // Updates an existing MethodResponse resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateMethodResponse for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * LimitExceededException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateMethodResponse(input *UpdateMethodResponseInput) (*MethodResponse, error) {
 	req, out := c.UpdateMethodResponseRequest(input)
 	err := req.Send()
@@ -2140,7 +6541,30 @@ func (c *APIGateway) UpdateMethodResponse(input *UpdateMethodResponseInput) (*Me
 
 const opUpdateModel = "UpdateModel"
 
-// UpdateModelRequest generates a request for the UpdateModel operation.
+// UpdateModelRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateModel operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateModel for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateModel method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateModelRequest method.
+//    req, resp := client.UpdateModelRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateModelRequest(input *UpdateModelInput) (req *request.Request, output *Model) {
 	op := &request.Operation{
 		Name:       opUpdateModel,
@@ -2158,7 +6582,33 @@ func (c *APIGateway) UpdateModelRequest(input *UpdateModelInput) (req *request.R
 	return
 }
 
+// UpdateModel API operation for Amazon API Gateway.
+//
 // Changes information about a model.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateModel for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * BadRequestException
+
+//
+//   * ConflictException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateModel(input *UpdateModelInput) (*Model, error) {
 	req, out := c.UpdateModelRequest(input)
 	err := req.Send()
@@ -2167,7 +6617,30 @@ func (c *APIGateway) UpdateModel(input *UpdateModelInput) (*Model, error) {
 
 const opUpdateResource = "UpdateResource"
 
-// UpdateResourceRequest generates a request for the UpdateResource operation.
+// UpdateResourceRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateResource operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateResource for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateResource method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateResourceRequest method.
+//    req, resp := client.UpdateResourceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateResourceRequest(input *UpdateResourceInput) (req *request.Request, output *Resource) {
 	op := &request.Operation{
 		Name:       opUpdateResource,
@@ -2185,7 +6658,33 @@ func (c *APIGateway) UpdateResourceRequest(input *UpdateResourceInput) (req *req
 	return
 }
 
+// UpdateResource API operation for Amazon API Gateway.
+//
 // Changes information about a Resource resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateResource for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateResource(input *UpdateResourceInput) (*Resource, error) {
 	req, out := c.UpdateResourceRequest(input)
 	err := req.Send()
@@ -2194,7 +6693,30 @@ func (c *APIGateway) UpdateResource(input *UpdateResourceInput) (*Resource, erro
 
 const opUpdateRestApi = "UpdateRestApi"
 
-// UpdateRestApiRequest generates a request for the UpdateRestApi operation.
+// UpdateRestApiRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateRestApi operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateRestApi for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateRestApi method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateRestApiRequest method.
+//    req, resp := client.UpdateRestApiRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateRestApiRequest(input *UpdateRestApiInput) (req *request.Request, output *RestApi) {
 	op := &request.Operation{
 		Name:       opUpdateRestApi,
@@ -2212,7 +6734,33 @@ func (c *APIGateway) UpdateRestApiRequest(input *UpdateRestApiInput) (req *reque
 	return
 }
 
+// UpdateRestApi API operation for Amazon API Gateway.
+//
 // Changes information about the specified API.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateRestApi for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateRestApi(input *UpdateRestApiInput) (*RestApi, error) {
 	req, out := c.UpdateRestApiRequest(input)
 	err := req.Send()
@@ -2221,7 +6769,30 @@ func (c *APIGateway) UpdateRestApi(input *UpdateRestApiInput) (*RestApi, error) 
 
 const opUpdateStage = "UpdateStage"
 
-// UpdateStageRequest generates a request for the UpdateStage operation.
+// UpdateStageRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateStage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateStage for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateStage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateStageRequest method.
+//    req, resp := client.UpdateStageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
 func (c *APIGateway) UpdateStageRequest(input *UpdateStageInput) (req *request.Request, output *Stage) {
 	op := &request.Operation{
 		Name:       opUpdateStage,
@@ -2239,23 +6810,239 @@ func (c *APIGateway) UpdateStageRequest(input *UpdateStageInput) (req *request.R
 	return
 }
 
+// UpdateStage API operation for Amazon API Gateway.
+//
 // Changes information about a Stage resource.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateStage for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+//   * BadRequestException
+
+//
+//   * TooManyRequestsException
+
+//
 func (c *APIGateway) UpdateStage(input *UpdateStageInput) (*Stage, error) {
 	req, out := c.UpdateStageRequest(input)
 	err := req.Send()
 	return out, err
 }
 
+const opUpdateUsage = "UpdateUsage"
+
+// UpdateUsageRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateUsage operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateUsage for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateUsage method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateUsageRequest method.
+//    req, resp := client.UpdateUsageRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) UpdateUsageRequest(input *UpdateUsageInput) (req *request.Request, output *Usage) {
+	op := &request.Operation{
+		Name:       opUpdateUsage,
+		HTTPMethod: "PATCH",
+		HTTPPath:   "/usageplans/{usageplanId}/keys/{keyId}/usage",
+	}
+
+	if input == nil {
+		input = &UpdateUsageInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &Usage{}
+	req.Data = output
+	return
+}
+
+// UpdateUsage API operation for Amazon API Gateway.
+//
+// Grants a temporary extension to the reamining quota of a usage plan associated
+// with a specified API key.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateUsage for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
+//   * NotFoundException
+
+//
+func (c *APIGateway) UpdateUsage(input *UpdateUsageInput) (*Usage, error) {
+	req, out := c.UpdateUsageRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opUpdateUsagePlan = "UpdateUsagePlan"
+
+// UpdateUsagePlanRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateUsagePlan operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdateUsagePlan for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdateUsagePlan method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdateUsagePlanRequest method.
+//    req, resp := client.UpdateUsagePlanRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *APIGateway) UpdateUsagePlanRequest(input *UpdateUsagePlanInput) (req *request.Request, output *UsagePlan) {
+	op := &request.Operation{
+		Name:       opUpdateUsagePlan,
+		HTTPMethod: "PATCH",
+		HTTPPath:   "/usageplans/{usageplanId}",
+	}
+
+	if input == nil {
+		input = &UpdateUsagePlanInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UsagePlan{}
+	req.Data = output
+	return
+}
+
+// UpdateUsagePlan API operation for Amazon API Gateway.
+//
+// Updates a usage plan of a given plan Id.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon API Gateway's
+// API operation UpdateUsagePlan for usage and error information.
+//
+// Returned Error Codes:
+//   * UnauthorizedException
+
+//
+//   * TooManyRequestsException
+
+//
+//   * BadRequestException
+
+//
+//   * NotFoundException
+
+//
+//   * ConflictException
+
+//
+func (c *APIGateway) UpdateUsagePlan(input *UpdateUsagePlanInput) (*UsagePlan, error) {
+	req, out := c.UpdateUsagePlanRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 // Represents an AWS account that is associated with Amazon API Gateway.
+//
+// To view the account info, call GET on this resource.
+//
+// Error Codes
+//
+// The following exception may be thrown when the request fails.
+//
+// UnauthorizedException
+// NotFoundException
+// TooManyRequestsException
+// For detailed error code information, including the corresponding HTTP Status
+// Codes, see API Gateway Error Codes (http://docs.aws.amazon.com/apigateway/api-reference/handling-errors/#api-error-codes)
+//
+// Example: Get the information about an account.
+//
+// Request
+//
+// GET /account HTTP/1.1 Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com
+// X-Amz-Date: 20160531T184618Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/us-east-1/apigateway/aws4_request,
+// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
+// Response
+//
+// The successful response returns a 200 OK status code and a payload similar
+// to the following:
+//
+// { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/account-apigateway-{rel}.html",
+// "name": "account", "templated": true }, "self": { "href": "/account" }, "account:update":
+// { "href": "/account" } }, "cloudwatchRoleArn": "arn:aws:iam::123456789012:role/apigAwsProxyRole",
+// "throttleSettings": { "rateLimit": 500, "burstLimit": 1000 } }
+// In addition to making the REST API call directly, you can use the AWS CLI
+// and an AWS SDK to access this resource.
+//
+// API Gateway Limits (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-limits.html)Developer
+// Guide (http://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html),
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-account.html)
 type Account struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies the Amazon resource name (ARN) of an Amazon CloudWatch role for
-	// the current Account resource.
+	// The version of the API keys used for the account.
+	ApiKeyVersion *string `locationName:"apiKeyVersion" type:"string"`
+
+	// The ARN of an Amazon CloudWatch role for the current Account.
 	CloudwatchRoleArn *string `locationName:"cloudwatchRoleArn" type:"string"`
 
-	// Specifies the application programming interface (API) throttle settings for
-	// the current Account resource.
+	// A list of features supported for the account. When usage plans are enabled,
+	// the features list will include an entry of "UsagePlans".
+	Features []*string `locationName:"features" type:"list"`
+
+	// Specifies the API request limits configured for the current Account.
 	ThrottleSettings *ThrottleSettings `locationName:"throttleSettings" type:"structure"`
 }
 
@@ -2269,15 +7056,40 @@ func (s Account) GoString() string {
 	return s.String()
 }
 
+// SetApiKeyVersion sets the ApiKeyVersion field's value.
+func (s *Account) SetApiKeyVersion(v string) *Account {
+	s.ApiKeyVersion = &v
+	return s
+}
+
+// SetCloudwatchRoleArn sets the CloudwatchRoleArn field's value.
+func (s *Account) SetCloudwatchRoleArn(v string) *Account {
+	s.CloudwatchRoleArn = &v
+	return s
+}
+
+// SetFeatures sets the Features field's value.
+func (s *Account) SetFeatures(v []*string) *Account {
+	s.Features = v
+	return s
+}
+
+// SetThrottleSettings sets the ThrottleSettings field's value.
+func (s *Account) SetThrottleSettings(v *ThrottleSettings) *Account {
+	s.ThrottleSettings = v
+	return s
+}
+
 // A resource that can be distributed to callers for executing Method resources
 // that require an API key. API keys can be mapped to any Stage on any RestApi,
 // which indicates that the callers with the API key can make requests to that
 // stage.
+//
+// Use API Keys (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-api-keys.html)
 type ApiKey struct {
 	_ struct{} `type:"structure"`
 
-	// The date when the API Key was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
-	// target="_blank).
+	// The date when the API Key was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The description of the API Key.
@@ -2297,6 +7109,9 @@ type ApiKey struct {
 
 	// A list of Stage resources that are associated with the ApiKey resource.
 	StageKeys []*string `locationName:"stageKeys" type:"list"`
+
+	// The value of the API Key.
+	Value *string `locationName:"value" type:"string"`
 }
 
 // String returns the string representation
@@ -2309,8 +7124,91 @@ func (s ApiKey) GoString() string {
 	return s.String()
 }
 
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *ApiKey) SetCreatedDate(v time.Time) *ApiKey {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *ApiKey) SetDescription(v string) *ApiKey {
+	s.Description = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *ApiKey) SetEnabled(v bool) *ApiKey {
+	s.Enabled = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *ApiKey) SetId(v string) *ApiKey {
+	s.Id = &v
+	return s
+}
+
+// SetLastUpdatedDate sets the LastUpdatedDate field's value.
+func (s *ApiKey) SetLastUpdatedDate(v time.Time) *ApiKey {
+	s.LastUpdatedDate = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ApiKey) SetName(v string) *ApiKey {
+	s.Name = &v
+	return s
+}
+
+// SetStageKeys sets the StageKeys field's value.
+func (s *ApiKey) SetStageKeys(v []*string) *ApiKey {
+	s.StageKeys = v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *ApiKey) SetValue(v string) *ApiKey {
+	s.Value = &v
+	return s
+}
+
+// API stage name of the associated API stage in a usage plan.
+type ApiStage struct {
+	_ struct{} `type:"structure"`
+
+	// API Id of the associated API stage in a usage plan.
+	ApiId *string `locationName:"apiId" type:"string"`
+
+	// API stage name of the associated API stage in a usage plan.
+	Stage *string `locationName:"stage" type:"string"`
+}
+
+// String returns the string representation
+func (s ApiStage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ApiStage) GoString() string {
+	return s.String()
+}
+
+// SetApiId sets the ApiId field's value.
+func (s *ApiStage) SetApiId(v string) *ApiStage {
+	s.ApiId = &v
+	return s
+}
+
+// SetStage sets the Stage field's value.
+func (s *ApiStage) SetStage(v string) *ApiStage {
+	s.Stage = &v
+	return s
+}
+
 // Represents an authorization layer for methods. If enabled on a method, API
 // Gateway will activate the authorizer when a client calls the method.
+//
+// Enable custom authorization (http://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
 type Authorizer struct {
 	_ struct{} `type:"structure"`
 
@@ -2319,7 +7217,7 @@ type Authorizer struct {
 	AuthType *string `locationName:"authType" type:"string"`
 
 	// Specifies the credentials required for the authorizer, if any. Two options
-	// are available. To specify an IAM Role for Amazon API Gateway to assume, use
+	// are available. To specify an IAM role for Amazon API Gateway to assume, use
 	// the role's Amazon Resource Name (ARN). To use resource-based permissions
 	// on the Lambda function, specify null.
 	AuthorizerCredentials *string `locationName:"authorizerCredentials" type:"string"`
@@ -2330,22 +7228,24 @@ type Authorizer struct {
 	AuthorizerResultTtlInSeconds *int64 `locationName:"authorizerResultTtlInSeconds" type:"integer"`
 
 	// [Required] Specifies the authorizer's Uniform Resource Identifier (URI).
-	// For TOKEN authorizers, this must be a well-formed Lambda function URI. The
-	// URI should be of the form arn:aws:apigateway:{region}:lambda:path/{service_api}.
-	// Region is used to determine the right endpoint. In this case, path is used
-	// to indicate that the remaining substring in the URI should be treated as
-	// the path to the resource, including the initial /. For Lambda functions,
-	// this is usually of the form /2015-03-31/functions/[FunctionARN]/invocations
+	// For TOKEN authorizers, this must be a well-formed Lambda function URI, for
+	// example, arn:aws:apigateway:us-west-2:lambda:path/2015-03-31/functions/arn:aws:lambda:us-west-2:{account_id}:function:{lambda_function_name}/invocations.
+	// In general, the URI has this form arn:aws:apigateway:{region}:lambda:path/{service_api},
+	// where {region} is the same as the region hosting the Lambda function, path
+	// indicates that the remaining substring in the URI should be treated as the
+	// path to the resource, including the initial /. For Lambda functions, this
+	// is usually of the form /2015-03-31/functions/[FunctionARN]/invocations.
 	AuthorizerUri *string `locationName:"authorizerUri" type:"string"`
 
 	// The identifier for the authorizer resource.
 	Id *string `locationName:"id" type:"string"`
 
-	// [Required] The source of the identity in an incoming request. For TOKEN authorizers,
-	// this value is a mapping expression with the same syntax as integration parameter
-	// mappings. The only valid source for tokens is 'header', so the expression
-	// should match 'method.request.header.[headerName]'. The value of the header
-	// '[headerName]' will be interpreted as the incoming token.
+	// [Required] The source of the identity in an incoming request. For a TOKEN
+	// authorizer, this value is a mapping expression with the same syntax as integration
+	// parameter mappings. The only valid source for tokens is 'header', so the
+	// expression should match 'method.request.header.[headerName]'. The value of
+	// the header '[headerName]' will be interpreted as the incoming token. For
+	// COGNITO_USER_POOLS authorizers, this property is used.
 	IdentitySource *string `locationName:"identitySource" type:"string"`
 
 	// A validation expression for the incoming identity. For TOKEN authorizers,
@@ -2357,8 +7257,13 @@ type Authorizer struct {
 	// [Required] The name of the authorizer.
 	Name *string `locationName:"name" type:"string"`
 
-	// [Required] The type of the authorizer. Currently, the only valid type is
-	// TOKEN.
+	// A list of the provider ARNs of the authorizer. For an TOKEN authorizer, this
+	// is not defined. For authorizers of the COGNITO_USER_POOLS type, each element
+	// corresponds to a user pool ARN of this format: arn:aws:cognito-idp:{region}:{account_id}:userpool/{user_pool_id}.
+	ProviderARNs []*string `locationName:"providerARNs" type:"list"`
+
+	// [Required] The type of the authorizer. Currently, the valid type is TOKEN
+	// for a Lambda function or COGNITO_USER_POOLS for an Amazon Cognito user pool.
 	Type *string `locationName:"type" type:"string" enum:"AuthorizerType"`
 }
 
@@ -2372,8 +7277,72 @@ func (s Authorizer) GoString() string {
 	return s.String()
 }
 
-// Represents the base path that callers of the API that must provide as part
-// of the URL after the domain name.
+// SetAuthType sets the AuthType field's value.
+func (s *Authorizer) SetAuthType(v string) *Authorizer {
+	s.AuthType = &v
+	return s
+}
+
+// SetAuthorizerCredentials sets the AuthorizerCredentials field's value.
+func (s *Authorizer) SetAuthorizerCredentials(v string) *Authorizer {
+	s.AuthorizerCredentials = &v
+	return s
+}
+
+// SetAuthorizerResultTtlInSeconds sets the AuthorizerResultTtlInSeconds field's value.
+func (s *Authorizer) SetAuthorizerResultTtlInSeconds(v int64) *Authorizer {
+	s.AuthorizerResultTtlInSeconds = &v
+	return s
+}
+
+// SetAuthorizerUri sets the AuthorizerUri field's value.
+func (s *Authorizer) SetAuthorizerUri(v string) *Authorizer {
+	s.AuthorizerUri = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *Authorizer) SetId(v string) *Authorizer {
+	s.Id = &v
+	return s
+}
+
+// SetIdentitySource sets the IdentitySource field's value.
+func (s *Authorizer) SetIdentitySource(v string) *Authorizer {
+	s.IdentitySource = &v
+	return s
+}
+
+// SetIdentityValidationExpression sets the IdentityValidationExpression field's value.
+func (s *Authorizer) SetIdentityValidationExpression(v string) *Authorizer {
+	s.IdentityValidationExpression = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *Authorizer) SetName(v string) *Authorizer {
+	s.Name = &v
+	return s
+}
+
+// SetProviderARNs sets the ProviderARNs field's value.
+func (s *Authorizer) SetProviderARNs(v []*string) *Authorizer {
+	s.ProviderARNs = v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *Authorizer) SetType(v string) *Authorizer {
+	s.Type = &v
+	return s
+}
+
+// Represents the base path that callers of the API must provide as part of
+// the URL after the domain name.
+//
+// A custom domain name plus a BasePathMapping specification identifies a deployed
+// RestApi in a given stage of the owner Account.
+// Use Custom Domain Names (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type BasePathMapping struct {
 	_ struct{} `type:"structure"`
 
@@ -2398,26 +7367,46 @@ func (s BasePathMapping) GoString() string {
 	return s.String()
 }
 
-// Represents a Client Certificate used to configure client-side SSL authentication
+// SetBasePath sets the BasePath field's value.
+func (s *BasePathMapping) SetBasePath(v string) *BasePathMapping {
+	s.BasePath = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *BasePathMapping) SetRestApiId(v string) *BasePathMapping {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStage sets the Stage field's value.
+func (s *BasePathMapping) SetStage(v string) *BasePathMapping {
+	s.Stage = &v
+	return s
+}
+
+// Represents a client certificate used to configure client-side SSL authentication
 // while sending requests to the integration endpoint.
+//
+// Client certificates are used authenticate an API by the back-end server.
+// To authenticate an API client (or user), use a custom Authorizer.
+// Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
 type ClientCertificate struct {
 	_ struct{} `type:"structure"`
 
-	// The identifier of the Client Certificate.
+	// The identifier of the client certificate.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
-	// The date when the Client Certificate was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
-	// target="_blank).
+	// The date when the client certificate was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
-	// The description of the Client Certificate.
+	// The description of the client certificate.
 	Description *string `locationName:"description" type:"string"`
 
-	// The date when the Client Certificate will expire, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
-	// target="_blank).
+	// The date when the client certificate will expire, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
 	ExpirationDate *time.Time `locationName:"expirationDate" type:"timestamp" timestampFormat:"unix"`
 
-	// The PEM-encoded public key of the Client Certificate, that can be used to
+	// The PEM-encoded public key of the client certificate, which can be used to
 	// configure certificate authentication in the integration endpoint .
 	PemEncodedCertificate *string `locationName:"pemEncodedCertificate" type:"string"`
 }
@@ -2432,6 +7421,36 @@ func (s ClientCertificate) GoString() string {
 	return s.String()
 }
 
+// SetClientCertificateId sets the ClientCertificateId field's value.
+func (s *ClientCertificate) SetClientCertificateId(v string) *ClientCertificate {
+	s.ClientCertificateId = &v
+	return s
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *ClientCertificate) SetCreatedDate(v time.Time) *ClientCertificate {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *ClientCertificate) SetDescription(v string) *ClientCertificate {
+	s.Description = &v
+	return s
+}
+
+// SetExpirationDate sets the ExpirationDate field's value.
+func (s *ClientCertificate) SetExpirationDate(v time.Time) *ClientCertificate {
+	s.ExpirationDate = &v
+	return s
+}
+
+// SetPemEncodedCertificate sets the PemEncodedCertificate field's value.
+func (s *ClientCertificate) SetPemEncodedCertificate(v string) *ClientCertificate {
+	s.PemEncodedCertificate = &v
+	return s
+}
+
 // Request to create an ApiKey resource.
 type CreateApiKeyInput struct {
 	_ struct{} `type:"structure"`
@@ -2442,11 +7461,18 @@ type CreateApiKeyInput struct {
 	// Specifies whether the ApiKey can be used by callers.
 	Enabled *bool `locationName:"enabled" type:"boolean"`
 
+	// Specifies whether (true) or not (false) the key identifier is distinct from
+	// the created API key value.
+	GenerateDistinctId *bool `locationName:"generateDistinctId" type:"boolean"`
+
 	// The name of the ApiKey.
 	Name *string `locationName:"name" type:"string"`
 
-	// Specifies whether the ApiKey can be used by callers.
+	// DEPRECATED FOR USAGE PLANS - Specifies stages associated with the API key.
 	StageKeys []*StageKey `locationName:"stageKeys" type:"list"`
+
+	// Specifies a value of the API key.
+	Value *string `locationName:"value" type:"string"`
 }
 
 // String returns the string representation
@@ -2457,6 +7483,42 @@ func (s CreateApiKeyInput) String() string {
 // GoString returns the string representation
 func (s CreateApiKeyInput) GoString() string {
 	return s.String()
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateApiKeyInput) SetDescription(v string) *CreateApiKeyInput {
+	s.Description = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *CreateApiKeyInput) SetEnabled(v bool) *CreateApiKeyInput {
+	s.Enabled = &v
+	return s
+}
+
+// SetGenerateDistinctId sets the GenerateDistinctId field's value.
+func (s *CreateApiKeyInput) SetGenerateDistinctId(v bool) *CreateApiKeyInput {
+	s.GenerateDistinctId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateApiKeyInput) SetName(v string) *CreateApiKeyInput {
+	s.Name = &v
+	return s
+}
+
+// SetStageKeys sets the StageKeys field's value.
+func (s *CreateApiKeyInput) SetStageKeys(v []*StageKey) *CreateApiKeyInput {
+	s.StageKeys = v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *CreateApiKeyInput) SetValue(v string) *CreateApiKeyInput {
+	s.Value = &v
+	return s
 }
 
 // Request to add a new Authorizer to an existing RestApi resource.
@@ -2474,21 +7536,32 @@ type CreateAuthorizerInput struct {
 	AuthorizerResultTtlInSeconds *int64 `locationName:"authorizerResultTtlInSeconds" type:"integer"`
 
 	// [Required] Specifies the authorizer's Uniform Resource Identifier (URI).
-	AuthorizerUri *string `locationName:"authorizerUri" type:"string" required:"true"`
+	AuthorizerUri *string `locationName:"authorizerUri" type:"string"`
 
 	// [Required] The source of the identity in an incoming request.
+	//
+	// IdentitySource is a required field
 	IdentitySource *string `locationName:"identitySource" type:"string" required:"true"`
 
 	// A validation expression for the incoming identity.
 	IdentityValidationExpression *string `locationName:"identityValidationExpression" type:"string"`
 
 	// [Required] The name of the authorizer.
+	//
+	// Name is a required field
 	Name *string `locationName:"name" type:"string" required:"true"`
 
+	// A list of the Cognito Your User Pool authorizer's provider ARNs.
+	ProviderARNs []*string `locationName:"providerARNs" type:"list"`
+
 	// The RestApi identifier under which the Authorizer will be created.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// [Required] The type of the authorizer.
+	//
+	// Type is a required field
 	Type *string `locationName:"type" type:"string" required:"true" enum:"AuthorizerType"`
 }
 
@@ -2505,9 +7578,6 @@ func (s CreateAuthorizerInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateAuthorizerInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateAuthorizerInput"}
-	if s.AuthorizerUri == nil {
-		invalidParams.Add(request.NewErrParamRequired("AuthorizerUri"))
-	}
 	if s.IdentitySource == nil {
 		invalidParams.Add(request.NewErrParamRequired("IdentitySource"))
 	}
@@ -2527,6 +7597,66 @@ func (s *CreateAuthorizerInput) Validate() error {
 	return nil
 }
 
+// SetAuthType sets the AuthType field's value.
+func (s *CreateAuthorizerInput) SetAuthType(v string) *CreateAuthorizerInput {
+	s.AuthType = &v
+	return s
+}
+
+// SetAuthorizerCredentials sets the AuthorizerCredentials field's value.
+func (s *CreateAuthorizerInput) SetAuthorizerCredentials(v string) *CreateAuthorizerInput {
+	s.AuthorizerCredentials = &v
+	return s
+}
+
+// SetAuthorizerResultTtlInSeconds sets the AuthorizerResultTtlInSeconds field's value.
+func (s *CreateAuthorizerInput) SetAuthorizerResultTtlInSeconds(v int64) *CreateAuthorizerInput {
+	s.AuthorizerResultTtlInSeconds = &v
+	return s
+}
+
+// SetAuthorizerUri sets the AuthorizerUri field's value.
+func (s *CreateAuthorizerInput) SetAuthorizerUri(v string) *CreateAuthorizerInput {
+	s.AuthorizerUri = &v
+	return s
+}
+
+// SetIdentitySource sets the IdentitySource field's value.
+func (s *CreateAuthorizerInput) SetIdentitySource(v string) *CreateAuthorizerInput {
+	s.IdentitySource = &v
+	return s
+}
+
+// SetIdentityValidationExpression sets the IdentityValidationExpression field's value.
+func (s *CreateAuthorizerInput) SetIdentityValidationExpression(v string) *CreateAuthorizerInput {
+	s.IdentityValidationExpression = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateAuthorizerInput) SetName(v string) *CreateAuthorizerInput {
+	s.Name = &v
+	return s
+}
+
+// SetProviderARNs sets the ProviderARNs field's value.
+func (s *CreateAuthorizerInput) SetProviderARNs(v []*string) *CreateAuthorizerInput {
+	s.ProviderARNs = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *CreateAuthorizerInput) SetRestApiId(v string) *CreateAuthorizerInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *CreateAuthorizerInput) SetType(v string) *CreateAuthorizerInput {
+	s.Type = &v
+	return s
+}
+
 // Requests Amazon API Gateway to create a new BasePathMapping resource.
 type CreateBasePathMappingInput struct {
 	_ struct{} `type:"structure"`
@@ -2538,9 +7668,13 @@ type CreateBasePathMappingInput struct {
 	BasePath *string `locationName:"basePath" type:"string"`
 
 	// The domain name of the BasePathMapping resource to create.
+	//
+	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 
 	// The name of the API that you want to apply this mapping to.
+	//
+	// RestApiId is a required field
 	RestApiId *string `locationName:"restApiId" type:"string" required:"true"`
 
 	// The name of the API's stage that you want to use for this mapping. Leave
@@ -2575,6 +7709,30 @@ func (s *CreateBasePathMappingInput) Validate() error {
 	return nil
 }
 
+// SetBasePath sets the BasePath field's value.
+func (s *CreateBasePathMappingInput) SetBasePath(v string) *CreateBasePathMappingInput {
+	s.BasePath = &v
+	return s
+}
+
+// SetDomainName sets the DomainName field's value.
+func (s *CreateBasePathMappingInput) SetDomainName(v string) *CreateBasePathMappingInput {
+	s.DomainName = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *CreateBasePathMappingInput) SetRestApiId(v string) *CreateBasePathMappingInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStage sets the Stage field's value.
+func (s *CreateBasePathMappingInput) SetStage(v string) *CreateBasePathMappingInput {
+	s.Stage = &v
+	return s
+}
+
 // Requests Amazon API Gateway to create a Deployment resource.
 type CreateDeploymentInput struct {
 	_ struct{} `type:"structure"`
@@ -2590,17 +7748,19 @@ type CreateDeploymentInput struct {
 	Description *string `locationName:"description" type:"string"`
 
 	// The RestApi resource identifier for the Deployment resource to create.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The description of the Stage resource for the Deployment resource to create.
 	StageDescription *string `locationName:"stageDescription" type:"string"`
 
 	// The name of the Stage resource for the Deployment resource to create.
-	StageName *string `locationName:"stageName" type:"string" required:"true"`
+	StageName *string `locationName:"stageName" type:"string"`
 
 	// A map that defines the stage variables for the Stage resource that is associated
-	// with the new deployment. Variable names can have alphanumeric characters,
-	// and the values must match [A-Za-z0-9-._~:/?#&=,]+.
+	// with the new deployment. Variable names can have alphanumeric and underscore
+	// characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
 }
 
@@ -2620,9 +7780,6 @@ func (s *CreateDeploymentInput) Validate() error {
 	if s.RestApiId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RestApiId"))
 	}
-	if s.StageName == nil {
-		invalidParams.Add(request.NewErrParamRequired("StageName"))
-	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -2630,11 +7787,55 @@ func (s *CreateDeploymentInput) Validate() error {
 	return nil
 }
 
+// SetCacheClusterEnabled sets the CacheClusterEnabled field's value.
+func (s *CreateDeploymentInput) SetCacheClusterEnabled(v bool) *CreateDeploymentInput {
+	s.CacheClusterEnabled = &v
+	return s
+}
+
+// SetCacheClusterSize sets the CacheClusterSize field's value.
+func (s *CreateDeploymentInput) SetCacheClusterSize(v string) *CreateDeploymentInput {
+	s.CacheClusterSize = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateDeploymentInput) SetDescription(v string) *CreateDeploymentInput {
+	s.Description = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *CreateDeploymentInput) SetRestApiId(v string) *CreateDeploymentInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageDescription sets the StageDescription field's value.
+func (s *CreateDeploymentInput) SetStageDescription(v string) *CreateDeploymentInput {
+	s.StageDescription = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *CreateDeploymentInput) SetStageName(v string) *CreateDeploymentInput {
+	s.StageName = &v
+	return s
+}
+
+// SetVariables sets the Variables field's value.
+func (s *CreateDeploymentInput) SetVariables(v map[string]*string) *CreateDeploymentInput {
+	s.Variables = v
+	return s
+}
+
 // A request to create a new domain name.
 type CreateDomainNameInput struct {
 	_ struct{} `type:"structure"`
 
 	// The body of the server certificate provided by your certificate authority.
+	//
+	// CertificateBody is a required field
 	CertificateBody *string `locationName:"certificateBody" type:"string" required:"true"`
 
 	// The intermediate certificates and optionally the root certificate, one after
@@ -2643,15 +7844,23 @@ type CreateDomainNameInput struct {
 	// the root certificate. Use the intermediate certificates that were provided
 	// by your certificate authority. Do not include any intermediaries that are
 	// not in the chain of trust path.
+	//
+	// CertificateChain is a required field
 	CertificateChain *string `locationName:"certificateChain" type:"string" required:"true"`
 
 	// The name of the certificate.
+	//
+	// CertificateName is a required field
 	CertificateName *string `locationName:"certificateName" type:"string" required:"true"`
 
 	// Your certificate's private key.
+	//
+	// CertificatePrivateKey is a required field
 	CertificatePrivateKey *string `locationName:"certificatePrivateKey" type:"string" required:"true"`
 
 	// The name of the DomainName resource.
+	//
+	// DomainName is a required field
 	DomainName *string `locationName:"domainName" type:"string" required:"true"`
 }
 
@@ -2690,24 +7899,60 @@ func (s *CreateDomainNameInput) Validate() error {
 	return nil
 }
 
+// SetCertificateBody sets the CertificateBody field's value.
+func (s *CreateDomainNameInput) SetCertificateBody(v string) *CreateDomainNameInput {
+	s.CertificateBody = &v
+	return s
+}
+
+// SetCertificateChain sets the CertificateChain field's value.
+func (s *CreateDomainNameInput) SetCertificateChain(v string) *CreateDomainNameInput {
+	s.CertificateChain = &v
+	return s
+}
+
+// SetCertificateName sets the CertificateName field's value.
+func (s *CreateDomainNameInput) SetCertificateName(v string) *CreateDomainNameInput {
+	s.CertificateName = &v
+	return s
+}
+
+// SetCertificatePrivateKey sets the CertificatePrivateKey field's value.
+func (s *CreateDomainNameInput) SetCertificatePrivateKey(v string) *CreateDomainNameInput {
+	s.CertificatePrivateKey = &v
+	return s
+}
+
+// SetDomainName sets the DomainName field's value.
+func (s *CreateDomainNameInput) SetDomainName(v string) *CreateDomainNameInput {
+	s.DomainName = &v
+	return s
+}
+
 // Request to add a new Model to an existing RestApi resource.
 type CreateModelInput struct {
 	_ struct{} `type:"structure"`
 
 	// The content-type for the model.
+	//
+	// ContentType is a required field
 	ContentType *string `locationName:"contentType" type:"string" required:"true"`
 
 	// The description of the model.
 	Description *string `locationName:"description" type:"string"`
 
 	// The name of the model.
+	//
+	// Name is a required field
 	Name *string `locationName:"name" type:"string" required:"true"`
 
 	// The RestApi identifier under which the Model will be created.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The schema for the model. For application/json models, this should be JSON-schema
-	// draft v4 (http://json-schema.org/documentation.html" target="_blank) model.
+	// draft v4 (http://json-schema.org/documentation.html) model.
 	Schema *string `locationName:"schema" type:"string"`
 }
 
@@ -2740,17 +7985,53 @@ func (s *CreateModelInput) Validate() error {
 	return nil
 }
 
+// SetContentType sets the ContentType field's value.
+func (s *CreateModelInput) SetContentType(v string) *CreateModelInput {
+	s.ContentType = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateModelInput) SetDescription(v string) *CreateModelInput {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateModelInput) SetName(v string) *CreateModelInput {
+	s.Name = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *CreateModelInput) SetRestApiId(v string) *CreateModelInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetSchema sets the Schema field's value.
+func (s *CreateModelInput) SetSchema(v string) *CreateModelInput {
+	s.Schema = &v
+	return s
+}
+
 // Requests Amazon API Gateway to create a Resource resource.
 type CreateResourceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The parent resource's identifier.
+	//
+	// ParentId is a required field
 	ParentId *string `location:"uri" locationName:"parent_id" type:"string" required:"true"`
 
 	// The last path segment for this resource.
+	//
+	// PathPart is a required field
 	PathPart *string `locationName:"pathPart" type:"string" required:"true"`
 
 	// The identifier of the RestApi for the resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -2783,17 +8064,41 @@ func (s *CreateResourceInput) Validate() error {
 	return nil
 }
 
+// SetParentId sets the ParentId field's value.
+func (s *CreateResourceInput) SetParentId(v string) *CreateResourceInput {
+	s.ParentId = &v
+	return s
+}
+
+// SetPathPart sets the PathPart field's value.
+func (s *CreateResourceInput) SetPathPart(v string) *CreateResourceInput {
+	s.PathPart = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *CreateResourceInput) SetRestApiId(v string) *CreateResourceInput {
+	s.RestApiId = &v
+	return s
+}
+
 // The POST Request to add a new RestApi resource to your collection.
 type CreateRestApiInput struct {
 	_ struct{} `type:"structure"`
 
-	// The Id of the RestApi that you want to clone from.
+	// The list of binary media types supported by the RestApi. By default, the
+	// RestApi supports only UTF-8-encoded text payloads.
+	BinaryMediaTypes []*string `locationName:"binaryMediaTypes" type:"list"`
+
+	// The ID of the RestApi that you want to clone from.
 	CloneFrom *string `locationName:"cloneFrom" type:"string"`
 
 	// The description of the RestApi.
 	Description *string `locationName:"description" type:"string"`
 
 	// The name of the RestApi.
+	//
+	// Name is a required field
 	Name *string `locationName:"name" type:"string" required:"true"`
 }
 
@@ -2820,6 +8125,30 @@ func (s *CreateRestApiInput) Validate() error {
 	return nil
 }
 
+// SetBinaryMediaTypes sets the BinaryMediaTypes field's value.
+func (s *CreateRestApiInput) SetBinaryMediaTypes(v []*string) *CreateRestApiInput {
+	s.BinaryMediaTypes = v
+	return s
+}
+
+// SetCloneFrom sets the CloneFrom field's value.
+func (s *CreateRestApiInput) SetCloneFrom(v string) *CreateRestApiInput {
+	s.CloneFrom = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateRestApiInput) SetDescription(v string) *CreateRestApiInput {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateRestApiInput) SetName(v string) *CreateRestApiInput {
+	s.Name = &v
+	return s
+}
+
 // Requests Amazon API Gateway to create a Stage resource.
 type CreateStageInput struct {
 	_ struct{} `type:"structure"`
@@ -2831,19 +8160,26 @@ type CreateStageInput struct {
 	CacheClusterSize *string `locationName:"cacheClusterSize" type:"string" enum:"CacheClusterSize"`
 
 	// The identifier of the Deployment resource for the Stage resource.
+	//
+	// DeploymentId is a required field
 	DeploymentId *string `locationName:"deploymentId" type:"string" required:"true"`
 
 	// The description of the Stage resource.
 	Description *string `locationName:"description" type:"string"`
 
 	// The identifier of the RestApi resource for the Stage resource to create.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The name for the Stage resource.
+	//
+	// StageName is a required field
 	StageName *string `locationName:"stageName" type:"string" required:"true"`
 
 	// A map that defines the stage variables for the new Stage resource. Variable
-	// names can have alphanumeric characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+.
+	// names can have alphanumeric and underscore characters, and the values must
+	// match [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
 }
 
@@ -2876,11 +8212,201 @@ func (s *CreateStageInput) Validate() error {
 	return nil
 }
 
+// SetCacheClusterEnabled sets the CacheClusterEnabled field's value.
+func (s *CreateStageInput) SetCacheClusterEnabled(v bool) *CreateStageInput {
+	s.CacheClusterEnabled = &v
+	return s
+}
+
+// SetCacheClusterSize sets the CacheClusterSize field's value.
+func (s *CreateStageInput) SetCacheClusterSize(v string) *CreateStageInput {
+	s.CacheClusterSize = &v
+	return s
+}
+
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *CreateStageInput) SetDeploymentId(v string) *CreateStageInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateStageInput) SetDescription(v string) *CreateStageInput {
+	s.Description = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *CreateStageInput) SetRestApiId(v string) *CreateStageInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *CreateStageInput) SetStageName(v string) *CreateStageInput {
+	s.StageName = &v
+	return s
+}
+
+// SetVariables sets the Variables field's value.
+func (s *CreateStageInput) SetVariables(v map[string]*string) *CreateStageInput {
+	s.Variables = v
+	return s
+}
+
+// The POST request to create a usage plan with the name, description, throttle
+// limits and quota limits, as well as the associated API stages, specified
+// in the payload.
+type CreateUsagePlanInput struct {
+	_ struct{} `type:"structure"`
+
+	// The associated API stages of the usage plan.
+	ApiStages []*ApiStage `locationName:"apiStages" type:"list"`
+
+	// The description of the usage plan.
+	Description *string `locationName:"description" type:"string"`
+
+	// The name of the usage plan.
+	//
+	// Name is a required field
+	Name *string `locationName:"name" type:"string" required:"true"`
+
+	// The quota of the usage plan.
+	Quota *QuotaSettings `locationName:"quota" type:"structure"`
+
+	// The throttling limits of the usage plan.
+	Throttle *ThrottleSettings `locationName:"throttle" type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateUsagePlanInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateUsagePlanInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateUsagePlanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateUsagePlanInput"}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApiStages sets the ApiStages field's value.
+func (s *CreateUsagePlanInput) SetApiStages(v []*ApiStage) *CreateUsagePlanInput {
+	s.ApiStages = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateUsagePlanInput) SetDescription(v string) *CreateUsagePlanInput {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateUsagePlanInput) SetName(v string) *CreateUsagePlanInput {
+	s.Name = &v
+	return s
+}
+
+// SetQuota sets the Quota field's value.
+func (s *CreateUsagePlanInput) SetQuota(v *QuotaSettings) *CreateUsagePlanInput {
+	s.Quota = v
+	return s
+}
+
+// SetThrottle sets the Throttle field's value.
+func (s *CreateUsagePlanInput) SetThrottle(v *ThrottleSettings) *CreateUsagePlanInput {
+	s.Throttle = v
+	return s
+}
+
+// The POST request to create a usage plan key for adding an existing API key
+// to a usage plan.
+type CreateUsagePlanKeyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of a UsagePlanKey resource for a plan customer.
+	//
+	// KeyId is a required field
+	KeyId *string `locationName:"keyId" type:"string" required:"true"`
+
+	// The type of a UsagePlanKey resource for a plan customer.
+	//
+	// KeyType is a required field
+	KeyType *string `locationName:"keyType" type:"string" required:"true"`
+
+	// The Id of the UsagePlan resource representing the usage plan containing the
+	// to-be-created UsagePlanKey resource representing a plan customer.
+	//
+	// UsagePlanId is a required field
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateUsagePlanKeyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateUsagePlanKeyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateUsagePlanKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateUsagePlanKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.KeyType == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyType"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKeyId sets the KeyId field's value.
+func (s *CreateUsagePlanKeyInput) SetKeyId(v string) *CreateUsagePlanKeyInput {
+	s.KeyId = &v
+	return s
+}
+
+// SetKeyType sets the KeyType field's value.
+func (s *CreateUsagePlanKeyInput) SetKeyType(v string) *CreateUsagePlanKeyInput {
+	s.KeyType = &v
+	return s
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *CreateUsagePlanKeyInput) SetUsagePlanId(v string) *CreateUsagePlanKeyInput {
+	s.UsagePlanId = &v
+	return s
+}
+
 // A request to delete the ApiKey resource.
 type DeleteApiKeyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the ApiKey resource to be deleted.
+	//
+	// ApiKey is a required field
 	ApiKey *string `location:"uri" locationName:"api_Key" type:"string" required:"true"`
 }
 
@@ -2907,6 +8433,12 @@ func (s *DeleteApiKeyInput) Validate() error {
 	return nil
 }
 
+// SetApiKey sets the ApiKey field's value.
+func (s *DeleteApiKeyInput) SetApiKey(v string) *DeleteApiKeyInput {
+	s.ApiKey = &v
+	return s
+}
+
 type DeleteApiKeyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2926,9 +8458,13 @@ type DeleteAuthorizerInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the Authorizer resource.
+	//
+	// AuthorizerId is a required field
 	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the Authorizer resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -2958,6 +8494,18 @@ func (s *DeleteAuthorizerInput) Validate() error {
 	return nil
 }
 
+// SetAuthorizerId sets the AuthorizerId field's value.
+func (s *DeleteAuthorizerInput) SetAuthorizerId(v string) *DeleteAuthorizerInput {
+	s.AuthorizerId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteAuthorizerInput) SetRestApiId(v string) *DeleteAuthorizerInput {
+	s.RestApiId = &v
+	return s
+}
+
 type DeleteAuthorizerOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2977,9 +8525,13 @@ type DeleteBasePathMappingInput struct {
 	_ struct{} `type:"structure"`
 
 	// The base path name of the BasePathMapping resource to delete.
+	//
+	// BasePath is a required field
 	BasePath *string `location:"uri" locationName:"base_path" type:"string" required:"true"`
 
 	// The domain name of the BasePathMapping resource to delete.
+	//
+	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 }
 
@@ -3009,6 +8561,18 @@ func (s *DeleteBasePathMappingInput) Validate() error {
 	return nil
 }
 
+// SetBasePath sets the BasePath field's value.
+func (s *DeleteBasePathMappingInput) SetBasePath(v string) *DeleteBasePathMappingInput {
+	s.BasePath = &v
+	return s
+}
+
+// SetDomainName sets the DomainName field's value.
+func (s *DeleteBasePathMappingInput) SetDomainName(v string) *DeleteBasePathMappingInput {
+	s.DomainName = &v
+	return s
+}
+
 type DeleteBasePathMappingOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3028,6 +8592,8 @@ type DeleteClientCertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the ClientCertificate resource to be deleted.
+	//
+	// ClientCertificateId is a required field
 	ClientCertificateId *string `location:"uri" locationName:"clientcertificate_id" type:"string" required:"true"`
 }
 
@@ -3054,6 +8620,12 @@ func (s *DeleteClientCertificateInput) Validate() error {
 	return nil
 }
 
+// SetClientCertificateId sets the ClientCertificateId field's value.
+func (s *DeleteClientCertificateInput) SetClientCertificateId(v string) *DeleteClientCertificateInput {
+	s.ClientCertificateId = &v
+	return s
+}
+
 type DeleteClientCertificateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3073,9 +8645,13 @@ type DeleteDeploymentInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the Deployment resource to delete.
+	//
+	// DeploymentId is a required field
 	DeploymentId *string `location:"uri" locationName:"deployment_id" type:"string" required:"true"`
 
 	// The identifier of the RestApi resource for the Deployment resource to delete.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -3105,6 +8681,18 @@ func (s *DeleteDeploymentInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *DeleteDeploymentInput) SetDeploymentId(v string) *DeleteDeploymentInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteDeploymentInput) SetRestApiId(v string) *DeleteDeploymentInput {
+	s.RestApiId = &v
+	return s
+}
+
 type DeleteDeploymentOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3124,6 +8712,8 @@ type DeleteDomainNameInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the DomainName resource to be deleted.
+	//
+	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 }
 
@@ -3150,6 +8740,12 @@ func (s *DeleteDomainNameInput) Validate() error {
 	return nil
 }
 
+// SetDomainName sets the DomainName field's value.
+func (s *DeleteDomainNameInput) SetDomainName(v string) *DeleteDomainNameInput {
+	s.DomainName = &v
+	return s
+}
+
 type DeleteDomainNameOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3169,12 +8765,18 @@ type DeleteIntegrationInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies a delete integration request's HTTP method.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// Specifies a delete integration request's resource identifier.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// Specifies a delete integration request's API identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -3207,6 +8809,24 @@ func (s *DeleteIntegrationInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *DeleteIntegrationInput) SetHttpMethod(v string) *DeleteIntegrationInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *DeleteIntegrationInput) SetResourceId(v string) *DeleteIntegrationInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteIntegrationInput) SetRestApiId(v string) *DeleteIntegrationInput {
+	s.RestApiId = &v
+	return s
+}
+
 type DeleteIntegrationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3226,15 +8846,23 @@ type DeleteIntegrationResponseInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies a delete integration response request's HTTP method.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// Specifies a delete integration response request's resource identifier.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// Specifies a delete integration response request's API identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// Specifies a delete integration response request's status code.
+	//
+	// StatusCode is a required field
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -3270,6 +8898,30 @@ func (s *DeleteIntegrationResponseInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *DeleteIntegrationResponseInput) SetHttpMethod(v string) *DeleteIntegrationResponseInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *DeleteIntegrationResponseInput) SetResourceId(v string) *DeleteIntegrationResponseInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteIntegrationResponseInput) SetRestApiId(v string) *DeleteIntegrationResponseInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *DeleteIntegrationResponseInput) SetStatusCode(v string) *DeleteIntegrationResponseInput {
+	s.StatusCode = &v
+	return s
+}
+
 type DeleteIntegrationResponseOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3288,13 +8940,19 @@ func (s DeleteIntegrationResponseOutput) GoString() string {
 type DeleteMethodInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb that identifies the Method resource.
+	// The HTTP verb of the Method resource.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the Method resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the Method resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -3327,6 +8985,24 @@ func (s *DeleteMethodInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *DeleteMethodInput) SetHttpMethod(v string) *DeleteMethodInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *DeleteMethodInput) SetResourceId(v string) *DeleteMethodInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteMethodInput) SetRestApiId(v string) *DeleteMethodInput {
+	s.RestApiId = &v
+	return s
+}
+
 type DeleteMethodOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3345,16 +9021,24 @@ func (s DeleteMethodOutput) GoString() string {
 type DeleteMethodResponseInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb identifier for the parent Method resource.
+	// The HTTP verb of the Method resource.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the MethodResponse resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the MethodResponse resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The status code identifier for the MethodResponse resource.
+	//
+	// StatusCode is a required field
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -3390,6 +9074,30 @@ func (s *DeleteMethodResponseInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *DeleteMethodResponseInput) SetHttpMethod(v string) *DeleteMethodResponseInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *DeleteMethodResponseInput) SetResourceId(v string) *DeleteMethodResponseInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteMethodResponseInput) SetRestApiId(v string) *DeleteMethodResponseInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *DeleteMethodResponseInput) SetStatusCode(v string) *DeleteMethodResponseInput {
+	s.StatusCode = &v
+	return s
+}
+
 type DeleteMethodResponseOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3409,9 +9117,13 @@ type DeleteModelInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the model to delete.
+	//
+	// ModelName is a required field
 	ModelName *string `location:"uri" locationName:"model_name" type:"string" required:"true"`
 
 	// The RestApi under which the model will be deleted.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -3441,6 +9153,18 @@ func (s *DeleteModelInput) Validate() error {
 	return nil
 }
 
+// SetModelName sets the ModelName field's value.
+func (s *DeleteModelInput) SetModelName(v string) *DeleteModelInput {
+	s.ModelName = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteModelInput) SetRestApiId(v string) *DeleteModelInput {
+	s.RestApiId = &v
+	return s
+}
+
 type DeleteModelOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3460,9 +9184,13 @@ type DeleteResourceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the Resource resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the Resource resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -3492,6 +9220,18 @@ func (s *DeleteResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceId sets the ResourceId field's value.
+func (s *DeleteResourceInput) SetResourceId(v string) *DeleteResourceInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteResourceInput) SetRestApiId(v string) *DeleteResourceInput {
+	s.RestApiId = &v
+	return s
+}
+
 type DeleteResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3511,6 +9251,8 @@ type DeleteRestApiInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the RestApi you want to delete.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -3537,6 +9279,12 @@ func (s *DeleteRestApiInput) Validate() error {
 	return nil
 }
 
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteRestApiInput) SetRestApiId(v string) *DeleteRestApiInput {
+	s.RestApiId = &v
+	return s
+}
+
 type DeleteRestApiOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3556,9 +9304,13 @@ type DeleteStageInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the RestApi resource for the Stage resource to delete.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The name of the Stage resource to delete.
+	//
+	// StageName is a required field
 	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
 }
 
@@ -3588,6 +9340,18 @@ func (s *DeleteStageInput) Validate() error {
 	return nil
 }
 
+// SetRestApiId sets the RestApiId field's value.
+func (s *DeleteStageInput) SetRestApiId(v string) *DeleteStageInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *DeleteStageInput) SetStageName(v string) *DeleteStageInput {
+	s.StageName = &v
+	return s
+}
+
 type DeleteStageOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3602,13 +9366,142 @@ func (s DeleteStageOutput) GoString() string {
 	return s.String()
 }
 
+// The DELETE request to delete a uasge plan of a given plan Id.
+type DeleteUsagePlanInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Id of the to-be-deleted usage plan.
+	//
+	// UsagePlanId is a required field
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteUsagePlanInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsagePlanInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteUsagePlanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteUsagePlanInput"}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *DeleteUsagePlanInput) SetUsagePlanId(v string) *DeleteUsagePlanInput {
+	s.UsagePlanId = &v
+	return s
+}
+
+// The DELETE request to delete a usage plan key and remove the underlying API
+// key from the associated usage plan.
+type DeleteUsagePlanKeyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Id of the UsagePlanKey resource to be deleted.
+	//
+	// KeyId is a required field
+	KeyId *string `location:"uri" locationName:"keyId" type:"string" required:"true"`
+
+	// The Id of the UsagePlan resource representing the usage plan containing the
+	// to-be-deleted UsagePlanKey resource representing a plan customer.
+	//
+	// UsagePlanId is a required field
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteUsagePlanKeyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsagePlanKeyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteUsagePlanKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteUsagePlanKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKeyId sets the KeyId field's value.
+func (s *DeleteUsagePlanKeyInput) SetKeyId(v string) *DeleteUsagePlanKeyInput {
+	s.KeyId = &v
+	return s
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *DeleteUsagePlanKeyInput) SetUsagePlanId(v string) *DeleteUsagePlanKeyInput {
+	s.UsagePlanId = &v
+	return s
+}
+
+type DeleteUsagePlanKeyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteUsagePlanKeyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsagePlanKeyOutput) GoString() string {
+	return s.String()
+}
+
+type DeleteUsagePlanOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DeleteUsagePlanOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteUsagePlanOutput) GoString() string {
+	return s.String()
+}
+
 // An immutable representation of a RestApi resource that can be called by users
 // using Stages. A deployment must be associated with a Stage for it to be callable
 // over the Internet.
+//
+// To create a deployment, call POST on the Deployments resource of a RestApi.
+// To view, update, or delete a deployment, call GET, PATCH, or DELETE on the
+// specified deployment resource (/restapis/{restapi_id}/deployments/{deployment_id}).
+//
+// RestApi, Deployments, Stage, AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-deployment.html),
+// AWS SDKs (https://aws.amazon.com/tools/)
 type Deployment struct {
 	_ struct{} `type:"structure"`
 
-	// Gets a summary of the RestApi at the date and time that the deployment resource
+	// A summary of the RestApi at the date and time that the deployment resource
 	// was created.
 	ApiSummary map[string]map[string]*MethodSnapshot `locationName:"apiSummary" type:"map"`
 
@@ -3632,21 +9525,45 @@ func (s Deployment) GoString() string {
 	return s.String()
 }
 
+// SetApiSummary sets the ApiSummary field's value.
+func (s *Deployment) SetApiSummary(v map[string]map[string]*MethodSnapshot) *Deployment {
+	s.ApiSummary = v
+	return s
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *Deployment) SetCreatedDate(v time.Time) *Deployment {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Deployment) SetDescription(v string) *Deployment {
+	s.Description = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *Deployment) SetId(v string) *Deployment {
+	s.Id = &v
+	return s
+}
+
 // Represents a domain name that is contained in a simpler, more intuitive URL
 // that can be called.
+//
+// Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type DomainName struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the certificate.
 	CertificateName *string `locationName:"certificateName" type:"string"`
 
-	// The date when the certificate was uploaded, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
-	// target="_blank).
+	// The date when the certificate was uploaded, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
 	CertificateUploadDate *time.Time `locationName:"certificateUploadDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The domain name of the Amazon CloudFront distribution. For more information,
-	// see the Amazon CloudFront documentation (http://aws.amazon.com/documentation/cloudfront/"
-	// target="_blank).
+	// see the Amazon CloudFront documentation (http://aws.amazon.com/documentation/cloudfront/).
 	DistributionDomainName *string `locationName:"distributionDomainName" type:"string"`
 
 	// The name of the DomainName resource.
@@ -3663,14 +9580,42 @@ func (s DomainName) GoString() string {
 	return s.String()
 }
 
+// SetCertificateName sets the CertificateName field's value.
+func (s *DomainName) SetCertificateName(v string) *DomainName {
+	s.CertificateName = &v
+	return s
+}
+
+// SetCertificateUploadDate sets the CertificateUploadDate field's value.
+func (s *DomainName) SetCertificateUploadDate(v time.Time) *DomainName {
+	s.CertificateUploadDate = &v
+	return s
+}
+
+// SetDistributionDomainName sets the DistributionDomainName field's value.
+func (s *DomainName) SetDistributionDomainName(v string) *DomainName {
+	s.DistributionDomainName = &v
+	return s
+}
+
+// SetDomainName sets the DomainName field's value.
+func (s *DomainName) SetDomainName(v string) *DomainName {
+	s.DomainName = &v
+	return s
+}
+
 // Request to flush authorizer cache entries on a specified stage.
 type FlushStageAuthorizersCacheInput struct {
 	_ struct{} `type:"structure"`
 
 	// The API identifier of the stage to flush.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The name of the stage to flush.
+	//
+	// StageName is a required field
 	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
 }
 
@@ -3700,6 +9645,18 @@ func (s *FlushStageAuthorizersCacheInput) Validate() error {
 	return nil
 }
 
+// SetRestApiId sets the RestApiId field's value.
+func (s *FlushStageAuthorizersCacheInput) SetRestApiId(v string) *FlushStageAuthorizersCacheInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *FlushStageAuthorizersCacheInput) SetStageName(v string) *FlushStageAuthorizersCacheInput {
+	s.StageName = &v
+	return s
+}
+
 type FlushStageAuthorizersCacheOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3719,9 +9676,13 @@ type FlushStageCacheInput struct {
 	_ struct{} `type:"structure"`
 
 	// The API identifier of the stage to flush its cache.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The name of the stage to flush its cache.
+	//
+	// StageName is a required field
 	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
 }
 
@@ -3749,6 +9710,18 @@ func (s *FlushStageCacheInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *FlushStageCacheInput) SetRestApiId(v string) *FlushStageCacheInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *FlushStageCacheInput) SetStageName(v string) *FlushStageCacheInput {
+	s.StageName = &v
+	return s
 }
 
 type FlushStageCacheOutput struct {
@@ -3783,6 +9756,12 @@ func (s GenerateClientCertificateInput) GoString() string {
 	return s.String()
 }
 
+// SetDescription sets the Description field's value.
+func (s *GenerateClientCertificateInput) SetDescription(v string) *GenerateClientCertificateInput {
+	s.Description = &v
+	return s
+}
+
 // Requests Amazon API Gateway to get information about the current Account
 // resource.
 type GetAccountInput struct {
@@ -3804,7 +9783,13 @@ type GetApiKeyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the ApiKey resource.
+	//
+	// ApiKey is a required field
 	ApiKey *string `location:"uri" locationName:"api_Key" type:"string" required:"true"`
+
+	// A boolean flag to specify whether (true) or not (false) the result contains
+	// the key value.
+	IncludeValue *bool `location:"querystring" locationName:"includeValue" type:"boolean"`
 }
 
 // String returns the string representation
@@ -3830,12 +9815,33 @@ func (s *GetApiKeyInput) Validate() error {
 	return nil
 }
 
+// SetApiKey sets the ApiKey field's value.
+func (s *GetApiKeyInput) SetApiKey(v string) *GetApiKeyInput {
+	s.ApiKey = &v
+	return s
+}
+
+// SetIncludeValue sets the IncludeValue field's value.
+func (s *GetApiKeyInput) SetIncludeValue(v bool) *GetApiKeyInput {
+	s.IncludeValue = &v
+	return s
+}
+
 // A request to get information about the current ApiKeys resource.
 type GetApiKeysInput struct {
 	_ struct{} `type:"structure"`
 
+	CustomerId *string `location:"querystring" locationName:"customerId" type:"string"`
+
+	// A boolean flag to specify whether (true) or not (false) the result contains
+	// key values.
+	IncludeValues *bool `location:"querystring" locationName:"includeValues" type:"boolean"`
+
 	// The maximum number of ApiKeys to get information about.
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// The name of queried API keys.
+	NameQuery *string `location:"querystring" locationName:"name" type:"string"`
 
 	// The position of the current ApiKeys resource to get information about.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
@@ -3851,7 +9857,39 @@ func (s GetApiKeysInput) GoString() string {
 	return s.String()
 }
 
-// Represents a collection of ApiKey resources.
+// SetCustomerId sets the CustomerId field's value.
+func (s *GetApiKeysInput) SetCustomerId(v string) *GetApiKeysInput {
+	s.CustomerId = &v
+	return s
+}
+
+// SetIncludeValues sets the IncludeValues field's value.
+func (s *GetApiKeysInput) SetIncludeValues(v bool) *GetApiKeysInput {
+	s.IncludeValues = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetApiKeysInput) SetLimit(v int64) *GetApiKeysInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNameQuery sets the NameQuery field's value.
+func (s *GetApiKeysInput) SetNameQuery(v string) *GetApiKeysInput {
+	s.NameQuery = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetApiKeysInput) SetPosition(v string) *GetApiKeysInput {
+	s.Position = &v
+	return s
+}
+
+// Represents a collection of API keys as represented by an ApiKeys resource.
+//
+// Use API Keys (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-api-keys.html)
 type GetApiKeysOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3859,6 +9897,10 @@ type GetApiKeysOutput struct {
 	Items []*ApiKey `locationName:"item" type:"list"`
 
 	Position *string `locationName:"position" type:"string"`
+
+	// A list of warning messages logged during the import of API keys when the
+	// failOnWarnings option is set to true.
+	Warnings []*string `locationName:"warnings" type:"list"`
 }
 
 // String returns the string representation
@@ -3871,14 +9913,36 @@ func (s GetApiKeysOutput) GoString() string {
 	return s.String()
 }
 
+// SetItems sets the Items field's value.
+func (s *GetApiKeysOutput) SetItems(v []*ApiKey) *GetApiKeysOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetApiKeysOutput) SetPosition(v string) *GetApiKeysOutput {
+	s.Position = &v
+	return s
+}
+
+// SetWarnings sets the Warnings field's value.
+func (s *GetApiKeysOutput) SetWarnings(v []*string) *GetApiKeysOutput {
+	s.Warnings = v
+	return s
+}
+
 // Request to describe an existing Authorizer resource.
 type GetAuthorizerInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the Authorizer resource.
+	//
+	// AuthorizerId is a required field
 	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the Authorizer resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -3908,6 +9972,18 @@ func (s *GetAuthorizerInput) Validate() error {
 	return nil
 }
 
+// SetAuthorizerId sets the AuthorizerId field's value.
+func (s *GetAuthorizerInput) SetAuthorizerId(v string) *GetAuthorizerInput {
+	s.AuthorizerId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetAuthorizerInput) SetRestApiId(v string) *GetAuthorizerInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Request to describe an existing Authorizers resource.
 type GetAuthorizersInput struct {
 	_ struct{} `type:"structure"`
@@ -3916,10 +9992,12 @@ type GetAuthorizersInput struct {
 	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
 
 	// If not all Authorizer resources in the response were present, the position
-	// will specificy where to start the next page of results.
+	// will specify where to start the next page of results.
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The RestApi identifier for the Authorizers resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -3946,7 +10024,27 @@ func (s *GetAuthorizersInput) Validate() error {
 	return nil
 }
 
+// SetLimit sets the Limit field's value.
+func (s *GetAuthorizersInput) SetLimit(v int64) *GetAuthorizersInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetAuthorizersInput) SetPosition(v string) *GetAuthorizersInput {
+	s.Position = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetAuthorizersInput) SetRestApiId(v string) *GetAuthorizersInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Represents a collection of Authorizer resources.
+//
+// Enable custom authorization (http://docs.aws.amazon.com/apigateway/latest/developerguide/use-custom-authorizer.html)
 type GetAuthorizersOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3966,6 +10064,18 @@ func (s GetAuthorizersOutput) GoString() string {
 	return s.String()
 }
 
+// SetItems sets the Items field's value.
+func (s *GetAuthorizersOutput) SetItems(v []*Authorizer) *GetAuthorizersOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetAuthorizersOutput) SetPosition(v string) *GetAuthorizersOutput {
+	s.Position = &v
+	return s
+}
+
 // Request to describe a BasePathMapping resource.
 type GetBasePathMappingInput struct {
 	_ struct{} `type:"structure"`
@@ -3974,9 +10084,13 @@ type GetBasePathMappingInput struct {
 	// after the domain name. This value must be unique for all of the mappings
 	// across a single API. Leave this blank if you do not want callers to specify
 	// any base path name after the domain name.
+	//
+	// BasePath is a required field
 	BasePath *string `location:"uri" locationName:"base_path" type:"string" required:"true"`
 
 	// The domain name of the BasePathMapping resource to be described.
+	//
+	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 }
 
@@ -4006,11 +10120,25 @@ func (s *GetBasePathMappingInput) Validate() error {
 	return nil
 }
 
+// SetBasePath sets the BasePath field's value.
+func (s *GetBasePathMappingInput) SetBasePath(v string) *GetBasePathMappingInput {
+	s.BasePath = &v
+	return s
+}
+
+// SetDomainName sets the DomainName field's value.
+func (s *GetBasePathMappingInput) SetDomainName(v string) *GetBasePathMappingInput {
+	s.DomainName = &v
+	return s
+}
+
 // A request to get information about a collection of BasePathMapping resources.
 type GetBasePathMappingsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The domain name of a BasePathMapping resource.
+	//
+	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 
 	// The maximum number of BasePathMapping resources in the collection to get
@@ -4046,7 +10174,27 @@ func (s *GetBasePathMappingsInput) Validate() error {
 	return nil
 }
 
+// SetDomainName sets the DomainName field's value.
+func (s *GetBasePathMappingsInput) SetDomainName(v string) *GetBasePathMappingsInput {
+	s.DomainName = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetBasePathMappingsInput) SetLimit(v int64) *GetBasePathMappingsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetBasePathMappingsInput) SetPosition(v string) *GetBasePathMappingsInput {
+	s.Position = &v
+	return s
+}
+
 // Represents a collection of BasePathMapping resources.
+//
+// Use Custom Domain Names (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type GetBasePathMappingsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4067,11 +10215,25 @@ func (s GetBasePathMappingsOutput) GoString() string {
 	return s.String()
 }
 
+// SetItems sets the Items field's value.
+func (s *GetBasePathMappingsOutput) SetItems(v []*BasePathMapping) *GetBasePathMappingsOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetBasePathMappingsOutput) SetPosition(v string) *GetBasePathMappingsOutput {
+	s.Position = &v
+	return s
+}
+
 // A request to get information about the current ClientCertificate resource.
 type GetClientCertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the ClientCertificate resource to be described.
+	//
+	// ClientCertificateId is a required field
 	ClientCertificateId *string `location:"uri" locationName:"clientcertificate_id" type:"string" required:"true"`
 }
 
@@ -4098,6 +10260,12 @@ func (s *GetClientCertificateInput) Validate() error {
 	return nil
 }
 
+// SetClientCertificateId sets the ClientCertificateId field's value.
+func (s *GetClientCertificateInput) SetClientCertificateId(v string) *GetClientCertificateInput {
+	s.ClientCertificateId = &v
+	return s
+}
+
 // A request to get information about a collection of ClientCertificate resources.
 type GetClientCertificatesInput struct {
 	_ struct{} `type:"structure"`
@@ -4122,7 +10290,21 @@ func (s GetClientCertificatesInput) GoString() string {
 	return s.String()
 }
 
+// SetLimit sets the Limit field's value.
+func (s *GetClientCertificatesInput) SetLimit(v int64) *GetClientCertificatesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetClientCertificatesInput) SetPosition(v string) *GetClientCertificatesInput {
+	s.Position = &v
+	return s
+}
+
 // Represents a collection of ClientCertificate resources.
+//
+// Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-client-side-ssl-authentication.html)
 type GetClientCertificatesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4143,15 +10325,31 @@ func (s GetClientCertificatesOutput) GoString() string {
 	return s.String()
 }
 
+// SetItems sets the Items field's value.
+func (s *GetClientCertificatesOutput) SetItems(v []*ClientCertificate) *GetClientCertificatesOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetClientCertificatesOutput) SetPosition(v string) *GetClientCertificatesOutput {
+	s.Position = &v
+	return s
+}
+
 // Requests Amazon API Gateway to get information about a Deployment resource.
 type GetDeploymentInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the Deployment resource to get information about.
+	//
+	// DeploymentId is a required field
 	DeploymentId *string `location:"uri" locationName:"deployment_id" type:"string" required:"true"`
 
 	// The identifier of the RestApi resource for the Deployment resource to get
 	// information about.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4181,6 +10379,18 @@ func (s *GetDeploymentInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *GetDeploymentInput) SetDeploymentId(v string) *GetDeploymentInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetDeploymentInput) SetRestApiId(v string) *GetDeploymentInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Requests Amazon API Gateway to get information about a Deployments collection.
 type GetDeploymentsInput struct {
 	_ struct{} `type:"structure"`
@@ -4195,6 +10405,8 @@ type GetDeploymentsInput struct {
 
 	// The identifier of the RestApi resource for the collection of Deployment resources
 	// to get information about.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4221,10 +10433,36 @@ func (s *GetDeploymentsInput) Validate() error {
 	return nil
 }
 
+// SetLimit sets the Limit field's value.
+func (s *GetDeploymentsInput) SetLimit(v int64) *GetDeploymentsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetDeploymentsInput) SetPosition(v string) *GetDeploymentsInput {
+	s.Position = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetDeploymentsInput) SetRestApiId(v string) *GetDeploymentsInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Represents a collection resource that contains zero or more references to
-// your existing deployments, and links that guide you on ways to interact with
+// your existing deployments, and links that guide you on how to interact with
 // your collection. The collection offers a paginated view of the contained
 // deployments.
+//
+// To create a new deployment of a RestApi, make a POST request against this
+// resource. To view, update, or delete an existing deployment, make a GET,
+// PATCH, or DELETE request, respectively, on a specified Deployment resource.
+//
+// Deploying an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html),
+// AWS CLI (http://docs.aws.amazon.com/cli/latest/reference/apigateway/get-deployment.html),
+// AWS SDKs (https://aws.amazon.com/tools/)
 type GetDeploymentsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4245,11 +10483,25 @@ func (s GetDeploymentsOutput) GoString() string {
 	return s.String()
 }
 
+// SetItems sets the Items field's value.
+func (s *GetDeploymentsOutput) SetItems(v []*Deployment) *GetDeploymentsOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetDeploymentsOutput) SetPosition(v string) *GetDeploymentsOutput {
+	s.Position = &v
+	return s
+}
+
 // Request to get the name of a DomainName resource.
 type GetDomainNameInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the DomainName resource.
+	//
+	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 }
 
@@ -4276,6 +10528,12 @@ func (s *GetDomainNameInput) Validate() error {
 	return nil
 }
 
+// SetDomainName sets the DomainName field's value.
+func (s *GetDomainNameInput) SetDomainName(v string) *GetDomainNameInput {
+	s.DomainName = &v
+	return s
+}
+
 // Request to describe a collection of DomainName resources.
 type GetDomainNamesInput struct {
 	_ struct{} `type:"structure"`
@@ -4298,7 +10556,21 @@ func (s GetDomainNamesInput) GoString() string {
 	return s.String()
 }
 
+// SetLimit sets the Limit field's value.
+func (s *GetDomainNamesInput) SetLimit(v int64) *GetDomainNamesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetDomainNamesInput) SetPosition(v string) *GetDomainNamesInput {
+	s.Position = &v
+	return s
+}
+
 // Represents a collection of DomainName resources.
+//
+// Use Client-Side Certificate (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-custom-domains.html)
 type GetDomainNamesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4319,30 +10591,49 @@ func (s GetDomainNamesOutput) GoString() string {
 	return s.String()
 }
 
+// SetItems sets the Items field's value.
+func (s *GetDomainNamesOutput) SetItems(v []*DomainName) *GetDomainNamesOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetDomainNamesOutput) SetPosition(v string) *GetDomainNamesOutput {
+	s.Position = &v
+	return s
+}
+
 // Request a new export of a RestApi for a particular Stage.
 type GetExportInput struct {
 	_ struct{} `type:"structure"`
 
-	// The content-type of the export, for example 'application/json'. Currently
-	// 'application/json' and 'application/yaml' are supported for exportType 'swagger'.
-	// Should be specifed in the 'Accept' header for direct API requests.
+	// The content-type of the export, for example application/json. Currently application/json
+	// and application/yaml are supported for exportType of swagger. This should
+	// be specified in the Accept header for direct API requests.
 	Accepts *string `location:"header" locationName:"Accept" type:"string"`
 
 	// The type of export. Currently only 'swagger' is supported.
+	//
+	// ExportType is a required field
 	ExportType *string `location:"uri" locationName:"export_type" type:"string" required:"true"`
 
 	// A key-value map of query string parameters that specify properties of the
-	// export, depending on the requested exportType. For exportType 'swagger',
-	// any combination of the following parameters are supported: 'integrations'
-	// will export x-amazon-apigateway-integration extensions 'authorizers' will
-	// export x-amazon-apigateway-authorizer extensions 'postman' will export with
-	// Postman extensions, allowing for import to the Postman tool
+	// export, depending on the requested exportType. For exportTypeswagger, any
+	// combination of the following parameters are supported: integrations will
+	// export the API with x-amazon-apigateway-integration extensions. authorizers
+	// will export the API with x-amazon-apigateway-authorizer extensions. postman
+	// will export the API with Postman extensions, allowing for import to the Postman
+	// tool
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
 	// The identifier of the RestApi to be exported.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The name of the Stage that will be exported.
+	//
+	// StageName is a required field
 	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
 }
 
@@ -4375,6 +10666,36 @@ func (s *GetExportInput) Validate() error {
 	return nil
 }
 
+// SetAccepts sets the Accepts field's value.
+func (s *GetExportInput) SetAccepts(v string) *GetExportInput {
+	s.Accepts = &v
+	return s
+}
+
+// SetExportType sets the ExportType field's value.
+func (s *GetExportInput) SetExportType(v string) *GetExportInput {
+	s.ExportType = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *GetExportInput) SetParameters(v map[string]*string) *GetExportInput {
+	s.Parameters = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetExportInput) SetRestApiId(v string) *GetExportInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *GetExportInput) SetStageName(v string) *GetExportInput {
+	s.StageName = &v
+	return s
+}
+
 // The binary blob response to GetExport, which contains the generated SDK.
 type GetExportOutput struct {
 	_ struct{} `type:"structure" payload:"Body"`
@@ -4382,7 +10703,7 @@ type GetExportOutput struct {
 	// The binary blob response to GetExport, which contains the export.
 	Body []byte `locationName:"body" type:"blob"`
 
-	// The content-disposition header value in the HTTP reseponse.
+	// The content-disposition header value in the HTTP response.
 	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
 
 	// The content-type header value in the HTTP response. This will correspond
@@ -4400,17 +10721,41 @@ func (s GetExportOutput) GoString() string {
 	return s.String()
 }
 
+// SetBody sets the Body field's value.
+func (s *GetExportOutput) SetBody(v []byte) *GetExportOutput {
+	s.Body = v
+	return s
+}
+
+// SetContentDisposition sets the ContentDisposition field's value.
+func (s *GetExportOutput) SetContentDisposition(v string) *GetExportOutput {
+	s.ContentDisposition = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *GetExportOutput) SetContentType(v string) *GetExportOutput {
+	s.ContentType = &v
+	return s
+}
+
 // Represents a get integration request.
 type GetIntegrationInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies a get integration request's HTTP method.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// Specifies a get integration request's resource identifier
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// Specifies a get integration request's API identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4443,20 +10788,46 @@ func (s *GetIntegrationInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *GetIntegrationInput) SetHttpMethod(v string) *GetIntegrationInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *GetIntegrationInput) SetResourceId(v string) *GetIntegrationInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetIntegrationInput) SetRestApiId(v string) *GetIntegrationInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Represents a get integration response request.
 type GetIntegrationResponseInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies a get integration response request's HTTP method.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// Specifies a get integration response request's resource identifier.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// Specifies a get integration response request's API identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// Specifies a get integration response request's status code.
+	//
+	// StatusCode is a required field
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -4492,17 +10863,47 @@ func (s *GetIntegrationResponseInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *GetIntegrationResponseInput) SetHttpMethod(v string) *GetIntegrationResponseInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *GetIntegrationResponseInput) SetResourceId(v string) *GetIntegrationResponseInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetIntegrationResponseInput) SetRestApiId(v string) *GetIntegrationResponseInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *GetIntegrationResponseInput) SetStatusCode(v string) *GetIntegrationResponseInput {
+	s.StatusCode = &v
+	return s
+}
+
 // Request to describe an existing Method resource.
 type GetMethodInput struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies the put method request's HTTP method type.
+	// Specifies the method request's HTTP method type.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the Method resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the Method resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4535,20 +10936,46 @@ func (s *GetMethodInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *GetMethodInput) SetHttpMethod(v string) *GetMethodInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *GetMethodInput) SetResourceId(v string) *GetMethodInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetMethodInput) SetRestApiId(v string) *GetMethodInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Request to describe a MethodResponse resource.
 type GetMethodResponseInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb identifier for the parent Method resource.
+	// The HTTP verb of the Method resource.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the MethodResponse resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the MethodResponse resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
-	// The status code identifier for the MethodResponse resource.
+	// The status code for the MethodResponse resource.
+	//
+	// StatusCode is a required field
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -4584,17 +11011,47 @@ func (s *GetMethodResponseInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *GetMethodResponseInput) SetHttpMethod(v string) *GetMethodResponseInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *GetMethodResponseInput) SetResourceId(v string) *GetMethodResponseInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetMethodResponseInput) SetRestApiId(v string) *GetMethodResponseInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *GetMethodResponseInput) SetStatusCode(v string) *GetMethodResponseInput {
+	s.StatusCode = &v
+	return s
+}
+
 // Request to list information about a model in an existing RestApi resource.
 type GetModelInput struct {
 	_ struct{} `type:"structure"`
 
-	// Resolves all external model references and returns a flattened model schema.
+	// A query parameter of a Boolean value to resolve (true) all external model
+	// references and returns a flattened model schema or not (false) The default
+	// is false.
 	Flatten *bool `location:"querystring" locationName:"flatten" type:"boolean"`
 
 	// The name of the model as an identifier.
+	//
+	// ModelName is a required field
 	ModelName *string `location:"uri" locationName:"model_name" type:"string" required:"true"`
 
 	// The RestApi identifier under which the Model exists.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4624,14 +11081,36 @@ func (s *GetModelInput) Validate() error {
 	return nil
 }
 
+// SetFlatten sets the Flatten field's value.
+func (s *GetModelInput) SetFlatten(v bool) *GetModelInput {
+	s.Flatten = &v
+	return s
+}
+
+// SetModelName sets the ModelName field's value.
+func (s *GetModelInput) SetModelName(v string) *GetModelInput {
+	s.ModelName = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetModelInput) SetRestApiId(v string) *GetModelInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Request to generate a sample mapping template used to transform the payload.
 type GetModelTemplateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the model for which to generate a template.
+	//
+	// ModelName is a required field
 	ModelName *string `location:"uri" locationName:"model_name" type:"string" required:"true"`
 
 	// The ID of the RestApi under which the model exists.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4661,12 +11140,26 @@ func (s *GetModelTemplateInput) Validate() error {
 	return nil
 }
 
+// SetModelName sets the ModelName field's value.
+func (s *GetModelTemplateInput) SetModelName(v string) *GetModelTemplateInput {
+	s.ModelName = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetModelTemplateInput) SetRestApiId(v string) *GetModelTemplateInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Represents a mapping template used to transform a payload.
+//
+// Mapping Templates (http://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html#models-mappings-mappings)
 type GetModelTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The Apache Velocity Template Language (VTL) (http://velocity.apache.org/engine/devel/vtl-reference-guide.html"
-	// target="_blank) template content used for the template resource.
+	// The Apache Velocity Template Language (VTL) (http://velocity.apache.org/engine/devel/vtl-reference-guide.html)
+	// template content used for the template resource.
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -4678,6 +11171,12 @@ func (s GetModelTemplateOutput) String() string {
 // GoString returns the string representation
 func (s GetModelTemplateOutput) GoString() string {
 	return s.String()
+}
+
+// SetValue sets the Value field's value.
+func (s *GetModelTemplateOutput) SetValue(v string) *GetModelTemplateOutput {
+	s.Value = &v
+	return s
 }
 
 // Request to list existing Models defined for a RestApi resource.
@@ -4693,6 +11192,8 @@ type GetModelsInput struct {
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The RestApi identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4719,7 +11220,27 @@ func (s *GetModelsInput) Validate() error {
 	return nil
 }
 
+// SetLimit sets the Limit field's value.
+func (s *GetModelsInput) SetLimit(v int64) *GetModelsInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetModelsInput) SetPosition(v string) *GetModelsInput {
+	s.Position = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetModelsInput) SetRestApiId(v string) *GetModelsInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Represents a collection of Model resources.
+//
+// Method, MethodResponse, Models and Mappings (http://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html)
 type GetModelsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4739,14 +11260,30 @@ func (s GetModelsOutput) GoString() string {
 	return s.String()
 }
 
+// SetItems sets the Items field's value.
+func (s *GetModelsOutput) SetItems(v []*Model) *GetModelsOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetModelsOutput) SetPosition(v string) *GetModelsOutput {
+	s.Position = &v
+	return s
+}
+
 // Request to list information about a resource.
 type GetResourceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier for the Resource resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4776,6 +11313,18 @@ func (s *GetResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceId sets the ResourceId field's value.
+func (s *GetResourceInput) SetResourceId(v string) *GetResourceInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetResourceInput) SetRestApiId(v string) *GetResourceInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Request to list information about a collection of resources.
 type GetResourcesInput struct {
 	_ struct{} `type:"structure"`
@@ -4789,6 +11338,8 @@ type GetResourcesInput struct {
 	Position *string `location:"querystring" locationName:"position" type:"string"`
 
 	// The RestApi identifier for the Resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4815,7 +11366,27 @@ func (s *GetResourcesInput) Validate() error {
 	return nil
 }
 
+// SetLimit sets the Limit field's value.
+func (s *GetResourcesInput) SetLimit(v int64) *GetResourcesInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetResourcesInput) SetPosition(v string) *GetResourcesInput {
+	s.Position = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetResourcesInput) SetRestApiId(v string) *GetResourcesInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Represents a collection of Resource resources.
+//
+// Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type GetResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4835,11 +11406,25 @@ func (s GetResourcesOutput) GoString() string {
 	return s.String()
 }
 
+// SetItems sets the Items field's value.
+func (s *GetResourcesOutput) SetItems(v []*Resource) *GetResourcesOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetResourcesOutput) SetPosition(v string) *GetResourcesOutput {
+	s.Position = &v
+	return s
+}
+
 // The GET request to list an existing RestApi defined for your collection.
 type GetRestApiInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the RestApi resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -4866,6 +11451,12 @@ func (s *GetRestApiInput) Validate() error {
 	return nil
 }
 
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetRestApiInput) SetRestApiId(v string) *GetRestApiInput {
+	s.RestApiId = &v
+	return s
+}
+
 // The GET request to list existing RestApis defined for your collection.
 type GetRestApisInput struct {
 	_ struct{} `type:"structure"`
@@ -4889,8 +11480,22 @@ func (s GetRestApisInput) GoString() string {
 	return s.String()
 }
 
-// Contains references to your APIs and links that guide you in ways to interact
+// SetLimit sets the Limit field's value.
+func (s *GetRestApisInput) SetLimit(v int64) *GetRestApisInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetRestApisInput) SetPosition(v string) *GetRestApisInput {
+	s.Position = &v
+	return s
+}
+
+// Contains references to your APIs and links that guide you in how to interact
 // with your collection. A collection offers a paginated view of your APIs.
+//
+// Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type GetRestApisOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4910,24 +11515,42 @@ func (s GetRestApisOutput) GoString() string {
 	return s.String()
 }
 
+// SetItems sets the Items field's value.
+func (s *GetRestApisOutput) SetItems(v []*RestApi) *GetRestApisOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetRestApisOutput) SetPosition(v string) *GetRestApisOutput {
+	s.Position = &v
+	return s
+}
+
 // Request a new generated client SDK for a RestApi and Stage.
 type GetSdkInput struct {
 	_ struct{} `type:"structure"`
 
 	// A key-value map of query string parameters that specify properties of the
-	// SDK, depending on the requested sdkType. For sdkType 'objectivec', a parameter
-	// named "classPrefix" is required. For sdkType 'android', parameters named
-	// "groupId", "artifactId", "artifactVersion", and "invokerPackage" are required.
+	// SDK, depending on the requested sdkType. For sdkType of objectivec, a parameter
+	// named classPrefix is required. For sdkType of android, parameters named groupId,
+	// artifactId, artifactVersion, and invokerPackage are required.
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
 	// The identifier of the RestApi that the SDK will use.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The language for the generated SDK. Currently javascript, android, and objectivec
 	// (for iOS) are supported.
+	//
+	// SdkType is a required field
 	SdkType *string `location:"uri" locationName:"sdk_type" type:"string" required:"true"`
 
 	// The name of the Stage that the SDK will use.
+	//
+	// StageName is a required field
 	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
 }
 
@@ -4960,6 +11583,30 @@ func (s *GetSdkInput) Validate() error {
 	return nil
 }
 
+// SetParameters sets the Parameters field's value.
+func (s *GetSdkInput) SetParameters(v map[string]*string) *GetSdkInput {
+	s.Parameters = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetSdkInput) SetRestApiId(v string) *GetSdkInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetSdkType sets the SdkType field's value.
+func (s *GetSdkInput) SetSdkType(v string) *GetSdkInput {
+	s.SdkType = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *GetSdkInput) SetStageName(v string) *GetSdkInput {
+	s.StageName = &v
+	return s
+}
+
 // The binary blob response to GetSdk, which contains the generated SDK.
 type GetSdkOutput struct {
 	_ struct{} `type:"structure" payload:"Body"`
@@ -4967,7 +11614,7 @@ type GetSdkOutput struct {
 	// The binary blob response to GetSdk, which contains the generated SDK.
 	Body []byte `locationName:"body" type:"blob"`
 
-	// The content-disposition header value in the HTTP reseponse.
+	// The content-disposition header value in the HTTP response.
 	ContentDisposition *string `location:"header" locationName:"Content-Disposition" type:"string"`
 
 	// The content-type header value in the HTTP response.
@@ -4984,15 +11631,37 @@ func (s GetSdkOutput) GoString() string {
 	return s.String()
 }
 
+// SetBody sets the Body field's value.
+func (s *GetSdkOutput) SetBody(v []byte) *GetSdkOutput {
+	s.Body = v
+	return s
+}
+
+// SetContentDisposition sets the ContentDisposition field's value.
+func (s *GetSdkOutput) SetContentDisposition(v string) *GetSdkOutput {
+	s.ContentDisposition = &v
+	return s
+}
+
+// SetContentType sets the ContentType field's value.
+func (s *GetSdkOutput) SetContentType(v string) *GetSdkOutput {
+	s.ContentType = &v
+	return s
+}
+
 // Requests Amazon API Gateway to get information about a Stage resource.
 type GetStageInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the RestApi resource for the Stage resource to get information
 	// about.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The name of the Stage resource to get information about.
+	//
+	// StageName is a required field
 	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
 }
 
@@ -5022,6 +11691,18 @@ func (s *GetStageInput) Validate() error {
 	return nil
 }
 
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetStageInput) SetRestApiId(v string) *GetStageInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *GetStageInput) SetStageName(v string) *GetStageInput {
+	s.StageName = &v
+	return s
+}
+
 // Requests Amazon API Gateway to get information about one or more Stage resources.
 type GetStagesInput struct {
 	_ struct{} `type:"structure"`
@@ -5030,6 +11711,8 @@ type GetStagesInput struct {
 	DeploymentId *string `location:"querystring" locationName:"deploymentId" type:"string"`
 
 	// The stages' API identifiers.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -5056,7 +11739,21 @@ func (s *GetStagesInput) Validate() error {
 	return nil
 }
 
-// A list of Stage resource that are associated with the ApiKey resource.
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *GetStagesInput) SetDeploymentId(v string) *GetStagesInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *GetStagesInput) SetRestApiId(v string) *GetStagesInput {
+	s.RestApiId = &v
+	return s
+}
+
+// A list of Stage resources that are associated with the ApiKey resource.
+//
+// Deploying API in Stages (http://docs.aws.amazon.com/apigateway/latest/developerguide/stages.html)
 type GetStagesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5074,6 +11771,482 @@ func (s GetStagesOutput) GoString() string {
 	return s.String()
 }
 
+// SetItem sets the Item field's value.
+func (s *GetStagesOutput) SetItem(v []*Stage) *GetStagesOutput {
+	s.Item = v
+	return s
+}
+
+// The GET request to get the usage data of a usage plan in a specified time
+// interval.
+type GetUsageInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ending date (e.g., 2016-12-31) of the usage data.
+	//
+	// EndDate is a required field
+	EndDate *string `location:"querystring" locationName:"endDate" type:"string" required:"true"`
+
+	// The Id of the API key associated with the resultant usage data.
+	KeyId *string `location:"querystring" locationName:"keyId" type:"string"`
+
+	// The maximum number of results to be returned.
+	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// Position
+	Position *string `location:"querystring" locationName:"position" type:"string"`
+
+	// The starting date (e.g., 2016-01-01) of the usage data.
+	//
+	// StartDate is a required field
+	StartDate *string `location:"querystring" locationName:"startDate" type:"string" required:"true"`
+
+	// The Id of the usage plan associated with the usage data.
+	//
+	// UsagePlanId is a required field
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetUsageInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsageInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetUsageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetUsageInput"}
+	if s.EndDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("EndDate"))
+	}
+	if s.StartDate == nil {
+		invalidParams.Add(request.NewErrParamRequired("StartDate"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEndDate sets the EndDate field's value.
+func (s *GetUsageInput) SetEndDate(v string) *GetUsageInput {
+	s.EndDate = &v
+	return s
+}
+
+// SetKeyId sets the KeyId field's value.
+func (s *GetUsageInput) SetKeyId(v string) *GetUsageInput {
+	s.KeyId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetUsageInput) SetLimit(v int64) *GetUsageInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetUsageInput) SetPosition(v string) *GetUsageInput {
+	s.Position = &v
+	return s
+}
+
+// SetStartDate sets the StartDate field's value.
+func (s *GetUsageInput) SetStartDate(v string) *GetUsageInput {
+	s.StartDate = &v
+	return s
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *GetUsageInput) SetUsagePlanId(v string) *GetUsageInput {
+	s.UsagePlanId = &v
+	return s
+}
+
+// The GET request to get a usage plan of a given plan identifier.
+type GetUsagePlanInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the UsagePlan resource to be retrieved.
+	//
+	// UsagePlanId is a required field
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetUsagePlanInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlanInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetUsagePlanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetUsagePlanInput"}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *GetUsagePlanInput) SetUsagePlanId(v string) *GetUsagePlanInput {
+	s.UsagePlanId = &v
+	return s
+}
+
+// The GET request to get a usage plan key of a given key identifier.
+type GetUsagePlanKeyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The key Id of the to-be-retrieved UsagePlanKey resource representing a plan
+	// customer.
+	//
+	// KeyId is a required field
+	KeyId *string `location:"uri" locationName:"keyId" type:"string" required:"true"`
+
+	// The Id of the UsagePlan resource representing the usage plan containing the
+	// to-be-retrieved UsagePlanKey resource representing a plan customer.
+	//
+	// UsagePlanId is a required field
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetUsagePlanKeyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlanKeyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetUsagePlanKeyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetUsagePlanKeyInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKeyId sets the KeyId field's value.
+func (s *GetUsagePlanKeyInput) SetKeyId(v string) *GetUsagePlanKeyInput {
+	s.KeyId = &v
+	return s
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *GetUsagePlanKeyInput) SetUsagePlanId(v string) *GetUsagePlanKeyInput {
+	s.UsagePlanId = &v
+	return s
+}
+
+// The GET request to get all the usage plan keys representing the API keys
+// added to a specified usage plan.
+type GetUsagePlanKeysInput struct {
+	_ struct{} `type:"structure"`
+
+	// A query parameter specifying the maximum number usage plan keys returned
+	// by the GET request.
+	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// A query parameter specifying the name of the to-be-returned usage plan keys.
+	NameQuery *string `location:"querystring" locationName:"name" type:"string"`
+
+	// A query parameter specifying the zero-based index specifying the position
+	// of a usage plan key.
+	Position *string `location:"querystring" locationName:"position" type:"string"`
+
+	// The Id of the UsagePlan resource representing the usage plan containing the
+	// to-be-retrieved UsagePlanKey resource representing a plan customer.
+	//
+	// UsagePlanId is a required field
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetUsagePlanKeysInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlanKeysInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetUsagePlanKeysInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetUsagePlanKeysInput"}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetUsagePlanKeysInput) SetLimit(v int64) *GetUsagePlanKeysInput {
+	s.Limit = &v
+	return s
+}
+
+// SetNameQuery sets the NameQuery field's value.
+func (s *GetUsagePlanKeysInput) SetNameQuery(v string) *GetUsagePlanKeysInput {
+	s.NameQuery = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetUsagePlanKeysInput) SetPosition(v string) *GetUsagePlanKeysInput {
+	s.Position = &v
+	return s
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *GetUsagePlanKeysInput) SetUsagePlanId(v string) *GetUsagePlanKeysInput {
+	s.UsagePlanId = &v
+	return s
+}
+
+// Represents the collection of usage plan keys added to usage plans for the
+// associated API keys and, possibly, other types of keys.
+//
+// Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+type GetUsagePlanKeysOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Gets the current item of the usage plan keys collection.
+	Items []*UsagePlanKey `locationName:"item" type:"list"`
+
+	Position *string `locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetUsagePlanKeysOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlanKeysOutput) GoString() string {
+	return s.String()
+}
+
+// SetItems sets the Items field's value.
+func (s *GetUsagePlanKeysOutput) SetItems(v []*UsagePlanKey) *GetUsagePlanKeysOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetUsagePlanKeysOutput) SetPosition(v string) *GetUsagePlanKeysOutput {
+	s.Position = &v
+	return s
+}
+
+// The GET request to get all the usage plans of the caller's account.
+type GetUsagePlansInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the API key associated with the usage plans.
+	KeyId *string `location:"querystring" locationName:"keyId" type:"string"`
+
+	// The number of UsagePlan resources to be returned as the result.
+	Limit *int64 `location:"querystring" locationName:"limit" type:"integer"`
+
+	// The zero-based array index specifying the position of the to-be-retrieved
+	// UsagePlan resource.
+	Position *string `location:"querystring" locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetUsagePlansInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlansInput) GoString() string {
+	return s.String()
+}
+
+// SetKeyId sets the KeyId field's value.
+func (s *GetUsagePlansInput) SetKeyId(v string) *GetUsagePlansInput {
+	s.KeyId = &v
+	return s
+}
+
+// SetLimit sets the Limit field's value.
+func (s *GetUsagePlansInput) SetLimit(v int64) *GetUsagePlansInput {
+	s.Limit = &v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetUsagePlansInput) SetPosition(v string) *GetUsagePlansInput {
+	s.Position = &v
+	return s
+}
+
+// Represents a collection of usage plans for an AWS account.
+//
+// Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+type GetUsagePlansOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Gets the current item when enumerating the collection of UsagePlan.
+	Items []*UsagePlan `locationName:"item" type:"list"`
+
+	Position *string `locationName:"position" type:"string"`
+}
+
+// String returns the string representation
+func (s GetUsagePlansOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetUsagePlansOutput) GoString() string {
+	return s.String()
+}
+
+// SetItems sets the Items field's value.
+func (s *GetUsagePlansOutput) SetItems(v []*UsagePlan) *GetUsagePlansOutput {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *GetUsagePlansOutput) SetPosition(v string) *GetUsagePlansOutput {
+	s.Position = &v
+	return s
+}
+
+// The POST request to import API keys from an external source, such as a CSV-formatted
+// file.
+type ImportApiKeysInput struct {
+	_ struct{} `type:"structure" payload:"Body"`
+
+	// The payload of the POST request to import API keys. For the payload format,
+	// see API Key File Format (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-key-file-format.html).
+	//
+	// Body is a required field
+	Body []byte `locationName:"body" type:"blob" required:"true"`
+
+	// A query parameter to indicate whether to rollback ApiKey importation (true)
+	// or not (false) when error is encountered.
+	FailOnWarnings *bool `location:"querystring" locationName:"failonwarnings" type:"boolean"`
+
+	// A query parameter to specify the input format to imported API keys. Currently,
+	// only the csv format is supported.
+	//
+	// Format is a required field
+	Format *string `location:"querystring" locationName:"format" type:"string" required:"true" enum:"ApiKeysFormat"`
+}
+
+// String returns the string representation
+func (s ImportApiKeysInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportApiKeysInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ImportApiKeysInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ImportApiKeysInput"}
+	if s.Body == nil {
+		invalidParams.Add(request.NewErrParamRequired("Body"))
+	}
+	if s.Format == nil {
+		invalidParams.Add(request.NewErrParamRequired("Format"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBody sets the Body field's value.
+func (s *ImportApiKeysInput) SetBody(v []byte) *ImportApiKeysInput {
+	s.Body = v
+	return s
+}
+
+// SetFailOnWarnings sets the FailOnWarnings field's value.
+func (s *ImportApiKeysInput) SetFailOnWarnings(v bool) *ImportApiKeysInput {
+	s.FailOnWarnings = &v
+	return s
+}
+
+// SetFormat sets the Format field's value.
+func (s *ImportApiKeysInput) SetFormat(v string) *ImportApiKeysInput {
+	s.Format = &v
+	return s
+}
+
+// The identifier of an API key used to reference an API key in a usage plan.
+type ImportApiKeysOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of all the ApiKey identifiers.
+	Ids []*string `locationName:"ids" type:"list"`
+
+	// A list of warning messages.
+	Warnings []*string `locationName:"warnings" type:"list"`
+}
+
+// String returns the string representation
+func (s ImportApiKeysOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ImportApiKeysOutput) GoString() string {
+	return s.String()
+}
+
+// SetIds sets the Ids field's value.
+func (s *ImportApiKeysOutput) SetIds(v []*string) *ImportApiKeysOutput {
+	s.Ids = v
+	return s
+}
+
+// SetWarnings sets the Warnings field's value.
+func (s *ImportApiKeysOutput) SetWarnings(v []*string) *ImportApiKeysOutput {
+	s.Warnings = v
+	return s
+}
+
 // A POST request to import an API to Amazon API Gateway using an input of an
 // API definition file.
 type ImportRestApiInput struct {
@@ -5081,6 +12254,8 @@ type ImportRestApiInput struct {
 
 	// The POST request body containing external API definitions. Currently, only
 	// Swagger definition JSON files are supported.
+	//
+	// Body is a required field
 	Body []byte `locationName:"body" type:"blob" required:"true"`
 
 	// A query parameter to indicate whether to rollback the API creation (true)
@@ -5114,7 +12289,29 @@ func (s *ImportRestApiInput) Validate() error {
 	return nil
 }
 
-// Represents a HTTP, AWS, or Mock integration.
+// SetBody sets the Body field's value.
+func (s *ImportRestApiInput) SetBody(v []byte) *ImportRestApiInput {
+	s.Body = v
+	return s
+}
+
+// SetFailOnWarnings sets the FailOnWarnings field's value.
+func (s *ImportRestApiInput) SetFailOnWarnings(v bool) *ImportRestApiInput {
+	s.FailOnWarnings = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *ImportRestApiInput) SetParameters(v map[string]*string) *ImportRestApiInput {
+	s.Parameters = v
+	return s
+}
+
+// Represents an HTTP, HTTP_PROXY, AWS, AWS_PROXY, or Mock integration.
+//
+// In the API Gateway console, the built-in Lambda integration is an AWS integration.
+//
+// Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html),
 type Integration struct {
 	_ struct{} `type:"structure"`
 
@@ -5123,6 +12320,20 @@ type Integration struct {
 
 	// Specifies the integration's cache namespace.
 	CacheNamespace *string `locationName:"cacheNamespace" type:"string"`
+
+	// Specifies how to handle request payload content type conversions. Supported
+	// values are CONVERT_TO_BINARY and CONVERT_TO_TEXT, with the following behaviors:
+	//
+	//    * CONVERT_TO_BINARY: Converts a request payload from a Base64-encoded
+	//    string to the corresponding binary blob.
+	//
+	//    * CONVERT_TO_TEXT: Converts a request payload from a binary blob to a
+	//    Base64-encoded string.
+	//
+	// If this property is not defined, the request payload will be passed through
+	// from the method request to integration request without modification, provided
+	// that the passthroughBehaviors is configured to support payload pass-through.
+	ContentHandling *string `locationName:"contentHandling" type:"string" enum:"ContentHandlingStrategy"`
 
 	// Specifies the credentials required for the integration, if any. For AWS integrations,
 	// three options are available. To specify an IAM Role for Amazon API Gateway
@@ -5136,28 +12347,77 @@ type Integration struct {
 	HttpMethod *string `locationName:"httpMethod" type:"string"`
 
 	// Specifies the integration's responses.
+	//
+	// Example: Get integration responses of a method
+	//
+	// Request
+	//
+	// GET /restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200
+	// HTTP/1.1 Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com
+	// X-Amz-Date: 20160607T191449Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160607/us-east-1/apigateway/aws4_request,
+	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
+	// Response
+	//
+	// The successful response returns 200 OKstatus and a payload as follows:
+	//
+	// { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// "name": "integrationresponse", "templated": true }, "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+	// "title": "200" }, "integrationresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+	// }, "integrationresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+	// } }, "responseParameters": { "method.response.header.Content-Type": "'application/xml'"
+	// }, "responseTemplates": { "application/json": "$util.urlDecode(\"%3CkinesisStreams%3E#foreach($stream
+	// in $input.path('$.StreamNames'))%3Cstream%3E%3Cname%3E$stream%3C/name%3E%3C/stream%3E#end%3C/kinesisStreams%3E\")\n"
+	// }, "statusCode": "200" }
 	IntegrationResponses map[string]*IntegrationResponse `locationName:"integrationResponses" type:"map"`
 
-	// Represents requests parameters that are sent with the backend request. Request
-	// parameters are represented as a key/value map, with a destination as the
-	// key and a source as the value. A source must match an existing method request
-	// parameter, or a static value. Static values must be enclosed with single
-	// quotes, and be pre-encoded based on their destination in the request. The
-	// destination must match the pattern integration.request.{location}.{name},
-	// where location is either querystring, path, or header. name must be a valid,
-	// unique parameter name.
+	// Specifies how the method request body of an unmapped content type will be
+	// passed through the integration request to the back end without transformation.
+	// A content type is unmapped if no mapping template is defined in the integration
+	// or the content type does not match any of the mapped content types, as specified
+	// in requestTemplates. There are three valid values: WHEN_NO_MATCH, WHEN_NO_TEMPLATES,
+	// and NEVER.
+	//
+	// WHEN_NO_MATCH passes the method request body through the integration request
+	// to the back end without transformation when the method request content type
+	// does not match any content type associated with the mapping templates defined
+	// in the integration request.
+	// WHEN_NO_TEMPLATES passes the method request body through the integration
+	// request to the back end without transformation when no mapping template is
+	// defined in the integration request. If a template is defined when this option
+	// is selected, the method request of an unmapped content-type will be rejected
+	// with an HTTP 415 Unsupported Media Type response.
+	// NEVER rejects the method request with an HTTP 415 Unsupported Media Type
+	// response when either the method request content type does not match any content
+	// type associated with the mapping templates defined in the integration request
+	// or no mapping template is defined in the integration request.
+	PassthroughBehavior *string `locationName:"passthroughBehavior" type:"string"`
+
+	// A key-value map specifying request parameters that are passed from the method
+	// request to the back end. The key is an integration request parameter name
+	// and the associated value is a method request parameter value or static value
+	// that must be enclosed within single quotes and pre-encoded as required by
+	// the back end. The method request parameter value must match the pattern of
+	// method.request.{location}.{name}, where location is querystring, path, or
+	// header and name must be a valid and unique method request parameter name.
 	RequestParameters map[string]*string `locationName:"requestParameters" type:"map"`
 
-	// Specifies the integration's request templates.
+	// Represents a map of Velocity templates that are applied on the request payload
+	// based on the value of the Content-Type header sent by the client. The content
+	// type value is the key in this map, and the template (as a String) is the
+	// value.
 	RequestTemplates map[string]*string `locationName:"requestTemplates" type:"map"`
 
-	// Specifies the integration's type. The valid value is HTTP, AWS, or MOCK.
+	// Specifies the integration's type. The valid value is HTTP for integrating
+	// with an HTTP back end, AWS for any AWS service endpoints, MOCK for testing
+	// without actually invoking the back end, HTTP_PROXY for integrating with the
+	// HTTP proxy integration, or AWS_PROXY for integrating with the Lambda proxy
+	// integration type.
 	Type *string `locationName:"type" type:"string" enum:"IntegrationType"`
 
 	// Specifies the integration's Uniform Resource Identifier (URI). For HTTP integrations,
 	// the URI must be a fully formed, encoded HTTP(S) URL according to the RFC-3986
-	// specification (https://www.ietf.org/rfc/rfc3986.txt" target="_blank). For
-	// AWS integrations, the URI should be of the form arn:aws:apigateway:{region}:{subdomain.service|service}:{path|action}/{service_api}.
+	// specification (https://www.ietf.org/rfc/rfc3986.txt). For AWS integrations,
+	// the URI should be of the form arn:aws:apigateway:{region}:{subdomain.service|service}:{path|action}/{service_api}.
 	// Region, subdomain and service are used to determine the right endpoint. For
 	// AWS services that use the Action= query string parameter, service_api should
 	// be a valid action for the desired service. For RESTful AWS service APIs,
@@ -5176,19 +12436,103 @@ func (s Integration) GoString() string {
 	return s.String()
 }
 
+// SetCacheKeyParameters sets the CacheKeyParameters field's value.
+func (s *Integration) SetCacheKeyParameters(v []*string) *Integration {
+	s.CacheKeyParameters = v
+	return s
+}
+
+// SetCacheNamespace sets the CacheNamespace field's value.
+func (s *Integration) SetCacheNamespace(v string) *Integration {
+	s.CacheNamespace = &v
+	return s
+}
+
+// SetContentHandling sets the ContentHandling field's value.
+func (s *Integration) SetContentHandling(v string) *Integration {
+	s.ContentHandling = &v
+	return s
+}
+
+// SetCredentials sets the Credentials field's value.
+func (s *Integration) SetCredentials(v string) *Integration {
+	s.Credentials = &v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *Integration) SetHttpMethod(v string) *Integration {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetIntegrationResponses sets the IntegrationResponses field's value.
+func (s *Integration) SetIntegrationResponses(v map[string]*IntegrationResponse) *Integration {
+	s.IntegrationResponses = v
+	return s
+}
+
+// SetPassthroughBehavior sets the PassthroughBehavior field's value.
+func (s *Integration) SetPassthroughBehavior(v string) *Integration {
+	s.PassthroughBehavior = &v
+	return s
+}
+
+// SetRequestParameters sets the RequestParameters field's value.
+func (s *Integration) SetRequestParameters(v map[string]*string) *Integration {
+	s.RequestParameters = v
+	return s
+}
+
+// SetRequestTemplates sets the RequestTemplates field's value.
+func (s *Integration) SetRequestTemplates(v map[string]*string) *Integration {
+	s.RequestTemplates = v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *Integration) SetType(v string) *Integration {
+	s.Type = &v
+	return s
+}
+
+// SetUri sets the Uri field's value.
+func (s *Integration) SetUri(v string) *Integration {
+	s.Uri = &v
+	return s
+}
+
 // Represents an integration response. The status code must map to an existing
 // MethodResponse, and parameters and templates can be used to transform the
-// backend response.
+// back-end response.
+//
+// Creating an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type IntegrationResponse struct {
 	_ struct{} `type:"structure"`
 
-	// Represents response parameters that can be read from the backend response.
-	// Response parameters are represented as a key/value map, with a destination
-	// as the key and a source as the value. A destination must match an existing
-	// response parameter in the MethodResponse. The source can be a header from
-	// the backend response, or a static value. Static values are specified using
-	// enclosing single quotes, and backend response headers can be read using the
-	// pattern integration.response.header.{name}.
+	// Specifies how to handle response payload content type conversions. Supported
+	// values are CONVERT_TO_BINARY and CONVERT_TO_TEXT, with the following behaviors:
+	//
+	//    * CONVERT_TO_BINARY: Converts a response payload from a Base64-encoded
+	//    string to the corresponding binary blob.
+	//
+	//    * CONVERT_TO_TEXT: Converts a response payload from a binary blob to a
+	//    Base64-encoded string.
+	//
+	// If this property is not defined, the response payload will be passed through
+	// from the integration response to the method response without modification.
+	ContentHandling *string `locationName:"contentHandling" type:"string" enum:"ContentHandlingStrategy"`
+
+	// A key-value map specifying response parameters that are passed to the method
+	// response from the back end. The key is a method response header parameter
+	// name and the mapped value is an integration response header value, a static
+	// value enclosed within a pair of single quotes, or a JSON expression from
+	// the integration response body. The mapping key must match the pattern of
+	// method.response.header.{name}, where name is a valid and unique header name.
+	// The mapped non-static value must match the pattern of integration.response.header.{name}
+	// or integration.response.body.{JSON-expression}, where name is a valid and
+	// unique response header name and JSON-expression is a valid JSON expression
+	// without the $ prefix.
 	ResponseParameters map[string]*string `locationName:"responseParameters" type:"map"`
 
 	// Specifies the templates used to transform the integration response body.
@@ -5197,9 +12541,13 @@ type IntegrationResponse struct {
 	ResponseTemplates map[string]*string `locationName:"responseTemplates" type:"map"`
 
 	// Specifies the regular expression (regex) pattern used to choose an integration
-	// response based on the response from the backend. If the backend is an AWS
-	// Lambda function, the AWS Lambda function error header is matched. For all
-	// other HTTP and AWS backends, the HTTP status code is matched.
+	// response based on the response from the back end. For example, if the success
+	// response returns nothing and the error response returns some string, you
+	// could use the .+ regex to match error response. However, make sure that the
+	// error response does not contain any newline (\n) character in such cases.
+	// If the back end is an AWS Lambda function, the AWS Lambda function error
+	// header is matched. For all other HTTP and AWS back ends, the HTTP status
+	// code is matched.
 	SelectionPattern *string `locationName:"selectionPattern" type:"string"`
 
 	// Specifies the status code that is used to map the integration response to
@@ -5217,44 +12565,209 @@ func (s IntegrationResponse) GoString() string {
 	return s.String()
 }
 
-// Represents a method.
+// SetContentHandling sets the ContentHandling field's value.
+func (s *IntegrationResponse) SetContentHandling(v string) *IntegrationResponse {
+	s.ContentHandling = &v
+	return s
+}
+
+// SetResponseParameters sets the ResponseParameters field's value.
+func (s *IntegrationResponse) SetResponseParameters(v map[string]*string) *IntegrationResponse {
+	s.ResponseParameters = v
+	return s
+}
+
+// SetResponseTemplates sets the ResponseTemplates field's value.
+func (s *IntegrationResponse) SetResponseTemplates(v map[string]*string) *IntegrationResponse {
+	s.ResponseTemplates = v
+	return s
+}
+
+// SetSelectionPattern sets the SelectionPattern field's value.
+func (s *IntegrationResponse) SetSelectionPattern(v string) *IntegrationResponse {
+	s.SelectionPattern = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *IntegrationResponse) SetStatusCode(v string) *IntegrationResponse {
+	s.StatusCode = &v
+	return s
+}
+
+// Represents a client-facing interface by which the client calls the API to
+// access back-end resources. A Method resource is integrated with an Integration
+// resource. Both consist of a request and one or more responses. The method
+// request takes the client input that is passed to the back end through the
+// integration request. A method response returns the output from the back end
+// to the client through an integration response. A method request is embodied
+// in a Method resource, whereas an integration request is embodied in an Integration
+// resource. On the other hand, a method response is represented by a MethodResponse
+// resource, whereas an integration response is represented by an IntegrationResponse
+// resource.
+//
+// Example: Retrive the GET method on a specified resource
+//
+// Request
+//
+// The following example request retrieves the information about the GET method
+// on an API resource (3kzxbg5sa2) of an API (fugvjdxtri).
+//
+//    GET /restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET HTTP/1.1 Content-Type:
+//    application/json Host: apigateway.us-east-1.amazonaws.com X-Amz-Date:
+//    20160603T210259Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160603/us-east-1/apigateway/aws4_request,
+//    SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
+// Response
+//
+// The successful response returns a 200 OK status code and a payload similar
+// to the following:
+//
+//    { "_links": { "curies": [ { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+//    "name": "integration", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+//    "name": "integrationresponse", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-{rel}.html",
+//    "name": "method", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+//    "name": "methodresponse", "templated": true } ], "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET",
+//    "name": "GET", "title": "GET" }, "integration:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+//    }, "method:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
+//    }, "method:integration": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+//    }, "method:responses": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+//    "name": "200", "title": "200" }, "method:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
+//    }, "methodresponse:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/{status_code}",
+//    "templated": true } }, "apiKeyRequired": true, "authorizationType": "NONE",
+//    "httpMethod": "GET", "_embedded": { "method:integration": { "_links":
+//    { "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+//    }, "integration:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+//    }, "integration:responses": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+//    "name": "200", "title": "200" }, "integration:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+//    }, "integrationresponse:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/{status_code}",
+//    "templated": true } }, "cacheKeyParameters": [], "cacheNamespace": "3kzxbg5sa2",
+//    "credentials": "arn:aws:iam::123456789012:role/apigAwsProxyRole", "httpMethod":
+//    "POST", "passthroughBehavior": "WHEN_NO_MATCH", "requestParameters": {
+//    "integration.request.header.Content-Type": "'application/x-amz-json-1.1'"
+//    }, "requestTemplates": { "application/json": "{\n}" }, "type": "AWS",
+//    "uri": "arn:aws:apigateway:us-east-1:kinesis:action/ListStreams", "_embedded":
+//    { "integration:responses": { "_links": { "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+//    "name": "200", "title": "200" }, "integrationresponse:delete": { "href":
+//    "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+//    }, "integrationresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+//    } }, "responseParameters": { "method.response.header.Content-Type": "'application/xml'"
+//    }, "responseTemplates": { "application/json": "$util.urlDecode(\"%3CkinesisStreams%3E%23foreach(%24stream%20in%20%24input.path(%27%24.StreamNames%27))%3Cstream%3E%3Cname%3E%24stream%3C%2Fname%3E%3C%2Fstream%3E%23end%3C%2FkinesisStreams%3E\")"
+//    }, "statusCode": "200" } } }, "method:responses": { "_links": { "self":
+//    { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+//    "name": "200", "title": "200" }, "methodresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+//    }, "methodresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+//    } }, "responseModels": { "application/json": "Empty" }, "responseParameters":
+//    { "method.response.header.Content-Type": false }, "statusCode": "200"
+//    } } }
+// In the example above, the response template for the 200 OK response maps
+// the JSON output from the ListStreams action in the back end to an XML output.
+// The mapping template is URL-encoded as %3CkinesisStreams%3E%23foreach(%24stream%20in%20%24input.path(%27%24.StreamNames%27))%3Cstream%3E%3Cname%3E%24stream%3C%2Fname%3E%3C%2Fstream%3E%23end%3C%2FkinesisStreams%3E
+// and the output is decoded using the $util.urlDecode() (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html#util-templat-reference)
+// helper function.
+//
+// MethodResponse, Integration, IntegrationResponse, Resource, Set up an API's method (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-method-settings.html)
 type Method struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies whether the method requires a valid ApiKey.
+	// A boolean flag specifying whether a valid ApiKey is required to invoke this
+	// method.
 	ApiKeyRequired *bool `locationName:"apiKeyRequired" type:"boolean"`
 
 	// The method's authorization type.
 	AuthorizationType *string `locationName:"authorizationType" type:"string"`
 
-	// Specifies the identifier of an Authorizer to use on this Method. The authorizationType
+	// The identifier of an Authorizer to use on this method. The authorizationType
 	// must be CUSTOM.
 	AuthorizerId *string `locationName:"authorizerId" type:"string"`
 
-	// The HTTP method.
+	// The method's HTTP verb.
 	HttpMethod *string `locationName:"httpMethod" type:"string"`
 
-	// The method's integration.
+	// Gets the method's integration responsible for passing the client-submitted
+	// request to the back end and performing necessary transformations to make
+	// the request compliant with the back end.
+	//
+	// Example:
+	//
+	// Request
+	//
+	// GET /restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration HTTP/1.1
+	// Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com Content-Length:
+	// 117 X-Amz-Date: 20160613T213210Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160613/us-east-1/apigateway/aws4_request,
+	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
+	// Response
+	//
+	// The successful response returns a 200 OKstatus code and a payload similar to the following:
+	//
+	// { "_links": { "curies": [ { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+	// "name": "integration", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// "name": "integrationresponse", "templated": true } ], "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
+	// }, "integration:delete": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
+	// }, "integration:responses": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200",
+	// "name": "200", "title": "200" }, "integration:update": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration"
+	// }, "integrationresponse:put": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/{status_code}",
+	// "templated": true } }, "cacheKeyParameters": [], "cacheNamespace": "0cjtch",
+	// "credentials": "arn:aws:iam::123456789012:role/apigAwsProxyRole", "httpMethod":
+	// "POST", "passthroughBehavior": "WHEN_NO_MATCH", "requestTemplates": { "application/json":
+	// "{\n \"a\": \"$input.params('operand1')\",\n \"b\": \"$input.params('operand2')\",
+	// \n \"op\": \"$input.params('operator')\" \n}" }, "type": "AWS", "uri": "arn:aws:apigateway:us-west-2:lambda:path//2015-03-31/functions/arn:aws:lambda:us-west-2:123456789012:function:Calc/invocations",
+	// "_embedded": { "integration:responses": { "_links": { "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200",
+	// "name": "200", "title": "200" }, "integrationresponse:delete": { "href":
+	// "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200"
+	// }, "integrationresponse:update": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/integration/responses/200"
+	// } }, "responseParameters": { "method.response.header.operator": "integration.response.body.op",
+	// "method.response.header.operand_2": "integration.response.body.b", "method.response.header.operand_1":
+	// "integration.response.body.a" }, "responseTemplates": { "application/json":
+	// "#set($res = $input.path('$'))\n{\n \"result\": \"$res.a, $res.b, $res.op
+	// => $res.c\",\n \"a\" : \"$res.a\",\n \"b\" : \"$res.b\",\n \"op\" : \"$res.op\",\n
+	// \"c\" : \"$res.c\"\n}" }, "selectionPattern": "", "statusCode": "200" } }
+	// }
 	MethodIntegration *Integration `locationName:"methodIntegration" type:"structure"`
 
-	// Represents available responses that can be sent to the caller. Method responses
-	// are represented as a key/value map, with an HTTP status code as the key and
-	// a MethodResponse as the value. The status codes are available for the Integration
-	// responses to map to.
+	// Gets a method response associated with a given HTTP status code.
+	//
+	// The collection of method responses are encapsulated in a key-value map, where
+	// the key is a response's HTTP status code and the value is a MethodResponse
+	// resource that specifies the response returned to the caller from the back
+	// end through the integration response.
+	//
+	// Example: Get a 200 OK response of a GET method
+	//
+	// Request
+	//
+	//    GET /restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200 HTTP/1.1
+	//    Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com
+	//    Content-Length: 117 X-Amz-Date: 20160613T215008Z Authorization: AWS4-HMAC-SHA256
+	//    Credential={access_key_ID}/20160613/us-east-1/apigateway/aws4_request,
+	//    SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
+	// Response
+	//
+	// The successful response returns a 200 OK status code and a payload similar
+	// to the following:
+	//
+	//    { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+	//    "name": "methodresponse", "templated": true }, "self": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200",
+	//    "title": "200" }, "methodresponse:delete": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200"
+	//    }, "methodresponse:update": { "href": "/restapis/uojnr9hd57/resources/0cjtch/methods/GET/responses/200"
+	//    } }, "responseModels": { "application/json": "Empty" }, "responseParameters":
+	//    { "method.response.header.operator": false, "method.response.header.operand_2":
+	//    false, "method.response.header.operand_1": false }, "statusCode": "200"
+	//    }
 	MethodResponses map[string]*MethodResponse `locationName:"methodResponses" type:"map"`
 
-	// Specifies the Model resources used for the request's content type. Request
-	// models are represented as a key/value map, with a content type as the key
-	// and a Model name as the value.
+	// A key-value map specifying data schemas, represented by Model resources,
+	// (as the mapped value) of the request payloads of given content types (as
+	// the mapping key).
 	RequestModels map[string]*string `locationName:"requestModels" type:"map"`
 
-	// Represents request parameters that can be accepted by Amazon API Gateway.
-	// Request parameters are represented as a key/value map, with a source as the
-	// key and a Boolean flag as the value. The Boolean flag is used to specify
-	// whether the parameter is required. A source must match the pattern method.request.{location}.{name},
-	// where location is either querystring, path, or header. name is a valid, unique
-	// parameter name. Sources specified here are available to the integration for
-	// mapping to integration request parameters or templates.
+	// A key-value map defining required or optional method request parameters that
+	// can be accepted by Amazon API Gateway. A key is a method request parameter
+	// name matching the pattern of method.request.{location}.{name}, where location
+	// is querystring, path, or header and name is a valid and unique parameter
+	// name. The value associated with the key is a Boolean flag indicating whether
+	// the parameter is required (true) or optional (false). The method request
+	// parameter names defined here are available in Integration to be mapped to
+	// integration request parameters or templates.
 	RequestParameters map[string]*bool `locationName:"requestParameters" type:"map"`
 }
 
@@ -5268,9 +12781,79 @@ func (s Method) GoString() string {
 	return s.String()
 }
 
-// Represents a method response. Amazon API Gateway sends back the status code
-// to the caller as the HTTP status code. Parameters and models can be used
-// to transform the response from the method's integration.
+// SetApiKeyRequired sets the ApiKeyRequired field's value.
+func (s *Method) SetApiKeyRequired(v bool) *Method {
+	s.ApiKeyRequired = &v
+	return s
+}
+
+// SetAuthorizationType sets the AuthorizationType field's value.
+func (s *Method) SetAuthorizationType(v string) *Method {
+	s.AuthorizationType = &v
+	return s
+}
+
+// SetAuthorizerId sets the AuthorizerId field's value.
+func (s *Method) SetAuthorizerId(v string) *Method {
+	s.AuthorizerId = &v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *Method) SetHttpMethod(v string) *Method {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetMethodIntegration sets the MethodIntegration field's value.
+func (s *Method) SetMethodIntegration(v *Integration) *Method {
+	s.MethodIntegration = v
+	return s
+}
+
+// SetMethodResponses sets the MethodResponses field's value.
+func (s *Method) SetMethodResponses(v map[string]*MethodResponse) *Method {
+	s.MethodResponses = v
+	return s
+}
+
+// SetRequestModels sets the RequestModels field's value.
+func (s *Method) SetRequestModels(v map[string]*string) *Method {
+	s.RequestModels = v
+	return s
+}
+
+// SetRequestParameters sets the RequestParameters field's value.
+func (s *Method) SetRequestParameters(v map[string]*bool) *Method {
+	s.RequestParameters = v
+	return s
+}
+
+// Represents a method response of a given HTTP status code returned to the
+// client. The method response is passed from the back end through the associated
+// integration response that can be transformed using a mapping template.
+//
+// Example: A MethodResponse instance of an API
+//
+// Request
+//
+// The example request retrieves a MethodResponse of the 200 status code.
+//
+//    GET /restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200
+//    HTTP/1.1 Content-Type: application/json Host: apigateway.us-east-1.amazonaws.com
+//    X-Amz-Date: 20160603T222952Z Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160603/us-east-1/apigateway/aws4_request,
+//    SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
+// Response
+//
+// The successful response returns 200 OK status and a payload as follows:
+//
+//    { "_links": { "curies": { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+//    "name": "methodresponse", "templated": true }, "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+//    "title": "200" }, "methodresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+//    }, "methodresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+//    } }, "responseModels": { "application/json": "Empty" }, "responseParameters":
+//    { "method.response.header.Content-Type": false }, "statusCode": "200"
+//    }
 type MethodResponse struct {
 	_ struct{} `type:"structure"`
 
@@ -5279,13 +12862,18 @@ type MethodResponse struct {
 	// and a Model name as the value.
 	ResponseModels map[string]*string `locationName:"responseModels" type:"map"`
 
-	// Represents response parameters that can be sent back to the caller by Amazon
-	// API Gateway. Response parameters are represented as a key/value map, with
-	// a destination as the key and a boolean flag as the value, which is used to
-	// specify whether the parameter is required. A destination must match the pattern
-	// method.response.header.{name}, where name is a valid, unique header name.
-	// Destinations specified here are available to the integration for mapping
-	// from integration response parameters.
+	// A key-value map specifying required or optional response parameters that
+	// Amazon API Gateway can send back to the caller. A key defines a method response
+	// header and the value specifies whether the associated method response header
+	// is required or not. The expression of the key must match the pattern method.response.header.{name},
+	// where name is a valid and unique header name. Amazon API Gateway passes certain
+	// integration response data to the method response headers specified here according
+	// to the mapping you prescribe in the API's IntegrationResponse. The integration
+	// response data that can be mapped include an integration response header expressed
+	// in integration.response.header.{name}, a static value enclosed within a pair
+	// of single quotes (e.g., 'application/json'), or a JSON expression from the
+	// back-end response payload in the form of integration.response.body.{JSON-expression},
+	// where JSON-expression is a valid JSON expression without the $ prefix.)
 	ResponseParameters map[string]*bool `locationName:"responseParameters" type:"map"`
 
 	// The method response's status code.
@@ -5302,6 +12890,24 @@ func (s MethodResponse) GoString() string {
 	return s.String()
 }
 
+// SetResponseModels sets the ResponseModels field's value.
+func (s *MethodResponse) SetResponseModels(v map[string]*string) *MethodResponse {
+	s.ResponseModels = v
+	return s
+}
+
+// SetResponseParameters sets the ResponseParameters field's value.
+func (s *MethodResponse) SetResponseParameters(v map[string]*bool) *MethodResponse {
+	s.ResponseParameters = v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *MethodResponse) SetStatusCode(v string) *MethodResponse {
+	s.StatusCode = &v
+	return s
+}
+
 // Specifies the method setting properties.
 type MethodSetting struct {
 	_ struct{} `type:"structure"`
@@ -5311,8 +12917,8 @@ type MethodSetting struct {
 	// is a Boolean.
 	CacheDataEncrypted *bool `locationName:"cacheDataEncrypted" type:"boolean"`
 
-	// Specifies the time to live (TTL) in seconds, for cached responses. The higher
-	// a the TTL, the longer the response will be cached. The PATCH path for this
+	// Specifies the time to live (TTL), in seconds, for cached responses. The higher
+	// the TTL, the longer the response will be cached. The PATCH path for this
 	// setting is /{method_setting_key}/caching/ttlInSeconds, and the value is an
 	// integer.
 	CacheTtlInSeconds *int64 `locationName:"cacheTtlInSeconds" type:"integer"`
@@ -5323,10 +12929,9 @@ type MethodSetting struct {
 	// the value is a Boolean.
 	CachingEnabled *bool `locationName:"cachingEnabled" type:"boolean"`
 
-	// Specifies the whether data trace logging is enabled for this method, which
-	// effects the log entries pushed to Amazon CloudWatch Logs. The PATCH path
-	// for this setting is /{method_setting_key}/logging/dataTrace, and the value
-	// is a Boolean.
+	// Specifies whether data trace logging is enabled for this method, which effects
+	// the log entries pushed to Amazon CloudWatch Logs. The PATCH path for this
+	// setting is /{method_setting_key}/logging/dataTrace, and the value is a Boolean.
 	DataTraceEnabled *bool `locationName:"dataTraceEnabled" type:"boolean"`
 
 	// Specifies the logging level for this method, which effects the log entries
@@ -5352,8 +12957,8 @@ type MethodSetting struct {
 	// and the value is a double.
 	ThrottlingRateLimit *float64 `locationName:"throttlingRateLimit" type:"double"`
 
-	// Specifies the strategy on how to handle the unauthorized requests for cache
-	// invalidation. The PATCH path for this setting is /{method_setting_key}/caching/unauthorizedCacheControlHeaderStrategy,
+	// Specifies how to handle unauthorized requests for cache invalidation. The
+	// PATCH path for this setting is /{method_setting_key}/caching/unauthorizedCacheControlHeaderStrategy,
 	// and the available values are FAIL_WITH_403, SUCCEED_WITH_RESPONSE_HEADER,
 	// SUCCEED_WITHOUT_RESPONSE_HEADER.
 	UnauthorizedCacheControlHeaderStrategy *string `locationName:"unauthorizedCacheControlHeaderStrategy" type:"string" enum:"UnauthorizedCacheControlHeaderStrategy"`
@@ -5367,6 +12972,66 @@ func (s MethodSetting) String() string {
 // GoString returns the string representation
 func (s MethodSetting) GoString() string {
 	return s.String()
+}
+
+// SetCacheDataEncrypted sets the CacheDataEncrypted field's value.
+func (s *MethodSetting) SetCacheDataEncrypted(v bool) *MethodSetting {
+	s.CacheDataEncrypted = &v
+	return s
+}
+
+// SetCacheTtlInSeconds sets the CacheTtlInSeconds field's value.
+func (s *MethodSetting) SetCacheTtlInSeconds(v int64) *MethodSetting {
+	s.CacheTtlInSeconds = &v
+	return s
+}
+
+// SetCachingEnabled sets the CachingEnabled field's value.
+func (s *MethodSetting) SetCachingEnabled(v bool) *MethodSetting {
+	s.CachingEnabled = &v
+	return s
+}
+
+// SetDataTraceEnabled sets the DataTraceEnabled field's value.
+func (s *MethodSetting) SetDataTraceEnabled(v bool) *MethodSetting {
+	s.DataTraceEnabled = &v
+	return s
+}
+
+// SetLoggingLevel sets the LoggingLevel field's value.
+func (s *MethodSetting) SetLoggingLevel(v string) *MethodSetting {
+	s.LoggingLevel = &v
+	return s
+}
+
+// SetMetricsEnabled sets the MetricsEnabled field's value.
+func (s *MethodSetting) SetMetricsEnabled(v bool) *MethodSetting {
+	s.MetricsEnabled = &v
+	return s
+}
+
+// SetRequireAuthorizationForCacheControl sets the RequireAuthorizationForCacheControl field's value.
+func (s *MethodSetting) SetRequireAuthorizationForCacheControl(v bool) *MethodSetting {
+	s.RequireAuthorizationForCacheControl = &v
+	return s
+}
+
+// SetThrottlingBurstLimit sets the ThrottlingBurstLimit field's value.
+func (s *MethodSetting) SetThrottlingBurstLimit(v int64) *MethodSetting {
+	s.ThrottlingBurstLimit = &v
+	return s
+}
+
+// SetThrottlingRateLimit sets the ThrottlingRateLimit field's value.
+func (s *MethodSetting) SetThrottlingRateLimit(v float64) *MethodSetting {
+	s.ThrottlingRateLimit = &v
+	return s
+}
+
+// SetUnauthorizedCacheControlHeaderStrategy sets the UnauthorizedCacheControlHeaderStrategy field's value.
+func (s *MethodSetting) SetUnauthorizedCacheControlHeaderStrategy(v string) *MethodSetting {
+	s.UnauthorizedCacheControlHeaderStrategy = &v
+	return s
 }
 
 // Represents a summary of a Method resource, given a particular date and time.
@@ -5390,7 +13055,29 @@ func (s MethodSnapshot) GoString() string {
 	return s.String()
 }
 
-// Represents the structure of a request or response payload for a method.
+// SetApiKeyRequired sets the ApiKeyRequired field's value.
+func (s *MethodSnapshot) SetApiKeyRequired(v bool) *MethodSnapshot {
+	s.ApiKeyRequired = &v
+	return s
+}
+
+// SetAuthorizationType sets the AuthorizationType field's value.
+func (s *MethodSnapshot) SetAuthorizationType(v string) *MethodSnapshot {
+	s.AuthorizationType = &v
+	return s
+}
+
+// Represents the data structure of a method's request or response payload.
+//
+// A request model defines the data structure of the client-supplied request
+// payload. A response model defines the data structure of the response payload
+// returned by the back end. Although not required, models are useful for mapping
+// payloads between the front end and back end.
+//
+// A model is used for generating an API's SDK, validating the input request
+// body, and creating a skeletal mapping template.
+//
+// Method, MethodResponse, Models and Mappings (http://docs.aws.amazon.com/apigateway/latest/developerguide/models-mappings.html)
 type Model struct {
 	_ struct{} `type:"structure"`
 
@@ -5407,7 +13094,11 @@ type Model struct {
 	Name *string `locationName:"name" type:"string"`
 
 	// The schema for the model. For application/json models, this should be JSON-schema
-	// draft v4 (http://json-schema.org/documentation.html" target="_blank) model.
+	// draft v4 (http://json-schema.org/documentation.html) model. Do not include
+	// "\*/" characters in the description of any properties because such "\*/"
+	// characters may be interpreted as the closing marker for comments in some
+	// languages, such as Java or JavaScript, causing the installation of your API's
+	// SDK generated by API Gateway to fail.
 	Schema *string `locationName:"schema" type:"string"`
 }
 
@@ -5421,29 +13112,63 @@ func (s Model) GoString() string {
 	return s.String()
 }
 
+// SetContentType sets the ContentType field's value.
+func (s *Model) SetContentType(v string) *Model {
+	s.ContentType = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Model) SetDescription(v string) *Model {
+	s.Description = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *Model) SetId(v string) *Model {
+	s.Id = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *Model) SetName(v string) *Model {
+	s.Name = &v
+	return s
+}
+
+// SetSchema sets the Schema field's value.
+func (s *Model) SetSchema(v string) *Model {
+	s.Schema = &v
+	return s
+}
+
 // A single patch operation to apply to the specified resource. Please refer
 // to http://tools.ietf.org/html/rfc6902#section-4 for an explanation of how
 // each operation is used.
 type PatchOperation struct {
 	_ struct{} `type:"structure"`
 
-	// The "move" and "copy" operation object MUST contain a "from" member, which
-	// is a string containing a JSON Pointer value that references the location
-	// in the target document to move the value from.
+	// Not supported.
 	From *string `locationName:"from" type:"string"`
 
-	// A patch operation whose value indicates the operation to perform. Its value
-	// MUST be one of "add", "remove", "replace", "move", "copy", or "test"; other
-	// values are errors.
-	Op *string `locationName:"op" type:"string" enum:"op"`
+	// An update operation to be performed with this PATCH request. The valid value
+	// can be "add", "remove", or "replace". Not all valid operations are supported
+	// for a given resource. Support of the operations depends on specific operational
+	// contexts. Attempts to apply an unsupported operation on a resource will return
+	// an error message.
+	Op *string `locationName:"op" type:"string" enum:"Op"`
 
-	// Operation objects MUST have exactly one "path" member. That member's value
-	// is a string containing a `JSON-Pointer` value that references a location
-	// within the target document (the "target location") where the operation is
-	// performed.
+	// The op operation's target, as identified by a JSON Pointer (https://tools.ietf.org/html/draft-ietf-appsawg-json-pointer-08)
+	// value that references a location within the targeted resource. For example,
+	// if the target resource has an updateable property of {"name":"value"}, the
+	// path for this property is /name. If the name property value is a JSON object
+	// (e.g., {"name": {"child/name": "child-value"}}), the path for the child/name
+	// property will be /name/child~1name. Any slash ("/") character appearing in
+	// path names must be escaped with "~1", as shown in the example above. Each
+	// op operation can have only one path associated with it.
 	Path *string `locationName:"path" type:"string"`
 
-	// The actual value content.
+	// The new target value of the update operation.
 	Value *string `locationName:"value" type:"string"`
 }
 
@@ -5457,6 +13182,30 @@ func (s PatchOperation) GoString() string {
 	return s.String()
 }
 
+// SetFrom sets the From field's value.
+func (s *PatchOperation) SetFrom(v string) *PatchOperation {
+	s.From = &v
+	return s
+}
+
+// SetOp sets the Op field's value.
+func (s *PatchOperation) SetOp(v string) *PatchOperation {
+	s.Op = &v
+	return s
+}
+
+// SetPath sets the Path field's value.
+func (s *PatchOperation) SetPath(v string) *PatchOperation {
+	s.Path = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *PatchOperation) SetValue(v string) *PatchOperation {
+	s.Value = &v
+	return s
+}
+
 // Represents a put integration request.
 type PutIntegrationInput struct {
 	_ struct{} `type:"structure"`
@@ -5467,38 +13216,76 @@ type PutIntegrationInput struct {
 	// Specifies a put integration input's cache namespace.
 	CacheNamespace *string `locationName:"cacheNamespace" type:"string"`
 
+	// Specifies how to handle request payload content type conversions. Supported
+	// values are CONVERT_TO_BINARY and CONVERT_TO_TEXT, with the following behaviors:
+	//
+	//    * CONVERT_TO_BINARY: Converts a request payload from a Base64-encoded
+	//    string to the corresponding binary blob.
+	//
+	//    * CONVERT_TO_TEXT: Converts a request payload from a binary blob to a
+	//    Base64-encoded string.
+	//
+	// If this property is not defined, the request payload will be passed through
+	// from the method request to integration request without modification, provided
+	// that the passthroughBehaviors is configured to support payload pass-through.
+	ContentHandling *string `locationName:"contentHandling" type:"string" enum:"ContentHandlingStrategy"`
+
 	// Specifies whether credentials are required for a put integration.
 	Credentials *string `locationName:"credentials" type:"string"`
 
 	// Specifies a put integration request's HTTP method.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// Specifies a put integration HTTP method. When the integration type is HTTP
 	// or AWS, this field is required.
 	IntegrationHttpMethod *string `locationName:"httpMethod" type:"string"`
 
-	// Represents request parameters that are sent with the backend request. Request
-	// parameters are represented as a key/value map, with a destination as the
-	// key and a source as the value. A source must match an existing method request
-	// parameter, or a static value. Static values must be enclosed with single
-	// quotes, and be pre-encoded based on their destination in the request. The
-	// destination must match the pattern integration.request.{location}.{name},
-	// where location is either querystring, path, or header. name must be a valid,
-	// unique parameter name.
+	// Specifies the pass-through behavior for incoming requests based on the Content-Type
+	// header in the request, and the available mapping templates specified as the
+	// requestTemplates property on the Integration resource. There are three valid
+	// values: WHEN_NO_MATCH, WHEN_NO_TEMPLATES, and NEVER.
+	//
+	//    * WHEN_NO_MATCH passes the request body for unmapped content types through
+	//    to the integration back end without transformation.
+	//
+	//    * NEVER rejects unmapped content types with an HTTP 415 'Unsupported Media
+	//    Type' response.
+	//
+	//    * WHEN_NO_TEMPLATES allows pass-through when the integration has NO content
+	//    types mapped to templates. However if there is at least one content type
+	//    defined, unmapped content types will be rejected with the same 415 response.
+	PassthroughBehavior *string `locationName:"passthroughBehavior" type:"string"`
+
+	// A key-value map specifying request parameters that are passed from the method
+	// request to the back end. The key is an integration request parameter name
+	// and the associated value is a method request parameter value or static value
+	// that must be enclosed within single quotes and pre-encoded as required by
+	// the back end. The method request parameter value must match the pattern of
+	// method.request.{location}.{name}, where location is querystring, path, or
+	// header and name must be a valid and unique method request parameter name.
 	RequestParameters map[string]*string `locationName:"requestParameters" type:"map"`
 
-	// Specifies the templates used to transform the method request body. Request
-	// templates are represented as a key/value map, with a content-type as the
-	// key and a template as the value.
+	// Represents a map of Velocity templates that are applied on the request payload
+	// based on the value of the Content-Type header sent by the client. The content
+	// type value is the key in this map, and the template (as a String) is the
+	// value.
 	RequestTemplates map[string]*string `locationName:"requestTemplates" type:"map"`
 
 	// Specifies a put integration request's resource ID.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// Specifies a put integration request's API identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// Specifies a put integration input's type.
+	//
+	// Type is a required field
 	Type *string `locationName:"type" type:"string" required:"true" enum:"IntegrationType"`
 
 	// Specifies a put integration input's Uniform Resource Identifier (URI). When
@@ -5540,29 +13327,129 @@ func (s *PutIntegrationInput) Validate() error {
 	return nil
 }
 
+// SetCacheKeyParameters sets the CacheKeyParameters field's value.
+func (s *PutIntegrationInput) SetCacheKeyParameters(v []*string) *PutIntegrationInput {
+	s.CacheKeyParameters = v
+	return s
+}
+
+// SetCacheNamespace sets the CacheNamespace field's value.
+func (s *PutIntegrationInput) SetCacheNamespace(v string) *PutIntegrationInput {
+	s.CacheNamespace = &v
+	return s
+}
+
+// SetContentHandling sets the ContentHandling field's value.
+func (s *PutIntegrationInput) SetContentHandling(v string) *PutIntegrationInput {
+	s.ContentHandling = &v
+	return s
+}
+
+// SetCredentials sets the Credentials field's value.
+func (s *PutIntegrationInput) SetCredentials(v string) *PutIntegrationInput {
+	s.Credentials = &v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *PutIntegrationInput) SetHttpMethod(v string) *PutIntegrationInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetIntegrationHttpMethod sets the IntegrationHttpMethod field's value.
+func (s *PutIntegrationInput) SetIntegrationHttpMethod(v string) *PutIntegrationInput {
+	s.IntegrationHttpMethod = &v
+	return s
+}
+
+// SetPassthroughBehavior sets the PassthroughBehavior field's value.
+func (s *PutIntegrationInput) SetPassthroughBehavior(v string) *PutIntegrationInput {
+	s.PassthroughBehavior = &v
+	return s
+}
+
+// SetRequestParameters sets the RequestParameters field's value.
+func (s *PutIntegrationInput) SetRequestParameters(v map[string]*string) *PutIntegrationInput {
+	s.RequestParameters = v
+	return s
+}
+
+// SetRequestTemplates sets the RequestTemplates field's value.
+func (s *PutIntegrationInput) SetRequestTemplates(v map[string]*string) *PutIntegrationInput {
+	s.RequestTemplates = v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *PutIntegrationInput) SetResourceId(v string) *PutIntegrationInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *PutIntegrationInput) SetRestApiId(v string) *PutIntegrationInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *PutIntegrationInput) SetType(v string) *PutIntegrationInput {
+	s.Type = &v
+	return s
+}
+
+// SetUri sets the Uri field's value.
+func (s *PutIntegrationInput) SetUri(v string) *PutIntegrationInput {
+	s.Uri = &v
+	return s
+}
+
 // Represents a put integration response request.
 type PutIntegrationResponseInput struct {
 	_ struct{} `type:"structure"`
 
+	// Specifies how to handle response payload content type conversions. Supported
+	// values are CONVERT_TO_BINARY and CONVERT_TO_TEXT, with the following behaviors:
+	//
+	//    * CONVERT_TO_BINARY: Converts a response payload from a Base64-encoded
+	//    string to the corresponding binary blob.
+	//
+	//    * CONVERT_TO_TEXT: Converts a response payload from a binary blob to a
+	//    Base64-encoded string.
+	//
+	// If this property is not defined, the response payload will be passed through
+	// from the integration response to the method response without modification.
+	ContentHandling *string `locationName:"contentHandling" type:"string" enum:"ContentHandlingStrategy"`
+
 	// Specifies a put integration response request's HTTP method.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// Specifies a put integration response request's resource identifier.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
-	// Represents response parameters that can be read from the backend response.
-	// Response parameters are represented as a key/value map, with a destination
-	// as the key and a source as the value. A destination must match an existing
-	// response parameter in the Method. The source can be a header from the backend
-	// response, or a static value. Static values are specified using enclosing
-	// single quotes, and backend response headers can be read using the pattern
-	// integration.response.header.{name}.
+	// A key-value map specifying response parameters that are passed to the method
+	// response from the back end. The key is a method response header parameter
+	// name and the mapped value is an integration response header value, a static
+	// value enclosed within a pair of single quotes, or a JSON expression from
+	// the integration response body. The mapping key must match the pattern of
+	// method.response.header.{name}, where name is a valid and unique header name.
+	// The mapped non-static value must match the pattern of integration.response.header.{name}
+	// or integration.response.body.{JSON-expression}, where name must be a valid
+	// and unique response header name and JSON-expression a valid JSON expression
+	// without the $ prefix.
 	ResponseParameters map[string]*string `locationName:"responseParameters" type:"map"`
 
 	// Specifies a put integration response's templates.
 	ResponseTemplates map[string]*string `locationName:"responseTemplates" type:"map"`
 
 	// Specifies a put integration response request's API identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// Specifies the selection pattern of a put integration response.
@@ -5570,6 +13457,8 @@ type PutIntegrationResponseInput struct {
 
 	// Specifies the status code that is used to map the integration response to
 	// an existing MethodResponse.
+	//
+	// StatusCode is a required field
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -5605,6 +13494,54 @@ func (s *PutIntegrationResponseInput) Validate() error {
 	return nil
 }
 
+// SetContentHandling sets the ContentHandling field's value.
+func (s *PutIntegrationResponseInput) SetContentHandling(v string) *PutIntegrationResponseInput {
+	s.ContentHandling = &v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *PutIntegrationResponseInput) SetHttpMethod(v string) *PutIntegrationResponseInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *PutIntegrationResponseInput) SetResourceId(v string) *PutIntegrationResponseInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResponseParameters sets the ResponseParameters field's value.
+func (s *PutIntegrationResponseInput) SetResponseParameters(v map[string]*string) *PutIntegrationResponseInput {
+	s.ResponseParameters = v
+	return s
+}
+
+// SetResponseTemplates sets the ResponseTemplates field's value.
+func (s *PutIntegrationResponseInput) SetResponseTemplates(v map[string]*string) *PutIntegrationResponseInput {
+	s.ResponseTemplates = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *PutIntegrationResponseInput) SetRestApiId(v string) *PutIntegrationResponseInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetSelectionPattern sets the SelectionPattern field's value.
+func (s *PutIntegrationResponseInput) SetSelectionPattern(v string) *PutIntegrationResponseInput {
+	s.SelectionPattern = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *PutIntegrationResponseInput) SetStatusCode(v string) *PutIntegrationResponseInput {
+	s.StatusCode = &v
+	return s
+}
+
 // Request to add a method to an existing Resource resource.
 type PutMethodInput struct {
 	_ struct{} `type:"structure"`
@@ -5613,13 +13550,17 @@ type PutMethodInput struct {
 	ApiKeyRequired *bool `locationName:"apiKeyRequired" type:"boolean"`
 
 	// Specifies the type of authorization used for the method.
+	//
+	// AuthorizationType is a required field
 	AuthorizationType *string `locationName:"authorizationType" type:"string" required:"true"`
 
 	// Specifies the identifier of an Authorizer to use on this Method, if the type
 	// is CUSTOM.
 	AuthorizerId *string `locationName:"authorizerId" type:"string"`
 
-	// Specifies the put method request's HTTP method type.
+	// Specifies the method request's HTTP method type.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// Specifies the Model resources used for the request's content type. Request
@@ -5627,20 +13568,24 @@ type PutMethodInput struct {
 	// and a Model name as the value.
 	RequestModels map[string]*string `locationName:"requestModels" type:"map"`
 
-	// Represents requests parameters that are sent with the backend request. Request
-	// parameters are represented as a key/value map, with a destination as the
-	// key and a source as the value. A source must match an existing method request
-	// parameter, or a static value. Static values must be enclosed with single
-	// quotes, and be pre-encoded based on their destination in the request. The
-	// destination must match the pattern integration.request.{location}.{name},
-	// where location is either querystring, path, or header. name must be a valid,
-	// unique parameter name.
+	// A key-value map defining required or optional method request parameters that
+	// can be accepted by Amazon API Gateway. A key defines a method request parameter
+	// name matching the pattern of method.request.{location}.{name}, where location
+	// is querystring, path, or header and name is a valid and unique parameter
+	// name. The value associated with the key is a Boolean flag indicating whether
+	// the parameter is required (true) or optional (false). The method request
+	// parameter names defined here are available in Integration to be mapped to
+	// integration request parameters or body-mapping templates.
 	RequestParameters map[string]*bool `locationName:"requestParameters" type:"map"`
 
 	// The Resource identifier for the new Method resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the new Method resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -5676,14 +13621,66 @@ func (s *PutMethodInput) Validate() error {
 	return nil
 }
 
+// SetApiKeyRequired sets the ApiKeyRequired field's value.
+func (s *PutMethodInput) SetApiKeyRequired(v bool) *PutMethodInput {
+	s.ApiKeyRequired = &v
+	return s
+}
+
+// SetAuthorizationType sets the AuthorizationType field's value.
+func (s *PutMethodInput) SetAuthorizationType(v string) *PutMethodInput {
+	s.AuthorizationType = &v
+	return s
+}
+
+// SetAuthorizerId sets the AuthorizerId field's value.
+func (s *PutMethodInput) SetAuthorizerId(v string) *PutMethodInput {
+	s.AuthorizerId = &v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *PutMethodInput) SetHttpMethod(v string) *PutMethodInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetRequestModels sets the RequestModels field's value.
+func (s *PutMethodInput) SetRequestModels(v map[string]*string) *PutMethodInput {
+	s.RequestModels = v
+	return s
+}
+
+// SetRequestParameters sets the RequestParameters field's value.
+func (s *PutMethodInput) SetRequestParameters(v map[string]*bool) *PutMethodInput {
+	s.RequestParameters = v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *PutMethodInput) SetResourceId(v string) *PutMethodInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *PutMethodInput) SetRestApiId(v string) *PutMethodInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Request to add a MethodResponse to an existing Method resource.
 type PutMethodResponseInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb that identifies the Method resource.
+	// The HTTP verb of the Method resource.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The Resource identifier for the Method resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// Specifies the Model resources used for the response's content type. Response
@@ -5691,19 +13688,27 @@ type PutMethodResponseInput struct {
 	// and a Model name as the value.
 	ResponseModels map[string]*string `locationName:"responseModels" type:"map"`
 
-	// Represents response parameters that can be sent back to the caller by Amazon
-	// API Gateway. Response parameters are represented as a key/value map, with
-	// a destination as the key and a Boolean flag as the value. The Boolean flag
-	// is used to specify whether the parameter is required. A destination must
-	// match the pattern method.response.header.{name}, where name is a valid, unique
-	// header name. Destinations specified here are available to the integration
-	// for mapping from integration response parameters.
+	// A key-value map specifying required or optional response parameters that
+	// Amazon API Gateway can send back to the caller. A key defines a method response
+	// header name and the associated value is a Boolean flag indicating whether
+	// the method response parameter is required or not. The method response header
+	// names must match the pattern of method.response.header.{name}, where name
+	// is a valid and unique header name. The response parameter names defined here
+	// are available in the integration response to be mapped from an integration
+	// response header expressed in integration.response.header.{name}, a static
+	// value enclosed within a pair of single quotes (e.g., 'application/json'),
+	// or a JSON expression from the back-end response payload in the form of integration.response.body.{JSON-expression},
+	// where JSON-expression is a valid JSON expression without the $ prefix.)
 	ResponseParameters map[string]*bool `locationName:"responseParameters" type:"map"`
 
 	// The RestApi identifier for the Method resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The method response's status code.
+	//
+	// StatusCode is a required field
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -5739,6 +13744,42 @@ func (s *PutMethodResponseInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *PutMethodResponseInput) SetHttpMethod(v string) *PutMethodResponseInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *PutMethodResponseInput) SetResourceId(v string) *PutMethodResponseInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResponseModels sets the ResponseModels field's value.
+func (s *PutMethodResponseInput) SetResponseModels(v map[string]*string) *PutMethodResponseInput {
+	s.ResponseModels = v
+	return s
+}
+
+// SetResponseParameters sets the ResponseParameters field's value.
+func (s *PutMethodResponseInput) SetResponseParameters(v map[string]*bool) *PutMethodResponseInput {
+	s.ResponseParameters = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *PutMethodResponseInput) SetRestApiId(v string) *PutMethodResponseInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *PutMethodResponseInput) SetStatusCode(v string) *PutMethodResponseInput {
+	s.StatusCode = &v
+	return s
+}
+
 // A PUT request to update an existing API, with external API definitions specified
 // as the request body.
 type PutRestApiInput struct {
@@ -5746,6 +13787,8 @@ type PutRestApiInput struct {
 
 	// The PUT request body containing external API definitions. Currently, only
 	// Swagger definition JSON files are supported.
+	//
+	// Body is a required field
 	Body []byte `locationName:"body" type:"blob" required:"true"`
 
 	// A query parameter to indicate whether to rollback the API update (true) or
@@ -5760,6 +13803,8 @@ type PutRestApiInput struct {
 	Parameters map[string]*string `location:"querystring" locationName:"parameters" type:"map"`
 
 	// The identifier of the RestApi to be updated.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -5789,7 +13834,83 @@ func (s *PutRestApiInput) Validate() error {
 	return nil
 }
 
-// Represents a resource.
+// SetBody sets the Body field's value.
+func (s *PutRestApiInput) SetBody(v []byte) *PutRestApiInput {
+	s.Body = v
+	return s
+}
+
+// SetFailOnWarnings sets the FailOnWarnings field's value.
+func (s *PutRestApiInput) SetFailOnWarnings(v bool) *PutRestApiInput {
+	s.FailOnWarnings = &v
+	return s
+}
+
+// SetMode sets the Mode field's value.
+func (s *PutRestApiInput) SetMode(v string) *PutRestApiInput {
+	s.Mode = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *PutRestApiInput) SetParameters(v map[string]*string) *PutRestApiInput {
+	s.Parameters = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *PutRestApiInput) SetRestApiId(v string) *PutRestApiInput {
+	s.RestApiId = &v
+	return s
+}
+
+// Quotas configured for a usage plan.
+type QuotaSettings struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of requests that can be made in a given time period.
+	Limit *int64 `locationName:"limit" type:"integer"`
+
+	// The number of requests subtracted from the given limit in the initial time
+	// period.
+	Offset *int64 `locationName:"offset" type:"integer"`
+
+	// The time period in which the limit applies. Valid values are "DAY", "WEEK"
+	// or "MONTH".
+	Period *string `locationName:"period" type:"string" enum:"QuotaPeriodType"`
+}
+
+// String returns the string representation
+func (s QuotaSettings) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s QuotaSettings) GoString() string {
+	return s.String()
+}
+
+// SetLimit sets the Limit field's value.
+func (s *QuotaSettings) SetLimit(v int64) *QuotaSettings {
+	s.Limit = &v
+	return s
+}
+
+// SetOffset sets the Offset field's value.
+func (s *QuotaSettings) SetOffset(v int64) *QuotaSettings {
+	s.Offset = &v
+	return s
+}
+
+// SetPeriod sets the Period field's value.
+func (s *QuotaSettings) SetPeriod(v string) *QuotaSettings {
+	s.Period = &v
+	return s
+}
+
+// Represents an API resource.
+//
+// Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type Resource struct {
 	_ struct{} `type:"structure"`
 
@@ -5805,8 +13926,63 @@ type Resource struct {
 	// The last path segment for this resource.
 	PathPart *string `locationName:"pathPart" type:"string"`
 
-	// Map of methods for this resource, which is included only if the request uses
-	// the embed query option.
+	// Gets an API resource's method of a given HTTP verb.
+	//
+	// The resource methods are a map of methods indexed by methods' HTTP verbs
+	// enabled on the resource. This method map is included in the 200 OK response
+	// of the GET /restapis/{restapi_id}/resources/{resource_id} or GET /restapis/{restapi_id}/resources/{resource_id}?embed=methods
+	// request.
+	//
+	// Example: Get the GET method of an API resource
+	//
+	// Request
+	//
+	// GET /restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET HTTP/1.1 Content-Type:
+	// application/json Host: apigateway.us-east-1.amazonaws.com X-Amz-Date: 20160608T031827Z
+	// Authorization: AWS4-HMAC-SHA256 Credential={access_key_ID}/20160608/us-east-1/apigateway/aws4_request,
+	// SignedHeaders=content-type;host;x-amz-date, Signature={sig4_hash}
+	// Response
+	//
+	// { "_links": { "curies": [ { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-{rel}.html",
+	// "name": "integration", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-integration-response-{rel}.html",
+	// "name": "integrationresponse", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-{rel}.html",
+	// "name": "method", "templated": true }, { "href": "http://docs.aws.amazon.com/apigateway/latest/developerguide/restapi-method-response-{rel}.html",
+	// "name": "methodresponse", "templated": true } ], "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET",
+	// "name": "GET", "title": "GET" }, "integration:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "method:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
+	// }, "method:integration": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "method:responses": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+	// "name": "200", "title": "200" }, "method:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET"
+	// }, "methodresponse:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/{status_code}",
+	// "templated": true } }, "apiKeyRequired": false, "authorizationType": "NONE",
+	// "httpMethod": "GET", "_embedded": { "method:integration": { "_links": { "self":
+	// { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "integration:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "integration:responses": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+	// "name": "200", "title": "200" }, "integration:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration"
+	// }, "integrationresponse:put": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/{status_code}",
+	// "templated": true } }, "cacheKeyParameters": [], "cacheNamespace": "3kzxbg5sa2",
+	// "credentials": "arn:aws:iam::123456789012:role/apigAwsProxyRole", "httpMethod":
+	// "POST", "passthroughBehavior": "WHEN_NO_MATCH", "requestParameters": { "integration.request.header.Content-Type":
+	// "'application/x-amz-json-1.1'" }, "requestTemplates": { "application/json":
+	// "{\n}" }, "type": "AWS", "uri": "arn:aws:apigateway:us-east-1:kinesis:action/ListStreams",
+	// "_embedded": { "integration:responses": { "_links": { "self": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200",
+	// "name": "200", "title": "200" }, "integrationresponse:delete": { "href":
+	// "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+	// }, "integrationresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/integration/responses/200"
+	// } }, "responseParameters": { "method.response.header.Content-Type": "'application/xml'"
+	// }, "responseTemplates": { "application/json": "$util.urlDecode(\"%3CkinesisStreams%3E#foreach($stream
+	// in $input.path('$.StreamNames'))%3Cstream%3E%3Cname%3E$stream%3C/name%3E%3C/stream%3E#end%3C/kinesisStreams%3E\")\n"
+	// }, "statusCode": "200" } } }, "method:responses": { "_links": { "self": {
+	// "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200",
+	// "name": "200", "title": "200" }, "methodresponse:delete": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+	// }, "methodresponse:update": { "href": "/restapis/fugvjdxtri/resources/3kzxbg5sa2/methods/GET/responses/200"
+	// } }, "responseModels": { "application/json": "Empty" }, "responseParameters":
+	// { "method.response.header.Content-Type": false }, "statusCode": "200" } }
+	// }
+	// If the OPTIONS is enabled on the resource, you can follow the example here
+	// to get that method. Just replace the GET of the last path segment in the
+	// request URL with OPTIONS.
 	ResourceMethods map[string]*Method `locationName:"resourceMethods" type:"map"`
 }
 
@@ -5820,12 +13996,47 @@ func (s Resource) GoString() string {
 	return s.String()
 }
 
+// SetId sets the Id field's value.
+func (s *Resource) SetId(v string) *Resource {
+	s.Id = &v
+	return s
+}
+
+// SetParentId sets the ParentId field's value.
+func (s *Resource) SetParentId(v string) *Resource {
+	s.ParentId = &v
+	return s
+}
+
+// SetPath sets the Path field's value.
+func (s *Resource) SetPath(v string) *Resource {
+	s.Path = &v
+	return s
+}
+
+// SetPathPart sets the PathPart field's value.
+func (s *Resource) SetPathPart(v string) *Resource {
+	s.PathPart = &v
+	return s
+}
+
+// SetResourceMethods sets the ResourceMethods field's value.
+func (s *Resource) SetResourceMethods(v map[string]*Method) *Resource {
+	s.ResourceMethods = v
+	return s
+}
+
 // Represents a REST API.
+//
+// Create an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-create-api.html)
 type RestApi struct {
 	_ struct{} `type:"structure"`
 
-	// The date when the API was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
-	// target="_blank).
+	// The list of binary media types supported by the RestApi. By default, the
+	// RestApi supports only UTF-8-encoded text payloads.
+	BinaryMediaTypes []*string `locationName:"binaryMediaTypes" type:"list"`
+
+	// The date when the API was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The API's description.
@@ -5838,6 +14049,8 @@ type RestApi struct {
 	// The API's name.
 	Name *string `locationName:"name" type:"string"`
 
+	// The warning messages reported when failonwarnings is turned on during API
+	// import.
 	Warnings []*string `locationName:"warnings" type:"list"`
 }
 
@@ -5851,8 +14064,46 @@ func (s RestApi) GoString() string {
 	return s.String()
 }
 
+// SetBinaryMediaTypes sets the BinaryMediaTypes field's value.
+func (s *RestApi) SetBinaryMediaTypes(v []*string) *RestApi {
+	s.BinaryMediaTypes = v
+	return s
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *RestApi) SetCreatedDate(v time.Time) *RestApi {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *RestApi) SetDescription(v string) *RestApi {
+	s.Description = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *RestApi) SetId(v string) *RestApi {
+	s.Id = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *RestApi) SetName(v string) *RestApi {
+	s.Name = &v
+	return s
+}
+
+// SetWarnings sets the Warnings field's value.
+func (s *RestApi) SetWarnings(v []*string) *RestApi {
+	s.Warnings = v
+	return s
+}
+
 // Represents a unique identifier for a version of a deployed RestApi that is
 // callable by users.
+//
+// Deploy an API (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html)
 type Stage struct {
 	_ struct{} `type:"structure"`
 
@@ -5865,10 +14116,10 @@ type Stage struct {
 	// The status of the cache cluster for the stage, if enabled.
 	CacheClusterStatus *string `locationName:"cacheClusterStatus" type:"string" enum:"CacheClusterStatus"`
 
+	// The identifier of a client certificate for an API stage.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
-	// The date and time that the stage was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm"
-	// target="_blank).
+	// The date and time that the stage was created, in ISO 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
 	CreatedDate *time.Time `locationName:"createdDate" type:"timestamp" timestampFormat:"unix"`
 
 	// The identifier of the Deployment that the stage points to.
@@ -5878,12 +14129,13 @@ type Stage struct {
 	Description *string `locationName:"description" type:"string"`
 
 	// The date and time that information about the stage was last updated, in ISO
-	// 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm" target="_blank).
+	// 8601 format (http://www.iso.org/iso/home/standards/iso8601.htm).
 	LastUpdatedDate *time.Time `locationName:"lastUpdatedDate" type:"timestamp" timestampFormat:"unix"`
 
-	// A map that defines the method settings for a Stage resource. Keys are defined
-	// as {resource_path}/{http_method} for an individual method override, or \*/\*
-	// for the settings applied to all methods in the stage.
+	// A map that defines the method settings for a Stage resource. Keys (designated
+	// as /{method_setting_key below) are method paths defined as {resource_path}/{http_method}
+	// for an individual method override, or /\*/\* for overriding all methods in
+	// the stage.
 	MethodSettings map[string]*MethodSetting `locationName:"methodSettings" type:"map"`
 
 	// The name of the stage is the first path segment in the Uniform Resource Identifier
@@ -5891,7 +14143,8 @@ type Stage struct {
 	StageName *string `locationName:"stageName" type:"string"`
 
 	// A map that defines the stage variables for a Stage resource. Variable names
-	// can have alphanumeric characters, and the values must match [A-Za-z0-9-._~:/?#&=,]+.
+	// can have alphanumeric and underscore characters, and the values must match
+	// [A-Za-z0-9-._~:/?#&=,]+.
 	Variables map[string]*string `locationName:"variables" type:"map"`
 }
 
@@ -5903,6 +14156,72 @@ func (s Stage) String() string {
 // GoString returns the string representation
 func (s Stage) GoString() string {
 	return s.String()
+}
+
+// SetCacheClusterEnabled sets the CacheClusterEnabled field's value.
+func (s *Stage) SetCacheClusterEnabled(v bool) *Stage {
+	s.CacheClusterEnabled = &v
+	return s
+}
+
+// SetCacheClusterSize sets the CacheClusterSize field's value.
+func (s *Stage) SetCacheClusterSize(v string) *Stage {
+	s.CacheClusterSize = &v
+	return s
+}
+
+// SetCacheClusterStatus sets the CacheClusterStatus field's value.
+func (s *Stage) SetCacheClusterStatus(v string) *Stage {
+	s.CacheClusterStatus = &v
+	return s
+}
+
+// SetClientCertificateId sets the ClientCertificateId field's value.
+func (s *Stage) SetClientCertificateId(v string) *Stage {
+	s.ClientCertificateId = &v
+	return s
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *Stage) SetCreatedDate(v time.Time) *Stage {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *Stage) SetDeploymentId(v string) *Stage {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Stage) SetDescription(v string) *Stage {
+	s.Description = &v
+	return s
+}
+
+// SetLastUpdatedDate sets the LastUpdatedDate field's value.
+func (s *Stage) SetLastUpdatedDate(v time.Time) *Stage {
+	s.LastUpdatedDate = &v
+	return s
+}
+
+// SetMethodSettings sets the MethodSettings field's value.
+func (s *Stage) SetMethodSettings(v map[string]*MethodSetting) *Stage {
+	s.MethodSettings = v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *Stage) SetStageName(v string) *Stage {
+	s.StageName = &v
+	return s
+}
+
+// SetVariables sets the Variables field's value.
+func (s *Stage) SetVariables(v map[string]*string) *Stage {
+	s.Variables = v
+	return s
 }
 
 // A reference to a unique stage identified in the format {restApiId}/{stage}.
@@ -5926,6 +14245,18 @@ func (s StageKey) GoString() string {
 	return s.String()
 }
 
+// SetRestApiId sets the RestApiId field's value.
+func (s *StageKey) SetRestApiId(v string) *StageKey {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *StageKey) SetStageName(v string) *StageKey {
+	s.StageName = &v
+	return s
+}
+
 // Make a request to simulate the execution of an Authorizer.
 type TestInvokeAuthorizerInput struct {
 	_ struct{} `type:"structure"`
@@ -5934,6 +14265,8 @@ type TestInvokeAuthorizerInput struct {
 	AdditionalContext map[string]*string `locationName:"additionalContext" type:"map"`
 
 	// Specifies a test invoke authorizer request's Authorizer ID.
+	//
+	// AuthorizerId is a required field
 	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
 
 	// [Optional] The simulated request body of an incoming invocation request.
@@ -5949,6 +14282,8 @@ type TestInvokeAuthorizerInput struct {
 	PathWithQueryString *string `locationName:"pathWithQueryString" type:"string"`
 
 	// Specifies a test invoke authorizer request's RestApi identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// A key-value map of stage variables to simulate an invocation on a deployed
@@ -5982,23 +14317,70 @@ func (s *TestInvokeAuthorizerInput) Validate() error {
 	return nil
 }
 
-// Represents the response of the test invoke request in for a custom Authorizer
+// SetAdditionalContext sets the AdditionalContext field's value.
+func (s *TestInvokeAuthorizerInput) SetAdditionalContext(v map[string]*string) *TestInvokeAuthorizerInput {
+	s.AdditionalContext = v
+	return s
+}
+
+// SetAuthorizerId sets the AuthorizerId field's value.
+func (s *TestInvokeAuthorizerInput) SetAuthorizerId(v string) *TestInvokeAuthorizerInput {
+	s.AuthorizerId = &v
+	return s
+}
+
+// SetBody sets the Body field's value.
+func (s *TestInvokeAuthorizerInput) SetBody(v string) *TestInvokeAuthorizerInput {
+	s.Body = &v
+	return s
+}
+
+// SetHeaders sets the Headers field's value.
+func (s *TestInvokeAuthorizerInput) SetHeaders(v map[string]*string) *TestInvokeAuthorizerInput {
+	s.Headers = v
+	return s
+}
+
+// SetPathWithQueryString sets the PathWithQueryString field's value.
+func (s *TestInvokeAuthorizerInput) SetPathWithQueryString(v string) *TestInvokeAuthorizerInput {
+	s.PathWithQueryString = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *TestInvokeAuthorizerInput) SetRestApiId(v string) *TestInvokeAuthorizerInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageVariables sets the StageVariables field's value.
+func (s *TestInvokeAuthorizerInput) SetStageVariables(v map[string]*string) *TestInvokeAuthorizerInput {
+	s.StageVariables = v
+	return s
+}
+
+// Represents the response of the test invoke request for a custom Authorizer
 type TestInvokeAuthorizerOutput struct {
 	_ struct{} `type:"structure"`
 
 	Authorization map[string][]*string `locationName:"authorization" type:"map"`
 
+	// The open identity claims (http://openid.net/specs/openid-connect-core-1_0.html#StandardClaims),
+	// with any supported custom attributes, returned from the Cognito Your User
+	// Pool configured for the API.
+	Claims map[string]*string `locationName:"claims" type:"map"`
+
 	// The HTTP status code that the client would have received. Value is 0 if the
 	// authorizer succeeded.
 	ClientStatus *int64 `locationName:"clientStatus" type:"integer"`
 
-	// The execution latency of the test authorizer request
+	// The execution latency of the test authorizer request.
 	Latency *int64 `locationName:"latency" type:"long"`
 
 	// The Amazon API Gateway execution log for the test authorizer request.
 	Log *string `locationName:"log" type:"string"`
 
-	// The policy JSON document returned by the Authorizer
+	// The JSON policy document returned by the Authorizer
 	Policy *string `locationName:"policy" type:"string"`
 
 	// The principal identity returned by the Authorizer
@@ -6015,6 +14397,48 @@ func (s TestInvokeAuthorizerOutput) GoString() string {
 	return s.String()
 }
 
+// SetAuthorization sets the Authorization field's value.
+func (s *TestInvokeAuthorizerOutput) SetAuthorization(v map[string][]*string) *TestInvokeAuthorizerOutput {
+	s.Authorization = v
+	return s
+}
+
+// SetClaims sets the Claims field's value.
+func (s *TestInvokeAuthorizerOutput) SetClaims(v map[string]*string) *TestInvokeAuthorizerOutput {
+	s.Claims = v
+	return s
+}
+
+// SetClientStatus sets the ClientStatus field's value.
+func (s *TestInvokeAuthorizerOutput) SetClientStatus(v int64) *TestInvokeAuthorizerOutput {
+	s.ClientStatus = &v
+	return s
+}
+
+// SetLatency sets the Latency field's value.
+func (s *TestInvokeAuthorizerOutput) SetLatency(v int64) *TestInvokeAuthorizerOutput {
+	s.Latency = &v
+	return s
+}
+
+// SetLog sets the Log field's value.
+func (s *TestInvokeAuthorizerOutput) SetLog(v string) *TestInvokeAuthorizerOutput {
+	s.Log = &v
+	return s
+}
+
+// SetPolicy sets the Policy field's value.
+func (s *TestInvokeAuthorizerOutput) SetPolicy(v string) *TestInvokeAuthorizerOutput {
+	s.Policy = &v
+	return s
+}
+
+// SetPrincipalId sets the PrincipalId field's value.
+func (s *TestInvokeAuthorizerOutput) SetPrincipalId(v string) *TestInvokeAuthorizerOutput {
+	s.PrincipalId = &v
+	return s
+}
+
 // Make a request to simulate the execution of a Method.
 type TestInvokeMethodInput struct {
 	_ struct{} `type:"structure"`
@@ -6023,14 +14447,16 @@ type TestInvokeMethodInput struct {
 	Body *string `locationName:"body" type:"string"`
 
 	// A ClientCertificate identifier to use in the test invocation. API Gateway
-	// will use use the certificate when making the HTTPS request to the defined
-	// backend endpoint.
+	// will use the certificate when making the HTTPS request to the defined back-end
+	// endpoint.
 	ClientCertificateId *string `locationName:"clientCertificateId" type:"string"`
 
 	// A key-value map of headers to simulate an incoming invocation request.
 	Headers map[string]*string `locationName:"headers" type:"map"`
 
 	// Specifies a test invoke method request's HTTP method.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
 	// The URI path, including query string, of the simulated invocation request.
@@ -6038,9 +14464,13 @@ type TestInvokeMethodInput struct {
 	PathWithQueryString *string `locationName:"pathWithQueryString" type:"string"`
 
 	// Specifies a test invoke method request's resource ID.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// Specifies a test invoke method request's API identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// A key-value map of stage variables to simulate an invocation on a deployed
@@ -6077,14 +14507,64 @@ func (s *TestInvokeMethodInput) Validate() error {
 	return nil
 }
 
-// Represents the response of the test invoke request in HTTP method.
+// SetBody sets the Body field's value.
+func (s *TestInvokeMethodInput) SetBody(v string) *TestInvokeMethodInput {
+	s.Body = &v
+	return s
+}
+
+// SetClientCertificateId sets the ClientCertificateId field's value.
+func (s *TestInvokeMethodInput) SetClientCertificateId(v string) *TestInvokeMethodInput {
+	s.ClientCertificateId = &v
+	return s
+}
+
+// SetHeaders sets the Headers field's value.
+func (s *TestInvokeMethodInput) SetHeaders(v map[string]*string) *TestInvokeMethodInput {
+	s.Headers = v
+	return s
+}
+
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *TestInvokeMethodInput) SetHttpMethod(v string) *TestInvokeMethodInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetPathWithQueryString sets the PathWithQueryString field's value.
+func (s *TestInvokeMethodInput) SetPathWithQueryString(v string) *TestInvokeMethodInput {
+	s.PathWithQueryString = &v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *TestInvokeMethodInput) SetResourceId(v string) *TestInvokeMethodInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *TestInvokeMethodInput) SetRestApiId(v string) *TestInvokeMethodInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageVariables sets the StageVariables field's value.
+func (s *TestInvokeMethodInput) SetStageVariables(v map[string]*string) *TestInvokeMethodInput {
+	s.StageVariables = v
+	return s
+}
+
+// Represents the response of the test invoke request in the HTTP method.
+//
+// Test API using the API Gateway console (http://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-test-method.html#how-to-test-method-console)
 type TestInvokeMethodOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The body of HTTP response.
+	// The body of the HTTP response.
 	Body *string `locationName:"body" type:"string"`
 
-	// The headers of HTTP response.
+	// The headers of the HTTP response.
 	Headers map[string]*string `locationName:"headers" type:"map"`
 
 	// The execution latency of the test invoke request.
@@ -6107,14 +14587,46 @@ func (s TestInvokeMethodOutput) GoString() string {
 	return s.String()
 }
 
-// Returns the throttle settings.
+// SetBody sets the Body field's value.
+func (s *TestInvokeMethodOutput) SetBody(v string) *TestInvokeMethodOutput {
+	s.Body = &v
+	return s
+}
+
+// SetHeaders sets the Headers field's value.
+func (s *TestInvokeMethodOutput) SetHeaders(v map[string]*string) *TestInvokeMethodOutput {
+	s.Headers = v
+	return s
+}
+
+// SetLatency sets the Latency field's value.
+func (s *TestInvokeMethodOutput) SetLatency(v int64) *TestInvokeMethodOutput {
+	s.Latency = &v
+	return s
+}
+
+// SetLog sets the Log field's value.
+func (s *TestInvokeMethodOutput) SetLog(v string) *TestInvokeMethodOutput {
+	s.Log = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *TestInvokeMethodOutput) SetStatus(v int64) *TestInvokeMethodOutput {
+	s.Status = &v
+	return s
+}
+
+// The API request rate limits.
 type ThrottleSettings struct {
 	_ struct{} `type:"structure"`
 
-	// Returns the burstLimit when ThrottleSettings is called.
+	// The API request burst limit, the maximum rate limit over a time ranging from
+	// one to a few seconds, depending upon whether the underlying token bucket
+	// is at its full capacity.
 	BurstLimit *int64 `locationName:"burstLimit" type:"integer"`
 
-	// Returns the rateLimit when ThrottleSettings is called.
+	// The API request steady-state rate limit.
 	RateLimit *float64 `locationName:"rateLimit" type:"double"`
 }
 
@@ -6128,13 +14640,25 @@ func (s ThrottleSettings) GoString() string {
 	return s.String()
 }
 
+// SetBurstLimit sets the BurstLimit field's value.
+func (s *ThrottleSettings) SetBurstLimit(v int64) *ThrottleSettings {
+	s.BurstLimit = &v
+	return s
+}
+
+// SetRateLimit sets the RateLimit field's value.
+func (s *ThrottleSettings) SetRateLimit(v float64) *ThrottleSettings {
+	s.RateLimit = &v
+	return s
+}
+
 // Requests Amazon API Gateway to change information about the current Account
 // resource.
 type UpdateAccountInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -6148,15 +14672,23 @@ func (s UpdateAccountInput) GoString() string {
 	return s.String()
 }
 
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateAccountInput) SetPatchOperations(v []*PatchOperation) *UpdateAccountInput {
+	s.PatchOperations = v
+	return s
+}
+
 // A request to change information about an ApiKey resource.
 type UpdateApiKeyInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the ApiKey resource to be updated.
+	//
+	// ApiKey is a required field
 	ApiKey *string `location:"uri" locationName:"api_Key" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -6183,18 +14715,34 @@ func (s *UpdateApiKeyInput) Validate() error {
 	return nil
 }
 
+// SetApiKey sets the ApiKey field's value.
+func (s *UpdateApiKeyInput) SetApiKey(v string) *UpdateApiKeyInput {
+	s.ApiKey = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateApiKeyInput) SetPatchOperations(v []*PatchOperation) *UpdateApiKeyInput {
+	s.PatchOperations = v
+	return s
+}
+
 // Request to update an existing Authorizer resource.
 type UpdateAuthorizerInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the Authorizer resource.
+	//
+	// AuthorizerId is a required field
 	AuthorizerId *string `location:"uri" locationName:"authorizer_id" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The RestApi identifier for the Authorizer resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -6224,18 +14772,40 @@ func (s *UpdateAuthorizerInput) Validate() error {
 	return nil
 }
 
+// SetAuthorizerId sets the AuthorizerId field's value.
+func (s *UpdateAuthorizerInput) SetAuthorizerId(v string) *UpdateAuthorizerInput {
+	s.AuthorizerId = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateAuthorizerInput) SetPatchOperations(v []*PatchOperation) *UpdateAuthorizerInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateAuthorizerInput) SetRestApiId(v string) *UpdateAuthorizerInput {
+	s.RestApiId = &v
+	return s
+}
+
 // A request to change information about the BasePathMapping resource.
 type UpdateBasePathMappingInput struct {
 	_ struct{} `type:"structure"`
 
 	// The base path of the BasePathMapping resource to change.
+	//
+	// BasePath is a required field
 	BasePath *string `location:"uri" locationName:"base_path" type:"string" required:"true"`
 
 	// The domain name of the BasePathMapping resource to change.
+	//
+	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -6265,15 +14835,35 @@ func (s *UpdateBasePathMappingInput) Validate() error {
 	return nil
 }
 
+// SetBasePath sets the BasePath field's value.
+func (s *UpdateBasePathMappingInput) SetBasePath(v string) *UpdateBasePathMappingInput {
+	s.BasePath = &v
+	return s
+}
+
+// SetDomainName sets the DomainName field's value.
+func (s *UpdateBasePathMappingInput) SetDomainName(v string) *UpdateBasePathMappingInput {
+	s.DomainName = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateBasePathMappingInput) SetPatchOperations(v []*PatchOperation) *UpdateBasePathMappingInput {
+	s.PatchOperations = v
+	return s
+}
+
 // A request to change information about an ClientCertificate resource.
 type UpdateClientCertificateInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identifier of the ClientCertificate resource to be updated.
+	//
+	// ClientCertificateId is a required field
 	ClientCertificateId *string `location:"uri" locationName:"clientcertificate_id" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -6300,20 +14890,36 @@ func (s *UpdateClientCertificateInput) Validate() error {
 	return nil
 }
 
+// SetClientCertificateId sets the ClientCertificateId field's value.
+func (s *UpdateClientCertificateInput) SetClientCertificateId(v string) *UpdateClientCertificateInput {
+	s.ClientCertificateId = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateClientCertificateInput) SetPatchOperations(v []*PatchOperation) *UpdateClientCertificateInput {
+	s.PatchOperations = v
+	return s
+}
+
 // Requests Amazon API Gateway to change information about a Deployment resource.
 type UpdateDeploymentInput struct {
 	_ struct{} `type:"structure"`
 
-	// The replacment identifier for the Deployment resource to change information
+	// The replacement identifier for the Deployment resource to change information
 	// about.
+	//
+	// DeploymentId is a required field
 	DeploymentId *string `location:"uri" locationName:"deployment_id" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The replacement identifier of the RestApi resource for the Deployment resource
 	// to change information about.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -6343,15 +14949,35 @@ func (s *UpdateDeploymentInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *UpdateDeploymentInput) SetDeploymentId(v string) *UpdateDeploymentInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateDeploymentInput) SetPatchOperations(v []*PatchOperation) *UpdateDeploymentInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateDeploymentInput) SetRestApiId(v string) *UpdateDeploymentInput {
+	s.RestApiId = &v
+	return s
+}
+
 // A request to change information about the DomainName resource.
 type UpdateDomainNameInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the DomainName resource to be changed.
+	//
+	// DomainName is a required field
 	DomainName *string `location:"uri" locationName:"domain_name" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 }
 
@@ -6378,21 +15004,39 @@ func (s *UpdateDomainNameInput) Validate() error {
 	return nil
 }
 
+// SetDomainName sets the DomainName field's value.
+func (s *UpdateDomainNameInput) SetDomainName(v string) *UpdateDomainNameInput {
+	s.DomainName = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateDomainNameInput) SetPatchOperations(v []*PatchOperation) *UpdateDomainNameInput {
+	s.PatchOperations = v
+	return s
+}
+
 // Represents an update integration request.
 type UpdateIntegrationInput struct {
 	_ struct{} `type:"structure"`
 
 	// Represents an update integration request's HTTP method.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// Represents an update integration request's resource identifier.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// Represents an update integration request's API identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -6425,24 +15069,56 @@ func (s *UpdateIntegrationInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *UpdateIntegrationInput) SetHttpMethod(v string) *UpdateIntegrationInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateIntegrationInput) SetPatchOperations(v []*PatchOperation) *UpdateIntegrationInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *UpdateIntegrationInput) SetResourceId(v string) *UpdateIntegrationInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateIntegrationInput) SetRestApiId(v string) *UpdateIntegrationInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Represents an update integration response request.
 type UpdateIntegrationResponseInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies an update integration response request's HTTP method.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// Specifies an update integration response request's resource identifier.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// Specifies an update integration response request's API identifier.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// Specifies an update integration response request's status code.
+	//
+	// StatusCode is a required field
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -6478,21 +15154,57 @@ func (s *UpdateIntegrationResponseInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *UpdateIntegrationResponseInput) SetHttpMethod(v string) *UpdateIntegrationResponseInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateIntegrationResponseInput) SetPatchOperations(v []*PatchOperation) *UpdateIntegrationResponseInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *UpdateIntegrationResponseInput) SetResourceId(v string) *UpdateIntegrationResponseInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateIntegrationResponseInput) SetRestApiId(v string) *UpdateIntegrationResponseInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *UpdateIntegrationResponseInput) SetStatusCode(v string) *UpdateIntegrationResponseInput {
+	s.StatusCode = &v
+	return s
+}
+
 // Request to update an existing Method resource.
 type UpdateMethodInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb that identifies the Method resource.
+	// The HTTP verb of the Method resource.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The Resource identifier for the Method resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the Method resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -6525,24 +15237,56 @@ func (s *UpdateMethodInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *UpdateMethodInput) SetHttpMethod(v string) *UpdateMethodInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateMethodInput) SetPatchOperations(v []*PatchOperation) *UpdateMethodInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *UpdateMethodInput) SetResourceId(v string) *UpdateMethodInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateMethodInput) SetRestApiId(v string) *UpdateMethodInput {
+	s.RestApiId = &v
+	return s
+}
+
 // A request to update an existing MethodResponse resource.
 type UpdateMethodResponseInput struct {
 	_ struct{} `type:"structure"`
 
-	// The HTTP verb identifier for the parent Method resource.
+	// The HTTP verb of the Method resource.
+	//
+	// HttpMethod is a required field
 	HttpMethod *string `location:"uri" locationName:"http_method" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The Resource identifier for the MethodResponse resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the MethodResponse resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
-	// The status code identifier for the MethodResponse resource.
+	// The status code for the MethodResponse resource.
+	//
+	// StatusCode is a required field
 	StatusCode *string `location:"uri" locationName:"status_code" type:"string" required:"true"`
 }
 
@@ -6578,18 +15322,52 @@ func (s *UpdateMethodResponseInput) Validate() error {
 	return nil
 }
 
+// SetHttpMethod sets the HttpMethod field's value.
+func (s *UpdateMethodResponseInput) SetHttpMethod(v string) *UpdateMethodResponseInput {
+	s.HttpMethod = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateMethodResponseInput) SetPatchOperations(v []*PatchOperation) *UpdateMethodResponseInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *UpdateMethodResponseInput) SetResourceId(v string) *UpdateMethodResponseInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateMethodResponseInput) SetRestApiId(v string) *UpdateMethodResponseInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStatusCode sets the StatusCode field's value.
+func (s *UpdateMethodResponseInput) SetStatusCode(v string) *UpdateMethodResponseInput {
+	s.StatusCode = &v
+	return s
+}
+
 // Request to update an existing model in an existing RestApi resource.
 type UpdateModelInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the model to update.
+	//
+	// ModelName is a required field
 	ModelName *string `location:"uri" locationName:"model_name" type:"string" required:"true"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The RestApi identifier under which the model exists.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -6619,18 +15397,40 @@ func (s *UpdateModelInput) Validate() error {
 	return nil
 }
 
+// SetModelName sets the ModelName field's value.
+func (s *UpdateModelInput) SetModelName(v string) *UpdateModelInput {
+	s.ModelName = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateModelInput) SetPatchOperations(v []*PatchOperation) *UpdateModelInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateModelInput) SetRestApiId(v string) *UpdateModelInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Request to change information about a Resource resource.
 type UpdateResourceInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The identifier of the Resource resource.
+	//
+	// ResourceId is a required field
 	ResourceId *string `location:"uri" locationName:"resource_id" type:"string" required:"true"`
 
 	// The RestApi identifier for the Resource resource.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -6660,15 +15460,35 @@ func (s *UpdateResourceInput) Validate() error {
 	return nil
 }
 
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateResourceInput) SetPatchOperations(v []*PatchOperation) *UpdateResourceInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *UpdateResourceInput) SetResourceId(v string) *UpdateResourceInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateResourceInput) SetRestApiId(v string) *UpdateResourceInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Request to update an existing RestApi resource in your collection.
 type UpdateRestApiInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The ID of the RestApi you want to update.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 }
 
@@ -6695,19 +15515,35 @@ func (s *UpdateRestApiInput) Validate() error {
 	return nil
 }
 
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateRestApiInput) SetPatchOperations(v []*PatchOperation) *UpdateRestApiInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateRestApiInput) SetRestApiId(v string) *UpdateRestApiInput {
+	s.RestApiId = &v
+	return s
+}
+
 // Requests Amazon API Gateway to change information about a Stage resource.
 type UpdateStageInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of operations describing the updates to apply to the specified resource.
-	// The patches are applied in the order specified in the list.
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
 	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
 
 	// The identifier of the RestApi resource for the Stage resource to change information
 	// about.
+	//
+	// RestApiId is a required field
 	RestApiId *string `location:"uri" locationName:"restapi_id" type:"string" required:"true"`
 
 	// The name of the Stage resource to change information about.
+	//
+	// StageName is a required field
 	StageName *string `location:"uri" locationName:"stage_name" type:"string" required:"true"`
 }
 
@@ -6737,83 +15573,470 @@ func (s *UpdateStageInput) Validate() error {
 	return nil
 }
 
-// The authorizer type. Only current value is TOKEN.
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateStageInput) SetPatchOperations(v []*PatchOperation) *UpdateStageInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetRestApiId sets the RestApiId field's value.
+func (s *UpdateStageInput) SetRestApiId(v string) *UpdateStageInput {
+	s.RestApiId = &v
+	return s
+}
+
+// SetStageName sets the StageName field's value.
+func (s *UpdateStageInput) SetStageName(v string) *UpdateStageInput {
+	s.StageName = &v
+	return s
+}
+
+// The PATCH request to grant a temporary extension to the reamining quota of
+// a usage plan associated with a specified API key.
+type UpdateUsageInput struct {
+	_ struct{} `type:"structure"`
+
+	// The identifier of the API key associated with the usage plan in which a temporary
+	// extension is granted to the remaining quota.
+	//
+	// KeyId is a required field
+	KeyId *string `location:"uri" locationName:"keyId" type:"string" required:"true"`
+
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
+	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
+
+	// The Id of the usage plan associated with the usage data.
+	//
+	// UsagePlanId is a required field
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateUsageInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateUsageInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateUsageInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateUsageInput"}
+	if s.KeyId == nil {
+		invalidParams.Add(request.NewErrParamRequired("KeyId"))
+	}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKeyId sets the KeyId field's value.
+func (s *UpdateUsageInput) SetKeyId(v string) *UpdateUsageInput {
+	s.KeyId = &v
+	return s
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateUsageInput) SetPatchOperations(v []*PatchOperation) *UpdateUsageInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *UpdateUsageInput) SetUsagePlanId(v string) *UpdateUsageInput {
+	s.UsagePlanId = &v
+	return s
+}
+
+// The PATCH request to update a usage plan of a given plan Id.
+type UpdateUsagePlanInput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of update operations to be applied to the specified resource and in
+	// the order specified in this list.
+	PatchOperations []*PatchOperation `locationName:"patchOperations" type:"list"`
+
+	// The Id of the to-be-updated usage plan.
+	//
+	// UsagePlanId is a required field
+	UsagePlanId *string `location:"uri" locationName:"usageplanId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UpdateUsagePlanInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateUsagePlanInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateUsagePlanInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateUsagePlanInput"}
+	if s.UsagePlanId == nil {
+		invalidParams.Add(request.NewErrParamRequired("UsagePlanId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPatchOperations sets the PatchOperations field's value.
+func (s *UpdateUsagePlanInput) SetPatchOperations(v []*PatchOperation) *UpdateUsagePlanInput {
+	s.PatchOperations = v
+	return s
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *UpdateUsagePlanInput) SetUsagePlanId(v string) *UpdateUsagePlanInput {
+	s.UsagePlanId = &v
+	return s
+}
+
+// Represents the usage data of a usage plan.
+//
+// Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html), Manage Usage in a Usage Plan (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-usage-plans-with-console.html#api-gateway-usage-plan-manage-usage)
+type Usage struct {
+	_ struct{} `type:"structure"`
+
+	// The ending date of the usage data.
+	EndDate *string `locationName:"endDate" type:"string"`
+
+	// The usage data, as daily logs of used and remaining quotas, over the specified
+	// time interval indexed over the API keys in a usage plan. For example, {...,
+	// "values" : { "{api_key}" : [ [0, 100], [10, 90], [100, 10]]}, where {api_key}
+	// stands for an API key value and the daily log entry is of the format [used
+	// quota, remaining quota].
+	Items map[string][][]*int64 `locationName:"values" type:"map"`
+
+	Position *string `locationName:"position" type:"string"`
+
+	// The starting date of the usage data.
+	StartDate *string `locationName:"startDate" type:"string"`
+
+	// The plan Id associated with this usage data.
+	UsagePlanId *string `locationName:"usagePlanId" type:"string"`
+}
+
+// String returns the string representation
+func (s Usage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Usage) GoString() string {
+	return s.String()
+}
+
+// SetEndDate sets the EndDate field's value.
+func (s *Usage) SetEndDate(v string) *Usage {
+	s.EndDate = &v
+	return s
+}
+
+// SetItems sets the Items field's value.
+func (s *Usage) SetItems(v map[string][][]*int64) *Usage {
+	s.Items = v
+	return s
+}
+
+// SetPosition sets the Position field's value.
+func (s *Usage) SetPosition(v string) *Usage {
+	s.Position = &v
+	return s
+}
+
+// SetStartDate sets the StartDate field's value.
+func (s *Usage) SetStartDate(v string) *Usage {
+	s.StartDate = &v
+	return s
+}
+
+// SetUsagePlanId sets the UsagePlanId field's value.
+func (s *Usage) SetUsagePlanId(v string) *Usage {
+	s.UsagePlanId = &v
+	return s
+}
+
+// Represents a usage plan than can specify who can assess associated API stages
+// with specified request limits and quotas.
+//
+// In a usage plan, you associate an API by specifying the API's Id and a stage
+// name of the specified API. You add plan customers by adding API keys to the
+// plan.
+//
+// Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+type UsagePlan struct {
+	_ struct{} `type:"structure"`
+
+	// The associated API stages of a usage plan.
+	ApiStages []*ApiStage `locationName:"apiStages" type:"list"`
+
+	// The description of a usage plan.
+	Description *string `locationName:"description" type:"string"`
+
+	// The identifier of a UsagePlan resource.
+	Id *string `locationName:"id" type:"string"`
+
+	// The name of a usage plan.
+	Name *string `locationName:"name" type:"string"`
+
+	// The maximum number of permitted requests per a given unit time interval.
+	Quota *QuotaSettings `locationName:"quota" type:"structure"`
+
+	// The request throttle limits of a usage plan.
+	Throttle *ThrottleSettings `locationName:"throttle" type:"structure"`
+}
+
+// String returns the string representation
+func (s UsagePlan) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UsagePlan) GoString() string {
+	return s.String()
+}
+
+// SetApiStages sets the ApiStages field's value.
+func (s *UsagePlan) SetApiStages(v []*ApiStage) *UsagePlan {
+	s.ApiStages = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UsagePlan) SetDescription(v string) *UsagePlan {
+	s.Description = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *UsagePlan) SetId(v string) *UsagePlan {
+	s.Id = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UsagePlan) SetName(v string) *UsagePlan {
+	s.Name = &v
+	return s
+}
+
+// SetQuota sets the Quota field's value.
+func (s *UsagePlan) SetQuota(v *QuotaSettings) *UsagePlan {
+	s.Quota = v
+	return s
+}
+
+// SetThrottle sets the Throttle field's value.
+func (s *UsagePlan) SetThrottle(v *ThrottleSettings) *UsagePlan {
+	s.Throttle = v
+	return s
+}
+
+// Represents a usage plan key to identify a plan customer.
+//
+// To associate an API stage with a selected API key in a usage plan, you must
+// create a UsagePlanKey resource to represent the selected ApiKey.
+//
+// " Create and Use Usage Plans (http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-api-usage-plans.html)
+type UsagePlanKey struct {
+	_ struct{} `type:"structure"`
+
+	// The Id of a usage plan key.
+	Id *string `locationName:"id" type:"string"`
+
+	// The name of a usage plan key.
+	Name *string `locationName:"name" type:"string"`
+
+	// The type of a usage plan key. Currently, the valid key type is API_KEY.
+	Type *string `locationName:"type" type:"string"`
+
+	// The value of a usage plan key.
+	Value *string `locationName:"value" type:"string"`
+}
+
+// String returns the string representation
+func (s UsagePlanKey) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UsagePlanKey) GoString() string {
+	return s.String()
+}
+
+// SetId sets the Id field's value.
+func (s *UsagePlanKey) SetId(v string) *UsagePlanKey {
+	s.Id = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UsagePlanKey) SetName(v string) *UsagePlanKey {
+	s.Name = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *UsagePlanKey) SetType(v string) *UsagePlanKey {
+	s.Type = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *UsagePlanKey) SetValue(v string) *UsagePlanKey {
+	s.Value = &v
+	return s
+}
+
 const (
-	// @enum AuthorizerType
+	// ApiKeysFormatCsv is a ApiKeysFormat enum value
+	ApiKeysFormatCsv = "csv"
+)
+
+// The authorizer type. the current value is TOKEN for a Lambda function or
+// COGNITO_USER_POOLS for an Amazon Cognito Your User Pool.
+const (
+	// AuthorizerTypeToken is a AuthorizerType enum value
 	AuthorizerTypeToken = "TOKEN"
+
+	// AuthorizerTypeCognitoUserPools is a AuthorizerType enum value
+	AuthorizerTypeCognitoUserPools = "COGNITO_USER_POOLS"
 )
 
 // Returns the size of the CacheCluster.
 const (
-	// @enum CacheClusterSize
+	// CacheClusterSize05 is a CacheClusterSize enum value
 	CacheClusterSize05 = "0.5"
-	// @enum CacheClusterSize
+
+	// CacheClusterSize16 is a CacheClusterSize enum value
 	CacheClusterSize16 = "1.6"
-	// @enum CacheClusterSize
+
+	// CacheClusterSize61 is a CacheClusterSize enum value
 	CacheClusterSize61 = "6.1"
-	// @enum CacheClusterSize
+
+	// CacheClusterSize135 is a CacheClusterSize enum value
 	CacheClusterSize135 = "13.5"
-	// @enum CacheClusterSize
+
+	// CacheClusterSize284 is a CacheClusterSize enum value
 	CacheClusterSize284 = "28.4"
-	// @enum CacheClusterSize
+
+	// CacheClusterSize582 is a CacheClusterSize enum value
 	CacheClusterSize582 = "58.2"
-	// @enum CacheClusterSize
+
+	// CacheClusterSize118 is a CacheClusterSize enum value
 	CacheClusterSize118 = "118"
-	// @enum CacheClusterSize
+
+	// CacheClusterSize237 is a CacheClusterSize enum value
 	CacheClusterSize237 = "237"
 )
 
 // Returns the status of the CacheCluster.
 const (
-	// @enum CacheClusterStatus
+	// CacheClusterStatusCreateInProgress is a CacheClusterStatus enum value
 	CacheClusterStatusCreateInProgress = "CREATE_IN_PROGRESS"
-	// @enum CacheClusterStatus
+
+	// CacheClusterStatusAvailable is a CacheClusterStatus enum value
 	CacheClusterStatusAvailable = "AVAILABLE"
-	// @enum CacheClusterStatus
+
+	// CacheClusterStatusDeleteInProgress is a CacheClusterStatus enum value
 	CacheClusterStatusDeleteInProgress = "DELETE_IN_PROGRESS"
-	// @enum CacheClusterStatus
+
+	// CacheClusterStatusNotAvailable is a CacheClusterStatus enum value
 	CacheClusterStatusNotAvailable = "NOT_AVAILABLE"
-	// @enum CacheClusterStatus
+
+	// CacheClusterStatusFlushInProgress is a CacheClusterStatus enum value
 	CacheClusterStatusFlushInProgress = "FLUSH_IN_PROGRESS"
 )
 
-// The integration type. The valid value is HTTP, AWS, or MOCK.
 const (
-	// @enum IntegrationType
+	// ContentHandlingStrategyConvertToBinary is a ContentHandlingStrategy enum value
+	ContentHandlingStrategyConvertToBinary = "CONVERT_TO_BINARY"
+
+	// ContentHandlingStrategyConvertToText is a ContentHandlingStrategy enum value
+	ContentHandlingStrategyConvertToText = "CONVERT_TO_TEXT"
+)
+
+// The integration type. The valid value is HTTP for integrating with an HTTP
+// back end, AWS for any AWS service endpoints, MOCK for testing without actually
+// invoking the back end, HTTP_PROXY for integrating with the HTTP proxy integration,
+// or AWS_PROXY for integrating with the Lambda proxy integration type.
+const (
+	// IntegrationTypeHttp is a IntegrationType enum value
 	IntegrationTypeHttp = "HTTP"
-	// @enum IntegrationType
+
+	// IntegrationTypeAws is a IntegrationType enum value
 	IntegrationTypeAws = "AWS"
-	// @enum IntegrationType
+
+	// IntegrationTypeMock is a IntegrationType enum value
 	IntegrationTypeMock = "MOCK"
+
+	// IntegrationTypeHttpProxy is a IntegrationType enum value
+	IntegrationTypeHttpProxy = "HTTP_PROXY"
+
+	// IntegrationTypeAwsProxy is a IntegrationType enum value
+	IntegrationTypeAwsProxy = "AWS_PROXY"
 )
 
 const (
-	// @enum PutMode
+	// OpAdd is a Op enum value
+	OpAdd = "add"
+
+	// OpRemove is a Op enum value
+	OpRemove = "remove"
+
+	// OpReplace is a Op enum value
+	OpReplace = "replace"
+
+	// OpMove is a Op enum value
+	OpMove = "move"
+
+	// OpCopy is a Op enum value
+	OpCopy = "copy"
+
+	// OpTest is a Op enum value
+	OpTest = "test"
+)
+
+const (
+	// PutModeMerge is a PutMode enum value
 	PutModeMerge = "merge"
-	// @enum PutMode
+
+	// PutModeOverwrite is a PutMode enum value
 	PutModeOverwrite = "overwrite"
 )
 
 const (
-	// @enum UnauthorizedCacheControlHeaderStrategy
-	UnauthorizedCacheControlHeaderStrategyFailWith403 = "FAIL_WITH_403"
-	// @enum UnauthorizedCacheControlHeaderStrategy
-	UnauthorizedCacheControlHeaderStrategySucceedWithResponseHeader = "SUCCEED_WITH_RESPONSE_HEADER"
-	// @enum UnauthorizedCacheControlHeaderStrategy
-	UnauthorizedCacheControlHeaderStrategySucceedWithoutResponseHeader = "SUCCEED_WITHOUT_RESPONSE_HEADER"
+	// QuotaPeriodTypeDay is a QuotaPeriodType enum value
+	QuotaPeriodTypeDay = "DAY"
+
+	// QuotaPeriodTypeWeek is a QuotaPeriodType enum value
+	QuotaPeriodTypeWeek = "WEEK"
+
+	// QuotaPeriodTypeMonth is a QuotaPeriodType enum value
+	QuotaPeriodTypeMonth = "MONTH"
 )
 
 const (
-	// @enum op
-	OpAdd = "add"
-	// @enum op
-	OpRemove = "remove"
-	// @enum op
-	OpReplace = "replace"
-	// @enum op
-	OpMove = "move"
-	// @enum op
-	OpCopy = "copy"
-	// @enum op
-	OpTest = "test"
+	// UnauthorizedCacheControlHeaderStrategyFailWith403 is a UnauthorizedCacheControlHeaderStrategy enum value
+	UnauthorizedCacheControlHeaderStrategyFailWith403 = "FAIL_WITH_403"
+
+	// UnauthorizedCacheControlHeaderStrategySucceedWithResponseHeader is a UnauthorizedCacheControlHeaderStrategy enum value
+	UnauthorizedCacheControlHeaderStrategySucceedWithResponseHeader = "SUCCEED_WITH_RESPONSE_HEADER"
+
+	// UnauthorizedCacheControlHeaderStrategySucceedWithoutResponseHeader is a UnauthorizedCacheControlHeaderStrategy enum value
+	UnauthorizedCacheControlHeaderStrategySucceedWithoutResponseHeader = "SUCCEED_WITHOUT_RESPONSE_HEADER"
 )

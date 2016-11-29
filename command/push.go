@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/atlas-go/archive"
 	"github.com/hashicorp/atlas-go/v1"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type PushCommand struct {
@@ -44,6 +45,22 @@ func (c *PushCommand) Run(args []string) int {
 	overwriteMap := make(map[string]struct{}, len(overwrite))
 	for _, v := range overwrite {
 		overwriteMap[v] = struct{}{}
+	}
+
+	// This is a map of variables specifically from the CLI that we want to overwrite.
+	// We need this because there is a chance that the user is trying to modify
+	// a variable we don't see in our context, but which exists in this atlas
+	// environment.
+	cliVars := make(map[string]string)
+	for k, v := range c.variables {
+		if _, ok := overwriteMap[k]; ok {
+			if val, ok := v.(string); ok {
+				cliVars[k] = val
+			} else {
+				c.Ui.Error(fmt.Sprintf("Error reading value for variable: %s", k))
+				return 1
+			}
+		}
 	}
 
 	// The pwd is used for the configuration path if one is not given
@@ -87,6 +104,7 @@ func (c *PushCommand) Run(args []string) int {
 		Path:      configPath,
 		StatePath: c.Meta.statePath,
 	})
+
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -126,6 +144,8 @@ func (c *PushCommand) Run(args []string) int {
 			}
 		}
 
+		client.DefaultHeader.Set(terraform.VersionHeader, terraform.Version)
+
 		if atlasToken != "" {
 			client.Token = atlasToken
 		}
@@ -133,19 +153,23 @@ func (c *PushCommand) Run(args []string) int {
 		c.client = &atlasPushClient{Client: client}
 	}
 
-	// Get the variables we might already have
+	// Get the variables we already have in atlas
 	atlasVars, err := c.client.Get(name)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Error looking up previously pushed configuration: %s", err))
 		return 1
 	}
-	for k, v := range atlasVars {
-		if _, ok := overwriteMap[k]; ok {
-			continue
-		}
 
-		ctx.SetVariable(k, v)
+	// Set remote variables in the context if we don't have a value here. These
+	// don't have to be correct, it just prevents the Input walk from prompting
+	// the user for input.
+	ctxVars := ctx.Variables()
+	atlasVarSentry := "ATLAS_78AC153CA649EAA44815DAD6CBD4816D"
+	for k, _ := range atlasVars {
+		if _, ok := ctxVars[k]; !ok {
+			ctx.SetVariable(k, atlasVarSentry)
+		}
 	}
 
 	// Ask for input
@@ -155,16 +179,54 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Now that we've gone through the input walk, we can be sure we have all
+	// the variables we're going to get.
+	// We are going to keep these separate from the atlas variables until
+	// upload, so we can notify the user which local variables we're sending.
+	serializedVars, err := tfVars(ctx.Variables())
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"An error has occurred while serializing the variables for uploading:\n"+
+				"%s", err))
+		return 1
+	}
+
+	// Get the absolute path for our data directory, since the Extra field
+	// value below needs to be absolute.
+	dataDirAbs, err := filepath.Abs(c.DataDir())
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error while expanding the data directory %q: %s", c.DataDir(), err))
+		return 1
+	}
+
 	// Build the archiving options, which includes everything it can
 	// by default according to VCS rules but forcing the data directory.
 	archiveOpts := &archive.ArchiveOpts{
 		VCS: archiveVCS,
 		Extra: map[string]string{
-			DefaultDataDir: c.DataDir(),
+			DefaultDataDir: archive.ExtraEntryDir,
 		},
 	}
-	if !moduleUpload {
-		// If we're not uploading modules, then exclude the modules dir.
+
+	// Always store the state file in here so we can find state
+	statePathKey := fmt.Sprintf("%s/%s", DefaultDataDir, DefaultStateFilename)
+	archiveOpts.Extra[statePathKey] = filepath.Join(dataDirAbs, DefaultStateFilename)
+	if moduleUpload {
+		// If we're uploading modules, explicitly add that directory if exists.
+		moduleKey := fmt.Sprintf("%s/%s", DefaultDataDir, "modules")
+		moduleDir := filepath.Join(dataDirAbs, "modules")
+		_, err := os.Stat(moduleDir)
+		if err == nil {
+			archiveOpts.Extra[moduleKey] = filepath.Join(dataDirAbs, "modules")
+		}
+		if err != nil && !os.IsNotExist(err) {
+			c.Ui.Error(fmt.Sprintf(
+				"Error checking for module dir %q: %s", moduleDir, err))
+			return 1
+		}
+	} else {
+		// If we're not uploading modules, explicitly exclude add that
 		archiveOpts.Exclude = append(
 			archiveOpts.Exclude,
 			filepath.Join(c.DataDir(), "modules"))
@@ -178,19 +240,49 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Output to the user the variables that will be uploaded
+	// List of the vars we're uploading to display to the user.
+	// We always upload all vars from atlas, but only report them if they are overwritten.
 	var setVars []string
-	for k, _ := range ctx.Variables() {
-		if _, ok := overwriteMap[k]; !ok {
-			if _, ok := atlasVars[k]; ok {
-				// Atlas variable not within override, so it came from Atlas
-				continue
-			}
+
+	// variables to upload
+	var uploadVars []atlas.TFVar
+
+	// first add all the variables we want to send which have been serialized
+	// from the local context.
+	for _, sv := range serializedVars {
+		_, inOverwrite := overwriteMap[sv.Key]
+		_, inAtlas := atlasVars[sv.Key]
+
+		// We have a variable that's not in atlas, so always send it.
+		if !inAtlas {
+			uploadVars = append(uploadVars, sv)
+			setVars = append(setVars, sv.Key)
 		}
 
-		// This variable was set from the local value
-		setVars = append(setVars, k)
+		// We're overwriting an atlas variable.
+		// We also want to check that we
+		// don't send the dummy sentry value back to atlas. This could happen
+		// if it's specified as an overwrite on the cli, but we didn't set a
+		// new value.
+		if inAtlas && inOverwrite && sv.Value != atlasVarSentry {
+			uploadVars = append(uploadVars, sv)
+			setVars = append(setVars, sv.Key)
+
+			// remove this value from the atlas vars, because we're going to
+			// send back the remainder regardless.
+			delete(atlasVars, sv.Key)
+		}
 	}
+
+	// now send back all the existing atlas vars, inserting any overwrites from the cli.
+	for k, av := range atlasVars {
+		if v, ok := cliVars[k]; ok {
+			av.Value = v
+			setVars = append(setVars, k)
+		}
+		uploadVars = append(uploadVars, av)
+	}
+
 	sort.Strings(setVars)
 	if len(setVars) > 0 {
 		c.Ui.Output(
@@ -211,7 +303,9 @@ func (c *PushCommand) Run(args []string) int {
 		Name:      name,
 		Archive:   archiveR,
 		Variables: ctx.Variables(),
+		TFVars:    uploadVars,
 	}
+
 	c.Ui.Output("Uploading Terraform configuration...")
 	vsn, err := c.client.Upsert(opts)
 	if err != nil {
@@ -269,28 +363,72 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
+func sortedKeys(m map[string]interface{}) []string {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// build the set of TFVars for push
+func tfVars(vars map[string]interface{}) ([]atlas.TFVar, error) {
+	var tfVars []atlas.TFVar
+	var err error
+
+RANGE:
+	for _, k := range sortedKeys(vars) {
+		v := vars[k]
+
+		var hcl []byte
+		tfv := atlas.TFVar{Key: k}
+
+		switch v := v.(type) {
+		case string:
+			tfv.Value = v
+
+		default:
+			// everything that's not a string is now HCL encoded
+			hcl, err = encodeHCL(v)
+			if err != nil {
+				break RANGE
+			}
+
+			tfv.Value = string(hcl)
+			tfv.IsHCL = true
+		}
+
+		tfVars = append(tfVars, tfv)
+	}
+
+	return tfVars, err
+}
+
 func (c *PushCommand) Synopsis() string {
 	return "Upload this Terraform module to Atlas to run"
 }
 
-// pushClient is implementd internally to control where pushes go. This is
-// either to Atlas or a mock for testing.
+// pushClient is implemented internally to control where pushes go. This is
+// either to Atlas or a mock for testing. We still return a map to make it
+// easier to check for variable existence when filtering the overrides.
 type pushClient interface {
-	Get(string) (map[string]string, error)
+	Get(string) (map[string]atlas.TFVar, error)
 	Upsert(*pushUpsertOptions) (int, error)
 }
 
 type pushUpsertOptions struct {
 	Name      string
 	Archive   *archive.Archive
-	Variables map[string]string
+	Variables map[string]interface{}
+	TFVars    []atlas.TFVar
 }
 
 type atlasPushClient struct {
 	Client *atlas.Client
 }
 
-func (c *atlasPushClient) Get(name string) (map[string]string, error) {
+func (c *atlasPushClient) Get(name string) (map[string]atlas.TFVar, error) {
 	user, name, err := atlas.ParseSlug(name)
 	if err != nil {
 		return nil, err
@@ -301,9 +439,21 @@ func (c *atlasPushClient) Get(name string) (map[string]string, error) {
 		return nil, err
 	}
 
-	var variables map[string]string
-	if version != nil {
-		variables = version.Variables
+	variables := make(map[string]atlas.TFVar)
+
+	if version == nil {
+		return variables, nil
+	}
+
+	// Variables is superseded by TFVars
+	if version.TFVars == nil {
+		for k, v := range version.Variables {
+			variables[k] = atlas.TFVar{Key: k, Value: v}
+		}
+	} else {
+		for _, v := range version.TFVars {
+			variables[v.Key] = v
+		}
 	}
 
 	return variables, nil
@@ -316,7 +466,7 @@ func (c *atlasPushClient) Upsert(opts *pushUpsertOptions) (int, error) {
 	}
 
 	data := &atlas.TerraformConfigVersion{
-		Variables: opts.Variables,
+		TFVars: opts.TFVars,
 	}
 
 	version, err := c.Client.CreateTerraformConfigVersion(
@@ -333,7 +483,7 @@ type mockPushClient struct {
 
 	GetCalled bool
 	GetName   string
-	GetResult map[string]string
+	GetResult map[string]atlas.TFVar
 	GetError  error
 
 	UpsertCalled  bool
@@ -342,7 +492,7 @@ type mockPushClient struct {
 	UpsertError   error
 }
 
-func (c *mockPushClient) Get(name string) (map[string]string, error) {
+func (c *mockPushClient) Get(name string) (map[string]atlas.TFVar, error) {
 	c.GetCalled = true
 	c.GetName = name
 	return c.GetResult, c.GetError

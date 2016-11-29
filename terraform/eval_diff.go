@@ -3,6 +3,9 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // EvalCompareDiff is an EvalNode implementation that compares two diffs
@@ -25,16 +28,16 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 		two = new(InstanceDiff)
 		two.init()
 	}
-	oneId := one.Attributes["id"]
-	twoId := two.Attributes["id"]
-	delete(one.Attributes, "id")
-	delete(two.Attributes, "id")
+	oneId, _ := one.GetAttribute("id")
+	twoId, _ := two.GetAttribute("id")
+	one.DelAttribute("id")
+	two.DelAttribute("id")
 	defer func() {
 		if oneId != nil {
-			one.Attributes["id"] = oneId
+			one.SetAttribute("id", oneId)
 		}
 		if twoId != nil {
-			two.Attributes["id"] = twoId
+			two.SetAttribute("id", twoId)
 		}
 	}()
 
@@ -73,6 +76,10 @@ type EvalDiff struct {
 	State       **InstanceState
 	OutputDiff  **InstanceDiff
 	OutputState **InstanceState
+
+	// Resource is needed to fetch the ignore_changes list so we can
+	// filter user-requested ignored attributes from the diff.
+	Resource *config.Resource
 }
 
 // TODO: test
@@ -107,12 +114,12 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Preserve the DestroyTainted flag
 	if n.Diff != nil {
-		diff.DestroyTainted = (*n.Diff).DestroyTainted
+		diff.SetTainted((*n.Diff).GetDestroyTainted())
 	}
 
 	// Require a destroy if there is an ID and it requires new.
 	if diff.RequiresNew() && state != nil && state.ID != "" {
-		diff.Destroy = true
+		diff.SetDestroy(true)
 	}
 
 	// If we're creating a new resource, compute its ID
@@ -124,12 +131,16 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 
 		// Add diff to compute new ID
 		diff.init()
-		diff.Attributes["id"] = &ResourceAttrDiff{
+		diff.SetAttribute("id", &ResourceAttrDiff{
 			Old:         oldID,
 			NewComputed: true,
 			RequiresNew: true,
 			Type:        DiffAttrOutput,
-		}
+		})
+	}
+
+	if err := n.processIgnoreChanges(diff); err != nil {
+		return nil, err
 	}
 
 	// Call post-refresh hook
@@ -154,6 +165,92 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	return nil, nil
+}
+
+func (n *EvalDiff) processIgnoreChanges(diff *InstanceDiff) error {
+	if diff == nil || n.Resource == nil || n.Resource.Id() == "" {
+		return nil
+	}
+	ignoreChanges := n.Resource.Lifecycle.IgnoreChanges
+
+	if len(ignoreChanges) == 0 {
+		return nil
+	}
+
+	changeType := diff.ChangeType()
+
+	// If we're just creating the resource, we shouldn't alter the
+	// Diff at all
+	if changeType == DiffCreate {
+		return nil
+	}
+
+	// If the resource has been tainted then we don't process ignore changes
+	// since we MUST recreate the entire resource.
+	if diff.DestroyTainted {
+		return nil
+	}
+
+	ignorableAttrKeys := make(map[string]bool)
+	for _, ignoredKey := range ignoreChanges {
+		for k := range diff.CopyAttributes() {
+			if ignoredKey == "*" || strings.HasPrefix(k, ignoredKey) {
+				ignorableAttrKeys[k] = true
+			}
+		}
+	}
+
+	// If we are replacing the resource, then we expect there to be a bunch of
+	// extraneous attribute diffs we need to filter out for the other
+	// non-requires-new attributes going from "" -> "configval" or "" ->
+	// "<computed>". Filtering these out allows us to see if we might be able to
+	// skip this diff altogether.
+	if changeType == DiffDestroyCreate {
+		for k, v := range diff.CopyAttributes() {
+			if v.Empty() || v.NewComputed {
+				ignorableAttrKeys[k] = true
+			}
+		}
+
+		// Here we emulate the implementation of diff.RequiresNew() with one small
+		// tweak, we ignore the "id" attribute diff that gets added by EvalDiff,
+		// since that was added in reaction to RequiresNew being true.
+		requiresNewAfterIgnores := false
+		for k, v := range diff.CopyAttributes() {
+			if k == "id" {
+				continue
+			}
+			if _, ok := ignorableAttrKeys[k]; ok {
+				continue
+			}
+			if v.RequiresNew == true {
+				requiresNewAfterIgnores = true
+			}
+		}
+
+		// If we still require resource replacement after ignores, we
+		// can't touch the diff, as all of the attributes will be
+		// required to process the replacement.
+		if requiresNewAfterIgnores {
+			return nil
+		}
+
+		// Here we undo the two reactions to RequireNew in EvalDiff - the "id"
+		// attribute diff and the Destroy boolean field
+		log.Printf("[DEBUG] Removing 'id' diff and setting Destroy to false " +
+			"because after ignore_changes, this diff no longer requires replacement")
+		diff.DelAttribute("id")
+		diff.SetDestroy(false)
+	}
+
+	// If we didn't hit any of our early exit conditions, we can filter the diff.
+	for k := range ignorableAttrKeys {
+		log.Printf("[DEBUG] [EvalIgnoreChanges] %s - Ignoring diff attribute: %s",
+			n.Resource.Id(), k)
+		diff.DelAttribute(k)
+	}
+
+	return nil
 }
 
 // EvalDiffDestroy is an EvalNode implementation that returns a plain
@@ -242,8 +339,8 @@ func (n *EvalFilterDiff) Eval(ctx EvalContext) (interface{}, error) {
 	result := new(InstanceDiff)
 
 	if n.Destroy {
-		if input.Destroy || input.RequiresNew() {
-			result.Destroy = true
+		if input.GetDestroy() || input.RequiresNew() {
+			result.SetDestroy(true)
 		}
 	}
 

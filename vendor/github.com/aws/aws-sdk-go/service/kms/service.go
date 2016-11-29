@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
-	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // AWS Key Management Service (AWS KMS) is an encryption and key management
@@ -16,15 +16,15 @@ import (
 // programmatically. For general information about AWS KMS, see the AWS Key
 // Management Service Developer Guide (http://docs.aws.amazon.com/kms/latest/developerguide/).
 //
-//  AWS provides SDKs that consist of libraries and sample code for various
-// programming languages and platforms (Java, Ruby, .Net, iOS, Android, etc.).
-// The SDKs provide a convenient way to create programmatic access to AWS KMS
-// and other AWS services. For example, the SDKs take care of tasks such as
-// signing requests (see below), managing errors, and retrying requests automatically.
-// For more information about the AWS SDKs, including how to download and install
-// them, see Tools for Amazon Web Services (http://aws.amazon.com/tools/).
+// AWS provides SDKs that consist of libraries and sample code for various programming
+// languages and platforms (Java, Ruby, .Net, iOS, Android, etc.). The SDKs
+// provide a convenient way to create programmatic access to AWS KMS and other
+// AWS services. For example, the SDKs take care of tasks such as signing requests
+// (see below), managing errors, and retrying requests automatically. For more
+// information about the AWS SDKs, including how to download and install them,
+// see Tools for Amazon Web Services (http://aws.amazon.com/tools/).
 //
-//  We recommend that you use the AWS SDKs to make programmatic API calls to
+// We recommend that you use the AWS SDKs to make programmatic API calls to
 // AWS KMS.
 //
 // Clients must support TLS (Transport Layer Security) 1.0. We recommend TLS
@@ -36,9 +36,9 @@ import (
 // Signing Requests
 //
 // Requests must be signed by using an access key ID and a secret access key.
-// We strongly recommend that you do not use your AWS account access key ID
-// and secret key for everyday work with AWS KMS. Instead, use the access key
-// ID and secret access key for an IAM user, or you can use the AWS Security
+// We strongly recommend that you do not use your AWS account (root) access
+// key ID and secret key for everyday work with AWS KMS. Instead, use the access
+// key ID and secret access key for an IAM user, or you can use the AWS Security
 // Token Service to generate temporary security credentials that you can use
 // to sign requests.
 //
@@ -57,19 +57,31 @@ import (
 //
 // For more information about credentials and request signing, see the following:
 //
-//   AWS Security Credentials (http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html)
-// - This topic provides general information about the types of credentials
-// used for accessing AWS.   AWS Security Token Service (http://docs.aws.amazon.com/STS/latest/UsingSTS/)
-// - This guide describes how to create and use temporary security credentials.
-//   Signing AWS API Requests (http://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html)
-// - This set of topics walks you through the process of signing a request using
-// an access key ID and a secret access key.   Commonly Used APIs
+//    * AWS Security Credentials (http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html)
+//    - This topic provides general information about the types of credentials
+//    used for accessing AWS.
 //
-//  Of the APIs discussed in this guide, the following will prove the most
-// useful for most applications. You will likely perform actions other than
-// these, such as creating keys and assigning policies, by using the console.
+//    * Temporary Security Credentials (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html)
+//    - This section of the IAM User Guide describes how to create and use temporary
+//    security credentials.
 //
-//  Encrypt Decrypt GenerateDataKey GenerateDataKeyWithoutPlaintext
+//    * Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
+//    - This set of topics walks you through the process of signing a request
+//    using an access key ID and a secret access key.
+//
+// Commonly Used APIs
+//
+// Of the APIs discussed in this guide, the following will prove the most useful
+// for most applications. You will likely perform actions other than these,
+// such as creating keys and assigning policies, by using the console.
+//
+//    * Encrypt
+//
+//    * Decrypt
+//
+//    * GenerateDataKey
+//
+//    * GenerateDataKeyWithoutPlaintext
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type KMS struct {
@@ -118,7 +130,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBack(v4.Sign)
+	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
 	svc.Handlers.Build.PushBackNamed(jsonrpc.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(jsonrpc.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(jsonrpc.UnmarshalMetaHandler)

@@ -221,7 +221,7 @@ func resourceAwsElasticTranscoderPipelineCreate(d *schema.ResourceData, meta int
 	d.SetId(*resp.Pipeline.Id)
 
 	for _, w := range resp.Warnings {
-		log.Printf("[WARN] Elastic Transcoder Pipeline %s: %s", w.Code, w.Message)
+		log.Printf("[WARN] Elastic Transcoder Pipeline %v: %v", *w.Code, *w.Message)
 	}
 
 	return resourceAwsElasticTranscoderPipelineRead(d, meta)
@@ -233,18 +233,23 @@ func expandETNotifications(d *schema.ResourceData) *elastictranscoder.Notificati
 		return nil
 	}
 
-	s := set.(*schema.Set)
-	if s == nil || s.Len() == 0 {
+	s := set.(*schema.Set).List()
+	if s == nil || len(s) == 0 {
 		return nil
 	}
 
-	m := s.List()[0].(map[string]interface{})
+	if s[0] == nil {
+		log.Printf("[ERR] First element of Notifications set is nil")
+		return nil
+	}
+
+	rN := s[0].(map[string]interface{})
 
 	return &elastictranscoder.Notifications{
-		Completed:   getStringPtr(m, "completed"),
-		Error:       getStringPtr(m, "error"),
-		Progressing: getStringPtr(m, "progressing"),
-		Warning:     getStringPtr(m, "warning"),
+		Completed:   aws.String(rN["completed"].(string)),
+		Error:       aws.String(rN["error"].(string)),
+		Progressing: aws.String(rN["progressing"].(string)),
+		Warning:     aws.String(rN["warning"].(string)),
 	}
 }
 
@@ -383,7 +388,7 @@ func resourceAwsElasticTranscoderPipelineUpdate(d *schema.ResourceData, meta int
 	}
 
 	for _, w := range output.Warnings {
-		log.Printf("[WARN] Elastic Transcoder Pipeline %s: %s", w.Code, w.Message)
+		log.Printf("[WARN] Elastic Transcoder Pipeline %v: %v", *w.Code, *w.Message)
 	}
 
 	return resourceAwsElasticTranscoderPipelineRead(d, meta)

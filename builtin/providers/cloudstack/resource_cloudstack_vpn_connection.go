@@ -1,7 +1,6 @@
 package cloudstack
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -19,30 +18,14 @@ func resourceCloudStackVPNConnection() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"customer_gateway_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				ForceNew: true,
-			},
-
-			"customergatewayid": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `customer_gateway_id` field instead",
 			},
 
 			"vpn_gateway_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				ForceNew: true,
-			},
-
-			"vpngatewayid": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `vpn_gateway_id` field instead",
 			},
 		},
 	}
@@ -51,27 +34,10 @@ func resourceCloudStackVPNConnection() *schema.Resource {
 func resourceCloudStackVPNConnectionCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	customergatewayid, ok := d.GetOk("customer_gateway_id")
-	if !ok {
-		customergatewayid, ok = d.GetOk("customergatewayid")
-	}
-	if !ok {
-		return errors.New(
-			"Either `customer_gateway_id` or [deprecated] `customergatewayid` must be provided.")
-	}
-
-	vpngatewayid, ok := d.GetOk("vpn_gateway_id")
-	if !ok {
-		vpngatewayid, ok = d.GetOk("vpngatewayid")
-	}
-	if !ok {
-		return errors.New("Either `vpn_gateway_id` or [deprecated] `vpngatewayid` must be provided.")
-	}
-
 	// Create a new parameter struct
 	p := cs.VPN.NewCreateVpnConnectionParams(
-		customergatewayid.(string),
-		vpngatewayid.(string),
+		d.Get("customer_gateway_id").(string),
+		d.Get("vpn_gateway_id").(string),
 	)
 
 	// Create the new VPN Connection

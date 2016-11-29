@@ -44,3 +44,12 @@ The following attributes are exported:
 * `ip_address` - The IP address of the gateway's Internet-routable external interface.
 * `type` - The type of customer gateway.
 * `tags` - Tags applied to the gateway.
+
+
+## Import
+
+Customer Gateways can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_customer_gateway.main cgw-b4dc3961
+```

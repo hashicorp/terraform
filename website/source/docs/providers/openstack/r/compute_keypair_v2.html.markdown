@@ -34,6 +34,8 @@ The following arguments are supported:
 * `public_key` - (Required) A pregenerated OpenSSH-formatted public key.
     Changing this creates a new keypair.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -41,3 +43,11 @@ The following attributes are exported:
 * `region` - See Argument Reference above.
 * `name` - See Argument Reference above.
 * `public_key` - See Argument Reference above.
+
+## Import
+
+Keypairs can be imported using the `name`, e.g.
+
+```
+$ terraform import openstack_compute_keypair_v2.my-keypair test-keypair
+```

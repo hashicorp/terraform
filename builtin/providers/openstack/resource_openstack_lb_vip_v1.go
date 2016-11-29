@@ -5,11 +5,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
 )
 
 func resourceLBVipV1() *schema.Resource {
@@ -18,6 +18,9 @@ func resourceLBVipV1() *schema.Resource {
 		Read:   resourceLBVipV1Read,
 		Update: resourceLBVipV1Update,
 		Delete: resourceLBVipV1Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -168,7 +171,7 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB VIP")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LB VIP %s: %+v", d.Id(), p)
+	log.Printf("[DEBUG] Retrieved OpenStack LB VIP %s: %+v", d.Id(), p)
 
 	d.Set("name", p.Name)
 	d.Set("subnet_id", p.SubnetID)
@@ -182,6 +185,16 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("conn_limit", p.ConnLimit)
 	d.Set("admin_state_up", p.AdminStateUp)
 
+	// Set the persistence method being used
+	persistence := make(map[string]interface{})
+	if p.Persistence.Type != "" {
+		persistence["type"] = p.Persistence.Type
+	}
+	if p.Persistence.CookieName != "" {
+		persistence["cookie_name"] = p.Persistence.CookieName
+	}
+	d.Set("persistence", persistence)
+
 	return nil
 }
 
@@ -194,20 +207,24 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 
 	var updateOpts vips.UpdateOpts
 	if d.HasChange("name") {
-		updateOpts.Name = d.Get("name").(string)
+		v := d.Get("name").(string)
+		updateOpts.Name = &v
 	}
+
 	if d.HasChange("pool_id") {
-		updateOpts.PoolID = d.Get("pool_id").(string)
+		v := d.Get("pool_id").(string)
+		updateOpts.PoolID = &v
 	}
+
 	if d.HasChange("description") {
-		updateOpts.Description = d.Get("description").(string)
+		v := d.Get("description").(string)
+		updateOpts.Description = &v
 	}
-	if d.HasChange("persistence") {
-		updateOpts.Persistence = resourceVipPersistenceV1(d)
-	}
+
 	if d.HasChange("conn_limit") {
 		updateOpts.ConnLimit = gophercloud.MaybeInt(d.Get("conn_limit").(int))
 	}
+
 	if d.HasChange("floating_ip") {
 		portID := d.Get("port_id").(string)
 
@@ -227,8 +244,9 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 
 		// If a floating IP is found we unassign it
 		if len(fips) == 1 {
+			portID := ""
 			updateOpts := floatingips.UpdateOpts{
-				PortID: "",
+				PortID: &portID,
 			}
 			if err = floatingips.Update(networkingClient, fips[0].ID, updateOpts).Err; err != nil {
 				return err
@@ -241,10 +259,14 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 			lbVipV1AssignFloatingIP(floatingIP, portID, networkingClient)
 		}
 	}
+
 	if d.HasChange("admin_state_up") {
 		asu := d.Get("admin_state_up").(bool)
 		updateOpts.AdminStateUp = &asu
 	}
+
+	// Persistence has to be included, even if it hasn't changed.
+	updateOpts.Persistence = resourceVipPersistenceV1(d)
 
 	log.Printf("[DEBUG] Updating OpenStack LB VIP %s with options: %+v", d.Id(), updateOpts)
 
@@ -317,7 +339,7 @@ func lbVipV1AssignFloatingIP(floatingIP, portID string, networkingClient *gopher
 	}
 
 	updateOpts := floatingips.UpdateOpts{
-		PortID: portID,
+		PortID: &portID,
 	}
 	if err = floatingips.Update(networkingClient, fips[0].ID, updateOpts).Err; err != nil {
 		return err
@@ -348,27 +370,21 @@ func waitForLBVIPDelete(networkingClient *gophercloud.ServiceClient, vipId strin
 
 		p, err := vips.Get(networkingClient, vipId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LB VIP %s", vipId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LB VIP: %+v", p)
 		err = vips.Delete(networkingClient, vipId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LB VIP %s", vipId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LB VIP %s still active.", vipId)

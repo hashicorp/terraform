@@ -45,7 +45,7 @@ func TestAccAWSAmiDataSource_natInstance(t *testing.T) {
 					resource.TestCheckResourceAttr("data.aws_ami.nat_ami", "state", "available"),
 					resource.TestCheckResourceAttr("data.aws_ami.nat_ami", "state_reason.code", "UNSET"),
 					resource.TestCheckResourceAttr("data.aws_ami.nat_ami", "state_reason.message", "UNSET"),
-					resource.TestCheckResourceAttr("data.aws_ami.nat_ami", "tags.%", "0"),
+					resource.TestCheckResourceAttr("data.aws_ami.nat_ami", "tags.#", "0"),
 					resource.TestCheckResourceAttr("data.aws_ami.nat_ami", "virtualization_type", "hvm"),
 				),
 			},
@@ -82,7 +82,7 @@ func TestAccAWSAmiDataSource_windowsInstance(t *testing.T) {
 					resource.TestCheckResourceAttr("data.aws_ami.windows_ami", "state", "available"),
 					resource.TestCheckResourceAttr("data.aws_ami.windows_ami", "state_reason.code", "UNSET"),
 					resource.TestCheckResourceAttr("data.aws_ami.windows_ami", "state_reason.message", "UNSET"),
-					resource.TestCheckResourceAttr("data.aws_ami.windows_ami", "tags.%", "0"),
+					resource.TestCheckResourceAttr("data.aws_ami.windows_ami", "tags.#", "0"),
 					resource.TestCheckResourceAttr("data.aws_ami.windows_ami", "virtualization_type", "hvm"),
 				),
 			},
@@ -116,7 +116,7 @@ func TestAccAWSAmiDataSource_instanceStore(t *testing.T) {
 					resource.TestCheckResourceAttr("data.aws_ami.instance_store_ami", "state", "available"),
 					resource.TestCheckResourceAttr("data.aws_ami.instance_store_ami", "state_reason.code", "UNSET"),
 					resource.TestCheckResourceAttr("data.aws_ami.instance_store_ami", "state_reason.message", "UNSET"),
-					resource.TestCheckResourceAttr("data.aws_ami.instance_store_ami", "tags.%", "0"),
+					resource.TestCheckResourceAttr("data.aws_ami.instance_store_ami", "tags.#", "0"),
 					resource.TestCheckResourceAttr("data.aws_ami.instance_store_ami", "virtualization_type", "hvm"),
 				),
 			},
@@ -137,6 +137,73 @@ func TestAccAWSAmiDataSource_owners(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccAWSAmiDataSource_localNameFilter(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckAwsAmiDataSourceNameRegexConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsAmiDataSourceID("data.aws_ami.name_regex_filtered_ami"),
+					resource.TestMatchResourceAttr("data.aws_ami.name_regex_filtered_ami", "image_id", regexp.MustCompile("^ami-")),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceValidateNameRegex(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `\`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `**`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `(.+`,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateNameRegex(tc.Value, "name_regex")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    `\/`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `.*`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `\b(?:\d{1,3}\.){3}\d{1,3}\b`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateNameRegex(tc.Value, "name_regex")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
 }
 
 func testAccCheckAwsAmiDataSourceDestroy(s *terraform.State) error {
@@ -243,5 +310,18 @@ const testAccCheckAwsAmiDataSourceOwnersConfig = `
 data "aws_ami" "amazon_ami" {
 	most_recent = true
 	owners = ["amazon"]
+}
+`
+
+// Testing name_regex parameter
+const testAccCheckAwsAmiDataSourceNameRegexConfig = `
+data "aws_ami" "name_regex_filtered_ami" {
+	most_recent = true
+	owners = ["amazon"]
+	filter {
+		name = "name"
+		values = ["amzn-ami-*"]
+	}
+	name_regex = "^amzn-ami-\\d{3}[5].*-ecs-optimized"
 }
 `

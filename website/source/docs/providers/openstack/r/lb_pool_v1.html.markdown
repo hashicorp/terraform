@@ -178,3 +178,11 @@ The following attributes are exported:
 ## Notes
 
 The `member` block is deprecated in favor of the `openstack_lb_member_v1` resource.
+
+## Import
+
+Load Balancer Pools can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_lb_pool_v1.pool_1 b255e6ba-02ad-43e6-8951-3428ca26b713
+```

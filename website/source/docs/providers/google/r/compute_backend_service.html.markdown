@@ -19,6 +19,7 @@ resource "google_compute_backend_service" "foobar" {
   port_name   = "http"
   protocol    = "HTTP"
   timeout_sec = 10
+  enable_cdn  = false
 
   backend {
     group = "${google_compute_instance_group_manager.foo.instance_group}"
@@ -44,7 +45,7 @@ resource "google_compute_instance_template" "foobar" {
   }
 
   disk {
-    source_image = "debian-7-wheezy-v20160301"
+    source_image = "debian-cloud/debian-8"
     auto_delete  = true
     boot         = true
   }
@@ -73,6 +74,8 @@ The following arguments are supported:
     See *Backend* below.
 
 * `description` - (Optional) The textual description for the backend service.
+
+* `enable_cdn` - (Optional) Whether or not to enable the Cloud CDN on the backend service.
 
 * `port_name` - (Optional) The name of a service that has been added to an
     instance group in this backend. See [related docs](https://cloud.google.com/compute/docs/instance-groups/#specifying_service_endpoints) for details. Defaults to http.

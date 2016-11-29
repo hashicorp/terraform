@@ -41,16 +41,9 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 			},
 
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					if value != "MOCK" && value != "AWS" && value != "HTTP" {
-						errors = append(errors, fmt.Errorf(
-							"%q must be one of 'AWS', 'MOCK', 'HTTP'", k))
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateApiGatewayIntegrationType,
 			},
 
 			"uri": &schema.Schema{
@@ -75,9 +68,25 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 				Elem:     schema.TypeString,
 			},
 
+			"request_parameters": &schema.Schema{
+				Type:          schema.TypeMap,
+				Elem:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters_in_json"},
+			},
+
 			"request_parameters_in_json": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"request_parameters"},
+				Deprecated:    "Use field request_parameters instead",
+			},
+
+			"passthrough_behavior": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateApiGatewayIntegrationPassthroughBehavior,
 			},
 		},
 	}
@@ -100,10 +109,21 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 	}
 
 	parameters := make(map[string]string)
+	if kv, ok := d.GetOk("request_parameters"); ok {
+		for k, v := range kv.(map[string]interface{}) {
+			parameters[k] = v.(string)
+		}
+	}
+
 	if v, ok := d.GetOk("request_parameters_in_json"); ok {
 		if err := json.Unmarshal([]byte(v.(string)), &parameters); err != nil {
 			return fmt.Errorf("Error unmarshaling request_parameters_in_json: %s", err)
 		}
+	}
+
+	var passthroughBehavior *string
+	if v, ok := d.GetOk("passthrough_behavior"); ok {
+		passthroughBehavior = aws.String(v.(string))
 	}
 
 	var credentials *string
@@ -117,13 +137,13 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 		RestApiId:  aws.String(d.Get("rest_api_id").(string)),
 		Type:       aws.String(d.Get("type").(string)),
 		IntegrationHttpMethod: integrationHttpMethod,
-		Uri: uri,
-		// TODO reimplement once [GH-2143](https://github.com/hashicorp/terraform/issues/2143) has been implemented
-		RequestParameters:  aws.StringMap(parameters),
-		RequestTemplates:   aws.StringMap(templates),
-		Credentials:        credentials,
-		CacheNamespace:     nil,
-		CacheKeyParameters: nil,
+		Uri:                 uri,
+		RequestParameters:   aws.StringMap(parameters),
+		RequestTemplates:    aws.StringMap(templates),
+		Credentials:         credentials,
+		CacheNamespace:      nil,
+		CacheKeyParameters:  nil,
+		PassthroughBehavior: passthroughBehavior,
 	})
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Integration: %s", err)
@@ -162,7 +182,9 @@ func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface
 	d.Set("credentials", integration.Credentials)
 	d.Set("type", integration.Type)
 	d.Set("uri", integration.Uri)
+	d.Set("request_parameters", aws.StringValueMap(integration.RequestParameters))
 	d.Set("request_parameters_in_json", aws.StringValueMap(integration.RequestParameters))
+	d.Set("passthrough_behavior", integration.PassthroughBehavior)
 
 	return nil
 }

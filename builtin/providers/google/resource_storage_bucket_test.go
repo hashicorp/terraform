@@ -59,6 +59,45 @@ func TestAccStorageCustomAttributes(t *testing.T) {
 	})
 }
 
+func TestAccStorageStorageClass(t *testing.T) {
+	bucketName := fmt.Sprintf("tf-test-acc-bucket-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccGoogleStorageDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "STANDARD"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "storage_class", "STANDARD"),
+				),
+			},
+			{
+				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "NEARLINE"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "storage_class", "NEARLINE"),
+				),
+			},
+			{
+				Config: testGoogleStorageBucketsReaderStorageClass(bucketName, "DURABLE_REDUCED_AVAILABILITY"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStorageBucketExists(
+						"google_storage_bucket.bucket", bucketName),
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "storage_class", "DURABLE_REDUCED_AVAILABILITY"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccStorageBucketUpdate(t *testing.T) {
 	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", acctest.RandInt())
 
@@ -225,4 +264,13 @@ resource "google_storage_bucket" "bucket" {
 	force_destroy = "true"
 }
 `, bucketName)
+}
+
+func testGoogleStorageBucketsReaderStorageClass(bucketName string, storageClass string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+	name = "%s"
+	storage_class = "%s"
+}
+`, bucketName, storageClass)
 }

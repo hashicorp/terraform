@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,6 +17,10 @@ func resourceAwsIamSamlProvider() *schema.Resource {
 		Read:   resourceAwsIamSamlProviderRead,
 		Update: resourceAwsIamSamlProviderUpdate,
 		Delete: resourceAwsIamSamlProviderDelete,
+
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -69,6 +75,11 @@ func resourceAwsIamSamlProviderRead(d *schema.ResourceData, meta interface{}) er
 
 	validUntil := out.ValidUntil.Format(time.RFC1123)
 	d.Set("arn", d.Id())
+	name, err := extractNameFromIAMSamlProviderArn(d.Id())
+	if err != nil {
+		return err
+	}
+	d.Set("name", name)
 	d.Set("valid_until", validUntil)
 	d.Set("saml_metadata_document", *out.SAMLMetadataDocument)
 
@@ -99,4 +110,14 @@ func resourceAwsIamSamlProviderDelete(d *schema.ResourceData, meta interface{}) 
 	_, err := iamconn.DeleteSAMLProvider(input)
 
 	return err
+}
+
+func extractNameFromIAMSamlProviderArn(arn string) (string, error) {
+	// arn:aws:iam::123456789012:saml-provider/tf-salesforce-test
+	r := regexp.MustCompile("^arn:aws:iam::[0-9]{12}:saml-provider/(.+)$")
+	submatches := r.FindStringSubmatch(arn)
+	if len(submatches) != 2 {
+		return "", fmt.Errorf("Unable to extract name from a given ARN: %q", arn)
+	}
+	return submatches[1], nil
 }

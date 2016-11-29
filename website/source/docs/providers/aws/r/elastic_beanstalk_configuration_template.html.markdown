@@ -47,10 +47,10 @@ off of. Example stacks can be found in the [Amazon API documentation][1]
 
 The `setting` field supports the following format:
 
-* `namespace` - (Optional) unique namespace identifying the option's 
-  associated AWS resource
-* `name` - (Optional) name of the configuration option
-* `value` - (Optional) value for the configuration option
+* `namespace` - unique namespace identifying the option's associated AWS resource
+* `name` - name of the configuration option
+* `value` - value for the configuration option
+* `resource` - (Optional) resource name for [scheduled action](https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/command-options-general.html#command-options-general-autoscalingscheduledaction)
 
 ## Attributes Reference
 
@@ -63,6 +63,6 @@ The following attributes are exported:
 * `option_settings`
 * `solution_stack_name`
 
-[1]: http://docs.aws.amazon.com/fr_fr/elasticbeanstalk/latest/dg/concepts.platforms.html
+[1]: https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/concepts.platforms.html
 
 

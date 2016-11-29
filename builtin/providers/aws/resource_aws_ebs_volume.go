@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -137,7 +138,9 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 	d.SetId(*result.VolumeId)
 
 	if _, ok := d.GetOk("tags"); ok {
-		setTags(conn, d)
+		if err := setTags(conn, d); err != nil {
+			return errwrap.Wrapf("Error setting tags for EBS Volume: {{err}}", err)
+		}
 	}
 
 	return readVolume(d, result)
@@ -146,7 +149,9 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 func resourceAWSEbsVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	if _, ok := d.GetOk("tags"); ok {
-		setTags(conn, d)
+		if err := setTags(conn, d); err != nil {
+			return errwrap.Wrapf("Error updating tags for EBS Volume: {{err}}", err)
+		}
 	}
 	return resourceAwsEbsVolumeRead(d, meta)
 }
@@ -198,15 +203,27 @@ func resourceAwsEbsVolumeRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsEbsVolumeDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	request := &ec2.DeleteVolumeInput{
-		VolumeId: aws.String(d.Id()),
-	}
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		request := &ec2.DeleteVolumeInput{
+			VolumeId: aws.String(d.Id()),
+		}
+		_, err := conn.DeleteVolume(request)
+		if err == nil {
+			return nil
+		}
 
-	_, err := conn.DeleteVolume(request)
-	if err != nil {
-		return fmt.Errorf("Error deleting EC2 volume %s: %s", d.Id(), err)
-	}
-	return nil
+		ebsErr, ok := err.(awserr.Error)
+		if ebsErr.Code() == "VolumeInUse" {
+			return resource.RetryableError(fmt.Errorf("EBS VolumeInUse - trying again while it detaches"))
+		}
+
+		if !ok {
+			return resource.NonRetryableError(err)
+		}
+
+		return resource.NonRetryableError(err)
+	})
+
 }
 
 func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {

@@ -44,7 +44,12 @@ func testAccCheckNatGatewayDestroy(s *terraform.State) error {
 			NatGatewayIds: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
-			if len(resp.NatGateways) > 0 && strings.ToLower(*resp.NatGateways[0].State) != "deleted" {
+			status := map[string]bool{
+				"deleted":  true,
+				"deleting": true,
+				"failed":   true,
+			}
+			if _, ok := status[strings.ToLower(*resp.NatGateways[0].State)]; len(resp.NatGateways) > 0 && !ok {
 				return fmt.Errorf("still exists")
 			}
 

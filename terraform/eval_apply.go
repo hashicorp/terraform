@@ -35,9 +35,9 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Remove any output values from the diff
-	for k, ad := range diff.Attributes {
+	for k, ad := range diff.CopyAttributes() {
 		if ad.Type == DiffAttrOutput {
-			delete(diff.Attributes, k)
+			diff.DelAttribute(k)
 		}
 	}
 
@@ -49,7 +49,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 
 	// Flag if we're creating a new instance
 	if n.CreateNew != nil {
-		*n.CreateNew = state.ID == "" && !diff.Destroy || diff.RequiresNew()
+		*n.CreateNew = state.ID == "" && !diff.GetDestroy() || diff.RequiresNew()
 	}
 
 	{
@@ -215,13 +215,13 @@ func (n *EvalApplyProvisioners) apply(ctx EvalContext) error {
 		provisioner := ctx.Provisioner(prov.Type)
 
 		// Interpolate the provisioner config
-		provConfig, err := ctx.Interpolate(prov.RawConfig, n.InterpResource)
+		provConfig, err := ctx.Interpolate(prov.RawConfig.Copy(), n.InterpResource)
 		if err != nil {
 			return err
 		}
 
 		// Interpolate the conn info, since it may contain variables
-		connInfo, err := ctx.Interpolate(prov.ConnInfo, n.InterpResource)
+		connInfo, err := ctx.Interpolate(prov.ConnInfo.Copy(), n.InterpResource)
 		if err != nil {
 			return err
 		}

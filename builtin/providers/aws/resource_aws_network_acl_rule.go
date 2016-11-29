@@ -63,14 +63,16 @@ func resourceAwsNetworkAclRule() *schema.Resource {
 				ForceNew: true,
 			},
 			"icmp_type": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateICMPArgumentValue,
 			},
 			"icmp_code": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateICMPArgumentValue,
 			},
 		},
 	}
@@ -85,7 +87,7 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		var ok bool
 		p, ok = protocolIntegers()[protocol]
 		if !ok {
-			return fmt.Errorf("Invalid Protocol %s for rule %#v", protocol, d.Get("rule_number").(int))
+			return fmt.Errorf("Invalid Protocol %s for rule %d", protocol, d.Get("rule_number").(int))
 		}
 	}
 	log.Printf("[INFO] Transformed Protocol %s into %d", protocol, p)
@@ -103,14 +105,25 @@ func resourceAwsNetworkAclRuleCreate(d *schema.ResourceData, meta interface{}) e
 		},
 	}
 
-	// Specify additional required fields for ICMP
+	// Specify additional required fields for ICMP. For the list
+	// of ICMP codes and types, see: http://www.nthelp.com/icmp.html
 	if p == 1 {
 		params.IcmpTypeCode = &ec2.IcmpTypeCode{}
-		if v, ok := d.GetOk("icmp_code"); ok {
-			params.IcmpTypeCode.Code = aws.Int64(int64(v.(int)))
-		}
 		if v, ok := d.GetOk("icmp_type"); ok {
-			params.IcmpTypeCode.Type = aws.Int64(int64(v.(int)))
+			icmpType, err := strconv.Atoi(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to parse ICMP type %s for rule %d", v, d.Get("rule_number").(int))
+			}
+			params.IcmpTypeCode.Type = aws.Int64(int64(icmpType))
+			log.Printf("[DEBUG] Got ICMP type %d for rule %d", icmpType, d.Get("rule_number").(int))
+		}
+		if v, ok := d.GetOk("icmp_code"); ok {
+			icmpCode, err := strconv.Atoi(v.(string))
+			if err != nil {
+				return fmt.Errorf("Unable to parse ICMP code %s for rule %d", v, d.Get("rule_number").(int))
+			}
+			params.IcmpTypeCode.Code = aws.Int64(int64(icmpCode))
+			log.Printf("[DEBUG] Got ICMP code %d for rule %d", icmpCode, d.Get("rule_number").(int))
 		}
 	}
 
@@ -165,7 +178,7 @@ func resourceAwsNetworkAclRuleRead(d *schema.ResourceData, meta interface{}) err
 		var ok bool
 		protocol, ok := protocolStrings(protocolIntegers())[p]
 		if !ok {
-			return fmt.Errorf("Invalid Protocol %s for rule %#v", *resp.Protocol, d.Get("rule_number").(int))
+			return fmt.Errorf("Invalid Protocol %s for rule %d", *resp.Protocol, d.Get("rule_number").(int))
 		}
 		log.Printf("[INFO] Transformed Protocol %s back into %s", *resp.Protocol, protocol)
 		d.Set("protocol", protocol)
@@ -198,7 +211,7 @@ func findNetworkAclRule(d *schema.ResourceData, meta interface{}) (*ec2.NetworkA
 	filters := make([]*ec2.Filter, 0, 2)
 	ruleNumberFilter := &ec2.Filter{
 		Name:   aws.String("entry.rule-number"),
-		Values: []*string{aws.String(fmt.Sprintf("%v", d.Get("rule_number").(int)))},
+		Values: []*string{aws.String(fmt.Sprintf("%d", d.Get("rule_number").(int)))},
 	}
 	filters = append(filters, ruleNumberFilter)
 	egressFilter := &ec2.Filter{
@@ -244,4 +257,13 @@ func networkAclIdRuleNumberEgressHash(networkAclId string, ruleNumber int, egres
 	buf.WriteString(fmt.Sprintf("%t-", egress))
 	buf.WriteString(fmt.Sprintf("%s-", protocol))
 	return fmt.Sprintf("nacl-%d", hashcode.String(buf.String()))
+}
+
+func validateICMPArgumentValue(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	_, err := strconv.Atoi(value)
+	if len(value) == 0 || err != nil {
+		errors = append(errors, fmt.Errorf("%q must be an integer value: %q", k, value))
+	}
+	return
 }

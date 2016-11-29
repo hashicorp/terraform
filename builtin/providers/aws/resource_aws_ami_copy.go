@@ -24,6 +24,20 @@ func resourceAwsAmiCopy() *schema.Resource {
 		ForceNew: true,
 	}
 
+	resourceSchema["encrypted"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+		Default:  false,
+		ForceNew: true,
+	}
+
+	resourceSchema["kms_key_id"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Computed: true,
+		ForceNew: true,
+	}
+
 	return &schema.Resource{
 		Create: resourceAwsAmiCopyCreate,
 
@@ -45,6 +59,11 @@ func resourceAwsAmiCopyCreate(d *schema.ResourceData, meta interface{}) error {
 		Description:   aws.String(d.Get("description").(string)),
 		SourceImageId: aws.String(d.Get("source_ami_id").(string)),
 		SourceRegion:  aws.String(d.Get("source_ami_region").(string)),
+		Encrypted:     aws.Bool(d.Get("encrypted").(bool)),
+	}
+
+	if v, ok := d.GetOk("kms_key_id"); ok {
+		req.KmsKeyId = aws.String(v.(string))
 	}
 
 	res, err := client.CopyImage(req)

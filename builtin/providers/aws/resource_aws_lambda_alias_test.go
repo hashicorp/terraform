@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,6 +24,7 @@ func TestAccAWSLambdaAlias_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaAliasExists("aws_lambda_alias.lambda_alias_test", &conf),
 					testAccCheckAwsLambdaAttributes(&conf),
+					resource.TestMatchResourceAttr("aws_lambda_alias.lambda_alias_test", "arn", regexp.MustCompile(`^arn:aws:lambda:[a-z]+-[a-z]+-[0-9]+:\d{12}:function:example_lambda_name_create:testalias$`)),
 				),
 			},
 		},

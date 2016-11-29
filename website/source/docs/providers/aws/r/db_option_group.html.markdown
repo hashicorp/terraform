@@ -28,10 +28,10 @@ resource "aws_db_option_group" "bar" {
   option {
     option_name = "TDE"
   }
-
-  apply_immediately = true
 }
 ```
+
+~> **Note**: Any modifications to the `db_option_group` are set to happen immediately as we default to applying immediately.
 
 ## Argument Reference
 
@@ -62,3 +62,11 @@ Option Settings blocks support the following:
 The following attributes are exported:
 
 * `arn` - The ARN of the db option group.
+
+## Import
+
+DB Option groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_db_option_group.bar mysql-option-group
+```

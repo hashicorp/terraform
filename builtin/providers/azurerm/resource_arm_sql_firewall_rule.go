@@ -15,6 +15,9 @@ func resourceArmSqlFirewallRule() *schema.Resource {
 		Read:   resourceArmSqlFirewallRuleRead,
 		Update: resourceArmSqlFirewallRuleCreate,
 		Delete: resourceArmSqlFirewallRuleDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -91,6 +94,12 @@ func resourceArmSqlFirewallRuleCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceArmSqlFirewallRuleRead(d *schema.ResourceData, meta interface{}) error {
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+	resGroup := id.ResourceGroup
+
 	client := meta.(*ArmClient)
 	rivieraClient := client.rivieraClient
 
@@ -109,6 +118,10 @@ func resourceArmSqlFirewallRuleRead(d *schema.ResourceData, meta interface{}) er
 
 	resp := readResponse.Parsed.(*sql.GetFirewallRuleResponse)
 
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
+	d.Set("name", resp.Name)
+	d.Set("server_name", id.Path["servers"])
 	d.Set("start_ip_address", resp.StartIPAddress)
 	d.Set("end_ip_address", resp.EndIPAddress)
 

@@ -32,3 +32,11 @@ The following attributes are exported:
 
 * `arn` - The ARN assigned by AWS for this provider.
 * `valid_until` - The expiration date and time for the SAML provider in RFC1123 format, e.g. `Mon, 02 Jan 2006 15:04:05 MST`.
+
+## Import
+
+IAM SAML Providers can be imported using the `arn`, e.g. 
+
+```
+$ terraform import aws_iam_saml_provider.default arn:aws:iam::123456789012:saml-provider/SAMLADFS
+```

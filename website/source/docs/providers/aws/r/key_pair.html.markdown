@@ -31,8 +31,9 @@ resource "aws_key_pair" "deployer" {
 
 The following arguments are supported:
 
-* `key_name` - (Required) The name for the key pair.
-* `public_key` - (Required) The public key material. 
+* `key_name` - (Optional) The name for the key pair.
+* `key_name_prefix` - (Optional) Creates a unique name beginning with the specified prefix. Conflicts with `key_name`.
+* `public_key` - (Required) The public key material.
 
 ## Attributes Reference
 
@@ -40,3 +41,11 @@ The following attributes are exported:
 
 * `key_name` - The key pair name.
 * `fingerprint` - The MD5 public key fingerprint as specified in section 4 of RFC 4716.
+
+## Import
+
+Key Pairs can be imported using the `key_name`, e.g. 
+
+```
+$ terraform import aws_key_pair.deployer deployer-key
+```

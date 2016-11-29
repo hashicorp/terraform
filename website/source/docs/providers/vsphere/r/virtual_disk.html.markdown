@@ -18,7 +18,7 @@ resource "vsphere_virtual_disk" "myDisk" {
     vmdk_path = "myDisk.vmdk"
     datacenter = "Datacenter"
     datastore = "local"
-    init_type = "thin"
+    type = "thin"
 }
 ```
 

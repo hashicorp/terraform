@@ -16,6 +16,9 @@ func resourceAwsCloudWatchLogGroup() *schema.Resource {
 		Read:   resourceAwsCloudWatchLogGroupRead,
 		Update: resourceAwsCloudWatchLogGroupUpdate,
 		Delete: resourceAwsCloudWatchLogGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -60,37 +63,43 @@ func resourceAwsCloudWatchLogGroupCreate(d *schema.ResourceData, meta interface{
 func resourceAwsCloudWatchLogGroupRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatchlogsconn
 	log.Printf("[DEBUG] Reading CloudWatch Log Group: %q", d.Get("name").(string))
-	lg, err := lookupCloudWatchLogGroup(conn, d.Get("name").(string), nil)
+	lg, exists, err := lookupCloudWatchLogGroup(conn, d.Id(), nil)
 	if err != nil {
 		return err
 	}
 
+	if !exists {
+		log.Printf("[DEBUG] CloudWatch Group %q Not Found", d.Id())
+		d.SetId("")
+		return nil
+	}
+
 	log.Printf("[DEBUG] Found Log Group: %#v", *lg)
 
-	d.Set("arn", *lg.Arn)
-	d.Set("name", *lg.LogGroupName)
+	d.Set("arn", lg.Arn)
+	d.Set("name", lg.LogGroupName)
 
 	if lg.RetentionInDays != nil {
-		d.Set("retention_in_days", *lg.RetentionInDays)
+		d.Set("retention_in_days", lg.RetentionInDays)
 	}
 
 	return nil
 }
 
 func lookupCloudWatchLogGroup(conn *cloudwatchlogs.CloudWatchLogs,
-	name string, nextToken *string) (*cloudwatchlogs.LogGroup, error) {
+	name string, nextToken *string) (*cloudwatchlogs.LogGroup, bool, error) {
 	input := &cloudwatchlogs.DescribeLogGroupsInput{
 		LogGroupNamePrefix: aws.String(name),
 		NextToken:          nextToken,
 	}
 	resp, err := conn.DescribeLogGroups(input)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	for _, lg := range resp.LogGroups {
 		if *lg.LogGroupName == name {
-			return lg, nil
+			return lg, true, nil
 		}
 	}
 
@@ -98,7 +107,7 @@ func lookupCloudWatchLogGroup(conn *cloudwatchlogs.CloudWatchLogs,
 		return lookupCloudWatchLogGroup(conn, name, resp.NextToken)
 	}
 
-	return nil, fmt.Errorf("CloudWatch Log Group %q not found", name)
+	return nil, false, nil
 }
 
 func resourceAwsCloudWatchLogGroupUpdate(d *schema.ResourceData, meta interface{}) error {

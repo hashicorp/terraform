@@ -181,10 +181,11 @@ resource "fastly_service_v1" "foo" {
   }
 
   header {
-    destination = "http.Server"
-    type        = "cache"
-    action      = "delete"
-    name        = "remove s3 server"
+    destination   = "http.Server"
+    type          = "cache"
+    action        = "delete"
+    name          = "remove s3 server"
+    ignore_if_set = "true"
   }
 
   force_destroy = true

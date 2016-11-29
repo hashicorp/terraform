@@ -23,7 +23,7 @@ const (
 
 // Change represents a change in a container.
 //
-// See https://goo.gl/9GsTIF for more details.
+// See https://goo.gl/Wo0JJp for more details.
 type Change struct {
 	Path string
 	Kind ChangeType

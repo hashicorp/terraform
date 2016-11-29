@@ -20,17 +20,22 @@ func resourceAwsApiGatewayRestApi() *schema.Resource {
 		Delete: resourceAwsApiGatewayRestApiDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"root_resource_id": &schema.Schema{
+			"root_resource_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"created_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -56,7 +61,11 @@ func resourceAwsApiGatewayRestApiCreate(d *schema.ResourceData, meta interface{}
 
 	d.SetId(*gateway.Id)
 
-	return resourceAwsApiGatewayRestApiRefreshResources(d, meta)
+	if err = resourceAwsApiGatewayRestApiRefreshResources(d, meta); err != nil {
+		return err
+	}
+
+	return resourceAwsApiGatewayRestApiRead(d, meta)
 }
 
 func resourceAwsApiGatewayRestApiRefreshResources(d *schema.ResourceData, meta interface{}) error {
@@ -94,9 +103,12 @@ func resourceAwsApiGatewayRestApiRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.SetId(*api.Id)
 	d.Set("name", api.Name)
 	d.Set("description", api.Description)
+
+	if err := d.Set("created_date", api.CreatedDate.Format(time.RFC3339)); err != nil {
+		log.Printf("[DEBUG] Error setting created_date: %s", err)
+	}
 
 	return nil
 }

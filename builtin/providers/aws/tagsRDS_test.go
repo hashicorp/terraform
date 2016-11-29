@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -57,6 +58,23 @@ func TestDiffRDSTags(t *testing.T) {
 		}
 		if !reflect.DeepEqual(rm, tc.Remove) {
 			t.Fatalf("%d: bad remove: %#v", i, rm)
+		}
+	}
+}
+
+func TestIgnoringTagsRDS(t *testing.T) {
+	var ignoredTags []*rds.Tag
+	ignoredTags = append(ignoredTags, &rds.Tag{
+		Key:   aws.String("aws:cloudformation:logical-id"),
+		Value: aws.String("foo"),
+	})
+	ignoredTags = append(ignoredTags, &rds.Tag{
+		Key:   aws.String("aws:foo:bar"),
+		Value: aws.String("baz"),
+	})
+	for _, tag := range ignoredTags {
+		if !tagIgnoredRDS(tag) {
+			t.Fatalf("Tag %v with value %v not ignored, but should be!", *tag.Key, *tag.Value)
 		}
 	}
 }

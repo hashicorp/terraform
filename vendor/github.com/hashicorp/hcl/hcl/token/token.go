@@ -152,6 +152,11 @@ func (t Token) Value() interface{} {
 			f = strconv.Unquote
 		}
 
+		// This case occurs if json null is used
+		if t.Text == "" {
+			return ""
+		}
+
 		v, err := f(t.Text)
 		if err != nil {
 			panic(fmt.Sprintf("unquote %s err: %s", t.Text, err))

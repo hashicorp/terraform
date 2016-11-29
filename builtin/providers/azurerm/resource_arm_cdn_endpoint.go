@@ -18,6 +18,9 @@ func resourceArmCdnEndpoint() *schema.Resource {
 		Read:   resourceArmCdnEndpointRead,
 		Update: resourceArmCdnEndpointUpdate,
 		Delete: resourceArmCdnEndpointDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -26,12 +29,7 @@ func resourceArmCdnEndpoint() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -66,6 +64,7 @@ func resourceArmCdnEndpoint() *schema.Resource {
 			"origin": {
 				Type:     schema.TypeSet,
 				Required: true,
+				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -149,7 +148,7 @@ func resourceArmCdnEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 	caching_behaviour := d.Get("querystring_caching_behaviour").(string)
 	tags := d.Get("tags").(map[string]interface{})
 
-	properties := cdn.EndpointPropertiesCreateUpdateParameters{
+	properties := cdn.EndpointPropertiesCreateParameters{
 		IsHTTPAllowed:              &http_allowed,
 		IsHTTPSAllowed:             &https_allowed,
 		IsCompressionEnabled:       &compression_enabled,
@@ -224,15 +223,18 @@ func resourceArmCdnEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	}
 	log.Printf("[INFO] Trying to find the AzureRM CDN Endpoint %s (Profile: %s, RG: %s)", name, profileName, resGroup)
 	resp, err := cdnEndpointsClient.Get(name, profileName, resGroup)
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure CDN Endpoint %s: %s", name, err)
 	}
 
 	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
+	d.Set("profile_name", profileName)
 	d.Set("host_name", resp.Properties.HostName)
 	d.Set("is_compression_enabled", resp.Properties.IsCompressionEnabled)
 	d.Set("is_http_allowed", resp.Properties.IsHTTPAllowed)
@@ -244,7 +246,7 @@ func resourceArmCdnEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	if resp.Properties.OriginPath != nil && *resp.Properties.OriginPath != "" {
 		d.Set("origin_path", resp.Properties.OriginPath)
 	}
-	if resp.Properties.ContentTypesToCompress != nil && len(*resp.Properties.ContentTypesToCompress) > 0 {
+	if resp.Properties.ContentTypesToCompress != nil {
 		d.Set("content_types_to_compress", flattenAzureRMCdnEndpointContentTypes(resp.Properties.ContentTypesToCompress))
 	}
 	d.Set("origin", flattenAzureRMCdnEndpointOrigin(resp.Properties.Origins))
@@ -270,21 +272,11 @@ func resourceArmCdnEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 	caching_behaviour := d.Get("querystring_caching_behaviour").(string)
 	newTags := d.Get("tags").(map[string]interface{})
 
-	properties := cdn.EndpointPropertiesCreateUpdateParameters{
+	properties := cdn.EndpointPropertiesUpdateParameters{
 		IsHTTPAllowed:              &http_allowed,
 		IsHTTPSAllowed:             &https_allowed,
 		IsCompressionEnabled:       &compression_enabled,
 		QueryStringCachingBehavior: cdn.QueryStringCachingBehavior(caching_behaviour),
-	}
-
-	if d.HasChange("origin") {
-		origins, originsErr := expandAzureRmCdnEndpointOrigins(d)
-		if originsErr != nil {
-			return fmt.Errorf("Error Building list of CDN Endpoint Origins: %s", originsErr)
-		}
-		if len(origins) > 0 {
-			properties.Origins = &origins
-		}
 	}
 
 	if d.HasChange("origin_host_header") {
@@ -313,7 +305,7 @@ func resourceArmCdnEndpointUpdate(d *schema.ResourceData, meta interface{}) erro
 		Properties: &properties,
 	}
 
-	_, err := cdnEndpointsClient.Update(name, updateProps, profileName, resGroup)
+	_, err := cdnEndpointsClient.Update(name, updateProps, profileName, resGroup, make(chan struct{}))
 	if err != nil {
 		return fmt.Errorf("Error issuing Azure ARM update request to update CDN Endpoint %q: %s", name, err)
 	}

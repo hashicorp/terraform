@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -38,11 +37,7 @@ func setValueOrID(d *schema.ResourceData, key string, value string, id string) {
 	}
 }
 
-func retrieveID(
-	cs *cloudstack.CloudStackClient,
-	name string,
-	value string,
-	opts ...cloudstack.OptionFunc) (id string, e *retrieveError) {
+func retrieveID(cs *cloudstack.CloudStackClient, name string, value string, opts ...cloudstack.OptionFunc) (id string, e *retrieveError) {
 	// If the supplied value isn't a ID, try to retrieve the ID ourselves
 	if cloudstack.IsID(value) {
 		return value, nil
@@ -50,45 +45,21 @@ func retrieveID(
 
 	log.Printf("[DEBUG] Retrieving ID of %s: %s", name, value)
 
+	// Ignore counts, since an error is returned if there is no exact match
 	var err error
 	switch name {
 	case "disk_offering":
-		id, err = cs.DiskOffering.GetDiskOfferingID(value)
-	case "virtual_machine":
-		id, err = cs.VirtualMachine.GetVirtualMachineID(value, opts...)
+		id, _, err = cs.DiskOffering.GetDiskOfferingID(value)
 	case "service_offering":
-		id, err = cs.ServiceOffering.GetServiceOfferingID(value)
+		id, _, err = cs.ServiceOffering.GetServiceOfferingID(value)
 	case "network_offering":
-		id, err = cs.NetworkOffering.GetNetworkOfferingID(value)
+		id, _, err = cs.NetworkOffering.GetNetworkOfferingID(value)
 	case "project":
-		id, err = cs.Project.GetProjectID(value)
+		id, _, err = cs.Project.GetProjectID(value)
 	case "vpc_offering":
-		id, err = cs.VPC.GetVPCOfferingID(value)
-	case "vpc":
-		id, err = cs.VPC.GetVPCID(value, opts...)
-	case "network":
-		id, err = cs.Network.GetNetworkID(value, opts...)
+		id, _, err = cs.VPC.GetVPCOfferingID(value)
 	case "zone":
-		id, err = cs.Zone.GetZoneID(value)
-	case "ip_address":
-		p := cs.Address.NewListPublicIpAddressesParams()
-		p.SetIpaddress(value)
-		for _, fn := range opts {
-			if e := fn(cs, p); e != nil {
-				err = e
-				break
-			}
-		}
-		l, e := cs.Address.ListPublicIpAddresses(p)
-		if e != nil {
-			err = e
-			break
-		}
-		if l.Count == 1 {
-			id = l.PublicIpAddresses[0].Id
-			break
-		}
-		err = fmt.Errorf("Could not find ID of IP address: %s", value)
+		id, _, err = cs.Zone.GetZoneID(value)
 	case "os_type":
 		p := cs.GuestOS.NewListOsTypesParams()
 		p.SetDescription(value)
@@ -122,7 +93,8 @@ func retrieveTemplateID(cs *cloudstack.CloudStackClient, zoneid, value string) (
 
 	log.Printf("[DEBUG] Retrieving ID of template: %s", value)
 
-	id, err := cs.Template.GetTemplateID(value, "executable", zoneid)
+	// Ignore count, since an error is returned if there is no exact match
+	id, _, err := cs.Template.GetTemplateID(value, "executable", zoneid)
 	if err != nil {
 		return id, &retrieveError{name: "template", value: value, err: err}
 	}
@@ -149,39 +121,6 @@ func Retry(n int, f RetryFunc) (interface{}, error) {
 	}
 
 	return nil, lastErr
-}
-
-// This is a temporary helper function to support both the new
-// cidr_list and the deprecated source_cidr parameter
-func retrieveCidrList(rule map[string]interface{}) []string {
-	sourceCidr := rule["source_cidr"].(string)
-	if sourceCidr != "" {
-		return []string{sourceCidr}
-	}
-
-	var cidrList []string
-	for _, cidr := range rule["cidr_list"].(*schema.Set).List() {
-		cidrList = append(cidrList, cidr.(string))
-	}
-
-	return cidrList
-}
-
-// This is a temporary helper function to support both the new
-// cidr_list and the deprecated source_cidr parameter
-func setCidrList(rule map[string]interface{}, cidrList string) {
-	sourceCidr := rule["source_cidr"].(string)
-	if sourceCidr != "" {
-		rule["source_cidr"] = cidrList
-		return
-	}
-
-	cidrs := &schema.Set{F: schema.HashString}
-	for _, cidr := range strings.Split(cidrList, ",") {
-		cidrs.Add(cidr)
-	}
-
-	rule["cidr_list"] = cidrs
 }
 
 // If there is a project supplied, we retrieve and set the project id

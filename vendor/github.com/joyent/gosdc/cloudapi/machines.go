@@ -30,6 +30,7 @@ type Machine struct {
 	PrimaryIP       string            // The primary (public) IP address for the machine
 	Networks        []string          // The network IDs for the machine
 	FirewallEnabled bool              `json:"firewall_enabled"` // whether or not the firewall is enabled
+	DomainNames     []string          `json:"dns_names"` // The domain names of this machine
 }
 
 // Equals compares two machines. Ignores state and timestamps.

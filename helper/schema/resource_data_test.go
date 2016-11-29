@@ -1755,7 +1755,87 @@ func TestResourceDataSet(t *testing.T) {
 	}
 }
 
-func TestResourceDataState(t *testing.T) {
+func TestResourceDataState_dynamicAttributes(t *testing.T) {
+	cases := []struct {
+		Schema    map[string]*Schema
+		State     *terraform.InstanceState
+		Diff      *terraform.InstanceDiff
+		Set       map[string]interface{}
+		UnsafeSet map[string]string
+		Result    *terraform.InstanceState
+	}{
+		{
+			Schema: map[string]*Schema{
+				"__has_dynamic_attributes": {
+					Type:     TypeString,
+					Optional: true,
+				},
+
+				"schema_field": {
+					Type:     TypeString,
+					Required: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Set: map[string]interface{}{
+				"schema_field": "present",
+			},
+
+			UnsafeSet: map[string]string{
+				"test1": "value",
+				"test2": "value",
+			},
+
+			Result: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"schema_field": "present",
+					"test1":        "value",
+					"test2":        "value",
+				},
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		for k, v := range tc.Set {
+			d.Set(k, v)
+		}
+
+		for k, v := range tc.UnsafeSet {
+			d.UnsafeSetFieldRaw(k, v)
+		}
+
+		// Set an ID so that the state returned is not nil
+		idSet := false
+		if d.Id() == "" {
+			idSet = true
+			d.SetId("foo")
+		}
+
+		actual := d.State()
+
+		// If we set an ID, then undo what we did so the comparison works
+		if actual != nil && idSet {
+			actual.ID = ""
+			delete(actual.Attributes, "id")
+		}
+
+		if !reflect.DeepEqual(actual, tc.Result) {
+			t.Fatalf("Bad: %d\n\n%#v\n\nExpected:\n\n%#v", i, actual, tc.Result)
+		}
+	}
+}
+
+func TestResourceDataState_schema(t *testing.T) {
 	cases := []struct {
 		Schema  map[string]*Schema
 		State   *terraform.InstanceState
@@ -2875,6 +2955,111 @@ func TestResourceDataState(t *testing.T) {
 
 		if !reflect.DeepEqual(actual, tc.Result) {
 			t.Fatalf("Bad: %d\n\n%#v\n\nExpected:\n\n%#v", i, actual, tc.Result)
+		}
+	}
+}
+
+func TestResourceData_nonStringValuesInMap(t *testing.T) {
+	cases := []struct {
+		Schema       map[string]*Schema
+		Diff         *terraform.InstanceDiff
+		MapFieldName string
+		ItemName     string
+		ExpectedType string
+	}{
+		{
+			Schema: map[string]*Schema{
+				"boolMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeBool,
+					Optional: true,
+				},
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"boolMap.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"boolMap.boolField": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "true",
+					},
+				},
+			},
+			MapFieldName: "boolMap",
+			ItemName:     "boolField",
+			ExpectedType: "bool",
+		},
+		{
+			Schema: map[string]*Schema{
+				"intMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeInt,
+					Optional: true,
+				},
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"intMap.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"intMap.intField": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "8",
+					},
+				},
+			},
+			MapFieldName: "intMap",
+			ItemName:     "intField",
+			ExpectedType: "int",
+		},
+		{
+			Schema: map[string]*Schema{
+				"floatMap": &Schema{
+					Type:     TypeMap,
+					Elem:     TypeFloat,
+					Optional: true,
+				},
+			},
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"floatMap.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"floatMap.floatField": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "8.22",
+					},
+				},
+			},
+			MapFieldName: "floatMap",
+			ItemName:     "floatField",
+			ExpectedType: "float64",
+		},
+	}
+
+	for _, c := range cases {
+		d, err := schemaMap(c.Schema).Data(nil, c.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		m, ok := d.Get(c.MapFieldName).(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected %q to be castable to a map", c.MapFieldName)
+		}
+		field, ok := m[c.ItemName]
+		if !ok {
+			t.Fatalf("expected %q in the map", c.ItemName)
+		}
+
+		typeName := reflect.TypeOf(field).Name()
+		if typeName != c.ExpectedType {
+			t.Fatalf("expected %q to be %q, it is %q.",
+				c.ItemName, c.ExpectedType, typeName)
 		}
 	}
 }

@@ -5,7 +5,87 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/flatmap"
 )
+
+func TestNewContextRequiredVersion(t *testing.T) {
+	cases := []struct {
+		Name    string
+		Module  string
+		Version string
+		Value   string
+		Err     bool
+	}{
+		{
+			"no requirement",
+			"",
+			"0.1.0",
+			"",
+			false,
+		},
+
+		{
+			"doesn't match",
+			"",
+			"0.1.0",
+			"> 0.6.0",
+			true,
+		},
+
+		{
+			"matches",
+			"",
+			"0.7.0",
+			"> 0.6.0",
+			false,
+		},
+
+		{
+			"module matches",
+			"context-required-version-module",
+			"0.5.0",
+			"",
+			false,
+		},
+
+		{
+			"module doesn't match",
+			"context-required-version-module",
+			"0.4.0",
+			"",
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			// Reset the version for the tests
+			old := SemVersion
+			SemVersion = version.Must(version.NewVersion(tc.Version))
+			defer func() { SemVersion = old }()
+
+			name := "context-required-version"
+			if tc.Module != "" {
+				name = tc.Module
+			}
+			mod := testModule(t, name)
+			if tc.Value != "" {
+				mod.Config().Terraform.RequiredVersion = tc.Value
+			}
+			_, err := NewContext(&ContextOpts{
+				Module: mod,
+			})
+			if (err != nil) != tc.Err {
+				t.Fatalf("err: %s", err)
+			}
+			if err != nil {
+				return
+			}
+		})
+	}
+}
 
 func TestNewContextState(t *testing.T) {
 	cases := map[string]struct {
@@ -66,12 +146,27 @@ func TestNewContextState(t *testing.T) {
 }
 
 func testContext2(t *testing.T, opts *ContextOpts) *Context {
+	// Enable the shadow graph
+	opts.Shadow = true
+
 	ctx, err := NewContext(opts)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	return ctx
+}
+
+func testDataApplyFn(
+	info *InstanceInfo,
+	d *InstanceDiff) (*InstanceState, error) {
+	return testApplyFn(info, new(InstanceState), d)
+}
+
+func testDataDiffFn(
+	info *InstanceInfo,
+	c *ResourceConfig) (*InstanceDiff, error) {
+	return testDiffFn(info, new(InstanceState), c)
 }
 
 func testApplyFn(
@@ -164,18 +259,15 @@ func testDiffFn(
 			v = c.Config[k]
 		}
 
-		attrDiff := &ResourceAttrDiff{
-			Old: "",
-			New: v.(string),
+		for k, attrDiff := range testFlatAttrDiffs(k, v) {
+			if k == "require_new" {
+				attrDiff.RequiresNew = true
+			}
+			if _, ok := c.Raw["__"+k+"_requires_new"]; ok {
+				attrDiff.RequiresNew = true
+			}
+			diff.Attributes[k] = attrDiff
 		}
-
-		if k == "require_new" {
-			attrDiff.RequiresNew = true
-		}
-		if _, ok := c.Raw["__"+k+"_requires_new"]; ok {
-			attrDiff.RequiresNew = true
-		}
-		diff.Attributes[k] = attrDiff
 	}
 
 	for _, k := range c.ComputedKeys {
@@ -211,6 +303,39 @@ func testDiffFn(
 	}
 
 	return diff, nil
+}
+
+// generate ResourceAttrDiffs for nested data structures in tests
+func testFlatAttrDiffs(k string, i interface{}) map[string]*ResourceAttrDiff {
+	diffs := make(map[string]*ResourceAttrDiff)
+	// check for strings and empty containers first
+	switch t := i.(type) {
+	case string:
+		diffs[k] = &ResourceAttrDiff{New: t}
+		return diffs
+	case map[string]interface{}:
+		if len(t) == 0 {
+			diffs[k] = &ResourceAttrDiff{New: ""}
+			return diffs
+		}
+	case []interface{}:
+		if len(t) == 0 {
+			diffs[k] = &ResourceAttrDiff{New: ""}
+			return diffs
+		}
+	}
+
+	flat := flatmap.Flatten(map[string]interface{}{k: i})
+
+	for k, v := range flat {
+		attrDiff := &ResourceAttrDiff{
+			Old: "",
+			New: v,
+		}
+		diffs[k] = attrDiff
+	}
+
+	return diffs
 }
 
 func testProvider(prefix string) *MockResourceProvider {

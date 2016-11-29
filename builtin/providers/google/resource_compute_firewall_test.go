@@ -126,7 +126,7 @@ func testAccCheckComputeFirewallPorts(
 func testAccComputeFirewall_basic(network, firewall string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_network" "foobar" {
-		name = "firewall-test-%s"
+		name = "%s"
 		ipv4_range = "10.0.0.0/16"
 	}
 
@@ -145,7 +145,7 @@ func testAccComputeFirewall_basic(network, firewall string) string {
 func testAccComputeFirewall_update(network, firewall string) string {
 	return fmt.Sprintf(`
 	resource "google_compute_network" "foobar" {
-		name = "firewall-test-%s"
+		name = "%s"
 		ipv4_range = "10.0.0.0/16"
 	}
 

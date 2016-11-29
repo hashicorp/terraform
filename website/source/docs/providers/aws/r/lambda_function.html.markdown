@@ -56,8 +56,11 @@ resource "aws_lambda_function" "test_lambda" {
 * `memory_size` - (Optional) Amount of memory in MB your Lambda Function can use at runtime. Defaults to `128`. See [Limits][5]
 * `runtime` - (Optional) Defaults to `nodejs`. See [Runtimes][6] for valid values.
 * `timeout` - (Optional) The amount of time your Lambda Function has to run in seconds. Defaults to `3`. See [Limits][5]
+* `publish` - (Optional) Whether to publish creation/change as new Lambda Function Version. Defaults to `false`.
 * `vpc_config` - (Optional) Provide this to allow your function to access your VPC. Fields documented below. See [Lambda in VPC][7]
-* `source_code_hash` - (Optional) Used to trigger updates. This is only useful in conjuction with `filename`.
+* `environment` - (Optional) The Lambda environment's configuration settings. Fields documented below.
+* `kms_key_arn` - (Optional) The ARN for the KMS encryption key.
+* `source_code_hash` - (Optional) Used to trigger updates. This is only useful in conjunction with `filename`.
   The only useful value is `${base64sha256(file("file.zip"))}`.
 
 **vpc\_config** requires the following:
@@ -65,12 +68,22 @@ resource "aws_lambda_function" "test_lambda" {
 * `subnet_ids` - (Required) A list of subnet IDs associated with the Lambda function.
 * `security_group_ids` - (Required) A list of security group IDs associated with the Lambda function.
 
+~> **NOTE:** if both `subnet_ids` and `security_group_ids` are empty then vpc_config is considered to be empty or unset.
+
+For **environment** the following attributes are supported:
+
+* `variables` - (Optional) A map that defines environment variables for the Lambda function.
+
 ## Attributes Reference
 
 * `arn` - The Amazon Resource Name (ARN) identifying your Lambda Function.
+* `qualified_arn` - The Amazon Resource Name (ARN) identifying your Lambda Function Version
+  (if versioning is enabled via `publish = true`).
+* `version` - Latest published version of your Lambda Function.
 * `last_modified` - The date this resource was last modified.
+* `kms_key_arn` - (Optional) The ARN for the KMS encryption key.
 * `source_code_hash` - Base64-encoded representation of raw SHA-256 sum of the zip file
-  provided either via `filename` or `s3_*` parameters
+  provided either via `filename` or `s3_*` parameters.
 
 [1]: https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
 [2]: https://docs.aws.amazon.com/lambda/latest/dg/walkthrough-s3-events-adminuser-create-test-function-create-function.html
@@ -79,3 +92,11 @@ resource "aws_lambda_function" "test_lambda" {
 [5]: https://docs.aws.amazon.com/lambda/latest/dg/limits.html
 [6]: https://docs.aws.amazon.com/lambda/latest/dg/API_CreateFunction.html#SSS-CreateFunction-request-Runtime
 [7]: http://docs.aws.amazon.com/lambda/latest/dg/vpc.html
+
+## Import
+
+Lambda Functions can be imported using the `function_name`, e.g. 
+
+```
+$ terraform import aws_lambda_function.tesr_lambda my_test_lambda_function
+```

@@ -1,7 +1,6 @@
 package cloudstack
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -30,18 +29,16 @@ func resourceCloudStackNetworkACL() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"vpc_id": &schema.Schema{
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
 			},
 
-			"vpc": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Deprecated: "Please use the `vpc_id` field instead",
+			"vpc_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 		},
 	}
@@ -52,22 +49,8 @@ func resourceCloudStackNetworkACLCreate(d *schema.ResourceData, meta interface{}
 
 	name := d.Get("name").(string)
 
-	vpc, ok := d.GetOk("vpc_id")
-	if !ok {
-		vpc, ok = d.GetOk("vpc")
-	}
-	if !ok {
-		return errors.New("Either `vpc_id` or [deprecated] `vpc` must be provided.")
-	}
-
-	// Retrieve the vpc ID
-	vpcid, e := retrieveID(cs, "vpc", vpc.(string))
-	if e != nil {
-		return e.Error()
-	}
-
 	// Create a new parameter struct
-	p := cs.NetworkACL.NewCreateNetworkACLListParams(name, vpcid)
+	p := cs.NetworkACL.NewCreateNetworkACLListParams(name, d.Get("vpc_id").(string))
 
 	// Set the description
 	if description, ok := d.GetOk("description"); ok {
@@ -90,22 +73,11 @@ func resourceCloudStackNetworkACLCreate(d *schema.ResourceData, meta interface{}
 func resourceCloudStackNetworkACLRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	vpc, ok := d.GetOk("vpc_id")
-	if !ok {
-		vpc, ok = d.GetOk("vpc")
-	}
-	if !ok {
-		return errors.New("Either `vpc_id` or [deprecated] `vpc` must be provided.")
-	}
-
-	// Retrieve the vpc ID
-	vpcid, e := retrieveID(cs, "vpc", vpc.(string))
-	if e != nil {
-		return e.Error()
-	}
-
 	// Get the network ACL list details
-	f, count, err := cs.NetworkACL.GetNetworkACLListByID(d.Id(), cloudstack.WithVPCID(vpcid))
+	f, count, err := cs.NetworkACL.GetNetworkACLListByID(
+		d.Id(),
+		cloudstack.WithProject(d.Get("project").(string)),
+	)
 	if err != nil {
 		if count == 0 {
 			log.Printf(

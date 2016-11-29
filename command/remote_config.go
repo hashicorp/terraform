@@ -26,10 +26,15 @@ type remoteCommandConfig struct {
 type RemoteConfigCommand struct {
 	Meta
 	conf       remoteCommandConfig
-	remoteConf terraform.RemoteState
+	remoteConf *terraform.RemoteState
 }
 
 func (c *RemoteConfigCommand) Run(args []string) int {
+	// we expect a zero struct value here, but it's not explicitly set in tests
+	if c.remoteConf == nil {
+		c.remoteConf = &terraform.RemoteState{}
+	}
+
 	args = c.Meta.process(args, false)
 	config := make(map[string]string)
 	cmdFlags := flag.NewFlagSet("remote", flag.ContinueOnError)
@@ -38,7 +43,7 @@ func (c *RemoteConfigCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.conf.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.conf.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&c.remoteConf.Type, "backend", "atlas", "")
-	cmdFlags.Var((*FlagKV)(&config), "backend-config", "config")
+	cmdFlags.Var((*FlagStringKV)(&config), "backend-config", "config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("\nError parsing CLI flags: %s", err))
@@ -229,7 +234,7 @@ func (c *RemoteConfigCommand) initBlankState() int {
 
 	// Make a blank state, attach the remote configuration
 	blank := terraform.NewState()
-	blank.Remote = &c.remoteConf
+	blank.Remote = c.remoteConf
 
 	// Persist the state
 	remote := &state.LocalState{Path: c.stateResult.RemotePath}
@@ -260,7 +265,7 @@ func (c *RemoteConfigCommand) updateRemoteConfig() int {
 
 	// Update the configuration
 	state := remote.State()
-	state.Remote = &c.remoteConf
+	state.Remote = c.remoteConf
 	if err := remote.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf("%s", err))
 		return 1
@@ -312,7 +317,7 @@ func (c *RemoteConfigCommand) enableRemoteState() int {
 
 	// Update the local configuration, move into place
 	state := local.State()
-	state.Remote = &c.remoteConf
+	state.Remote = c.remoteConf
 	remote := c.stateResult.Remote
 	if err := remote.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf("%s", err))
@@ -348,8 +353,8 @@ Usage: terraform remote config [options]
 Options:
 
   -backend=Atlas         Specifies the type of remote backend. Must be one
-                         of Atlas, Consul, Etcd, GCS, HTTP, S3, or Swift. Defaults
-                         to Atlas.
+                         of Atlas, Consul, Etcd, GCS, HTTP, MAS, S3, or Swift.
+                         Defaults to Atlas.
 
   -backend-config="k=v"  Specifies configuration for the remote storage
                          backend. This can be specified multiple times.

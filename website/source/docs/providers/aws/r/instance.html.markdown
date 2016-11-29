@@ -14,15 +14,28 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 ## Example Usage
 
 ```
-# Create a new instance of the `ami-408c7f28` (Ubuntu 14.04) on an 
-# t1.micro node with an AWS Tag naming it "HelloWorld"
+# Create a new instance of the latest Ubuntu 14.04 on an
+# t2.micro node with an AWS Tag naming it "HelloWorld"
 provider "aws" {
-    region = "us-east-1"
+    region = "us-west-2"
 }
-    
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  filter {
+    name = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+  filter {
+    name = "virtualization-type"
+    values = ["hvm"]
+  }
+  owners = ["099720109477"] # Canonical
+}
+
 resource "aws_instance" "web" {
-    ami = "ami-408c7f28"
-    instance_type = "t1.micro"
+    ami = "${data.aws_ami.ubuntu.id}"
+    instance_type = "t2.micro"
     tags {
         Name = "HelloWorld"
     }
@@ -108,7 +121,7 @@ Each `ebs_block_device` supports the following:
 
 Modifying any `ebs_block_device` currently requires resource replacement.
 
-~> **NOTE on EBS block devices:** If you use `ebs_block_device` on an `aws_instance`, Terraform will assume management over the full set of non-root EBS block devices for the instance, and treats additional block devices as drift. For this reason, `ebs_block_device` cannot be mixed with external `aws_ebs_volume` + `aws_ebs_volume_attachment` resources for a given instance.
+~> **NOTE on EBS block devices:** If you use `ebs_block_device` on an `aws_instance`, Terraform will assume management over the full set of non-root EBS block devices for the instance, and treats additional block devices as drift. For this reason, `ebs_block_device` cannot be mixed with external `aws_ebs_volume` + `aws_volume_attachment` resources for a given instance.
 
 Each `ephemeral_block_device` supports the following:
 
@@ -139,6 +152,7 @@ The following attributes are exported:
 * `public_dns` - The public DNS name assigned to the instance. For EC2-VPC, this 
   is only available if you've enabled DNS hostnames for your VPC
 * `public_ip` - The public IP address assigned to the instance, if applicable. **NOTE**: If you are using an [`aws_eip`](/docs/providers/aws/r/eip.html) with your instance, you should refer to the EIP's address directly and not use `public_ip`, as this field will change after the EIP is attached.
+* `network_interface_id` - The ID of the network interface that was created with the instance.
 * `private_dns` - The private DNS name assigned to the instance. Can only be 
   used inside the Amazon EC2, and only available if you've enabled DNS hostnames 
   for your VPC
@@ -146,3 +160,12 @@ The following attributes are exported:
 * `security_groups` - The associated security groups.
 * `vpc_security_group_ids` - The associated security groups in non-default VPC
 * `subnet_id` - The VPC subnet ID.
+
+
+## Import
+
+Instances can be imported using the `id`, e.g. 
+
+```
+$ terraform import aws_instance.web i-12345678
+```

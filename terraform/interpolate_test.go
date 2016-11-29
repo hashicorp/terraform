@@ -13,6 +13,12 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+func TestInterpolater_simpleVar(t *testing.T) {
+	i := &Interpolater{}
+	scope := &InterpolationScope{}
+	testInterpolateErr(t, i, scope, "simple")
+}
+
 func TestInterpolater_countIndex(t *testing.T) {
 	i := &Interpolater{}
 
@@ -141,6 +147,95 @@ func TestInterpolater_pathRoot(t *testing.T) {
 	})
 }
 
+func TestInterpolater_resourceVariableMap(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"amap.%":    "3",
+								"amap.key1": "value1",
+								"amap.key2": "value2",
+								"amap.key3": "value3",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-resource-variable"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	expected := map[string]interface{}{
+		"key1": "value1",
+		"key2": "value2",
+		"key3": "value3",
+	}
+
+	testInterpolate(t, i, scope, "aws_instance.web.amap",
+		interfaceToVariableSwallowError(expected))
+}
+
+func TestInterpolater_resourceVariableComplexMap(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"amap.%":      "2",
+								"amap.key1.#": "2",
+								"amap.key1.0": "hello",
+								"amap.key1.1": "world",
+								"amap.key2.#": "1",
+								"amap.key2.0": "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-resource-variable"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	expected := map[string]interface{}{
+		"key1": []interface{}{"hello", "world"},
+		"key2": []interface{}{"foo"},
+	}
+
+	testInterpolate(t, i, scope, "aws_instance.web.amap",
+		interfaceToVariableSwallowError(expected))
+}
+
 func TestInterpolater_resourceVariable(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
@@ -211,7 +306,7 @@ func TestInterpolater_resourceVariableMissingDuringInput(t *testing.T) {
 
 		testInterpolate(t, i, scope, "aws_instance.web.foo", ast.Variable{
 			Value: config.UnknownVariableValue,
-			Type:  ast.TypeString,
+			Type:  ast.TypeUnknown,
 		})
 	}
 
@@ -265,8 +360,51 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 
 	testInterpolate(t, i, scope, "aws_instance.web.*.foo", ast.Variable{
 		Value: config.UnknownVariableValue,
-		Type:  ast.TypeString,
+		Type:  ast.TypeUnknown,
 	})
+}
+
+func TestInterpolater_resourceVariableMulti_interpolated(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "a",
+							Attributes: map[string]string{"foo": "a"},
+						},
+					},
+
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "b",
+							Attributes: map[string]string{"foo": "b"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Operation: walkApply,
+		Module:    testModule(t, "interpolate-multi-interp"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	expected := []interface{}{"a", "b"}
+	testInterpolate(t, i, scope, "aws_instance.web.*.foo",
+		interfaceToVariableSwallowError(expected))
 }
 
 func interfaceToVariableSwallowError(input interface{}) ast.Variable {
@@ -278,10 +416,10 @@ func TestInterpolator_resourceMultiAttributes(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
-			&ModuleState{
+			{
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
-					"aws_route53_zone.yada": &ResourceState{
+					"aws_route53_zone.yada": {
 						Type:         "aws_route53_zone",
 						Dependencies: []string{},
 						Primary: &InstanceState{
@@ -354,17 +492,17 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 		"ns-601.awsdns-11.net",
 		"ns-000.awsdns-38.org",
 		"ns-444.awsdns-18.co.uk",
-		"ns-666.awsdns-11.net",
 		"ns-999.awsdns-62.com",
+		"ns-666.awsdns-11.net",
 	}
 
 	// More than 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.name_servers",
-		interfaceToVariableSwallowError(name_servers[0:4]))
+		interfaceToVariableSwallowError(name_servers[:4]))
 
 	// More than 1 element in both
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.name_servers",
-		interfaceToVariableSwallowError(name_servers))
+		interfaceToVariableSwallowError([]interface{}{name_servers[:4], name_servers[4:]}))
 
 	// Exactly 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.listeners",
@@ -372,7 +510,7 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 
 	// Exactly 1 element in both
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.listeners",
-		interfaceToVariableSwallowError([]interface{}{"red", "blue"}))
+		interfaceToVariableSwallowError([]interface{}{[]interface{}{"red"}, []interface{}{"blue"}}))
 
 	// Zero elements
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.nothing",
@@ -380,7 +518,7 @@ func TestInterpolator_resourceMultiAttributesWithResourceCount(t *testing.T) {
 
 	// Zero + 1 element
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.*.special",
-		interfaceToVariableSwallowError([]interface{}{"extra"}))
+		interfaceToVariableSwallowError([]interface{}{[]interface{}{"extra"}}))
 
 	// Maps still need to work
 	testInterpolate(t, i, scope, "aws_route53_zone.terra.0.tags.Name", ast.Variable{
@@ -427,7 +565,45 @@ func TestInterpolator_resourceMultiAttributesComputed(t *testing.T) {
 
 	testInterpolate(t, i, scope, "aws_route53_zone.yada.name_servers", ast.Variable{
 		Value: config.UnknownVariableValue,
-		Type:  ast.TypeString,
+		Type:  ast.TypeUnknown,
+	})
+}
+
+func TestInterpolator_resourceAttributeComputed(t *testing.T) {
+	lock := new(sync.RWMutex)
+	// The state would never be written with an UnknownVariableValue in it, but
+	// it can/does exist that way in memory during the plan phase.
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.yada": &ResourceState{
+						Type: "aws_route53_zone",
+						Primary: &InstanceState{
+							ID: "z-abc123",
+							Attributes: map[string]string{
+								"id": config.UnknownVariableValue,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: lock,
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.yada.id", ast.Variable{
+		Value: config.UnknownVariableValue,
+		Type:  ast.TypeUnknown,
 	})
 }
 

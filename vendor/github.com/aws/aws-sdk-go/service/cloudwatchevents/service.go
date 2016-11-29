@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
-	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // Amazon CloudWatch Events helps you to respond to state changes in your AWS
@@ -18,11 +18,13 @@ import (
 // to take action on a pre-determined schedule. For example, you can configure
 // rules to:
 //
-//  Automatically invoke an AWS Lambda function to update DNS entries when
-// an event notifies you that Amazon EC2 instance enters the running state.
-// Direct specific API records from CloudTrail to an Amazon Kinesis stream for
-// detailed analysis of potential security or availability risks. Periodically
-// invoke a built-in target to create a snapshot of an Amazon EBS volume.
+//    * Automatically invoke an AWS Lambda function to update DNS entries when
+//    an event notifies you that Amazon EC2 instance enters the running state.
+//
+//    * Direct specific API records from CloudTrail to an Amazon Kinesis stream
+//    for detailed analysis of potential security or availability risks.
+//    * Periodically invoke a built-in target to create a snapshot of an Amazon
+//    EBS volume.
 // For more information about Amazon CloudWatch Events features, see the Amazon
 // CloudWatch Developer Guide (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide).
 //The service client's operations are safe to be used concurrently.
@@ -73,7 +75,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBack(v4.Sign)
+	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
 	svc.Handlers.Build.PushBackNamed(jsonrpc.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(jsonrpc.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(jsonrpc.UnmarshalMetaHandler)

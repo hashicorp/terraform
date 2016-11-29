@@ -6,6 +6,25 @@ import (
 	"testing"
 )
 
+func TestContext2Validate_badCount(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-bad-count")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContext2Validate_badVar(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-bad-var")
@@ -68,7 +87,9 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+		for _, err := range e {
+			t.Errorf("bad: %s", err)
+		}
 	}
 }
 
@@ -307,7 +328,7 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"provider_var": "bar",
 		},
 	})
@@ -732,7 +753,7 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		Variables: map[string]string{
+		Variables: map[string]interface{}{
 			"foo": "bar",
 		},
 	})
@@ -790,6 +811,32 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
+		},
+		UIInput: input,
+	})
+
+	w, e := ctx.Validate()
+	if w != nil {
+		t.Log("warnings:", w)
+	}
+	if e != nil {
+		t.Fatal("err:", e)
+	}
+}
+
+// Computed values are lost when a map is output from a module
+func TestContext2Validate_interpolateMap(t *testing.T) {
+	input := new(MockUIInput)
+
+	m := testModule(t, "issue-9549")
+	p := testProvider("null")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"template": testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})

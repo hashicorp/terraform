@@ -32,7 +32,6 @@ resource "openstack_fw_rule_v1" "rule_2" {
 }
 
 resource "openstack_fw_policy_v1" "policy_1" {
-  region = ""
   name = "my-policy"
   rules = ["${openstack_fw_rule_v1.rule_1.id}",
            "${openstack_fw_rule_v1.rule_2.id}"]
@@ -65,9 +64,12 @@ The following arguments are supported:
     firewall policy.
 
 * `shared` - (Optional) Sharing status of the firewall policy (must be "true"
-    or "false" if provided - defaults to "false"). If this is "true" the policy
-    is visible to, and can be used in, firewalls in other tenants. Changing this
-    updates the `shared` status of an existing firewall policy.
+    or "false" if provided). If this is "true" the policy is visible to, and
+    can be used in, firewalls in other tenants. Changing this updates the
+    `shared` status of an existing firewall policy. Only administrative users
+    can specify if the policy should be shared.
+
+* `value_specs` - (Optional) Map of additional options.
 
 ## Attributes Reference
 
@@ -78,3 +80,11 @@ The following attributes are exported:
 * `description` - See Argument Reference above.
 * `audited` - See Argument Reference above.
 * `shared` - See Argument Reference above.
+
+## Import
+
+Firewall Policies can be imported using the `id`, e.g.
+
+```
+$ terraform import openstack_fw_policy_v1.policy_1 07f422e6-c596-474b-8b94-fe2c12506ce0
+```

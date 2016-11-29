@@ -55,3 +55,12 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `arn` - The Amazon Resource Name (ARN) of the rule.
+
+
+## Import
+
+Cloudwatch Event Rules can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_cloudwatch_event_rule.console capture-console-sign-in
+```

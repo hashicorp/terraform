@@ -46,3 +46,12 @@ Parameter blocks support the following:
 The following attributes are exported:
 
 * `id` - The ElastiCache parameter group name.
+
+
+## Import
+
+ElastiCache Parameter Groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_elasticache_parameter_group.default redis-params
+```

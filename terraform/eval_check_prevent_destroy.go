@@ -10,8 +10,9 @@ import (
 // error if a resource has PreventDestroy configured and the diff
 // would destroy the resource.
 type EvalCheckPreventDestroy struct {
-	Resource *config.Resource
-	Diff     **InstanceDiff
+	Resource   *config.Resource
+	ResourceId string
+	Diff       **InstanceDiff
 }
 
 func (n *EvalCheckPreventDestroy) Eval(ctx EvalContext) (interface{}, error) {
@@ -22,8 +23,13 @@ func (n *EvalCheckPreventDestroy) Eval(ctx EvalContext) (interface{}, error) {
 	diff := *n.Diff
 	preventDestroy := n.Resource.Lifecycle.PreventDestroy
 
-	if diff.Destroy && preventDestroy {
-		return nil, fmt.Errorf(preventDestroyErrStr, n.Resource.Id())
+	if diff.GetDestroy() && preventDestroy {
+		resourceId := n.ResourceId
+		if resourceId == "" {
+			resourceId = n.Resource.Id()
+		}
+
+		return nil, fmt.Errorf(preventDestroyErrStr, resourceId)
 	}
 
 	return nil, nil

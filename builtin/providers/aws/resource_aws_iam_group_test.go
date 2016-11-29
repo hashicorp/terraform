@@ -11,6 +11,43 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestValidateIamGroupName(t *testing.T) {
+	validNames := []string{
+		"test-group",
+		"test_group",
+		"testgroup123",
+		"TestGroup",
+		"Test-Group",
+		"test.group",
+		"test.123,group",
+		"testgroup@hashicorp",
+		"test+group@hashicorp.com",
+	}
+	for _, v := range validNames {
+		_, errors := validateAwsIamGroupName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid IAM Group name: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"!",
+		"/",
+		" ",
+		":",
+		";",
+		"test name",
+		"/slash-at-the-beginning",
+		"slash-at-the-end/",
+	}
+	for _, v := range invalidNames {
+		_, errors := validateAwsIamGroupName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid IAM Group name", v)
+		}
+	}
+}
+
 func TestAccAWSIAMGroup_basic(t *testing.T) {
 	var conf iam.GetGroupOutput
 
@@ -29,7 +66,7 @@ func TestAccAWSIAMGroup_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSGroupConfig2,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSGroupExists("aws_iam_group.group", &conf),
+					testAccCheckAWSGroupExists("aws_iam_group.group2", &conf),
 					testAccCheckAWSGroupAttributes(&conf, "test-group2", "/funnypath/"),
 				),
 			},
@@ -113,7 +150,7 @@ resource "aws_iam_group" "group" {
 }
 `
 const testAccAWSGroupConfig2 = `
-resource "aws_iam_group" "group" {
+resource "aws_iam_group" "group2" {
 	name = "test-group2"
 	path = "/funnypath/"
 }

@@ -1008,7 +1008,7 @@ func (p *ListHostsParams) SetType(v string) {
 	if p.p == nil {
 		p.p = make(map[string]interface{})
 	}
-	p.p["hostType"] = v
+	p.p["type"] = v
 	return
 }
 
@@ -1037,7 +1037,7 @@ func (s *HostService) NewListHostsParams() *ListHostsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *HostService) GetHostID(name string, opts ...OptionFunc) (string, error) {
+func (s *HostService) GetHostID(name string, opts ...OptionFunc) (string, int, error) {
 	p := &ListHostsParams{}
 	p.p = make(map[string]interface{})
 
@@ -1045,38 +1045,38 @@ func (s *HostService) GetHostID(name string, opts ...OptionFunc) (string, error)
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListHosts(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", name, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", name, l)
 	}
 
 	if l.Count == 1 {
-		return l.Hosts[0].Id, nil
+		return l.Hosts[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.Hosts {
 			if v.Name == name {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
 func (s *HostService) GetHostByName(name string, opts ...OptionFunc) (*Host, int, error) {
-	id, err := s.GetHostID(name, opts...)
+	id, count, err := s.GetHostID(name, opts...)
 	if err != nil {
-		return nil, -1, err
+		return nil, count, err
 	}
 
 	r, count, err := s.GetHostByID(id, opts...)
@@ -1255,7 +1255,7 @@ func (s *HostService) NewListHostTagsParams() *ListHostTagsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *HostService) GetHostTagID(keyword string, opts ...OptionFunc) (string, error) {
+func (s *HostService) GetHostTagID(keyword string, opts ...OptionFunc) (string, int, error) {
 	p := &ListHostTagsParams{}
 	p.p = make(map[string]interface{})
 
@@ -1263,31 +1263,31 @@ func (s *HostService) GetHostTagID(keyword string, opts ...OptionFunc) (string, 
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListHostTags(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", keyword, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", keyword, l)
 	}
 
 	if l.Count == 1 {
-		return l.HostTags[0].Id, nil
+		return l.HostTags[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.HostTags {
 			if v.Name == keyword {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", keyword, l)
 }
 
 // Lists host tags

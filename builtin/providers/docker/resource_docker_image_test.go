@@ -73,6 +73,22 @@ func TestAccDockerImage_destroy(t *testing.T) {
 	})
 }
 
+func TestAccDockerImage_data(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                  func() { testAccPreCheck(t) },
+		Providers:                 testAccProviders,
+		PreventPostDestroyRefresh: true,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerImageFromDataConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("docker_image.foobarbaz", "latest", contentDigestRegexp),
+				),
+			},
+		},
+	})
+}
+
 func testAccDockerImageDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "docker_image" {
@@ -93,14 +109,12 @@ func testAccDockerImageDestroy(s *terraform.State) error {
 const testAccDockerImageConfig = `
 resource "docker_image" "foo" {
 	name = "alpine:3.1"
-	keep_updated = false
 }
 `
 
 const testAddDockerPrivateImageConfig = `
 resource "docker_image" "foobar" {
 	name = "gcr.io:443/google_containers/pause:0.8.0"
-	keep_updated = true
 }
 `
 
@@ -108,5 +122,15 @@ const testAccDockerImageKeepLocallyConfig = `
 resource "docker_image" "foobarzoo" {
 	name = "crux:3.1"
 	keep_locally = true
+}
+`
+
+const testAccDockerImageFromDataConfig = `
+data "docker_registry_image" "foobarbaz" {
+	name = "alpine:3.1"
+}
+resource "docker_image" "foobarbaz" {
+	name = "${data.docker_registry_image.foobarbaz.name}"
+	pull_trigger = "${data.docker_registry_image.foobarbaz.sha256_digest}"
 }
 `

@@ -46,7 +46,7 @@ resource "azurerm_network_security_group" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) Specifies the name of the availability set. Changing this forces a
+* `name` - (Required) Specifies the name of the network security group. Changing this forces a
     new resource to be created.
 
 * `resource_group_name` - (Required) The name of the resource group in which to
@@ -88,3 +88,12 @@ The `security_rule` block supports:
 The following attributes are exported:
 
 * `id` - The Network Security Group ID.
+
+
+## Import
+
+Network Security Groups can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_network_security_group.group1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Network/networkSecurityGroups/mySecurityGroup
+```

@@ -26,10 +26,8 @@ The following arguments are supported:
 * `ip_address_id` - (Required) The public IP address ID for which static
     NAT will be enabled. Changing this forces a new resource to be created.
 
-* `network_id` - (Optional) The network ID of the VM the static NAT will be
-    enabled for. Required when public IP address is not associated with any
-    guest network yet (VPC case). Changing this forces a new resource to be
-    created.
+* `network_id` - (Deprecated) The network ID of the VM the static NAT will be
+    enabled for. This argument is no longer needed and can be safely omitted.
 
 * `virtual_machine_id` - (Required) The virtual machine ID to enable the
     static NAT feature for. Changing this forces a new resource to be created.
@@ -38,11 +36,13 @@ The following arguments are supported:
     forwarding rule (useful when the virtual machine has a secondairy NIC).
     Changing this forces a new resource to be created.
 
+* `project` - (Optional) The name or ID of the project to deploy this
+    instance to. Changing this forces a new resource to be created.
+
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The static nat ID.
-* `network` - The network the public IP address is associated with.
 * `vm_guest_ip` - The IP address of the virtual machine that is used
     for the port forwarding rule.

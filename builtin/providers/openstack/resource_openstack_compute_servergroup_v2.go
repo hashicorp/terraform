@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/servergroups"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/servergroups"
 )
 
 func resourceComputeServerGroupV2() *schema.Resource {
@@ -14,6 +14,9 @@ func resourceComputeServerGroupV2() *schema.Resource {
 		Read:   resourceComputeServerGroupV2Read,
 		Update: nil,
 		Delete: resourceComputeServerGroupV2Delete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{

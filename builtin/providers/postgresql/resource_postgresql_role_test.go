@@ -16,7 +16,7 @@ func TestAccPostgresqlRole_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPostgresqlRoleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPostgresqlRoleConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckPostgresqlRoleExists("postgresql_role.myrole2", "true"),

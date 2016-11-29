@@ -24,6 +24,9 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 		Read:   resourceAwsSnsTopicSubscriptionRead,
 		Update: resourceAwsSnsTopicSubscriptionUpdate,
 		Delete: resourceAwsSnsTopicSubscriptionDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"protocol": &schema.Schema{

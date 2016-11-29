@@ -61,3 +61,12 @@ The following attributes are exported:
 
 You can find more technical documentation about DHCP Options Set in the
 official [AWS User Guide](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html).
+
+
+## Import
+
+VPC DHCP Options can be imported using the `dhcp options id`, e.g. 
+
+```
+$ terraform import aws_vpc_dhcp_options.my_options dopt-d9070ebb
+```

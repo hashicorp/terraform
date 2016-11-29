@@ -29,7 +29,7 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "size", "512mb"),
 					resource.TestCheckResourceAttr(
-						"digitalocean_droplet.foobar", "image", "centos-5-8-x32"),
+						"digitalocean_droplet.foobar", "image", "centos-7-x64"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "region", "nyc3"),
 					resource.TestCheckResourceAttr(
@@ -65,6 +65,39 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 						"digitalocean_droplet.foobar", "name", "baz"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "size", "1gb"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "disk", "30"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDigitalOceanDroplet_ResizeWithOutDisk(t *testing.T) {
+	var droplet godo.Droplet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletAttributes(&droplet),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_resize_without_disk,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletResizeWithOutDisk(&droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "size", "1gb"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "disk", "20"),
 				),
 			},
 		},
@@ -97,6 +130,40 @@ func TestAccDigitalOceanDroplet_UpdateUserData(t *testing.T) {
 						"foobar foobar"),
 					testAccCheckDigitalOceanDropletRecreated(
 						t, &afterCreate, &afterUpdate),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDigitalOceanDroplet_UpdateTags(t *testing.T) {
+	var afterCreate, afterUpdate godo.Droplet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterCreate),
+					testAccCheckDigitalOceanDropletAttributes(&afterCreate),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_tag_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &afterUpdate),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar",
+						"tags.#",
+						"1"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar",
+						"tags.0",
+						"barbaz"),
 				),
 			},
 		},
@@ -157,7 +224,7 @@ func testAccCheckDigitalOceanDropletDestroy(s *terraform.State) error {
 func testAccCheckDigitalOceanDropletAttributes(droplet *godo.Droplet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if droplet.Image.Slug != "centos-5-8-x32" {
+		if droplet.Image.Slug != "centos-7-x64" {
 			return fmt.Errorf("Bad image_slug: %s", droplet.Image.Slug)
 		}
 
@@ -187,6 +254,25 @@ func testAccCheckDigitalOceanDropletRenamedAndResized(droplet *godo.Droplet) res
 			return fmt.Errorf("Bad name: %s", droplet.Name)
 		}
 
+		if droplet.Disk != 30 {
+			return fmt.Errorf("Bad disk: %d", droplet.Disk)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckDigitalOceanDropletResizeWithOutDisk(droplet *godo.Droplet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if droplet.Size.Slug != "1gb" {
+			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug)
+		}
+
+		if droplet.Disk != 20 {
+			return fmt.Errorf("Bad disk: %d", droplet.Disk)
+		}
+
 		return nil
 	}
 }
@@ -194,7 +280,7 @@ func testAccCheckDigitalOceanDropletRenamedAndResized(droplet *godo.Droplet) res
 func testAccCheckDigitalOceanDropletAttributes_PrivateNetworkingIpv6(droplet *godo.Droplet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if droplet.Image.Slug != "centos-5-8-x32" {
+		if droplet.Image.Slug != "centos-7-x64" {
 			return fmt.Errorf("Bad image_slug: %s", droplet.Image.Slug)
 		}
 
@@ -224,6 +310,16 @@ func testAccCheckDigitalOceanDropletAttributes_PrivateNetworkingIpv6(droplet *go
 
 		if findIPv6AddrByType(droplet, "public") == "" {
 			return fmt.Errorf("No ipv6 public: %s", findIPv6AddrByType(droplet, "public"))
+		}
+
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "digitalocean_droplet" {
+				continue
+			}
+			if rs.Primary.Attributes["ipv6_address"] != strings.ToLower(findIPv6AddrByType(droplet, "public")) {
+				return fmt.Errorf("IPV6 Address should be lowercase")
+			}
+
 		}
 
 		return nil
@@ -302,10 +398,31 @@ resource "digitalocean_ssh_key" "foobar" {
 resource "digitalocean_droplet" "foobar" {
   name      = "foo"
   size      = "512mb"
-  image     = "centos-5-8-x32"
+  image     = "centos-7-x64"
   region    = "nyc3"
   user_data = "foobar"
   ssh_keys  = ["${digitalocean_ssh_key.foobar.id}"]
+}
+`, testAccValidPublicKey)
+
+var testAccCheckDigitalOceanDropletConfig_tag_update = fmt.Sprintf(`
+resource "digitalocean_tag" "barbaz" {
+  name       = "barbaz"
+}
+
+resource "digitalocean_ssh_key" "foobar" {
+  name       = "foobar"
+  public_key = "%s"
+}
+
+resource "digitalocean_droplet" "foobar" {
+  name      = "foo"
+  size      = "512mb"
+  image     = "centos-7-x64"
+  region    = "nyc3"
+  user_data = "foobar"
+  ssh_keys  = ["${digitalocean_ssh_key.foobar.id}"]
+  tags  = ["${digitalocean_tag.barbaz.id}"]
 }
 `, testAccValidPublicKey)
 
@@ -318,7 +435,7 @@ resource "digitalocean_ssh_key" "foobar" {
 resource "digitalocean_droplet" "foobar" {
   name      = "foo"
   size      = "512mb"
-  image     = "centos-5-8-x32"
+  image     = "centos-7-x64"
   region    = "nyc3"
   user_data = "foobar foobar"
   ssh_keys  = ["${digitalocean_ssh_key.foobar.id}"]
@@ -334,9 +451,25 @@ resource "digitalocean_ssh_key" "foobar" {
 resource "digitalocean_droplet" "foobar" {
   name     = "baz"
   size     = "1gb"
-  image    = "centos-5-8-x32"
+  image    = "centos-7-x64"
   region   = "nyc3"
   ssh_keys = ["${digitalocean_ssh_key.foobar.id}"]
+}
+`, testAccValidPublicKey)
+
+var testAccCheckDigitalOceanDropletConfig_resize_without_disk = fmt.Sprintf(`
+resource "digitalocean_ssh_key" "foobar" {
+  name       = "foobar"
+  public_key = "%s"
+}
+
+resource "digitalocean_droplet" "foobar" {
+  name     = "foo"
+  size     = "1gb"
+  image    = "centos-7-x64"
+  region   = "nyc3"
+  ssh_keys = ["${digitalocean_ssh_key.foobar.id}"]
+  resize_disk = false
 }
 `, testAccValidPublicKey)
 
@@ -350,7 +483,7 @@ resource "digitalocean_ssh_key" "foobar" {
 resource "digitalocean_droplet" "foobar" {
   name               = "baz"
   size               = "1gb"
-  image              = "centos-5-8-x32"
+  image              = "centos-7-x64"
   region             = "sgp1"
   ipv6               = true
   private_networking = true

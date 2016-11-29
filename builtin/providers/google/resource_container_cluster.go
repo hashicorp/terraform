@@ -223,10 +223,15 @@ func resourceContainerCluster() *schema.Resource {
 
 						"oauth_scopes": &schema.Schema{
 							Type:     schema.TypeList,
-							Elem:     &schema.Schema{Type: schema.TypeString},
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+								StateFunc: func(v interface{}) string {
+									return canonicalizeServiceScope(v.(string))
+								},
+							},
 						},
 					},
 				},
@@ -289,8 +294,12 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		cluster.MonitoringService = v.(string)
 	}
 
-	if v, ok := d.GetOk("network"); ok {
-		cluster.Network = v.(string)
+	if _, ok := d.GetOk("network"); ok {
+		network, err := getNetworkName(d, "network")
+		if err != nil {
+			return err
+		}
+		cluster.Network = network
 	}
 
 	if v, ok := d.GetOk("subnetwork"); ok {
@@ -336,7 +345,7 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 			scopesList := v.([]interface{})
 			scopes := []string{}
 			for _, v := range scopesList {
-				scopes = append(scopes, v.(string))
+				scopes = append(scopes, canonicalizeServiceScope(v.(string)))
 			}
 
 			cluster.NodeConfig.OauthScopes = scopes
@@ -425,7 +434,7 @@ func resourceContainerClusterRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("description", cluster.Description)
 	d.Set("logging_service", cluster.LoggingService)
 	d.Set("monitoring_service", cluster.MonitoringService)
-	d.Set("network", cluster.Network)
+	d.Set("network", d.Get("network").(string))
 	d.Set("subnetwork", cluster.Subnetwork)
 	d.Set("node_config", flattenClusterNodeConfig(cluster.NodeConfig))
 	d.Set("instance_group_urls", cluster.InstanceGroupUrls)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/mattn/go-colorable"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/panicwrap"
@@ -25,6 +26,11 @@ func main() {
 
 func realMain() int {
 	var wrapConfig panicwrap.WrapConfig
+
+	// don't re-exec terraform as a child process for easier debugging
+	if os.Getenv("TF_FORK") == "0" {
+		return wrappedMain()
+	}
 
 	if !panicwrap.Wrapped(&wrapConfig) {
 		// Determine where logs should go in general (requested by the user)
@@ -81,16 +87,38 @@ func realMain() int {
 }
 
 func wrappedMain() int {
+	// We always need to close the DebugInfo before we exit.
+	defer terraform.CloseDebugInfo()
+
 	log.SetOutput(os.Stderr)
 	log.Printf(
 		"[INFO] Terraform version: %s %s %s",
 		Version, VersionPrerelease, GitCommit)
+	log.Printf("[INFO] CLI args: %#v", os.Args)
 
 	// Load the configuration
 	config := BuiltinConfig
 	if err := config.Discover(Ui); err != nil {
 		Ui.Error(fmt.Sprintf("Error discovering plugins: %s", err))
 		return 1
+	}
+
+	// Load the configuration file if we have one, that can be used to
+	// define extra providers and provisioners.
+	clicfgFile, err := cliConfigFile()
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
+		return 1
+	}
+
+	if clicfgFile != "" {
+		usrcfg, err := LoadConfig(clicfgFile)
+		if err != nil {
+			Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
+			return 1
+		}
+
+		config = *config.Merge(usrcfg)
 	}
 
 	// Run checkpoint
@@ -117,24 +145,6 @@ func wrappedMain() int {
 		Commands:   Commands,
 		HelpFunc:   helpFunc,
 		HelpWriter: os.Stdout,
-	}
-
-	// Load the configuration file if we have one, that can be used to
-	// define extra providers and provisioners.
-	clicfgFile, err := cliConfigFile()
-	if err != nil {
-		Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-		return 1
-	}
-
-	if clicfgFile != "" {
-		usrcfg, err := LoadConfig(clicfgFile)
-		if err != nil {
-			Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-			return 1
-		}
-
-		config = *config.Merge(usrcfg)
 	}
 
 	// Initialize the TFConfig settings for the commands...

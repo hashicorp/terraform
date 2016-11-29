@@ -23,6 +23,7 @@ type Screenboard struct {
 	Templated         bool               `json:"templated,omitempty"`
 	TemplateVariables []TemplateVariable `json:"template_variables,omitempty"`
 	Widgets           []Widget           `json:"widgets,omitempty"`
+	ReadOnly          bool               `json:"read_only,omitempty"`
 }
 
 //type Widget struct {

@@ -1,6 +1,7 @@
 package fastly
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -144,11 +145,6 @@ func (c *Client) Request(verb, p string, ro *RequestOptions) (*http.Response, er
 // RequestForm makes an HTTP request with the given interface being encoded as
 // form data.
 func (c *Client) RequestForm(verb, p string, i interface{}, ro *RequestOptions) (*http.Response, error) {
-	values, err := form.EncodeToValues(i)
-	if err != nil {
-		return nil, err
-	}
-
 	if ro == nil {
 		ro = new(RequestOptions)
 	}
@@ -158,10 +154,11 @@ func (c *Client) RequestForm(verb, p string, i interface{}, ro *RequestOptions) 
 	}
 	ro.Headers["Content-Type"] = "application/x-www-form-urlencoded"
 
-	// There is a super-jank implementation in the form library where fields with
-	// a "dot" are replaced with "/.". That is then URL encoded and Fastly just
-	// dies. We fix that here.
-	body := strings.Replace(values.Encode(), "%5C.", ".", -1)
+	buf := new(bytes.Buffer)
+	if err := form.NewEncoder(buf).DelimitWith('|').Encode(i); err != nil {
+		return nil, err
+	}
+	body := buf.String()
 
 	ro.Body = strings.NewReader(body)
 	ro.BodyLength = int64(len(body))

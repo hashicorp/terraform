@@ -2,6 +2,9 @@ package terraform
 
 import (
 	"fmt"
+	"log"
+	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -20,10 +23,6 @@ import (
 //       declared
 //     - the path to the module (so we know which part of the tree to
 //       compare the values against).
-//
-// Currently since the type system is simple, we currently do not make
-// use of the values since it is only valid to pass string values. The
-// structure is in place for extension of the type system, however.
 type EvalTypeCheckVariable struct {
 	Variables  map[string]interface{}
 	ModulePath []string
@@ -49,10 +48,6 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	for name, declaredType := range prototypes {
-		// This is only necessary when we _actually_ check. It is left as a reminder
-		// that at the current time we are dealing with a type system consisting only
-		// of strings and maps - where the only valid inter-module variable type is
-		// string.
 		proposedValue, ok := n.Variables[name]
 		if !ok {
 			// This means the default value should be used as no overriding value
@@ -66,34 +61,30 @@ func (n *EvalTypeCheckVariable) Eval(ctx EvalContext) (interface{}, error) {
 
 		switch declaredType {
 		case config.VariableTypeString:
-			// This will need actual verification once we aren't dealing with
-			// a map[string]string but this is sufficient for now.
 			switch proposedValue.(type) {
 			case string:
 				continue
 			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %T",
-					name, modulePathDescription, declaredType.Printable(), proposedValue)
+				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
+					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
 			}
 		case config.VariableTypeMap:
 			switch proposedValue.(type) {
 			case map[string]interface{}:
 				continue
 			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %T",
-					name, modulePathDescription, declaredType.Printable(), proposedValue)
+				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
+					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
 			}
 		case config.VariableTypeList:
 			switch proposedValue.(type) {
 			case []interface{}:
 				continue
 			default:
-				return nil, fmt.Errorf("variable %s%s should be type %s, got %T",
-					name, modulePathDescription, declaredType.Printable(), proposedValue)
+				return nil, fmt.Errorf("variable %s%s should be type %s, got %s",
+					name, modulePathDescription, declaredType.Printable(), hclTypeName(proposedValue))
 			}
 		default:
-			// This will need the actual type substituting when we have more than
-			// just strings and maps.
 			return nil, fmt.Errorf("variable %s%s should be type %s, got type string",
 				name, modulePathDescription, declaredType.Printable())
 		}
@@ -153,11 +144,127 @@ func (n *EvalVariableBlock) Eval(ctx EvalContext) (interface{}, error) {
 
 		return nil, fmt.Errorf("Variable value for %s is not a string, list or map type", k)
 	}
-	for k, _ := range rc.Raw {
-		if _, ok := n.VariableValues[k]; !ok {
-			n.VariableValues[k] = config.UnknownVariableValue
+
+	for _, path := range rc.ComputedKeys {
+		log.Printf("[DEBUG] Setting Unknown Variable Value for computed key: %s", path)
+		err := n.setUnknownVariableValueForPath(path)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return nil, nil
+}
+
+func (n *EvalVariableBlock) setUnknownVariableValueForPath(path string) error {
+	pathComponents := strings.Split(path, ".")
+
+	if len(pathComponents) < 1 {
+		return fmt.Errorf("No path comoponents in %s", path)
+	}
+
+	if len(pathComponents) == 1 {
+		// Special case the "top level" since we know the type
+		if _, ok := n.VariableValues[pathComponents[0]]; !ok {
+			n.VariableValues[pathComponents[0]] = config.UnknownVariableValue
+		}
+		return nil
+	}
+
+	// Otherwise find the correct point in the tree and then set to unknown
+	var current interface{} = n.VariableValues[pathComponents[0]]
+	for i := 1; i < len(pathComponents); i++ {
+		switch current.(type) {
+		case []interface{}, []map[string]interface{}:
+			tCurrent := current.([]interface{})
+			index, err := strconv.Atoi(pathComponents[i])
+			if err != nil {
+				return fmt.Errorf("Cannot convert %s to slice index in path %s",
+					pathComponents[i], path)
+			}
+			current = tCurrent[index]
+		case map[string]interface{}:
+			tCurrent := current.(map[string]interface{})
+			if val, hasVal := tCurrent[pathComponents[i]]; hasVal {
+				current = val
+				continue
+			}
+
+			tCurrent[pathComponents[i]] = config.UnknownVariableValue
+			break
+		}
+	}
+
+	return nil
+}
+
+// EvalCoerceMapVariable is an EvalNode implementation that recognizes a
+// specific ambiguous HCL parsing situation and resolves it. In HCL parsing, a
+// bare map literal is indistinguishable from a list of maps w/ one element.
+//
+// We take all the same inputs as EvalTypeCheckVariable above, since we need
+// both the target type and the proposed value in order to properly coerce.
+type EvalCoerceMapVariable struct {
+	Variables  map[string]interface{}
+	ModulePath []string
+	ModuleTree *module.Tree
+}
+
+// Eval implements the EvalNode interface. See EvalCoerceMapVariable for
+// details.
+func (n *EvalCoerceMapVariable) Eval(ctx EvalContext) (interface{}, error) {
+	currentTree := n.ModuleTree
+	for _, pathComponent := range n.ModulePath[1:] {
+		currentTree = currentTree.Children()[pathComponent]
+	}
+	targetConfig := currentTree.Config()
+
+	prototypes := make(map[string]config.VariableType)
+	for _, variable := range targetConfig.Variables {
+		prototypes[variable.Name] = variable.Type()
+	}
+
+	for name, declaredType := range prototypes {
+		if declaredType != config.VariableTypeMap {
+			continue
+		}
+
+		proposedValue, ok := n.Variables[name]
+		if !ok {
+			continue
+		}
+
+		if list, ok := proposedValue.([]interface{}); ok && len(list) == 1 {
+			if m, ok := list[0].(map[string]interface{}); ok {
+				log.Printf("[DEBUG] EvalCoerceMapVariable: "+
+					"Coercing single element list into map: %#v", m)
+				n.Variables[name] = m
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+// hclTypeName returns the name of the type that would represent this value in
+// a config file, or falls back to the Go type name if there's no corresponding
+// HCL type. This is used for formatted output, not for comparing types.
+func hclTypeName(i interface{}) string {
+	switch k := reflect.Indirect(reflect.ValueOf(i)).Kind(); k {
+	case reflect.Bool:
+		return "boolean"
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+		reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64:
+		return "number"
+	case reflect.Array, reflect.Slice:
+		return "list"
+	case reflect.Map:
+		return "map"
+	case reflect.String:
+		return "string"
+	default:
+		// fall back to the Go type if there's no match
+		return k.String()
+	}
 }
