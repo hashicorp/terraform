@@ -94,6 +94,12 @@ func resourceAwsS3BucketObject() *schema.Resource {
 				Optional: true,
 			},
 
+			"encrypt": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+
 			"etag": &schema.Schema{
 				Type: schema.TypeString,
 				// This will conflict with SSE-C and SSE-KMS encryption and multi-part upload
@@ -174,6 +180,17 @@ func resourceAwsS3BucketObjectPut(d *schema.ResourceData, meta interface{}) erro
 		putInput.SSEKMSKeyId = aws.String(v.(string))
 		putInput.ServerSideEncryption = aws.String("aws:kms")
 	}
+	if v, ok := d.GetOk("encrypt"); ok {
+		if v.(bool) {
+			if putInput.ServerSideEncryption == nil {
+				putInput.ServerSideEncryption = aws.String("AES256")
+			}
+		} else {
+			// Clear any SSE attributes set above.
+			putInput.SSEKMSKeyId = nil
+			putInput.ServerSideEncryption = nil
+		}
+	}
 
 	resp, err := s3conn.PutObject(putInput)
 	if err != nil {
@@ -218,6 +235,7 @@ func resourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("content_type", resp.ContentType)
 	d.Set("version_id", resp.VersionId)
 	d.Set("kms_key_id", resp.SSEKMSKeyId)
+	d.Set("encrypt", resp.ServerSideEncryption != nil)
 	d.Set("etag", strings.Trim(*resp.ETag, `"`))
 
 	// The "STANDARD" (which is also the default) storage

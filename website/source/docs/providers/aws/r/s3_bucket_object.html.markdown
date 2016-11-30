@@ -44,6 +44,22 @@ resource "aws_s3_bucket_object" "examplebucket_object" {
 }
 ```
 
+### Encrypting with AES256
+
+```
+resource "aws_s3_bucket" "examplebucket" {
+  bucket = "examplebuckettftest"
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_object" "examplebucket_object" {
+  key        = "someobject"
+  bucket     = "${aws_s3_bucket.examplebucket.bucket}"
+  source     = "index.html"
+  encrypt    = true
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -63,9 +79,11 @@ for the object. Can be either "`STANDARD`", "`REDUCED_REDUNDANCY`", or "`STANDAR
 * `etag` - (Optional) Used to trigger updates. The only meaningful value is `${md5(file("path/to/file"))}`.
 This attribute is not compatible with `kms_key_id`
 * `kms_key_id` - (Optional) Specifies the AWS KMS Key ID to use for object encryption.
+Implicitly enables `encrypt`.
 This value is a fully qualified **ARN** of the KMS Key. If using `aws_kms_key`,
-use the exported `arn` attribute:  
+use the exported `arn` attribute:
       `kms_key_id = "${aws_kms_key.foo.arn}"`
+* `encrypt` - (Optional) Specifies whether or not the object is encrypted. If the value is `true` and no `kms_key_id` is specified then AES256 is used.
 
 Either `source` or `content` must be provided to specify the bucket content.
 These two arguments are mutually-exclusive.
