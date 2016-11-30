@@ -26,16 +26,28 @@ func resourceAwsIamAccessKey() *schema.Resource {
 				ForceNew: true,
 			},
 			"status": &schema.Schema{
-				Type: schema.TypeString,
-				// this could be settable, but goamz does not support the
-				// UpdateAccessKey API yet.
+                                Type:     schema.TypeString,
 				Computed: true,
 			},
 			"secret": &schema.Schema{
+                                Type:       schema.TypeString,
+                                Computed:   true,
+                                Deprecated: "Secrets are no longer stored. Please use a PGP key to encrypt",
+                        },
+                        "ses_smtp_password": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"ses_smtp_password": &schema.Schema{
+                        "pgp_key": {
+                                Type:     schema.TypeString,
+                                ForceNew: true,
+                                Required: true,
+                        },
+                        "key_fingerprint": {
+                                Type:     schema.TypeString,
+                                Computed: true,
+                        },
+                        "encrypted_secret": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -59,9 +71,18 @@ func resourceAwsIamAccessKeyCreate(d *schema.ResourceData, meta interface{}) err
 		)
 	}
 
-	if err := d.Set("secret", createResp.AccessKey.SecretAccessKey); err != nil {
+        if createResp.AccessKey == nil || createResp.AccessKey.SecretAccessKey == nil {
+                return fmt.Errorf("[ERR] CreateAccessKey response did not contain a Secret Access Key as expected")
+        }
+
+        pgpKey := d.Get("pgp_key").(string)
+        fingerprint, encrypted, err := encryptPassword(*createResp.AccessKey.SecretAccessKey, pgpKey)
+        if err != nil {
 		return err
 	}
+
+        d.Set("key_fingerprint", fingerprint)
+        d.Set("encrypted_secret", encrypted)
 
 	d.Set("ses_smtp_password",
 		sesSmtpPasswordFromSecretKey(createResp.AccessKey.SecretAccessKey))
