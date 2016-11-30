@@ -32,30 +32,6 @@ func TestAccComputeHealthCheck_tcp(t *testing.T) {
 	})
 }
 
-func TestAccComputeHealthCheck_tcp_withPortName(t *testing.T) {
-	var healthCheck compute.HealthCheck
-	portName := "dummy-port"
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeHealthCheck_tcp_withPortName(portName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeHealthCheckExists(
-						"google_compute_health_check.foobar", &healthCheck),
-					testAccCheckComputeHealthCheckTcpPortName(portName, &healthCheck),
-					// 80 is the default port, so even though we did not set one,
-					// it should still have a value of 80.
-					testAccCheckComputeHealthCheckTcpPort(80, &healthCheck),
-				),
-			},
-		},
-	})
-}
-
 func TestAccComputeHealthCheck_ssl(t *testing.T) {
 	var healthCheck compute.HealthCheck
 
@@ -191,19 +167,6 @@ func testAccCheckComputeHealthCheckTcpPort(port int64, healthCheck *compute.Heal
 	}
 }
 
-func testAccCheckComputeHealthCheckTcpPortName(portName string, healthCheck *compute.HealthCheck) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if healthCheck.TcpHealthCheck.PortName != portName {
-			return fmt.Errorf("PortName doesn't match: expected %s, got %s", portName, healthCheck.TcpHealthCheck.PortName)
-		}
-
-		if healthCheck.TcpHealthCheck.Port != 0 {
-			return fmt.Errorf("Port doesn't match: expected nil, got %v", healthCheck.TcpHealthCheck.Port)
-		}
-		return nil
-	}
-}
-
 var testAccComputeHealthCheck_tcp = fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
 	check_interval_sec = 3
@@ -216,22 +179,6 @@ resource "google_compute_health_check" "foobar" {
 	}
 }
 `, acctest.RandString(10))
-
-func testAccComputeHealthCheck_tcp_withPortName(portName string) string {
-	return fmt.Sprintf(`
-resource "google_compute_health_check" "foobar" {
-	check_interval_sec = 3
-	description = "Resource created for Terraform acceptance testing"
-	healthy_threshold = 3
-	name = "health-test-%s"
-	timeout_sec = 2
-	unhealthy_threshold = 3
-	tcp_health_check {
-		port_name = "%s"
-	}
-}
-`, acctest.RandString(10), portName)
-}
 
 var testAccComputeHealthCheck_ssl = fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
