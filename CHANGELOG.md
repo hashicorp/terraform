@@ -2,7 +2,8 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * Strings in configuration can no longer contain unescaped newlines. For unescaped newlines, heredocs must be used.
+ * Strings in configuration can no longer contain unescaped newlines. For unescaped newlines, heredocs must be used
+ * provider/aws: Anywhere where we can specify kms_key_id must now be a valid KMS Key ID ARN to stop continual diffs
 
 FEATURES:
 
@@ -10,6 +11,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * provider/aws: Enforced kms_key_* attributes to be ARNs [GH-10356]
  * provider/azurerm: support import of routes, fix route_table [GH-10389]
  * provider/azurerm: create common schema for location field, add diff suppress [GH-10409]
  * provider/github: supports importing resources [GH-10382]
