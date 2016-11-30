@@ -1,3 +1,44 @@
+Release v1.5.12 (2016-11-30)
+===
+
+Service Client Updates
+---
+`service/lightsail`: Adds new service
+`service/polly`: Adds new service
+`service/rekognition`: Adds new service
+`service/snowball`: Updates service API and documentation
+
+Release v1.5.11 (2016-11-29)
+===
+
+Service Client Updates
+---
+`service/s3`: Updates service API and documentation
+
+Release v1.5.10 (2016-11-22)
+===
+
+Service Client Updates
+---
+`service/cloudformation`: Updates service API and documentation
+`service/glacier`: Updates service API, documentation, and examples
+`service/route53`: Updates service API and documentation
+`service/s3`: Updates service API and documentation
+
+SDK Bug Fixes
+---
+* `private/protocol/xml/xmlutil`: Fixes xml marshaler to unmarshal properly
+into tagged fields 
+[#916](https://github.com/aws/aws-sdk-go/issues/916)
+
+Release v1.5.9 (2016-11-22)
+===
+
+Service Client Updates
+---
+`service/cloudtrail`: Updates service API and documentation
+`service/ecs`: Updates service API and documentation
+
 Release v1.5.8 (2016-11-18)
 ===
 
