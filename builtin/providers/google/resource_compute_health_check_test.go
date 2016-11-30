@@ -10,7 +10,7 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-func TestAccComputeHealthCheck_basic(t *testing.T) {
+func TestAccComputeHealthCheck_tcp(t *testing.T) {
 	var healthCheck compute.HealthCheck
 
 	resource.Test(t, resource.TestCase{
@@ -19,7 +19,53 @@ func TestAccComputeHealthCheck_basic(t *testing.T) {
 		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeHealthCheck_basic,
+				Config: testAccComputeHealthCheck_tcp,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeHealthCheckExists(
+						"google_compute_health_check.foobar", &healthCheck),
+					testAccCheckComputeHealthCheckThresholds(
+						3, 3, &healthCheck),
+					testAccCheckComputeHealthCheckTcpPort(80, &healthCheck),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeHealthCheck_tcp_withPortName(t *testing.T) {
+	var healthCheck compute.HealthCheck
+	portName := "dummy-port"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeHealthCheck_tcp_withPortName(portName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeHealthCheckExists(
+						"google_compute_health_check.foobar", &healthCheck),
+					testAccCheckComputeHealthCheckTcpPortName(portName, &healthCheck),
+					// 80 is the default port, so even though we did not set one,
+					// it should still have a value of 80.
+					testAccCheckComputeHealthCheckTcpPort(80, &healthCheck),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeHealthCheck_ssl(t *testing.T) {
+	var healthCheck compute.HealthCheck
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeHealthCheck_ssl,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHealthCheckExists(
 						"google_compute_health_check.foobar", &healthCheck),
@@ -31,7 +77,7 @@ func TestAccComputeHealthCheck_basic(t *testing.T) {
 	})
 }
 
-func TestAccComputeHealthCheck_update(t *testing.T) {
+func TestAccComputeHealthCheck_http(t *testing.T) {
 	var healthCheck compute.HealthCheck
 
 	resource.Test(t, resource.TestCase{
@@ -40,26 +86,40 @@ func TestAccComputeHealthCheck_update(t *testing.T) {
 		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeHealthCheck_update1,
+				Config: testAccComputeHealthCheck_http,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHealthCheckExists(
 						"google_compute_health_check.foobar", &healthCheck),
 					testAccCheckComputeHealthCheckThresholds(
-						2, 2, &healthCheck),
-				),
-			},
-			resource.TestStep{
-				Config: testAccComputeHealthCheck_update2,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeHealthCheckExists(
-						"google_compute_health_check.foobar", &healthCheck),
-					testAccCheckComputeHealthCheckThresholds(
-						10, 10, &healthCheck),
+						3, 3, &healthCheck),
 				),
 			},
 		},
 	})
 }
+
+func TestAccComputeHealthCheck_https(t *testing.T) {
+	var healthCheck compute.HealthCheck
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeHealthCheck_https,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeHealthCheckExists(
+						"google_compute_health_check.foobar", &healthCheck),
+					testAccCheckComputeHealthCheckThresholds(
+						3, 3, &healthCheck),
+				),
+			},
+		},
+	})
+}
+
+// add in update test?
 
 func testAccCheckComputeHealthCheckDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
@@ -122,7 +182,29 @@ func testAccCheckComputeHealthCheckThresholds(healthy, unhealthy int64, healthCh
 	}
 }
 
-var testAccComputeHealthCheck_basic = fmt.Sprintf(`
+func testAccCheckComputeHealthCheckTcpPort(port int64, healthCheck *compute.HealthCheck) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if healthCheck.TcpHealthCheck.Port != port {
+			return fmt.Errorf("Port doesn't match: expected %v, got %v", port, healthCheck.TcpHealthCheck.Port)
+		}
+		return nil
+	}
+}
+
+func testAccCheckComputeHealthCheckTcpPortName(portName string, healthCheck *compute.HealthCheck) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if healthCheck.TcpHealthCheck.PortName != portName {
+			return fmt.Errorf("PortName doesn't match: expected %s, got %s", portName, healthCheck.TcpHealthCheck.PortName)
+		}
+
+		if healthCheck.TcpHealthCheck.Port != 0 {
+			return fmt.Errorf("Port doesn't match: expected nil, got %v", healthCheck.TcpHealthCheck.Port)
+		}
+		return nil
+	}
+}
+
+var testAccComputeHealthCheck_tcp = fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
 	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
@@ -131,26 +213,67 @@ resource "google_compute_health_check" "foobar" {
 	timeout_sec = 2
 	unhealthy_threshold = 3
 	tcp_health_check {
+	}
+}
+`, acctest.RandString(10))
+
+func testAccComputeHealthCheck_tcp_withPortName(portName string) string {
+	return fmt.Sprintf(`
+resource "google_compute_health_check" "foobar" {
+	check_interval_sec = 3
+	description = "Resource created for Terraform acceptance testing"
+	healthy_threshold = 3
+	name = "health-test-%s"
+	timeout_sec = 2
+	unhealthy_threshold = 3
+	tcp_health_check {
+		port_name = "%s"
+	}
+}
+`, acctest.RandString(10), portName)
+}
+
+var testAccComputeHealthCheck_ssl = fmt.Sprintf(`
+resource "google_compute_health_check" "foobar" {
+	check_interval_sec = 3
+	description = "Resource created for Terraform acceptance testing"
+	healthy_threshold = 3
+	name = "health-test-%s"
+	timeout_sec = 2
+	unhealthy_threshold = 3
+	type = "SSL"
+	ssl_health_check {
+		port = "443"
+	}
+}
+`, acctest.RandString(10))
+
+var testAccComputeHealthCheck_http = fmt.Sprintf(`
+resource "google_compute_health_check" "foobar" {
+	check_interval_sec = 3
+	description = "Resource created for Terraform acceptance testing"
+	healthy_threshold = 3
+	name = "health-test-%s"
+	timeout_sec = 2
+	unhealthy_threshold = 3
+	type = "HTTP"
+	http_health_check {
 		port = "80"
 	}
 }
 `, acctest.RandString(10))
 
-var testAccComputeHealthCheck_update1 = fmt.Sprintf(`
+var testAccComputeHealthCheck_https = fmt.Sprintf(`
 resource "google_compute_health_check" "foobar" {
-	name = "Health-test-%s"
+	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
-	request_path = "/not_default"
-}
-`, acctest.RandString(10))
-
-/* Change description, restore request_path to default, and change
-* thresholds from defaults */
-var testAccComputeHealthCheck_update2 = fmt.Sprintf(`
-resource "google_compute_health_check" "foobar" {
-	name = "Health-test-%s"
-	description = "Resource updated for Terraform acceptance testing"
-	healthy_threshold = 10
-	unhealthy_threshold = 10
+	healthy_threshold = 3
+	name = "health-test-%s"
+	timeout_sec = 2
+	unhealthy_threshold = 3
+	type = "HTTPS"
+	https_health_check {
+		port = "443"
+	}
 }
 `, acctest.RandString(10))
