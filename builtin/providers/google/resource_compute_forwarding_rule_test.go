@@ -61,7 +61,7 @@ func TestAccComputeForwardingRule_internalLoadBalancing(t *testing.T) {
 		CheckDestroy: testAccCheckComputeForwardingRuleDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeForwardingRule_internalLoadBalancing(serviceName, "us-central1", checkName, ruleName),
+				Config: testAccComputeForwardingRule_internalLoadBalancing(serviceName, checkName, ruleName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeForwardingRuleExists(
 						"google_compute_forwarding_rule.foobar"),
@@ -154,14 +154,14 @@ resource "google_compute_forwarding_rule" "foobar" {
 `, addrName, poolName, ruleName)
 }
 
-func testAccComputeForwardingRule_internalLoadBalancing(serviceName, region, checkName, ruleName string) string {
+func testAccComputeForwardingRule_internalLoadBalancing(serviceName, checkName, ruleName string) string {
 	return fmt.Sprintf(`
 resource "google_compute_region_backend_service" "foobar-bs" {
   name                  = "%s"
   description           = "Resource created for Terraform acceptance testing"
   health_checks         = ["${google_compute_health_check.zero.self_link}"]
   load_balancing_scheme = "INTERNAL"
-  region                = "%s"
+  region                = "us-central1"
 }
 resource "google_compute_health_check" "zero" {
   name               = "%s"
@@ -180,5 +180,5 @@ resource "google_compute_forwarding_rule" "foobar" {
   backend_service       = "${google_compute_region_backend_service.foobar-bs.self_link}"
   ports                 = ["80"]
 }
-`, serviceName, region, checkName, ruleName)
+`, serviceName, checkName, ruleName)
 }

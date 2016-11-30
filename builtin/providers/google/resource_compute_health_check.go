@@ -47,6 +47,7 @@ func resourceComputeHealthCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "TCP",
+				ForceNew: true,
 			},
 
 			"tcp_health_check": &schema.Schema{
