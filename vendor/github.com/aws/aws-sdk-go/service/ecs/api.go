@@ -3268,6 +3268,15 @@ type ContainerInstance struct {
 	// ACTIVE indicates that the container instance can accept tasks.
 	Status *string `locationName:"status" type:"string"`
 
+	// The version counter for the container instance. Every time a container instance
+	// experiences a change that triggers a CloudWatch event, the version counter
+	// is incremented. If you are replicating your Amazon ECS container instance
+	// state with CloudWatch events, you can compare the version of a container
+	// instance reported by the Amazon ECS APIs with the version reported in CloudWatch
+	// events for the container instance (inside the detail object) to verify that
+	// the version in your event stream is current.
+	Version *int64 `locationName:"version" type:"long"`
+
 	// The version information for the Amazon ECS container agent and Docker daemon
 	// running on the container instance.
 	VersionInfo *VersionInfo `locationName:"versionInfo" type:"structure"`
@@ -3340,6 +3349,12 @@ func (s *ContainerInstance) SetRunningTasksCount(v int64) *ContainerInstance {
 // SetStatus sets the Status field's value.
 func (s *ContainerInstance) SetStatus(v string) *ContainerInstance {
 	s.Status = &v
+	return s
+}
+
+// SetVersion sets the Version field's value.
+func (s *ContainerInstance) SetVersion(v int64) *ContainerInstance {
+	s.Version = &v
 	return s
 }
 
@@ -3954,8 +3969,7 @@ func (s *DeregisterContainerInstanceInput) SetForce(v bool) *DeregisterContainer
 type DeregisterContainerInstanceOutput struct {
 	_ struct{} `type:"structure"`
 
-	// An EC2 instance that is running the Amazon ECS agent and has been registered
-	// with a cluster.
+	// The container instance that was deregistered.
 	ContainerInstance *ContainerInstance `locationName:"containerInstance" type:"structure"`
 }
 
@@ -5661,8 +5675,7 @@ func (s *RegisterContainerInstanceInput) SetVersionInfo(v *VersionInfo) *Registe
 type RegisterContainerInstanceOutput struct {
 	_ struct{} `type:"structure"`
 
-	// An EC2 instance that is running the Amazon ECS agent and has been registered
-	// with a cluster.
+	// The container instance that was registered.
 	ContainerInstance *ContainerInstance `locationName:"containerInstance" type:"structure"`
 }
 
@@ -6418,7 +6431,7 @@ func (s *StopTaskInput) SetTask(v string) *StopTaskInput {
 type StopTaskOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Details on a task in a cluster.
+	// The task that was stopped.
 	Task *Task `locationName:"task" type:"structure"`
 }
 
@@ -6662,6 +6675,14 @@ type Task struct {
 
 	// The Amazon Resource Name (ARN) of the task definition that creates the task.
 	TaskDefinitionArn *string `locationName:"taskDefinitionArn" type:"string"`
+
+	// The version counter for the task. Every time a task experiences a change
+	// that triggers a CloudWatch event, the version counter is incremented. If
+	// you are replicating your Amazon ECS task state with CloudWatch events, you
+	// can compare the version of a task reported by the Amazon ECS APIs with the
+	// version reported in CloudWatch events for the task (inside the detail object)
+	// to verify that the version in your event stream is current.
+	Version *int64 `locationName:"version" type:"long"`
 }
 
 // String returns the string representation
@@ -6749,6 +6770,12 @@ func (s *Task) SetTaskArn(v string) *Task {
 // SetTaskDefinitionArn sets the TaskDefinitionArn field's value.
 func (s *Task) SetTaskDefinitionArn(v string) *Task {
 	s.TaskDefinitionArn = &v
+	return s
+}
+
+// SetVersion sets the Version field's value.
+func (s *Task) SetVersion(v int64) *Task {
+	s.Version = &v
 	return s
 }
 
@@ -7024,8 +7051,7 @@ func (s *UpdateContainerAgentInput) SetContainerInstance(v string) *UpdateContai
 type UpdateContainerAgentOutput struct {
 	_ struct{} `type:"structure"`
 
-	// An EC2 instance that is running the Amazon ECS agent and has been registered
-	// with a cluster.
+	// The container instance for which the container agent was updated.
 	ContainerInstance *ContainerInstance `locationName:"containerInstance" type:"structure"`
 }
 

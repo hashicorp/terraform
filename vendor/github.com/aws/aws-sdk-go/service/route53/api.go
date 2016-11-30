@@ -88,9 +88,8 @@ func (c *Route53) AssociateVPCWithHostedZoneRequest(input *AssociateVPCWithHoste
 //   authorized.
 //
 //   * InvalidVPCId
-//   The hosted zone you are trying to create for your VPC_ID does not belong
-//   to you. Amazon Route 53 returns this error when the VPC specified by VPCId
-//   does not belong to you.
+//   The VPC ID that you specified either isn't a valid ID or the current account
+//   is not authorized to access this VPC.
 //
 //   * InvalidInput
 //   The input is not valid.
@@ -199,40 +198,54 @@ func (c *Route53) ChangeResourceRecordSetsRequest(input *ChangeResourceRecordSet
 //
 //    * CREATE: Creates a resource record set that has the specified values.
 //
-//    * DELETE: Deletes an existing resource record set that has the applicable
-//    values for the following elements:
-//
-// Name: required to delete any resource record set
-//
-// Type: required to delete any resource record set
-//
-// AliasTarget, DNSName, EvaluateTargetHealth, and HostedZoneId: required to
-//    delete an alias resource record set
-//
-// SetIdentifier: required to delete a failover, geolocation, latency, or weighted
-//    resource record set
-//
-// TTL: required to delete any resource record set except an alias resource
-//    record set (For alias resource record sets, the TTL is determined by the
-//    AWS resource tat you're routing traffic to.)
+//    * DELETE: Deletes an existing resource record set that has the specified
+//    values.
 //
 //    * UPSERT: If a resource record set does not already exist, AWS creates
 //    it. If a resource set does exist, Amazon Route 53 updates it with the
-//    values in the request. Amazon Route 53 can update an existing resource
-//    record set only when all of the following values match: Name, Type, and
-//    Set Identifier (for weighted, latency, geolocation, and failover resource
-//    record sets).
+//    values in the request.
 //
-// In response to a ChangeResourceRecordSets request, the DNS data is changed
-// on all Amazon Route 53 DNS servers. Initially, the status of a change is
-// PENDING, meaning the change has not yet propagated to all the authoritative
-// Amazon Route 53 DNS servers. When the change is propagated to all hosts,
-// the change returns a status of INSYNC.
+// The values that you need to include in the request depend on the type of
+// resource record set that you're creating, deleting, or updating:
 //
-// After sending a change request, confirm your change has propagated to all
-// Amazon Route 53 DNS servers. Changes generally propagate to all Amazon Route
-// 53 name servers in a few minutes. In rare circumstances, propagation can
-// take up to 30 minutes. For more information, see GetChange.
+// Basic resource record sets (excluding alias, failover, geolocation, latency,
+// and weighted resource record sets)
+//
+//    * Name
+//
+//    * Type
+//
+//    * TTL
+//
+// Failover, geolocation, latency, or weighted resource record sets (excluding
+// alias resource record sets)
+//
+//    * Name
+//
+//    * Type
+//
+//    * TTL
+//
+//    * SetIdentifier
+//
+// Alias resource record sets (including failover alias, geolocation alias,
+// latency alias, and weighted alias resource record sets)
+//
+//    * Name
+//
+//    * Type
+//
+//    * AliasTarget (includes DNSName, EvaluateTargetHealth, and HostedZoneId)
+//
+//    * SetIdentifier (for failover, geolocation, latency, and weighted resource
+//    record sets)
+//
+// When you submit a ChangeResourceRecordSets request, Amazon Route 53 propagates
+// your changes to all of the Amazon Route 53 authoritative DNS servers. While
+// your changes are propagating, GetChange returns a status of PENDING. When
+// propagation is complete, GetChange returns a status of INSYNC. Changes generally
+// propagate to all Amazon Route 53 name servers in a few minutes. In rare circumstances,
+// propagation can take up to 30 minutes. For more information, see GetChange
 //
 // For information about the limits on a ChangeResourceRecordSets request, see
 // Limits (http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/DNSLimitations.html)
@@ -572,9 +585,8 @@ func (c *Route53) CreateHostedZoneRequest(input *CreateHostedZoneInput) (req *re
 //   page.
 //
 //   * InvalidVPCId
-//   The hosted zone you are trying to create for your VPC_ID does not belong
-//   to you. Amazon Route 53 returns this error when the VPC specified by VPCId
-//   does not belong to you.
+//   The VPC ID that you specified either isn't a valid ID or the current account
+//   is not authorized to access this VPC.
 //
 //   * InvalidInput
 //   The input is not valid.
@@ -1040,9 +1052,8 @@ func (c *Route53) CreateVPCAssociationAuthorizationRequest(input *CreateVPCAssoc
 //   No hosted zone exists with the ID that you specified.
 //
 //   * InvalidVPCId
-//   The hosted zone you are trying to create for your VPC_ID does not belong
-//   to you. Amazon Route 53 returns this error when the VPC specified by VPCId
-//   does not belong to you.
+//   The VPC ID that you specified either isn't a valid ID or the current account
+//   is not authorized to access this VPC.
 //
 //   * InvalidInput
 //   The input is not valid.
@@ -1539,9 +1550,8 @@ func (c *Route53) DeleteVPCAssociationAuthorizationRequest(input *DeleteVPCAssoc
 //   No hosted zone exists with the ID that you specified.
 //
 //   * InvalidVPCId
-//   The hosted zone you are trying to create for your VPC_ID does not belong
-//   to you. Amazon Route 53 returns this error when the VPC specified by VPCId
-//   does not belong to you.
+//   The VPC ID that you specified either isn't a valid ID or the current account
+//   is not authorized to access this VPC.
 //
 //   * InvalidInput
 //   The input is not valid.
@@ -1621,9 +1631,8 @@ func (c *Route53) DisassociateVPCFromHostedZoneRequest(input *DisassociateVPCFro
 //   No hosted zone exists with the ID that you specified.
 //
 //   * InvalidVPCId
-//   The hosted zone you are trying to create for your VPC_ID does not belong
-//   to you. Amazon Route 53 returns this error when the VPC specified by VPCId
-//   does not belong to you.
+//   The VPC ID that you specified either isn't a valid ID or the current account
+//   is not authorized to access this VPC.
 //
 //   * VPCAssociationNotFound
 //   The specified VPC and hosted zone are not currently associated.
@@ -4774,30 +4783,58 @@ type Change struct {
 	//
 	//    * CREATE: Creates a resource record set that has the specified values.
 	//
-	//    * DELETE: Deletes a existing resource record set that has the specified
-	//    values for Name, Type, SetIdentifier (for latency, weighted, geolocation,
-	//    and failover resource record sets), and TTL (except alias resource record
-	//    sets, for which the TTL is determined by the AWS resource that you're
-	//    routing DNS queries to).
+	//    * DELETE: Deletes a existing resource record set.
 	//
 	// To delete the resource record set that is associated with a traffic policy
-	//    instance, use DeleteTrafficPolicyInstance. Amazon Route 53will delete
+	//    instance, use DeleteTrafficPolicyInstance. Amazon Route 53 will delete
 	//    the resource record set automatically. If you delete the resource record
 	//    set by using ChangeResourceRecordSets, Amazon Route 53 doesn't automatically
 	//    delete the traffic policy instance, and you'll continue to be charged
 	//    for it even though it's no longer in use.
 	//
-	//    * UPSERT: If a resource record set does not already exist, Amazon Route
+	//    * UPSERT: If a resource record set doesn't already exist, Amazon Route
 	//    53 creates it. If a resource record set does exist, Amazon Route 53 updates
-	//    it with the values in the request. Amazon Route 53 can update an existing
-	//    resource record set only when all of the following values match: Name,
-	//    Type, and SetIdentifier (for weighted, latency, geolocation, and failover
-	//    resource record sets).
+	//    it with the values in the request.
+	//
+	// The values that you need to include in the request depend on the type of
+	// resource record set that you're creating, deleting, or updating:
+	//
+	// Basic resource record sets (excluding alias, failover, geolocation, latency,
+	// and weighted resource record sets)
+	//
+	//    * Name
+	//
+	//    * Type
+	//
+	//    * TTL
+	//
+	// Failover, geolocation, latency, or weighted resource record sets (excluding
+	// alias resource record sets)
+	//
+	//    * Name
+	//
+	//    * Type
+	//
+	//    * TTL
+	//
+	//    * SetIdentifier
+	//
+	// Alias resource record sets (including failover alias, geolocation alias,
+	// latency alias, and weighted alias resource record sets)
+	//
+	//    * Name
+	//
+	//    * Type
+	//
+	//    * AliasTarget (includes DNSName, EvaluateTargetHealth, and HostedZoneId)
+	//
+	//    * SetIdentifier (for failover, geolocation, latency, and weighted resource
+	//    record sets)
 	//
 	// Action is a required field
 	Action *string `type:"string" required:"true" enum:"ChangeAction"`
 
-	// Information about the resource record set to create or delete.
+	// Information about the resource record set to create, delete, or update.
 	//
 	// ResourceRecordSet is a required field
 	ResourceRecordSet *ResourceRecordSet `type:"structure" required:"true"`
@@ -7858,13 +7895,16 @@ type HealthCheckConfig struct {
 
 	// Amazon Route 53 behavior depends on whether you specify a value for IPAddress.
 	//
-	// If you specifyIPAddress:
+	// If you specify a value forIPAddress:
 	//
-	// The value that you want Amazon Route 53 to pass in the Host header in all
-	// health checks except TCP health checks. This is typically the fully qualified
-	// DNS name of the website that you are attempting to health check. When Amazon
-	// Route 53 checks the health of an endpoint, here is how it constructs the
-	// Host header:
+	// Amazon Route 53 sends health check requests to the specified IPv4 or IPv6
+	// address and passes the value of FullyQualifiedDomainName in the Host header
+	// for all health checks except TCP health checks. This is typically the fully
+	// qualified DNS name of the endpoint on which you want Amazon Route 53 to perform
+	// health checks.
+	//
+	// When Amazon Route 53 checks the health of an endpoint, here is how it constructs
+	// the Host header:
 	//
 	//    * If you specify a value of 80 for Port and HTTP or HTTP_STR_MATCH for
 	//    Type, Amazon Route 53 passes the value of FullyQualifiedDomainName to
@@ -7882,12 +7922,16 @@ type HealthCheckConfig struct {
 	// substitutes the value of IPAddress in the Host header in each of the preceding
 	// cases.
 	//
-	// If you don't specifyIPAddress:
+	// If you don't specify a value for IPAddress:
 	//
-	// If you don't specify a value for IPAddress, Amazon Route 53 sends a DNS request
-	// to the domain that you specify in FullyQualifiedDomainName at the interval
-	// you specify in RequestInterval. Using an IP address that DNS returns, Amazon
-	// Route 53 then checks the health of the endpoint.
+	// Amazon Route 53 sends a DNS request to the domain that you specify for FullyQualifiedDomainName
+	// at the interval that you specify for RequestInterval. Using an IPv4 address
+	// that DNS returns, Amazon Route 53 then checks the health of the endpoint.
+	//
+	// If you don't specify a value for IPAddress, Amazon Route 53 uses only IPv4
+	// to send health checks to the endpoint. If there's no resource record set
+	// with a type of A for the name that you specify for FullyQualifiedDomainName,
+	// the health check fails with a "DNS resolution failed" error.
 	//
 	// If you want to check the health of weighted, latency, or failover resource
 	// record sets and you choose to specify the endpoint only by FullyQualifiedDomainName,
@@ -7923,11 +7967,11 @@ type HealthCheckConfig struct {
 	//    to be healthy.
 	HealthThreshold *int64 `type:"integer"`
 
-	// The IPv4 IP address of the endpoint on which you want Amazon Route 53 to
-	// perform health checks. If you don't specify a value for IPAddress, Amazon
-	// Route 53 sends a DNS request to resolve the domain name that you specify
+	// The IPv4 or IPv6 IP address of the endpoint that you want Amazon Route 53
+	// to perform health checks on. If you don't specify a value for IPAddress,
+	// Amazon Route 53 sends a DNS request to resolve the domain name that you specify
 	// in FullyQualifiedDomainName at the interval that you specify in RequestInterval.
-	// Using an IP address that DNS returns, Amazon Route 53 then checks the health
+	// Using an IP address returned by DNS, Amazon Route 53 then checks the health
 	// of the endpoint.
 	//
 	// If the endpoint is an EC2 instance, we recommend that you create an Elastic
@@ -7938,10 +7982,15 @@ type HealthCheckConfig struct {
 	// For more information, see HealthCheckConfig$FullyQualifiedDomainName.
 	//
 	// Constraints: Amazon Route 53 can't check the health of endpoints for which
-	// the IP address is in local, private, non-routable, or \ multicast ranges.
-	// For more information about IP addresses for which you can't create health
-	// checks, see RFC 5735, Special Use IPv4 Addresses (https://tools.ietf.org/html/rfc5735)
-	// and RFC 6598, IANA-Reserved IPv4 Prefix for Shared Address Space (https://tools.ietf.org/html/rfc6598).
+	// the IP address is in local, private, non-routable, or multicast ranges. For
+	// more information about IP addresses for which you can't create health checks,
+	// see the following documents:
+	//
+	//    * RFC 5735, Special Use IPv4 Addresses (https://tools.ietf.org/html/rfc5735)
+	//
+	//    * RFC 6598, IANA-Reserved IPv4 Prefix for Shared Address Space (https://tools.ietf.org/html/rfc6598)
+	//
+	//    * RFC 5156, Special-Use IPv6 Addresses (https://tools.ietf.org/html/rfc5156)
 	//
 	// When the value of Type is CALCULATED or CLOUDWATCH_METRIC, omit IPAddress.
 	IPAddress *string `type:"string"`
@@ -11676,13 +11725,16 @@ type UpdateHealthCheckInput struct {
 	// However, you can't update an existing health check to add or remove the value
 	// of IPAddress.
 	//
-	// If you specifyIPAddress:
+	// If you specify a value forIPAddress:
 	//
-	// The value that you want Amazon Route 53 to pass in the Host header in all
-	// health checks except TCP health checks. This is typically the fully qualified
-	// DNS name of the endpoint on which you want Amazon Route 53 to perform health
-	// checks. When Amazon Route 53 checks the health of an endpoint, here is how
-	// it constructs the Host header:
+	// Amazon Route 53 sends health check requests to the specified IPv4 or IPv6
+	// address and passes the value of FullyQualifiedDomainName in the Host header
+	// for all health checks except TCP health checks. This is typically the fully
+	// qualified DNS name of the endpoint on which you want Amazon Route 53 to perform
+	// health checks.
+	//
+	// When Amazon Route 53 checks the health of an endpoint, here is how it constructs
+	// the Host header:
 	//
 	//    * If you specify a value of 80 for Port and HTTP or HTTP_STR_MATCH for
 	//    Type, Amazon Route 53 passes the value of FullyQualifiedDomainName to
@@ -11700,12 +11752,17 @@ type UpdateHealthCheckInput struct {
 	// substitutes the value of IPAddress in the Host header in each of the above
 	// cases.
 	//
-	// If you don't specifyIPAddress:
+	// If you don't specify a value forIPAddress:
 	//
 	// If you don't specify a value for IPAddress, Amazon Route 53 sends a DNS request
 	// to the domain that you specify in FullyQualifiedDomainName at the interval
-	// you specify in RequestInterval. Using an IP address that DNS returns, Amazon
-	// Route 53 then checks the health of the endpoint.
+	// you specify in RequestInterval. Using an IPv4 address that is returned by
+	// DNS, Amazon Route 53 then checks the health of the endpoint.
+	//
+	// If you don't specify a value for IPAddress, Amazon Route 53 uses only IPv4
+	// to send health checks to the endpoint. If there's no resource record set
+	// with a type of A for the name that you specify for FullyQualifiedDomainName,
+	// the health check fails with a "DNS resolution failed" error.
 	//
 	// If you want to check the health of weighted, latency, or failover resource
 	// record sets and you choose to specify the endpoint only by FullyQualifiedDomainName,
@@ -11765,14 +11822,14 @@ type UpdateHealthCheckInput struct {
 	//    to be healthy.
 	HealthThreshold *int64 `type:"integer"`
 
-	// The IPv4 IP address of the endpoint on which you want Amazon Route 53 to
-	// perform health checks. If you don't specify a value for IPAddress, Amazon
-	// Route 53 sends a DNS request to resolve the domain name that you specify
-	// in FullyQualifiedDomainName at the interval you specify in RequestInterval.
-	// Using an IP address that DNS returns, Amazon Route 53 then checks the health
-	// of the endpoint.
+	// The IPv4 or IPv6 IP address for the endpoint that you want Amazon Route 53
+	// to perform health checks on. If you don't specify a value for IPAddress,
+	// Amazon Route 53 sends a DNS request to resolve the domain name that you specify
+	// in FullyQualifiedDomainName at the interval that you specify in RequestInterval.
+	// Using an IP address that is returned by DNS, Amazon Route 53 then checks
+	// the health of the endpoint.
 	//
-	// f the endpoint is an EC2 instance, we recommend that you create an Elastic
+	// If the endpoint is an EC2 instance, we recommend that you create an Elastic
 	// IP address, associate it with your EC2 instance, and specify the Elastic
 	// IP address for IPAddress. This ensures that the IP address of your instance
 	// never changes. For more information, see Elastic IP Addresses (EIP) (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html)
@@ -11783,6 +11840,17 @@ type UpdateHealthCheckInput struct {
 	// of IPAddress.
 	//
 	// For more information, see UpdateHealthCheckRequest$FullyQualifiedDomainName.
+	//
+	// Constraints: Amazon Route 53 can't check the health of endpoints for which
+	// the IP address is in local, private, non-routable, or multicast ranges. For
+	// more information about IP addresses for which you can't create health checks,
+	// see the following documents:
+	//
+	//    * RFC 5735, Special Use IPv4 Addresses (https://tools.ietf.org/html/rfc5735)
+	//
+	//    * RFC 6598, IANA-Reserved IPv4 Prefix for Shared Address Space (https://tools.ietf.org/html/rfc6598)
+	//
+	//    * RFC 5156, Special-Use IPv6 Addresses (https://tools.ietf.org/html/rfc5156)
 	IPAddress *string `type:"string"`
 
 	// When CloudWatch has insufficient data about the metric to determine the alarm
