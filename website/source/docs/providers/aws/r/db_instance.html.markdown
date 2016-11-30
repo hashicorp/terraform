@@ -45,7 +45,7 @@ resource "aws_db_instance" "default" {
 ## Argument Reference
 
 For more detailed documentation about each argument, refer to
-the [AWS official documentation](https://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html).
+the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html).
 
 The following arguments are supported:
 
@@ -55,8 +55,8 @@ The following arguments are supported:
 * `identifier` - (Optional) The name of the RDS instance, if omitted, Terraform will assign a random, unique name
 * `instance_class` - (Required) The instance type of the RDS instance.
 * `storage_type` - (Optional) One of "standard" (magnetic), "gp2" (general
-	purpose SSD), or "io1" (provisioned IOPS SSD). The default is "io1" if
-	`iops` is specified, "standard" if not.
+    purpose SSD), or "io1" (provisioned IOPS SSD). The default is "io1" if
+    `iops` is specified, "standard" if not.
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB instance is deleted. If omitted, no final snapshot will be
     made.

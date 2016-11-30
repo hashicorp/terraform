@@ -32,9 +32,8 @@ import (
 // This reference covers the 2012-06-01 API, which supports Classic load balancers.
 // The 2015-12-01 API supports Application load balancers.
 //
-// To get started, create a load balancer with one or more listeners using
-// CreateLoadBalancer. Register your instances with the load balancer using
-// RegisterInstancesWithLoadBalancer.
+// To get started, create a load balancer with one or more listeners using CreateLoadBalancer.
+// Register your instances with the load balancer using RegisterInstancesWithLoadBalancer.
 //
 // All Elastic Load Balancing operations are idempotent, which means that they
 // complete at most one time. If you repeat an operation, it succeeds with a

@@ -246,6 +246,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 	var walkFn dag.WalkFunc
 	walkFn = func(v dag.Vertex) (rerr error) {
 		log.Printf("[DEBUG] vertex '%s.%s': walking", path, dag.VertexName(v))
+		g.DebugVisitInfo(v, g.debugName)
 
 		// If we have a panic wrap GraphWalker and a panic occurs, recover
 		// and call that. We ensure the return value is an error, however,

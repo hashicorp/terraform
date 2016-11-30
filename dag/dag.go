@@ -167,7 +167,7 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 // This will walk nodes in parallel if it can. Because the walk is done
 // in parallel, the error returned will be a multierror.
 func (g *AcyclicGraph) Walk(cb WalkFunc) error {
-	defer g.debug.BeginOperation("Walk", "").End("")
+	defer g.debug.BeginOperation(typeWalk, "").End("")
 
 	// Cache the vertices since we use it multiple times
 	vertices := g.Vertices()
@@ -278,7 +278,7 @@ type vertexAtDepth struct {
 // the vertices in start. This is not exported now but it would make sense
 // to export this publicly at some point.
 func (g *AcyclicGraph) DepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
-	defer g.debug.BeginOperation("DepthFirstWalk", "").End("")
+	defer g.debug.BeginOperation(typeDepthFirstWalk, "").End("")
 
 	seen := make(map[Vertex]struct{})
 	frontier := make([]*vertexAtDepth, len(start))
@@ -322,7 +322,7 @@ func (g *AcyclicGraph) DepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
 // reverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
 // the vertices in start.
 func (g *AcyclicGraph) ReverseDepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
-	defer g.debug.BeginOperation("ReverseDepthFirstWalk", "").End("")
+	defer g.debug.BeginOperation(typeReverseDepthFirstWalk, "").End("")
 
 	seen := make(map[Vertex]struct{})
 	frontier := make([]*vertexAtDepth, len(start))

@@ -47,6 +47,35 @@ func TestContext2Apply_basic(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_escape(t *testing.T) {
+	m := testModule(t, "apply-escape")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.bar:
+  ID = foo
+  foo = "bar"
+  type = aws_instance
+`)
+}
+
 func TestContext2Apply_resourceCountOneList(t *testing.T) {
 	m := testModule(t, "apply-resource-count-one-list")
 	p := testProvider("null")
@@ -909,6 +938,80 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
+}
+
+// Test that we can perform an apply with CBD in a count with deposed instances.
+func TestContext2Apply_createBeforeDestroy_deposedCount(t *testing.T) {
+	m := testModule(t, "apply-cbd-count")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
+						},
+
+						Deposed: []*InstanceState{
+							&InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+					"aws_instance.bar.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:      "bar",
+							Tainted: true,
+						},
+
+						Deposed: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.bar.0:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.bar.1:
+  ID = foo
+  foo = bar
+  type = aws_instance
+	`)
 }
 
 func TestContext2Apply_destroyComputed(t *testing.T) {
@@ -1976,6 +2079,115 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 			t.Fatalf("bad: \n%s", actual)
 		}
 	}
+}
+
+func TestContext2Apply_moduleInheritAlias(t *testing.T) {
+	m := testModule(t, "apply-module-provider-inherit-alias")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		if _, ok := c.Get("child"); !ok {
+			return nil
+		}
+
+		if _, ok := c.Get("root"); ok {
+			return fmt.Errorf("child should not get root")
+		}
+
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+    provider = aws.eu
+	`)
+}
+
+func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
+	m := testModule(t, "apply-module-provider-inherit-alias-orphan")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	called := false
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		called = true
+
+		if _, ok := c.Get("child"); !ok {
+			return nil
+		}
+
+		if _, ok := c.Get("root"); ok {
+			return fmt.Errorf("child should not get root")
+		}
+
+		return nil
+	}
+
+	// Create a state with an orphan module
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+						Provider: "aws.eu",
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		State:  state,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !called {
+		t.Fatal("must call configure")
+	}
+
+	checkStateString(t, state, `
+module.child:
+  <no state>
+  `)
 }
 
 func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
@@ -3470,6 +3682,66 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 	expectedCommands := []string{"number 0", "number 1", "number 2"}
 	if !reflect.DeepEqual(commands, expectedCommands) {
 		t.Fatalf("bad: %#v", commands)
+	}
+}
+
+func TestContext2Apply_provisionerMultiSelfRefSingle(t *testing.T) {
+	var lock sync.Mutex
+	order := make([]string, 0, 5)
+
+	m := testModule(t, "apply-provisioner-multi-self-ref-single")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		lock.Lock()
+		defer lock.Unlock()
+
+		val, ok := c.Config["order"]
+		if !ok {
+			t.Fatalf("bad value for order: %v %#v", val, c)
+		}
+
+		order = append(order, val.(string))
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerMultiSelfRefSingleStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+
+	// Verify our result
+	sort.Strings(order)
+	expectedOrder := []string{"0", "1", "2"}
+	if !reflect.DeepEqual(order, expectedOrder) {
+		t.Fatalf("bad: %#v", order)
 	}
 }
 

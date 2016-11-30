@@ -25,8 +25,8 @@ import (
 // functionality within Amazon's proven computing environment, are able to scale
 // instantly, and pay only for what they use.
 //
-//  Visit http://aws.amazon.com/simpledb/ (http://aws.amazon.com/simpledb/)
-// for more information.
+// Visit http://aws.amazon.com/simpledb/ (http://aws.amazon.com/simpledb/) for
+// more information.
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type SimpleDB struct {

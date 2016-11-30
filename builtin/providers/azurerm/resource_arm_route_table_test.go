@@ -262,8 +262,8 @@ resource "azurerm_route_table" "test" {
 
     route {
     	name = "route1"
-    	address_prefix = "*"
-    	next_hop_type = "internet"
+		address_prefix = "10.1.0.0/16"
+		next_hop_type = "vnetlocal"
     }
 }
 `
@@ -281,14 +281,14 @@ resource "azurerm_route_table" "test" {
 
     route {
     	name = "route1"
-    	address_prefix = "*"
-    	next_hop_type = "internet"
+		address_prefix = "10.1.0.0/16"
+		next_hop_type = "vnetlocal"
     }
 
     route {
     	name = "route2"
-    	address_prefix = "*"
-    	next_hop_type = "virtualappliance"
+		address_prefix = "10.2.0.0/16"
+		next_hop_type = "vnetlocal"
     }
 }
 `
@@ -306,8 +306,8 @@ resource "azurerm_route_table" "test" {
 
     route {
     	name = "route1"
-    	address_prefix = "*"
-    	next_hop_type = "internet"
+    	address_prefix = "10.1.0.0/16"
+    	next_hop_type = "vnetlocal"
     }
 
     tags {
@@ -330,8 +330,8 @@ resource "azurerm_route_table" "test" {
 
     route {
     	name = "route1"
-    	address_prefix = "*"
-    	next_hop_type = "internet"
+    	address_prefix = "10.1.0.0/16"
+    	next_hop_type = "vnetlocal"
     }
 
     tags {

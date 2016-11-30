@@ -8,7 +8,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -19,30 +18,12 @@ func dataSourceAwsAmi() *schema.Resource {
 		Read: dataSourceAwsAmiRead,
 
 		Schema: map[string]*schema.Schema{
+			"filter": dataSourceFiltersSchema(),
 			"executable_users": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"filter": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": {
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"values": {
-							Type:     schema.TypeList,
-							Required: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-					},
-				},
 			},
 			"name_regex": {
 				Type:         schema.TypeString,
@@ -186,23 +167,7 @@ func dataSourceAwsAmi() *schema.Resource {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"tags": {
-				Type:     schema.TypeSet,
-				Computed: true,
-				Set:      amiTagsHash,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
+			"tags": dataSourceTagsSchema(),
 		},
 	}
 }
@@ -225,7 +190,7 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		params.ExecutableUsers = expandStringList(executableUsers.([]interface{}))
 	}
 	if filtersOk {
-		params.Filters = buildAmiFilters(filters.(*schema.Set))
+		params.Filters = buildAwsDataSourceFilters(filters.(*schema.Set))
 	}
 	if ownersOk {
 		params.Owners = expandStringList(owners.([]interface{}))
@@ -278,23 +243,6 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *image.ImageId)
 	return amiDescriptionAttributes(d, image)
-}
-
-// Build a slice of AMI filter options from the filters provided.
-func buildAmiFilters(set *schema.Set) []*ec2.Filter {
-	var filters []*ec2.Filter
-	for _, v := range set.List() {
-		m := v.(map[string]interface{})
-		var filterValues []*string
-		for _, e := range m["values"].([]interface{}) {
-			filterValues = append(filterValues, aws.String(e.(string)))
-		}
-		filters = append(filters, &ec2.Filter{
-			Name:   aws.String(m["name"].(string)),
-			Values: filterValues,
-		})
-	}
-	return filters
 }
 
 type imageSort []*ec2.Image
@@ -361,7 +309,7 @@ func amiDescriptionAttributes(d *schema.ResourceData, image *ec2.Image) error {
 	if err := d.Set("state_reason", amiStateReason(image.StateReason)); err != nil {
 		return err
 	}
-	if err := d.Set("tags", amiTags(image.Tags)); err != nil {
+	if err := d.Set("tags", dataSourceTags(image.Tags)); err != nil {
 		return err
 	}
 	return nil
@@ -433,21 +381,6 @@ func amiStateReason(m *ec2.StateReason) map[string]interface{} {
 	return s
 }
 
-// Returns a set of tags.
-func amiTags(m []*ec2.Tag) *schema.Set {
-	s := &schema.Set{
-		F: amiTagsHash,
-	}
-	for _, v := range m {
-		tag := map[string]interface{}{
-			"key":   *v.Key,
-			"value": *v.Value,
-		}
-		s.Add(tag)
-	}
-	return s
-}
-
 // Generates a hash for the set hash function used by the block_device_mappings
 // attribute.
 func amiBlockDeviceMappingHash(v interface{}) int {
@@ -485,17 +418,6 @@ func amiProductCodesHash(v interface{}) int {
 	// All keys added in alphabetical order.
 	buf.WriteString(fmt.Sprintf("%s-", m["product_code_id"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["product_code_type"].(string)))
-	return hashcode.String(buf.String())
-}
-
-// Generates a hash for the set hash function used by the tags
-// attribute.
-func amiTagsHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	// All keys added in alphabetical order.
-	buf.WriteString(fmt.Sprintf("%s-", m["key"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
 	return hashcode.String(buf.String())
 }
 

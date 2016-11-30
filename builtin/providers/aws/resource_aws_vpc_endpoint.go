@@ -52,6 +52,11 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"cidr_blocks": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -155,7 +160,9 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	if err := d.Set("route_table_ids", aws.StringValueSlice(vpce.RouteTableIds)); err != nil {
 		return err
 	}
-	d.Set("prefix_list_id", prefixListsOutput.PrefixLists[0].PrefixListId)
+	pl := prefixListsOutput.PrefixLists[0]
+	d.Set("prefix_list_id", pl.PrefixListId)
+	d.Set("cidr_blocks", aws.StringValueSlice(pl.Cidrs))
 
 	return nil
 }

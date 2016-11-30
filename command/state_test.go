@@ -2,8 +2,11 @@ package command
 
 import (
 	"path/filepath"
+	"regexp"
 	"sort"
 	"testing"
+
+	"github.com/hashicorp/terraform/state"
 )
 
 // testStateBackups returns the list of backups in order of creation
@@ -19,4 +22,17 @@ func testStateBackups(t *testing.T, dir string) []string {
 	sort.Strings(list)
 
 	return list
+}
+
+func TestStateDefaultBackupExtension(t *testing.T) {
+	s, err := (&StateMeta{}).State(&Meta{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	backupPath := s.(*state.BackupState).Path
+	match := regexp.MustCompile(`terraform\.tfstate\.\d+\.backup$`).MatchString
+	if !match(backupPath) {
+		t.Fatal("Bad backup path:", backupPath)
+	}
 }

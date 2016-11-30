@@ -2,7 +2,6 @@ package github
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/google/go-github/github"
@@ -12,25 +11,6 @@ import (
 
 func TestAccGithubTeamMembership_basic(t *testing.T) {
 	var membership github.Membership
-
-	testUser := os.Getenv("GITHUB_TEST_USER")
-	testAccGithubTeamMembershipConfig := fmt.Sprintf(`
-		resource "github_membership" "test_org_membership" {
-			username = "%s"
-			role = "member"
-		}
-
-		resource "github_team" "test_team" {
-			name = "foo"
-			description = "Terraform acc test group"
-		}
-
-		resource "github_team_membership" "test_team_membership" {
-			team_id = "${github_team.test_team.id}"
-			username = "%s"
-			role = "member"
-		}
-	`, testUser, testUser)
 
 	testAccGithubTeamMembershipUpdateConfig := fmt.Sprintf(`
 		resource "github_membership" "test_org_membership" {
@@ -68,6 +48,24 @@ func TestAccGithubTeamMembership_basic(t *testing.T) {
 					testAccCheckGithubTeamMembershipExists("github_team_membership.test_team_membership", &membership),
 					testAccCheckGithubTeamMembershipRoleState("github_team_membership.test_team_membership", "maintainer", &membership),
 				),
+			},
+		},
+	})
+}
+
+func TestAccGithubTeamMembership_importBasic(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckGithubTeamMembershipDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccGithubTeamMembershipConfig,
+			},
+			resource.TestStep{
+				ResourceName:      "github_team_membership.test_team_membership",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -152,3 +150,21 @@ func testAccCheckGithubTeamMembershipRoleState(n, expected string, membership *g
 		return nil
 	}
 }
+
+var testAccGithubTeamMembershipConfig string = fmt.Sprintf(`
+  resource "github_membership" "test_org_membership" {
+    username = "%s"
+    role = "member"
+  }
+
+  resource "github_team" "test_team" {
+    name = "foo"
+    description = "Terraform acc test group"
+  }
+
+  resource "github_team_membership" "test_team_membership" {
+    team_id = "${github_team.test_team.id}"
+    username = "%s"
+    role = "member"
+  }
+`, testUser, testUser)

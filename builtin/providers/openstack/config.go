@@ -9,6 +9,7 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/swauth"
 )
 
 type Config struct {
@@ -21,6 +22,7 @@ type Config struct {
 	IdentityEndpoint string
 	Insecure         bool
 	Password         string
+	Swauth           bool
 	TenantID         string
 	TenantName       string
 	Token            string
@@ -95,9 +97,12 @@ func (c *Config) loadAndValidate() error {
 	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
 	client.HTTPClient.Transport = transport
 
-	err = openstack.Authenticate(client, ao)
-	if err != nil {
-		return err
+	// If using Swift Authentication, there's no need to validate authentication normally.
+	if !c.Swauth {
+		err = openstack.Authenticate(client, ao)
+		if err != nil {
+			return err
+		}
 	}
 
 	c.osClient = client
@@ -134,6 +139,14 @@ func (c *Config) networkingV2Client(region string) (*gophercloud.ServiceClient, 
 }
 
 func (c *Config) objectStorageV1Client(region string) (*gophercloud.ServiceClient, error) {
+	// If Swift Authentication is being used, return a swauth client.
+	if c.Swauth {
+		return swauth.NewObjectStorageV1(c.osClient, swauth.AuthOpts{
+			User: c.Username,
+			Key:  c.Password,
+		})
+	}
+
 	return openstack.NewObjectStorageV1(c.osClient, gophercloud.EndpointOpts{
 		Region:       region,
 		Availability: c.getEndpointType(),

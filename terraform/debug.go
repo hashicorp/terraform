@@ -224,40 +224,6 @@ func (d *debugInfo) flush() {
 	}
 }
 
-// WriteGraph takes a DebugGraph and writes both the DebugGraph as a dot file
-// in the debug archive, and extracts any logs that the DebugGraph collected
-// and writes them to a log file in the archive.
-func (d *debugInfo) WriteGraph(name string, g *Graph) error {
-	if d == nil || g == nil {
-		return nil
-	}
-	d.Lock()
-	defer d.Unlock()
-
-	// If we crash, the file won't be correctly closed out, but we can rebuild
-	// the archive if we have to as long as every file has been flushed and
-	// sync'ed.
-	defer d.flush()
-
-	dotPath := fmt.Sprintf("%s/graphs/%d-%s-%s.dot", d.name, d.step, d.phase, name)
-	d.step++
-
-	dotBytes := g.Dot(nil)
-	hdr := &tar.Header{
-		Name: dotPath,
-		Mode: 0644,
-		Size: int64(len(dotBytes)),
-	}
-
-	err := d.tar.WriteHeader(hdr)
-	if err != nil {
-		return err
-	}
-
-	_, err = d.tar.Write(dotBytes)
-	return err
-}
-
 // WriteFile writes data as a single file to the debug arhive.
 func (d *debugInfo) WriteFile(name string, data []byte) error {
 	if d == nil {

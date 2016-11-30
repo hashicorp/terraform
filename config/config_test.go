@@ -161,6 +161,13 @@ func TestConfigValidate_table(t *testing.T) {
 			true,
 			"non-existent module 'foo'",
 		},
+
+		{
+			"data source with provisioners",
+			"validate-data-provisioner",
+			true,
+			"data sources cannot have",
+		},
 	}
 
 	for i, tc := range cases {
@@ -391,6 +398,19 @@ func TestConfigValidate_outputBadField(t *testing.T) {
 	c := testConfig(t, "validate-output-bad-field")
 	if err := c.Validate(); err == nil {
 		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_outputDescription(t *testing.T) {
+	c := testConfig(t, "validate-output-description")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(c.Outputs) != 1 {
+		t.Fatalf("got %d outputs; want 1", len(c.Outputs))
+	}
+	if got, want := "Number 5", c.Outputs[0].Description; got != want {
+		t.Fatalf("got description %q; want %q", got, want)
 	}
 }
 

@@ -183,6 +183,8 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 		}
 		result.Provisioners[k] = v
 	}
+	result.DisableCheckpoint = c1.DisableCheckpoint || c2.DisableCheckpoint
+	result.DisableCheckpointSignature = c1.DisableCheckpointSignature || c2.DisableCheckpointSignature
 
 	return &result
 }

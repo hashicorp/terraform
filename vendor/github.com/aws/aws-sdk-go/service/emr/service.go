@@ -11,11 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
-// Amazon Elastic MapReduce (Amazon EMR) is a web service that makes it easy
-// to process large amounts of data efficiently. Amazon EMR uses Hadoop processing
-// combined with several AWS products to do tasks such as web indexing, data
-// mining, log file analysis, machine learning, scientific simulation, and data
-// warehousing.
+// Amazon EMR is a web service that makes it easy to process large amounts of
+// data efficiently. Amazon EMR uses Hadoop processing combined with several
+// AWS products to do tasks such as web indexing, data mining, log file analysis,
+// machine learning, scientific simulation, and data warehousing.
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type EMR struct {

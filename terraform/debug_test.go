@@ -16,7 +16,6 @@ func TestDebugInfo_nil(t *testing.T) {
 	var d *debugInfo
 
 	d.SetPhase("none")
-	d.WriteGraph("", nil)
 	d.WriteFile("none", nil)
 	d.Close()
 }
@@ -120,9 +119,7 @@ func TestDebug_plan(t *testing.T) {
 	}
 	tr := tar.NewReader(gz)
 
-	files := 0
-	graphs := 0
-	json := 0
+	graphLogs := 0
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
@@ -134,28 +131,13 @@ func TestDebug_plan(t *testing.T) {
 
 		// record any file that contains data
 		if hdr.Size > 0 {
-			files++
-
-			// and any dot graph with data
-			if strings.HasSuffix(hdr.Name, ".dot") {
-				graphs++
-			}
-
 			if strings.HasSuffix(hdr.Name, "graph.json") {
-				json++
+				graphLogs++
 			}
 		}
 	}
 
-	if files == 0 {
-		t.Fatal("no files with data found")
-	}
-
-	if graphs == 0 {
-		t.Fatal("no no-empty graphs found")
-	}
-
-	if json == 0 {
+	if graphLogs == 0 {
 		t.Fatal("no json graphs")
 	}
 }

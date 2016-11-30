@@ -21,8 +21,9 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 		}
 
 		nodes = append(nodes, &graphNodeImportState{
-			Addr: addr,
-			ID:   target.ID,
+			Addr:     addr,
+			ID:       target.ID,
+			Provider: target.Provider,
 		})
 	}
 
@@ -35,8 +36,9 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 }
 
 type graphNodeImportState struct {
-	Addr *ResourceAddress // Addr is the resource address to import to
-	ID   string           // ID is the ID to import as
+	Addr     *ResourceAddress // Addr is the resource address to import to
+	ID       string           // ID is the ID to import as
+	Provider string           // Provider string
 
 	states []*InstanceState
 }
@@ -46,7 +48,7 @@ func (n *graphNodeImportState) Name() string {
 }
 
 func (n *graphNodeImportState) ProvidedBy() []string {
-	return []string{resourceProvider(n.Addr.Type, "")}
+	return []string{resourceProvider(n.Addr.Type, n.Provider)}
 }
 
 // GraphNodeSubPath
@@ -147,9 +149,10 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// is safe.
 	for i, state := range n.states {
 		g.Add(&graphNodeImportStateSub{
-			Target: addrs[i],
-			Path_:  n.Path(),
-			State:  state,
+			Target:   addrs[i],
+			Path_:    n.Path(),
+			State:    state,
+			Provider: n.Provider,
 		})
 	}
 
@@ -167,9 +170,10 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 // and is part of the subgraph. This node is responsible for refreshing
 // and adding a resource to the state once it is imported.
 type graphNodeImportStateSub struct {
-	Target *ResourceAddress
-	State  *InstanceState
-	Path_  []string
+	Target   *ResourceAddress
+	State    *InstanceState
+	Path_    []string
+	Provider string
 }
 
 func (n *graphNodeImportStateSub) Name() string {
@@ -212,7 +216,7 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalGetProvider{
-				Name:   resourceProvider(info.Type, ""),
+				Name:   resourceProvider(info.Type, n.Provider),
 				Output: &provider,
 			},
 			&EvalRefresh{
@@ -229,7 +233,7 @@ func (n *graphNodeImportStateSub) EvalTree() EvalNode {
 			&EvalWriteState{
 				Name:         key.String(),
 				ResourceType: info.Type,
-				Provider:     resourceProvider(info.Type, ""),
+				Provider:     resourceProvider(info.Type, n.Provider),
 				State:        &state,
 			},
 		},

@@ -420,6 +420,41 @@ func TestDiffFieldReader(t *testing.T) {
 						New: "baz",
 					},
 
+					"mapInt.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "2",
+					},
+					"mapInt.one": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"mapInt.two": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "2",
+					},
+
+					"mapFloat.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"mapFloat.oneDotTwo": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1.2",
+					},
+
+					"mapBool.%": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "2",
+					},
+					"mapBool.True": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "true",
+					},
+					"mapBool.False": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "false",
+					},
+
 					"set.#": &terraform.ResourceAttrDiff{
 						Old: "0",
 						New: "2",

@@ -32,7 +32,7 @@ resource "aws_s3_bucket" "elb_logs" {
       "Resource": "arn:aws:s3:::my-elb-tf-test-bucket/AWSLogs/*",
       "Principal": {
         "AWS": [
-          "${data.aws_elb_service_account.main.id}"
+          "${data.aws_elb_service_account.main.arn}"
         ]
       }
     }
