@@ -59,10 +59,7 @@ func resourceComputeHealthCheck() *schema.Resource {
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-						},
-						"port_name": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+							Default:  80,
 						},
 						"proxy_header": &schema.Schema{
 							Type:     schema.TypeString,
@@ -90,10 +87,7 @@ func resourceComputeHealthCheck() *schema.Resource {
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-						},
-						"port_name": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+							Default:  443,
 						},
 						"proxy_header": &schema.Schema{
 							Type:     schema.TypeString,
@@ -121,13 +115,10 @@ func resourceComputeHealthCheck() *schema.Resource {
 						"host": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  80,
 						},
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
-							Optional: true,
-						},
-						"port_name": &schema.Schema{
-							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"proxy_header": &schema.Schema{
@@ -153,13 +144,10 @@ func resourceComputeHealthCheck() *schema.Resource {
 						"host": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Default:  443,
 						},
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
-							Optional: true,
-						},
-						"port_name": &schema.Schema{
-							Type:     schema.TypeString,
 							Optional: true,
 						},
 						"proxy_header": &schema.Schema{
@@ -243,9 +231,6 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 		if val, ok := tcpcheck["port"]; ok {
 			tcpHealthCheck.Port = int64(val.(int))
 		}
-		if val, ok := tcpcheck["port_name"]; ok {
-			tcpHealthCheck.PortName = val.(string)
-		}
 		if val, ok := tcpcheck["proxy_header"]; ok {
 			tcpHealthCheck.ProxyHeader = val.(string)
 		}
@@ -266,9 +251,6 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 		sslHealthCheck := &compute.SSLHealthCheck{}
 		if val, ok := sslcheck["port"]; ok {
 			sslHealthCheck.Port = int64(val.(int))
-		}
-		if val, ok := sslcheck["port_name"]; ok {
-			sslHealthCheck.PortName = val.(string)
 		}
 		if val, ok := sslcheck["proxy_header"]; ok {
 			sslHealthCheck.ProxyHeader = val.(string)
@@ -294,9 +276,6 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 		if val, ok := httpcheck["port"]; ok {
 			httpHealthCheck.Port = int64(val.(int))
 		}
-		if val, ok := httpcheck["port_name"]; ok {
-			httpHealthCheck.PortName = val.(string)
-		}
 		if val, ok := httpcheck["proxy_header"]; ok {
 			httpHealthCheck.ProxyHeader = val.(string)
 		}
@@ -317,9 +296,6 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 		}
 		if val, ok := httpscheck["port"]; ok {
 			httpsHealthCheck.Port = int64(val.(int))
-		}
-		if val, ok := httpscheck["port_name"]; ok {
-			httpsHealthCheck.PortName = val.(string)
 		}
 		if val, ok := httpscheck["proxy_header"]; ok {
 			httpsHealthCheck.ProxyHeader = val.(string)
@@ -388,9 +364,6 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 		if val, ok := tcpcheck["port"]; ok {
 			tcpHealthCheck.Port = int64(val.(int))
 		}
-		if val, ok := tcpcheck["port_name"]; ok {
-			tcpHealthCheck.PortName = val.(string)
-		}
 		if val, ok := tcpcheck["proxy_header"]; ok {
 			tcpHealthCheck.ProxyHeader = val.(string)
 		}
@@ -410,9 +383,6 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 		sslHealthCheck := &compute.SSLHealthCheck{}
 		if val, ok := sslcheck["port"]; ok {
 			sslHealthCheck.Port = int64(val.(int))
-		}
-		if val, ok := sslcheck["port_name"]; ok {
-			sslHealthCheck.PortName = val.(string)
 		}
 		if val, ok := sslcheck["proxy_header"]; ok {
 			sslHealthCheck.ProxyHeader = val.(string)
@@ -437,9 +407,6 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 		if val, ok := httpcheck["port"]; ok {
 			httpHealthCheck.Port = int64(val.(int))
 		}
-		if val, ok := httpcheck["port_name"]; ok {
-			httpHealthCheck.PortName = val.(string)
-		}
 		if val, ok := httpcheck["proxy_header"]; ok {
 			httpHealthCheck.ProxyHeader = val.(string)
 		}
@@ -460,9 +427,6 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 		if val, ok := httpscheck["port"]; ok {
 			httpsHealthCheck.Port = int64(val.(int))
-		}
-		if val, ok := httpscheck["port_name"]; ok {
-			httpsHealthCheck.PortName = val.(string)
 		}
 		if val, ok := httpscheck["proxy_header"]; ok {
 			httpsHealthCheck.ProxyHeader = val.(string)
@@ -519,9 +483,9 @@ func resourceComputeHealthCheckRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("unhealthy_threshold", hchk.UnhealthyThreshold)
 	d.Set("type", hchk.Type)
 	d.Set("tcp_health_check", hchk.TcpHealthCheck)
-	d.Set("ssl_health_check", hchk.TcpHealthCheck)
-	d.Set("http_health_check", hchk.TcpHealthCheck)
-	d.Set("https_health_check", hchk.TcpHealthCheck)
+	d.Set("ssl_health_check", hchk.SslHealthCheck)
+	d.Set("http_health_check", hchk.HttpHealthCheck)
+	d.Set("https_health_check", hchk.HttpsHealthCheck)
 	d.Set("self_link", hchk.SelfLink)
 	d.Set("name", hchk.Name)
 	d.Set("description", hchk.Description)
