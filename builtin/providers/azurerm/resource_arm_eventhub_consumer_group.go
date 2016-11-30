@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -51,6 +52,11 @@ func resourceArmEventHubConsumerGroup() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"eventhub_path": {
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"user_metadata": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -69,21 +75,28 @@ func resourceArmEventHubConsumerGroupCreate(d *schema.ResourceData, meta interfa
 	eventHubName := d.Get("eventhub_name").(string)
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
+	eventHubPath := d.Get("eventhub_path").(string)
 	userMetaData := d.Get("user_metadata").(string)
 
 	parameters := eventhub.ConsumerGroupCreateOrUpdateParameters{
+		Name:     &name,
 		Location: &location,
 		Properties: &eventhub.ConsumerGroupProperties{
+			EventHubPath: &eventHubPath,
 			UserMetadata: &userMetaData,
 		},
 	}
 
-	_, err := eventhubClient.CreateOrUpdate(resGroup, namespaceName, eventHubName, name, parameters)
+	resp, err := eventhubClient.CreateOrUpdate(resGroup, namespaceName, eventHubName, name, parameters)
 	if err != nil {
 		return err
 	}
 
+	log.Printf("CREATE: %s", spew.Sdump(resp))
+
 	read, err := eventhubClient.Get(resGroup, namespaceName, eventHubName, name)
+	log.Printf("READ %s", spew.Sdump(read))
+
 	if err != nil {
 		return err
 	}
@@ -118,12 +131,15 @@ func resourceArmEventHubConsumerGroupRead(d *schema.ResourceData, meta interface
 		return nil
 	}
 
-	d.Set("name", resp.Name)
+	log.Printf("API Response %s", spew.Sdump(resp))
+
+	d.Set("name", name)
 	d.Set("eventhub_name", eventHubName)
 	d.Set("namespace_name", namespaceName)
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
+	d.Set("eventhub_path", resp.Properties.EventHubPath)
 	d.Set("user_metadata", resp.Properties.UserMetadata)
 
 	return nil
