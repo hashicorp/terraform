@@ -50,32 +50,9 @@ func resourceComputeRegionBackendService() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"balancing_mode": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "UTILIZATION",
-						},
-						"capacity_scaler": &schema.Schema{
-							Type:     schema.TypeFloat,
-							Optional: true,
-							Default:  1,
-						},
 						"description": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-						},
-						"max_rate": &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-						},
-						"max_rate_per_instance": &schema.Schema{
-							Type:     schema.TypeFloat,
-							Optional: true,
-						},
-						"max_utilization": &schema.Schema{
-							Type:     schema.TypeFloat,
-							Optional: true,
-							Default:  0.8,
 						},
 					},
 				},
@@ -88,12 +65,6 @@ func resourceComputeRegionBackendService() *schema.Resource {
 				Optional: true,
 			},
 
-			"enable_cdn": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
-			},
-
 			"fingerprint": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -103,12 +74,6 @@ func resourceComputeRegionBackendService() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-			},
-
-			"port_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
 			},
 
 			"project": &schema.Schema{
@@ -165,20 +130,12 @@ func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta inte
 		service.Description = v.(string)
 	}
 
-	if v, ok := d.GetOk("port_name"); ok {
-		service.PortName = v.(string)
-	}
-
 	if v, ok := d.GetOk("protocol"); ok {
 		service.Protocol = v.(string)
 	}
 
 	if v, ok := d.GetOk("timeout_sec"); ok {
 		service.TimeoutSec = int64(v.(int))
-	}
-
-	if v, ok := d.GetOk("enable_cdn"); ok {
-		service.EnableCDN = v.(bool)
 	}
 
 	if v, ok := d.GetOk("load_balancing_scheme"); ok {
@@ -243,8 +200,6 @@ func resourceComputeRegionBackendServiceRead(d *schema.ResourceData, meta interf
 	}
 
 	d.Set("description", service.Description)
-	d.Set("enable_cdn", service.EnableCDN)
-	d.Set("port_name", service.PortName)
 	d.Set("protocol", service.Protocol)
 	d.Set("timeout_sec", service.TimeoutSec)
 	d.Set("fingerprint", service.Fingerprint)
@@ -289,9 +244,6 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 	if v, ok := d.GetOk("description"); ok {
 		service.Description = v.(string)
 	}
-	if v, ok := d.GetOk("port_name"); ok {
-		service.PortName = v.(string)
-	}
 	if v, ok := d.GetOk("protocol"); ok {
 		service.Protocol = v.(string)
 	}
@@ -301,10 +253,6 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 
 	if v, ok := d.GetOk("load_balancing_scheme"); ok {
 		service.LoadBalancingScheme = v.(string)
-	}
-
-	if d.HasChange("enable_cdn") {
-		service.EnableCDN = d.Get("enable_cdn").(bool)
 	}
 
 	log.Printf("[DEBUG] Updating existing Backend Service %q: %#v", d.Id(), service)
@@ -363,23 +311,8 @@ func resourceGoogleComputeRegionBackendServiceBackendHash(v interface{}) int {
 
 	buf.WriteString(fmt.Sprintf("%s-", m["group"].(string)))
 
-	if v, ok := m["balancing_mode"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-	if v, ok := m["capacity_scaler"]; ok {
-		buf.WriteString(fmt.Sprintf("%f-", v.(float64)))
-	}
 	if v, ok := m["description"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-	if v, ok := m["max_rate"]; ok {
-		buf.WriteString(fmt.Sprintf("%d-", int64(v.(int))))
-	}
-	if v, ok := m["max_rate_per_instance"]; ok {
-		buf.WriteString(fmt.Sprintf("%f-", v.(float64)))
-	}
-	if v, ok := m["max_rate_per_instance"]; ok {
-		buf.WriteString(fmt.Sprintf("%f-", v.(float64)))
 	}
 
 	return hashcode.String(buf.String())

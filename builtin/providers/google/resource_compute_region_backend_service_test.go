@@ -65,8 +65,8 @@ func TestAccComputeRegionBackendService_withBackend(t *testing.T) {
 	if svc.TimeoutSec != 10 {
 		t.Errorf("Expected TimeoutSec == 10, got %d", svc.TimeoutSec)
 	}
-	if svc.Protocol != "HTTP" {
-		t.Errorf("Expected Protocol to be HTTP, got %q", svc.Protocol)
+	if svc.Protocol != "TCP" {
+		t.Errorf("Expected Protocol to be TCP, got %q", svc.Protocol)
 	}
 	if len(svc.Backends) != 1 {
 		t.Errorf("Expected 1 backend, got %d", len(svc.Backends))
@@ -106,8 +106,8 @@ func TestAccComputeRegionBackendService_withBackendAndUpdate(t *testing.T) {
 	if svc.TimeoutSec != 20 {
 		t.Errorf("Expected TimeoutSec == 20, got %d", svc.TimeoutSec)
 	}
-	if svc.Protocol != "HTTP" {
-		t.Errorf("Expected Protocol to be HTTP, got %q", svc.Protocol)
+	if svc.Protocol != "TCP" {
+		t.Errorf("Expected Protocol to be TCP, got %q", svc.Protocol)
 	}
 	if len(svc.Backends) != 1 {
 		t.Errorf("Expected 1 backend, got %d", len(svc.Backends))
@@ -161,105 +161,13 @@ func testAccCheckComputeRegionBackendServiceExists(n string, svc *compute.Backen
 	}
 }
 
-func TestAccComputeRegionBackendService_withCDNEnabled(t *testing.T) {
-	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
-	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
-	var svc compute.BackendService
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeRegionBackendServiceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeRegionBackendService_withCDNEnabled(
-					serviceName, checkName),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeRegionBackendServiceExists(
-						"google_compute_region_backend_service.foobar", &svc),
-				),
-			},
-		},
-	})
-
-	if svc.EnableCDN != true {
-		t.Errorf("Expected EnableCDN == true, got %t", svc.EnableCDN)
-	}
-}
-
-func TestAccComputeRegionBackendService_withInternalLoadBalancing(t *testing.T) {
-	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
-	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
-	var svc compute.BackendService
-
-	// config := testAccProvider.Meta().(*Config)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckComputeRegionBackendServiceDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccComputeRegionBackendService_withInternalLoadBalancing(
-					serviceName, checkName, "us-central1"),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckComputeRegionBackendServiceExists(
-						"google_compute_region_backend_service.foobar", &svc),
-				),
-			},
-		},
-	})
-
-	if svc.LoadBalancingScheme != "INTERNAL" {
-		t.Errorf("Expected LoadBalancingScheme == INTERNAL, got %q", svc.EnableCDN)
-	}
-}
-
 func testAccComputeRegionBackendService_basic(serviceName, checkName string) string {
-	return fmt.Sprintf(`
-resource "google_compute_region_backend_service" "foobar" {
-  name          = "%s"
-  health_checks = ["${google_compute_health_check.zero.self_link}"]
-  load_balancing_scheme = "INTERNAL"
-}
-
-resource "google_compute_health_check" "zero" {
-  name               = "%s"
-  check_interval_sec = 1
-  timeout_sec        = 1
-
-  tcp_health_check {
-    port = "80"
-  }
-}
-`, serviceName, checkName)
-}
-
-func testAccComputeRegionBackendService_withCDNEnabled(serviceName, checkName string) string {
-	return fmt.Sprintf(`
-resource "google_compute_region_backend_service" "foobar" {
-  name          = "%s"
-  health_checks = ["${google_compute_http_health_check.zero.self_link}"]
-  enable_cdn    = true
-}
-
-resource "google_compute_http_health_check" "zero" {
-  name               = "%s"
-  request_path       = "/"
-  check_interval_sec = 1
-  timeout_sec        = 1
-}
-`, serviceName, checkName)
-}
-
-func testAccComputeRegionBackendService_withInternalLoadBalancing(serviceName, checkName, region string) string {
-
 	return fmt.Sprintf(`
 resource "google_compute_region_backend_service" "foobar" {
   name                  = "%s"
   health_checks         = ["${google_compute_health_check.zero.self_link}"]
   load_balancing_scheme = "INTERNAL"
-  region                = "%s"
+  region                = "us-central1"
 }
 
 resource "google_compute_health_check" "zero" {
@@ -271,28 +179,34 @@ resource "google_compute_health_check" "zero" {
     port = "80"
   }
 }
-`, serviceName, region, checkName)
+`, serviceName, checkName)
 }
 
 func testAccComputeRegionBackendService_basicModified(serviceName, checkOne, checkTwo string) string {
 	return fmt.Sprintf(`
 resource "google_compute_region_backend_service" "foobar" {
     name = "%s"
-    health_checks = ["${google_compute_http_health_check.one.self_link}"]
+    health_checks = ["${google_compute_health_check.one.self_link}"]
+    load_balancing_scheme = "INTERNAL"
+    region = "us-central1"
 }
 
-resource "google_compute_http_health_check" "zero" {
+resource "google_compute_health_check" "zero" {
     name = "%s"
-    request_path = "/"
     check_interval_sec = 1
     timeout_sec = 1
+
+    tcp_health_check {
+    }
 }
 
-resource "google_compute_http_health_check" "one" {
+resource "google_compute_health_check" "one" {
     name = "%s"
-    request_path = "/one"
     check_interval_sec = 30
     timeout_sec = 30
+
+    tcp_health_check {
+    }
 }
 `, serviceName, checkOne, checkTwo)
 }
@@ -303,15 +217,16 @@ func testAccComputeRegionBackendService_withBackend(
 resource "google_compute_region_backend_service" "lipsum" {
   name        = "%s"
   description = "Hello World 1234"
-  port_name   = "http"
-  protocol    = "HTTP"
+  protocol    = "TCP"
+  region      = "us-central1"
   timeout_sec = %v
+  load_balancing_scheme = "INTERNAL"
 
   backend {
     group = "${google_compute_instance_group_manager.foobar.instance_group}"
   }
 
-  health_checks = ["${google_compute_http_health_check.default.self_link}"]
+  health_checks = ["${google_compute_health_check.default.self_link}"]
 }
 
 resource "google_compute_instance_group_manager" "foobar" {
@@ -337,11 +252,14 @@ resource "google_compute_instance_template" "foobar" {
   }
 }
 
-resource "google_compute_http_health_check" "default" {
+resource "google_compute_health_check" "default" {
   name               = "%s"
-  request_path       = "/"
   check_interval_sec = 1
   timeout_sec        = 1
+  type = "TCP"
+  tcp_health_check {
+
+  }
 }
 `, serviceName, timeout, igName, itName, checkName)
 }
