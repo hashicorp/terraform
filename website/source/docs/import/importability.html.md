@@ -57,6 +57,7 @@ To make a resource importable, please see the
 * aws_glacier_vault
 * aws_iam_account_password_policy
 * aws_iam_group
+* aws_iam_instance_profile
 * aws_iam_saml_provider
 * aws_iam_user
 * aws_instance
