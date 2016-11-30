@@ -1027,6 +1027,10 @@ func (c *CloudFormation) ExecuteChangeSetRequest(input *ExecuteChangeSetInput) (
 //   The specified change set name or ID doesn't exit. To view valid change sets
 //   for a stack, use the ListChangeSets action.
 //
+//   * InsufficientCapabilitiesException
+//   The template contains resources with capabilities that were not specified
+//   in the Capabilities parameter.
+//
 func (c *CloudFormation) ExecuteChangeSet(input *ExecuteChangeSetInput) (*ExecuteChangeSetOutput, error) {
 	req, out := c.ExecuteChangeSetRequest(input)
 	err := req.Send()
@@ -1152,6 +1156,12 @@ func (c *CloudFormation) GetTemplateRequest(input *GetTemplateInput) (req *reque
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation GetTemplate for usage and error information.
+//
+// Returned Error Codes:
+//   * ChangeSetNotFound
+//   The specified change set name or ID doesn't exit. To view valid change sets
+//   for a stack, use the ListChangeSets action.
+//
 func (c *CloudFormation) GetTemplate(input *GetTemplateInput) (*GetTemplateOutput, error) {
 	req, out := c.GetTemplateRequest(input)
 	err := req.Send()
@@ -1348,6 +1358,71 @@ func (c *CloudFormation) ListExportsRequest(input *ListExportsInput) (req *reque
 // API operation ListExports for usage and error information.
 func (c *CloudFormation) ListExports(input *ListExportsInput) (*ListExportsOutput, error) {
 	req, out := c.ListExportsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opListImports = "ListImports"
+
+// ListImportsRequest generates a "aws/request.Request" representing the
+// client's request for the ListImports operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListImports for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListImports method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListImportsRequest method.
+//    req, resp := client.ListImportsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *CloudFormation) ListImportsRequest(input *ListImportsInput) (req *request.Request, output *ListImportsOutput) {
+	op := &request.Operation{
+		Name:       opListImports,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListImportsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListImportsOutput{}
+	req.Data = output
+	return
+}
+
+// ListImports API operation for AWS CloudFormation.
+//
+// Lists all stacks that are importing an exported output value. To modify or
+// remove an exported output value, first use this action to see which stacks
+// are using it. To see the exported output values in your account, see ListExports.
+//
+// For more information about importing an exported output value, see the Fn::ImportValue
+// (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-importvalue.html)
+// function.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudFormation's
+// API operation ListImports for usage and error information.
+func (c *CloudFormation) ListImports(input *ListImportsInput) (*ListImportsOutput, error) {
+	req, out := c.ListImportsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -2185,18 +2260,17 @@ type CreateChangeSetInput struct {
 	// ChangeSetName is a required field
 	ChangeSetName *string `min:"1" type:"string" required:"true"`
 
-	// The type of change set operation.
+	// The type of change set operation. To create a change set for a new stack,
+	// specify CREATE. To create a change set for an existing stack, specify UPDATE.
 	//
-	// Valid values are CREATE and UPDATE. The default value is UPDATE.
+	// If you create a change set for a new stack, AWS Cloudformation creates a
+	// stack with a unique stack ID, but no template or resources. The stack will
+	// be in the REVIEW_IN_PROGRESS (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-describing-stacks.html#d0e11995)
+	// state until you execute the change set.
 	//
-	//    * CREATE - Specify to use the change set to create a new stack. While
-	//    AWS CloudFormation creates the stack, the stack has the REVIEW_IN_PROGRESS
-	//    (http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-describing-stacks.html#d0e11995)
-	//    status and an expected StackId, but no template or resources. Except for
-	//    its StackId, the stack is completely empty until you execute the change
-	//    set. You can apply multiple change sets to a stack.
-	//
-	//    * UPDATE - Specify to create a change set for an existing stack.
+	// By default, AWS CloudFormation specifies UPDATE. You can't use the UPDATE
+	// type to create a change set for a new stack or the CREATE type to create
+	// a change set for an existing stack.
 	ChangeSetType *string `type:"string" enum:"ChangeSetType"`
 
 	// A unique identifier for this CreateChangeSet request. Specify this token
@@ -3819,9 +3893,9 @@ func (s *GetStackPolicyOutput) SetStackPolicyBody(v string) *GetStackPolicyOutpu
 type GetTemplateInput struct {
 	_ struct{} `type:"structure"`
 
-	// Returns the template for a change set using the Amazon Resource Name (ARN)
-	// or name of the change set. If you specify a name, you must also specify the
-	// StackName.
+	// The name or Amazon Resource Name (ARN) of a change set for which AWS CloudFormation
+	// returns the associated template. If you specify a name, you must also specify
+	// the StackName.
 	ChangeSetName *string `min:"1" type:"string"`
 
 	// The name or the unique stack ID that is associated with the stack, which
@@ -3835,14 +3909,13 @@ type GetTemplateInput struct {
 	// Default: There is no default value.
 	StackName *string `type:"string"`
 
-	// The stage of the template that is returned.
+	// For templates that include transforms, the stage of the template that AWS
+	// CloudFormation returns. To get the user-submitted template, specify Original.
+	// To get the template after AWS CloudFormation has processed all transforms,
+	// specify Processed.
 	//
-	// Valid values are Original and Processed. The default value is Original.
-	//
-	//    * Original - Use this value to return the user-submitted template.
-	//
-	//    * Processed - Use this value to return the template after all transforms
-	//    have been processed.
+	// If the template doesn't include transforms, Original and Processed return
+	// the same template. By default, AWS CloudFormation specifies Original.
 	TemplateStage *string `type:"string" enum:"TemplateStage"`
 }
 
@@ -3891,16 +3964,10 @@ func (s *GetTemplateInput) SetTemplateStage(v string) *GetTemplateInput {
 type GetTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
-	// The template type.
-	//
-	//    * For stacks, you can use either the Original or the Processed template
-	//    type.
-	//
-	//    * For change sets, you can use only the Original template type. After
-	//    the transforms are processed, you can use the Processed template type.
-	//
-	// If you create a change set for a new stack, you must select the template
-	// type.
+	// The stage of the template that you can retrieve. For stacks, the Original
+	// and Processed templates are always available. For change sets, the Original
+	// template is always available. After AWS CloudFormation finishes creating
+	// the change set, the Processed template becomes available.
 	StagesAvailable []*string `type:"list"`
 
 	// Structure containing the template body. (For more information, go to Template
@@ -4268,6 +4335,91 @@ func (s *ListExportsOutput) SetExports(v []*Export) *ListExportsOutput {
 
 // SetNextToken sets the NextToken field's value.
 func (s *ListExportsOutput) SetNextToken(v string) *ListExportsOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListImportsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the exported output value. AWS CloudFormation returns the stack
+	// names that are importing this value.
+	//
+	// ExportName is a required field
+	ExportName *string `type:"string" required:"true"`
+
+	// A string (provided by the ListImports response output) that identifies the
+	// next page of stacks that are importing the specified exported output value.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListImportsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListImportsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListImportsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListImportsInput"}
+	if s.ExportName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ExportName"))
+	}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetExportName sets the ExportName field's value.
+func (s *ListImportsInput) SetExportName(v string) *ListImportsInput {
+	s.ExportName = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListImportsInput) SetNextToken(v string) *ListImportsInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListImportsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of stack names that are importing the specified exported output value.
+	Imports []*string `type:"list"`
+
+	// A string that identifies the next page of exports. If there is no additional
+	// page, this value is null.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListImportsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListImportsOutput) GoString() string {
+	return s.String()
+}
+
+// SetImports sets the Imports field's value.
+func (s *ListImportsOutput) SetImports(v []*string) *ListImportsOutput {
+	s.Imports = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListImportsOutput) SetNextToken(v string) *ListImportsOutput {
 	s.NextToken = &v
 	return s
 }

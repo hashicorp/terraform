@@ -29,8 +29,9 @@ import (
 // to download and install them, see the Tools for Amazon Web Services page
 // (http://aws.amazon.com/tools/).
 //
-// See the CloudTrail User Guide for information about the data that is included
-// with each AWS API call listed in the log files.
+// See the AWS CloudTrail User Guide (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html)
+// for information about the data that is included with each AWS API call listed
+// in the log files.
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type CloudTrail struct {
