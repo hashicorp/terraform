@@ -246,7 +246,7 @@ func (c *Context) Interpolater() *Interpolater {
 		Module:             c.module,
 		State:              c.state.DeepCopy(),
 		StateLock:          &stateLock,
-		VariableValues:     map[string]interface{}{},
+		VariableValues:     c.variables,
 		VariableValuesLock: &varLock,
 	}
 }
