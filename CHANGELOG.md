@@ -23,6 +23,7 @@ BUG FIXES:
 
   * core: Changed attribute console output shows up on Windows. [GH-10417]
   * core: Destroying deposed resources in create before destroy waits until the creation step of its specific index. (0.8 regression) [GH-10416]
+  * core: Certain invalid configurations will no longer print "illegal". [GH-10448]
 
 ## 0.8.0-rc1 (November 23, 2016)
 
