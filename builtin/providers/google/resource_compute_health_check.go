@@ -59,7 +59,6 @@ func resourceComputeHealthCheck() *schema.Resource {
 						"port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
-							Default:  80,
 						},
 						"port_name": &schema.Schema{
 							Type:     schema.TypeString,
@@ -81,6 +80,102 @@ func resourceComputeHealthCheck() *schema.Resource {
 					},
 				},
 			},
+
+			"ssl_health_check": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"port_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"proxy_header": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "NONE",
+						},
+						"request": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"response": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+
+			"http_health_check": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"host": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"port_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"proxy_header": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "NONE",
+						},
+						"request_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "/",
+						},
+					},
+				},
+			},
+
+			"https_health_check": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"host": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"port_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"proxy_header": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "NONE",
+						},
+						"request_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "/",
+						},
+					},
+				},
+			},
+
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -140,7 +235,9 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 		hchk.Type = v.(string)
 	}
 	if v, ok := d.GetOk("tcp_health_check"); ok {
-		// check that type is tcp?
+		if hchk.Type != "TCP" {
+			return fmt.Errorf("TCP health check declared but type is listed as %s", hchk.Type)
+		}
 		tcpcheck := v.([]interface{})[0].(map[string]interface{})
 		tcpHealthCheck := &compute.TCPHealthCheck{}
 		if val, ok := tcpcheck["port"]; ok {
@@ -159,6 +256,78 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 			tcpHealthCheck.Response = val.(string)
 		}
 		hchk.TcpHealthCheck = tcpHealthCheck
+	}
+
+	if v, ok := d.GetOk("ssl_health_check"); ok {
+		if hchk.Type != "SSL" {
+			return fmt.Errorf("SSL health check declared but type is listed as %s", hchk.Type)
+		}
+		sslcheck := v.([]interface{})[0].(map[string]interface{})
+		sslHealthCheck := &compute.SSLHealthCheck{}
+		if val, ok := sslcheck["port"]; ok {
+			sslHealthCheck.Port = int64(val.(int))
+		}
+		if val, ok := sslcheck["port_name"]; ok {
+			sslHealthCheck.PortName = val.(string)
+		}
+		if val, ok := sslcheck["proxy_header"]; ok {
+			sslHealthCheck.ProxyHeader = val.(string)
+		}
+		if val, ok := sslcheck["request"]; ok {
+			sslHealthCheck.Request = val.(string)
+		}
+		if val, ok := sslcheck["response"]; ok {
+			sslHealthCheck.Response = val.(string)
+		}
+		hchk.SslHealthCheck = sslHealthCheck
+	}
+
+	if v, ok := d.GetOk("http_health_check"); ok {
+		if hchk.Type != "HTTP" {
+			return fmt.Errorf("HTTP health check declared but type is listed as %s", hchk.Type)
+		}
+		httpcheck := v.([]interface{})[0].(map[string]interface{})
+		httpHealthCheck := &compute.HTTPHealthCheck{}
+		if val, ok := httpcheck["host"]; ok {
+			httpHealthCheck.Host = val.(string)
+		}
+		if val, ok := httpcheck["port"]; ok {
+			httpHealthCheck.Port = int64(val.(int))
+		}
+		if val, ok := httpcheck["port_name"]; ok {
+			httpHealthCheck.PortName = val.(string)
+		}
+		if val, ok := httpcheck["proxy_header"]; ok {
+			httpHealthCheck.ProxyHeader = val.(string)
+		}
+		if val, ok := httpcheck["request_path"]; ok {
+			httpHealthCheck.RequestPath = val.(string)
+		}
+		hchk.HttpHealthCheck = httpHealthCheck
+	}
+
+	if v, ok := d.GetOk("https_health_check"); ok {
+		if hchk.Type != "HTTPS" {
+			return fmt.Errorf("HTTPS health check declared but type is listed as %s", hchk.Type)
+		}
+		httpscheck := v.([]interface{})[0].(map[string]interface{})
+		httpsHealthCheck := &compute.HTTPSHealthCheck{}
+		if val, ok := httpscheck["host"]; ok {
+			httpsHealthCheck.Host = val.(string)
+		}
+		if val, ok := httpscheck["port"]; ok {
+			httpsHealthCheck.Port = int64(val.(int))
+		}
+		if val, ok := httpscheck["port_name"]; ok {
+			httpsHealthCheck.PortName = val.(string)
+		}
+		if val, ok := httpscheck["proxy_header"]; ok {
+			httpsHealthCheck.ProxyHeader = val.(string)
+		}
+		if val, ok := httpscheck["request_path"]; ok {
+			httpsHealthCheck.RequestPath = val.(string)
+		}
+		hchk.HttpsHealthCheck = httpsHealthCheck
 	}
 
 	log.Printf("[DEBUG] HealthCheck insert request: %#v", hchk)
@@ -211,9 +380,11 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 		hchk.Type = v.(string)
 	}
 	if v, ok := d.GetOk("tcp_health_check"); ok {
-		// check that type is tcp?
+		if hchk.Type != "TCP" {
+			return fmt.Errorf("TCP health check declared but type is listed as %s", hchk.Type)
+		}
 		tcpcheck := v.([]interface{})[0].(map[string]interface{})
-		var tcpHealthCheck *compute.TCPHealthCheck
+		tcpHealthCheck := &compute.TCPHealthCheck{}
 		if val, ok := tcpcheck["port"]; ok {
 			tcpHealthCheck.Port = int64(val.(int))
 		}
@@ -230,6 +401,76 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 			tcpHealthCheck.Response = val.(string)
 		}
 		hchk.TcpHealthCheck = tcpHealthCheck
+	}
+	if v, ok := d.GetOk("ssl_health_check"); ok {
+		if hchk.Type != "SSL" {
+			return fmt.Errorf("SSL health check declared but type is listed as %s", hchk.Type)
+		}
+		sslcheck := v.([]interface{})[0].(map[string]interface{})
+		sslHealthCheck := &compute.SSLHealthCheck{}
+		if val, ok := sslcheck["port"]; ok {
+			sslHealthCheck.Port = int64(val.(int))
+		}
+		if val, ok := sslcheck["port_name"]; ok {
+			sslHealthCheck.PortName = val.(string)
+		}
+		if val, ok := sslcheck["proxy_header"]; ok {
+			sslHealthCheck.ProxyHeader = val.(string)
+		}
+		if val, ok := sslcheck["request"]; ok {
+			sslHealthCheck.Request = val.(string)
+		}
+		if val, ok := sslcheck["response"]; ok {
+			sslHealthCheck.Response = val.(string)
+		}
+		hchk.SslHealthCheck = sslHealthCheck
+	}
+	if v, ok := d.GetOk("http_health_check"); ok {
+		if hchk.Type != "HTTP" {
+			return fmt.Errorf("HTTP health check declared but type is listed as %s", hchk.Type)
+		}
+		httpcheck := v.([]interface{})[0].(map[string]interface{})
+		httpHealthCheck := &compute.HTTPHealthCheck{}
+		if val, ok := httpcheck["host"]; ok {
+			httpHealthCheck.Host = val.(string)
+		}
+		if val, ok := httpcheck["port"]; ok {
+			httpHealthCheck.Port = int64(val.(int))
+		}
+		if val, ok := httpcheck["port_name"]; ok {
+			httpHealthCheck.PortName = val.(string)
+		}
+		if val, ok := httpcheck["proxy_header"]; ok {
+			httpHealthCheck.ProxyHeader = val.(string)
+		}
+		if val, ok := httpcheck["request_path"]; ok {
+			httpHealthCheck.RequestPath = val.(string)
+		}
+		hchk.HttpHealthCheck = httpHealthCheck
+	}
+
+	if v, ok := d.GetOk("https_health_check"); ok {
+		if hchk.Type != "HTTPS" {
+			return fmt.Errorf("HTTPS health check declared but type is listed as %s", hchk.Type)
+		}
+		httpscheck := v.([]interface{})[0].(map[string]interface{})
+		httpsHealthCheck := &compute.HTTPSHealthCheck{}
+		if val, ok := httpscheck["host"]; ok {
+			httpsHealthCheck.Host = val.(string)
+		}
+		if val, ok := httpscheck["port"]; ok {
+			httpsHealthCheck.Port = int64(val.(int))
+		}
+		if val, ok := httpscheck["port_name"]; ok {
+			httpsHealthCheck.PortName = val.(string)
+		}
+		if val, ok := httpscheck["proxy_header"]; ok {
+			httpsHealthCheck.ProxyHeader = val.(string)
+		}
+		if val, ok := httpscheck["request_path"]; ok {
+			httpsHealthCheck.RequestPath = val.(string)
+		}
+		hchk.HttpsHealthCheck = httpsHealthCheck
 	}
 
 	log.Printf("[DEBUG] HealthCheck patch request: %#v", hchk)
@@ -278,6 +519,9 @@ func resourceComputeHealthCheckRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("unhealthy_threshold", hchk.UnhealthyThreshold)
 	d.Set("type", hchk.Type)
 	d.Set("tcp_health_check", hchk.TcpHealthCheck)
+	d.Set("ssl_health_check", hchk.TcpHealthCheck)
+	d.Set("http_health_check", hchk.TcpHealthCheck)
+	d.Set("https_health_check", hchk.TcpHealthCheck)
 	d.Set("self_link", hchk.SelfLink)
 	d.Set("name", hchk.Name)
 	d.Set("description", hchk.Description)
