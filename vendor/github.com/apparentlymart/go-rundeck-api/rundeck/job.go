@@ -36,6 +36,7 @@ type JobDetail struct {
 	Dispatch                  *JobDispatch        `xml:"dispatch"`
 	CommandSequence           *JobCommandSequence `xml:"sequence,omitempty"`
 	NodeFilter                *JobNodeFilter      `xml:"nodefilters,omitempty"`
+	NodesSelectedByDefault bool `xml:"nodesSelectedByDefault,omitempty"`
 }
 
 type jobDetailList struct {

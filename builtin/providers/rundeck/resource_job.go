@@ -98,6 +98,11 @@ func resourceRundeckJob() *schema.Resource {
 				Optional: true,
 			},
 
+			"nodes_selected_by_default": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"option": &schema.Schema{
 				// This is a list because order is important when preserve_options_order is
 				// set. When it's not set the order is unimportant but preserved by Rundeck/
@@ -340,10 +345,11 @@ func jobFromResourceData(d *schema.ResourceData) (*rundeck.JobDetail, error) {
 		LogLevel:                  d.Get("log_level").(string),
 		AllowConcurrentExecutions: d.Get("allow_concurrent_executions").(bool),
 		Dispatch: &rundeck.JobDispatch{
-			MaxThreadCount:  d.Get("max_thread_count").(int),
-			ContinueOnError: d.Get("continue_on_error").(bool),
-			RankAttribute:   d.Get("rank_attribute").(string),
-			RankOrder:       d.Get("rank_order").(string),
+			MaxThreadCount:         d.Get("max_thread_count").(int),
+			ContinueOnError:        d.Get("continue_on_error").(bool),
+			RankAttribute:          d.Get("rank_attribute").(string),
+			RankOrder:              d.Get("rank_order").(string),
+			NodesSelectedByDefault: d.Get("nodes_selected_by_default").(bool),
 		},
 	}
 
@@ -479,11 +485,13 @@ func jobToResourceData(job *rundeck.JobDetail, d *schema.ResourceData) error {
 		d.Set("continue_on_error", job.Dispatch.ContinueOnError)
 		d.Set("rank_attribute", job.Dispatch.RankAttribute)
 		d.Set("rank_order", job.Dispatch.RankOrder)
+		d.Set("nodes_selected_by_default", job.NodesSelectedByDefault)
 	} else {
 		d.Set("max_thread_count", nil)
 		d.Set("continue_on_error", nil)
 		d.Set("rank_attribute", nil)
 		d.Set("rank_order", nil)
+		d.Set("nodes_selected_by_default", nil)
 	}
 
 	d.Set("node_filter_query", nil)
