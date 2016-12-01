@@ -30,15 +30,17 @@ func ResourceProvisioner() terraform.ResourceProvisioner {
 				Optional:      true,
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				ConflictsWith: []string{"script", "inline"},
+				// TODO: Maybe ValidateFunc could call collectScripts to ensure scripts exist on disk
 			},
+			// Could be either string of list of strings
 			"inline": {
-				Type:          schema.TypeString,
+				Type:          schema.TypeList,
 				Optional:      true,
+				Elem:          &schema.Schema{Type: schema.TypeString},
 				ConflictsWith: []string{"script", "scripts"},
 			},
 		},
-		ApplyFunc:    Apply,
-		ValidateFunc: Validate,
+		ApplyFunc: Apply,
 	}
 
 }
@@ -46,16 +48,15 @@ func ResourceProvisioner() terraform.ResourceProvisioner {
 // Apply executes the remote exec provisioner
 func Apply(
 	o terraform.UIOutput,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) error {
+	d *schema.ResourceData) error {
 	// Get a new communicator
-	comm, err := communicator.New(s)
+	comm, err := communicator.New(d.State())
 	if err != nil {
 		return err
 	}
 
 	// Collect the scripts
-	scripts, err := collectScripts(c)
+	scripts, err := collectScripts(d)
 	if err != nil {
 		return err
 	}
@@ -70,28 +71,11 @@ func Apply(
 	return nil
 }
 
-// Validate checks if the required arguments are configured
-func Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
-	num := 0
-	for name := range c.Raw {
-		switch name {
-		case "scripts", "script", "inline":
-			num++
-		default:
-			es = append(es, fmt.Errorf("Unknown configuration '%s'", name))
-		}
-	}
-	if num != 1 {
-		es = append(es, fmt.Errorf("Must provide one of 'scripts', 'script' or 'inline' to remote-exec"))
-	}
-	return
-}
-
 // generateScript takes the configuration and creates a script to be executed
 // from the inline configs
-func generateScript(c *terraform.ResourceConfig) (string, error) {
+func generateScript(d *schema.ResourceData) (string, error) {
 	var lines []string
-	command, ok := c.Config["inline"]
+	command, ok := d.GetOk("inline")
 	if ok {
 		switch cmd := command.(type) {
 		case string:
@@ -117,11 +101,11 @@ func generateScript(c *terraform.ResourceConfig) (string, error) {
 
 // collectScripts is used to collect all the scripts we need
 // to execute in preparation for copying them.
-func collectScripts(c *terraform.ResourceConfig) ([]io.ReadCloser, error) {
+func collectScripts(d *schema.ResourceData) ([]io.ReadCloser, error) {
 	// Check if inline
-	_, ok := c.Config["inline"]
+	_, ok := d.GetOk("inline")
 	if ok {
-		script, err := generateScript(c)
+		script, err := generateScript(d)
 		if err != nil {
 			return nil, err
 		}
@@ -131,16 +115,12 @@ func collectScripts(c *terraform.ResourceConfig) ([]io.ReadCloser, error) {
 
 	// Collect scripts
 	var scripts []string
-	s, ok := c.Config["script"]
+	script, ok := d.GetOk("script")
 	if ok {
-		sStr, ok := s.(string)
-		if !ok {
-			return nil, fmt.Errorf("Unsupported 'script' type! Must be a string.")
-		}
-		scripts = append(scripts, sStr)
+		scripts = append(scripts, script.(string))
 	}
 
-	sl, ok := c.Config["scripts"]
+	sl, ok := d.GetOk("scripts")
 	if ok {
 		switch slt := sl.(type) {
 		case []string:
@@ -157,6 +137,7 @@ func collectScripts(c *terraform.ResourceConfig) ([]io.ReadCloser, error) {
 		default:
 			return nil, fmt.Errorf("Unsupported 'scripts' type! Must be list of strings.")
 		}
+
 	}
 
 	// Open all the scripts

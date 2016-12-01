@@ -61,7 +61,7 @@ func TestResourceProvider_generateScript(t *testing.T) {
 			"exit 0",
 		},
 	})
-	out, err := generateScript(conf)
+	out, err := generateScript(getTestResourceData(conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 		},
 	})
 
-	scripts, err := collectScripts(conf)
+	scripts, err := collectScripts(getTestResourceData(conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestResourceProvider_CollectScripts_script(t *testing.T) {
 		"script": "test-fixtures/script1.sh",
 	})
 
-	scripts, err := collectScripts(conf)
+	scripts, err := collectScripts(getTestResourceData(conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 		},
 	})
 
-	scripts, err := collectScripts(conf)
+	scripts, err := collectScripts(getTestResourceData(conf))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -165,4 +165,8 @@ func testConfig(
 	}
 
 	return terraform.NewResourceConfig(r)
+}
+
+func getTestResourceData(c *terraform.ResourceConfig) *schema.ResourceData {
+	return ResourceProvisioner().(*schema.Provisioner).TestResourceData(c)
 }

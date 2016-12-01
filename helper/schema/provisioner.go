@@ -13,8 +13,8 @@ type Provisioner struct {
 	ApplyFunc    ApplyFunc
 }
 
-type ValidateFunc func(*terraform.ResourceConfig) ([]string, []error)
-type ApplyFunc func(terraform.UIOutput, *terraform.InstanceState, *terraform.ResourceConfig) error
+type ValidateFunc func(*ResourceData) ([]string, []error)
+type ApplyFunc func(terraform.UIOutput, *ResourceData) error
 
 // InternalValidate should be called to validate the structure
 // of the provisioner.
@@ -51,7 +51,11 @@ func (p *Provisioner) Validate(config *terraform.ResourceConfig) ([]string, []er
 		e = append(e, e2...)
 	}
 	if p.ValidateFunc != nil {
-		w2, e2 := p.ValidateFunc(config)
+		data := &ResourceData{
+			schema: p.Schema,
+			config: config,
+		}
+		w2, e2 := p.ValidateFunc(data)
 		w = append(w, w2...)
 		e = append(e, e2...)
 	}
@@ -62,5 +66,17 @@ func (p *Provisioner) Apply(ui terraform.UIOutput, state *terraform.InstanceStat
 	if p.ApplyFunc == nil {
 		panic("ApplyFunc should be specified in provisioner")
 	}
-	return p.ApplyFunc(ui, state, config)
+	data := &ResourceData{
+		schema: p.Schema,
+		config: config,
+		state:  state,
+	}
+	return p.ApplyFunc(ui, data)
+}
+
+func (p *Provisioner) TestResourceData(config *terraform.ResourceConfig) *ResourceData {
+	return &ResourceData{
+		schema: p.Schema,
+		config: config,
+	}
 }

@@ -7,7 +7,6 @@ import (
 	"runtime"
 
 	"github.com/armon/circbuf"
-	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-linereader"
@@ -28,25 +27,16 @@ func ResourceProvisioner() terraform.ResourceProvisioner {
 				Required: true,
 			},
 		},
-		ApplyFunc:    Apply,
-		ValidateFunc: Validate,
+		ApplyFunc: Apply,
 	}
 }
 
 func Apply(
 	o terraform.UIOutput,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) error {
+	d *schema.ResourceData) error {
 
 	// Get the command
-	commandRaw, ok := c.Config["command"]
-	if !ok {
-		return fmt.Errorf("local-exec provisioner missing 'command'")
-	}
-	command, ok := commandRaw.(string)
-	if !ok {
-		return fmt.Errorf("local-exec provisioner command must be a string")
-	}
+	command := d.Get("command").(string)
 
 	// Execute the command using a shell
 	var shell, flag string
@@ -88,13 +78,6 @@ func Apply(
 	}
 
 	return nil
-}
-
-func Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	validator := config.Validator{
-		Required: []string{"command"},
-	}
-	return validator.Validate(c)
 }
 
 func copyOutput(

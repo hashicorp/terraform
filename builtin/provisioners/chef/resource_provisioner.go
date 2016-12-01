@@ -140,22 +140,22 @@ func ResourceProvisioner() terraform.ResourceProvisioner {
 // Apply executes the file provisioner
 func Apply(
 	o terraform.UIOutput,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) error {
+	d *schema.ResourceData) error {
 	// Decode the raw config for this provisioner
-	p, err := decodeConfig(c)
+	p, err := decodeConfig(d.GetRawConfig()) // TODO: Get rid of GetRawConfig
 	if err != nil {
 		return err
 	}
 
 	if p.OSType == "" {
-		switch s.Ephemeral.ConnInfo["type"] {
+		t := d.State().Ephemeral.ConnInfo["type"]
+		switch t {
 		case "ssh", "": // The default connection type is ssh, so if the type is empty assume ssh
 			p.OSType = "linux"
 		case "winrm":
 			p.OSType = "windows"
 		default:
-			return fmt.Errorf("Unsupported connection type: %s", s.Ephemeral.ConnInfo["type"])
+			return fmt.Errorf("Unsupported connection type: %s", t)
 		}
 	}
 
@@ -169,7 +169,7 @@ func Apply(
 		p.generateClientKey = p.generateClientKeyFunc(linuxKnifeCmd, linuxConfDir, linuxNoOutput)
 		p.configureVaults = p.configureVaultsFunc(linuxGemCmd, linuxKnifeCmd, linuxConfDir)
 		p.runChefClient = p.runChefClientFunc(linuxChefCmd, linuxConfDir)
-		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
+		p.useSudo = !p.PreventSudo && d.State().Ephemeral.ConnInfo["user"] != "root"
 	case "windows":
 		p.cleanupUserKeyCmd = fmt.Sprintf("cd %s && del /F /Q %s", windowsConfDir, p.UserName+".pem")
 		p.createConfigFiles = p.windowsCreateConfigFiles
@@ -184,7 +184,7 @@ func Apply(
 	}
 
 	// Get a new communicator
-	comm, err := communicator.New(s)
+	comm, err := communicator.New(d.State())
 	if err != nil {
 		return err
 	}
@@ -254,8 +254,8 @@ func Apply(
 }
 
 // Validate checks if the required arguments are configured
-func Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
-	p, err := decodeConfig(c)
+func Validate(d *schema.ResourceData) (ws []string, es []error) {
+	p, err := decodeConfig(d.GetRawConfig()) // TODO: Get rid of GetRawConfig
 	if err != nil {
 		es = append(es, err)
 		return ws, es

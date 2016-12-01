@@ -57,7 +57,7 @@ func TestProvisioner_Validate(t *testing.T) {
 		{
 			P: &Provisioner{
 				Schema: nil,
-				ValidateFunc: func(*terraform.ResourceConfig) (ws []string, errors []error) {
+				ValidateFunc: func(*ResourceData) (ws []string, errors []error) {
 					ws = append(ws, "Simple warning from provisioner ValidateFunc")
 					return
 				},
