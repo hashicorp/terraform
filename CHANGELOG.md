@@ -25,6 +25,7 @@ IMPROVEMENTS:
  * provider/postgresql: Added 'connect_timeout' argument to provider 'postgresql' [GH-10380]
  * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_static_nat` resource [GH-10420]
  * provider/google: Added support for session affinity to compute_backend_service [GH-10387]
+ * provider/google: Projects are now importable [GH-10469]
 
 BUG FIXES:
 
