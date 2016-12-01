@@ -490,6 +490,11 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"is_ipv6_enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 
 			"tags": tagsSchema(),
 		},

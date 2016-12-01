@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/query"
 )
 
+//
 // Amazon Relational Database Service (Amazon RDS) is a web service that makes
 // it easier to set up, operate, and scale a relational database in the cloud.
 // It provides cost-efficient, resizeable capacity for an industry-standard
@@ -36,23 +37,23 @@ import (
 // maintenance window. The reference structure is as follows, and we list following
 // some related topics from the user guide.
 //
-//  Amazon RDS API Reference
+// Amazon RDS API Reference
 //
-//   For the alphabetical list of API actions, see API Actions (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Operations.html).
+//    * For the alphabetical list of API actions, see API Actions (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Operations.html).
 //
-//   For the alphabetical list of data types, see Data Types (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Types.html).
+//    * For the alphabetical list of data types, see Data Types (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_Types.html).
 //
-//   For a list of common query parameters, see Common Parameters (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/CommonParameters.html).
+//    * For a list of common query parameters, see Common Parameters (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/CommonParameters.html).
 //
-//   For descriptions of the error codes, see Common Errors (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/CommonErrors.html).
+//    * For descriptions of the error codes, see Common Errors (http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/CommonErrors.html).
 //
-//    Amazon RDS User Guide
+// Amazon RDS User Guide
 //
-//   For a summary of the Amazon RDS interfaces, see Available RDS Interfaces
-// (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#Welcome.Interfaces).
+//    * For a summary of the Amazon RDS interfaces, see Available RDS Interfaces
+//    (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#Welcome.Interfaces).
 //
-//   For more information about how to use the Query API, see Using the Query
-// API (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Using_the_Query_API.html).
+//    * For more information about how to use the Query API, see Using the Query
+//    API (http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Using_the_Query_API.html).
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type RDS struct {

@@ -1674,3 +1674,37 @@ func TestParseResourceStateKey(t *testing.T) {
 		}
 	}
 }
+
+func TestStateModuleOrphans_empty(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "foo", "bar"},
+			},
+			&ModuleState{
+				Path: []string{},
+			},
+			nil,
+		},
+	}
+
+	state.init()
+
+	// just calling this to check for panic
+	state.ModuleOrphans(RootModulePath, nil)
+
+	for _, mod := range state.Modules {
+		if mod == nil {
+			t.Fatal("found nil module")
+		}
+		if mod.Path == nil {
+			t.Fatal("found nil module path")
+		}
+		if len(mod.Path) == 0 {
+			t.Fatal("found empty module path")
+		}
+	}
+}

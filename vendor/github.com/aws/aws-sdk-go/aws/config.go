@@ -182,6 +182,19 @@ type Config struct {
 	// the delay of a request see the aws/client.DefaultRetryer and
 	// aws/request.Retryer.
 	SleepDelay func(time.Duration)
+
+	// DisableRestProtocolURICleaning will not clean the URL path when making rest protocol requests.
+	// Will default to false. This would only be used for empty directory names in s3 requests.
+	//
+	// Example:
+	//    sess, err := session.NewSession(&aws.Config{DisableRestProtocolURICleaning: aws.Bool(true))
+	//
+	//    svc := s3.New(sess)
+	//    out, err := svc.GetObject(&s3.GetObjectInput {
+	//    	Bucket: aws.String("bucketname"),
+	//    	Key: aws.String("//foo//bar//moo"),
+	//    })
+	DisableRestProtocolURICleaning *bool
 }
 
 // NewConfig returns a new Config pointer that can be chained with builder
@@ -402,6 +415,10 @@ func mergeInConfig(dst *Config, other *Config) {
 
 	if other.SleepDelay != nil {
 		dst.SleepDelay = other.SleepDelay
+	}
+
+	if other.DisableRestProtocolURICleaning != nil {
+		dst.DisableRestProtocolURICleaning = other.DisableRestProtocolURICleaning
 	}
 }
 

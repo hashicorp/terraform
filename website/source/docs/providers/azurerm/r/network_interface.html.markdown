@@ -101,3 +101,11 @@ The following attributes are exported:
 * `virtual_machine_id` - Reference to a VM with which this NIC has been associated.
 * `applied_dns_servers` - If the VM that uses this NIC is part of an Availability Set, then this list will have the union of all DNS servers from all NICs that are part of the Availability Set
 * `internal_fqdn` - Fully qualified DNS name supporting internal communications between VMs in the same VNet
+
+## Import
+
+Network Interfaces can be imported using the `resource id`, e.g. 
+
+```
+terraform import azurerm_network_interface.test /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.network/networkInterfaces/nic1
+```

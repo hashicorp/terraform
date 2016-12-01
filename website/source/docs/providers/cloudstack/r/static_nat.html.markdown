@@ -26,9 +26,6 @@ The following arguments are supported:
 * `ip_address_id` - (Required) The public IP address ID for which static
     NAT will be enabled. Changing this forces a new resource to be created.
 
-* `network_id` - (Deprecated) The network ID of the VM the static NAT will be
-    enabled for. This argument is no longer needed and can be safely omitted.
-
 * `virtual_machine_id` - (Required) The virtual machine ID to enable the
     static NAT feature for. Changing this forces a new resource to be created.
 

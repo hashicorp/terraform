@@ -245,6 +245,46 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_rootInstanceStore(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: `
+					resource "aws_instance" "foo" {
+						# us-west-2
+						# Amazon Linux HVM Instance Store 64-bit (2016.09.0)
+						# https://aws.amazon.com/amazon-linux-ami
+						ami = "ami-44c36524"
+
+						# Only certain instance types support ephemeral root instance stores.
+						# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
+						instance_type = "m3.medium"
+					}`,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ami", "ami-44c36524"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_optimized", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "instance_type", "m3.medium"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 	var v ec2.Instance
 

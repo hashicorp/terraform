@@ -46,7 +46,7 @@ func resourceAwsVpc() *schema.Resource {
 			"enable_dns_support": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
+				Default:  true,
 			},
 
 			"enable_classiclink": {
@@ -251,13 +251,13 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		log.Printf(
-			"[INFO] Modifying enable_dns_support vpc attribute for %s: %#v",
+			"[INFO] Modifying enable_dns_hostnames vpc attribute for %s: %s",
 			d.Id(), modifyOpts)
 		if _, err := conn.ModifyVpcAttribute(modifyOpts); err != nil {
 			return err
 		}
 
-		d.SetPartial("enable_dns_support")
+		d.SetPartial("enable_dns_hostnames")
 	}
 
 	_, hasEnableDnsSupportOption := d.GetOk("enable_dns_support")
@@ -272,7 +272,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		log.Printf(
-			"[INFO] Modifying enable_dns_support vpc attribute for %s: %#v",
+			"[INFO] Modifying enable_dns_support vpc attribute for %s: %s",
 			d.Id(), modifyOpts)
 		if _, err := conn.ModifyVpcAttribute(modifyOpts); err != nil {
 			return err

@@ -31,12 +31,7 @@ func resourceArmServiceBusNamespace() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -145,6 +140,8 @@ func resourceArmServiceBusNamespaceRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("sku", strings.ToLower(string(resp.Sku.Name)))
 	d.Set("capacity", resp.Sku.Capacity)
 

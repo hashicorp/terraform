@@ -103,6 +103,24 @@ func wrappedMain() int {
 		return 1
 	}
 
+	// Load the configuration file if we have one, that can be used to
+	// define extra providers and provisioners.
+	clicfgFile, err := cliConfigFile()
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
+		return 1
+	}
+
+	if clicfgFile != "" {
+		usrcfg, err := LoadConfig(clicfgFile)
+		if err != nil {
+			Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
+			return 1
+		}
+
+		config = *config.Merge(usrcfg)
+	}
+
 	// Run checkpoint
 	go runCheckpoint(&config)
 
@@ -127,24 +145,6 @@ func wrappedMain() int {
 		Commands:   Commands,
 		HelpFunc:   helpFunc,
 		HelpWriter: os.Stdout,
-	}
-
-	// Load the configuration file if we have one, that can be used to
-	// define extra providers and provisioners.
-	clicfgFile, err := cliConfigFile()
-	if err != nil {
-		Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-		return 1
-	}
-
-	if clicfgFile != "" {
-		usrcfg, err := LoadConfig(clicfgFile)
-		if err != nil {
-			Ui.Error(fmt.Sprintf("Error loading CLI configuration: \n\n%s", err))
-			return 1
-		}
-
-		config = *config.Merge(usrcfg)
 	}
 
 	// Initialize the TFConfig settings for the commands...

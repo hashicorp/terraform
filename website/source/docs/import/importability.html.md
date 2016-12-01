@@ -57,6 +57,7 @@ To make a resource importable, please see the
 * aws_glacier_vault
 * aws_iam_account_password_policy
 * aws_iam_group
+* aws_iam_instance_profile
 * aws_iam_saml_provider
 * aws_iam_user
 * aws_instance
@@ -82,6 +83,7 @@ To make a resource importable, please see the
 * aws_route53_health_check
 * aws_route53_zone
 * aws_route_table
+* aws_s3_bucket
 * aws_security_group
 * aws_ses_receipt_filter
 * aws_ses_receipt_rule_set

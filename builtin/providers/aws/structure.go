@@ -166,7 +166,7 @@ func expandIPPerms(
 		// AWS's behavior in the error message.
 		if *perm.IpProtocol == "-1" && (*perm.FromPort != 0 || *perm.ToPort != 0) {
 			return nil, fmt.Errorf(
-				"from_port (%d) and to_port (%d) must both be 0 to use the the 'ALL' \"-1\" protocol!",
+				"from_port (%d) and to_port (%d) must both be 0 to use the 'ALL' \"-1\" protocol!",
 				*perm.FromPort, *perm.ToPort)
 		}
 
@@ -950,6 +950,24 @@ func flattenDSVpcSettings(
 	return []map[string]interface{}{settings}
 }
 
+func flattenLambdaEnvironment(lambdaEnv *lambda.EnvironmentResponse) []interface{} {
+	envs := make(map[string]interface{})
+	en := make(map[string]string)
+
+	if lambdaEnv == nil {
+		return nil
+	}
+
+	for k, v := range lambdaEnv.Variables {
+		en[k] = *v
+	}
+	if len(en) > 0 {
+		envs["variables"] = en
+	}
+
+	return []interface{}{envs}
+}
+
 func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]interface{} {
 	settings := make(map[string]interface{}, 0)
 
@@ -957,7 +975,11 @@ func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]in
 		return nil
 	}
 
-	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && s.VpcId == nil {
+	var emptyVpc bool
+	if s.VpcId == nil || *s.VpcId == "" {
+		emptyVpc = true
+	}
+	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && emptyVpc {
 		return nil
 	}
 

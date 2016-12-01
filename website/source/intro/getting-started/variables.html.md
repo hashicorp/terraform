@@ -56,8 +56,7 @@ the AWS provider with the given variables.
 ## Assigning Variables
 
 There are multiple ways to assign variables. Below is also the order
-in which variable values are chosen. If they're found in an option first
-below, then the options below are ignored.
+in which variable values are chosen. The following is the descending order of precedence in which variables are considered.
 
 #### Command-line flags
 

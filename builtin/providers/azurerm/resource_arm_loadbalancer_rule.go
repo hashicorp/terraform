@@ -28,12 +28,7 @@ func resourceArmLoadBalancerRule() *schema.Resource {
 				ValidateFunc: validateArmLoadBalancerRuleName,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,

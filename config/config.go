@@ -610,6 +610,15 @@ func (c *Config) Validate() error {
 				"%s: lifecycle ignore_changes cannot contain interpolations",
 				n))
 		}
+
+		// If it is a data source then it can't have provisioners
+		if r.Mode == DataResourceMode {
+			if _, ok := r.RawConfig.Raw["provisioner"]; ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: data sources cannot have provisioners",
+					n))
+			}
+		}
 	}
 
 	for source, vs := range vars {
