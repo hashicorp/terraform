@@ -47,6 +47,9 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret", "",
 					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "document_root", "foo",
+					),
 				),
 			},
 			resource.TestStep{
