@@ -6,10 +6,10 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
-	"time"
 )
 
 func TestInterpolateFuncZipMap(t *testing.T) {
