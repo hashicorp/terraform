@@ -8,6 +8,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 FEATURES:
 
  * **New DataSource:** `aws_route_table` [GH-10301]
+ * **New Interpolation Function:** `timestamp` [GH-10475]
 
 IMPROVEMENTS:
 
