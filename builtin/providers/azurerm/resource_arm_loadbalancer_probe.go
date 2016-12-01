@@ -102,7 +102,7 @@ func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}
 		return errwrap.Wrapf("Error Expanding Probe {{err}}", err)
 	}
 
-	probes := append(*loadBalancer.Properties.Probes, *newProbe)
+	probes := append(*loadBalancer.LoadBalancerPropertiesFormat.Probes, *newProbe)
 
 	existingProbe, existingProbeIndex, exists := findLoadBalancerProbeByName(loadBalancer, d.Get("name").(string))
 	if exists {
@@ -114,7 +114,7 @@ func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}
 		}
 	}
 
-	loadBalancer.Properties.Probes = &probes
+	loadBalancer.LoadBalancerPropertiesFormat.Probes = &probes
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
@@ -134,7 +134,7 @@ func resourceArmLoadBalancerProbeCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	var createdProbe_id string
-	for _, Probe := range *(*read.Properties).Probes {
+	for _, Probe := range *(*read.LoadBalancerPropertiesFormat).Probes {
 		if *Probe.Name == d.Get("name").(string) {
 			createdProbe_id = *Probe.ID
 		}
@@ -171,16 +171,16 @@ func resourceArmLoadBalancerProbeRead(d *schema.ResourceData, meta interface{}) 
 		return nil
 	}
 
-	configs := *loadBalancer.Properties.Probes
+	configs := *loadBalancer.LoadBalancerPropertiesFormat.Probes
 	for _, config := range configs {
 		if *config.Name == d.Get("name").(string) {
 			d.Set("name", config.Name)
 
-			d.Set("protocol", config.Properties.Protocol)
-			d.Set("interval_in_seconds", config.Properties.IntervalInSeconds)
-			d.Set("number_of_probes", config.Properties.NumberOfProbes)
-			d.Set("port", config.Properties.Port)
-			d.Set("request_path", config.Properties.RequestPath)
+			d.Set("protocol", config.ProbePropertiesFormat.Protocol)
+			d.Set("interval_in_seconds", config.ProbePropertiesFormat.IntervalInSeconds)
+			d.Set("number_of_probes", config.ProbePropertiesFormat.NumberOfProbes)
+			d.Set("port", config.ProbePropertiesFormat.Port)
+			d.Set("request_path", config.ProbePropertiesFormat.RequestPath)
 
 			break
 		}
@@ -211,9 +211,9 @@ func resourceArmLoadBalancerProbeDelete(d *schema.ResourceData, meta interface{}
 		return nil
 	}
 
-	oldProbes := *loadBalancer.Properties.Probes
+	oldProbes := *loadBalancer.LoadBalancerPropertiesFormat.Probes
 	newProbes := append(oldProbes[:index], oldProbes[index+1:]...)
-	loadBalancer.Properties.Probes = &newProbes
+	loadBalancer.LoadBalancerPropertiesFormat.Probes = &newProbes
 
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
@@ -253,8 +253,8 @@ func expandAzureRmLoadBalancerProbe(d *schema.ResourceData, lb *network.LoadBala
 	}
 
 	probe := network.Probe{
-		Name:       azure.String(d.Get("name").(string)),
-		Properties: &properties,
+		Name: azure.String(d.Get("name").(string)),
+		ProbePropertiesFormat: &properties,
 	}
 
 	return &probe, nil

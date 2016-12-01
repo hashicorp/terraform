@@ -123,7 +123,7 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 		return errwrap.Wrapf("Error Exanding LoadBalancer Rule {{err}}", err)
 	}
 
-	lbRules := append(*loadBalancer.Properties.LoadBalancingRules, *newLbRule)
+	lbRules := append(*loadBalancer.LoadBalancerPropertiesFormat.LoadBalancingRules, *newLbRule)
 
 	existingRule, existingRuleIndex, exists := findLoadBalancerRuleByName(loadBalancer, d.Get("name").(string))
 	if exists {
@@ -135,7 +135,7 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	loadBalancer.Properties.LoadBalancingRules = &lbRules
+	loadBalancer.LoadBalancerPropertiesFormat.LoadBalancingRules = &lbRules
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
@@ -155,7 +155,7 @@ func resourceArmLoadBalancerRuleCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	var rule_id string
-	for _, LoadBalancingRule := range *(*read.Properties).LoadBalancingRules {
+	for _, LoadBalancingRule := range *(*read.LoadBalancerPropertiesFormat).LoadBalancingRules {
 		if *LoadBalancingRule.Name == d.Get("name").(string) {
 			rule_id = *LoadBalancingRule.ID
 		}
@@ -192,37 +192,37 @@ func resourceArmLoadBalancerRuleRead(d *schema.ResourceData, meta interface{}) e
 		return nil
 	}
 
-	configs := *loadBalancer.Properties.LoadBalancingRules
+	configs := *loadBalancer.LoadBalancerPropertiesFormat.LoadBalancingRules
 	for _, config := range configs {
 		if *config.Name == d.Get("name").(string) {
 			d.Set("name", config.Name)
 
-			d.Set("protocol", config.Properties.Protocol)
-			d.Set("frontend_port", config.Properties.FrontendPort)
-			d.Set("backend_port", config.Properties.BackendPort)
+			d.Set("protocol", config.LoadBalancingRulePropertiesFormat.Protocol)
+			d.Set("frontend_port", config.LoadBalancingRulePropertiesFormat.FrontendPort)
+			d.Set("backend_port", config.LoadBalancingRulePropertiesFormat.BackendPort)
 
-			if config.Properties.EnableFloatingIP != nil {
-				d.Set("enable_floating_ip", config.Properties.EnableFloatingIP)
+			if config.LoadBalancingRulePropertiesFormat.EnableFloatingIP != nil {
+				d.Set("enable_floating_ip", config.LoadBalancingRulePropertiesFormat.EnableFloatingIP)
 			}
 
-			if config.Properties.IdleTimeoutInMinutes != nil {
-				d.Set("idle_timeout_in_minutes", config.Properties.IdleTimeoutInMinutes)
+			if config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes != nil {
+				d.Set("idle_timeout_in_minutes", config.LoadBalancingRulePropertiesFormat.IdleTimeoutInMinutes)
 			}
 
-			if config.Properties.FrontendIPConfiguration != nil {
-				d.Set("frontend_ip_configuration_id", config.Properties.FrontendIPConfiguration.ID)
+			if config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration != nil {
+				d.Set("frontend_ip_configuration_id", config.LoadBalancingRulePropertiesFormat.FrontendIPConfiguration.ID)
 			}
 
-			if config.Properties.BackendAddressPool != nil {
-				d.Set("backend_address_pool_id", config.Properties.BackendAddressPool.ID)
+			if config.LoadBalancingRulePropertiesFormat.BackendAddressPool != nil {
+				d.Set("backend_address_pool_id", config.LoadBalancingRulePropertiesFormat.BackendAddressPool.ID)
 			}
 
-			if config.Properties.Probe != nil {
-				d.Set("probe_id", config.Properties.Probe.ID)
+			if config.LoadBalancingRulePropertiesFormat.Probe != nil {
+				d.Set("probe_id", config.LoadBalancingRulePropertiesFormat.Probe.ID)
 			}
 
-			if config.Properties.LoadDistribution != "" {
-				d.Set("load_distribution", config.Properties.LoadDistribution)
+			if config.LoadBalancingRulePropertiesFormat.LoadDistribution != "" {
+				d.Set("load_distribution", config.LoadBalancingRulePropertiesFormat.LoadDistribution)
 			}
 		}
 	}
@@ -252,9 +252,9 @@ func resourceArmLoadBalancerRuleDelete(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	oldLbRules := *loadBalancer.Properties.LoadBalancingRules
+	oldLbRules := *loadBalancer.LoadBalancerPropertiesFormat.LoadBalancingRules
 	newLbRules := append(oldLbRules[:index], oldLbRules[index+1:]...)
-	loadBalancer.Properties.LoadBalancingRules = &newLbRules
+	loadBalancer.LoadBalancerPropertiesFormat.LoadBalancingRules = &newLbRules
 
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
@@ -324,8 +324,8 @@ func expandAzureRmLoadBalancerRule(d *schema.ResourceData, lb *network.LoadBalan
 	}
 
 	lbRule := network.LoadBalancingRule{
-		Name:       azure.String(d.Get("name").(string)),
-		Properties: &properties,
+		Name: azure.String(d.Get("name").(string)),
+		LoadBalancingRulePropertiesFormat: &properties,
 	}
 
 	return &lbRule, nil
