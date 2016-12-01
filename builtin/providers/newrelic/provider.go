@@ -15,6 +15,7 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("NEWRELIC_API_KEY", nil),
+				Sensitive:   true,
 			},
 			"api_url": {
 				Type:        schema.TypeString,

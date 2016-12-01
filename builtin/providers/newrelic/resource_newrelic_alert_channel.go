@@ -87,6 +87,7 @@ func resourceNewRelicAlertChannel() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 				//TODO: ValidateFunc: (use list of keys from map above)
+				Sensitive: true,
 			},
 		},
 	}
