@@ -5,7 +5,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
-GOVERSION="1.7.3"
+GOVERSION="1.7.4"
 SRCROOT="/opt/go"
 SRCPATH="/opt/gopath"
 
