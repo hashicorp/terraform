@@ -32,6 +32,38 @@ func TestAccComputeHealthCheck_tcp(t *testing.T) {
 	})
 }
 
+func TestAccComputeHealthCheck_tcp_update(t *testing.T) {
+	var healthCheck compute.HealthCheck
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeHealthCheck_tcp,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeHealthCheckExists(
+						"google_compute_health_check.foobar", &healthCheck),
+					testAccCheckComputeHealthCheckThresholds(
+						3, 3, &healthCheck),
+					testAccCheckComputeHealthCheckTcpPort(80, &healthCheck),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeHealthCheck_tcp_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeHealthCheckExists(
+						"google_compute_health_check.foobar", &healthCheck),
+					testAccCheckComputeHealthCheckThresholds(
+						10, 10, &healthCheck),
+					testAccCheckComputeHealthCheckTcpPort(8080, &healthCheck),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeHealthCheck_ssl(t *testing.T) {
 	var healthCheck compute.HealthCheck
 
@@ -94,8 +126,6 @@ func TestAccComputeHealthCheck_https(t *testing.T) {
 		},
 	})
 }
-
-// add in update test?
 
 func testAccCheckComputeHealthCheckDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
@@ -176,6 +206,20 @@ resource "google_compute_health_check" "foobar" {
 	timeout_sec = 2
 	unhealthy_threshold = 3
 	tcp_health_check {
+	}
+}
+`, acctest.RandString(10))
+
+var testAccComputeHealthCheck_tcp_update = fmt.Sprintf(`
+resource "google_compute_health_check" "foobar" {
+	check_interval_sec = 3
+	description = "Resource updated for Terraform acceptance testing"
+	healthy_threshold = 10
+	name = "health-test-%s"
+	timeout_sec = 2
+	unhealthy_threshold = 10
+	tcp_health_check {
+		port = "8080"
 	}
 }
 `, acctest.RandString(10))
