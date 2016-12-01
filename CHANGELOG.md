@@ -28,6 +28,7 @@ BUG FIXES:
   * core: Destroying deposed resources in create before destroy waits until the creation step of its specific index. (0.8 regression) [GH-10416]
   * core: Certain invalid configurations will no longer print "illegal". [GH-10448]
   * command/console: variable access works [GH-10446]
+  * provider/aws: Do not return a root device for instance store backed AMIs. [GH-9483]
 
 ## 0.8.0-rc1 (November 23, 2016)
 
