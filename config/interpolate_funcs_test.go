@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
+	"time"
 )
 
 func TestInterpolateFuncZipMap(t *testing.T) {
@@ -1918,6 +1919,27 @@ func TestInterpolateFuncUUID(t *testing.T) {
 		}
 
 		results[result.Value.(string)] = true
+	}
+}
+
+func TestInterpolateFuncTimestamp(t *testing.T) {
+	currentTime := time.Now().UTC()
+	ast, err := hil.Parse("${timestamp()}")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	result, err := hil.Eval(ast, langEvalConfig(nil))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	resultTime, err := time.Parse(time.RFC3339, result.Value.(string))
+	if err != nil {
+		t.Fatalf("Error parsing timestamp: %s", err)
+	}
+
+	if resultTime.Sub(currentTime).Seconds() > 10.0 {
+		t.Fatalf("Timestamp Diff too large. Expected: %s\nRecieved: %s", currentTime.Format(time.RFC3339), result.Value.(string))
 	}
 }
 
