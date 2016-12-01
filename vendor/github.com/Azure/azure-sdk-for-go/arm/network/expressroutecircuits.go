@@ -45,14 +45,14 @@ func NewExpressRouteCircuitsClientWithBaseURI(baseURI string, subscriptionID str
 	return ExpressRouteCircuitsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate the Put ExpressRouteCircuit operation creates/updates a
-// ExpressRouteCircuit This method may poll for completion. Polling can be
-// canceled by passing the cancel channel argument. The channel will be used
-// to cancel polling and any outstanding HTTP requests.
+// CreateOrUpdate creates or updates an express route circuit. This method may
+// poll for completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
-// name of the circuit. parameters is parameters supplied to the
-// create/delete ExpressRouteCircuit operation
+// name of the circuit. parameters is parameters supplied to the create or
+// update express route circuit operation.
 func (client ExpressRouteCircuitsClient) CreateOrUpdate(resourceGroupName string, circuitName string, parameters ExpressRouteCircuit, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, circuitName, parameters, cancel)
 	if err != nil {
@@ -115,13 +115,13 @@ func (client ExpressRouteCircuitsClient) CreateOrUpdateResponder(resp *http.Resp
 	return
 }
 
-// Delete the delete ExpressRouteCircuit operation deletes the specified
-// ExpressRouteCircuit. This method may poll for completion. Polling can be
-// canceled by passing the cancel channel argument. The channel will be used
-// to cancel polling and any outstanding HTTP requests.
+// Delete deletes the specified express route circuit. This method may poll
+// for completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
-// name of the express route Circuit.
+// name of the express route circuit.
 func (client ExpressRouteCircuitsClient) Delete(resourceGroupName string, circuitName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, circuitName, cancel)
 	if err != nil {
@@ -182,11 +182,10 @@ func (client ExpressRouteCircuitsClient) DeleteResponder(resp *http.Response) (r
 	return
 }
 
-// Get the Get ExpressRouteCircuit operation retrieves information about the
-// specified ExpressRouteCircuit.
+// Get gets information about the specified express route circuit.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
-// name of the circuit.
+// name of express route circuit.
 func (client ExpressRouteCircuitsClient) Get(resourceGroupName string, circuitName string) (result ExpressRouteCircuit, err error) {
 	req, err := client.GetPreparer(resourceGroupName, circuitName)
 	if err != nil {
@@ -246,11 +245,11 @@ func (client ExpressRouteCircuitsClient) GetResponder(resp *http.Response) (resu
 	return
 }
 
-// GetPeeringStats the List stats ExpressRouteCircuit operation retrieves all
-// the stats from a ExpressRouteCircuits in a resource group.
+// GetPeeringStats gets all stats from an express route circuit in a resource
+// group.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
-// name of the circuit. peeringName is the name of the peering.
+// name of the express route circuit. peeringName is the name of the peering.
 func (client ExpressRouteCircuitsClient) GetPeeringStats(resourceGroupName string, circuitName string, peeringName string) (result ExpressRouteCircuitStats, err error) {
 	req, err := client.GetPeeringStatsPreparer(resourceGroupName, circuitName, peeringName)
 	if err != nil {
@@ -311,11 +310,11 @@ func (client ExpressRouteCircuitsClient) GetPeeringStatsResponder(resp *http.Res
 	return
 }
 
-// GetStats the List stats ExpressRouteCircuit operation retrieves all the
-// stats from a ExpressRouteCircuits in a resource group.
+// GetStats gets all the stats from an express route circuit in a resource
+// group.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
-// name of the circuit.
+// name of the express route circuit.
 func (client ExpressRouteCircuitsClient) GetStats(resourceGroupName string, circuitName string) (result ExpressRouteCircuitStats, err error) {
 	req, err := client.GetStatsPreparer(resourceGroupName, circuitName)
 	if err != nil {
@@ -375,8 +374,7 @@ func (client ExpressRouteCircuitsClient) GetStatsResponder(resp *http.Response) 
 	return
 }
 
-// List the List ExpressRouteCircuit operation retrieves all the
-// ExpressRouteCircuits in a resource group.
+// List gets all the express route circuits in a resource group.
 //
 // resourceGroupName is the name of the resource group.
 func (client ExpressRouteCircuitsClient) List(resourceGroupName string) (result ExpressRouteCircuitListResult, err error) {
@@ -461,8 +459,7 @@ func (client ExpressRouteCircuitsClient) ListNextResults(lastResults ExpressRout
 	return
 }
 
-// ListAll the List ExpressRouteCircuit operation retrieves all the
-// ExpressRouteCircuits in a subscription.
+// ListAll gets all the express route circuits in a subscription.
 func (client ExpressRouteCircuitsClient) ListAll() (result ExpressRouteCircuitListResult, err error) {
 	req, err := client.ListAllPreparer()
 	if err != nil {
@@ -544,16 +541,15 @@ func (client ExpressRouteCircuitsClient) ListAllNextResults(lastResults ExpressR
 	return
 }
 
-// ListArpTable the ListArpTable from ExpressRouteCircuit operation retrieves
-// the currently advertised arp table associated with the
-// ExpressRouteCircuits in a resource group. This method may poll for
+// ListArpTable gets the currently advertised ARP table associated with the
+// express route circuit in a resource group. This method may poll for
 // completion. Polling can be canceled by passing the cancel channel
 // argument. The channel will be used to cancel polling and any outstanding
 // HTTP requests.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
-// name of the circuit. peeringName is the name of the peering. devicePath is
-// the path of the device.
+// name of the express route circuit. peeringName is the name of the peering.
+// devicePath is the path of the device.
 func (client ExpressRouteCircuitsClient) ListArpTable(resourceGroupName string, circuitName string, peeringName string, devicePath string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.ListArpTablePreparer(resourceGroupName, circuitName, peeringName, devicePath, cancel)
 	if err != nil {
@@ -616,16 +612,15 @@ func (client ExpressRouteCircuitsClient) ListArpTableResponder(resp *http.Respon
 	return
 }
 
-// ListRoutesTable the ListRoutesTable from ExpressRouteCircuit operation
-// retrieves the currently advertised routes table associated with the
-// ExpressRouteCircuits in a resource group. This method may poll for
+// ListRoutesTable gets the currently advertised routes table associated with
+// the express route circuit in a resource group. This method may poll for
 // completion. Polling can be canceled by passing the cancel channel
 // argument. The channel will be used to cancel polling and any outstanding
 // HTTP requests.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
-// name of the circuit. peeringName is the name of the peering. devicePath is
-// the path of the device.
+// name of the express route circuit. peeringName is the name of the peering.
+// devicePath is the path of the device.
 func (client ExpressRouteCircuitsClient) ListRoutesTable(resourceGroupName string, circuitName string, peeringName string, devicePath string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.ListRoutesTablePreparer(resourceGroupName, circuitName, peeringName, devicePath, cancel)
 	if err != nil {
@@ -688,16 +683,15 @@ func (client ExpressRouteCircuitsClient) ListRoutesTableResponder(resp *http.Res
 	return
 }
 
-// ListRoutesTableSummary the ListRoutesTable from ExpressRouteCircuit
-// operation retrieves the currently advertised routes table associated with
-// the ExpressRouteCircuits in a resource group. This method may poll for
-// completion. Polling can be canceled by passing the cancel channel
-// argument. The channel will be used to cancel polling and any outstanding
-// HTTP requests.
+// ListRoutesTableSummary gets the currently advertised routes table summary
+// associated with the express route circuit in a resource group. This method
+// may poll for completion. Polling can be canceled by passing the cancel
+// channel argument. The channel will be used to cancel polling and any
+// outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
-// name of the circuit. peeringName is the name of the peering. devicePath is
-// the path of the device.
+// name of the express route circuit. peeringName is the name of the peering.
+// devicePath is the path of the device.
 func (client ExpressRouteCircuitsClient) ListRoutesTableSummary(resourceGroupName string, circuitName string, peeringName string, devicePath string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.ListRoutesTableSummaryPreparer(resourceGroupName, circuitName, peeringName, devicePath, cancel)
 	if err != nil {

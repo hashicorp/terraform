@@ -45,15 +45,15 @@ func NewExpressRouteCircuitPeeringsClientWithBaseURI(baseURI string, subscriptio
 	return ExpressRouteCircuitPeeringsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate the Put Peering operation creates/updates an peering in the
-// specified ExpressRouteCircuits This method may poll for completion.
-// Polling can be canceled by passing the cancel channel argument. The
-// channel will be used to cancel polling and any outstanding HTTP requests.
+// CreateOrUpdate creates or updates a peering in the specified express route
+// circuits. This method may poll for completion. Polling can be canceled by
+// passing the cancel channel argument. The channel will be used to cancel
+// polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
 // name of the express route circuit. peeringName is the name of the peering.
-// peeringParameters is parameters supplied to the create/update
-// ExpressRouteCircuit Peering operation
+// peeringParameters is parameters supplied to the create or update express
+// route circuit peering operation.
 func (client ExpressRouteCircuitPeeringsClient) CreateOrUpdate(resourceGroupName string, circuitName string, peeringName string, peeringParameters ExpressRouteCircuitPeering, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, circuitName, peeringName, peeringParameters, cancel)
 	if err != nil {
@@ -117,10 +117,10 @@ func (client ExpressRouteCircuitPeeringsClient) CreateOrUpdateResponder(resp *ht
 	return
 }
 
-// Delete the delete peering operation deletes the specified peering from the
-// ExpressRouteCircuit. This method may poll for completion. Polling can be
-// canceled by passing the cancel channel argument. The channel will be used
-// to cancel polling and any outstanding HTTP requests.
+// Delete deletes the specified peering from the specified express route
+// circuit. This method may poll for completion. Polling can be canceled by
+// passing the cancel channel argument. The channel will be used to cancel
+// polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
 // name of the express route circuit. peeringName is the name of the peering.
@@ -185,8 +185,8 @@ func (client ExpressRouteCircuitPeeringsClient) DeleteResponder(resp *http.Respo
 	return
 }
 
-// Get the GET peering operation retrieves the specified authorization from
-// the ExpressRouteCircuit.
+// Get gets the specified authorization from the specified express route
+// circuit.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
 // name of the express route circuit. peeringName is the name of the peering.
@@ -250,11 +250,10 @@ func (client ExpressRouteCircuitPeeringsClient) GetResponder(resp *http.Response
 	return
 }
 
-// List the List peering operation retrieves all the peerings in an
-// ExpressRouteCircuit.
+// List gets all peerings in a specified express route circuit.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
-// name of the circuit.
+// name of the express route circuit.
 func (client ExpressRouteCircuitPeeringsClient) List(resourceGroupName string, circuitName string) (result ExpressRouteCircuitPeeringListResult, err error) {
 	req, err := client.ListPreparer(resourceGroupName, circuitName)
 	if err != nil {

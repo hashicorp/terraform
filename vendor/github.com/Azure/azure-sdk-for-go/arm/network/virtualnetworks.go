@@ -45,7 +45,7 @@ func NewVirtualNetworksClientWithBaseURI(baseURI string, subscriptionID string) 
 	return VirtualNetworksClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CheckIPAddressAvailability checks whether a private Ip address is available
+// CheckIPAddressAvailability checks whether a private IP address is available
 // for use.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
@@ -113,15 +113,14 @@ func (client VirtualNetworksClient) CheckIPAddressAvailabilityResponder(resp *ht
 	return
 }
 
-// CreateOrUpdate the Put VirtualNetwork operation creates/updates a virtual
-// network in the specified resource group. This method may poll for
-// completion. Polling can be canceled by passing the cancel channel
-// argument. The channel will be used to cancel polling and any outstanding
-// HTTP requests.
+// CreateOrUpdate creates or updates a virtual network in the specified
+// resource group. This method may poll for completion. Polling can be
+// canceled by passing the cancel channel argument. The channel will be used
+// to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
 // the name of the virtual network. parameters is parameters supplied to the
-// create/update Virtual Network operation
+// create or update virtual network operation
 func (client VirtualNetworksClient) CreateOrUpdate(resourceGroupName string, virtualNetworkName string, parameters VirtualNetwork, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, virtualNetworkName, parameters, cancel)
 	if err != nil {
@@ -184,10 +183,10 @@ func (client VirtualNetworksClient) CreateOrUpdateResponder(resp *http.Response)
 	return
 }
 
-// Delete the Delete VirtualNetwork operation deletes the specified virtual
-// network This method may poll for completion. Polling can be canceled by
-// passing the cancel channel argument. The channel will be used to cancel
-// polling and any outstanding HTTP requests.
+// Delete deletes the specified virtual network. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
 // the name of the virtual network.
@@ -251,11 +250,10 @@ func (client VirtualNetworksClient) DeleteResponder(resp *http.Response) (result
 	return
 }
 
-// Get the Get VirtualNetwork operation retrieves information about the
-// specified virtual network.
+// Get gets the specified virtual network by resource group.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
-// the name of the virtual network. expand is expand references resources.
+// the name of the virtual network. expand is expands referenced resources.
 func (client VirtualNetworksClient) Get(resourceGroupName string, virtualNetworkName string, expand string) (result VirtualNetwork, err error) {
 	req, err := client.GetPreparer(resourceGroupName, virtualNetworkName, expand)
 	if err != nil {
@@ -318,8 +316,7 @@ func (client VirtualNetworksClient) GetResponder(resp *http.Response) (result Vi
 	return
 }
 
-// List the list VirtualNetwork returns all Virtual Networks in a resource
-// group
+// List gets all virtual networks in a resource group.
 //
 // resourceGroupName is the name of the resource group.
 func (client VirtualNetworksClient) List(resourceGroupName string) (result VirtualNetworkListResult, err error) {
@@ -404,8 +401,7 @@ func (client VirtualNetworksClient) ListNextResults(lastResults VirtualNetworkLi
 	return
 }
 
-// ListAll the list VirtualNetwork returns all Virtual Networks in a
-// subscription
+// ListAll gets all virtual networks in a subscription.
 func (client VirtualNetworksClient) ListAll() (result VirtualNetworkListResult, err error) {
 	req, err := client.ListAllPreparer()
 	if err != nil {
