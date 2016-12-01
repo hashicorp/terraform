@@ -2,16 +2,13 @@ package aws
 
 import (
 	"fmt"
-<<<<<<< HEAD
 	"regexp"
-=======
-	"net/url"
->>>>>>> 9c051a5... Tests for importing various iam resources
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/go-getter/helper/url"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -39,15 +36,10 @@ func resourceAwsIamPolicy() *schema.Resource {
 				ForceNew: true,
 			},
 			"policy": &schema.Schema{
-<<<<<<< HEAD
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validateJsonString,
-=======
 				Type:             schema.TypeString,
 				Required:         true,
+				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
->>>>>>> daaae09... Add DiffSuppressFunc to support heredocs for aws_iam_role.assume_role_policy and aws_iam_policy.policy
 			},
 			"name": &schema.Schema{
 				Type:          schema.TypeString,
