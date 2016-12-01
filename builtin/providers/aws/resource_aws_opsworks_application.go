@@ -331,6 +331,11 @@ func resourceAwsOpsworksApplicationCreate(d *schema.ResourceData, meta interface
 func resourceAwsOpsworksApplicationUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
 
+	err := resourceAwsOpsworksApplicationValidate(d)
+	if err != nil {
+		return err
+	}
+
 	req := &opsworks.UpdateAppInput{
 		AppId:            aws.String(d.Id()),
 		Name:             aws.String(d.Get("name").(string)),
@@ -347,7 +352,7 @@ func resourceAwsOpsworksApplicationUpdate(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] Updating OpsWorks layer: %s", d.Id())
 
-	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
 		_, cerr := client.UpdateApp(req)
 		if cerr != nil {
 			log.Printf("[INFO] client error")
