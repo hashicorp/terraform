@@ -70,12 +70,6 @@ func resourceComputeRegionBackendService() *schema.Resource {
 				Computed: true,
 			},
 
-			"load_balancing_scheme": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -118,8 +112,9 @@ func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta inte
 	}
 
 	service := compute.BackendService{
-		Name:         d.Get("name").(string),
-		HealthChecks: healthChecks,
+		Name:                d.Get("name").(string),
+		HealthChecks:        healthChecks,
+		LoadBalancingScheme: "INTERNAL",
 	}
 
 	if v, ok := d.GetOk("backend"); ok {
@@ -136,10 +131,6 @@ func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta inte
 
 	if v, ok := d.GetOk("timeout_sec"); ok {
 		service.TimeoutSec = int64(v.(int))
-	}
-
-	if v, ok := d.GetOk("load_balancing_scheme"); ok {
-		service.LoadBalancingScheme = v.(string)
 	}
 
 	project, err := getProject(d, config)
@@ -203,7 +194,6 @@ func resourceComputeRegionBackendServiceRead(d *schema.ResourceData, meta interf
 	d.Set("protocol", service.Protocol)
 	d.Set("timeout_sec", service.TimeoutSec)
 	d.Set("fingerprint", service.Fingerprint)
-	d.Set("load_balancing_scheme", service.LoadBalancingScheme)
 	d.Set("self_link", service.SelfLink)
 
 	d.Set("backend", flattenBackends(service.Backends))
@@ -232,9 +222,10 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 	}
 
 	service := compute.BackendService{
-		Name:         d.Get("name").(string),
-		Fingerprint:  d.Get("fingerprint").(string),
-		HealthChecks: healthChecks,
+		Name:                d.Get("name").(string),
+		Fingerprint:         d.Get("fingerprint").(string),
+		HealthChecks:        healthChecks,
+		LoadBalancingScheme: "INTERNAL",
 	}
 
 	// Optional things
@@ -249,10 +240,6 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 	}
 	if v, ok := d.GetOk("timeout_sec"); ok {
 		service.TimeoutSec = int64(v.(int))
-	}
-
-	if v, ok := d.GetOk("load_balancing_scheme"); ok {
-		service.LoadBalancingScheme = v.(string)
 	}
 
 	log.Printf("[DEBUG] Updating existing Backend Service %q: %#v", d.Id(), service)

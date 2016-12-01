@@ -166,7 +166,6 @@ func testAccComputeRegionBackendService_basic(serviceName, checkName string) str
 resource "google_compute_region_backend_service" "foobar" {
   name                  = "%s"
   health_checks         = ["${google_compute_health_check.zero.self_link}"]
-  load_balancing_scheme = "INTERNAL"
   region                = "us-central1"
 }
 
@@ -187,7 +186,6 @@ func testAccComputeRegionBackendService_basicModified(serviceName, checkOne, che
 resource "google_compute_region_backend_service" "foobar" {
     name = "%s"
     health_checks = ["${google_compute_health_check.one.self_link}"]
-    load_balancing_scheme = "INTERNAL"
     region = "us-central1"
 }
 
@@ -220,7 +218,6 @@ resource "google_compute_region_backend_service" "lipsum" {
   protocol    = "TCP"
   region      = "us-central1"
   timeout_sec = %v
-  load_balancing_scheme = "INTERNAL"
 
   backend {
     group = "${google_compute_instance_group_manager.foobar.instance_group}"
