@@ -193,6 +193,27 @@ func (c *Context) Graph(g *ContextGraphOpts) (*Graph, error) {
 	return c.graphBuilder(g).Build(RootModulePath)
 }
 
+// PlanGraph returns the graph for this config using the PlanGraphBuilder.
+func (c *Context) PlanGraph(g *ContextGraphOpts) (*Graph, error) {
+	X_legacyGraph := experiment.Enabled(experiment.X_legacyGraph)
+
+	// Build the graph.
+	var graph *Graph
+	var err error
+	if !X_legacyGraph {
+		graph, err = (&PlanGraphBuilder{
+			Module:    c.module,
+			State:     c.state,
+			Providers: c.components.ResourceProviders(),
+			Targets:   c.targets,
+		}).Build(RootModulePath)
+	} else {
+		graph, err = c.Graph(g)
+	}
+
+	return graph, err
+}
+
 // GraphBuilder returns the GraphBuilder that will be used to create
 // the graphs for this context.
 func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
