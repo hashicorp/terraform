@@ -11,6 +11,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * core: Plan will show deposed-only destroys for create-before-destroy resources. [GH-10404]
  * provider/aws: Enforced kms_key_* attributes to be ARNs [GH-10356]
  * provider/aws: IPv6 Support To Cloudfront [GH-10332]
  * provider/azurerm: support import of routes, fix route_table [GH-10389]
