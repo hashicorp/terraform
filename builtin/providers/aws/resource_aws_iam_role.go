@@ -82,16 +82,10 @@ func resourceAwsIamRole() *schema.Resource {
 				ForceNew: true,
 			},
 
-<<<<<<< HEAD
-			"assume_role_policy": {
-				Type:     schema.TypeString,
-				Required: true,
-=======
 			"assume_role_policy": &schema.Schema{
 				Type:             schema.TypeString,
 				Required:         true,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
->>>>>>> daaae09... Add DiffSuppressFunc to support heredocs for aws_iam_role.assume_role_policy and aws_iam_policy.policy
 			},
 
 			"create_date": {
@@ -190,15 +184,15 @@ func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error 
 	if err := d.Set("unique_id", role.RoleId); err != nil {
 		return err
 	}
-<<<<<<< HEAD
 	if err := d.Set("create_date", role.CreateDate.Format(time.RFC3339)); err != nil {
-=======
+		return err
+	}
+
 	assumRolePolicy, err := url.QueryUnescape(*role.AssumeRolePolicyDocument)
 	if err != nil {
 		return err
 	}
 	if err := d.Set("assume_role_policy", assumRolePolicy); err != nil {
->>>>>>> 9c051a5... Tests for importing various iam resources
 		return err
 	}
 	return nil
