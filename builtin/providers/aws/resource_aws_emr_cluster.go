@@ -70,6 +70,16 @@ func resourceAwsEMRCluster() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+			"termination_protected": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+			"autoterminate": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
 			"ec2_attributes": &schema.Schema{
 				Type:     schema.TypeList,
 				MaxItems: 1,
@@ -169,13 +179,22 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	applications := d.Get("applications").(*schema.Set).List()
 
+	autotermination := false
+	if v, ok := d.GetOk("autotermination"); ok {
+		autotermination = v.(bool)
+	}
+
+	terminationProtection := false
+	if v, ok := d.GetOk("termination_protection"); ok {
+		terminationProtection = v.(bool)
+	}
 	instanceConfig := &emr.JobFlowInstancesConfig{
 		MasterInstanceType: aws.String(masterInstanceType),
 		SlaveInstanceType:  aws.String(coreInstanceType),
 		InstanceCount:      aws.Int64(int64(coreInstanceCount)),
-		// Default values that we can open up in the future
-		KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
-		TerminationProtected:        aws.Bool(false),
+
+		KeepJobFlowAliveWhenNoSteps: aws.Bool(autotermination),
+		TerminationProtected:        aws.Bool(terminationProtection),
 	}
 
 	var instanceProfile string
