@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -30,35 +29,6 @@ func TestAWSPolicy_namePrefix(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckAWSPolicyDestroy(s *terraform.State) error {
-	iamconn := testAccProvider.Meta().(*AWSClient).iamconn
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_iam_policy" {
-			continue
-		}
-
-		// Try to get policy
-		_, err := iamconn.GetPolicy(&iam.GetPolicyInput{
-			PolicyArn: aws.String(rs.Primary.Attributes["arn"]),
-		})
-		if err == nil {
-			return fmt.Errorf("still exist.")
-		}
-
-		// Verify the error is what we want
-		ec2err, ok := err.(awserr.Error)
-		if !ok {
-			return err
-		}
-		if ec2err.Code() != "NoSuchEntity" {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func testAccCheckAWSPolicyExists(resource string, res *iam.GetPolicyOutput) resource.TestCheckFunc {
