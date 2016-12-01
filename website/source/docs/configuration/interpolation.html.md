@@ -266,6 +266,10 @@ The supported built-in functions are:
       in brackets to indicate that the output is actually a list, e.g.
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
+      
+  * `timestamp()` - Returns a UTC timestamp string in RFC 3339 format. This string will change with every
+   invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
+   [`ignore_changes`](/docs/configuration/resources.html#ignore-changes) lifecycle attribute.
 
   * `title(string)` - Returns a copy of the string with the first characters of all the words capitalized.
 
