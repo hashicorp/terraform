@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 )
@@ -46,12 +47,22 @@ var BuildHandler = request.NamedHandler{Name: "awssdk.rest.Build", Fn: Build}
 func Build(r *request.Request) {
 	if r.ParamsFilled() {
 		v := reflect.ValueOf(r.Params).Elem()
-		buildLocationElements(r, v)
+		buildLocationElements(r, v, false)
 		buildBody(r, v)
 	}
 }
 
-func buildLocationElements(r *request.Request, v reflect.Value) {
+// BuildAsGET builds the REST component of a service request with the ability to hoist
+// data from the body.
+func BuildAsGET(r *request.Request) {
+	if r.ParamsFilled() {
+		v := reflect.ValueOf(r.Params).Elem()
+		buildLocationElements(r, v, true)
+		buildBody(r, v)
+	}
+}
+
+func buildLocationElements(r *request.Request, v reflect.Value, buildGETQuery bool) {
 	query := r.HTTPRequest.URL.Query()
 
 	for i := 0; i < v.NumField(); i++ {
@@ -83,6 +94,10 @@ func buildLocationElements(r *request.Request, v reflect.Value) {
 				err = buildURI(r.HTTPRequest.URL, m, name)
 			case "querystring":
 				err = buildQueryString(query, m, name)
+			default:
+				if buildGETQuery {
+					err = buildQueryString(query, m, name)
+				}
 			}
 			r.Error = err
 		}
@@ -92,7 +107,7 @@ func buildLocationElements(r *request.Request, v reflect.Value) {
 	}
 
 	r.HTTPRequest.URL.RawQuery = query.Encode()
-	updatePath(r.HTTPRequest.URL, r.HTTPRequest.URL.Path)
+	updatePath(r.HTTPRequest.URL, r.HTTPRequest.URL.Path, aws.BoolValue(r.Config.DisableRestProtocolURICleaning))
 }
 
 func buildBody(r *request.Request, v reflect.Value) {
@@ -193,13 +208,15 @@ func buildQueryString(query url.Values, v reflect.Value, name string) error {
 	return nil
 }
 
-func updatePath(url *url.URL, urlPath string) {
+func updatePath(url *url.URL, urlPath string, disableRestProtocolURICleaning bool) {
 	scheme, query := url.Scheme, url.RawQuery
 
 	hasSlash := strings.HasSuffix(urlPath, "/")
 
 	// clean up path
-	urlPath = path.Clean(urlPath)
+	if !disableRestProtocolURICleaning {
+		urlPath = path.Clean(urlPath)
+	}
 	if hasSlash && !strings.HasSuffix(urlPath, "/") {
 		urlPath += "/"
 	}

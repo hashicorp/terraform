@@ -28,17 +28,29 @@ func RemoveAllocs(alloc []*Allocation, remove []*Allocation) []*Allocation {
 	return alloc
 }
 
-// FilterTerminalAllocs filters out all allocations in a terminal state
-func FilterTerminalAllocs(allocs []*Allocation) []*Allocation {
+// FilterTerminalAllocs filters out all allocations in a terminal state and
+// returns the latest terminal allocations
+func FilterTerminalAllocs(allocs []*Allocation) ([]*Allocation, map[string]*Allocation) {
+	terminalAllocsByName := make(map[string]*Allocation)
 	n := len(allocs)
 	for i := 0; i < n; i++ {
 		if allocs[i].TerminalStatus() {
+
+			// Add the allocation to the terminal allocs map if it's not already
+			// added or has a higher create index than the one which is
+			// currently present.
+			alloc, ok := terminalAllocsByName[allocs[i].Name]
+			if !ok || alloc.CreateIndex < allocs[i].CreateIndex {
+				terminalAllocsByName[allocs[i].Name] = allocs[i]
+			}
+
+			// Remove the allocation
 			allocs[i], allocs[n-1] = allocs[n-1], nil
 			i--
 			n--
 		}
 	}
-	return allocs[:n]
+	return allocs[:n], terminalAllocsByName
 }
 
 // AllocsFit checks if a given set of allocations will fit on a node.
@@ -63,6 +75,12 @@ func AllocsFit(node *Node, allocs []*Allocation, netIdx *NetworkIndex) (bool, st
 				return false, "", nil, err
 			}
 		} else if alloc.TaskResources != nil {
+
+			// Adding the shared resource asks for the allocation to the used
+			// resources
+			if err := used.Add(alloc.SharedResources); err != nil {
+				return false, "", nil, err
+			}
 			// Allocations within the plan have the combined resources stripped
 			// to save space, so sum up the individual task resources.
 			for _, taskResource := range alloc.TaskResources {
@@ -204,6 +222,19 @@ func CopySliceString(s []string) []string {
 	return c
 }
 
+func CopySliceInt(s []int) []int {
+	l := len(s)
+	if l == 0 {
+		return nil
+	}
+
+	c := make([]int, l)
+	for i, v := range s {
+		c[i] = v
+	}
+	return c
+}
+
 func CopySliceConstraints(s []*Constraint) []*Constraint {
 	l := len(s)
 	if l == 0 {
@@ -215,4 +246,61 @@ func CopySliceConstraints(s []*Constraint) []*Constraint {
 		c[i] = v.Copy()
 	}
 	return c
+}
+
+// SliceStringIsSubset returns whether the smaller set of strings is a subset of
+// the larger. If the smaller slice is not a subset, the offending elements are
+// returned.
+func SliceStringIsSubset(larger, smaller []string) (bool, []string) {
+	largerSet := make(map[string]struct{}, len(larger))
+	for _, l := range larger {
+		largerSet[l] = struct{}{}
+	}
+
+	subset := true
+	var offending []string
+	for _, s := range smaller {
+		if _, ok := largerSet[s]; !ok {
+			subset = false
+			offending = append(offending, s)
+		}
+	}
+
+	return subset, offending
+}
+
+// VaultPoliciesSet takes the structure returned by VaultPolicies and returns
+// the set of required policies
+func VaultPoliciesSet(policies map[string]map[string]*Vault) []string {
+	set := make(map[string]struct{})
+
+	for _, tgp := range policies {
+		for _, tp := range tgp {
+			for _, p := range tp.Policies {
+				set[p] = struct{}{}
+			}
+		}
+	}
+
+	flattened := make([]string, 0, len(set))
+	for p := range set {
+		flattened = append(flattened, p)
+	}
+	return flattened
+}
+
+// MapStringStringSliceValueSet returns the set of values in a map[string][]string
+func MapStringStringSliceValueSet(m map[string][]string) []string {
+	set := make(map[string]struct{})
+	for _, slice := range m {
+		for _, v := range slice {
+			set[v] = struct{}{}
+		}
+	}
+
+	flat := make([]string, 0, len(set))
+	for k := range set {
+		flat = append(flat, k)
+	}
+	return flat
 }

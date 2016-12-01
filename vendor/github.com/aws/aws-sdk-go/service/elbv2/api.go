@@ -57,10 +57,10 @@ func (c *ELBV2) AddTagsRequest(input *AddTagsInput) (req *request.Request, outpu
 // AddTags API operation for Elastic Load Balancing.
 //
 // Adds the specified tags to the specified resource. You can tag your Application
-// load balancers and your target groups.
+// Load Balancers and your target groups.
 //
-// Each tag consists of a key and an optional value. If a resource already
-// has a tag with the same key, AddTags updates its value.
+// Each tag consists of a key and an optional value. If a resource already has
+// a tag with the same key, AddTags updates its value.
 //
 // To list the current tags for your resources, use DescribeTags. To remove
 // tags from your resources, use RemoveTags.
@@ -136,14 +136,15 @@ func (c *ELBV2) CreateListenerRequest(input *CreateListenerInput) (req *request.
 
 // CreateListener API operation for Elastic Load Balancing.
 //
-// Creates a listener for the specified Application load balancer.
+// Creates a listener for the specified Application Load Balancer.
+//
+// You can create up to 10 listeners per load balancer.
 //
 // To update a listener, use ModifyListener. When you are finished with a listener,
 // you can delete it using DeleteListener. If you are finished with both the
 // listener and the load balancer, you can delete them both using DeleteLoadBalancer.
 //
-// For more information, see Listeners for Your Application Load Balancers
-// (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html)
+// For more information, see Listeners for Your Application Load Balancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html)
 // in the Application Load Balancers Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -242,11 +243,11 @@ func (c *ELBV2) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *
 
 // CreateLoadBalancer API operation for Elastic Load Balancing.
 //
-// Creates an Application load balancer.
+// Creates an Application Load Balancer.
 //
-// To create listeners for your load balancer, use CreateListener. You can
-// add security groups, subnets, and tags when you create your load balancer,
-// or you can add them later using SetSecurityGroups, SetSubnets, and AddTags.
+// To create listeners for your load balancer, use CreateListener. You can add
+// security groups, subnets, and tags when you create your load balancer, or
+// you can add them later using SetSecurityGroups, SetSubnets, and AddTags.
 //
 // To describe your current load balancers, see DescribeLoadBalancers. When
 // you are finished with a load balancer, you can delete it using DeleteLoadBalancer.
@@ -254,6 +255,9 @@ func (c *ELBV2) CreateLoadBalancerRequest(input *CreateLoadBalancerInput) (req *
 // You can create up to 20 load balancers per region per account. You can request
 // an increase for the number of load balancers for your account. For more information,
 // see Limits for Your Application Load Balancer (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html)
+// in the Application Load Balancers Guide.
+//
+// For more information, see Application Load Balancers (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html)
 // in the Application Load Balancers Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -344,10 +348,12 @@ func (c *ELBV2) CreateRuleRequest(input *CreateRuleInput) (req *request.Request,
 //
 // Creates a rule for the specified listener.
 //
-// A rule consists conditions and actions. Rules are evaluated in priority
-// order, from the lowest value to the highest value. When the conditions for
-// a rule are met, the specified actions are taken. If no rule's conditions
-// are met, the default actions for the listener are taken.
+// Each rule can have one action and one condition. Rules are evaluated in priority
+// order, from the lowest value to the highest value. When the condition for
+// a rule is met, the specified action is taken. If no conditions are met, the
+// default action for the default rule is taken. For more information, see Listener
+// Rules (http://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-listeners.html#listener-rules)
+// in the Application Load Balancers Guide.
 //
 // To view your current rules, use DescribeRules. To update a rule, use ModifyRule.
 // To set the priorities of your rules, use SetRulePriorities. To delete a rule,
@@ -584,7 +590,7 @@ func (c *ELBV2) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *
 
 // DeleteLoadBalancer API operation for Elastic Load Balancing.
 //
-// Deletes the specified load balancer and its attached listeners.
+// Deletes the specified Application Load Balancer and its attached listeners.
 //
 // You can't delete a load balancer if deletion protection is enabled. If the
 // load balancer does not exist or has already been deleted, the call succeeds.
@@ -869,8 +875,8 @@ func (c *ELBV2) DescribeListenersRequest(input *DescribeListenersInput) (req *re
 
 // DescribeListeners API operation for Elastic Load Balancing.
 //
-// Describes the specified listeners or the listeners for the specified load
-// balancer. You must specify either a load balancer or one or more listeners.
+// Describes the specified listeners or the listeners for the specified Application
+// Load Balancer. You must specify either a load balancer or one or more listeners.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -962,7 +968,7 @@ func (c *ELBV2) DescribeLoadBalancerAttributesRequest(input *DescribeLoadBalance
 
 // DescribeLoadBalancerAttributes API operation for Elastic Load Balancing.
 //
-// Describes the attributes for the specified load balancer.
+// Describes the attributes for the specified Application Load Balancer.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1032,8 +1038,8 @@ func (c *ELBV2) DescribeLoadBalancersRequest(input *DescribeLoadBalancersInput) 
 
 // DescribeLoadBalancers API operation for Elastic Load Balancing.
 //
-// Describes the specified Application load balancers or all of your Application
-// load balancers.
+// Describes the specified Application Load Balancers or all of your Application
+// Load Balancers.
 //
 // To describe the listeners for a load balancer, use DescribeListeners. To
 // describe the attributes for a load balancer, use DescribeLoadBalancerAttributes.
@@ -1675,7 +1681,7 @@ func (c *ELBV2) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAtt
 
 // ModifyLoadBalancerAttributes API operation for Elastic Load Balancing.
 //
-// Modifies the specified attributes of the specified load balancer.
+// Modifies the specified attributes of the specified Application Load Balancer.
 //
 // If any of the specified attributes can't be modified as requested, the call
 // fails. Any existing attributes that you do not modify retain their current
@@ -1957,8 +1963,13 @@ func (c *ELBV2) RegisterTargetsRequest(input *RegisterTargetsInput) (req *reques
 //
 // Registers the specified targets with the specified target group.
 //
+// By default, the load balancer routes requests to registered targets using
+// the protocol and port number for the target group. Alternatively, you can
+// override the port for a target when you register it.
+//
 // The target must be in the virtual private cloud (VPC) that you specified
-// for the target group.
+// for the target group. If the target is an EC2 instance, it can't be in the
+// stopped or running state when you register it.
 //
 // To remove a target from a target group, use DeregisterTargets.
 //
@@ -2115,8 +2126,8 @@ func (c *ELBV2) SetRulePrioritiesRequest(input *SetRulePrioritiesInput) (req *re
 //
 // Sets the priorities of the specified rules.
 //
-// You can reorder the rules as long as there are no priority conflicts in
-// the new order. Any existing rules that you do not specify retain their current
+// You can reorder the rules as long as there are no priority conflicts in the
+// new order. Any existing rules that you do not specify retain their current
 // priority.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2329,6 +2340,18 @@ func (s *Action) Validate() error {
 	return nil
 }
 
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *Action) SetTargetGroupArn(v string) *Action {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *Action) SetType(v string) *Action {
+	s.Type = &v
+	return s
+}
+
 // Contains the parameters for AddTags.
 type AddTagsInput struct {
 	_ struct{} `type:"structure"`
@@ -2383,6 +2406,18 @@ func (s *AddTagsInput) Validate() error {
 	return nil
 }
 
+// SetResourceArns sets the ResourceArns field's value.
+func (s *AddTagsInput) SetResourceArns(v []*string) *AddTagsInput {
+	s.ResourceArns = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *AddTagsInput) SetTags(v []*Tag) *AddTagsInput {
+	s.Tags = v
+	return s
+}
+
 // Contains the output of AddTags.
 type AddTagsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2419,6 +2454,18 @@ func (s AvailabilityZone) GoString() string {
 	return s.String()
 }
 
+// SetSubnetId sets the SubnetId field's value.
+func (s *AvailabilityZone) SetSubnetId(v string) *AvailabilityZone {
+	s.SubnetId = &v
+	return s
+}
+
+// SetZoneName sets the ZoneName field's value.
+func (s *AvailabilityZone) SetZoneName(v string) *AvailabilityZone {
+	s.ZoneName = &v
+	return s
+}
+
 // Information about an SSL server certificate deployed on a load balancer.
 type Certificate struct {
 	_ struct{} `type:"structure"`
@@ -2435,6 +2482,12 @@ func (s Certificate) String() string {
 // GoString returns the string representation
 func (s Certificate) GoString() string {
 	return s.String()
+}
+
+// SetCertificateArn sets the CertificateArn field's value.
+func (s *Certificate) SetCertificateArn(v string) *Certificate {
+	s.CertificateArn = &v
+	return s
 }
 
 // Information about a cipher used in a policy.
@@ -2458,6 +2511,18 @@ func (s Cipher) GoString() string {
 	return s.String()
 }
 
+// SetName sets the Name field's value.
+func (s *Cipher) SetName(v string) *Cipher {
+	s.Name = &v
+	return s
+}
+
+// SetPriority sets the Priority field's value.
+func (s *Cipher) SetPriority(v int64) *Cipher {
+	s.Priority = &v
+	return s
+}
+
 // Contains the parameters for CreateListener.
 type CreateListenerInput struct {
 	_ struct{} `type:"structure"`
@@ -2466,7 +2531,7 @@ type CreateListenerInput struct {
 	// protocol is HTTPS.
 	Certificates []*Certificate `type:"list"`
 
-	// The default actions for the listener.
+	// The default action for the listener.
 	//
 	// DefaultActions is a required field
 	DefaultActions []*Action `type:"list" required:"true"`
@@ -2536,6 +2601,42 @@ func (s *CreateListenerInput) Validate() error {
 	return nil
 }
 
+// SetCertificates sets the Certificates field's value.
+func (s *CreateListenerInput) SetCertificates(v []*Certificate) *CreateListenerInput {
+	s.Certificates = v
+	return s
+}
+
+// SetDefaultActions sets the DefaultActions field's value.
+func (s *CreateListenerInput) SetDefaultActions(v []*Action) *CreateListenerInput {
+	s.DefaultActions = v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *CreateListenerInput) SetLoadBalancerArn(v string) *CreateListenerInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *CreateListenerInput) SetPort(v int64) *CreateListenerInput {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *CreateListenerInput) SetProtocol(v string) *CreateListenerInput {
+	s.Protocol = &v
+	return s
+}
+
+// SetSslPolicy sets the SslPolicy field's value.
+func (s *CreateListenerInput) SetSslPolicy(v string) *CreateListenerInput {
+	s.SslPolicy = &v
+	return s
+}
+
 // Contains the output of CreateListener.
 type CreateListenerOutput struct {
 	_ struct{} `type:"structure"`
@@ -2554,15 +2655,21 @@ func (s CreateListenerOutput) GoString() string {
 	return s.String()
 }
 
+// SetListeners sets the Listeners field's value.
+func (s *CreateListenerOutput) SetListeners(v []*Listener) *CreateListenerOutput {
+	s.Listeners = v
+	return s
+}
+
 // Contains the parameters for CreateLoadBalancer.
 type CreateLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the load balancer.
 	//
-	// This name must be unique within your AWS account, can have a maximum of
-	// 32 characters, must contain only alphanumeric characters or hyphens, and
-	// must not begin or end with a hyphen.
+	// This name must be unique within your AWS account, can have a maximum of 32
+	// characters, must contain only alphanumeric characters or hyphens, and must
+	// not begin or end with a hyphen.
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -2633,6 +2740,36 @@ func (s *CreateLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// SetName sets the Name field's value.
+func (s *CreateLoadBalancerInput) SetName(v string) *CreateLoadBalancerInput {
+	s.Name = &v
+	return s
+}
+
+// SetScheme sets the Scheme field's value.
+func (s *CreateLoadBalancerInput) SetScheme(v string) *CreateLoadBalancerInput {
+	s.Scheme = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *CreateLoadBalancerInput) SetSecurityGroups(v []*string) *CreateLoadBalancerInput {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *CreateLoadBalancerInput) SetSubnets(v []*string) *CreateLoadBalancerInput {
+	s.Subnets = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateLoadBalancerInput) SetTags(v []*Tag) *CreateLoadBalancerInput {
+	s.Tags = v
+	return s
+}
+
 // Contains the output of CreateLoadBalancer.
 type CreateLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
@@ -2651,16 +2788,34 @@ func (s CreateLoadBalancerOutput) GoString() string {
 	return s.String()
 }
 
+// SetLoadBalancers sets the LoadBalancers field's value.
+func (s *CreateLoadBalancerOutput) SetLoadBalancers(v []*LoadBalancer) *CreateLoadBalancerOutput {
+	s.LoadBalancers = v
+	return s
+}
+
 // Contains the parameters for CreateRule.
 type CreateRuleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The actions for the rule.
+	// An action. Each action has the type forward and specifies a target group.
 	//
 	// Actions is a required field
 	Actions []*Action `type:"list" required:"true"`
 
-	// The conditions.
+	// A condition. Each condition has the field path-pattern and specifies one
+	// path pattern. A path pattern is case sensitive, can be up to 255 characters
+	// in length, and can contain any of the following characters:
+	//
+	//    * A-Z, a-z, 0-9
+	//
+	//    * _ - . $ / ~ " ' @ : +
+	//
+	//    * & (using &)
+	//
+	//    * * (matches 0 or more characters)
+	//
+	//    * ? (matches exactly 1 character)
 	//
 	// Conditions is a required field
 	Conditions []*RuleCondition `type:"list" required:"true"`
@@ -2722,6 +2877,30 @@ func (s *CreateRuleInput) Validate() error {
 	return nil
 }
 
+// SetActions sets the Actions field's value.
+func (s *CreateRuleInput) SetActions(v []*Action) *CreateRuleInput {
+	s.Actions = v
+	return s
+}
+
+// SetConditions sets the Conditions field's value.
+func (s *CreateRuleInput) SetConditions(v []*RuleCondition) *CreateRuleInput {
+	s.Conditions = v
+	return s
+}
+
+// SetListenerArn sets the ListenerArn field's value.
+func (s *CreateRuleInput) SetListenerArn(v string) *CreateRuleInput {
+	s.ListenerArn = &v
+	return s
+}
+
+// SetPriority sets the Priority field's value.
+func (s *CreateRuleInput) SetPriority(v int64) *CreateRuleInput {
+	s.Priority = &v
+	return s
+}
+
 // Contains the output of CreateRule.
 type CreateRuleOutput struct {
 	_ struct{} `type:"structure"`
@@ -2738,6 +2917,12 @@ func (s CreateRuleOutput) String() string {
 // GoString returns the string representation
 func (s CreateRuleOutput) GoString() string {
 	return s.String()
+}
+
+// SetRules sets the Rules field's value.
+func (s *CreateRuleOutput) SetRules(v []*Rule) *CreateRuleOutput {
+	s.Rules = v
+	return s
 }
 
 // Contains the parameters for CreateTargetGroup.
@@ -2854,6 +3039,78 @@ func (s *CreateTargetGroupInput) Validate() error {
 	return nil
 }
 
+// SetHealthCheckIntervalSeconds sets the HealthCheckIntervalSeconds field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckIntervalSeconds(v int64) *CreateTargetGroupInput {
+	s.HealthCheckIntervalSeconds = &v
+	return s
+}
+
+// SetHealthCheckPath sets the HealthCheckPath field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckPath(v string) *CreateTargetGroupInput {
+	s.HealthCheckPath = &v
+	return s
+}
+
+// SetHealthCheckPort sets the HealthCheckPort field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckPort(v string) *CreateTargetGroupInput {
+	s.HealthCheckPort = &v
+	return s
+}
+
+// SetHealthCheckProtocol sets the HealthCheckProtocol field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckProtocol(v string) *CreateTargetGroupInput {
+	s.HealthCheckProtocol = &v
+	return s
+}
+
+// SetHealthCheckTimeoutSeconds sets the HealthCheckTimeoutSeconds field's value.
+func (s *CreateTargetGroupInput) SetHealthCheckTimeoutSeconds(v int64) *CreateTargetGroupInput {
+	s.HealthCheckTimeoutSeconds = &v
+	return s
+}
+
+// SetHealthyThresholdCount sets the HealthyThresholdCount field's value.
+func (s *CreateTargetGroupInput) SetHealthyThresholdCount(v int64) *CreateTargetGroupInput {
+	s.HealthyThresholdCount = &v
+	return s
+}
+
+// SetMatcher sets the Matcher field's value.
+func (s *CreateTargetGroupInput) SetMatcher(v *Matcher) *CreateTargetGroupInput {
+	s.Matcher = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateTargetGroupInput) SetName(v string) *CreateTargetGroupInput {
+	s.Name = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *CreateTargetGroupInput) SetPort(v int64) *CreateTargetGroupInput {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *CreateTargetGroupInput) SetProtocol(v string) *CreateTargetGroupInput {
+	s.Protocol = &v
+	return s
+}
+
+// SetUnhealthyThresholdCount sets the UnhealthyThresholdCount field's value.
+func (s *CreateTargetGroupInput) SetUnhealthyThresholdCount(v int64) *CreateTargetGroupInput {
+	s.UnhealthyThresholdCount = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *CreateTargetGroupInput) SetVpcId(v string) *CreateTargetGroupInput {
+	s.VpcId = &v
+	return s
+}
+
 // Contains the output of CreateTargetGroup.
 type CreateTargetGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -2870,6 +3127,12 @@ func (s CreateTargetGroupOutput) String() string {
 // GoString returns the string representation
 func (s CreateTargetGroupOutput) GoString() string {
 	return s.String()
+}
+
+// SetTargetGroups sets the TargetGroups field's value.
+func (s *CreateTargetGroupOutput) SetTargetGroups(v []*TargetGroup) *CreateTargetGroupOutput {
+	s.TargetGroups = v
+	return s
 }
 
 // Contains the parameters for DeleteListener.
@@ -2903,6 +3166,12 @@ func (s *DeleteListenerInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetListenerArn sets the ListenerArn field's value.
+func (s *DeleteListenerInput) SetListenerArn(v string) *DeleteListenerInput {
+	s.ListenerArn = &v
+	return s
 }
 
 // Contains the output of DeleteListener.
@@ -2953,6 +3222,12 @@ func (s *DeleteLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *DeleteLoadBalancerInput) SetLoadBalancerArn(v string) *DeleteLoadBalancerInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
 // Contains the output of DeleteLoadBalancer.
 type DeleteLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
@@ -2999,6 +3274,12 @@ func (s *DeleteRuleInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetRuleArn sets the RuleArn field's value.
+func (s *DeleteRuleInput) SetRuleArn(v string) *DeleteRuleInput {
+	s.RuleArn = &v
+	return s
 }
 
 // Contains the output of DeleteRule.
@@ -3049,6 +3330,12 @@ func (s *DeleteTargetGroupInput) Validate() error {
 	return nil
 }
 
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *DeleteTargetGroupInput) SetTargetGroupArn(v string) *DeleteTargetGroupInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
 // Contains the output of DeleteTargetGroup.
 type DeleteTargetGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -3073,7 +3360,8 @@ type DeregisterTargetsInput struct {
 	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 
-	// The targets.
+	// The targets. If you specified a port override when you registered a target,
+	// you must specify both the target ID and the port when you deregister it.
 	//
 	// Targets is a required field
 	Targets []*TargetDescription `type:"list" required:"true"`
@@ -3113,6 +3401,18 @@ func (s *DeregisterTargetsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *DeregisterTargetsInput) SetTargetGroupArn(v string) *DeregisterTargetsInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetTargets sets the Targets field's value.
+func (s *DeregisterTargetsInput) SetTargets(v []*TargetDescription) *DeregisterTargetsInput {
+	s.Targets = v
+	return s
 }
 
 // Contains the output of DeregisterTargets.
@@ -3171,6 +3471,30 @@ func (s *DescribeListenersInput) Validate() error {
 	return nil
 }
 
+// SetListenerArns sets the ListenerArns field's value.
+func (s *DescribeListenersInput) SetListenerArns(v []*string) *DescribeListenersInput {
+	s.ListenerArns = v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *DescribeListenersInput) SetLoadBalancerArn(v string) *DescribeListenersInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeListenersInput) SetMarker(v string) *DescribeListenersInput {
+	s.Marker = &v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *DescribeListenersInput) SetPageSize(v int64) *DescribeListenersInput {
+	s.PageSize = &v
+	return s
+}
+
 // Contains the output of DescribeListeners.
 type DescribeListenersOutput struct {
 	_ struct{} `type:"structure"`
@@ -3191,6 +3515,18 @@ func (s DescribeListenersOutput) String() string {
 // GoString returns the string representation
 func (s DescribeListenersOutput) GoString() string {
 	return s.String()
+}
+
+// SetListeners sets the Listeners field's value.
+func (s *DescribeListenersOutput) SetListeners(v []*Listener) *DescribeListenersOutput {
+	s.Listeners = v
+	return s
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeListenersOutput) SetNextMarker(v string) *DescribeListenersOutput {
+	s.NextMarker = &v
+	return s
 }
 
 // Contains the parameters for DescribeLoadBalancerAttributes.
@@ -3226,6 +3562,12 @@ func (s *DescribeLoadBalancerAttributesInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *DescribeLoadBalancerAttributesInput) SetLoadBalancerArn(v string) *DescribeLoadBalancerAttributesInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
 // Contains the output of DescribeLoadBalancerAttributes.
 type DescribeLoadBalancerAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3242,6 +3584,12 @@ func (s DescribeLoadBalancerAttributesOutput) String() string {
 // GoString returns the string representation
 func (s DescribeLoadBalancerAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *DescribeLoadBalancerAttributesOutput) SetAttributes(v []*LoadBalancerAttribute) *DescribeLoadBalancerAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // Contains the parameters for DescribeLoadBalancers.
@@ -3285,6 +3633,30 @@ func (s *DescribeLoadBalancersInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerArns sets the LoadBalancerArns field's value.
+func (s *DescribeLoadBalancersInput) SetLoadBalancerArns(v []*string) *DescribeLoadBalancersInput {
+	s.LoadBalancerArns = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeLoadBalancersInput) SetMarker(v string) *DescribeLoadBalancersInput {
+	s.Marker = &v
+	return s
+}
+
+// SetNames sets the Names field's value.
+func (s *DescribeLoadBalancersInput) SetNames(v []*string) *DescribeLoadBalancersInput {
+	s.Names = v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *DescribeLoadBalancersInput) SetPageSize(v int64) *DescribeLoadBalancersInput {
+	s.PageSize = &v
+	return s
+}
+
 // Contains the output of DescribeLoadBalancers.
 type DescribeLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
@@ -3305,6 +3677,18 @@ func (s DescribeLoadBalancersOutput) String() string {
 // GoString returns the string representation
 func (s DescribeLoadBalancersOutput) GoString() string {
 	return s.String()
+}
+
+// SetLoadBalancers sets the LoadBalancers field's value.
+func (s *DescribeLoadBalancersOutput) SetLoadBalancers(v []*LoadBalancer) *DescribeLoadBalancersOutput {
+	s.LoadBalancers = v
+	return s
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeLoadBalancersOutput) SetNextMarker(v string) *DescribeLoadBalancersOutput {
+	s.NextMarker = &v
+	return s
 }
 
 // Contains the parameters for DescribeRules.
@@ -3328,6 +3712,18 @@ func (s DescribeRulesInput) GoString() string {
 	return s.String()
 }
 
+// SetListenerArn sets the ListenerArn field's value.
+func (s *DescribeRulesInput) SetListenerArn(v string) *DescribeRulesInput {
+	s.ListenerArn = &v
+	return s
+}
+
+// SetRuleArns sets the RuleArns field's value.
+func (s *DescribeRulesInput) SetRuleArns(v []*string) *DescribeRulesInput {
+	s.RuleArns = v
+	return s
+}
+
 // Contains the output of DescribeRules.
 type DescribeRulesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3344,6 +3740,12 @@ func (s DescribeRulesOutput) String() string {
 // GoString returns the string representation
 func (s DescribeRulesOutput) GoString() string {
 	return s.String()
+}
+
+// SetRules sets the Rules field's value.
+func (s *DescribeRulesOutput) SetRules(v []*Rule) *DescribeRulesOutput {
+	s.Rules = v
+	return s
 }
 
 // Contains the parameters for DescribeSSLPolicies.
@@ -3384,6 +3786,24 @@ func (s *DescribeSSLPoliciesInput) Validate() error {
 	return nil
 }
 
+// SetMarker sets the Marker field's value.
+func (s *DescribeSSLPoliciesInput) SetMarker(v string) *DescribeSSLPoliciesInput {
+	s.Marker = &v
+	return s
+}
+
+// SetNames sets the Names field's value.
+func (s *DescribeSSLPoliciesInput) SetNames(v []*string) *DescribeSSLPoliciesInput {
+	s.Names = v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *DescribeSSLPoliciesInput) SetPageSize(v int64) *DescribeSSLPoliciesInput {
+	s.PageSize = &v
+	return s
+}
+
 // Contains the output of DescribeSSLPolicies.
 type DescribeSSLPoliciesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3404,6 +3824,18 @@ func (s DescribeSSLPoliciesOutput) String() string {
 // GoString returns the string representation
 func (s DescribeSSLPoliciesOutput) GoString() string {
 	return s.String()
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeSSLPoliciesOutput) SetNextMarker(v string) *DescribeSSLPoliciesOutput {
+	s.NextMarker = &v
+	return s
+}
+
+// SetSslPolicies sets the SslPolicies field's value.
+func (s *DescribeSSLPoliciesOutput) SetSslPolicies(v []*SslPolicy) *DescribeSSLPoliciesOutput {
+	s.SslPolicies = v
+	return s
 }
 
 // Contains the parameters for DescribeTags.
@@ -3439,6 +3871,12 @@ func (s *DescribeTagsInput) Validate() error {
 	return nil
 }
 
+// SetResourceArns sets the ResourceArns field's value.
+func (s *DescribeTagsInput) SetResourceArns(v []*string) *DescribeTagsInput {
+	s.ResourceArns = v
+	return s
+}
+
 // Contains the output of DescribeTags.
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
@@ -3455,6 +3893,12 @@ func (s DescribeTagsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeTagsOutput) GoString() string {
 	return s.String()
+}
+
+// SetTagDescriptions sets the TagDescriptions field's value.
+func (s *DescribeTagsOutput) SetTagDescriptions(v []*TagDescription) *DescribeTagsOutput {
+	s.TagDescriptions = v
+	return s
 }
 
 // Contains the parameters for DescribeTargetGroupAttributes.
@@ -3490,6 +3934,12 @@ func (s *DescribeTargetGroupAttributesInput) Validate() error {
 	return nil
 }
 
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *DescribeTargetGroupAttributesInput) SetTargetGroupArn(v string) *DescribeTargetGroupAttributesInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
 // Contains the output of DescribeTargetGroupAttributes.
 type DescribeTargetGroupAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3506,6 +3956,12 @@ func (s DescribeTargetGroupAttributesOutput) String() string {
 // GoString returns the string representation
 func (s DescribeTargetGroupAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *DescribeTargetGroupAttributesOutput) SetAttributes(v []*TargetGroupAttribute) *DescribeTargetGroupAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // Contains the parameters for DescribeTargetGroups.
@@ -3552,6 +4008,36 @@ func (s *DescribeTargetGroupsInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *DescribeTargetGroupsInput) SetLoadBalancerArn(v string) *DescribeTargetGroupsInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeTargetGroupsInput) SetMarker(v string) *DescribeTargetGroupsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetNames sets the Names field's value.
+func (s *DescribeTargetGroupsInput) SetNames(v []*string) *DescribeTargetGroupsInput {
+	s.Names = v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *DescribeTargetGroupsInput) SetPageSize(v int64) *DescribeTargetGroupsInput {
+	s.PageSize = &v
+	return s
+}
+
+// SetTargetGroupArns sets the TargetGroupArns field's value.
+func (s *DescribeTargetGroupsInput) SetTargetGroupArns(v []*string) *DescribeTargetGroupsInput {
+	s.TargetGroupArns = v
+	return s
+}
+
 // Contains the output of DescribeTargetGroups.
 type DescribeTargetGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -3572,6 +4058,18 @@ func (s DescribeTargetGroupsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeTargetGroupsOutput) GoString() string {
 	return s.String()
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeTargetGroupsOutput) SetNextMarker(v string) *DescribeTargetGroupsOutput {
+	s.NextMarker = &v
+	return s
+}
+
+// SetTargetGroups sets the TargetGroups field's value.
+func (s *DescribeTargetGroupsOutput) SetTargetGroups(v []*TargetGroup) *DescribeTargetGroupsOutput {
+	s.TargetGroups = v
+	return s
 }
 
 // Contains the parameters for DescribeTargetHealth.
@@ -3620,6 +4118,18 @@ func (s *DescribeTargetHealthInput) Validate() error {
 	return nil
 }
 
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *DescribeTargetHealthInput) SetTargetGroupArn(v string) *DescribeTargetHealthInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetTargets sets the Targets field's value.
+func (s *DescribeTargetHealthInput) SetTargets(v []*TargetDescription) *DescribeTargetHealthInput {
+	s.Targets = v
+	return s
+}
+
 // Contains the output of DescribeTargetHealth.
 type DescribeTargetHealthOutput struct {
 	_ struct{} `type:"structure"`
@@ -3636,6 +4146,12 @@ func (s DescribeTargetHealthOutput) String() string {
 // GoString returns the string representation
 func (s DescribeTargetHealthOutput) GoString() string {
 	return s.String()
+}
+
+// SetTargetHealthDescriptions sets the TargetHealthDescriptions field's value.
+func (s *DescribeTargetHealthOutput) SetTargetHealthDescriptions(v []*TargetHealthDescription) *DescribeTargetHealthOutput {
+	s.TargetHealthDescriptions = v
+	return s
 }
 
 // Information about a listener.
@@ -3674,6 +4190,48 @@ func (s Listener) String() string {
 // GoString returns the string representation
 func (s Listener) GoString() string {
 	return s.String()
+}
+
+// SetCertificates sets the Certificates field's value.
+func (s *Listener) SetCertificates(v []*Certificate) *Listener {
+	s.Certificates = v
+	return s
+}
+
+// SetDefaultActions sets the DefaultActions field's value.
+func (s *Listener) SetDefaultActions(v []*Action) *Listener {
+	s.DefaultActions = v
+	return s
+}
+
+// SetListenerArn sets the ListenerArn field's value.
+func (s *Listener) SetListenerArn(v string) *Listener {
+	s.ListenerArn = &v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *Listener) SetLoadBalancerArn(v string) *Listener {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *Listener) SetPort(v int64) *Listener {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *Listener) SetProtocol(v string) *Listener {
+	s.Protocol = &v
+	return s
+}
+
+// SetSslPolicy sets the SslPolicy field's value.
+func (s *Listener) SetSslPolicy(v string) *Listener {
+	s.SslPolicy = &v
+	return s
 }
 
 // Information about a load balancer.
@@ -3732,29 +4290,95 @@ func (s LoadBalancer) GoString() string {
 	return s.String()
 }
 
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *LoadBalancer) SetAvailabilityZones(v []*AvailabilityZone) *LoadBalancer {
+	s.AvailabilityZones = v
+	return s
+}
+
+// SetCanonicalHostedZoneId sets the CanonicalHostedZoneId field's value.
+func (s *LoadBalancer) SetCanonicalHostedZoneId(v string) *LoadBalancer {
+	s.CanonicalHostedZoneId = &v
+	return s
+}
+
+// SetCreatedTime sets the CreatedTime field's value.
+func (s *LoadBalancer) SetCreatedTime(v time.Time) *LoadBalancer {
+	s.CreatedTime = &v
+	return s
+}
+
+// SetDNSName sets the DNSName field's value.
+func (s *LoadBalancer) SetDNSName(v string) *LoadBalancer {
+	s.DNSName = &v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *LoadBalancer) SetLoadBalancerArn(v string) *LoadBalancer {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *LoadBalancer) SetLoadBalancerName(v string) *LoadBalancer {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetScheme sets the Scheme field's value.
+func (s *LoadBalancer) SetScheme(v string) *LoadBalancer {
+	s.Scheme = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *LoadBalancer) SetSecurityGroups(v []*string) *LoadBalancer {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *LoadBalancer) SetState(v *LoadBalancerState) *LoadBalancer {
+	s.State = v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *LoadBalancer) SetType(v string) *LoadBalancer {
+	s.Type = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *LoadBalancer) SetVpcId(v string) *LoadBalancer {
+	s.VpcId = &v
+	return s
+}
+
 // Information about a load balancer attribute.
 type LoadBalancerAttribute struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the attribute.
 	//
-	//    access_logs.s3.enabled - Indicates whether access logs stored in Amazon
-	// S3 are enabled.
+	//    * access_logs.s3.enabled - Indicates whether access logs stored in Amazon
+	//    S3 are enabled. The value is true or false.
 	//
-	//    access_logs.s3.bucket - The name of the S3 bucket for the access logs.
-	// This attribute is required if access logs in Amazon S3 are enabled. The bucket
-	// must exist in the same region as the load balancer and have a bucket policy
-	// that grants Elastic Load Balancing permission to write to the bucket.
+	//    * access_logs.s3.bucket - The name of the S3 bucket for the access logs.
+	//    This attribute is required if access logs in Amazon S3 are enabled. The
+	//    bucket must exist in the same region as the load balancer and have a bucket
+	//    policy that grants Elastic Load Balancing permission to write to the bucket.
 	//
-	//    access_logs.s3.prefix - The prefix for the location in the S3 bucket.
-	// If you don't specify a prefix, the access logs are stored in the root of
-	// the bucket.
+	//    * access_logs.s3.prefix - The prefix for the location in the S3 bucket.
+	//    If you don't specify a prefix, the access logs are stored in the root
+	//    of the bucket.
 	//
-	//    deletion_protection.enabled - Indicates whether deletion protection is
-	// enabled.
+	//    * deletion_protection.enabled - Indicates whether deletion protection
+	//    is enabled. The value is true or false.
 	//
-	//    idle_timeout.timeout_seconds - The idle timeout value, in seconds. The
-	// valid range is 1-3600. The default is 60 seconds.
+	//    * idle_timeout.timeout_seconds - The idle timeout value, in seconds. The
+	//    valid range is 1-3600. The default is 60 seconds.
 	Key *string `type:"string"`
 
 	// The value of the attribute.
@@ -3769,6 +4393,18 @@ func (s LoadBalancerAttribute) String() string {
 // GoString returns the string representation
 func (s LoadBalancerAttribute) GoString() string {
 	return s.String()
+}
+
+// SetKey sets the Key field's value.
+func (s *LoadBalancerAttribute) SetKey(v string) *LoadBalancerAttribute {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *LoadBalancerAttribute) SetValue(v string) *LoadBalancerAttribute {
+	s.Value = &v
+	return s
 }
 
 // Information about the state of the load balancer.
@@ -3792,6 +4428,18 @@ func (s LoadBalancerState) String() string {
 // GoString returns the string representation
 func (s LoadBalancerState) GoString() string {
 	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *LoadBalancerState) SetCode(v string) *LoadBalancerState {
+	s.Code = &v
+	return s
+}
+
+// SetReason sets the Reason field's value.
+func (s *LoadBalancerState) SetReason(v string) *LoadBalancerState {
+	s.Reason = &v
+	return s
 }
 
 // Information to use when checking for a successful response from a target.
@@ -3826,6 +4474,12 @@ func (s *Matcher) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetHttpCode sets the HttpCode field's value.
+func (s *Matcher) SetHttpCode(v string) *Matcher {
+	s.HttpCode = &v
+	return s
 }
 
 // Contains the parameters for ModifyListener.
@@ -3889,6 +4543,42 @@ func (s *ModifyListenerInput) Validate() error {
 	return nil
 }
 
+// SetCertificates sets the Certificates field's value.
+func (s *ModifyListenerInput) SetCertificates(v []*Certificate) *ModifyListenerInput {
+	s.Certificates = v
+	return s
+}
+
+// SetDefaultActions sets the DefaultActions field's value.
+func (s *ModifyListenerInput) SetDefaultActions(v []*Action) *ModifyListenerInput {
+	s.DefaultActions = v
+	return s
+}
+
+// SetListenerArn sets the ListenerArn field's value.
+func (s *ModifyListenerInput) SetListenerArn(v string) *ModifyListenerInput {
+	s.ListenerArn = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *ModifyListenerInput) SetPort(v int64) *ModifyListenerInput {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *ModifyListenerInput) SetProtocol(v string) *ModifyListenerInput {
+	s.Protocol = &v
+	return s
+}
+
+// SetSslPolicy sets the SslPolicy field's value.
+func (s *ModifyListenerInput) SetSslPolicy(v string) *ModifyListenerInput {
+	s.SslPolicy = &v
+	return s
+}
+
 // Contains the output of ModifyListener.
 type ModifyListenerOutput struct {
 	_ struct{} `type:"structure"`
@@ -3905,6 +4595,12 @@ func (s ModifyListenerOutput) String() string {
 // GoString returns the string representation
 func (s ModifyListenerOutput) GoString() string {
 	return s.String()
+}
+
+// SetListeners sets the Listeners field's value.
+func (s *ModifyListenerOutput) SetListeners(v []*Listener) *ModifyListenerOutput {
+	s.Listeners = v
+	return s
 }
 
 // Contains the parameters for ModifyLoadBalancerAttributes.
@@ -3948,6 +4644,18 @@ func (s *ModifyLoadBalancerAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *ModifyLoadBalancerAttributesInput) SetAttributes(v []*LoadBalancerAttribute) *ModifyLoadBalancerAttributesInput {
+	s.Attributes = v
+	return s
+}
+
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *ModifyLoadBalancerAttributesInput) SetLoadBalancerArn(v string) *ModifyLoadBalancerAttributesInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
 // Contains the output of ModifyLoadBalancerAttributes.
 type ModifyLoadBalancerAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3964,6 +4672,12 @@ func (s ModifyLoadBalancerAttributesOutput) String() string {
 // GoString returns the string representation
 func (s ModifyLoadBalancerAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *ModifyLoadBalancerAttributesOutput) SetAttributes(v []*LoadBalancerAttribute) *ModifyLoadBalancerAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // Contains the parameters for ModifyRules.
@@ -4015,6 +4729,24 @@ func (s *ModifyRuleInput) Validate() error {
 	return nil
 }
 
+// SetActions sets the Actions field's value.
+func (s *ModifyRuleInput) SetActions(v []*Action) *ModifyRuleInput {
+	s.Actions = v
+	return s
+}
+
+// SetConditions sets the Conditions field's value.
+func (s *ModifyRuleInput) SetConditions(v []*RuleCondition) *ModifyRuleInput {
+	s.Conditions = v
+	return s
+}
+
+// SetRuleArn sets the RuleArn field's value.
+func (s *ModifyRuleInput) SetRuleArn(v string) *ModifyRuleInput {
+	s.RuleArn = &v
+	return s
+}
+
 // Contains the output of ModifyRules.
 type ModifyRuleOutput struct {
 	_ struct{} `type:"structure"`
@@ -4031,6 +4763,12 @@ func (s ModifyRuleOutput) String() string {
 // GoString returns the string representation
 func (s ModifyRuleOutput) GoString() string {
 	return s.String()
+}
+
+// SetRules sets the Rules field's value.
+func (s *ModifyRuleOutput) SetRules(v []*Rule) *ModifyRuleOutput {
+	s.Rules = v
+	return s
 }
 
 // Contains the parameters for ModifyTargetGroupAttributes.
@@ -4074,6 +4812,18 @@ func (s *ModifyTargetGroupAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *ModifyTargetGroupAttributesInput) SetAttributes(v []*TargetGroupAttribute) *ModifyTargetGroupAttributesInput {
+	s.Attributes = v
+	return s
+}
+
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *ModifyTargetGroupAttributesInput) SetTargetGroupArn(v string) *ModifyTargetGroupAttributesInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
 // Contains the output of ModifyTargetGroupAttributes.
 type ModifyTargetGroupAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -4090,6 +4840,12 @@ func (s ModifyTargetGroupAttributesOutput) String() string {
 // GoString returns the string representation
 func (s ModifyTargetGroupAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *ModifyTargetGroupAttributesOutput) SetAttributes(v []*TargetGroupAttribute) *ModifyTargetGroupAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // Contains the parameters for ModifyTargetGroup.
@@ -4173,6 +4929,60 @@ func (s *ModifyTargetGroupInput) Validate() error {
 	return nil
 }
 
+// SetHealthCheckIntervalSeconds sets the HealthCheckIntervalSeconds field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckIntervalSeconds(v int64) *ModifyTargetGroupInput {
+	s.HealthCheckIntervalSeconds = &v
+	return s
+}
+
+// SetHealthCheckPath sets the HealthCheckPath field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckPath(v string) *ModifyTargetGroupInput {
+	s.HealthCheckPath = &v
+	return s
+}
+
+// SetHealthCheckPort sets the HealthCheckPort field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckPort(v string) *ModifyTargetGroupInput {
+	s.HealthCheckPort = &v
+	return s
+}
+
+// SetHealthCheckProtocol sets the HealthCheckProtocol field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckProtocol(v string) *ModifyTargetGroupInput {
+	s.HealthCheckProtocol = &v
+	return s
+}
+
+// SetHealthCheckTimeoutSeconds sets the HealthCheckTimeoutSeconds field's value.
+func (s *ModifyTargetGroupInput) SetHealthCheckTimeoutSeconds(v int64) *ModifyTargetGroupInput {
+	s.HealthCheckTimeoutSeconds = &v
+	return s
+}
+
+// SetHealthyThresholdCount sets the HealthyThresholdCount field's value.
+func (s *ModifyTargetGroupInput) SetHealthyThresholdCount(v int64) *ModifyTargetGroupInput {
+	s.HealthyThresholdCount = &v
+	return s
+}
+
+// SetMatcher sets the Matcher field's value.
+func (s *ModifyTargetGroupInput) SetMatcher(v *Matcher) *ModifyTargetGroupInput {
+	s.Matcher = v
+	return s
+}
+
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *ModifyTargetGroupInput) SetTargetGroupArn(v string) *ModifyTargetGroupInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetUnhealthyThresholdCount sets the UnhealthyThresholdCount field's value.
+func (s *ModifyTargetGroupInput) SetUnhealthyThresholdCount(v int64) *ModifyTargetGroupInput {
+	s.UnhealthyThresholdCount = &v
+	return s
+}
+
 // Contains the output of ModifyTargetGroup.
 type ModifyTargetGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -4191,6 +5001,12 @@ func (s ModifyTargetGroupOutput) GoString() string {
 	return s.String()
 }
 
+// SetTargetGroups sets the TargetGroups field's value.
+func (s *ModifyTargetGroupOutput) SetTargetGroups(v []*TargetGroup) *ModifyTargetGroupOutput {
+	s.TargetGroups = v
+	return s
+}
+
 // Contains the parameters for RegisterTargets.
 type RegisterTargetsInput struct {
 	_ struct{} `type:"structure"`
@@ -4200,7 +5016,9 @@ type RegisterTargetsInput struct {
 	// TargetGroupArn is a required field
 	TargetGroupArn *string `type:"string" required:"true"`
 
-	// The targets.
+	// The targets. The default port for a target is the port for the target group.
+	// You can specify a port override. If a target is already registered, you can
+	// register it again using a different port.
 	//
 	// Targets is a required field
 	Targets []*TargetDescription `type:"list" required:"true"`
@@ -4240,6 +5058,18 @@ func (s *RegisterTargetsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *RegisterTargetsInput) SetTargetGroupArn(v string) *RegisterTargetsInput {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetTargets sets the Targets field's value.
+func (s *RegisterTargetsInput) SetTargets(v []*TargetDescription) *RegisterTargetsInput {
+	s.Targets = v
+	return s
 }
 
 // Contains the output of RegisterTargets.
@@ -4298,6 +5128,18 @@ func (s *RemoveTagsInput) Validate() error {
 	return nil
 }
 
+// SetResourceArns sets the ResourceArns field's value.
+func (s *RemoveTagsInput) SetResourceArns(v []*string) *RemoveTagsInput {
+	s.ResourceArns = v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *RemoveTagsInput) SetTagKeys(v []*string) *RemoveTagsInput {
+	s.TagKeys = v
+	return s
+}
+
 // Contains the output of RemoveTags.
 type RemoveTagsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4343,27 +5185,57 @@ func (s Rule) GoString() string {
 	return s.String()
 }
 
+// SetActions sets the Actions field's value.
+func (s *Rule) SetActions(v []*Action) *Rule {
+	s.Actions = v
+	return s
+}
+
+// SetConditions sets the Conditions field's value.
+func (s *Rule) SetConditions(v []*RuleCondition) *Rule {
+	s.Conditions = v
+	return s
+}
+
+// SetIsDefault sets the IsDefault field's value.
+func (s *Rule) SetIsDefault(v bool) *Rule {
+	s.IsDefault = &v
+	return s
+}
+
+// SetPriority sets the Priority field's value.
+func (s *Rule) SetPriority(v string) *Rule {
+	s.Priority = &v
+	return s
+}
+
+// SetRuleArn sets the RuleArn field's value.
+func (s *Rule) SetRuleArn(v string) *Rule {
+	s.RuleArn = &v
+	return s
+}
+
 // Information about a condition for a rule.
 type RuleCondition struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the field. The possible value is path-pattern.
+	// The only possible value is path-pattern.
 	Field *string `type:"string"`
 
-	// The values for the field.
+	// The path pattern. You can specify a single path pattern.
 	//
 	// A path pattern is case sensitive, can be up to 255 characters in length,
 	// and can contain any of the following characters:
 	//
-	//   A-Z, a-z, 0-9
+	//    * A-Z, a-z, 0-9
 	//
-	//   _ - . $ / ~ " ' @ : +
+	//    * _ - . $ / ~ " ' @ : +
 	//
-	//   &amp; (using &amp;amp;)
+	//    * & (using &)
 	//
-	//   * (matches 0 or more characters)
+	//    * * (matches 0 or more characters)
 	//
-	//   ? (matches exactly 1 character)
+	//    * ? (matches exactly 1 character)
 	Values []*string `type:"list"`
 }
 
@@ -4375,6 +5247,18 @@ func (s RuleCondition) String() string {
 // GoString returns the string representation
 func (s RuleCondition) GoString() string {
 	return s.String()
+}
+
+// SetField sets the Field field's value.
+func (s *RuleCondition) SetField(v string) *RuleCondition {
+	s.Field = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *RuleCondition) SetValues(v []*string) *RuleCondition {
+	s.Values = v
+	return s
 }
 
 // Information about the priorities for the rules for a listener.
@@ -4409,6 +5293,18 @@ func (s *RulePriorityPair) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetPriority sets the Priority field's value.
+func (s *RulePriorityPair) SetPriority(v int64) *RulePriorityPair {
+	s.Priority = &v
+	return s
+}
+
+// SetRuleArn sets the RuleArn field's value.
+func (s *RulePriorityPair) SetRuleArn(v string) *RulePriorityPair {
+	s.RuleArn = &v
+	return s
 }
 
 // Contains the parameters for SetRulePriorities.
@@ -4454,6 +5350,12 @@ func (s *SetRulePrioritiesInput) Validate() error {
 	return nil
 }
 
+// SetRulePriorities sets the RulePriorities field's value.
+func (s *SetRulePrioritiesInput) SetRulePriorities(v []*RulePriorityPair) *SetRulePrioritiesInput {
+	s.RulePriorities = v
+	return s
+}
+
 // Contains the output of SetRulePriorities.
 type SetRulePrioritiesOutput struct {
 	_ struct{} `type:"structure"`
@@ -4470,6 +5372,12 @@ func (s SetRulePrioritiesOutput) String() string {
 // GoString returns the string representation
 func (s SetRulePrioritiesOutput) GoString() string {
 	return s.String()
+}
+
+// SetRules sets the Rules field's value.
+func (s *SetRulePrioritiesOutput) SetRules(v []*Rule) *SetRulePrioritiesOutput {
+	s.Rules = v
+	return s
 }
 
 // Contains the parameters for SetSecurityGroups.
@@ -4513,6 +5421,18 @@ func (s *SetSecurityGroupsInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *SetSecurityGroupsInput) SetLoadBalancerArn(v string) *SetSecurityGroupsInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *SetSecurityGroupsInput) SetSecurityGroups(v []*string) *SetSecurityGroupsInput {
+	s.SecurityGroups = v
+	return s
+}
+
 // Contains the output of SetSecurityGroups.
 type SetSecurityGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4529,6 +5449,12 @@ func (s SetSecurityGroupsOutput) String() string {
 // GoString returns the string representation
 func (s SetSecurityGroupsOutput) GoString() string {
 	return s.String()
+}
+
+// SetSecurityGroupIds sets the SecurityGroupIds field's value.
+func (s *SetSecurityGroupsOutput) SetSecurityGroupIds(v []*string) *SetSecurityGroupsOutput {
+	s.SecurityGroupIds = v
+	return s
 }
 
 // Contains the parameters for SetSubnets.
@@ -4573,6 +5499,18 @@ func (s *SetSubnetsInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerArn sets the LoadBalancerArn field's value.
+func (s *SetSubnetsInput) SetLoadBalancerArn(v string) *SetSubnetsInput {
+	s.LoadBalancerArn = &v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *SetSubnetsInput) SetSubnets(v []*string) *SetSubnetsInput {
+	s.Subnets = v
+	return s
+}
+
 // Contains the output of SetSubnets.
 type SetSubnetsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4589,6 +5527,12 @@ func (s SetSubnetsOutput) String() string {
 // GoString returns the string representation
 func (s SetSubnetsOutput) GoString() string {
 	return s.String()
+}
+
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *SetSubnetsOutput) SetAvailabilityZones(v []*AvailabilityZone) *SetSubnetsOutput {
+	s.AvailabilityZones = v
+	return s
 }
 
 // Information about a policy used for SSL negotiation.
@@ -4613,6 +5557,24 @@ func (s SslPolicy) String() string {
 // GoString returns the string representation
 func (s SslPolicy) GoString() string {
 	return s.String()
+}
+
+// SetCiphers sets the Ciphers field's value.
+func (s *SslPolicy) SetCiphers(v []*Cipher) *SslPolicy {
+	s.Ciphers = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *SslPolicy) SetName(v string) *SslPolicy {
+	s.Name = &v
+	return s
+}
+
+// SetSslProtocols sets the SslProtocols field's value.
+func (s *SslPolicy) SetSslProtocols(v []*string) *SslPolicy {
+	s.SslProtocols = v
+	return s
 }
 
 // Information about a tag.
@@ -4654,6 +5616,18 @@ func (s *Tag) Validate() error {
 	return nil
 }
 
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
 // The tags associated with a resource.
 type TagDescription struct {
 	_ struct{} `type:"structure"`
@@ -4673,6 +5647,18 @@ func (s TagDescription) String() string {
 // GoString returns the string representation
 func (s TagDescription) GoString() string {
 	return s.String()
+}
+
+// SetResourceArn sets the ResourceArn field's value.
+func (s *TagDescription) SetResourceArn(v string) *TagDescription {
+	s.ResourceArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagDescription) SetTags(v []*Tag) *TagDescription {
+	s.Tags = v
+	return s
 }
 
 // Information about a target.
@@ -4712,6 +5698,18 @@ func (s *TargetDescription) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetId sets the Id field's value.
+func (s *TargetDescription) SetId(v string) *TargetDescription {
+	s.Id = &v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *TargetDescription) SetPort(v int64) *TargetDescription {
+	s.Port = &v
+	return s
 }
 
 // Information about a target group.
@@ -4776,27 +5774,112 @@ func (s TargetGroup) GoString() string {
 	return s.String()
 }
 
+// SetHealthCheckIntervalSeconds sets the HealthCheckIntervalSeconds field's value.
+func (s *TargetGroup) SetHealthCheckIntervalSeconds(v int64) *TargetGroup {
+	s.HealthCheckIntervalSeconds = &v
+	return s
+}
+
+// SetHealthCheckPath sets the HealthCheckPath field's value.
+func (s *TargetGroup) SetHealthCheckPath(v string) *TargetGroup {
+	s.HealthCheckPath = &v
+	return s
+}
+
+// SetHealthCheckPort sets the HealthCheckPort field's value.
+func (s *TargetGroup) SetHealthCheckPort(v string) *TargetGroup {
+	s.HealthCheckPort = &v
+	return s
+}
+
+// SetHealthCheckProtocol sets the HealthCheckProtocol field's value.
+func (s *TargetGroup) SetHealthCheckProtocol(v string) *TargetGroup {
+	s.HealthCheckProtocol = &v
+	return s
+}
+
+// SetHealthCheckTimeoutSeconds sets the HealthCheckTimeoutSeconds field's value.
+func (s *TargetGroup) SetHealthCheckTimeoutSeconds(v int64) *TargetGroup {
+	s.HealthCheckTimeoutSeconds = &v
+	return s
+}
+
+// SetHealthyThresholdCount sets the HealthyThresholdCount field's value.
+func (s *TargetGroup) SetHealthyThresholdCount(v int64) *TargetGroup {
+	s.HealthyThresholdCount = &v
+	return s
+}
+
+// SetLoadBalancerArns sets the LoadBalancerArns field's value.
+func (s *TargetGroup) SetLoadBalancerArns(v []*string) *TargetGroup {
+	s.LoadBalancerArns = v
+	return s
+}
+
+// SetMatcher sets the Matcher field's value.
+func (s *TargetGroup) SetMatcher(v *Matcher) *TargetGroup {
+	s.Matcher = v
+	return s
+}
+
+// SetPort sets the Port field's value.
+func (s *TargetGroup) SetPort(v int64) *TargetGroup {
+	s.Port = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *TargetGroup) SetProtocol(v string) *TargetGroup {
+	s.Protocol = &v
+	return s
+}
+
+// SetTargetGroupArn sets the TargetGroupArn field's value.
+func (s *TargetGroup) SetTargetGroupArn(v string) *TargetGroup {
+	s.TargetGroupArn = &v
+	return s
+}
+
+// SetTargetGroupName sets the TargetGroupName field's value.
+func (s *TargetGroup) SetTargetGroupName(v string) *TargetGroup {
+	s.TargetGroupName = &v
+	return s
+}
+
+// SetUnhealthyThresholdCount sets the UnhealthyThresholdCount field's value.
+func (s *TargetGroup) SetUnhealthyThresholdCount(v int64) *TargetGroup {
+	s.UnhealthyThresholdCount = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *TargetGroup) SetVpcId(v string) *TargetGroup {
+	s.VpcId = &v
+	return s
+}
+
 // Information about a target group attribute.
 type TargetGroupAttribute struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the attribute.
 	//
-	//    deregistration_delay.timeout_seconds - The amount time for Elastic Load
-	// Balancing to wait before changing the state of a deregistering target from
-	// draining to unused. The range is 0-3600 seconds. The default value is 300
-	// seconds.
+	//    * deregistration_delay.timeout_seconds - The amount time for Elastic Load
+	//    Balancing to wait before changing the state of a deregistering target
+	//    from draining to unused. The range is 0-3600 seconds. The default value
+	//    is 300 seconds.
 	//
-	//    stickiness.enabled - Indicates whether sticky sessions are enabled.
+	//    * stickiness.enabled - Indicates whether sticky sessions are enabled.
+	//    The value is true or false.
 	//
-	//    stickiness.type - The type of sticky sessions. The possible value is
-	// lb_cookie.
+	//    * stickiness.type - The type of sticky sessions. The possible value is
+	//    lb_cookie.
 	//
-	//    stickiness.lb_cookie.duration_seconds - The time period, in seconds,
-	// during which requests from a client should be routed to the same target.
-	// After this time period expires, the load balancer-generated cookie is considered
-	// stale. The range is 1 second to 1 week (604800 seconds). The default value
-	// is 1 day (86400 seconds).
+	//    * stickiness.lb_cookie.duration_seconds - The time period, in seconds,
+	//    during which requests from a client should be routed to the same target.
+	//    After this time period expires, the load balancer-generated cookie is
+	//    considered stale. The range is 1 second to 1 week (604800 seconds). The
+	//    default value is 1 day (86400 seconds).
 	Key *string `type:"string"`
 
 	// The value of the attribute.
@@ -4813,6 +5896,18 @@ func (s TargetGroupAttribute) GoString() string {
 	return s.String()
 }
 
+// SetKey sets the Key field's value.
+func (s *TargetGroupAttribute) SetKey(v string) *TargetGroupAttribute {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *TargetGroupAttribute) SetValue(v string) *TargetGroupAttribute {
+	s.Value = &v
+	return s
+}
+
 // Information about the current health of a target.
 type TargetHealth struct {
 	_ struct{} `type:"structure"`
@@ -4826,41 +5921,42 @@ type TargetHealth struct {
 	// If the target state is initial, the reason code can be one of the following
 	// values:
 	//
-	//    Elb.RegistrationInProgress - The target is in the process of being registered
-	// with the load balancer.
+	//    * Elb.RegistrationInProgress - The target is in the process of being registered
+	//    with the load balancer.
 	//
-	//    Elb.InitialHealthChecking - The load balancer is still sending the target
-	// the minimum number of health checks required to determine its health status.
+	//    * Elb.InitialHealthChecking - The load balancer is still sending the target
+	//    the minimum number of health checks required to determine its health status.
 	//
-	//   If the target state is unhealthy, the reason code can be one of the following
+	// If the target state is unhealthy, the reason code can be one of the following
 	// values:
 	//
-	//    Target.ResponseCodeMismatch - The health checks did not return an expected
-	// HTTP code.
+	//    * Target.ResponseCodeMismatch - The health checks did not return an expected
+	//    HTTP code.
 	//
-	//    Target.Timeout - The health check requests timed out.
+	//    * Target.Timeout - The health check requests timed out.
 	//
-	//    Target.FailedHealthChecks - The health checks failed because the connection
-	// to the target timed out, the target response was malformed, or the target
-	// failed the health check for an unknown reason.
+	//    * Target.FailedHealthChecks - The health checks failed because the connection
+	//    to the target timed out, the target response was malformed, or the target
+	//    failed the health check for an unknown reason.
 	//
-	//    Elb.InternalError - The health checks failed due to an internal error.
+	//    * Elb.InternalError - The health checks failed due to an internal error.
 	//
-	//   If the target state is unused, the reason code can be one of the following
+	// If the target state is unused, the reason code can be one of the following
 	// values:
 	//
-	//    Target.NotRegistered - The target is not registered with the target group.
+	//    * Target.NotRegistered - The target is not registered with the target
+	//    group.
 	//
-	//    Target.NotInUse - The target group is not used by any load balancer or
-	// the target is in an Availability Zone that is not enabled for its load balancer.
+	//    * Target.NotInUse - The target group is not used by any load balancer
+	//    or the target is in an Availability Zone that is not enabled for its load
+	//    balancer.
 	//
-	//    Target.InvalidState - The target is in the stopped or terminated state.
+	//    * Target.InvalidState - The target is in the stopped or terminated state.
 	//
-	//   If the target state is draining, the reason code can be the following
-	// value:
+	// If the target state is draining, the reason code can be the following value:
 	//
-	//    Target.DeregistrationInProgress - The target is in the process of being
-	// deregistered and the deregistration delay period has not expired.
+	//    * Target.DeregistrationInProgress - The target is in the process of being
+	//    deregistered and the deregistration delay period has not expired.
 	Reason *string `type:"string" enum:"TargetHealthReasonEnum"`
 
 	// The state of the target.
@@ -4875,6 +5971,24 @@ func (s TargetHealth) String() string {
 // GoString returns the string representation
 func (s TargetHealth) GoString() string {
 	return s.String()
+}
+
+// SetDescription sets the Description field's value.
+func (s *TargetHealth) SetDescription(v string) *TargetHealth {
+	s.Description = &v
+	return s
+}
+
+// SetReason sets the Reason field's value.
+func (s *TargetHealth) SetReason(v string) *TargetHealth {
+	s.Reason = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *TargetHealth) SetState(v string) *TargetHealth {
+	s.State = &v
+	return s
 }
 
 // Information about the health of a target.
@@ -4899,6 +6013,24 @@ func (s TargetHealthDescription) String() string {
 // GoString returns the string representation
 func (s TargetHealthDescription) GoString() string {
 	return s.String()
+}
+
+// SetHealthCheckPort sets the HealthCheckPort field's value.
+func (s *TargetHealthDescription) SetHealthCheckPort(v string) *TargetHealthDescription {
+	s.HealthCheckPort = &v
+	return s
+}
+
+// SetTarget sets the Target field's value.
+func (s *TargetHealthDescription) SetTarget(v *TargetDescription) *TargetHealthDescription {
+	s.Target = v
+	return s
+}
+
+// SetTargetHealth sets the TargetHealth field's value.
+func (s *TargetHealthDescription) SetTargetHealth(v *TargetHealth) *TargetHealthDescription {
+	s.TargetHealth = v
+	return s
 }
 
 const (

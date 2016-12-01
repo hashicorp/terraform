@@ -154,8 +154,8 @@ func createPortForward(d *schema.ResourceData, meta interface{}, forward map[str
 	p := cs.Firewall.NewCreatePortForwardingRuleParams(d.Id(), forward["private_port"].(int),
 		forward["protocol"].(string), forward["public_port"].(int), vm.Id)
 
-	// Set the network ID of the default network, needed when public IP address
-	// is not associated with any Guest network yet (VPC case)
+	// Set the network ID, needed when the public IP address
+	// is not associated with any network yet (VPC case)
 	p.SetNetworkid(vm.Nic[0].Networkid)
 
 	// Do not open the firewall automatically in any case

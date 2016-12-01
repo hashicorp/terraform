@@ -15,7 +15,7 @@ import (
 // documentation is intended to be used in conjunction with the Amazon SES Developer
 // Guide (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/Welcome.html).
 //
-//   For a list of Amazon SES endpoints to use in service requests, see Regions
+// For a list of Amazon SES endpoints to use in service requests, see Regions
 // and Amazon SES (http://docs.aws.amazon.com/ses/latest/DeveloperGuide/regions.html)
 // in the Amazon SES Developer Guide.
 //The service client's operations are safe to be used concurrently.

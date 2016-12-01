@@ -102,6 +102,13 @@ type Context struct {
 // should not be mutated in any way, since the pointers are copied, not
 // the values themselves.
 func NewContext(opts *ContextOpts) (*Context, error) {
+	// Validate the version requirement if it is given
+	if opts.Module != nil {
+		if err := checkRequiredVersion(opts.Module); err != nil {
+			return nil, err
+		}
+	}
+
 	// Copy all the hooks and add our stop hook. We don't append directly
 	// to the Config so that we're not modifying that in-place.
 	sh := new(stopHook)
@@ -227,6 +234,21 @@ func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
 // running.
 func (c *Context) ShadowError() error {
 	return c.shadowErr
+}
+
+// Interpolater returns an Interpolater built on a copy of the state
+// that can be used to test interpolation values.
+func (c *Context) Interpolater() *Interpolater {
+	var varLock sync.Mutex
+	var stateLock sync.RWMutex
+	return &Interpolater{
+		Operation:          walkApply,
+		Module:             c.module,
+		State:              c.state.DeepCopy(),
+		StateLock:          &stateLock,
+		VariableValues:     c.variables,
+		VariableValuesLock: &varLock,
+	}
 }
 
 // Input asks for input to fill variables and provider configurations.
@@ -697,11 +719,9 @@ func (c *Context) walk(
 
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
-	dg, _ := NewDebugGraph("walk", graph, nil)
 	walker := &ContextGraphWalker{
-		Context:    realCtx,
-		Operation:  operation,
-		DebugGraph: dg,
+		Context:   realCtx,
+		Operation: operation,
 	}
 
 	// Watch for a stop so we can call the provider Stop() API.
@@ -728,20 +748,13 @@ func (c *Context) walk(
 
 	// If we have a shadow graph, wait for that to complete.
 	if shadowCloser != nil {
-		// create a debug graph for this walk
-		dg, err := NewDebugGraph("walk-shadow", shadow, nil)
-		if err != nil {
-			log.Printf("[ERROR] %v", err)
-		}
-
 		// Build the graph walker for the shadow. We also wrap this in
 		// a panicwrap so that panics are captured. For the shadow graph,
 		// we just want panics to be normal errors rather than to crash
 		// Terraform.
 		shadowWalker := GraphWalkerPanicwrap(&ContextGraphWalker{
-			Context:    shadowCtx,
-			Operation:  operation,
-			DebugGraph: dg,
+			Context:   shadowCtx,
+			Operation: operation,
 		})
 
 		// Kick off the shadow walk. This will block on any operations

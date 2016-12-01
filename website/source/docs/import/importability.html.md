@@ -82,6 +82,7 @@ To make a resource importable, please see the
 * aws_route53_health_check
 * aws_route53_zone
 * aws_route_table
+* aws_s3_bucket
 * aws_security_group
 * aws_ses_receipt_filter
 * aws_ses_receipt_rule_set

@@ -56,7 +56,7 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 
 // AddTags API operation for AWS CloudTrail.
 //
-// Adds one or more tags to a trail, up to a limit of 10. Tags must be unique
+// Adds one or more tags to a trail, up to a limit of 50. Tags must be unique
 // per trail. Overwrites an existing tag's value when a new value is specified
 // for an existing tag key. If you specify a key without a value, the tag will
 // be created with the specified key and a value of null. You can tag a trail
@@ -78,7 +78,7 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
-//    arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+//   arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 //
 //   * ResourceTypeNotSupportedException
 //   This exception is thrown when the specified resource type is not supported
@@ -86,23 +86,23 @@ func (c *CloudTrail) AddTagsRequest(input *AddTagsInput) (req *request.Request, 
 //
 //   * TagsLimitExceededException
 //   The number of tags per trail has exceeded the permitted amount. Currently,
-//   the limit is 10.
+//   the limit is 50.
 //
 //   * InvalidTrailNameException
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
-//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-//   (_), or dashes (-)
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
 //
-//     Start with a letter or number, and end with a letter or number
+//      * Start with a letter or number, and end with a letter or number
 //
-//     Be between 3 and 128 characters
+//      * Be between 3 and 128 characters
 //
-//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
-//   and my--namespace are invalid.
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
 //
-//     Not be in IP address format (for example, 192.168.5.4)
+//      * Not be in IP address format (for example, 192.168.5.4)
 //
 //   * InvalidTagParameterException
 //   This exception is thrown when the key or value specified for the tag does
@@ -212,17 +212,17 @@ func (c *CloudTrail) CreateTrailRequest(input *CreateTrailInput) (req *request.R
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
-//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-//   (_), or dashes (-)
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
 //
-//     Start with a letter or number, and end with a letter or number
+//      * Start with a letter or number, and end with a letter or number
 //
-//     Be between 3 and 128 characters
+//      * Be between 3 and 128 characters
 //
-//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
-//   and my--namespace are invalid.
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
 //
-//     Not be in IP address format (for example, 192.168.5.4)
+//      * Not be in IP address format (for example, 192.168.5.4)
 //
 //   * TrailNotProvidedException
 //   This exception is deprecated.
@@ -327,17 +327,17 @@ func (c *CloudTrail) DeleteTrailRequest(input *DeleteTrailInput) (req *request.R
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
-//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-//   (_), or dashes (-)
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
 //
-//     Start with a letter or number, and end with a letter or number
+//      * Start with a letter or number, and end with a letter or number
 //
-//     Be between 3 and 128 characters
+//      * Be between 3 and 128 characters
 //
-//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
-//   and my--namespace are invalid.
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
 //
-//     Not be in IP address format (for example, 192.168.5.4)
+//      * Not be in IP address format (for example, 192.168.5.4)
 //
 //   * InvalidHomeRegionException
 //   This exception is thrown when an operation is called on a trail from a region
@@ -417,6 +417,103 @@ func (c *CloudTrail) DescribeTrails(input *DescribeTrailsInput) (*DescribeTrails
 	return out, err
 }
 
+const opGetEventSelectors = "GetEventSelectors"
+
+// GetEventSelectorsRequest generates a "aws/request.Request" representing the
+// client's request for the GetEventSelectors operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetEventSelectors for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetEventSelectors method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetEventSelectorsRequest method.
+//    req, resp := client.GetEventSelectorsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *CloudTrail) GetEventSelectorsRequest(input *GetEventSelectorsInput) (req *request.Request, output *GetEventSelectorsOutput) {
+	op := &request.Operation{
+		Name:       opGetEventSelectors,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetEventSelectorsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetEventSelectorsOutput{}
+	req.Data = output
+	return
+}
+
+// GetEventSelectors API operation for AWS CloudTrail.
+//
+// Describes the settings for the event selectors that you configured for your
+// trail. The information returned for your event selectors includes the following:
+//
+//    * The S3 objects that you are logging for data events.
+//
+//    * If your event selector includes management events.
+//
+//    * If your event selector includes read-only events, write-only events,
+//    or all.
+//
+// For more information, see Configuring Event Selectors for Trails (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html)
+// in the AWS CloudTrail User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation GetEventSelectors for usage and error information.
+//
+// Returned Error Codes:
+//   * TrailNotFoundException
+//   This exception is thrown when the trail with the given name is not found.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
+//
+//      * Start with a letter or number, and end with a letter or number
+//
+//      * Be between 3 and 128 characters
+//
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
+//
+//      * Not be in IP address format (for example, 192.168.5.4)
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
+func (c *CloudTrail) GetEventSelectors(input *GetEventSelectorsInput) (*GetEventSelectorsOutput, error) {
+	req, out := c.GetEventSelectorsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opGetTrailStatus = "GetTrailStatus"
 
 // GetTrailStatusRequest generates a "aws/request.Request" representing the
@@ -483,17 +580,17 @@ func (c *CloudTrail) GetTrailStatusRequest(input *GetTrailStatusInput) (req *req
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
-//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-//   (_), or dashes (-)
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
 //
-//     Start with a letter or number, and end with a letter or number
+//      * Start with a letter or number, and end with a letter or number
 //
-//     Be between 3 and 128 characters
+//      * Be between 3 and 128 characters
 //
-//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
-//   and my--namespace are invalid.
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
 //
-//     Not be in IP address format (for example, 192.168.5.4)
+//      * Not be in IP address format (for example, 192.168.5.4)
 //
 func (c *CloudTrail) GetTrailStatus(input *GetTrailStatusInput) (*GetTrailStatusOutput, error) {
 	req, out := c.GetTrailStatusRequest(input)
@@ -550,7 +647,7 @@ func (c *CloudTrail) ListPublicKeysRequest(input *ListPublicKeysInput) (req *req
 // within the specified time range. The public key is needed to validate digest
 // files that were signed with its corresponding private key.
 //
-//  CloudTrail uses different private/public key pairs per region. Each digest
+// CloudTrail uses different private/public key pairs per region. Each digest
 // file is signed with a private key unique to its region. Therefore, when you
 // validate a digest file from a particular region, you must look in the same
 // region for its corresponding public key.
@@ -644,7 +741,7 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
-//    arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+//   arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 //
 //   * ResourceTypeNotSupportedException
 //   This exception is thrown when the specified resource type is not supported
@@ -654,17 +751,17 @@ func (c *CloudTrail) ListTagsRequest(input *ListTagsInput) (req *request.Request
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
-//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-//   (_), or dashes (-)
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
 //
-//     Start with a letter or number, and end with a letter or number
+//      * Start with a letter or number, and end with a letter or number
 //
-//     Be between 3 and 128 characters
+//      * Be between 3 and 128 characters
 //
-//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
-//   and my--namespace are invalid.
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
 //
-//     Not be in IP address format (for example, 192.168.5.4)
+//      * Not be in IP address format (for example, 192.168.5.4)
 //
 //   * UnsupportedOperationException
 //   This exception is thrown when the requested operation is not supported.
@@ -729,18 +826,26 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 // Looks up API activity events captured by CloudTrail that create, update,
 // or delete resources in your account. Events for a region can be looked up
 // for the times in which you had CloudTrail turned on in that region during
-// the last seven days. Lookup supports five different attributes: time range
-// (defined by a start time and end time), user name, event name, resource type,
-// and resource name. All attributes are optional. The maximum number of attributes
-// that can be specified in any one lookup request are time range and one other
-// attribute. The default number of results returned is 10, with a maximum of
-// 50 possible. The response includes a token that you can use to get the next
-// page of results.
+// the last seven days. Lookup supports the following attributes:
 //
-//  The rate of lookup requests is limited to one per second per account. If
+//    * Event ID
+//
+//    * Event name
+//
+//    * Resource name
+//
+//    * Resource type
+//
+//    * User name
+//
+// All attributes are optional. The default number of results returned is 10,
+// with a maximum of 50 possible. The response includes a token that you can
+// use to get the next page of results.
+//
+// The rate of lookup requests is limited to one per second per account. If
 // this limit is exceeded, a throttling error occurs.
 //
-//   Events that occurred during the selected time range will not be available
+// Events that occurred during the selected time range will not be available
 // for lookup if CloudTrail logging was not enabled when the events occurred.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -767,6 +872,135 @@ func (c *CloudTrail) LookupEventsRequest(input *LookupEventsInput) (req *request
 //
 func (c *CloudTrail) LookupEvents(input *LookupEventsInput) (*LookupEventsOutput, error) {
 	req, out := c.LookupEventsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opPutEventSelectors = "PutEventSelectors"
+
+// PutEventSelectorsRequest generates a "aws/request.Request" representing the
+// client's request for the PutEventSelectors operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See PutEventSelectors for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the PutEventSelectors method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the PutEventSelectorsRequest method.
+//    req, resp := client.PutEventSelectorsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *CloudTrail) PutEventSelectorsRequest(input *PutEventSelectorsInput) (req *request.Request, output *PutEventSelectorsOutput) {
+	op := &request.Operation{
+		Name:       opPutEventSelectors,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &PutEventSelectorsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &PutEventSelectorsOutput{}
+	req.Data = output
+	return
+}
+
+// PutEventSelectors API operation for AWS CloudTrail.
+//
+// Configures an event selector for your trail. Use event selectors to specify
+// the type of events that you want your trail to log. When an event occurs
+// in your account, CloudTrail evaluates the event selectors in all trails.
+// For each trail, if the event matches any event selector, the trail processes
+// and logs the event. If the event doesn't match any event selector, the trail
+// doesn't log the event.
+//
+// Example
+//
+// You create an event selector for a trail and specify that you want write-only
+// events.
+//
+// The EC2 GetConsoleOutput and RunInstances API operations occur in your account.
+//
+// CloudTrail evaluates whether the events match your event selectors.
+//
+// The RunInstances is a write-only event and it matches your event selector.
+// The trail logs the event.
+//
+// The GetConsoleOutput is a read-only event but it doesn't match your event
+// selector. The trail doesn't log the event.
+//
+// The PutEventSelectors operation must be called from the region in which the
+// trail was created; otherwise, an InvalidHomeRegionException is thrown.
+//
+// You can configure up to five event selectors for each trail. For more information,
+// see Configuring Event Selectors for Trails (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html)
+// in the AWS CloudTrail User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CloudTrail's
+// API operation PutEventSelectors for usage and error information.
+//
+// Returned Error Codes:
+//   * TrailNotFoundException
+//   This exception is thrown when the trail with the given name is not found.
+//
+//   * InvalidTrailNameException
+//   This exception is thrown when the provided trail name is not valid. Trail
+//   names must meet the following requirements:
+//
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
+//
+//      * Start with a letter or number, and end with a letter or number
+//
+//      * Be between 3 and 128 characters
+//
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
+//
+//      * Not be in IP address format (for example, 192.168.5.4)
+//
+//   * InvalidHomeRegionException
+//   This exception is thrown when an operation is called on a trail from a region
+//   other than the region in which the trail was created.
+//
+//   * InvalidEventSelectorsException
+//   This exception is thrown when the PutEventSelectors operation is called with
+//   an invalid number of event selectors, data resources, or an invalid value
+//   for a parameter:
+//
+//      * Specify a valid number of event selectors (1 to 5) for a trail.
+//
+//      * Specify a valid number of data resources (1 to 50) for an event selector.
+//
+//      * Specify a valid value for a parameter. For example, specifying the ReadWriteType
+//      parameter with a value of read-only is invalid.
+//
+//   * UnsupportedOperationException
+//   This exception is thrown when the requested operation is not supported.
+//
+//   * OperationNotPermittedException
+//   This exception is thrown when the requested operation is not permitted.
+//
+func (c *CloudTrail) PutEventSelectors(input *PutEventSelectorsInput) (*PutEventSelectorsOutput, error) {
+	req, out := c.PutEventSelectorsRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -833,7 +1067,7 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 //   This exception is thrown when an operation is called with an invalid trail
 //   ARN. The format of a trail ARN is:
 //
-//    arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+//   arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 //
 //   * ResourceTypeNotSupportedException
 //   This exception is thrown when the specified resource type is not supported
@@ -843,17 +1077,17 @@ func (c *CloudTrail) RemoveTagsRequest(input *RemoveTagsInput) (req *request.Req
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
-//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-//   (_), or dashes (-)
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
 //
-//     Start with a letter or number, and end with a letter or number
+//      * Start with a letter or number, and end with a letter or number
 //
-//     Be between 3 and 128 characters
+//      * Be between 3 and 128 characters
 //
-//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
-//   and my--namespace are invalid.
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
 //
-//     Not be in IP address format (for example, 192.168.5.4)
+//      * Not be in IP address format (for example, 192.168.5.4)
 //
 //   * InvalidTagParameterException
 //   This exception is thrown when the key or value specified for the tag does
@@ -937,17 +1171,17 @@ func (c *CloudTrail) StartLoggingRequest(input *StartLoggingInput) (req *request
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
-//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-//   (_), or dashes (-)
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
 //
-//     Start with a letter or number, and end with a letter or number
+//      * Start with a letter or number, and end with a letter or number
 //
-//     Be between 3 and 128 characters
+//      * Be between 3 and 128 characters
 //
-//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
-//   and my--namespace are invalid.
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
 //
-//     Not be in IP address format (for example, 192.168.5.4)
+//      * Not be in IP address format (for example, 192.168.5.4)
 //
 //   * InvalidHomeRegionException
 //   This exception is thrown when an operation is called on a trail from a region
@@ -1027,17 +1261,17 @@ func (c *CloudTrail) StopLoggingRequest(input *StopLoggingInput) (req *request.R
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
-//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-//   (_), or dashes (-)
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
 //
-//     Start with a letter or number, and end with a letter or number
+//      * Start with a letter or number, and end with a letter or number
 //
-//     Be between 3 and 128 characters
+//      * Be between 3 and 128 characters
 //
-//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
-//   and my--namespace are invalid.
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
 //
-//     Not be in IP address format (for example, 192.168.5.4)
+//      * Not be in IP address format (for example, 192.168.5.4)
 //
 //   * InvalidHomeRegionException
 //   This exception is thrown when an operation is called on a trail from a region
@@ -1141,17 +1375,17 @@ func (c *CloudTrail) UpdateTrailRequest(input *UpdateTrailInput) (req *request.R
 //   This exception is thrown when the provided trail name is not valid. Trail
 //   names must meet the following requirements:
 //
-//     Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-//   (_), or dashes (-)
+//      * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+//      (_), or dashes (-)
 //
-//     Start with a letter or number, and end with a letter or number
+//      * Start with a letter or number, and end with a letter or number
 //
-//     Be between 3 and 128 characters
+//      * Be between 3 and 128 characters
 //
-//     Have no adjacent periods, underscores or dashes. Names like my-_namespace
-//   and my--namespace are invalid.
+//      * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+//      and my--namespace are invalid.
 //
-//     Not be in IP address format (for example, 192.168.5.4)
+//      * Not be in IP address format (for example, 192.168.5.4)
 //
 //   * TrailNotProvidedException
 //   This exception is deprecated.
@@ -1203,12 +1437,12 @@ type AddTagsInput struct {
 	// Specifies the ARN of the trail to which one or more tags will be added. The
 	// format of a trail ARN is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
 	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
 
-	// Contains a list of CloudTrail tags, up to a limit of 10.
+	// Contains a list of CloudTrail tags, up to a limit of 50
 	TagsList []*Tag `type:"list"`
 }
 
@@ -1245,6 +1479,18 @@ func (s *AddTagsInput) Validate() error {
 	return nil
 }
 
+// SetResourceId sets the ResourceId field's value.
+func (s *AddTagsInput) SetResourceId(v string) *AddTagsInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetTagsList sets the TagsList field's value.
+func (s *AddTagsInput) SetTagsList(v []*Tag) *AddTagsInput {
+	s.TagsList = v
+	return s
+}
+
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
 type AddTagsOutput struct {
@@ -1277,7 +1523,7 @@ type CreateTrailInput struct {
 	// Specifies whether log file integrity validation is enabled. The default is
 	// false.
 	//
-	//  When you disable log file integrity validation, the chain of digest files
+	// When you disable log file integrity validation, the chain of digest files
 	// is broken after one hour. CloudTrail will not create digest files for log
 	// files that were delivered during a period in which log file integrity validation
 	// was disabled. For example, if you enable log file integrity validation at
@@ -1301,28 +1547,28 @@ type CreateTrailInput struct {
 	//
 	// Examples:
 	//
-	//   alias/MyAliasName
+	//    * alias/MyAliasName
 	//
-	//   arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//    * arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
 	//
-	//   arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//    * arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
 	//
-	//   12345678-1234-1234-1234-123456789012
+	//    * 12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
 
 	// Specifies the name of the trail. The name must meet the following requirements:
 	//
-	//   Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-	// (_), or dashes (-)
+	//    * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+	//    (_), or dashes (-)
 	//
-	//   Start with a letter or number, and end with a letter or number
+	//    * Start with a letter or number, and end with a letter or number
 	//
-	//   Be between 3 and 128 characters
+	//    * Be between 3 and 128 characters
 	//
-	//   Have no adjacent periods, underscores or dashes. Names like my-_namespace
-	// and my--namespace are invalid.
+	//    * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+	//    and my--namespace are invalid.
 	//
-	//   Not be in IP address format (for example, 192.168.5.4)
+	//    * Not be in IP address format (for example, 192.168.5.4)
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -1370,6 +1616,66 @@ func (s *CreateTrailInput) Validate() error {
 	return nil
 }
 
+// SetCloudWatchLogsLogGroupArn sets the CloudWatchLogsLogGroupArn field's value.
+func (s *CreateTrailInput) SetCloudWatchLogsLogGroupArn(v string) *CreateTrailInput {
+	s.CloudWatchLogsLogGroupArn = &v
+	return s
+}
+
+// SetCloudWatchLogsRoleArn sets the CloudWatchLogsRoleArn field's value.
+func (s *CreateTrailInput) SetCloudWatchLogsRoleArn(v string) *CreateTrailInput {
+	s.CloudWatchLogsRoleArn = &v
+	return s
+}
+
+// SetEnableLogFileValidation sets the EnableLogFileValidation field's value.
+func (s *CreateTrailInput) SetEnableLogFileValidation(v bool) *CreateTrailInput {
+	s.EnableLogFileValidation = &v
+	return s
+}
+
+// SetIncludeGlobalServiceEvents sets the IncludeGlobalServiceEvents field's value.
+func (s *CreateTrailInput) SetIncludeGlobalServiceEvents(v bool) *CreateTrailInput {
+	s.IncludeGlobalServiceEvents = &v
+	return s
+}
+
+// SetIsMultiRegionTrail sets the IsMultiRegionTrail field's value.
+func (s *CreateTrailInput) SetIsMultiRegionTrail(v bool) *CreateTrailInput {
+	s.IsMultiRegionTrail = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *CreateTrailInput) SetKmsKeyId(v string) *CreateTrailInput {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateTrailInput) SetName(v string) *CreateTrailInput {
+	s.Name = &v
+	return s
+}
+
+// SetS3BucketName sets the S3BucketName field's value.
+func (s *CreateTrailInput) SetS3BucketName(v string) *CreateTrailInput {
+	s.S3BucketName = &v
+	return s
+}
+
+// SetS3KeyPrefix sets the S3KeyPrefix field's value.
+func (s *CreateTrailInput) SetS3KeyPrefix(v string) *CreateTrailInput {
+	s.S3KeyPrefix = &v
+	return s
+}
+
+// SetSnsTopicName sets the SnsTopicName field's value.
+func (s *CreateTrailInput) SetSnsTopicName(v string) *CreateTrailInput {
+	s.SnsTopicName = &v
+	return s
+}
+
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
 type CreateTrailOutput struct {
@@ -1393,7 +1699,7 @@ type CreateTrailOutput struct {
 	// Specifies the KMS key ID that encrypts the logs delivered by CloudTrail.
 	// The value is a fully specified ARN to a KMS key in the format:
 	//
-	//  arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
 
 	// Specifies whether log file integrity validation is enabled.
@@ -1414,7 +1720,7 @@ type CreateTrailOutput struct {
 	// Specifies the ARN of the Amazon SNS topic that CloudTrail uses to send notifications
 	// when log files are delivered. The format of a topic ARN is:
 	//
-	//  arn:aws:sns:us-east-1:123456789012:MyTopic
+	// arn:aws:sns:us-east-1:123456789012:MyTopic
 	SnsTopicARN *string `type:"string"`
 
 	// This field is deprecated. Use SnsTopicARN.
@@ -1423,7 +1729,7 @@ type CreateTrailOutput struct {
 	// Specifies the ARN of the trail that was created. The format of a trail ARN
 	// is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	TrailARN *string `type:"string"`
 }
 
@@ -1437,14 +1743,144 @@ func (s CreateTrailOutput) GoString() string {
 	return s.String()
 }
 
+// SetCloudWatchLogsLogGroupArn sets the CloudWatchLogsLogGroupArn field's value.
+func (s *CreateTrailOutput) SetCloudWatchLogsLogGroupArn(v string) *CreateTrailOutput {
+	s.CloudWatchLogsLogGroupArn = &v
+	return s
+}
+
+// SetCloudWatchLogsRoleArn sets the CloudWatchLogsRoleArn field's value.
+func (s *CreateTrailOutput) SetCloudWatchLogsRoleArn(v string) *CreateTrailOutput {
+	s.CloudWatchLogsRoleArn = &v
+	return s
+}
+
+// SetIncludeGlobalServiceEvents sets the IncludeGlobalServiceEvents field's value.
+func (s *CreateTrailOutput) SetIncludeGlobalServiceEvents(v bool) *CreateTrailOutput {
+	s.IncludeGlobalServiceEvents = &v
+	return s
+}
+
+// SetIsMultiRegionTrail sets the IsMultiRegionTrail field's value.
+func (s *CreateTrailOutput) SetIsMultiRegionTrail(v bool) *CreateTrailOutput {
+	s.IsMultiRegionTrail = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *CreateTrailOutput) SetKmsKeyId(v string) *CreateTrailOutput {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetLogFileValidationEnabled sets the LogFileValidationEnabled field's value.
+func (s *CreateTrailOutput) SetLogFileValidationEnabled(v bool) *CreateTrailOutput {
+	s.LogFileValidationEnabled = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateTrailOutput) SetName(v string) *CreateTrailOutput {
+	s.Name = &v
+	return s
+}
+
+// SetS3BucketName sets the S3BucketName field's value.
+func (s *CreateTrailOutput) SetS3BucketName(v string) *CreateTrailOutput {
+	s.S3BucketName = &v
+	return s
+}
+
+// SetS3KeyPrefix sets the S3KeyPrefix field's value.
+func (s *CreateTrailOutput) SetS3KeyPrefix(v string) *CreateTrailOutput {
+	s.S3KeyPrefix = &v
+	return s
+}
+
+// SetSnsTopicARN sets the SnsTopicARN field's value.
+func (s *CreateTrailOutput) SetSnsTopicARN(v string) *CreateTrailOutput {
+	s.SnsTopicARN = &v
+	return s
+}
+
+// SetSnsTopicName sets the SnsTopicName field's value.
+func (s *CreateTrailOutput) SetSnsTopicName(v string) *CreateTrailOutput {
+	s.SnsTopicName = &v
+	return s
+}
+
+// SetTrailARN sets the TrailARN field's value.
+func (s *CreateTrailOutput) SetTrailARN(v string) *CreateTrailOutput {
+	s.TrailARN = &v
+	return s
+}
+
+// The Amazon S3 objects that you specify in your event selectors for your trail
+// to log data events. Data events are object level API operations that access
+// S3 objects, such as GetObject, DeleteObject, and PutObject. You can specify
+// up to 50 S3 buckets and object prefixes for an event selector.
+//
+// Example
+//
+// You create an event selector for a trail and specify an S3 bucket and an
+// empty prefix, such as arn:aws:s3:::bucket-1/.
+//
+// You upload an image file to bucket-1.
+//
+// The PutObject API operation occurs on an object in the S3 bucket that you
+// specified in the event selector. The trail processes and logs the event.
+//
+// You upload another image file to a different S3 bucket named arn:aws:s3:::bucket-2.
+//
+// The event occurs on an object in an S3 bucket that you didn't specify in
+// the event selector. The trail doesn’t log the event.
+type DataResource struct {
+	_ struct{} `type:"structure"`
+
+	// The resource type in which you want to log data events. You can specify only
+	// the following value: AWS::S3::Object.
+	Type *string `type:"string"`
+
+	// A list of ARN-like strings for the specified S3 objects.
+	//
+	// To log data events for all objects in an S3 bucket, specify the bucket and
+	// an empty object prefix such as arn:aws:s3:::bucket-1/. The trail logs data
+	// events for all objects in this S3 bucket.
+	//
+	// To log data events for specific objects, specify the S3 bucket and object
+	// prefix such as arn:aws:s3:::bucket-1/example-images. The trail logs data
+	// events for objects in this S3 bucket that match the prefix.
+	Values []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s DataResource) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DataResource) GoString() string {
+	return s.String()
+}
+
+// SetType sets the Type field's value.
+func (s *DataResource) SetType(v string) *DataResource {
+	s.Type = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *DataResource) SetValues(v []*string) *DataResource {
+	s.Values = v
+	return s
+}
+
 // The request that specifies the name of a trail to delete.
 type DeleteTrailInput struct {
 	_ struct{} `type:"structure"`
 
 	// Specifies the name or the CloudTrail ARN of the trail to be deleted. The
-	// format of a trail ARN is:
-	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// format of a trail ARN is: arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -1471,6 +1907,12 @@ func (s *DeleteTrailInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteTrailInput) SetName(v string) *DeleteTrailInput {
+	s.Name = &v
+	return s
 }
 
 // Returns the objects or data listed below if successful. Otherwise, returns
@@ -1501,20 +1943,20 @@ type DescribeTrailsInput struct {
 	// Specifies a list of trail names, trail ARNs, or both, of the trails to describe.
 	// The format of a trail ARN is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
-	// If an empty list is specified, information for the trail in the current
-	// region is returned.
+	// If an empty list is specified, information for the trail in the current region
+	// is returned.
 	//
-	//   If an empty list is specified and IncludeShadowTrails is false, then information
-	// for all trails in the current region is returned.
+	//    * If an empty list is specified and IncludeShadowTrails is false, then
+	//    information for all trails in the current region is returned.
 	//
-	//   If an empty list is specified and IncludeShadowTrails is null or true,
-	// then information for all trails in the current region and any associated
-	// shadow trails in other regions is returned.
+	//    * If an empty list is specified and IncludeShadowTrails is null or true,
+	//    then information for all trails in the current region and any associated
+	//    shadow trails in other regions is returned.
 	//
-	//    If one or more trail names are specified, information is returned only
-	// if the names match the names of trails belonging only to the current region.
+	// If one or more trail names are specified, information is returned only if
+	// the names match the names of trails belonging only to the current region.
 	// To return information about a trail in another region, you must specify its
 	// trail ARN.
 	TrailNameList []*string `locationName:"trailNameList" type:"list"`
@@ -1528,6 +1970,18 @@ func (s DescribeTrailsInput) String() string {
 // GoString returns the string representation
 func (s DescribeTrailsInput) GoString() string {
 	return s.String()
+}
+
+// SetIncludeShadowTrails sets the IncludeShadowTrails field's value.
+func (s *DescribeTrailsInput) SetIncludeShadowTrails(v bool) *DescribeTrailsInput {
+	s.IncludeShadowTrails = &v
+	return s
+}
+
+// SetTrailNameList sets the TrailNameList field's value.
+func (s *DescribeTrailsInput) SetTrailNameList(v []*string) *DescribeTrailsInput {
+	s.TrailNameList = v
+	return s
 }
 
 // Returns the objects or data listed below if successful. Otherwise, returns
@@ -1549,6 +2003,12 @@ func (s DescribeTrailsOutput) GoString() string {
 	return s.String()
 }
 
+// SetTrailList sets the TrailList field's value.
+func (s *DescribeTrailsOutput) SetTrailList(v []*Trail) *DescribeTrailsOutput {
+	s.TrailList = v
+	return s
+}
+
 // Contains information about an event that was returned by a lookup request.
 // The result includes a representation of a CloudTrail event.
 type Event struct {
@@ -1562,6 +2022,9 @@ type Event struct {
 
 	// The name of the event returned.
 	EventName *string `type:"string"`
+
+	// The AWS service that the request was made to.
+	EventSource *string `type:"string"`
 
 	// The date and time of the event returned.
 	EventTime *time.Time `type:"timestamp" timestampFormat:"unix"`
@@ -1584,6 +2047,182 @@ func (s Event) GoString() string {
 	return s.String()
 }
 
+// SetCloudTrailEvent sets the CloudTrailEvent field's value.
+func (s *Event) SetCloudTrailEvent(v string) *Event {
+	s.CloudTrailEvent = &v
+	return s
+}
+
+// SetEventId sets the EventId field's value.
+func (s *Event) SetEventId(v string) *Event {
+	s.EventId = &v
+	return s
+}
+
+// SetEventName sets the EventName field's value.
+func (s *Event) SetEventName(v string) *Event {
+	s.EventName = &v
+	return s
+}
+
+// SetEventSource sets the EventSource field's value.
+func (s *Event) SetEventSource(v string) *Event {
+	s.EventSource = &v
+	return s
+}
+
+// SetEventTime sets the EventTime field's value.
+func (s *Event) SetEventTime(v time.Time) *Event {
+	s.EventTime = &v
+	return s
+}
+
+// SetResources sets the Resources field's value.
+func (s *Event) SetResources(v []*Resource) *Event {
+	s.Resources = v
+	return s
+}
+
+// SetUsername sets the Username field's value.
+func (s *Event) SetUsername(v string) *Event {
+	s.Username = &v
+	return s
+}
+
+// Use event selectors to specify the types of events that you want your trail
+// to log. When an event occurs in your account, CloudTrail evaluates the event
+// selector for all trails. For each trail, if the event matches any event selector,
+// the trail processes and logs the event. If the event doesn't match any event
+// selector, the trail doesn't log the event.
+//
+// You can configure up to five event selectors for a trail.
+type EventSelector struct {
+	_ struct{} `type:"structure"`
+
+	// CloudTrail supports logging only data events for S3 objects. You can specify
+	// up to 50 S3 buckets and object prefixes for an event selector.
+	//
+	// For more information, see Data Events (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html#data-events-resources)
+	// in the AWS CloudTrail User Guide.
+	DataResources []*DataResource `type:"list"`
+
+	// Specify if you want your event selector to include management events for
+	// your trail.
+	//
+	// For more information, see Management Events (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-event-selectors-for-a-trail.html#event-selector-for-management-events)
+	// in the AWS CloudTrail User Guide.
+	//
+	// By default, the value is true.
+	IncludeManagementEvents *bool `type:"boolean"`
+
+	// Specify if you want your trail to log read-only events, write-only events,
+	// or all. For example, the EC2 GetConsoleOutput is a read-only API operation
+	// and RunInstances is a write-only API operation.
+	//
+	// By default, the value is All.
+	ReadWriteType *string `type:"string" enum:"ReadWriteType"`
+}
+
+// String returns the string representation
+func (s EventSelector) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EventSelector) GoString() string {
+	return s.String()
+}
+
+// SetDataResources sets the DataResources field's value.
+func (s *EventSelector) SetDataResources(v []*DataResource) *EventSelector {
+	s.DataResources = v
+	return s
+}
+
+// SetIncludeManagementEvents sets the IncludeManagementEvents field's value.
+func (s *EventSelector) SetIncludeManagementEvents(v bool) *EventSelector {
+	s.IncludeManagementEvents = &v
+	return s
+}
+
+// SetReadWriteType sets the ReadWriteType field's value.
+func (s *EventSelector) SetReadWriteType(v string) *EventSelector {
+	s.ReadWriteType = &v
+	return s
+}
+
+type GetEventSelectorsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the name of the trail or trail ARN. If you specify a trail name,
+	// the string must meet the following requirements:
+	//
+	//    * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+	//    (_), or dashes (-)
+	//
+	//    * Start with a letter or number, and end with a letter or number
+	//
+	//    * Be between 3 and 128 characters
+	//
+	//    * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+	//    and my--namespace are invalid.
+	//
+	//    * Not be in IP address format (for example, 192.168.5.4)
+	//
+	// If you specify a trail ARN, it must be in the format:
+	//
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	TrailName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetEventSelectorsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetEventSelectorsInput) GoString() string {
+	return s.String()
+}
+
+// SetTrailName sets the TrailName field's value.
+func (s *GetEventSelectorsInput) SetTrailName(v string) *GetEventSelectorsInput {
+	s.TrailName = &v
+	return s
+}
+
+type GetEventSelectorsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The event selectors that are configured for the trail.
+	EventSelectors []*EventSelector `type:"list"`
+
+	// The specified trail ARN that has the event selectors.
+	TrailARN *string `type:"string"`
+}
+
+// String returns the string representation
+func (s GetEventSelectorsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetEventSelectorsOutput) GoString() string {
+	return s.String()
+}
+
+// SetEventSelectors sets the EventSelectors field's value.
+func (s *GetEventSelectorsOutput) SetEventSelectors(v []*EventSelector) *GetEventSelectorsOutput {
+	s.EventSelectors = v
+	return s
+}
+
+// SetTrailARN sets the TrailARN field's value.
+func (s *GetEventSelectorsOutput) SetTrailARN(v string) *GetEventSelectorsOutput {
+	s.TrailARN = &v
+	return s
+}
+
 // The name of a trail about which you want the current status.
 type GetTrailStatusInput struct {
 	_ struct{} `type:"structure"`
@@ -1592,7 +2231,7 @@ type GetTrailStatusInput struct {
 	// status. To get the status of a shadow trail (a replication of the trail in
 	// another region), you must specify its ARN. The format of a trail ARN is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -1619,6 +2258,12 @@ func (s *GetTrailStatusInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *GetTrailStatusInput) SetName(v string) *GetTrailStatusInput {
+	s.Name = &v
+	return s
 }
 
 // Returns the objects or data listed below if successful. Otherwise, returns
@@ -1648,10 +2293,10 @@ type GetTrailStatusOutput struct {
 	// topic Error Responses (http://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html)
 	// in the Amazon S3 API Reference.
 	//
-	//  This error occurs only when there is a problem with the destination S3
-	// bucket and will not occur for timeouts. To resolve the issue, create a new
-	// bucket and call UpdateTrail to specify the new bucket, or fix the existing
-	// objects so that CloudTrail can again write to the bucket.
+	// This error occurs only when there is a problem with the destination S3 bucket
+	// and will not occur for timeouts. To resolve the issue, create a new bucket
+	// and call UpdateTrail to specify the new bucket, or fix the existing objects
+	// so that CloudTrail can again write to the bucket.
 	LatestDeliveryError *string `type:"string"`
 
 	// Specifies the date and time that CloudTrail last delivered log files to an
@@ -1663,10 +2308,10 @@ type GetTrailStatusOutput struct {
 	// the topic Error Responses (http://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html)
 	// in the Amazon S3 API Reference.
 	//
-	//  This error occurs only when there is a problem with the destination S3
-	// bucket and will not occur for timeouts. To resolve the issue, create a new
-	// bucket and call UpdateTrail to specify the new bucket, or fix the existing
-	// objects so that CloudTrail can again write to the bucket.
+	// This error occurs only when there is a problem with the destination S3 bucket
+	// and will not occur for timeouts. To resolve the issue, create a new bucket
+	// and call UpdateTrail to specify the new bucket, or fix the existing objects
+	// so that CloudTrail can again write to the bucket.
 	LatestDigestDeliveryError *string `type:"string"`
 
 	// Specifies the date and time that CloudTrail last delivered a digest file
@@ -1713,6 +2358,108 @@ func (s GetTrailStatusOutput) GoString() string {
 	return s.String()
 }
 
+// SetIsLogging sets the IsLogging field's value.
+func (s *GetTrailStatusOutput) SetIsLogging(v bool) *GetTrailStatusOutput {
+	s.IsLogging = &v
+	return s
+}
+
+// SetLatestCloudWatchLogsDeliveryError sets the LatestCloudWatchLogsDeliveryError field's value.
+func (s *GetTrailStatusOutput) SetLatestCloudWatchLogsDeliveryError(v string) *GetTrailStatusOutput {
+	s.LatestCloudWatchLogsDeliveryError = &v
+	return s
+}
+
+// SetLatestCloudWatchLogsDeliveryTime sets the LatestCloudWatchLogsDeliveryTime field's value.
+func (s *GetTrailStatusOutput) SetLatestCloudWatchLogsDeliveryTime(v time.Time) *GetTrailStatusOutput {
+	s.LatestCloudWatchLogsDeliveryTime = &v
+	return s
+}
+
+// SetLatestDeliveryAttemptSucceeded sets the LatestDeliveryAttemptSucceeded field's value.
+func (s *GetTrailStatusOutput) SetLatestDeliveryAttemptSucceeded(v string) *GetTrailStatusOutput {
+	s.LatestDeliveryAttemptSucceeded = &v
+	return s
+}
+
+// SetLatestDeliveryAttemptTime sets the LatestDeliveryAttemptTime field's value.
+func (s *GetTrailStatusOutput) SetLatestDeliveryAttemptTime(v string) *GetTrailStatusOutput {
+	s.LatestDeliveryAttemptTime = &v
+	return s
+}
+
+// SetLatestDeliveryError sets the LatestDeliveryError field's value.
+func (s *GetTrailStatusOutput) SetLatestDeliveryError(v string) *GetTrailStatusOutput {
+	s.LatestDeliveryError = &v
+	return s
+}
+
+// SetLatestDeliveryTime sets the LatestDeliveryTime field's value.
+func (s *GetTrailStatusOutput) SetLatestDeliveryTime(v time.Time) *GetTrailStatusOutput {
+	s.LatestDeliveryTime = &v
+	return s
+}
+
+// SetLatestDigestDeliveryError sets the LatestDigestDeliveryError field's value.
+func (s *GetTrailStatusOutput) SetLatestDigestDeliveryError(v string) *GetTrailStatusOutput {
+	s.LatestDigestDeliveryError = &v
+	return s
+}
+
+// SetLatestDigestDeliveryTime sets the LatestDigestDeliveryTime field's value.
+func (s *GetTrailStatusOutput) SetLatestDigestDeliveryTime(v time.Time) *GetTrailStatusOutput {
+	s.LatestDigestDeliveryTime = &v
+	return s
+}
+
+// SetLatestNotificationAttemptSucceeded sets the LatestNotificationAttemptSucceeded field's value.
+func (s *GetTrailStatusOutput) SetLatestNotificationAttemptSucceeded(v string) *GetTrailStatusOutput {
+	s.LatestNotificationAttemptSucceeded = &v
+	return s
+}
+
+// SetLatestNotificationAttemptTime sets the LatestNotificationAttemptTime field's value.
+func (s *GetTrailStatusOutput) SetLatestNotificationAttemptTime(v string) *GetTrailStatusOutput {
+	s.LatestNotificationAttemptTime = &v
+	return s
+}
+
+// SetLatestNotificationError sets the LatestNotificationError field's value.
+func (s *GetTrailStatusOutput) SetLatestNotificationError(v string) *GetTrailStatusOutput {
+	s.LatestNotificationError = &v
+	return s
+}
+
+// SetLatestNotificationTime sets the LatestNotificationTime field's value.
+func (s *GetTrailStatusOutput) SetLatestNotificationTime(v time.Time) *GetTrailStatusOutput {
+	s.LatestNotificationTime = &v
+	return s
+}
+
+// SetStartLoggingTime sets the StartLoggingTime field's value.
+func (s *GetTrailStatusOutput) SetStartLoggingTime(v time.Time) *GetTrailStatusOutput {
+	s.StartLoggingTime = &v
+	return s
+}
+
+// SetStopLoggingTime sets the StopLoggingTime field's value.
+func (s *GetTrailStatusOutput) SetStopLoggingTime(v time.Time) *GetTrailStatusOutput {
+	s.StopLoggingTime = &v
+	return s
+}
+
+// SetTimeLoggingStarted sets the TimeLoggingStarted field's value.
+func (s *GetTrailStatusOutput) SetTimeLoggingStarted(v string) *GetTrailStatusOutput {
+	s.TimeLoggingStarted = &v
+	return s
+}
+
+// SetTimeLoggingStopped sets the TimeLoggingStopped field's value.
+func (s *GetTrailStatusOutput) SetTimeLoggingStopped(v string) *GetTrailStatusOutput {
+	s.TimeLoggingStopped = &v
+	return s
+}
+
 // Requests the public keys for a specified time range.
 type ListPublicKeysInput struct {
 	_ struct{} `type:"structure"`
@@ -1740,6 +2487,24 @@ func (s ListPublicKeysInput) GoString() string {
 	return s.String()
 }
 
+// SetEndTime sets the EndTime field's value.
+func (s *ListPublicKeysInput) SetEndTime(v time.Time) *ListPublicKeysInput {
+	s.EndTime = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPublicKeysInput) SetNextToken(v string) *ListPublicKeysInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *ListPublicKeysInput) SetStartTime(v time.Time) *ListPublicKeysInput {
+	s.StartTime = &v
+	return s
+}
+
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
 type ListPublicKeysOutput struct {
@@ -1750,7 +2515,7 @@ type ListPublicKeysOutput struct {
 
 	// Contains an array of PublicKey objects.
 	//
-	//  The returned public keys may have validity time ranges that overlap.
+	// The returned public keys may have validity time ranges that overlap.
 	PublicKeyList []*PublicKey `type:"list"`
 }
 
@@ -1764,6 +2529,18 @@ func (s ListPublicKeysOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListPublicKeysOutput) SetNextToken(v string) *ListPublicKeysOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPublicKeyList sets the PublicKeyList field's value.
+func (s *ListPublicKeysOutput) SetPublicKeyList(v []*PublicKey) *ListPublicKeysOutput {
+	s.PublicKeyList = v
+	return s
+}
+
 // Specifies a list of trail tags to return.
 type ListTagsInput struct {
 	_ struct{} `type:"structure"`
@@ -1774,7 +2551,7 @@ type ListTagsInput struct {
 	// Specifies a list of trail ARNs whose tags will be listed. The list has a
 	// limit of 20 ARNs. The format of a trail ARN is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
 	// ResourceIdList is a required field
 	ResourceIdList []*string `type:"list" required:"true"`
@@ -1803,6 +2580,18 @@ func (s *ListTagsInput) Validate() error {
 	return nil
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListTagsInput) SetNextToken(v string) *ListTagsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceIdList sets the ResourceIdList field's value.
+func (s *ListTagsInput) SetResourceIdList(v []*string) *ListTagsInput {
+	s.ResourceIdList = v
+	return s
+}
+
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
 type ListTagsOutput struct {
@@ -1823,6 +2612,18 @@ func (s ListTagsOutput) String() string {
 // GoString returns the string representation
 func (s ListTagsOutput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListTagsOutput) SetNextToken(v string) *ListTagsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetResourceTagList sets the ResourceTagList field's value.
+func (s *ListTagsOutput) SetResourceTagList(v []*ResourceTag) *ListTagsOutput {
+	s.ResourceTagList = v
+	return s
 }
 
 // Specifies an attribute and value that filter the events returned.
@@ -1864,6 +2665,18 @@ func (s *LookupAttribute) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAttributeKey sets the AttributeKey field's value.
+func (s *LookupAttribute) SetAttributeKey(v string) *LookupAttribute {
+	s.AttributeKey = &v
+	return s
+}
+
+// SetAttributeValue sets the AttributeValue field's value.
+func (s *LookupAttribute) SetAttributeValue(v string) *LookupAttribute {
+	s.AttributeValue = &v
+	return s
 }
 
 // Contains a request for LookupEvents.
@@ -1929,6 +2742,36 @@ func (s *LookupEventsInput) Validate() error {
 	return nil
 }
 
+// SetEndTime sets the EndTime field's value.
+func (s *LookupEventsInput) SetEndTime(v time.Time) *LookupEventsInput {
+	s.EndTime = &v
+	return s
+}
+
+// SetLookupAttributes sets the LookupAttributes field's value.
+func (s *LookupEventsInput) SetLookupAttributes(v []*LookupAttribute) *LookupEventsInput {
+	s.LookupAttributes = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *LookupEventsInput) SetMaxResults(v int64) *LookupEventsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *LookupEventsInput) SetNextToken(v string) *LookupEventsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *LookupEventsInput) SetStartTime(v time.Time) *LookupEventsInput {
+	s.StartTime = &v
+	return s
+}
+
 // Contains a response to a LookupEvents action.
 type LookupEventsOutput struct {
 	_ struct{} `type:"structure"`
@@ -1954,6 +2797,18 @@ func (s LookupEventsOutput) String() string {
 // GoString returns the string representation
 func (s LookupEventsOutput) GoString() string {
 	return s.String()
+}
+
+// SetEvents sets the Events field's value.
+func (s *LookupEventsOutput) SetEvents(v []*Event) *LookupEventsOutput {
+	s.Events = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *LookupEventsOutput) SetNextToken(v string) *LookupEventsOutput {
+	s.NextToken = &v
+	return s
 }
 
 // Contains information about a returned public key.
@@ -1985,6 +2840,115 @@ func (s PublicKey) GoString() string {
 	return s.String()
 }
 
+// SetFingerprint sets the Fingerprint field's value.
+func (s *PublicKey) SetFingerprint(v string) *PublicKey {
+	s.Fingerprint = &v
+	return s
+}
+
+// SetValidityEndTime sets the ValidityEndTime field's value.
+func (s *PublicKey) SetValidityEndTime(v time.Time) *PublicKey {
+	s.ValidityEndTime = &v
+	return s
+}
+
+// SetValidityStartTime sets the ValidityStartTime field's value.
+func (s *PublicKey) SetValidityStartTime(v time.Time) *PublicKey {
+	s.ValidityStartTime = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *PublicKey) SetValue(v []byte) *PublicKey {
+	s.Value = v
+	return s
+}
+
+type PutEventSelectorsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the settings for your event selectors. You can configure up to
+	// five event selectors for a trail.
+	EventSelectors []*EventSelector `type:"list"`
+
+	// Specifies the name of the trail or trail ARN. If you specify a trail name,
+	// the string must meet the following requirements:
+	//
+	//    * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+	//    (_), or dashes (-)
+	//
+	//    * Start with a letter or number, and end with a letter or number
+	//
+	//    * Be between 3 and 128 characters
+	//
+	//    * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+	//    and my--namespace are invalid.
+	//
+	//    * Not be in IP address format (for example, 192.168.5.4)
+	//
+	// If you specify a trail ARN, it must be in the format:
+	//
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	TrailName *string `type:"string"`
+}
+
+// String returns the string representation
+func (s PutEventSelectorsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutEventSelectorsInput) GoString() string {
+	return s.String()
+}
+
+// SetEventSelectors sets the EventSelectors field's value.
+func (s *PutEventSelectorsInput) SetEventSelectors(v []*EventSelector) *PutEventSelectorsInput {
+	s.EventSelectors = v
+	return s
+}
+
+// SetTrailName sets the TrailName field's value.
+func (s *PutEventSelectorsInput) SetTrailName(v string) *PutEventSelectorsInput {
+	s.TrailName = &v
+	return s
+}
+
+type PutEventSelectorsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the event selectors configured for your trail.
+	EventSelectors []*EventSelector `type:"list"`
+
+	// Specifies the ARN of the trail that was updated with event selectors. The
+	// format of a trail ARN is:
+	//
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	TrailARN *string `type:"string"`
+}
+
+// String returns the string representation
+func (s PutEventSelectorsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PutEventSelectorsOutput) GoString() string {
+	return s.String()
+}
+
+// SetEventSelectors sets the EventSelectors field's value.
+func (s *PutEventSelectorsOutput) SetEventSelectors(v []*EventSelector) *PutEventSelectorsOutput {
+	s.EventSelectors = v
+	return s
+}
+
+// SetTrailARN sets the TrailARN field's value.
+func (s *PutEventSelectorsOutput) SetTrailARN(v string) *PutEventSelectorsOutput {
+	s.TrailARN = &v
+	return s
+}
+
 // Specifies the tags to remove from a trail.
 type RemoveTagsInput struct {
 	_ struct{} `type:"structure"`
@@ -1992,7 +2956,7 @@ type RemoveTagsInput struct {
 	// Specifies the ARN of the trail from which tags should be removed. The format
 	// of a trail ARN is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
 	// ResourceId is a required field
 	ResourceId *string `type:"string" required:"true"`
@@ -2032,6 +2996,18 @@ func (s *RemoveTagsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetResourceId sets the ResourceId field's value.
+func (s *RemoveTagsInput) SetResourceId(v string) *RemoveTagsInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetTagsList sets the TagsList field's value.
+func (s *RemoveTagsInput) SetTagsList(v []*Tag) *RemoveTagsInput {
+	s.TagsList = v
+	return s
 }
 
 // Returns the objects or data listed below if successful. Otherwise, returns
@@ -2078,6 +3054,18 @@ func (s Resource) GoString() string {
 	return s.String()
 }
 
+// SetResourceName sets the ResourceName field's value.
+func (s *Resource) SetResourceName(v string) *Resource {
+	s.ResourceName = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *Resource) SetResourceType(v string) *Resource {
+	s.ResourceType = &v
+	return s
+}
+
 // A resource tag.
 type ResourceTag struct {
 	_ struct{} `type:"structure"`
@@ -2099,6 +3087,18 @@ func (s ResourceTag) GoString() string {
 	return s.String()
 }
 
+// SetResourceId sets the ResourceId field's value.
+func (s *ResourceTag) SetResourceId(v string) *ResourceTag {
+	s.ResourceId = &v
+	return s
+}
+
+// SetTagsList sets the TagsList field's value.
+func (s *ResourceTag) SetTagsList(v []*Tag) *ResourceTag {
+	s.TagsList = v
+	return s
+}
+
 // The request to CloudTrail to start logging AWS API calls for an account.
 type StartLoggingInput struct {
 	_ struct{} `type:"structure"`
@@ -2106,7 +3106,7 @@ type StartLoggingInput struct {
 	// Specifies the name or the CloudTrail ARN of the trail for which CloudTrail
 	// logs AWS API calls. The format of a trail ARN is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -2135,6 +3135,12 @@ func (s *StartLoggingInput) Validate() error {
 	return nil
 }
 
+// SetName sets the Name field's value.
+func (s *StartLoggingInput) SetName(v string) *StartLoggingInput {
+	s.Name = &v
+	return s
+}
+
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
 type StartLoggingOutput struct {
@@ -2159,7 +3165,7 @@ type StopLoggingInput struct {
 	// Specifies the name or the CloudTrail ARN of the trail for which CloudTrail
 	// will stop logging AWS API calls. The format of a trail ARN is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -2186,6 +3192,12 @@ func (s *StopLoggingInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *StopLoggingInput) SetName(v string) *StopLoggingInput {
+	s.Name = &v
+	return s
 }
 
 // Returns the objects or data listed below if successful. Otherwise, returns
@@ -2242,6 +3254,18 @@ func (s *Tag) Validate() error {
 	return nil
 }
 
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
 // The settings for a trail.
 type Trail struct {
 	_ struct{} `type:"structure"`
@@ -2253,6 +3277,9 @@ type Trail struct {
 	// Specifies the role for the CloudWatch Logs endpoint to assume to write to
 	// a user's log group.
 	CloudWatchLogsRoleArn *string `type:"string"`
+
+	// Specifies if the trail has custom event selectors.
+	HasCustomEventSelectors *bool `type:"boolean"`
 
 	// The region in which the trail was created.
 	HomeRegion *string `type:"string"`
@@ -2267,7 +3294,7 @@ type Trail struct {
 	// Specifies the KMS key ID that encrypts the logs delivered by CloudTrail.
 	// The value is a fully specified ARN to a KMS key in the format:
 	//
-	//  arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
 
 	// Specifies whether log file validation is enabled.
@@ -2289,7 +3316,7 @@ type Trail struct {
 	// Specifies the ARN of the Amazon SNS topic that CloudTrail uses to send notifications
 	// when log files are delivered. The format of a topic ARN is:
 	//
-	//  arn:aws:sns:us-east-1:123456789012:MyTopic
+	// arn:aws:sns:us-east-1:123456789012:MyTopic
 	SnsTopicARN *string `type:"string"`
 
 	// This field is deprecated. Use SnsTopicARN.
@@ -2297,7 +3324,7 @@ type Trail struct {
 
 	// Specifies the ARN of the trail. The format of a trail ARN is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	TrailARN *string `type:"string"`
 }
 
@@ -2309,6 +3336,90 @@ func (s Trail) String() string {
 // GoString returns the string representation
 func (s Trail) GoString() string {
 	return s.String()
+}
+
+// SetCloudWatchLogsLogGroupArn sets the CloudWatchLogsLogGroupArn field's value.
+func (s *Trail) SetCloudWatchLogsLogGroupArn(v string) *Trail {
+	s.CloudWatchLogsLogGroupArn = &v
+	return s
+}
+
+// SetCloudWatchLogsRoleArn sets the CloudWatchLogsRoleArn field's value.
+func (s *Trail) SetCloudWatchLogsRoleArn(v string) *Trail {
+	s.CloudWatchLogsRoleArn = &v
+	return s
+}
+
+// SetHasCustomEventSelectors sets the HasCustomEventSelectors field's value.
+func (s *Trail) SetHasCustomEventSelectors(v bool) *Trail {
+	s.HasCustomEventSelectors = &v
+	return s
+}
+
+// SetHomeRegion sets the HomeRegion field's value.
+func (s *Trail) SetHomeRegion(v string) *Trail {
+	s.HomeRegion = &v
+	return s
+}
+
+// SetIncludeGlobalServiceEvents sets the IncludeGlobalServiceEvents field's value.
+func (s *Trail) SetIncludeGlobalServiceEvents(v bool) *Trail {
+	s.IncludeGlobalServiceEvents = &v
+	return s
+}
+
+// SetIsMultiRegionTrail sets the IsMultiRegionTrail field's value.
+func (s *Trail) SetIsMultiRegionTrail(v bool) *Trail {
+	s.IsMultiRegionTrail = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *Trail) SetKmsKeyId(v string) *Trail {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetLogFileValidationEnabled sets the LogFileValidationEnabled field's value.
+func (s *Trail) SetLogFileValidationEnabled(v bool) *Trail {
+	s.LogFileValidationEnabled = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *Trail) SetName(v string) *Trail {
+	s.Name = &v
+	return s
+}
+
+// SetS3BucketName sets the S3BucketName field's value.
+func (s *Trail) SetS3BucketName(v string) *Trail {
+	s.S3BucketName = &v
+	return s
+}
+
+// SetS3KeyPrefix sets the S3KeyPrefix field's value.
+func (s *Trail) SetS3KeyPrefix(v string) *Trail {
+	s.S3KeyPrefix = &v
+	return s
+}
+
+// SetSnsTopicARN sets the SnsTopicARN field's value.
+func (s *Trail) SetSnsTopicARN(v string) *Trail {
+	s.SnsTopicARN = &v
+	return s
+}
+
+// SetSnsTopicName sets the SnsTopicName field's value.
+func (s *Trail) SetSnsTopicName(v string) *Trail {
+	s.SnsTopicName = &v
+	return s
+}
+
+// SetTrailARN sets the TrailARN field's value.
+func (s *Trail) SetTrailARN(v string) *Trail {
+	s.TrailARN = &v
+	return s
 }
 
 // Specifies settings to update for the trail.
@@ -2326,7 +3437,7 @@ type UpdateTrailInput struct {
 
 	// Specifies whether log file validation is enabled. The default is false.
 	//
-	//  When you disable log file integrity validation, the chain of digest files
+	// When you disable log file integrity validation, the chain of digest files
 	// is broken after one hour. CloudTrail will not create digest files for log
 	// files that were delivered during a period in which log file integrity validation
 	// was disabled. For example, if you enable log file integrity validation at
@@ -2354,33 +3465,33 @@ type UpdateTrailInput struct {
 	//
 	// Examples:
 	//
-	//   alias/MyAliasName
+	//    * alias/MyAliasName
 	//
-	//   arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
+	//    * arn:aws:kms:us-east-1:123456789012:alias/MyAliasName
 	//
-	//   arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	//    * arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
 	//
-	//   12345678-1234-1234-1234-123456789012
+	//    * 12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
 
 	// Specifies the name of the trail or trail ARN. If Name is a trail name, the
 	// string must meet the following requirements:
 	//
-	//   Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
-	// (_), or dashes (-)
+	//    * Contain only ASCII letters (a-z, A-Z), numbers (0-9), periods (.), underscores
+	//    (_), or dashes (-)
 	//
-	//   Start with a letter or number, and end with a letter or number
+	//    * Start with a letter or number, and end with a letter or number
 	//
-	//   Be between 3 and 128 characters
+	//    * Be between 3 and 128 characters
 	//
-	//   Have no adjacent periods, underscores or dashes. Names like my-_namespace
-	// and my--namespace are invalid.
+	//    * Have no adjacent periods, underscores or dashes. Names like my-_namespace
+	//    and my--namespace are invalid.
 	//
-	//   Not be in IP address format (for example, 192.168.5.4)
+	//    * Not be in IP address format (for example, 192.168.5.4)
 	//
-	//   If Name is a trail ARN, it must be in the format:
+	// If Name is a trail ARN, it must be in the format:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	//
 	// Name is a required field
 	Name *string `type:"string" required:"true"`
@@ -2423,6 +3534,66 @@ func (s *UpdateTrailInput) Validate() error {
 	return nil
 }
 
+// SetCloudWatchLogsLogGroupArn sets the CloudWatchLogsLogGroupArn field's value.
+func (s *UpdateTrailInput) SetCloudWatchLogsLogGroupArn(v string) *UpdateTrailInput {
+	s.CloudWatchLogsLogGroupArn = &v
+	return s
+}
+
+// SetCloudWatchLogsRoleArn sets the CloudWatchLogsRoleArn field's value.
+func (s *UpdateTrailInput) SetCloudWatchLogsRoleArn(v string) *UpdateTrailInput {
+	s.CloudWatchLogsRoleArn = &v
+	return s
+}
+
+// SetEnableLogFileValidation sets the EnableLogFileValidation field's value.
+func (s *UpdateTrailInput) SetEnableLogFileValidation(v bool) *UpdateTrailInput {
+	s.EnableLogFileValidation = &v
+	return s
+}
+
+// SetIncludeGlobalServiceEvents sets the IncludeGlobalServiceEvents field's value.
+func (s *UpdateTrailInput) SetIncludeGlobalServiceEvents(v bool) *UpdateTrailInput {
+	s.IncludeGlobalServiceEvents = &v
+	return s
+}
+
+// SetIsMultiRegionTrail sets the IsMultiRegionTrail field's value.
+func (s *UpdateTrailInput) SetIsMultiRegionTrail(v bool) *UpdateTrailInput {
+	s.IsMultiRegionTrail = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *UpdateTrailInput) SetKmsKeyId(v string) *UpdateTrailInput {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateTrailInput) SetName(v string) *UpdateTrailInput {
+	s.Name = &v
+	return s
+}
+
+// SetS3BucketName sets the S3BucketName field's value.
+func (s *UpdateTrailInput) SetS3BucketName(v string) *UpdateTrailInput {
+	s.S3BucketName = &v
+	return s
+}
+
+// SetS3KeyPrefix sets the S3KeyPrefix field's value.
+func (s *UpdateTrailInput) SetS3KeyPrefix(v string) *UpdateTrailInput {
+	s.S3KeyPrefix = &v
+	return s
+}
+
+// SetSnsTopicName sets the SnsTopicName field's value.
+func (s *UpdateTrailInput) SetSnsTopicName(v string) *UpdateTrailInput {
+	s.SnsTopicName = &v
+	return s
+}
+
 // Returns the objects or data listed below if successful. Otherwise, returns
 // an error.
 type UpdateTrailOutput struct {
@@ -2446,7 +3617,7 @@ type UpdateTrailOutput struct {
 	// Specifies the KMS key ID that encrypts the logs delivered by CloudTrail.
 	// The value is a fully specified ARN to a KMS key in the format:
 	//
-	//  arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
+	// arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012
 	KmsKeyId *string `type:"string"`
 
 	// Specifies whether log file integrity validation is enabled.
@@ -2467,7 +3638,7 @@ type UpdateTrailOutput struct {
 	// Specifies the ARN of the Amazon SNS topic that CloudTrail uses to send notifications
 	// when log files are delivered. The format of a topic ARN is:
 	//
-	//  arn:aws:sns:us-east-1:123456789012:MyTopic
+	// arn:aws:sns:us-east-1:123456789012:MyTopic
 	SnsTopicARN *string `type:"string"`
 
 	// This field is deprecated. Use SnsTopicARN.
@@ -2476,7 +3647,7 @@ type UpdateTrailOutput struct {
 	// Specifies the ARN of the trail that was updated. The format of a trail ARN
 	// is:
 	//
-	//  arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
+	// arn:aws:cloudtrail:us-east-1:123456789012:trail/MyTrail
 	TrailARN *string `type:"string"`
 }
 
@@ -2488,6 +3659,78 @@ func (s UpdateTrailOutput) String() string {
 // GoString returns the string representation
 func (s UpdateTrailOutput) GoString() string {
 	return s.String()
+}
+
+// SetCloudWatchLogsLogGroupArn sets the CloudWatchLogsLogGroupArn field's value.
+func (s *UpdateTrailOutput) SetCloudWatchLogsLogGroupArn(v string) *UpdateTrailOutput {
+	s.CloudWatchLogsLogGroupArn = &v
+	return s
+}
+
+// SetCloudWatchLogsRoleArn sets the CloudWatchLogsRoleArn field's value.
+func (s *UpdateTrailOutput) SetCloudWatchLogsRoleArn(v string) *UpdateTrailOutput {
+	s.CloudWatchLogsRoleArn = &v
+	return s
+}
+
+// SetIncludeGlobalServiceEvents sets the IncludeGlobalServiceEvents field's value.
+func (s *UpdateTrailOutput) SetIncludeGlobalServiceEvents(v bool) *UpdateTrailOutput {
+	s.IncludeGlobalServiceEvents = &v
+	return s
+}
+
+// SetIsMultiRegionTrail sets the IsMultiRegionTrail field's value.
+func (s *UpdateTrailOutput) SetIsMultiRegionTrail(v bool) *UpdateTrailOutput {
+	s.IsMultiRegionTrail = &v
+	return s
+}
+
+// SetKmsKeyId sets the KmsKeyId field's value.
+func (s *UpdateTrailOutput) SetKmsKeyId(v string) *UpdateTrailOutput {
+	s.KmsKeyId = &v
+	return s
+}
+
+// SetLogFileValidationEnabled sets the LogFileValidationEnabled field's value.
+func (s *UpdateTrailOutput) SetLogFileValidationEnabled(v bool) *UpdateTrailOutput {
+	s.LogFileValidationEnabled = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateTrailOutput) SetName(v string) *UpdateTrailOutput {
+	s.Name = &v
+	return s
+}
+
+// SetS3BucketName sets the S3BucketName field's value.
+func (s *UpdateTrailOutput) SetS3BucketName(v string) *UpdateTrailOutput {
+	s.S3BucketName = &v
+	return s
+}
+
+// SetS3KeyPrefix sets the S3KeyPrefix field's value.
+func (s *UpdateTrailOutput) SetS3KeyPrefix(v string) *UpdateTrailOutput {
+	s.S3KeyPrefix = &v
+	return s
+}
+
+// SetSnsTopicARN sets the SnsTopicARN field's value.
+func (s *UpdateTrailOutput) SetSnsTopicARN(v string) *UpdateTrailOutput {
+	s.SnsTopicARN = &v
+	return s
+}
+
+// SetSnsTopicName sets the SnsTopicName field's value.
+func (s *UpdateTrailOutput) SetSnsTopicName(v string) *UpdateTrailOutput {
+	s.SnsTopicName = &v
+	return s
+}
+
+// SetTrailARN sets the TrailARN field's value.
+func (s *UpdateTrailOutput) SetTrailARN(v string) *UpdateTrailOutput {
+	s.TrailARN = &v
+	return s
 }
 
 const (
@@ -2505,4 +3748,18 @@ const (
 
 	// LookupAttributeKeyResourceName is a LookupAttributeKey enum value
 	LookupAttributeKeyResourceName = "ResourceName"
+
+	// LookupAttributeKeyEventSource is a LookupAttributeKey enum value
+	LookupAttributeKeyEventSource = "EventSource"
+)
+
+const (
+	// ReadWriteTypeReadOnly is a ReadWriteType enum value
+	ReadWriteTypeReadOnly = "ReadOnly"
+
+	// ReadWriteTypeWriteOnly is a ReadWriteType enum value
+	ReadWriteTypeWriteOnly = "WriteOnly"
+
+	// ReadWriteTypeAll is a ReadWriteType enum value
+	ReadWriteTypeAll = "All"
 )

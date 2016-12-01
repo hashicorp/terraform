@@ -13,7 +13,6 @@ type GraphWalker interface {
 	ExitVertex(dag.Vertex, error)
 	EnterEvalTree(dag.Vertex, EvalNode) EvalNode
 	ExitEvalTree(dag.Vertex, interface{}, error) error
-	Debug() *DebugGraph
 }
 
 // GrpahWalkerPanicwrapper can be optionally implemented to catch panics
@@ -59,4 +58,3 @@ func (NullGraphWalker) EnterEvalTree(v dag.Vertex, n EvalNode) EvalNode { return
 func (NullGraphWalker) ExitEvalTree(dag.Vertex, interface{}, error) error {
 	return nil
 }
-func (NullGraphWalker) Debug() *DebugGraph { return nil }

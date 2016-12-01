@@ -58,6 +58,11 @@ These are the parameters that can be set:
     or map. This usually includes an interpolation since outputs that are
     static aren't usually useful.
 
+  * `depends_on` (list of strings) - Explicit dependencies that this
+      output has. These dependencies will be created before this
+      output value is processed. The dependencies are in the format of
+      `TYPE.NAME`, for example `aws_instance.web`.
+
   * `sensitive` (optional, boolean) - See below.
 
 ## Syntax

@@ -78,6 +78,13 @@ func resourceComputeImage() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"create_timeout": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  4,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -122,6 +129,12 @@ func resourceComputeImageCreate(d *schema.ResourceData, meta interface{}) error 
 		image.RawDisk = imageRawDisk
 	}
 
+	// Read create timeout
+	var createTimeout int
+	if v, ok := d.GetOk("create_timeout"); ok {
+		createTimeout = v.(int)
+	}
+
 	// Insert the image
 	op, err := config.clientCompute.Images.Insert(
 		project, image).Do()
@@ -132,7 +145,7 @@ func resourceComputeImageCreate(d *schema.ResourceData, meta interface{}) error 
 	// Store the ID
 	d.SetId(image.Name)
 
-	err = computeOperationWaitGlobal(config, op, project, "Creating Image")
+	err = computeOperationWaitGlobalTime(config, op, project, "Creating Image", createTimeout)
 	if err != nil {
 		return err
 	}

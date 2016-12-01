@@ -81,3 +81,9 @@ The following configuration options are supported:
 
  * `key` - (Optional) Specify client private key file for SSL client
    authentication. If omitted the `OS_KEY` environment variable is used.
+
+ * `archive_path` - (Optional) The path to store archived copied of `terraform.tfstate`.
+   If specified, Swift object versioning is enabled on the container created at `path`.
+
+ * `expire_after` - (Optional) How long should the `terraform.tfstate` created at `path`
+   be retained for? Supported durations: `m` - Minutes, `h` - Hours, `d` - Days.

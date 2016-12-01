@@ -125,16 +125,25 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("OS_KEY", ""),
 				Description: descriptions["key"],
 			},
+
+			"swauth": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_SWAUTH", ""),
+				Description: descriptions["swauth"],
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"openstack_blockstorage_volume_v1":         resourceBlockStorageVolumeV1(),
 			"openstack_blockstorage_volume_v2":         resourceBlockStorageVolumeV2(),
+			"openstack_blockstorage_volume_attach_v2":  resourceBlockStorageVolumeAttachV2(),
 			"openstack_compute_instance_v2":            resourceComputeInstanceV2(),
 			"openstack_compute_keypair_v2":             resourceComputeKeypairV2(),
 			"openstack_compute_secgroup_v2":            resourceComputeSecGroupV2(),
 			"openstack_compute_servergroup_v2":         resourceComputeServerGroupV2(),
 			"openstack_compute_floatingip_v2":          resourceComputeFloatingIPV2(),
+			"openstack_compute_volume_attach_v2":       resourceComputeVolumeAttachV2(),
 			"openstack_fw_firewall_v1":                 resourceFWFirewallV1(),
 			"openstack_fw_policy_v1":                   resourceFWPolicyV1(),
 			"openstack_fw_rule_v1":                     resourceFWRuleV1(),
@@ -196,6 +205,9 @@ func init() {
 		"cert": "A client certificate to authenticate with.",
 
 		"key": "A client private key to authenticate with.",
+
+		"swauth": "Use Swift's authentication system instead of Keystone. Only used for\n" +
+			"interaction with Swift.",
 	}
 }
 
@@ -210,6 +222,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		IdentityEndpoint: d.Get("auth_url").(string),
 		Insecure:         d.Get("insecure").(bool),
 		Password:         d.Get("password").(string),
+		Swauth:           d.Get("swauth").(bool),
 		Token:            d.Get("token").(string),
 		TenantID:         d.Get("tenant_id").(string),
 		TenantName:       d.Get("tenant_name").(string),

@@ -19,9 +19,9 @@ project's existing policy. The policy is always specified in a
 ## Example Usage
 
 ```js
-resource "google_project" "my-project" {
+resource "google_project" "my_project" {
     id = "your-project-id"
-    policy_data = "${data.google_iam_policy.admin.policy}"
+    policy_data = "${data.google_iam_policy.admin.policy_data}"
 }
 
 data "google_iam_policy" "admin" {

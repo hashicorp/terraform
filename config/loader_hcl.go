@@ -19,13 +19,14 @@ type hclConfigurable struct {
 
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
-		"atlas":    struct{}{},
-		"data":     struct{}{},
-		"module":   struct{}{},
-		"output":   struct{}{},
-		"provider": struct{}{},
-		"resource": struct{}{},
-		"variable": struct{}{},
+		"atlas":     struct{}{},
+		"data":      struct{}{},
+		"module":    struct{}{},
+		"output":    struct{}{},
+		"provider":  struct{}{},
+		"resource":  struct{}{},
+		"terraform": struct{}{},
+		"variable":  struct{}{},
 	}
 
 	// Top-level item should be the object list
@@ -36,6 +37,15 @@ func (t *hclConfigurable) Config() (*Config, error) {
 
 	// Start building up the actual configuration.
 	config := new(Config)
+
+	// Terraform config
+	if o := list.Filter("terraform"); len(o.Items) > 0 {
+		var err error
+		config.Terraform, err = loadTerraformHcl(o)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// Build the variables
 	if vars := list.Filter("variable"); len(vars.Items) > 0 {
@@ -190,6 +200,32 @@ func loadFileHcl(root string) (configurable, []string, error) {
 	return result, nil, nil
 }
 
+// Given a handle to a HCL object, this transforms it into the Terraform config
+func loadTerraformHcl(list *ast.ObjectList) (*Terraform, error) {
+	if len(list.Items) > 1 {
+		return nil, fmt.Errorf("only one 'terraform' block allowed per module")
+	}
+
+	// Get our one item
+	item := list.Items[0]
+
+	// NOTE: We purposely don't validate unknown HCL keys here so that
+	// we can potentially read _future_ Terraform version config (to
+	// still be able to validate the required version).
+	//
+	// We should still keep track of unknown keys to validate later, but
+	// HCL doesn't currently support that.
+
+	var config Terraform
+	if err := hcl.DecodeObject(&config, item.Val); err != nil {
+		return nil, fmt.Errorf(
+			"Error reading terraform config: %s",
+			err)
+	}
+
+	return &config, nil
+}
+
 // Given a handle to a HCL object, this transforms it into the Atlas
 // configuration.
 func loadAtlasHcl(list *ast.ObjectList) (*AtlasConfig, error) {
@@ -292,10 +328,20 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 	for _, item := range list.Items {
 		n := item.Keys[0].Token.Value().(string)
 
+		var listVal *ast.ObjectList
+		if ot, ok := item.Val.(*ast.ObjectType); ok {
+			listVal = ot.List
+		} else {
+			return nil, fmt.Errorf("output '%s': should be an object", n)
+		}
+
 		var config map[string]interface{}
 		if err := hcl.DecodeObject(&config, item.Val); err != nil {
 			return nil, err
 		}
+
+		// Delete special keys
+		delete(config, "depends_on")
 
 		rawConfig, err := NewRawConfig(config)
 		if err != nil {
@@ -305,9 +351,22 @@ func loadOutputsHcl(list *ast.ObjectList) ([]*Output, error) {
 				err)
 		}
 
+		// If we have depends fields, then add those in
+		var dependsOn []string
+		if o := listVal.Filter("depends_on"); len(o.Items) > 0 {
+			err := hcl.DecodeObject(&dependsOn, o.Items[0].Val)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading depends_on for output %q: %s",
+					n,
+					err)
+			}
+		}
+
 		result = append(result, &Output{
 			Name:      n,
 			RawConfig: rawConfig,
+			DependsOn: dependsOn,
 		})
 	}
 

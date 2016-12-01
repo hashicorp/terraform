@@ -2608,6 +2608,49 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		{
+			Name: "Set ForceNew marks count as ForceNew if computed",
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					ForceNew: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.1": "1",
+					"ports.2": "2",
+					"ports.4": "4",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{"${var.foo}", 2, 1},
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.foo": interfaceToVariableSwallowError(config.UnknownVariableValue),
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old:         "3",
+						New:         "",
+						NewComputed: true,
+						RequiresNew: true,
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -3218,6 +3261,159 @@ func TestSchemaMap_DiffSuppress(t *testing.T) {
 					"availability_zone": {
 						Old: "",
 						New: "foo",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		"Complex structure with set of computed string should mark root set as computed": {
+			Schema: map[string]*Schema{
+				"outer": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"outer_str": &Schema{
+								Type:     TypeString,
+								Optional: true,
+							},
+							"inner": &Schema{
+								Type:     TypeSet,
+								Optional: true,
+								Elem: &Resource{
+									Schema: map[string]*Schema{
+										"inner_str": &Schema{
+											Type:     TypeString,
+											Optional: true,
+										},
+									},
+								},
+								Set: func(v interface{}) int {
+									return 2
+								},
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						return 1
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"outer": []map[string]interface{}{
+					map[string]interface{}{
+						"outer_str": "foo",
+						"inner": []map[string]interface{}{
+							map[string]interface{}{
+								"inner_str": "${var.bar}",
+							},
+						},
+					},
+				},
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.bar": interfaceToVariableSwallowError(config.UnknownVariableValue),
+			},
+
+			ExpectedDiff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"outer.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"outer.~1.outer_str": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"outer.~1.inner.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"outer.~1.inner.~2.inner_str": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.bar}",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		"Complex structure with complex list of computed string should mark root set as computed": {
+			Schema: map[string]*Schema{
+				"outer": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"outer_str": &Schema{
+								Type:     TypeString,
+								Optional: true,
+							},
+							"inner": &Schema{
+								Type:     TypeList,
+								Optional: true,
+								Elem: &Resource{
+									Schema: map[string]*Schema{
+										"inner_str": &Schema{
+											Type:     TypeString,
+											Optional: true,
+										},
+									},
+								},
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						return 1
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"outer": []map[string]interface{}{
+					map[string]interface{}{
+						"outer_str": "foo",
+						"inner": []map[string]interface{}{
+							map[string]interface{}{
+								"inner_str": "${var.bar}",
+							},
+						},
+					},
+				},
+			},
+
+			ConfigVariables: map[string]ast.Variable{
+				"var.bar": interfaceToVariableSwallowError(config.UnknownVariableValue),
+			},
+
+			ExpectedDiff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"outer.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"outer.~1.outer_str": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"outer.~1.inner.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"outer.~1.inner.0.inner_str": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.bar}",
+						NewComputed: true,
 					},
 				},
 			},

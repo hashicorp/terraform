@@ -644,6 +644,10 @@ func (s *State) init() {
 	}
 	s.ensureHasLineage()
 
+	// We can't trust that state read from a file doesn't have nil/empty
+	// modules
+	s.prune()
+
 	for _, mod := range s.Modules {
 		mod.init()
 	}
@@ -651,6 +655,7 @@ func (s *State) init() {
 	if s.Remote != nil {
 		s.Remote.init()
 	}
+
 }
 
 func (s *State) EnsureHasLineage() {
@@ -695,6 +700,18 @@ func (s *State) prune() {
 	if s == nil {
 		return
 	}
+
+	// Filter out empty modules.
+	// A module is always assumed to have a path, and it's length isn't always
+	// bounds checked later on. Modules may be "emptied" during destroy, but we
+	// never want to store those in the state.
+	for i := 0; i < len(s.Modules); i++ {
+		if s.Modules[i] == nil || len(s.Modules[i].Path) == 0 {
+			s.Modules = append(s.Modules[:i], s.Modules[i+1:]...)
+			i--
+		}
+	}
+
 	for _, mod := range s.Modules {
 		mod.prune()
 	}
@@ -1074,11 +1091,12 @@ func (m *ModuleState) prune() {
 	defer m.Unlock()
 
 	for k, v := range m.Resources {
-		v.prune()
-
-		if (v.Primary == nil || v.Primary.ID == "") && len(v.Deposed) == 0 {
+		if v == nil || (v.Primary == nil || v.Primary.ID == "") && len(v.Deposed) == 0 {
 			delete(m.Resources, k)
+			continue
 		}
+
+		v.prune()
 	}
 
 	for k, v := range m.Outputs {
@@ -1420,19 +1438,6 @@ func (s *ResourceState) init() {
 	if s.Deposed == nil {
 		s.Deposed = make([]*InstanceState, 0)
 	}
-
-	// clean out any possible nil values read in from the state file
-	end := len(s.Deposed) - 1
-	for i := 0; i <= end; i++ {
-		if s.Deposed[i] == nil {
-			s.Deposed[i], s.Deposed[end] = s.Deposed[end], s.Deposed[i]
-			end--
-			i--
-		} else {
-			s.Deposed[i].init()
-		}
-	}
-	s.Deposed = s.Deposed[:end+1]
 }
 
 func (s *ResourceState) deepcopy() *ResourceState {

@@ -160,6 +160,54 @@ func TestResourceConfigGet(t *testing.T) {
 			Key:   "mapname.0.listkey.0.key",
 			Value: 3,
 		},
+
+		// A map assigned to a list via interpolation should Get a non-existent
+		// value. The test code now also checks that Get doesn't return (nil,
+		// true), which it previously did for this configuration.
+		{
+			Config: map[string]interface{}{
+				"maplist": "${var.maplist}",
+			},
+			Key:   "maplist.0",
+			Value: nil,
+		},
+
+		// Reference list of maps variable.
+		// This does not work from GetRaw.
+		{
+			Vars: map[string]interface{}{
+				"maplist": []interface{}{
+					map[string]interface{}{
+						"key": "a",
+					},
+					map[string]interface{}{
+						"key": "b",
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"maplist": "${var.maplist}",
+			},
+			Key:   "maplist.0",
+			Value: map[string]interface{}{"key": "a"},
+		},
+
+		// Reference a map-of-lists variable.
+		// This does not work from GetRaw.
+		{
+			Vars: map[string]interface{}{
+				"listmap": map[string]interface{}{
+					"key1": []interface{}{"a", "b"},
+					"key2": []interface{}{"c", "d"},
+				},
+			},
+			Config: map[string]interface{}{
+				"listmap": "${var.listmap}",
+			},
+			Key:   "listmap.key1",
+			Value: []interface{}{"a", "b"},
+		},
+
 		// FIXME: this is ambiguous, and matches the nested map
 		//        leaving here to catch this behaviour if it changes.
 		{
@@ -226,7 +274,11 @@ func TestResourceConfigGet(t *testing.T) {
 
 		// Test getting a key
 		t.Run(fmt.Sprintf("get-%d", i), func(t *testing.T) {
-			v, _ := rc.Get(tc.Key)
+			v, ok := rc.Get(tc.Key)
+			if ok && v == nil {
+				t.Fatal("(nil, true) returned from Get")
+			}
+
 			if !reflect.DeepEqual(v, tc.Value) {
 				t.Fatalf("%d bad: %#v", i, v)
 			}
@@ -249,6 +301,92 @@ func TestResourceConfigGet(t *testing.T) {
 			}
 			if !rc.Equal(copy) {
 				t.Fatalf("rc != copy:\n\n%#v\n\n%#v", copy, rc)
+			}
+		})
+	}
+}
+
+func TestResourceConfigGetRaw(t *testing.T) {
+	cases := []struct {
+		Config map[string]interface{}
+		Vars   map[string]interface{}
+		Key    string
+		Value  interface{}
+	}{
+		// Referencing a list-of-maps variable doesn't work from GetRaw.
+		// The ConfigFieldReader currently catches this case and looks up the
+		// variable in the config.
+		{
+			Vars: map[string]interface{}{
+				"maplist": []interface{}{
+					map[string]interface{}{
+						"key": "a",
+					},
+					map[string]interface{}{
+						"key": "b",
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"maplist": "${var.maplist}",
+			},
+			Key:   "maplist.0",
+			Value: nil,
+		},
+		// Reference a map-of-lists variable.
+		// The ConfigFieldReader currently catches this case and looks up the
+		// variable in the config.
+		{
+			Vars: map[string]interface{}{
+				"listmap": map[string]interface{}{
+					"key1": []interface{}{"a", "b"},
+					"key2": []interface{}{"c", "d"},
+				},
+			},
+			Config: map[string]interface{}{
+				"listmap": "${var.listmap}",
+			},
+			Key:   "listmap.key1",
+			Value: nil,
+		},
+	}
+
+	for i, tc := range cases {
+		var rawC *config.RawConfig
+		if tc.Config != nil {
+			var err error
+			rawC, err = config.NewRawConfig(tc.Config)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
+		if tc.Vars != nil {
+			vs := make(map[string]ast.Variable)
+			for k, v := range tc.Vars {
+				hilVar, err := hil.InterfaceToVariable(v)
+				if err != nil {
+					t.Fatalf("%#v to var: %s", v, err)
+				}
+				vs["var."+k] = hilVar
+			}
+			if err := rawC.Interpolate(vs); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
+		rc := NewResourceConfig(rawC)
+		rc.interpolateForce()
+
+		// Test getting a key
+		t.Run(fmt.Sprintf("get-%d", i), func(t *testing.T) {
+			v, ok := rc.GetRaw(tc.Key)
+			if ok && v == nil {
+				t.Fatal("(nil, true) returned from GetRaw")
+			}
+
+			if !reflect.DeepEqual(v, tc.Value) {
+				t.Fatalf("%d bad: %#v", i, v)
 			}
 		})
 	}

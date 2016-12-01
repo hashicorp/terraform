@@ -53,6 +53,9 @@ The following arguments are supported: (Note that one of either source_disk or
     Changing this forces a new resource to be created. Structure is documented
     below.
 
+* `create_timeout` - Configurable timeout in minutes for creating images. Default is 4 minutes.
+    Changing this forces a new resource to be created.
+
 The `raw_disk` block supports:
 
 * `source` - (Required) The full Google Cloud Storage URL where the disk

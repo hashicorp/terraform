@@ -32,6 +32,7 @@ func (c *ImportCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&configPath, "config", pwd, "path")
+	cmdFlags.StringVar(&c.Meta.provider, "provider", "", "provider")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -62,8 +63,9 @@ func (c *ImportCommand) Run(args []string) int {
 	newState, err := ctx.Import(&terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			&terraform.ImportTarget{
-				Addr: args[0],
-				ID:   args[1],
+				Addr:     args[0],
+				ID:       args[1],
+				Provider: c.Meta.provider,
 			},
 		},
 	})
@@ -131,6 +133,10 @@ Options:
   -input=true         Ask for input for variables if not directly set.
 
   -no-color           If specified, output won't contain any color.
+
+  -provider=provider  Specific provider to use for import. This is used for
+                      specifying aliases, such as "aws.eu". Defaults to the
+                      normal provider prefix of the resource being imported.
 
   -state=path         Path to read and save state (unless state-out
                       is specified). Defaults to "terraform.tfstate".

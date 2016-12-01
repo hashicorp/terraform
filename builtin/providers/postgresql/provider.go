@@ -40,6 +40,13 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("PGSSLMODE", "require"),
 				Description: "Connection mode for PostgreSQL server",
 			},
+			"connect_timeout": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     15,
+				DefaultFunc: schema.EnvDefaultFunc("PGCONNECT_TIMEOUT", nil),
+				Description: "Maximum wait for connection, in seconds. Zero or not specified means wait indefinitely.",
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -59,6 +66,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Username: d.Get("username").(string),
 		Password: d.Get("password").(string),
 		SslMode:  d.Get("ssl_mode").(string),
+		Timeout:  d.Get("connect_timeout").(int),
 	}
 
 	client, err := config.NewClient()

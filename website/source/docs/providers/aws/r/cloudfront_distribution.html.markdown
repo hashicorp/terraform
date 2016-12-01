@@ -36,6 +36,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   enabled             = true
+  is_ipv6_enabled     = true
   comment             = "Some comment"
   default_root_object = "index.html"
 
@@ -113,6 +114,8 @@ of several sub-resources - these resources are laid out below.
 
   * `enabled` (Required) - Whether the distribution is enabled to accept end
     user requests for content.
+
+  * `is_ipv6_enabled` (Optional) - Whether the IPv6 is enabled for the distribution.
 
   * `http_version` (Optional) - The maximum HTTP version to support on the
     distribution. Allowed values are `http1.1` and `http2`. The default is

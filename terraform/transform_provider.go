@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/dot"
 )
 
 // GraphNodeProvider is an interface that nodes that can be a provider
@@ -355,14 +354,17 @@ func (n *graphNodeCloseProvider) CloseProviderName() string {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeCloseProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+func (n *graphNodeCloseProvider) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 	if !opts.Verbose {
 		return nil
 	}
-	return dot.NewNode(name, map[string]string{
-		"label": n.Name(),
-		"shape": "diamond",
-	})
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "diamond",
+		},
+	}
 }
 
 type graphNodeProvider struct {
@@ -393,11 +395,14 @@ func (n *graphNodeProvider) ProviderConfig() *config.RawConfig {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
-	return dot.NewNode(name, map[string]string{
-		"label": n.Name(),
-		"shape": "diamond",
-	})
+func (n *graphNodeProvider) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "diamond",
+		},
+	}
 }
 
 // GraphNodeDotterOrigin impl.

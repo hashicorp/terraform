@@ -5,16 +5,19 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/experiment"
+	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -69,11 +72,14 @@ type Meta struct {
 	// allowed when walking the graph
 	//
 	// shadow is used to enable/disable the shadow graph
+	//
+	// provider is to specify specific resource providers
 	statePath    string
 	stateOutPath string
 	backupPath   string
 	parallelism  int
 	shadow       bool
+	provider     string
 }
 
 // initStatePaths is used to initialize the default values for
@@ -310,6 +316,17 @@ func (m *Meta) Input() bool {
 	return !test && m.input && len(m.variables) == 0
 }
 
+// StdinPiped returns true if the input is piped.
+func (m *Meta) StdinPiped() bool {
+	fi, err := wrappedstreams.Stdin().Stat()
+	if err != nil {
+		// If there is an error, let's just say its not piped
+		return false
+	}
+
+	return fi.Mode()&os.ModeNamedPipe != 0
+}
+
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
@@ -484,6 +501,14 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 		return false
 	}
 
+	// Write the shadow error output to a file
+	path := fmt.Sprintf("terraform-error-%d.log", time.Now().UTC().Unix())
+	if err := ioutil.WriteFile(path, []byte(err.Error()), 0644); err != nil {
+		// If there is an error writing it, just let it go
+		log.Printf("[ERROR] Error writing shadow error: %s", err)
+		return false
+	}
+
 	// Output!
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
 		"[reset][bold][yellow]\nExperimental feature failure! Please report a bug.\n\n"+
@@ -493,14 +518,13 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 			"background. These features cannot affect real state and never touch\n"+
 			"real infrastructure. If the features work properly, you see nothing.\n"+
 			"If the features fail, this message appears.\n\n"+
-			"The following failures happened while running experimental features.\n"+
-			"Please report a Terraform bug so that future Terraform versions that\n"+
-			"enable these features can be improved!\n\n"+
 			"You can report an issue at: https://github.com/hashicorp/terraform/issues\n\n"+
-			"%s\n\n"+
+			"The failure was written to %q. Please\n"+
+			"double check this file contains no sensitive information and report\n"+
+			"it with your issue.\n\n"+
 			"This is not an error. Your terraform operation completed successfully\n"+
 			"and your real infrastructure is unaffected by this message.",
-		err,
+		path,
 	)))
 
 	return true

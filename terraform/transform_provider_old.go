@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/dot"
 )
 
 // DisableProviderTransformer "disables" any providers that are only
@@ -102,11 +101,14 @@ func (n *graphNodeDisabledProvider) Name() string {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeDisabledProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
-	return dot.NewNode(name, map[string]string{
-		"label": n.Name(),
-		"shape": "diamond",
-	})
+func (n *graphNodeDisabledProvider) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "diamond",
+		},
+	}
 }
 
 // GraphNodeDotterOrigin impl.

@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
@@ -138,5 +139,17 @@ func (c *shadowContextCloser) CloseShadow() error {
 }
 
 func (c *shadowContextCloser) ShadowError() error {
-	return c.Components.ShadowError()
+	err := c.Components.ShadowError()
+	if err == nil {
+		return nil
+	}
+
+	// This is a sad edge case: if the configuration contains uuid() at
+	// any point, we cannot reason aboyt the shadow execution. Tested
+	// with Context2Plan_shadowUuid.
+	if strings.Contains(err.Error(), "uuid()") {
+		err = nil
+	}
+
+	return err
 }

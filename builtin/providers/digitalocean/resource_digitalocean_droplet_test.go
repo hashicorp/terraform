@@ -255,7 +255,7 @@ func testAccCheckDigitalOceanDropletRenamedAndResized(droplet *godo.Droplet) res
 		}
 
 		if droplet.Disk != 30 {
-			return fmt.Errorf("Bad disk: %s", droplet.Disk)
+			return fmt.Errorf("Bad disk: %d", droplet.Disk)
 		}
 
 		return nil
@@ -270,7 +270,7 @@ func testAccCheckDigitalOceanDropletResizeWithOutDisk(droplet *godo.Droplet) res
 		}
 
 		if droplet.Disk != 20 {
-			return fmt.Errorf("Bad disk: %s", droplet.Disk)
+			return fmt.Errorf("Bad disk: %d", droplet.Disk)
 		}
 
 		return nil

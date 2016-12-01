@@ -35,13 +35,27 @@ func init() {
 		Ui:          Ui,
 	}
 
+	// The command list is included in the terraform -help
+	// output, which is in turn included in the docs at
+	// website/source/docs/commands/index.html.markdown; if you
+	// add, remove or reclassify commands then consider updating
+	// that to match.
+
 	PlumbingCommands = map[string]struct{}{
 		"state": struct{}{}, // includes all subcommands
+		"debug": struct{}{}, // includes all subcommands
 	}
 
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
+				Meta:       meta,
+				ShutdownCh: makeShutdownCh(),
+			}, nil
+		},
+
+		"console": func() (cli.Command, error) {
+			return &command.ConsoleCommand{
 				Meta:       meta,
 				ShutdownCh: makeShutdownCh(),
 			}, nil
@@ -158,6 +172,18 @@ func init() {
 		//-----------------------------------------------------------
 		// Plumbing
 		//-----------------------------------------------------------
+
+		"debug": func() (cli.Command, error) {
+			return &command.DebugCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"debug json2dot": func() (cli.Command, error) {
+			return &command.DebugJSON2DotCommand{
+				Meta: meta,
+			}, nil
+		},
 
 		"state": func() (cli.Command, error) {
 			return &command.StateCommand{

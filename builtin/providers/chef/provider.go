@@ -17,25 +17,31 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"server_url": &schema.Schema{
+			"server_url": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CHEF_SERVER_URL", nil),
 				Description: "URL of the root of the target Chef server or organization.",
 			},
-			"client_name": &schema.Schema{
+			"client_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("CHEF_CLIENT_NAME", nil),
 				Description: "Name of a registered client within the Chef server.",
 			},
-			"private_key_pem": &schema.Schema{
+			"private_key_pem": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: providerPrivateKeyEnvDefault,
+				Deprecated:  "Please use key_material instead",
 				Description: "PEM-formatted private key for client authentication.",
 			},
-			"allow_unverified_ssl": &schema.Schema{
+			"key_material": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CHEF_KEY_MATERIAL", ""),
+			},
+			"allow_unverified_ssl": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "If set, the Chef client will permit unverifiable SSL certificates.",
@@ -60,10 +66,17 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := &chefc.Config{
 		Name:    d.Get("client_name").(string),
-		Key:     d.Get("private_key_pem").(string),
 		BaseURL: d.Get("server_url").(string),
 		SkipSSL: d.Get("allow_unverified_ssl").(bool),
 		Timeout: 10 * time.Second,
+	}
+
+	if v, ok := d.GetOk("private_key_pem"); ok {
+		config.Key = v.(string)
+	}
+
+	if v, ok := d.GetOk("key_material"); ok {
+		config.Key = v.(string)
 	}
 
 	return chefc.NewClient(config)

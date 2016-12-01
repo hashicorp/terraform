@@ -750,6 +750,76 @@ func TestInstanceDiffSame(t *testing.T) {
 			"",
 		},
 
+		// Computed can change RequiresNew by removal, and that's okay
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "0",
+						NewComputed: true,
+						RequiresNew: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{},
+			},
+			true,
+			"",
+		},
+
+		// Computed can change Destroy by removal, and that's okay
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "0",
+						NewComputed: true,
+						RequiresNew: true,
+					},
+				},
+
+				Destroy: true,
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{},
+			},
+			true,
+			"",
+		},
+
+		// Computed can change Destroy by elements
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "0",
+						NewComputed: true,
+						RequiresNew: true,
+					},
+				},
+
+				Destroy: true,
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "1",
+						New: "1",
+					},
+					"foo.12": &ResourceAttrDiff{
+						Old:         "4",
+						New:         "12",
+						RequiresNew: true,
+					},
+				},
+
+				Destroy: true,
+			},
+			true,
+			"",
+		},
+
 		// Computed sets may not contain all fields in the original diff, and
 		// because multiple entries for the same set can compute to the same
 		// hash before the values are computed or interpolated, the overall
@@ -915,6 +985,100 @@ func TestInstanceDiffSame(t *testing.T) {
 						Old:         "",
 						New:         "new",
 						RequiresNew: true,
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// Innner computed set should allow outer change in key
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~1.outer_val": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"foo.~1.inner.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~1.inner.~2.value": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.bar}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.12.outer_val": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"foo.12.inner.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.12.inner.42.value": &ResourceAttrDiff{
+						Old: "",
+						New: "baz",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// Innner computed list should allow outer change in key
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~1.outer_val": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"foo.~1.inner.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~1.inner.0.value": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.bar}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.12.outer_val": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"foo.12.inner.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.12.inner.0.value": &ResourceAttrDiff{
+						Old: "",
+						New: "baz",
 					},
 				},
 			},

@@ -105,6 +105,9 @@ The following arguments are supported:
 
 * `tags` - (Optional) Tags to attach to the instance.
 
+* `create_timeout` - (Optional) Configurable timeout in minutes for creating instances. Default is 4 minutes.
+    Changing this forces a new resource to be created.
+
 The `disk` block supports: (Note that either disk or image is required, unless
 the type is "local-ssd", in which case scratch must be true).
 

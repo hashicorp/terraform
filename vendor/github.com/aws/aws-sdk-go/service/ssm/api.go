@@ -66,7 +66,7 @@ func (c *SSM) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 // and Value=Production, Pre-Production, or Test. Each resource can have a maximum
 // of 10 tags.
 //
-//  We recommend that you devise a set of tag keys that meets your needs for
+// We recommend that you devise a set of tag keys that meets your needs for
 // each resource type. Using a consistent set of tag keys makes it easier for
 // you to manage your resources. You can search and filter the resources based
 // on the tags you add. Tags don't have any semantic meaning to Amazon EC2 and
@@ -2252,6 +2252,60 @@ func (s Activation) GoString() string {
 	return s.String()
 }
 
+// SetActivationId sets the ActivationId field's value.
+func (s *Activation) SetActivationId(v string) *Activation {
+	s.ActivationId = &v
+	return s
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *Activation) SetCreatedDate(v time.Time) *Activation {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDefaultInstanceName sets the DefaultInstanceName field's value.
+func (s *Activation) SetDefaultInstanceName(v string) *Activation {
+	s.DefaultInstanceName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Activation) SetDescription(v string) *Activation {
+	s.Description = &v
+	return s
+}
+
+// SetExpirationDate sets the ExpirationDate field's value.
+func (s *Activation) SetExpirationDate(v time.Time) *Activation {
+	s.ExpirationDate = &v
+	return s
+}
+
+// SetExpired sets the Expired field's value.
+func (s *Activation) SetExpired(v bool) *Activation {
+	s.Expired = &v
+	return s
+}
+
+// SetIamRole sets the IamRole field's value.
+func (s *Activation) SetIamRole(v string) *Activation {
+	s.IamRole = &v
+	return s
+}
+
+// SetRegistrationLimit sets the RegistrationLimit field's value.
+func (s *Activation) SetRegistrationLimit(v int64) *Activation {
+	s.RegistrationLimit = &v
+	return s
+}
+
+// SetRegistrationsCount sets the RegistrationsCount field's value.
+func (s *Activation) SetRegistrationsCount(v int64) *Activation {
+	s.RegistrationsCount = &v
+	return s
+}
+
 type AddTagsToResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2312,6 +2366,24 @@ func (s *AddTagsToResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceId sets the ResourceId field's value.
+func (s *AddTagsToResourceInput) SetResourceId(v string) *AddTagsToResourceInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *AddTagsToResourceInput) SetResourceType(v string) *AddTagsToResourceInput {
+	s.ResourceType = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *AddTagsToResourceInput) SetTags(v []*Tag) *AddTagsToResourceInput {
+	s.Tags = v
+	return s
+}
+
 type AddTagsToResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2347,6 +2419,18 @@ func (s Association) GoString() string {
 	return s.String()
 }
 
+// SetInstanceId sets the InstanceId field's value.
+func (s *Association) SetInstanceId(v string) *Association {
+	s.InstanceId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *Association) SetName(v string) *Association {
+	s.Name = &v
+	return s
+}
+
 // Describes the parameters for a document.
 type AssociationDescription struct {
 	_ struct{} `type:"structure"`
@@ -2375,6 +2459,36 @@ func (s AssociationDescription) String() string {
 // GoString returns the string representation
 func (s AssociationDescription) GoString() string {
 	return s.String()
+}
+
+// SetDate sets the Date field's value.
+func (s *AssociationDescription) SetDate(v time.Time) *AssociationDescription {
+	s.Date = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *AssociationDescription) SetInstanceId(v string) *AssociationDescription {
+	s.InstanceId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *AssociationDescription) SetName(v string) *AssociationDescription {
+	s.Name = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *AssociationDescription) SetParameters(v map[string][]*string) *AssociationDescription {
+	s.Parameters = v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *AssociationDescription) SetStatus(v *AssociationStatus) *AssociationDescription {
+	s.Status = v
+	return s
 }
 
 // Describes a filter.
@@ -2419,6 +2533,18 @@ func (s *AssociationFilter) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *AssociationFilter) SetKey(v string) *AssociationFilter {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *AssociationFilter) SetValue(v string) *AssociationFilter {
+	s.Value = &v
+	return s
 }
 
 // Describes an association status.
@@ -2473,6 +2599,30 @@ func (s *AssociationStatus) Validate() error {
 	return nil
 }
 
+// SetAdditionalInfo sets the AdditionalInfo field's value.
+func (s *AssociationStatus) SetAdditionalInfo(v string) *AssociationStatus {
+	s.AdditionalInfo = &v
+	return s
+}
+
+// SetDate sets the Date field's value.
+func (s *AssociationStatus) SetDate(v time.Time) *AssociationStatus {
+	s.Date = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *AssociationStatus) SetMessage(v string) *AssociationStatus {
+	s.Message = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *AssociationStatus) SetName(v string) *AssociationStatus {
+	s.Name = &v
+	return s
+}
+
 type CancelCommandInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2514,6 +2664,18 @@ func (s *CancelCommandInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCommandId sets the CommandId field's value.
+func (s *CancelCommandInput) SetCommandId(v string) *CancelCommandInput {
+	s.CommandId = &v
+	return s
+}
+
+// SetInstanceIds sets the InstanceIds field's value.
+func (s *CancelCommandInput) SetInstanceIds(v []*string) *CancelCommandInput {
+	s.InstanceIds = v
+	return s
 }
 
 // Whether or not the command was successfully canceled. There is no guarantee
@@ -2590,6 +2752,78 @@ func (s Command) GoString() string {
 	return s.String()
 }
 
+// SetCommandId sets the CommandId field's value.
+func (s *Command) SetCommandId(v string) *Command {
+	s.CommandId = &v
+	return s
+}
+
+// SetComment sets the Comment field's value.
+func (s *Command) SetComment(v string) *Command {
+	s.Comment = &v
+	return s
+}
+
+// SetDocumentName sets the DocumentName field's value.
+func (s *Command) SetDocumentName(v string) *Command {
+	s.DocumentName = &v
+	return s
+}
+
+// SetExpiresAfter sets the ExpiresAfter field's value.
+func (s *Command) SetExpiresAfter(v time.Time) *Command {
+	s.ExpiresAfter = &v
+	return s
+}
+
+// SetInstanceIds sets the InstanceIds field's value.
+func (s *Command) SetInstanceIds(v []*string) *Command {
+	s.InstanceIds = v
+	return s
+}
+
+// SetNotificationConfig sets the NotificationConfig field's value.
+func (s *Command) SetNotificationConfig(v *NotificationConfig) *Command {
+	s.NotificationConfig = v
+	return s
+}
+
+// SetOutputS3BucketName sets the OutputS3BucketName field's value.
+func (s *Command) SetOutputS3BucketName(v string) *Command {
+	s.OutputS3BucketName = &v
+	return s
+}
+
+// SetOutputS3KeyPrefix sets the OutputS3KeyPrefix field's value.
+func (s *Command) SetOutputS3KeyPrefix(v string) *Command {
+	s.OutputS3KeyPrefix = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *Command) SetParameters(v map[string][]*string) *Command {
+	s.Parameters = v
+	return s
+}
+
+// SetRequestedDateTime sets the RequestedDateTime field's value.
+func (s *Command) SetRequestedDateTime(v time.Time) *Command {
+	s.RequestedDateTime = &v
+	return s
+}
+
+// SetServiceRole sets the ServiceRole field's value.
+func (s *Command) SetServiceRole(v string) *Command {
+	s.ServiceRole = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *Command) SetStatus(v string) *Command {
+	s.Status = &v
+	return s
+}
+
 // Describes a command filter.
 type CommandFilter struct {
 	_ struct{} `type:"structure"`
@@ -2632,6 +2866,18 @@ func (s *CommandFilter) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *CommandFilter) SetKey(v string) *CommandFilter {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *CommandFilter) SetValue(v string) *CommandFilter {
+	s.Value = &v
+	return s
 }
 
 // An invocation is copy of a command sent to a specific instance. A command
@@ -2685,6 +2931,66 @@ func (s CommandInvocation) GoString() string {
 	return s.String()
 }
 
+// SetCommandId sets the CommandId field's value.
+func (s *CommandInvocation) SetCommandId(v string) *CommandInvocation {
+	s.CommandId = &v
+	return s
+}
+
+// SetCommandPlugins sets the CommandPlugins field's value.
+func (s *CommandInvocation) SetCommandPlugins(v []*CommandPlugin) *CommandInvocation {
+	s.CommandPlugins = v
+	return s
+}
+
+// SetComment sets the Comment field's value.
+func (s *CommandInvocation) SetComment(v string) *CommandInvocation {
+	s.Comment = &v
+	return s
+}
+
+// SetDocumentName sets the DocumentName field's value.
+func (s *CommandInvocation) SetDocumentName(v string) *CommandInvocation {
+	s.DocumentName = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *CommandInvocation) SetInstanceId(v string) *CommandInvocation {
+	s.InstanceId = &v
+	return s
+}
+
+// SetNotificationConfig sets the NotificationConfig field's value.
+func (s *CommandInvocation) SetNotificationConfig(v *NotificationConfig) *CommandInvocation {
+	s.NotificationConfig = v
+	return s
+}
+
+// SetRequestedDateTime sets the RequestedDateTime field's value.
+func (s *CommandInvocation) SetRequestedDateTime(v time.Time) *CommandInvocation {
+	s.RequestedDateTime = &v
+	return s
+}
+
+// SetServiceRole sets the ServiceRole field's value.
+func (s *CommandInvocation) SetServiceRole(v string) *CommandInvocation {
+	s.ServiceRole = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *CommandInvocation) SetStatus(v string) *CommandInvocation {
+	s.Status = &v
+	return s
+}
+
+// SetTraceOutput sets the TraceOutput field's value.
+func (s *CommandInvocation) SetTraceOutput(v string) *CommandInvocation {
+	s.TraceOutput = &v
+	return s
+}
+
 // Describes plugin details.
 type CommandPlugin struct {
 	_ struct{} `type:"structure"`
@@ -2727,6 +3033,54 @@ func (s CommandPlugin) String() string {
 // GoString returns the string representation
 func (s CommandPlugin) GoString() string {
 	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *CommandPlugin) SetName(v string) *CommandPlugin {
+	s.Name = &v
+	return s
+}
+
+// SetOutput sets the Output field's value.
+func (s *CommandPlugin) SetOutput(v string) *CommandPlugin {
+	s.Output = &v
+	return s
+}
+
+// SetOutputS3BucketName sets the OutputS3BucketName field's value.
+func (s *CommandPlugin) SetOutputS3BucketName(v string) *CommandPlugin {
+	s.OutputS3BucketName = &v
+	return s
+}
+
+// SetOutputS3KeyPrefix sets the OutputS3KeyPrefix field's value.
+func (s *CommandPlugin) SetOutputS3KeyPrefix(v string) *CommandPlugin {
+	s.OutputS3KeyPrefix = &v
+	return s
+}
+
+// SetResponseCode sets the ResponseCode field's value.
+func (s *CommandPlugin) SetResponseCode(v int64) *CommandPlugin {
+	s.ResponseCode = &v
+	return s
+}
+
+// SetResponseFinishDateTime sets the ResponseFinishDateTime field's value.
+func (s *CommandPlugin) SetResponseFinishDateTime(v time.Time) *CommandPlugin {
+	s.ResponseFinishDateTime = &v
+	return s
+}
+
+// SetResponseStartDateTime sets the ResponseStartDateTime field's value.
+func (s *CommandPlugin) SetResponseStartDateTime(v time.Time) *CommandPlugin {
+	s.ResponseStartDateTime = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *CommandPlugin) SetStatus(v string) *CommandPlugin {
+	s.Status = &v
+	return s
 }
 
 type CreateActivationInput struct {
@@ -2781,6 +3135,36 @@ func (s *CreateActivationInput) Validate() error {
 	return nil
 }
 
+// SetDefaultInstanceName sets the DefaultInstanceName field's value.
+func (s *CreateActivationInput) SetDefaultInstanceName(v string) *CreateActivationInput {
+	s.DefaultInstanceName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateActivationInput) SetDescription(v string) *CreateActivationInput {
+	s.Description = &v
+	return s
+}
+
+// SetExpirationDate sets the ExpirationDate field's value.
+func (s *CreateActivationInput) SetExpirationDate(v time.Time) *CreateActivationInput {
+	s.ExpirationDate = &v
+	return s
+}
+
+// SetIamRole sets the IamRole field's value.
+func (s *CreateActivationInput) SetIamRole(v string) *CreateActivationInput {
+	s.IamRole = &v
+	return s
+}
+
+// SetRegistrationLimit sets the RegistrationLimit field's value.
+func (s *CreateActivationInput) SetRegistrationLimit(v int64) *CreateActivationInput {
+	s.RegistrationLimit = &v
+	return s
+}
+
 type CreateActivationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2801,6 +3185,18 @@ func (s CreateActivationOutput) String() string {
 // GoString returns the string representation
 func (s CreateActivationOutput) GoString() string {
 	return s.String()
+}
+
+// SetActivationCode sets the ActivationCode field's value.
+func (s *CreateActivationOutput) SetActivationCode(v string) *CreateActivationOutput {
+	s.ActivationCode = &v
+	return s
+}
+
+// SetActivationId sets the ActivationId field's value.
+func (s *CreateActivationOutput) SetActivationId(v string) *CreateActivationOutput {
+	s.ActivationId = &v
+	return s
 }
 
 type CreateAssociationBatchInput struct {
@@ -2835,6 +3231,12 @@ func (s *CreateAssociationBatchInput) Validate() error {
 	return nil
 }
 
+// SetEntries sets the Entries field's value.
+func (s *CreateAssociationBatchInput) SetEntries(v []*CreateAssociationBatchRequestEntry) *CreateAssociationBatchInput {
+	s.Entries = v
+	return s
+}
+
 type CreateAssociationBatchOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2853,6 +3255,18 @@ func (s CreateAssociationBatchOutput) String() string {
 // GoString returns the string representation
 func (s CreateAssociationBatchOutput) GoString() string {
 	return s.String()
+}
+
+// SetFailed sets the Failed field's value.
+func (s *CreateAssociationBatchOutput) SetFailed(v []*FailedCreateAssociation) *CreateAssociationBatchOutput {
+	s.Failed = v
+	return s
+}
+
+// SetSuccessful sets the Successful field's value.
+func (s *CreateAssociationBatchOutput) SetSuccessful(v []*AssociationDescription) *CreateAssociationBatchOutput {
+	s.Successful = v
+	return s
 }
 
 // Describes the association of an SSM document and an instance.
@@ -2877,6 +3291,24 @@ func (s CreateAssociationBatchRequestEntry) String() string {
 // GoString returns the string representation
 func (s CreateAssociationBatchRequestEntry) GoString() string {
 	return s.String()
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *CreateAssociationBatchRequestEntry) SetInstanceId(v string) *CreateAssociationBatchRequestEntry {
+	s.InstanceId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateAssociationBatchRequestEntry) SetName(v string) *CreateAssociationBatchRequestEntry {
+	s.Name = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *CreateAssociationBatchRequestEntry) SetParameters(v map[string][]*string) *CreateAssociationBatchRequestEntry {
+	s.Parameters = v
+	return s
 }
 
 type CreateAssociationInput struct {
@@ -2922,6 +3354,24 @@ func (s *CreateAssociationInput) Validate() error {
 	return nil
 }
 
+// SetInstanceId sets the InstanceId field's value.
+func (s *CreateAssociationInput) SetInstanceId(v string) *CreateAssociationInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateAssociationInput) SetName(v string) *CreateAssociationInput {
+	s.Name = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *CreateAssociationInput) SetParameters(v map[string][]*string) *CreateAssociationInput {
+	s.Parameters = v
+	return s
+}
+
 type CreateAssociationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2937,6 +3387,12 @@ func (s CreateAssociationOutput) String() string {
 // GoString returns the string representation
 func (s CreateAssociationOutput) GoString() string {
 	return s.String()
+}
+
+// SetAssociationDescription sets the AssociationDescription field's value.
+func (s *CreateAssociationOutput) SetAssociationDescription(v *AssociationDescription) *CreateAssociationOutput {
+	s.AssociationDescription = v
+	return s
 }
 
 type CreateDocumentInput struct {
@@ -2982,6 +3438,18 @@ func (s *CreateDocumentInput) Validate() error {
 	return nil
 }
 
+// SetContent sets the Content field's value.
+func (s *CreateDocumentInput) SetContent(v string) *CreateDocumentInput {
+	s.Content = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreateDocumentInput) SetName(v string) *CreateDocumentInput {
+	s.Name = &v
+	return s
+}
+
 type CreateDocumentOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2997,6 +3465,12 @@ func (s CreateDocumentOutput) String() string {
 // GoString returns the string representation
 func (s CreateDocumentOutput) GoString() string {
 	return s.String()
+}
+
+// SetDocumentDescription sets the DocumentDescription field's value.
+func (s *CreateDocumentOutput) SetDocumentDescription(v *DocumentDescription) *CreateDocumentOutput {
+	s.DocumentDescription = v
+	return s
 }
 
 type DeleteActivationInput struct {
@@ -3029,6 +3503,12 @@ func (s *DeleteActivationInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetActivationId sets the ActivationId field's value.
+func (s *DeleteActivationInput) SetActivationId(v string) *DeleteActivationInput {
+	s.ActivationId = &v
+	return s
 }
 
 type DeleteActivationOutput struct {
@@ -3085,6 +3565,18 @@ func (s *DeleteAssociationInput) Validate() error {
 	return nil
 }
 
+// SetInstanceId sets the InstanceId field's value.
+func (s *DeleteAssociationInput) SetInstanceId(v string) *DeleteAssociationInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteAssociationInput) SetName(v string) *DeleteAssociationInput {
+	s.Name = &v
+	return s
+}
+
 type DeleteAssociationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3129,6 +3621,12 @@ func (s *DeleteDocumentInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetName sets the Name field's value.
+func (s *DeleteDocumentInput) SetName(v string) *DeleteDocumentInput {
+	s.Name = &v
+	return s
 }
 
 type DeleteDocumentOutput struct {
@@ -3178,6 +3676,12 @@ func (s *DeregisterManagedInstanceInput) Validate() error {
 	return nil
 }
 
+// SetInstanceId sets the InstanceId field's value.
+func (s *DeregisterManagedInstanceInput) SetInstanceId(v string) *DeregisterManagedInstanceInput {
+	s.InstanceId = &v
+	return s
+}
+
 type DeregisterManagedInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3211,6 +3715,18 @@ func (s DescribeActivationsFilter) String() string {
 // GoString returns the string representation
 func (s DescribeActivationsFilter) GoString() string {
 	return s.String()
+}
+
+// SetFilterKey sets the FilterKey field's value.
+func (s *DescribeActivationsFilter) SetFilterKey(v string) *DescribeActivationsFilter {
+	s.FilterKey = &v
+	return s
+}
+
+// SetFilterValues sets the FilterValues field's value.
+func (s *DescribeActivationsFilter) SetFilterValues(v []*string) *DescribeActivationsFilter {
+	s.FilterValues = v
+	return s
 }
 
 type DescribeActivationsInput struct {
@@ -3251,6 +3767,24 @@ func (s *DescribeActivationsInput) Validate() error {
 	return nil
 }
 
+// SetFilters sets the Filters field's value.
+func (s *DescribeActivationsInput) SetFilters(v []*DescribeActivationsFilter) *DescribeActivationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeActivationsInput) SetMaxResults(v int64) *DescribeActivationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeActivationsInput) SetNextToken(v string) *DescribeActivationsInput {
+	s.NextToken = &v
+	return s
+}
+
 type DescribeActivationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3270,6 +3804,18 @@ func (s DescribeActivationsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeActivationsOutput) GoString() string {
 	return s.String()
+}
+
+// SetActivationList sets the ActivationList field's value.
+func (s *DescribeActivationsOutput) SetActivationList(v []*Activation) *DescribeActivationsOutput {
+	s.ActivationList = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeActivationsOutput) SetNextToken(v string) *DescribeActivationsOutput {
+	s.NextToken = &v
+	return s
 }
 
 type DescribeAssociationInput struct {
@@ -3312,6 +3858,18 @@ func (s *DescribeAssociationInput) Validate() error {
 	return nil
 }
 
+// SetInstanceId sets the InstanceId field's value.
+func (s *DescribeAssociationInput) SetInstanceId(v string) *DescribeAssociationInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DescribeAssociationInput) SetName(v string) *DescribeAssociationInput {
+	s.Name = &v
+	return s
+}
+
 type DescribeAssociationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3327,6 +3885,12 @@ func (s DescribeAssociationOutput) String() string {
 // GoString returns the string representation
 func (s DescribeAssociationOutput) GoString() string {
 	return s.String()
+}
+
+// SetAssociationDescription sets the AssociationDescription field's value.
+func (s *DescribeAssociationOutput) SetAssociationDescription(v *AssociationDescription) *DescribeAssociationOutput {
+	s.AssociationDescription = v
+	return s
 }
 
 type DescribeDocumentInput struct {
@@ -3361,6 +3925,12 @@ func (s *DescribeDocumentInput) Validate() error {
 	return nil
 }
 
+// SetName sets the Name field's value.
+func (s *DescribeDocumentInput) SetName(v string) *DescribeDocumentInput {
+	s.Name = &v
+	return s
+}
+
 type DescribeDocumentOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3376,6 +3946,12 @@ func (s DescribeDocumentOutput) String() string {
 // GoString returns the string representation
 func (s DescribeDocumentOutput) GoString() string {
 	return s.String()
+}
+
+// SetDocument sets the Document field's value.
+func (s *DescribeDocumentOutput) SetDocument(v *DocumentDescription) *DescribeDocumentOutput {
+	s.Document = v
+	return s
 }
 
 type DescribeDocumentPermissionInput struct {
@@ -3418,6 +3994,18 @@ func (s *DescribeDocumentPermissionInput) Validate() error {
 	return nil
 }
 
+// SetName sets the Name field's value.
+func (s *DescribeDocumentPermissionInput) SetName(v string) *DescribeDocumentPermissionInput {
+	s.Name = &v
+	return s
+}
+
+// SetPermissionType sets the PermissionType field's value.
+func (s *DescribeDocumentPermissionInput) SetPermissionType(v string) *DescribeDocumentPermissionInput {
+	s.PermissionType = &v
+	return s
+}
+
 type DescribeDocumentPermissionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3434,6 +4022,12 @@ func (s DescribeDocumentPermissionOutput) String() string {
 // GoString returns the string representation
 func (s DescribeDocumentPermissionOutput) GoString() string {
 	return s.String()
+}
+
+// SetAccountIds sets the AccountIds field's value.
+func (s *DescribeDocumentPermissionOutput) SetAccountIds(v []*string) *DescribeDocumentPermissionOutput {
+	s.AccountIds = v
+	return s
 }
 
 type DescribeInstanceInformationInput struct {
@@ -3488,6 +4082,24 @@ func (s *DescribeInstanceInformationInput) Validate() error {
 	return nil
 }
 
+// SetInstanceInformationFilterList sets the InstanceInformationFilterList field's value.
+func (s *DescribeInstanceInformationInput) SetInstanceInformationFilterList(v []*InstanceInformationFilter) *DescribeInstanceInformationInput {
+	s.InstanceInformationFilterList = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeInstanceInformationInput) SetMaxResults(v int64) *DescribeInstanceInformationInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInstanceInformationInput) SetNextToken(v string) *DescribeInstanceInformationInput {
+	s.NextToken = &v
+	return s
+}
+
 type DescribeInstanceInformationOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3509,6 +4121,18 @@ func (s DescribeInstanceInformationOutput) GoString() string {
 	return s.String()
 }
 
+// SetInstanceInformationList sets the InstanceInformationList field's value.
+func (s *DescribeInstanceInformationOutput) SetInstanceInformationList(v []*InstanceInformation) *DescribeInstanceInformationOutput {
+	s.InstanceInformationList = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInstanceInformationOutput) SetNextToken(v string) *DescribeInstanceInformationOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Describes an SSM document.
 type DocumentDescription struct {
 	_ struct{} `type:"structure"`
@@ -3521,12 +4145,12 @@ type DocumentDescription struct {
 
 	// The Sha256 or Sha1 hash created by the system when the document was created.
 	//
-	//  Sha1 hashes have been deprecated.
+	// Sha1 hashes have been deprecated.
 	Hash *string `type:"string"`
 
 	// Sha256 or Sha1.
 	//
-	//  Sha1 hashes have been deprecated.
+	// Sha1 hashes have been deprecated.
 	HashType *string `type:"string" enum:"DocumentHashType"`
 
 	// The name of the SSM document.
@@ -3556,6 +4180,66 @@ func (s DocumentDescription) String() string {
 // GoString returns the string representation
 func (s DocumentDescription) GoString() string {
 	return s.String()
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *DocumentDescription) SetCreatedDate(v time.Time) *DocumentDescription {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *DocumentDescription) SetDescription(v string) *DocumentDescription {
+	s.Description = &v
+	return s
+}
+
+// SetHash sets the Hash field's value.
+func (s *DocumentDescription) SetHash(v string) *DocumentDescription {
+	s.Hash = &v
+	return s
+}
+
+// SetHashType sets the HashType field's value.
+func (s *DocumentDescription) SetHashType(v string) *DocumentDescription {
+	s.HashType = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DocumentDescription) SetName(v string) *DocumentDescription {
+	s.Name = &v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *DocumentDescription) SetOwner(v string) *DocumentDescription {
+	s.Owner = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *DocumentDescription) SetParameters(v []*DocumentParameter) *DocumentDescription {
+	s.Parameters = v
+	return s
+}
+
+// SetPlatformTypes sets the PlatformTypes field's value.
+func (s *DocumentDescription) SetPlatformTypes(v []*string) *DocumentDescription {
+	s.PlatformTypes = v
+	return s
+}
+
+// SetSha1 sets the Sha1 field's value.
+func (s *DocumentDescription) SetSha1(v string) *DocumentDescription {
+	s.Sha1 = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *DocumentDescription) SetStatus(v string) *DocumentDescription {
+	s.Status = &v
+	return s
 }
 
 // Describes a filter.
@@ -3602,6 +4286,18 @@ func (s *DocumentFilter) Validate() error {
 	return nil
 }
 
+// SetKey sets the Key field's value.
+func (s *DocumentFilter) SetKey(v string) *DocumentFilter {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *DocumentFilter) SetValue(v string) *DocumentFilter {
+	s.Value = &v
+	return s
+}
+
 // Describes the name of an SSM document.
 type DocumentIdentifier struct {
 	_ struct{} `type:"structure"`
@@ -3624,6 +4320,24 @@ func (s DocumentIdentifier) String() string {
 // GoString returns the string representation
 func (s DocumentIdentifier) GoString() string {
 	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *DocumentIdentifier) SetName(v string) *DocumentIdentifier {
+	s.Name = &v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *DocumentIdentifier) SetOwner(v string) *DocumentIdentifier {
+	s.Owner = &v
+	return s
+}
+
+// SetPlatformTypes sets the PlatformTypes field's value.
+func (s *DocumentIdentifier) SetPlatformTypes(v []*string) *DocumentIdentifier {
+	s.PlatformTypes = v
+	return s
 }
 
 // Parameters specified in the SSM document that execute on the server when
@@ -3656,6 +4370,30 @@ func (s DocumentParameter) GoString() string {
 	return s.String()
 }
 
+// SetDefaultValue sets the DefaultValue field's value.
+func (s *DocumentParameter) SetDefaultValue(v string) *DocumentParameter {
+	s.DefaultValue = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *DocumentParameter) SetDescription(v string) *DocumentParameter {
+	s.Description = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *DocumentParameter) SetName(v string) *DocumentParameter {
+	s.Name = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *DocumentParameter) SetType(v string) *DocumentParameter {
+	s.Type = &v
+	return s
+}
+
 // Describes a failed association.
 type FailedCreateAssociation struct {
 	_ struct{} `type:"structure"`
@@ -3678,6 +4416,24 @@ func (s FailedCreateAssociation) String() string {
 // GoString returns the string representation
 func (s FailedCreateAssociation) GoString() string {
 	return s.String()
+}
+
+// SetEntry sets the Entry field's value.
+func (s *FailedCreateAssociation) SetEntry(v *CreateAssociationBatchRequestEntry) *FailedCreateAssociation {
+	s.Entry = v
+	return s
+}
+
+// SetFault sets the Fault field's value.
+func (s *FailedCreateAssociation) SetFault(v string) *FailedCreateAssociation {
+	s.Fault = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *FailedCreateAssociation) SetMessage(v string) *FailedCreateAssociation {
+	s.Message = &v
+	return s
 }
 
 type GetDocumentInput struct {
@@ -3712,6 +4468,12 @@ func (s *GetDocumentInput) Validate() error {
 	return nil
 }
 
+// SetName sets the Name field's value.
+func (s *GetDocumentInput) SetName(v string) *GetDocumentInput {
+	s.Name = &v
+	return s
+}
+
 type GetDocumentOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3730,6 +4492,18 @@ func (s GetDocumentOutput) String() string {
 // GoString returns the string representation
 func (s GetDocumentOutput) GoString() string {
 	return s.String()
+}
+
+// SetContent sets the Content field's value.
+func (s *GetDocumentOutput) SetContent(v string) *GetDocumentOutput {
+	s.Content = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *GetDocumentOutput) SetName(v string) *GetDocumentOutput {
+	s.Name = &v
+	return s
 }
 
 // Describes a filter for a specific list of instances.
@@ -3793,6 +4567,96 @@ func (s InstanceInformation) GoString() string {
 	return s.String()
 }
 
+// SetActivationId sets the ActivationId field's value.
+func (s *InstanceInformation) SetActivationId(v string) *InstanceInformation {
+	s.ActivationId = &v
+	return s
+}
+
+// SetAgentVersion sets the AgentVersion field's value.
+func (s *InstanceInformation) SetAgentVersion(v string) *InstanceInformation {
+	s.AgentVersion = &v
+	return s
+}
+
+// SetComputerName sets the ComputerName field's value.
+func (s *InstanceInformation) SetComputerName(v string) *InstanceInformation {
+	s.ComputerName = &v
+	return s
+}
+
+// SetIPAddress sets the IPAddress field's value.
+func (s *InstanceInformation) SetIPAddress(v string) *InstanceInformation {
+	s.IPAddress = &v
+	return s
+}
+
+// SetIamRole sets the IamRole field's value.
+func (s *InstanceInformation) SetIamRole(v string) *InstanceInformation {
+	s.IamRole = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *InstanceInformation) SetInstanceId(v string) *InstanceInformation {
+	s.InstanceId = &v
+	return s
+}
+
+// SetIsLatestVersion sets the IsLatestVersion field's value.
+func (s *InstanceInformation) SetIsLatestVersion(v bool) *InstanceInformation {
+	s.IsLatestVersion = &v
+	return s
+}
+
+// SetLastPingDateTime sets the LastPingDateTime field's value.
+func (s *InstanceInformation) SetLastPingDateTime(v time.Time) *InstanceInformation {
+	s.LastPingDateTime = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *InstanceInformation) SetName(v string) *InstanceInformation {
+	s.Name = &v
+	return s
+}
+
+// SetPingStatus sets the PingStatus field's value.
+func (s *InstanceInformation) SetPingStatus(v string) *InstanceInformation {
+	s.PingStatus = &v
+	return s
+}
+
+// SetPlatformName sets the PlatformName field's value.
+func (s *InstanceInformation) SetPlatformName(v string) *InstanceInformation {
+	s.PlatformName = &v
+	return s
+}
+
+// SetPlatformType sets the PlatformType field's value.
+func (s *InstanceInformation) SetPlatformType(v string) *InstanceInformation {
+	s.PlatformType = &v
+	return s
+}
+
+// SetPlatformVersion sets the PlatformVersion field's value.
+func (s *InstanceInformation) SetPlatformVersion(v string) *InstanceInformation {
+	s.PlatformVersion = &v
+	return s
+}
+
+// SetRegistrationDate sets the RegistrationDate field's value.
+func (s *InstanceInformation) SetRegistrationDate(v time.Time) *InstanceInformation {
+	s.RegistrationDate = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *InstanceInformation) SetResourceType(v string) *InstanceInformation {
+	s.ResourceType = &v
+	return s
+}
+
 // Describes a filter for a specific list of instances.
 type InstanceInformationFilter struct {
 	_ struct{} `type:"structure"`
@@ -3835,6 +4699,18 @@ func (s *InstanceInformationFilter) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *InstanceInformationFilter) SetKey(v string) *InstanceInformationFilter {
+	s.Key = &v
+	return s
+}
+
+// SetValueSet sets the ValueSet field's value.
+func (s *InstanceInformationFilter) SetValueSet(v []*string) *InstanceInformationFilter {
+	s.ValueSet = v
+	return s
 }
 
 type ListAssociationsInput struct {
@@ -3894,6 +4770,24 @@ func (s *ListAssociationsInput) Validate() error {
 	return nil
 }
 
+// SetAssociationFilterList sets the AssociationFilterList field's value.
+func (s *ListAssociationsInput) SetAssociationFilterList(v []*AssociationFilter) *ListAssociationsInput {
+	s.AssociationFilterList = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListAssociationsInput) SetMaxResults(v int64) *ListAssociationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListAssociationsInput) SetNextToken(v string) *ListAssociationsInput {
+	s.NextToken = &v
+	return s
+}
+
 type ListAssociationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3913,6 +4807,18 @@ func (s ListAssociationsOutput) String() string {
 // GoString returns the string representation
 func (s ListAssociationsOutput) GoString() string {
 	return s.String()
+}
+
+// SetAssociations sets the Associations field's value.
+func (s *ListAssociationsOutput) SetAssociations(v []*Association) *ListAssociationsOutput {
+	s.Associations = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListAssociationsOutput) SetNextToken(v string) *ListAssociationsOutput {
+	s.NextToken = &v
+	return s
 }
 
 type ListCommandInvocationsInput struct {
@@ -3981,6 +4887,42 @@ func (s *ListCommandInvocationsInput) Validate() error {
 	return nil
 }
 
+// SetCommandId sets the CommandId field's value.
+func (s *ListCommandInvocationsInput) SetCommandId(v string) *ListCommandInvocationsInput {
+	s.CommandId = &v
+	return s
+}
+
+// SetDetails sets the Details field's value.
+func (s *ListCommandInvocationsInput) SetDetails(v bool) *ListCommandInvocationsInput {
+	s.Details = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *ListCommandInvocationsInput) SetFilters(v []*CommandFilter) *ListCommandInvocationsInput {
+	s.Filters = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *ListCommandInvocationsInput) SetInstanceId(v string) *ListCommandInvocationsInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListCommandInvocationsInput) SetMaxResults(v int64) *ListCommandInvocationsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListCommandInvocationsInput) SetNextToken(v string) *ListCommandInvocationsInput {
+	s.NextToken = &v
+	return s
+}
+
 type ListCommandInvocationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4000,6 +4942,18 @@ func (s ListCommandInvocationsOutput) String() string {
 // GoString returns the string representation
 func (s ListCommandInvocationsOutput) GoString() string {
 	return s.String()
+}
+
+// SetCommandInvocations sets the CommandInvocations field's value.
+func (s *ListCommandInvocationsOutput) SetCommandInvocations(v []*CommandInvocation) *ListCommandInvocationsOutput {
+	s.CommandInvocations = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListCommandInvocationsOutput) SetNextToken(v string) *ListCommandInvocationsOutput {
+	s.NextToken = &v
+	return s
 }
 
 type ListCommandsInput struct {
@@ -4064,6 +5018,36 @@ func (s *ListCommandsInput) Validate() error {
 	return nil
 }
 
+// SetCommandId sets the CommandId field's value.
+func (s *ListCommandsInput) SetCommandId(v string) *ListCommandsInput {
+	s.CommandId = &v
+	return s
+}
+
+// SetFilters sets the Filters field's value.
+func (s *ListCommandsInput) SetFilters(v []*CommandFilter) *ListCommandsInput {
+	s.Filters = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *ListCommandsInput) SetInstanceId(v string) *ListCommandsInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListCommandsInput) SetMaxResults(v int64) *ListCommandsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListCommandsInput) SetNextToken(v string) *ListCommandsInput {
+	s.NextToken = &v
+	return s
+}
+
 type ListCommandsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4083,6 +5067,18 @@ func (s ListCommandsOutput) String() string {
 // GoString returns the string representation
 func (s ListCommandsOutput) GoString() string {
 	return s.String()
+}
+
+// SetCommands sets the Commands field's value.
+func (s *ListCommandsOutput) SetCommands(v []*Command) *ListCommandsOutput {
+	s.Commands = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListCommandsOutput) SetNextToken(v string) *ListCommandsOutput {
+	s.NextToken = &v
+	return s
 }
 
 type ListDocumentsInput struct {
@@ -4137,6 +5133,24 @@ func (s *ListDocumentsInput) Validate() error {
 	return nil
 }
 
+// SetDocumentFilterList sets the DocumentFilterList field's value.
+func (s *ListDocumentsInput) SetDocumentFilterList(v []*DocumentFilter) *ListDocumentsInput {
+	s.DocumentFilterList = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListDocumentsInput) SetMaxResults(v int64) *ListDocumentsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDocumentsInput) SetNextToken(v string) *ListDocumentsInput {
+	s.NextToken = &v
+	return s
+}
+
 type ListDocumentsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4156,6 +5170,18 @@ func (s ListDocumentsOutput) String() string {
 // GoString returns the string representation
 func (s ListDocumentsOutput) GoString() string {
 	return s.String()
+}
+
+// SetDocumentIdentifiers sets the DocumentIdentifiers field's value.
+func (s *ListDocumentsOutput) SetDocumentIdentifiers(v []*DocumentIdentifier) *ListDocumentsOutput {
+	s.DocumentIdentifiers = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDocumentsOutput) SetNextToken(v string) *ListDocumentsOutput {
+	s.NextToken = &v
+	return s
 }
 
 type ListTagsForResourceInput struct {
@@ -4198,6 +5224,18 @@ func (s *ListTagsForResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceId sets the ResourceId field's value.
+func (s *ListTagsForResourceInput) SetResourceId(v string) *ListTagsForResourceInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *ListTagsForResourceInput) SetResourceType(v string) *ListTagsForResourceInput {
+	s.ResourceType = &v
+	return s
+}
+
 type ListTagsForResourceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4213,6 +5251,12 @@ func (s ListTagsForResourceOutput) String() string {
 // GoString returns the string representation
 func (s ListTagsForResourceOutput) GoString() string {
 	return s.String()
+}
+
+// SetTagList sets the TagList field's value.
+func (s *ListTagsForResourceOutput) SetTagList(v []*Tag) *ListTagsForResourceOutput {
+	s.TagList = v
+	return s
 }
 
 type ModifyDocumentPermissionInput struct {
@@ -4265,6 +5309,30 @@ func (s *ModifyDocumentPermissionInput) Validate() error {
 	return nil
 }
 
+// SetAccountIdsToAdd sets the AccountIdsToAdd field's value.
+func (s *ModifyDocumentPermissionInput) SetAccountIdsToAdd(v []*string) *ModifyDocumentPermissionInput {
+	s.AccountIdsToAdd = v
+	return s
+}
+
+// SetAccountIdsToRemove sets the AccountIdsToRemove field's value.
+func (s *ModifyDocumentPermissionInput) SetAccountIdsToRemove(v []*string) *ModifyDocumentPermissionInput {
+	s.AccountIdsToRemove = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *ModifyDocumentPermissionInput) SetName(v string) *ModifyDocumentPermissionInput {
+	s.Name = &v
+	return s
+}
+
+// SetPermissionType sets the PermissionType field's value.
+func (s *ModifyDocumentPermissionInput) SetPermissionType(v string) *ModifyDocumentPermissionInput {
+	s.PermissionType = &v
+	return s
+}
+
 type ModifyDocumentPermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4307,6 +5375,24 @@ func (s NotificationConfig) String() string {
 // GoString returns the string representation
 func (s NotificationConfig) GoString() string {
 	return s.String()
+}
+
+// SetNotificationArn sets the NotificationArn field's value.
+func (s *NotificationConfig) SetNotificationArn(v string) *NotificationConfig {
+	s.NotificationArn = &v
+	return s
+}
+
+// SetNotificationEvents sets the NotificationEvents field's value.
+func (s *NotificationConfig) SetNotificationEvents(v []*string) *NotificationConfig {
+	s.NotificationEvents = v
+	return s
+}
+
+// SetNotificationType sets the NotificationType field's value.
+func (s *NotificationConfig) SetNotificationType(v string) *NotificationConfig {
+	s.NotificationType = &v
+	return s
 }
 
 type RemoveTagsFromResourceInput struct {
@@ -4357,6 +5443,24 @@ func (s *RemoveTagsFromResourceInput) Validate() error {
 	return nil
 }
 
+// SetResourceId sets the ResourceId field's value.
+func (s *RemoveTagsFromResourceInput) SetResourceId(v string) *RemoveTagsFromResourceInput {
+	s.ResourceId = &v
+	return s
+}
+
+// SetResourceType sets the ResourceType field's value.
+func (s *RemoveTagsFromResourceInput) SetResourceType(v string) *RemoveTagsFromResourceInput {
+	s.ResourceType = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *RemoveTagsFromResourceInput) SetTagKeys(v []*string) *RemoveTagsFromResourceInput {
+	s.TagKeys = v
+	return s
+}
+
 type RemoveTagsFromResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4380,12 +5484,12 @@ type SendCommandInput struct {
 
 	// The Sha256 or Sha1 hash created by the system when the document was created.
 	//
-	//  Sha1 hashes have been deprecated.
+	// Sha1 hashes have been deprecated.
 	DocumentHash *string `type:"string"`
 
 	// Sha256 or Sha1.
 	//
-	//  Sha1 hashes have been deprecated.
+	// Sha1 hashes have been deprecated.
 	DocumentHashType *string `type:"string" enum:"DocumentHashType"`
 
 	// Required. The name of the SSM document to execute. This can be an SSM public
@@ -4457,6 +5561,72 @@ func (s *SendCommandInput) Validate() error {
 	return nil
 }
 
+// SetComment sets the Comment field's value.
+func (s *SendCommandInput) SetComment(v string) *SendCommandInput {
+	s.Comment = &v
+	return s
+}
+
+// SetDocumentHash sets the DocumentHash field's value.
+func (s *SendCommandInput) SetDocumentHash(v string) *SendCommandInput {
+	s.DocumentHash = &v
+	return s
+}
+
+// SetDocumentHashType sets the DocumentHashType field's value.
+func (s *SendCommandInput) SetDocumentHashType(v string) *SendCommandInput {
+	s.DocumentHashType = &v
+	return s
+}
+
+// SetDocumentName sets the DocumentName field's value.
+func (s *SendCommandInput) SetDocumentName(v string) *SendCommandInput {
+	s.DocumentName = &v
+	return s
+}
+
+// SetInstanceIds sets the InstanceIds field's value.
+func (s *SendCommandInput) SetInstanceIds(v []*string) *SendCommandInput {
+	s.InstanceIds = v
+	return s
+}
+
+// SetNotificationConfig sets the NotificationConfig field's value.
+func (s *SendCommandInput) SetNotificationConfig(v *NotificationConfig) *SendCommandInput {
+	s.NotificationConfig = v
+	return s
+}
+
+// SetOutputS3BucketName sets the OutputS3BucketName field's value.
+func (s *SendCommandInput) SetOutputS3BucketName(v string) *SendCommandInput {
+	s.OutputS3BucketName = &v
+	return s
+}
+
+// SetOutputS3KeyPrefix sets the OutputS3KeyPrefix field's value.
+func (s *SendCommandInput) SetOutputS3KeyPrefix(v string) *SendCommandInput {
+	s.OutputS3KeyPrefix = &v
+	return s
+}
+
+// SetParameters sets the Parameters field's value.
+func (s *SendCommandInput) SetParameters(v map[string][]*string) *SendCommandInput {
+	s.Parameters = v
+	return s
+}
+
+// SetServiceRoleArn sets the ServiceRoleArn field's value.
+func (s *SendCommandInput) SetServiceRoleArn(v string) *SendCommandInput {
+	s.ServiceRoleArn = &v
+	return s
+}
+
+// SetTimeoutSeconds sets the TimeoutSeconds field's value.
+func (s *SendCommandInput) SetTimeoutSeconds(v int64) *SendCommandInput {
+	s.TimeoutSeconds = &v
+	return s
+}
+
 type SendCommandOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4473,6 +5643,12 @@ func (s SendCommandOutput) String() string {
 // GoString returns the string representation
 func (s SendCommandOutput) GoString() string {
 	return s.String()
+}
+
+// SetCommand sets the Command field's value.
+func (s *SendCommandOutput) SetCommand(v *Command) *SendCommandOutput {
+	s.Command = v
+	return s
 }
 
 // Metadata that you assign to your managed instances. Tags enable you to categorize
@@ -4522,6 +5698,18 @@ func (s *Tag) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
 }
 
 type UpdateAssociationStatusInput struct {
@@ -4577,6 +5765,24 @@ func (s *UpdateAssociationStatusInput) Validate() error {
 	return nil
 }
 
+// SetAssociationStatus sets the AssociationStatus field's value.
+func (s *UpdateAssociationStatusInput) SetAssociationStatus(v *AssociationStatus) *UpdateAssociationStatusInput {
+	s.AssociationStatus = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *UpdateAssociationStatusInput) SetInstanceId(v string) *UpdateAssociationStatusInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdateAssociationStatusInput) SetName(v string) *UpdateAssociationStatusInput {
+	s.Name = &v
+	return s
+}
+
 type UpdateAssociationStatusOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4592,6 +5798,12 @@ func (s UpdateAssociationStatusOutput) String() string {
 // GoString returns the string representation
 func (s UpdateAssociationStatusOutput) GoString() string {
 	return s.String()
+}
+
+// SetAssociationDescription sets the AssociationDescription field's value.
+func (s *UpdateAssociationStatusOutput) SetAssociationDescription(v *AssociationDescription) *UpdateAssociationStatusOutput {
+	s.AssociationDescription = v
+	return s
 }
 
 type UpdateManagedInstanceRoleInput struct {
@@ -4632,6 +5844,18 @@ func (s *UpdateManagedInstanceRoleInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetIamRole sets the IamRole field's value.
+func (s *UpdateManagedInstanceRoleInput) SetIamRole(v string) *UpdateManagedInstanceRoleInput {
+	s.IamRole = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *UpdateManagedInstanceRoleInput) SetInstanceId(v string) *UpdateManagedInstanceRoleInput {
+	s.InstanceId = &v
+	return s
 }
 
 type UpdateManagedInstanceRoleOutput struct {

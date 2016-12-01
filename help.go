@@ -28,6 +28,9 @@ func helpFunc(commands map[string]cli.CommandFactory) string {
 		}
 	}
 
+	// The output produced by this is included in the docs at
+	// website/source/docs/commands/index.html.markdown; if you
+	// change this then consider updating that to match.
 	helpText := fmt.Sprintf(`
 Usage: terraform [--version] [--help] <command> [args]
 

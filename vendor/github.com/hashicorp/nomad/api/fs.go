@@ -52,17 +52,13 @@ func (c *Client) AllocFS() *AllocFS {
 // getNodeClient returns a Client that will dial the node. If the QueryOptions
 // is set, the function will ensure that it is initalized and that the Params
 // field is valid.
-func (a *AllocFS) getNodeClient(nodeHTTPAddr, allocID string, q **QueryOptions) (*Client, error) {
-	if nodeHTTPAddr == "" {
+func (a *AllocFS) getNodeClient(node *Node, allocID string, q **QueryOptions) (*Client, error) {
+	if node.HTTPAddr == "" {
 		return nil, fmt.Errorf("http addr of the node where alloc %q is running is not advertised", allocID)
 	}
 
 	// Get an API client for the node
-	nodeClientConfig := &Config{
-		Address: fmt.Sprintf("http://%s", nodeHTTPAddr),
-		Region:  a.client.config.Region,
-	}
-	nodeClient, err := NewClient(nodeClientConfig)
+	nodeClient, err := NewClient(a.client.config.CopyConfig(node.HTTPAddr, node.TLSEnabled))
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +83,7 @@ func (a *AllocFS) List(alloc *Allocation, path string, q *QueryOptions) ([]*Allo
 	if err != nil {
 		return nil, nil, err
 	}
-	nodeClient, err := a.getNodeClient(node.HTTPAddr, alloc.ID, &q)
+	nodeClient, err := a.getNodeClient(node, alloc.ID, &q)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -108,7 +104,7 @@ func (a *AllocFS) Stat(alloc *Allocation, path string, q *QueryOptions) (*AllocF
 	if err != nil {
 		return nil, nil, err
 	}
-	nodeClient, err := a.getNodeClient(node.HTTPAddr, alloc.ID, &q)
+	nodeClient, err := a.getNodeClient(node, alloc.ID, &q)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -130,7 +126,7 @@ func (a *AllocFS) ReadAt(alloc *Allocation, path string, offset int64, limit int
 		return nil, err
 	}
 
-	nodeClient, err := a.getNodeClient(node.HTTPAddr, alloc.ID, &q)
+	nodeClient, err := a.getNodeClient(node, alloc.ID, &q)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +149,7 @@ func (a *AllocFS) Cat(alloc *Allocation, path string, q *QueryOptions) (io.ReadC
 		return nil, err
 	}
 
-	nodeClient, err := a.getNodeClient(node.HTTPAddr, alloc.ID, &q)
+	nodeClient, err := a.getNodeClient(node, alloc.ID, &q)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +178,7 @@ func (a *AllocFS) Stream(alloc *Allocation, path, origin string, offset int64,
 		return nil, err
 	}
 
-	nodeClient, err := a.getNodeClient(node.HTTPAddr, alloc.ID, &q)
+	nodeClient, err := a.getNodeClient(node, alloc.ID, &q)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +247,7 @@ func (a *AllocFS) Logs(alloc *Allocation, follow bool, task, logType, origin str
 		return nil, err
 	}
 
-	nodeClient, err := a.getNodeClient(node.HTTPAddr, alloc.ID, &q)
+	nodeClient, err := a.getNodeClient(node, alloc.ID, &q)
 	if err != nil {
 		return nil, err
 	}

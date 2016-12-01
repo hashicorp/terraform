@@ -166,6 +166,41 @@ func (d *debugInfo) Close() error {
 	return nil
 }
 
+// debug buffer is an io.WriteCloser that will write itself to the debug
+// archive when closed.
+type debugBuffer struct {
+	debugInfo *debugInfo
+	name      string
+	buf       bytes.Buffer
+}
+
+func (b *debugBuffer) Write(d []byte) (int, error) {
+	return b.buf.Write(d)
+}
+
+func (b *debugBuffer) Close() error {
+	return b.debugInfo.WriteFile(b.name, b.buf.Bytes())
+}
+
+// ioutils only has a noop ReadCloser
+type nopWriteCloser struct{}
+
+func (nopWriteCloser) Write([]byte) (int, error) { return 0, nil }
+func (nopWriteCloser) Close() error              { return nil }
+
+// NewFileWriter returns an io.WriteClose that will be buffered and written to
+// the debug archive when closed.
+func (d *debugInfo) NewFileWriter(name string) io.WriteCloser {
+	if d == nil {
+		return nopWriteCloser{}
+	}
+
+	return &debugBuffer{
+		debugInfo: d,
+		name:      name,
+	}
+}
+
 type syncer interface {
 	Sync() error
 }
@@ -187,47 +222,6 @@ func (d *debugInfo) flush() {
 	if s, ok := d.w.(syncer); ok {
 		s.Sync()
 	}
-}
-
-// WriteGraph takes a DebugGraph and writes both the DebugGraph as a dot file
-// in the debug archive, and extracts any logs that the DebugGraph collected
-// and writes them to a log file in the archive.
-func (d *debugInfo) WriteGraph(dg *DebugGraph) error {
-	if d == nil {
-		return nil
-	}
-
-	if dg == nil {
-		return nil
-	}
-
-	d.Lock()
-	defer d.Unlock()
-
-	// If we crash, the file won't be correctly closed out, but we can rebuild
-	// the archive if we have to as long as every file has been flushed and
-	// sync'ed.
-	defer d.flush()
-
-	d.writeFile(dg.Name, dg.LogBytes())
-
-	dotPath := fmt.Sprintf("%s/graphs/%d-%s-%s.dot", d.name, d.step, d.phase, dg.Name)
-	d.step++
-
-	dotBytes := dg.DotBytes()
-	hdr := &tar.Header{
-		Name: dotPath,
-		Mode: 0644,
-		Size: int64(len(dotBytes)),
-	}
-
-	err := d.tar.WriteHeader(hdr)
-	if err != nil {
-		return err
-	}
-
-	_, err = d.tar.Write(dotBytes)
-	return err
 }
 
 // WriteFile writes data as a single file to the debug arhive.

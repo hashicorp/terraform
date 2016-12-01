@@ -20,6 +20,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 		Read:   resourceArmVirtualMachineRead,
 		Update: resourceArmVirtualMachineCreate,
 		Delete: resourceArmVirtualMachineDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -28,12 +31,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -44,7 +42,6 @@ func resourceArmVirtualMachine() *schema.Resource {
 			"plan": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -92,28 +89,33 @@ func resourceArmVirtualMachine() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"publisher": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"offer": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"sku": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"version": {
 							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
+							ForceNew: true,
 						},
 					},
 				},
@@ -139,6 +141,7 @@ func resourceArmVirtualMachine() *schema.Resource {
 						"vhd_uri": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 						},
 
 						"image_uri": {
@@ -559,6 +562,10 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error making Read request on Azure Virtual Machine %s: %s", name, err)
 	}
 
+	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", resp.Location)
+
 	if resp.Plan != nil {
 		if err := d.Set("plan", flattenAzureRmVirtualMachinePlan(resp.Plan)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Plan error: %#v", err)
@@ -792,7 +799,9 @@ func flattenAzureRmVirtualMachineDiagnosticsProfile(profile *compute.BootDiagnos
 	result := make(map[string]interface{})
 
 	result["enabled"] = *profile.Enabled
-	result["storage_uri"] = *profile.StorageURI
+	if profile.StorageURI != nil {
+		result["storage_uri"] = *profile.StorageURI
+	}
 
 	return []interface{}{result}
 }
@@ -1295,7 +1304,7 @@ func findStorageAccountResourceGroup(meta interface{}, storageAccountName string
 
 	results := *rf.Value
 	if len(results) != 1 {
-		return "", fmt.Errorf("Wrong number of results making resource request for query %s:  %s", filter, len(results))
+		return "", fmt.Errorf("Wrong number of results making resource request for query %s: %d", filter, len(results))
 	}
 
 	id, err := parseAzureResourceID(*results[0].ID)

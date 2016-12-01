@@ -31,10 +31,10 @@ import (
 // If you are a first-time user of Amazon Redshift, we recommend that you begin
 // by reading the Amazon Redshift Getting Started Guide (http://docs.aws.amazon.com/redshift/latest/gsg/getting-started.html).
 //
-// If you are a database developer, the Amazon Redshift Database Developer
-// Guide (http://docs.aws.amazon.com/redshift/latest/dg/welcome.html) explains
-// how to design, build, query, and maintain the databases that make up your
-// data warehouse.
+// If you are a database developer, the Amazon Redshift Database Developer Guide
+// (http://docs.aws.amazon.com/redshift/latest/dg/welcome.html) explains how
+// to design, build, query, and maintain the databases that make up your data
+// warehouse.
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type Redshift struct {

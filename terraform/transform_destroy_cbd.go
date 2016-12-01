@@ -142,6 +142,7 @@ func (t *CBDEdgeTransformer) depMap(
 			&AttachStateTransformer{State: t.State},
 			&ReferenceTransformer{},
 		},
+		Name: "CBDEdgeTransformer",
 	}).Build(nil)
 	if err != nil {
 		return nil, err

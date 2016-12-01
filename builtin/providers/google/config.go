@@ -17,6 +17,7 @@ import (
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/container/v1"
 	"google.golang.org/api/dns/v1"
+	"google.golang.org/api/iam/v1"
 	"google.golang.org/api/pubsub/v1"
 	"google.golang.org/api/sqladmin/v1beta4"
 	"google.golang.org/api/storage/v1"
@@ -36,6 +37,7 @@ type Config struct {
 	clientResourceManager *cloudresourcemanager.Service
 	clientStorage         *storage.Service
 	clientSqlAdmin        *sqladmin.Service
+	clientIAM             *iam.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -135,12 +137,19 @@ func (c *Config) loadAndValidate() error {
 	}
 	c.clientPubsub.UserAgent = userAgent
 
-	log.Printf("[INFO] Instatiating Google CloudResourceManager Client...")
+	log.Printf("[INFO] Instatiating Google Cloud ResourceManager Client...")
 	c.clientResourceManager, err = cloudresourcemanager.New(client)
 	if err != nil {
 		return err
 	}
-	c.clientPubsub.UserAgent = userAgent
+	c.clientResourceManager.UserAgent = userAgent
+
+	log.Printf("[INFO] Instatiating Google Cloud IAM Client...")
+	c.clientIAM, err = iam.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientIAM.UserAgent = userAgent
 
 	return nil
 }

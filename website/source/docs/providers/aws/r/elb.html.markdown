@@ -80,9 +80,9 @@ The following arguments are supported:
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Optional) A health_check block. Health Check documented below.
 * `cross_zone_load_balancing` - (Optional) Enable cross-zone load balancing. Default: `true`
-* `idle_timeout` - (Optional) The time in seconds that the connection is allowed to be idle. Default: 60.
-* `connection_draining` - (Optional) Boolean to enable connection draining.
-* `connection_draining_timeout` - (Optional) The time in seconds to allow for connections to drain.
+* `idle_timeout` - (Optional) The time in seconds that the connection is allowed to be idle. Default: `60`
+* `connection_draining` - (Optional) Boolean to enable connection draining. Default: `false`
+* `connection_draining_timeout` - (Optional) The time in seconds to allow for connections to drain. Default: `300`
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 Exactly one of `availability_zones` or `subnets` must be specified: this
@@ -111,7 +111,7 @@ Health Check (`health_check`) supports the following:
 * `healthy_threshold` - (Required) The number of checks before the instance is declared healthy.
 * `unhealthy_threshold` - (Required) The number of checks before the instance is declared unhealthy.
 * `target` - (Required) The target of the check. Valid pattern is "${PROTOCOL}:${PORT}${PATH}", where PROTOCOL
-  values are:  
+  values are:
   * `HTTP`, `HTTPS` - PORT and PATH are required
   * `TCP`, `SSL` - PORT is required, PATH is not supported
 * `interval` - (Required) The interval between checks.
