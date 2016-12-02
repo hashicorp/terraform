@@ -83,7 +83,7 @@ func resourceLBMonitorV1() *schema.Resource {
 
 func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -142,7 +142,7 @@ func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -163,13 +163,14 @@ func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("http_method", m.HTTPMethod)
 	d.Set("expected_codes", m.ExpectedCodes)
 	d.Set("admin_state_up", strconv.FormatBool(m.AdminStateUp))
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceLBMonitorV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -206,7 +207,7 @@ func resourceLBMonitorV1Update(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMonitorV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
