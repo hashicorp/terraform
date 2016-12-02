@@ -40,6 +40,11 @@ resource "aws_lambda_function" "test_lambda" {
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.test"
     source_code_hash = "${base64sha256(file("lambda_function_payload.zip"))}"
+    environment {
+        variables = {
+            foo = "bar"
+        }
+    }
 }
 ```
 
