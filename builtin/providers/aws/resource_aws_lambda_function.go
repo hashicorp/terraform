@@ -495,6 +495,11 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 				}
 				configUpdate = true
 			}
+		} else {
+			configReq.Environment = &lambda.Environment{
+				Variables: aws.StringMap(map[string]string{}),
+			}
+			configUpdate = true
 		}
 	}
 
