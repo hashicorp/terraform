@@ -1,8 +1,9 @@
 ## 0.7.14 (unreleased)
 
 BUG FIXES:
- * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine [GH-10340]
 
+ * core: Fix diff mismatch 'destroy old: false, new: true' by treating non-CBD resources as CBD when an ancestor is CBD. [GH-10455]
+ * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine [GH-10340]
 
 
 ## 0.7.13 (November 23, 2016)
