@@ -422,6 +422,9 @@ func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicat
 //   The specified S3 bucket does not belong to the S3 region in which the service
 //   is running.
 //
+//   * CodeBuildNotInServiceRegionException
+//   The CodeBuild service is not supported in this region.
+//
 func (c *ElasticBeanstalk) CreateApplicationVersion(input *CreateApplicationVersionInput) (*ApplicationVersionDescriptionMessage, error) {
 	req, out := c.CreateApplicationVersionRequest(input)
 	err := req.Send()
@@ -988,8 +991,7 @@ func (c *ElasticBeanstalk) DescribeApplicationVersionsRequest(input *DescribeApp
 
 // DescribeApplicationVersions API operation for AWS Elastic Beanstalk.
 //
-// Retrieve a list of application versions stored in your AWS Elastic Beanstalk
-// storage bucket.
+// Retrieve a list of application versions.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1665,9 +1667,8 @@ func (c *ElasticBeanstalk) DescribeInstancesHealthRequest(input *DescribeInstanc
 
 // DescribeInstancesHealth API operation for AWS Elastic Beanstalk.
 //
-// Returns more detailed information about the health of the specified instances
-// (for example, CPU utilization, load average, and causes). The DescribeInstancesHealth
-// operation is only available with AWS Elastic Beanstalk Enhanced Health.
+// Retrives detailed information about the health of instances in your AWS Elastic
+// Beanstalk. This operation requires enhanced health reporting (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2647,7 +2648,7 @@ func (s *ApplicationDescriptionMessage) SetApplication(v *ApplicationDescription
 	return s
 }
 
-// Represents the application metrics for a specified environment.
+// Application request metrics for an AWS Elastic Beanstalk environment.
 type ApplicationMetrics struct {
 	_ struct{} `type:"structure"`
 
@@ -2707,8 +2708,10 @@ func (s *ApplicationMetrics) SetStatusCodes(v *StatusCodes) *ApplicationMetrics 
 type ApplicationVersionDescription struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the application associated with this release.
+	// The name of the application to which the application version belongs.
 	ApplicationName *string `min:"1" type:"string"`
+
+	BuildArn *string `type:"string"`
 
 	// The creation date of the application version.
 	DateCreated *time.Time `type:"timestamp" timestampFormat:"iso8601"`
@@ -2716,18 +2719,21 @@ type ApplicationVersionDescription struct {
 	// The last modified date of the application version.
 	DateUpdated *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
-	// The description of this application version.
+	// The description of the application version.
 	Description *string `type:"string"`
 
+	// If the version's source code was retrieved from AWS CodeCommit, the location
+	// of the source code for the application version.
 	SourceBuildInformation *SourceBuildInformation `type:"structure"`
 
-	// The location where the source bundle is located for this version.
+	// The storage location of the application version's source bundle in Amazon
+	// S3.
 	SourceBundle *S3Location `type:"structure"`
 
 	// The processing status of the application version.
 	Status *string `type:"string" enum:"ApplicationVersionStatus"`
 
-	// A label uniquely identifying the version for the associated application.
+	// A unique identifier for the application version.
 	VersionLabel *string `min:"1" type:"string"`
 }
 
@@ -2744,6 +2750,12 @@ func (s ApplicationVersionDescription) GoString() string {
 // SetApplicationName sets the ApplicationName field's value.
 func (s *ApplicationVersionDescription) SetApplicationName(v string) *ApplicationVersionDescription {
 	s.ApplicationName = &v
+	return s
+}
+
+// SetBuildArn sets the BuildArn field's value.
+func (s *ApplicationVersionDescription) SetBuildArn(v string) *ApplicationVersionDescription {
+	s.BuildArn = &v
 	return s
 }
 
@@ -2945,9 +2957,79 @@ func (s *AutoScalingGroup) SetName(v string) *AutoScalingGroup {
 	return s
 }
 
-// Represents CPU utilization information from the specified instance that belongs
-// to the AWS Elastic Beanstalk environment. Use the instanceId property to
-// specify the application instance for which you'd like to return data.
+type BuildConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	ArtifactName *string `type:"string"`
+
+	// CodeBuildServiceRole is a required field
+	CodeBuildServiceRole *string `type:"string" required:"true"`
+
+	ComputeType *string `type:"string" enum:"ComputeType"`
+
+	// Image is a required field
+	Image *string `type:"string" required:"true"`
+
+	TimeoutInMinutes *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s BuildConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s BuildConfiguration) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *BuildConfiguration) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "BuildConfiguration"}
+	if s.CodeBuildServiceRole == nil {
+		invalidParams.Add(request.NewErrParamRequired("CodeBuildServiceRole"))
+	}
+	if s.Image == nil {
+		invalidParams.Add(request.NewErrParamRequired("Image"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetArtifactName sets the ArtifactName field's value.
+func (s *BuildConfiguration) SetArtifactName(v string) *BuildConfiguration {
+	s.ArtifactName = &v
+	return s
+}
+
+// SetCodeBuildServiceRole sets the CodeBuildServiceRole field's value.
+func (s *BuildConfiguration) SetCodeBuildServiceRole(v string) *BuildConfiguration {
+	s.CodeBuildServiceRole = &v
+	return s
+}
+
+// SetComputeType sets the ComputeType field's value.
+func (s *BuildConfiguration) SetComputeType(v string) *BuildConfiguration {
+	s.ComputeType = &v
+	return s
+}
+
+// SetImage sets the Image field's value.
+func (s *BuildConfiguration) SetImage(v string) *BuildConfiguration {
+	s.Image = &v
+	return s
+}
+
+// SetTimeoutInMinutes sets the TimeoutInMinutes field's value.
+func (s *BuildConfiguration) SetTimeoutInMinutes(v int64) *BuildConfiguration {
+	s.TimeoutInMinutes = &v
+	return s
+}
+
+// CPU utilization metrics for an instance.
 type CPUUtilization struct {
 	_ struct{} `type:"structure"`
 
@@ -3570,19 +3652,11 @@ type CreateApplicationVersionInput struct {
 	// ApplicationName is a required field
 	ApplicationName *string `min:"1" type:"string" required:"true"`
 
-	// Determines how the system behaves if the specified application for this version
-	// does not already exist:
-	//
-	//    * true : Automatically creates the specified application for this release
-	//    if it does not already exist.
-	//
-	//    * false : Throws an InvalidParameterValue if the specified application
-	//    for this release does not already exist.
-	//
-	// Default: false
-	//
-	// Valid Values: true | false
+	// Set to true to create an application with the specified name if it doesn't
+	// already exist.
 	AutoCreateApplication *bool `type:"boolean"`
+
+	BuildConfiguration *BuildConfiguration `type:"structure"`
 
 	// Describes this version.
 	Description *string `type:"string"`
@@ -3592,19 +3666,20 @@ type CreateApplicationVersionInput struct {
 	// prior to deploying the application version to an environment.
 	Process *bool `type:"boolean"`
 
+	// Specify a commit in an AWS CodeCommit Git repository to use as the source
+	// code for the application version.
+	//
+	// Specify a commit in an AWS CodeCommit repository or a source bundle in S3
+	// (with SourceBundle), but not both. If neither SourceBundle nor SourceBuildInformation
+	// are provided, Elastic Beanstalk uses a sample application.
 	SourceBuildInformation *SourceBuildInformation `type:"structure"`
 
 	// The Amazon S3 bucket and key that identify the location of the source bundle
 	// for this version.
 	//
-	// If data found at the Amazon S3 location exceeds the maximum allowed source
-	// bundle size, AWS Elastic Beanstalk returns an InvalidParameterValue error.
-	// The maximum size allowed is 512 MB.
-	//
-	// Default: If not specified, AWS Elastic Beanstalk uses a sample application.
-	// If only partially specified (for example, a bucket is provided but not the
-	// key) or if no data is found at the Amazon S3 location, AWS Elastic Beanstalk
-	// returns an InvalidParameterCombination error.
+	// Specify a source bundle in S3 or a commit in an AWS CodeCommit repository
+	// (with SourceBuildInformation), but not both. If neither SourceBundle nor
+	// SourceBuildInformation are provided, Elastic Beanstalk uses a sample application.
 	SourceBundle *S3Location `type:"structure"`
 
 	// A label identifying this version.
@@ -3642,6 +3717,11 @@ func (s *CreateApplicationVersionInput) Validate() error {
 	if s.VersionLabel != nil && len(*s.VersionLabel) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("VersionLabel", 1))
 	}
+	if s.BuildConfiguration != nil {
+		if err := s.BuildConfiguration.Validate(); err != nil {
+			invalidParams.AddNested("BuildConfiguration", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.SourceBuildInformation != nil {
 		if err := s.SourceBuildInformation.Validate(); err != nil {
 			invalidParams.AddNested("SourceBuildInformation", err.(request.ErrInvalidParams))
@@ -3663,6 +3743,12 @@ func (s *CreateApplicationVersionInput) SetApplicationName(v string) *CreateAppl
 // SetAutoCreateApplication sets the AutoCreateApplication field's value.
 func (s *CreateApplicationVersionInput) SetAutoCreateApplication(v bool) *CreateApplicationVersionInput {
 	s.AutoCreateApplication = &v
+	return s
+}
+
+// SetBuildConfiguration sets the BuildConfiguration field's value.
+func (s *CreateApplicationVersionInput) SetBuildConfiguration(v *BuildConfiguration) *CreateApplicationVersionInput {
+	s.BuildConfiguration = v
 	return s
 }
 
@@ -4181,20 +4267,14 @@ func (s DeleteApplicationOutput) GoString() string {
 type DeleteApplicationVersionInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the application to delete releases from.
+	// The name of the application to which the version belongs.
 	//
 	// ApplicationName is a required field
 	ApplicationName *string `min:"1" type:"string" required:"true"`
 
-	// Indicates whether to delete the associated source bundle from Amazon S3:
-	//
-	//    * true: An attempt is made to delete the associated Amazon S3 source bundle
-	//    specified at time of creation.
-	//
-	//    * false: No action is taken on the Amazon S3 source bundle specified at
-	//    time of creation.
-	//
-	// Valid Values: true | false
+	// Set to true to delete the source bundle from your storage bucket. Otherwise,
+	// the application version is deleted only from Elastic Beanstalk and the source
+	// bundle remains in Amazon S3.
 	DeleteSourceBundle *bool `type:"boolean"`
 
 	// The label of the version to delete.
@@ -4473,12 +4553,11 @@ func (s *Deployment) SetVersionLabel(v string) *Deployment {
 	return s
 }
 
-// Result message containing a list of configuration descriptions.
+// Request to describe application versions.
 type DescribeApplicationVersionsInput struct {
 	_ struct{} `type:"structure"`
 
-	// If specified, AWS Elastic Beanstalk restricts the returned descriptions to
-	// only include ones that are associated with the specified application.
+	// Specify an application name to show only application versions for that application.
 	ApplicationName *string `min:"1" type:"string"`
 
 	// Specify a maximum number of application versions to paginate in the request.
@@ -4487,8 +4566,7 @@ type DescribeApplicationVersionsInput struct {
 	// Specify a next token to retrieve the next page in a paginated request.
 	NextToken *string `type:"string"`
 
-	// If specified, restricts the returned descriptions to only include ones that
-	// have the specified version labels.
+	// Specify a version label to show a specific application version.
 	VersionLabels []*string `type:"list"`
 }
 
@@ -4546,7 +4624,7 @@ func (s *DescribeApplicationVersionsInput) SetVersionLabels(v []*string) *Descri
 type DescribeApplicationVersionsOutput struct {
 	_ struct{} `type:"structure"`
 
-	// List of ApplicationVersionDescription objects sorted by order of creation.
+	// List of ApplicationVersionDescription objects sorted in order of creation.
 	ApplicationVersions []*ApplicationVersionDescription `type:"list"`
 
 	// For a paginated request, the token that you can pass in a subsequent request
@@ -4855,22 +4933,18 @@ func (s *DescribeConfigurationSettingsOutput) SetConfigurationSettings(v []*Conf
 type DescribeEnvironmentHealthInput struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies the response elements you wish to receive. If no attribute names
-	// are specified, AWS Elastic Beanstalk only returns the name of the environment.
+	// Specify the response elements to return. To retrieve all attributes, set
+	// to All. If no attribute names are specified, returns the name of the environment.
 	AttributeNames []*string `type:"list"`
 
-	// Specifies the AWS Elastic Beanstalk environment ID.
+	// Specify the environment by ID.
 	//
-	// Condition: You must specify either this or an EnvironmentName, or both. If
-	// you do not specify either, AWS Elastic Beanstalk returns MissingRequiredParameter
-	// error.
+	// You must specify either this or an EnvironmentName, or both.
 	EnvironmentId *string `type:"string"`
 
-	// Specifies the AWS Elastic Beanstalk environment name.
+	// Specify the environment by name.
 	//
-	// Condition: You must specify either this or an EnvironmentId, or both. If
-	// you do not specify either, AWS Elastic Beanstalk returns MissingRequiredParameter
-	// error.
+	// You must specify either this or an EnvironmentName, or both.
 	EnvironmentName *string `min:"4" type:"string"`
 }
 
@@ -4915,35 +4989,36 @@ func (s *DescribeEnvironmentHealthInput) SetEnvironmentName(v string) *DescribeE
 	return s
 }
 
-// See the example below for a sample response.
+// Health details for an AWS Elastic Beanstalk environment.
 type DescribeEnvironmentHealthOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Represents the application metrics for a specified environment.
+	// Application request metrics for the environment.
 	ApplicationMetrics *ApplicationMetrics `type:"structure"`
 
-	// Returns potential causes for the reported status.
+	// Descriptions of the data that contributed to the environment's current health
+	// status.
 	Causes []*string `type:"list"`
 
-	// Returns the color indicator that tells you information about the health of
-	// the environment. For more information, see Health Colors and Statuses (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html).
+	// The health color (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html)
+	// of the environment.
 	Color *string `type:"string"`
 
-	// The AWS Elastic Beanstalk environment name.
+	// The environment's name.
 	EnvironmentName *string `min:"4" type:"string"`
 
-	// Contains the response body with information about the health of the environment.
+	// The health status (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html)
+	// of the environment. For example, Ok.
 	HealthStatus *string `type:"string"`
 
-	// Represents summary information about the health of an instance. For more
-	// information, see Health Colors and Statuses (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html).
+	// Summary health information for the instances in the environment.
 	InstancesHealth *InstanceHealthSummary `type:"structure"`
 
-	// The date and time the information was last refreshed.
+	// The date and time that the health information was retrieved.
 	RefreshedAt *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
-	// Returns the health status value of the environment. For more information,
-	// see Health Colors and Statuses (http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/health-enhanced-status.html).
+	// The environment's operational status. Ready, Launching, Updating, Terminating,
+	// or Terminated.
 	Status *string `type:"string" enum:"EnvironmentHealth"`
 }
 
@@ -5525,21 +5600,21 @@ func (s *DescribeEventsOutput) SetNextToken(v string) *DescribeEventsOutput {
 	return s
 }
 
-// See the example below to learn how to create a request body.
+// Parameters for a call to DescribeInstancesHealth.
 type DescribeInstancesHealthInput struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies the response elements you wish to receive. If no attribute names
-	// are specified, AWS Elastic Beanstalk only returns a list of instances.
+	// Specifies the response elements you wish to receive. To retrieve all attributes,
+	// set to All. If no attribute names are specified, returns a list of instances.
 	AttributeNames []*string `type:"list"`
 
-	// Specifies the AWS Elastic Beanstalk environment ID.
+	// Specify the AWS Elastic Beanstalk environment by ID.
 	EnvironmentId *string `type:"string"`
 
-	// Specifies the AWS Elastic Beanstalk environment name.
+	// Specify the AWS Elastic Beanstalk environment by name.
 	EnvironmentName *string `min:"4" type:"string"`
 
-	// Specifies the next token of the request.
+	// Specify the pagination token returned by a previous call.
 	NextToken *string `min:"1" type:"string"`
 }
 
@@ -5593,17 +5668,18 @@ func (s *DescribeInstancesHealthInput) SetNextToken(v string) *DescribeInstances
 	return s
 }
 
-// See the example below for a sample response.
+// Detailed health information about the Amazon EC2 instances in an AWS Elastic
+// Beanstalk environment.
 type DescribeInstancesHealthOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Contains the response body with information about the health of the instance.
+	// Detailed health information about each instance.
 	InstanceHealthList []*SingleInstanceHealth `type:"list"`
 
-	// The next token.
+	// Pagination token for the next page of results, if available.
 	NextToken *string `min:"1" type:"string"`
 
-	// The date and time the information was last refreshed.
+	// The date and time that the health information was retrieved.
 	RefreshedAt *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 }
 
@@ -7165,7 +7241,7 @@ func (s *RetrieveEnvironmentInfoOutput) SetEnvironmentInfo(v []*EnvironmentInfoD
 	return s
 }
 
-// A specification of a location in Amazon S3.
+// The bucket and key of an item stored in Amazon S3.
 type S3Location struct {
 	_ struct{} `type:"structure"`
 
@@ -7198,13 +7274,12 @@ func (s *S3Location) SetS3Key(v string) *S3Location {
 	return s
 }
 
-// Represents health information from the specified instance that belongs to
-// the AWS Elastic Beanstalk environment. Use the InstanceId property to specify
-// the application instance for which you'd like to return data.
+// Detailed health information about an Amazon EC2 instance in your Elastic
+// Beanstalk environment.
 type SingleInstanceHealth struct {
 	_ struct{} `type:"structure"`
 
-	// Represents the application metrics for a specified environment.
+	// Request metrics from your application.
 	ApplicationMetrics *ApplicationMetrics `type:"structure"`
 
 	// The availability zone in which the instance runs.
@@ -7235,8 +7310,7 @@ type SingleInstanceHealth struct {
 	// The time at which the EC2 instance was launched.
 	LaunchedAt *time.Time `type:"timestamp" timestampFormat:"iso8601"`
 
-	// Represents CPU utilization and load average information for applications
-	// running in the specified environment.
+	// Operating system metrics from the instance.
 	System *SystemStatus `type:"structure"`
 }
 
@@ -7343,15 +7417,23 @@ func (s *SolutionStackDescription) SetSolutionStackName(v string) *SolutionStack
 	return s
 }
 
+// Location of the source code for an application version.
 type SourceBuildInformation struct {
 	_ struct{} `type:"structure"`
 
+	// The repository name and commit ID, separated by a forward slash. For example,
+	// my-repo/265cfa0cf6af46153527f55d6503ec030551f57a.
+	//
 	// SourceLocation is a required field
 	SourceLocation *string `min:"3" type:"string" required:"true"`
 
+	// Location where the repository is stored, such as CodeCommit.
+	//
 	// SourceRepository is a required field
 	SourceRepository *string `type:"string" required:"true" enum:"SourceRepository"`
 
+	// The type of repository, such as Git.
+	//
 	// SourceType is a required field
 	SourceType *string `type:"string" required:"true" enum:"SourceType"`
 }
@@ -7609,14 +7691,11 @@ func (s SwapEnvironmentCNAMEsOutput) GoString() string {
 	return s.String()
 }
 
-// Represents CPU utilization and load average information for applications
-// running in the specified environment.
+// CPU utilization and load average metrics for an Amazon EC2 instance.
 type SystemStatus struct {
 	_ struct{} `type:"structure"`
 
-	// Represents CPU utilization information from the specified instance that belongs
-	// to the AWS Elastic Beanstalk environment. Use the instanceId property to
-	// specify the application instance for which you'd like to return data.
+	// CPU utilization metrics for the instance.
 	CPUUtilization *CPUUtilization `type:"structure"`
 
 	// Load average in the last 1-minute and 5-minute periods. For more information,
@@ -7870,7 +7949,7 @@ type UpdateApplicationVersionInput struct {
 	// ApplicationName is a required field
 	ApplicationName *string `min:"1" type:"string" required:"true"`
 
-	// A new description for this release.
+	// A new description for this version.
 	Description *string `type:"string"`
 
 	// The name of the version to update.
@@ -8361,8 +8440,10 @@ type ValidationMessage struct {
 	// A message describing the error or warning.
 	Message *string `type:"string"`
 
+	// The namespace to which the option belongs.
 	Namespace *string `type:"string"`
 
+	// The name of the option.
 	OptionName *string `type:"string"`
 
 	// An indication of the severity of this message:
@@ -8457,6 +8538,20 @@ const (
 
 	// ApplicationVersionStatusProcessing is a ApplicationVersionStatus enum value
 	ApplicationVersionStatusProcessing = "Processing"
+
+	// ApplicationVersionStatusBuilding is a ApplicationVersionStatus enum value
+	ApplicationVersionStatusBuilding = "Building"
+)
+
+const (
+	// ComputeTypeBuildGeneral1Small is a ComputeType enum value
+	ComputeTypeBuildGeneral1Small = "BUILD_GENERAL1_SMALL"
+
+	// ComputeTypeBuildGeneral1Medium is a ComputeType enum value
+	ComputeTypeBuildGeneral1Medium = "BUILD_GENERAL1_MEDIUM"
+
+	// ComputeTypeBuildGeneral1Large is a ComputeType enum value
+	ComputeTypeBuildGeneral1Large = "BUILD_GENERAL1_LARGE"
 )
 
 const (
@@ -8650,11 +8745,17 @@ const (
 const (
 	// SourceRepositoryCodeCommit is a SourceRepository enum value
 	SourceRepositoryCodeCommit = "CodeCommit"
+
+	// SourceRepositoryS3 is a SourceRepository enum value
+	SourceRepositoryS3 = "S3"
 )
 
 const (
 	// SourceTypeGit is a SourceType enum value
 	SourceTypeGit = "Git"
+
+	// SourceTypeZip is a SourceType enum value
+	SourceTypeZip = "Zip"
 )
 
 const (
