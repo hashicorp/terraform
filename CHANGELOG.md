@@ -33,6 +33,7 @@ BUG FIXES:
   * core: Changed attribute console output shows up on Windows. [GH-10417]
   * core: Destroying deposed resources in create before destroy waits until the creation step of its specific index. (0.8 regression) [GH-10416]
   * core: Certain invalid configurations will no longer print "illegal". [GH-10448]
+  * core: Fix a crash that could occur when multiple deposed instances exist. [GH-10504]
   * command/console: variable access works [GH-10446]
   * provider/aws: Do not return a root device for instance store backed AMIs. [GH-9483]
   * provider/aws: resource_aws_opsworks_application does not accept document_root parameter [GH-10477]
