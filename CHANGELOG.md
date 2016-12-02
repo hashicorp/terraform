@@ -19,6 +19,7 @@ IMPROVEMENTS:
  * provider/aws: Increase `aws_emr_cluster` timeout [GH-10444]
  * provider/aws: Support Automatic Rollback of CodeDeploy deployments and CloudWatch Alarms for a Deployment Group [GH-9039]
  * provider/aws: Allow importing of aws_iam_role, aws_iam_role_policy and aws_iam_policy [GH-9398]
+ * provider/aws: Added s3 bucket region attribute management [GH-10482]
  * provider/azurerm: support import of routes, fix route_table [GH-10389]
  * provider/azurerm: create common schema for location field, add diff suppress [GH-10409]
  * provider/github: supports importing resources [GH-10382]
