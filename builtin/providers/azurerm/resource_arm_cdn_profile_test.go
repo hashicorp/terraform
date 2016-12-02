@@ -155,7 +155,7 @@ func testCheckAzureRMCdnProfileDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("CDN Profile still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("CDN Profile still exists:\n%#v", resp.ProfileProperties)
 		}
 	}
 
