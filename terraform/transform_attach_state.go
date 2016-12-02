@@ -59,7 +59,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 
 		if !found {
 			log.Printf(
-				"[DEBUG] Resource state not foudn for %q: %s",
+				"[DEBUG] Resource state not found for %q: %s",
 				dag.VertexName(v), addr)
 		}
 	}
