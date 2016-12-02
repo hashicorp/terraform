@@ -1,3 +1,23 @@
+Release v1.5.13 (2016-12-01)
+===
+
+Service Client Updates
+---
+`service/apigateway`: Updates service API and documentation
+`service/appstream`: Adds new service
+`service/codebuild`: Adds new service
+`service/directconnect`: Updates service API and documentation
+`service/ec2`: Adds new service
+`service/elasticbeanstalk`: Updates service API and documentation
+`service/health`: Adds new service
+`service/lambda`: Updates service API and documentation
+`service/opsworkscm`: Adds new service
+`service/pinpoint`: Adds new service
+`service/shield`: Adds new service
+`service/ssm`: Updates service API and documentation
+`service/states`: Adds new service
+`service/xray`: Adds new service
+
 Release v1.5.12 (2016-11-30)
 ===
 
