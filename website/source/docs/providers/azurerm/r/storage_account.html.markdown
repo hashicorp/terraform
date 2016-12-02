@@ -59,7 +59,7 @@ The following arguments are supported:
     for `BlobStorage` accounts. Valid options are `Hot` and `Cold`, defaults to
     `Hot`.
 
-* `enable_bool_encryption` - (Optional) Boolean flag which controls if Encryption
+* `enable_blob_encryption` - (Optional) Boolean flag which controls if Encryption
     Services are enabled for Blob storage, see [here](https://azure.microsoft.com/en-us/documentation/articles/storage-service-encryption/)
     for more information. 
 
