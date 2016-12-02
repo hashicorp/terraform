@@ -30,6 +30,20 @@ func (n *NodeDestroyResource) CreateBeforeDestroy() bool {
 	return n.Config.Lifecycle.CreateBeforeDestroy
 }
 
+// GraphNodeDestroyerCBD
+func (n *NodeDestroyResource) ModifyCreateBeforeDestroy(v bool) error {
+	// If we have no config, do nothing since it won't affect the
+	// create step anyways.
+	if n.Config == nil {
+		return nil
+	}
+
+	// Set CBD to true
+	n.Config.Lifecycle.CreateBeforeDestroy = true
+
+	return nil
+}
+
 // GraphNodeReferenceable, overriding NodeAbstractResource
 func (n *NodeDestroyResource) ReferenceableName() []string {
 	result := n.NodeAbstractResource.ReferenceableName()
