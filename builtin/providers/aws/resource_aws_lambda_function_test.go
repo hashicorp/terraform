@@ -77,6 +77,16 @@ func TestAccAWSLambdaFunction_envVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "environment.0.variables.foo1", "bar1"),
 				),
 			},
+			{
+				Config: testAccAWSLambdaConfigEnvVariablesModifiedWithoutEnvironment(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					testAccCheckAwsLambdaFunctionName(&conf, rName),
+					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, ":"+rName),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "environment.0.variables.foo", ""),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "environment.0.variables.foo1", ""),
+				),
+			},
 		},
 	})
 }
@@ -644,6 +654,17 @@ resource "aws_lambda_function" "lambda_function_test" {
             foo1 = "bar1"
         }
     }
+}
+`, rName)
+}
+
+func testAccAWSLambdaConfigEnvVariablesModifiedWithoutEnvironment(rName string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
 }
 `, rName)
 }
