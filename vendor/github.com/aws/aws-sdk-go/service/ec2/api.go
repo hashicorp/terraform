@@ -58,8 +58,8 @@ func (c *EC2) AcceptReservedInstancesExchangeQuoteRequest(input *AcceptReservedI
 
 // AcceptReservedInstancesExchangeQuote API operation for Amazon Elastic Compute Cloud.
 //
-// Purchases Convertible Reserved Instance offerings described in the GetReservedInstancesExchangeQuote
-// call.
+// Accepts the Convertible Reserved Instance exchange quote described in the
+// GetReservedInstancesExchangeQuote call.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -255,6 +255,72 @@ func (c *EC2) AllocateHostsRequest(input *AllocateHostsInput) (req *request.Requ
 // API operation AllocateHosts for usage and error information.
 func (c *EC2) AllocateHosts(input *AllocateHostsInput) (*AllocateHostsOutput, error) {
 	req, out := c.AllocateHostsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opAssignIpv6Addresses = "AssignIpv6Addresses"
+
+// AssignIpv6AddressesRequest generates a "aws/request.Request" representing the
+// client's request for the AssignIpv6Addresses operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See AssignIpv6Addresses for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssignIpv6Addresses method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssignIpv6AddressesRequest method.
+//    req, resp := client.AssignIpv6AddressesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) AssignIpv6AddressesRequest(input *AssignIpv6AddressesInput) (req *request.Request, output *AssignIpv6AddressesOutput) {
+	op := &request.Operation{
+		Name:       opAssignIpv6Addresses,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssignIpv6AddressesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &AssignIpv6AddressesOutput{}
+	req.Data = output
+	return
+}
+
+// AssignIpv6Addresses API operation for Amazon Elastic Compute Cloud.
+//
+// Assigns one or more IPv6 addresses to the specified network interface. You
+// can specify one or more specific IPv6 addresses, or you can specify the number
+// of IPv6 addresses to be automatically assigned from within the subnet's IPv6
+// CIDR block range. You can assign as many IPv6 addresses to a network interface
+// as you can assign private IPv4 addresses, and the limit varies per instance
+// type. For information, see IP Addresses Per Network Interface Per Instance
+// Type (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#AvailableIpPerENI)
+// in the Amazon Elastic Compute Cloud User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssignIpv6Addresses for usage and error information.
+func (c *EC2) AssignIpv6Addresses(input *AssignIpv6AddressesInput) (*AssignIpv6AddressesOutput, error) {
+	req, out := c.AssignIpv6AddressesRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -541,6 +607,127 @@ func (c *EC2) AssociateRouteTableRequest(input *AssociateRouteTableInput) (req *
 // API operation AssociateRouteTable for usage and error information.
 func (c *EC2) AssociateRouteTable(input *AssociateRouteTableInput) (*AssociateRouteTableOutput, error) {
 	req, out := c.AssociateRouteTableRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opAssociateSubnetCidrBlock = "AssociateSubnetCidrBlock"
+
+// AssociateSubnetCidrBlockRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateSubnetCidrBlock operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See AssociateSubnetCidrBlock for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateSubnetCidrBlock method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateSubnetCidrBlockRequest method.
+//    req, resp := client.AssociateSubnetCidrBlockRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) AssociateSubnetCidrBlockRequest(input *AssociateSubnetCidrBlockInput) (req *request.Request, output *AssociateSubnetCidrBlockOutput) {
+	op := &request.Operation{
+		Name:       opAssociateSubnetCidrBlock,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateSubnetCidrBlockInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &AssociateSubnetCidrBlockOutput{}
+	req.Data = output
+	return
+}
+
+// AssociateSubnetCidrBlock API operation for Amazon Elastic Compute Cloud.
+//
+// Associates a CIDR block with your subnet. You can only associate a single
+// IPv6 CIDR block with your subnet. An IPv6 CIDR block must have a prefix length
+// of /64.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateSubnetCidrBlock for usage and error information.
+func (c *EC2) AssociateSubnetCidrBlock(input *AssociateSubnetCidrBlockInput) (*AssociateSubnetCidrBlockOutput, error) {
+	req, out := c.AssociateSubnetCidrBlockRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opAssociateVpcCidrBlock = "AssociateVpcCidrBlock"
+
+// AssociateVpcCidrBlockRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateVpcCidrBlock operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See AssociateVpcCidrBlock for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the AssociateVpcCidrBlock method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the AssociateVpcCidrBlockRequest method.
+//    req, resp := client.AssociateVpcCidrBlockRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) AssociateVpcCidrBlockRequest(input *AssociateVpcCidrBlockInput) (req *request.Request, output *AssociateVpcCidrBlockOutput) {
+	op := &request.Operation{
+		Name:       opAssociateVpcCidrBlock,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateVpcCidrBlockInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &AssociateVpcCidrBlockOutput{}
+	req.Data = output
+	return
+}
+
+// AssociateVpcCidrBlock API operation for Amazon Elastic Compute Cloud.
+//
+// Associates a CIDR block with your VPC. You can only associate a single Amazon-provided
+// IPv6 CIDR block with your VPC. The IPv6 CIDR block size is fixed at /56.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation AssociateVpcCidrBlock for usage and error information.
+func (c *EC2) AssociateVpcCidrBlock(input *AssociateVpcCidrBlockInput) (*AssociateVpcCidrBlockOutput, error) {
+	req, out := c.AssociateVpcCidrBlockRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -935,14 +1122,12 @@ func (c *EC2) AuthorizeSecurityGroupEgressRequest(input *AuthorizeSecurityGroupE
 //
 // [EC2-VPC only] Adds one or more egress rules to a security group for use
 // with a VPC. Specifically, this action permits instances to send traffic to
-// one or more destination CIDR IP address ranges, or to one or more destination
-// security groups for the same VPC. This action doesn't apply to security groups
-// for use in EC2-Classic. For more information, see Security Groups for Your
-// VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_SecurityGroups.html)
-// in the Amazon Virtual Private Cloud User Guide.
-//
-// You can have up to 50 rules per security group (covering both ingress and
-// egress rules).
+// one or more destination IPv4 or IPv6 CIDR address ranges, or to one or more
+// destination security groups for the same VPC. This action doesn't apply to
+// security groups for use in EC2-Classic. For more information, see Security
+// Groups for Your VPC (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_SecurityGroups.html)
+// in the Amazon Virtual Private Cloud User Guide. For more information about
+// security group limits, see Amazon VPC Limits (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html).
 //
 // Each rule consists of the protocol (for example, TCP), plus either a CIDR
 // range or a source group. For the TCP and UDP protocols, you must also specify
@@ -1014,23 +1199,21 @@ func (c *EC2) AuthorizeSecurityGroupIngressRequest(input *AuthorizeSecurityGroup
 //
 // Adds one or more ingress rules to a security group.
 //
-// EC2-Classic: You can have up to 100 rules per group.
-//
-// EC2-VPC: You can have up to 50 rules per group (covering both ingress and
-// egress rules).
-//
 // Rule changes are propagated to instances within the security group as quickly
 // as possible. However, a small delay might occur.
 //
-// [EC2-Classic] This action gives one or more CIDR IP address ranges permission
+// [EC2-Classic] This action gives one or more IPv4 CIDR address ranges permission
 // to access a security group in your account, or gives one or more security
 // groups (called the source groups) permission to access a security group for
 // your account. A source group can be for your own AWS account, or another.
+// You can have up to 100 rules per group.
 //
-// [EC2-VPC] This action gives one or more CIDR IP address ranges permission
-// to access a security group in your VPC, or gives one or more other security
-// groups (called the source groups) permission to access a security group for
-// your VPC. The security groups must all be for the same VPC.
+// [EC2-VPC] This action gives one or more IPv4 or IPv6 CIDR address ranges
+// permission to access a security group in your VPC, or gives one or more other
+// security groups (called the source groups) permission to access a security
+// group for your VPC. The security groups must all be for the same VPC or a
+// peer VPC in a VPC peering connection. For more information about VPC security
+// group limits, see Amazon VPC Limits (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Appendix_Limits.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1942,6 +2125,68 @@ func (c *EC2) CreateDhcpOptions(input *CreateDhcpOptionsInput) (*CreateDhcpOptio
 	return out, err
 }
 
+const opCreateEgressOnlyInternetGateway = "CreateEgressOnlyInternetGateway"
+
+// CreateEgressOnlyInternetGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the CreateEgressOnlyInternetGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreateEgressOnlyInternetGateway for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreateEgressOnlyInternetGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreateEgressOnlyInternetGatewayRequest method.
+//    req, resp := client.CreateEgressOnlyInternetGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) CreateEgressOnlyInternetGatewayRequest(input *CreateEgressOnlyInternetGatewayInput) (req *request.Request, output *CreateEgressOnlyInternetGatewayOutput) {
+	op := &request.Operation{
+		Name:       opCreateEgressOnlyInternetGateway,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreateEgressOnlyInternetGatewayInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &CreateEgressOnlyInternetGatewayOutput{}
+	req.Data = output
+	return
+}
+
+// CreateEgressOnlyInternetGateway API operation for Amazon Elastic Compute Cloud.
+//
+// [IPv6 only] Creates an egress-only Internet gateway for your VPC. An egress-only
+// Internet gateway is used to enable outbound communication over IPv6 from
+// instances in your VPC to the Internet, and prevents hosts outside of your
+// VPC from initiating an IPv6 connection with your instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation CreateEgressOnlyInternetGateway for usage and error information.
+func (c *EC2) CreateEgressOnlyInternetGateway(input *CreateEgressOnlyInternetGatewayInput) (*CreateEgressOnlyInternetGatewayOutput, error) {
+	req, out := c.CreateEgressOnlyInternetGatewayRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opCreateFlowLogs = "CreateFlowLogs"
 
 // CreateFlowLogsRequest generates a "aws/request.Request" representing the
@@ -2528,7 +2773,7 @@ func (c *EC2) CreateNetworkInterfaceRequest(input *CreateNetworkInterfaceInput) 
 //
 // For more information about network interfaces, see Elastic Network Interfaces
 // (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html) in the
-// Amazon Elastic Compute Cloud User Guide.
+// Amazon Virtual Private Cloud User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2734,12 +2979,12 @@ func (c *EC2) CreateRouteRequest(input *CreateRouteInput) (req *request.Request,
 // Creates a route in a route table within a VPC.
 //
 // You must specify one of the following targets: Internet gateway or virtual
-// private gateway, NAT instance, NAT gateway, VPC peering connection, or network
-// interface.
+// private gateway, NAT instance, NAT gateway, VPC peering connection, network
+// interface, or egress-only Internet gateway.
 //
 // When determining how to route traffic, we use the route with the most specific
-// match. For example, let's say the traffic is destined for 192.0.2.3, and
-// the route table includes the following two routes:
+// match. For example, traffic is destined for the IPv4 address 192.0.2.3, and
+// the route table includes the following two IPv4 routes:
 //
 //    * 192.0.2.0/24 (goes to some target A)
 //
@@ -3109,12 +3354,15 @@ func (c *EC2) CreateSubnetRequest(input *CreateSubnetInput) (req *request.Reques
 //
 // When you create each subnet, you provide the VPC ID and the CIDR block you
 // want for the subnet. After you create a subnet, you can't change its CIDR
-// block. The subnet's CIDR block can be the same as the VPC's CIDR block (assuming
-// you want only a single subnet in the VPC), or a subset of the VPC's CIDR
-// block. If you create more than one subnet in a VPC, the subnets' CIDR blocks
-// must not overlap. The smallest subnet (and VPC) you can create uses a /28
-// netmask (16 IP addresses), and the largest uses a /16 netmask (65,536 IP
-// addresses).
+// block. The subnet's IPv4 CIDR block can be the same as the VPC's IPv4 CIDR
+// block (assuming you want only a single subnet in the VPC), or a subset of
+// the VPC's IPv4 CIDR block. If you create more than one subnet in a VPC, the
+// subnets' CIDR blocks must not overlap. The smallest IPv4 subnet (and VPC)
+// you can create uses a /28 netmask (16 IPv4 addresses), and the largest uses
+// a /16 netmask (65,536 IPv4 addresses).
+//
+// If you've associated an IPv6 CIDR block with your VPC, you can create a subnet
+// with an IPv6 CIDR block that uses a /64 prefix length.
 //
 // AWS reserves both the first four and the last IP address in each subnet's
 // CIDR block. They're not available for use.
@@ -3331,12 +3579,15 @@ func (c *EC2) CreateVpcRequest(input *CreateVpcInput) (req *request.Request, out
 
 // CreateVpc API operation for Amazon Elastic Compute Cloud.
 //
-// Creates a VPC with the specified CIDR block.
-//
-// The smallest VPC you can create uses a /28 netmask (16 IP addresses), and
-// the largest uses a /16 netmask (65,536 IP addresses). To help you decide
-// how big to make your VPC, see Your VPC and Subnets (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html)
+// Creates a VPC with the specified IPv4 CIDR block. The smallest VPC you can
+// create uses a /28 netmask (16 IPv4 addresses), and the largest uses a /16
+// netmask (65,536 IPv4 addresses). To help you decide how big to make your
+// VPC, see Your VPC and Subnets (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html)
 // in the Amazon Virtual Private Cloud User Guide.
+//
+// You can optionally request an Amazon-provided IPv6 CIDR block for the VPC.
+// The IPv6 CIDR block uses a /56 prefix length, and is allocated from Amazon's
+// pool of IPv6 addresses. You cannot choose the IPv6 range for your VPC.
 //
 // By default, each instance you launch in the VPC has the default DHCP options,
 // which includes only a default DNS server that we provide (AmazonProvidedDNS).
@@ -3827,6 +4078,65 @@ func (c *EC2) DeleteDhcpOptionsRequest(input *DeleteDhcpOptionsInput) (req *requ
 // API operation DeleteDhcpOptions for usage and error information.
 func (c *EC2) DeleteDhcpOptions(input *DeleteDhcpOptionsInput) (*DeleteDhcpOptionsOutput, error) {
 	req, out := c.DeleteDhcpOptionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDeleteEgressOnlyInternetGateway = "DeleteEgressOnlyInternetGateway"
+
+// DeleteEgressOnlyInternetGatewayRequest generates a "aws/request.Request" representing the
+// client's request for the DeleteEgressOnlyInternetGateway operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeleteEgressOnlyInternetGateway for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeleteEgressOnlyInternetGateway method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeleteEgressOnlyInternetGatewayRequest method.
+//    req, resp := client.DeleteEgressOnlyInternetGatewayRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) DeleteEgressOnlyInternetGatewayRequest(input *DeleteEgressOnlyInternetGatewayInput) (req *request.Request, output *DeleteEgressOnlyInternetGatewayOutput) {
+	op := &request.Operation{
+		Name:       opDeleteEgressOnlyInternetGateway,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeleteEgressOnlyInternetGatewayInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DeleteEgressOnlyInternetGatewayOutput{}
+	req.Data = output
+	return
+}
+
+// DeleteEgressOnlyInternetGateway API operation for Amazon Elastic Compute Cloud.
+//
+// Deletes an egress-only Internet gateway.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DeleteEgressOnlyInternetGateway for usage and error information.
+func (c *EC2) DeleteEgressOnlyInternetGateway(input *DeleteEgressOnlyInternetGatewayInput) (*DeleteEgressOnlyInternetGatewayOutput, error) {
+	req, out := c.DeleteEgressOnlyInternetGatewayRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -5808,6 +6118,65 @@ func (c *EC2) DescribeDhcpOptionsRequest(input *DescribeDhcpOptionsInput) (req *
 // API operation DescribeDhcpOptions for usage and error information.
 func (c *EC2) DescribeDhcpOptions(input *DescribeDhcpOptionsInput) (*DescribeDhcpOptionsOutput, error) {
 	req, out := c.DescribeDhcpOptionsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeEgressOnlyInternetGateways = "DescribeEgressOnlyInternetGateways"
+
+// DescribeEgressOnlyInternetGatewaysRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEgressOnlyInternetGateways operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeEgressOnlyInternetGateways for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEgressOnlyInternetGateways method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEgressOnlyInternetGatewaysRequest method.
+//    req, resp := client.DescribeEgressOnlyInternetGatewaysRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) DescribeEgressOnlyInternetGatewaysRequest(input *DescribeEgressOnlyInternetGatewaysInput) (req *request.Request, output *DescribeEgressOnlyInternetGatewaysOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEgressOnlyInternetGateways,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEgressOnlyInternetGatewaysInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeEgressOnlyInternetGatewaysOutput{}
+	req.Data = output
+	return
+}
+
+// DescribeEgressOnlyInternetGateways API operation for Amazon Elastic Compute Cloud.
+//
+// Describes one or more of your egress-only Internet gateways.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DescribeEgressOnlyInternetGateways for usage and error information.
+func (c *EC2) DescribeEgressOnlyInternetGateways(input *DescribeEgressOnlyInternetGatewaysInput) (*DescribeEgressOnlyInternetGatewaysOutput, error) {
+	req, out := c.DescribeEgressOnlyInternetGatewaysRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -8651,9 +9020,8 @@ func (c *EC2) DescribeSpotPriceHistoryRequest(input *DescribeSpotPriceHistoryInp
 
 // DescribeSpotPriceHistory API operation for Amazon Elastic Compute Cloud.
 //
-// Describes the Spot price history. The prices returned are listed in chronological
-// order, from the oldest to the most recent, for up to the past 90 days. For
-// more information, see Spot Instance Pricing History (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances-history.html)
+// Describes the Spot price history. For more information, see Spot Instance
+// Pricing History (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances-history.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
 // When you specify a start and end time, this operation returns the prices
@@ -10394,6 +10762,128 @@ func (c *EC2) DisassociateRouteTable(input *DisassociateRouteTableInput) (*Disas
 	return out, err
 }
 
+const opDisassociateSubnetCidrBlock = "DisassociateSubnetCidrBlock"
+
+// DisassociateSubnetCidrBlockRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateSubnetCidrBlock operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DisassociateSubnetCidrBlock for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisassociateSubnetCidrBlock method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisassociateSubnetCidrBlockRequest method.
+//    req, resp := client.DisassociateSubnetCidrBlockRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) DisassociateSubnetCidrBlockRequest(input *DisassociateSubnetCidrBlockInput) (req *request.Request, output *DisassociateSubnetCidrBlockOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateSubnetCidrBlock,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateSubnetCidrBlockInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DisassociateSubnetCidrBlockOutput{}
+	req.Data = output
+	return
+}
+
+// DisassociateSubnetCidrBlock API operation for Amazon Elastic Compute Cloud.
+//
+// Disassociates a CIDR block from a subnet. Currently, you can disassociate
+// an IPv6 CIDR block only. You must detach or delete all gateways and resources
+// that are associated with the CIDR block before you can disassociate it.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisassociateSubnetCidrBlock for usage and error information.
+func (c *EC2) DisassociateSubnetCidrBlock(input *DisassociateSubnetCidrBlockInput) (*DisassociateSubnetCidrBlockOutput, error) {
+	req, out := c.DisassociateSubnetCidrBlockRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDisassociateVpcCidrBlock = "DisassociateVpcCidrBlock"
+
+// DisassociateVpcCidrBlockRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateVpcCidrBlock operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DisassociateVpcCidrBlock for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DisassociateVpcCidrBlock method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DisassociateVpcCidrBlockRequest method.
+//    req, resp := client.DisassociateVpcCidrBlockRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) DisassociateVpcCidrBlockRequest(input *DisassociateVpcCidrBlockInput) (req *request.Request, output *DisassociateVpcCidrBlockOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateVpcCidrBlock,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateVpcCidrBlockInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DisassociateVpcCidrBlockOutput{}
+	req.Data = output
+	return
+}
+
+// DisassociateVpcCidrBlock API operation for Amazon Elastic Compute Cloud.
+//
+// Disassociates a CIDR block from a VPC. Currently, you can disassociate an
+// IPv6 CIDR block only. You must detach or delete all gateways and resources
+// that are associated with the CIDR block before you can disassociate it.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation DisassociateVpcCidrBlock for usage and error information.
+func (c *EC2) DisassociateVpcCidrBlock(input *DisassociateVpcCidrBlockInput) (*DisassociateVpcCidrBlockOutput, error) {
+	req, out := c.DisassociateVpcCidrBlockRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opEnableVgwRoutePropagation = "EnableVgwRoutePropagation"
 
 // EnableVgwRoutePropagationRequest generates a "aws/request.Request" representing the
@@ -10967,8 +11457,8 @@ func (c *EC2) GetReservedInstancesExchangeQuoteRequest(input *GetReservedInstanc
 // GetReservedInstancesExchangeQuote API operation for Amazon Elastic Compute Cloud.
 //
 // Returns details about the values and term of your specified Convertible Reserved
-// Instances. When an offering ID is specified it returns information about
-// whether the exchange is valid and can be performed.
+// Instances. When a target configuration is specified, it returns information
+// about whether the exchange is valid and can be performed.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -12050,7 +12540,7 @@ func (c *EC2) ModifySubnetAttributeRequest(input *ModifySubnetAttributeInput) (r
 
 // ModifySubnetAttribute API operation for Amazon Elastic Compute Cloud.
 //
-// Modifies a subnet attribute.
+// Modifies a subnet attribute. You can only modify one attribute at a time.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -12379,9 +12869,12 @@ func (c *EC2) MonitorInstancesRequest(input *MonitorInstancesInput) (req *reques
 
 // MonitorInstances API operation for Amazon Elastic Compute Cloud.
 //
-// Enables monitoring for a running instance. For more information about monitoring
-// instances, see Monitoring Your Instances and Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-cloudwatch.html)
+// Enables detailed monitoring for a running instance. Otherwise, basic monitoring
+// is enabled. For more information, see Monitoring Your Instances and Volumes
+// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-cloudwatch.html)
 // in the Amazon Elastic Compute Cloud User Guide.
+//
+// To disable detailed monitoring, see .
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -13202,7 +13695,8 @@ func (c *EC2) ReplaceRouteRequest(input *ReplaceRouteInput) (req *request.Reques
 //
 // Replaces an existing route within a route table in a VPC. You must provide
 // only one of the following: Internet gateway or virtual private gateway, NAT
-// instance, NAT gateway, VPC peering connection, or network interface.
+// instance, NAT gateway, VPC peering connection, network interface, or egress-only
+// Internet gateway.
 //
 // For more information about route tables, see Route Tables (http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Route_Tables.html)
 // in the Amazon Virtual Private Cloud User Guide.
@@ -13865,10 +14359,10 @@ func (c *EC2) RevokeSecurityGroupEgressRequest(input *RevokeSecurityGroupEgressI
 // The values that you specify in the revoke request (for example, ports) must
 // match the existing rule's values for the rule to be revoked.
 //
-// Each rule consists of the protocol and the CIDR range or source security
-// group. For the TCP and UDP protocols, you must also specify the destination
-// port or range of ports. For the ICMP protocol, you must also specify the
-// ICMP type and code.
+// Each rule consists of the protocol and the IPv4 or IPv6 CIDR range or source
+// security group. For the TCP and UDP protocols, you must also specify the
+// destination port or range of ports. For the ICMP protocol, you must also
+// specify the ICMP type and code.
 //
 // Rule changes are propagated to instances within the security group as quickly
 // as possible. However, a small delay might occur.
@@ -14004,28 +14498,41 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 // Launches the specified number of instances using an AMI for which you have
 // permissions.
 //
-// When you launch an instance, it enters the pending state. After the instance
-// is ready for you, it enters the running state. To check the state of your
-// instance, call DescribeInstances.
+// You can specify a number of options, or leave the default options. The following
+// rules apply:
+//
+//    * [EC2-VPC] If you don't specify a subnet ID, we choose a default subnet
+//    from your default VPC for you. If you don't have a default VPC, you must
+//    specify a subnet ID in the request.
+//
+//    * [EC2-Classic] If don't specify an Availability Zone, we choose one for
+//    you.
+//
+//    * Some instance types must be launched into a VPC. If you do not have
+//    a default VPC, or if you do not specify a subnet ID, the request fails.
+//    For more information, see Instance Types Available Only in a VPC (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-vpc.html#vpc-only-instance-types).
+//
+//    * [EC2-VPC] All instances have a network interface with a primary private
+//    IPv4 address. If you don't specify this address, we choose one from the
+//    IPv4 range of your subnet.
+//
+//    * Not all instance types support IPv6 addresses. For more information,
+//    see Amazon EC2 Instance Types (http://aws.amazon.com/ec2/instance-types/).
+//
+//    * If you don't specify a security group ID, we use the default security
+//    group. For more information, see Security Groups (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html).
+//
+//    * If any of the AMIs have a product code attached for which the user has
+//    not subscribed, the request fails.
 //
 // To ensure faster instance launches, break up large requests into smaller
-// batches. For example, create five separate launch requests for 100 instances
-// each instead of one launch request for 500 instances.
+// batches. For example, create 5 separate launch requests for 100 instances
+// each instead of 1 launch request for 500 instances.
 //
-// To tag your instance, ensure that it is running as CreateTags requires a
-// resource ID. For more information about tagging, see Tagging Your Amazon
-// EC2 Resources (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html).
-//
-// If you don't specify a security group when launching an instance, Amazon
-// EC2 uses the default security group. For more information, see Security Groups
-// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-network-security.html)
-// in the Amazon Elastic Compute Cloud User Guide.
-//
-// [EC2-VPC only accounts] If you don't specify a subnet in the request, we
-// choose a default subnet from your default VPC for you.
-//
-// [EC2-Classic accounts] If you're launching into EC2-Classic and you don't
-// specify an Availability Zone, we choose one for you.
+// An instance is ready for you to use when it's in the running state. You can
+// check the state of your instance using DescribeInstances. After launch, you
+// can apply tags to your running instance (requires a resource ID). For more
+// information, see CreateTags and Tagging Your Amazon EC2 Resources (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html).
 //
 // Linux instances have access to the public key of the key pair at boot. You
 // can use this key to provide secure access to the instance. Amazon EC2 public
@@ -14033,19 +14540,8 @@ func (c *EC2) RunInstancesRequest(input *RunInstancesInput) (req *request.Reques
 // information, see Key Pairs (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
-// You can provide optional user data when launching an instance. For more information,
-// see Instance Metadata (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AESDG-chapter-instancedata.html)
-// in the Amazon Elastic Compute Cloud User Guide.
-//
-// If any of the AMIs have a product code attached for which the user has not
-// subscribed, RunInstances fails.
-//
-// Some instance types can only be launched into a VPC. If you do not have a
-// default VPC, or if you do not specify a subnet ID in the request, RunInstances
-// fails. For more information, see Instance Types Available Only in a VPC (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-vpc.html#vpc-only-instance-types).
-//
-// For more information about troubleshooting, see What To Do If An Instance
-// Immediately Terminates (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_InstanceStraightToTerminated.html),
+// For troubleshooting, see What To Do If An Instance Immediately Terminates
+// (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_InstanceStraightToTerminated.html),
 // and Troubleshooting Connecting to Your Instance (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/TroubleshootingInstancesConnecting.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
@@ -14378,6 +14874,65 @@ func (c *EC2) TerminateInstances(input *TerminateInstancesInput) (*TerminateInst
 	return out, err
 }
 
+const opUnassignIpv6Addresses = "UnassignIpv6Addresses"
+
+// UnassignIpv6AddressesRequest generates a "aws/request.Request" representing the
+// client's request for the UnassignIpv6Addresses operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UnassignIpv6Addresses for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UnassignIpv6Addresses method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UnassignIpv6AddressesRequest method.
+//    req, resp := client.UnassignIpv6AddressesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *EC2) UnassignIpv6AddressesRequest(input *UnassignIpv6AddressesInput) (req *request.Request, output *UnassignIpv6AddressesOutput) {
+	op := &request.Operation{
+		Name:       opUnassignIpv6Addresses,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UnassignIpv6AddressesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UnassignIpv6AddressesOutput{}
+	req.Data = output
+	return
+}
+
+// UnassignIpv6Addresses API operation for Amazon Elastic Compute Cloud.
+//
+// Unassigns one or more IPv6 addresses from a network interface.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Elastic Compute Cloud's
+// API operation UnassignIpv6Addresses for usage and error information.
+func (c *EC2) UnassignIpv6Addresses(input *UnassignIpv6AddressesInput) (*UnassignIpv6AddressesOutput, error) {
+	req, out := c.UnassignIpv6AddressesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opUnassignPrivateIpAddresses = "UnassignPrivateIpAddresses"
 
 // UnassignPrivateIpAddressesRequest generates a "aws/request.Request" representing the
@@ -14484,8 +15039,8 @@ func (c *EC2) UnmonitorInstancesRequest(input *UnmonitorInstancesInput) (req *re
 
 // UnmonitorInstances API operation for Amazon Elastic Compute Cloud.
 //
-// Disables monitoring for a running instance. For more information about monitoring
-// instances, see Monitoring Your Instances and Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-cloudwatch.html)
+// Disables detailed monitoring for a running instance. For more information,
+// see Monitoring Your Instances and Volumes (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-cloudwatch.html)
 // in the Amazon Elastic Compute Cloud User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -14510,14 +15065,14 @@ type AcceptReservedInstancesExchangeQuoteInput struct {
 	// it is UnauthorizedOperation.
 	DryRun *bool `type:"boolean"`
 
-	// The IDs of the Convertible Reserved Instances that you want to exchange for
-	// other Convertible Reserved Instances of the same or higher value.
+	// The IDs of the Convertible Reserved Instances to exchange for other Convertible
+	// Reserved Instances of the same or higher value.
 	//
 	// ReservedInstanceIds is a required field
 	ReservedInstanceIds []*string `locationName:"ReservedInstanceId" locationNameList:"ReservedInstanceId" type:"list" required:"true"`
 
-	// The configurations of the Convertible Reserved Instance offerings you are
-	// purchasing in this exchange.
+	// The configurations of the Convertible Reserved Instance offerings that you
+	// are purchasing in this exchange.
 	TargetConfigurations []*TargetConfigurationRequest `locationName:"TargetConfiguration" locationNameList:"TargetConfigurationRequest" type:"list"`
 }
 
@@ -15045,6 +15600,97 @@ func (s *AllocateHostsOutput) SetHostIds(v []*string) *AllocateHostsOutput {
 	return s
 }
 
+type AssignIpv6AddressesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The number of IPv6 addresses to assign to the network interface. Amazon EC2
+	// automatically selects the IPv6 addresses from the subnet range. You can't
+	// use this option if specifying specific IPv6 addresses.
+	Ipv6AddressCount *int64 `locationName:"ipv6AddressCount" type:"integer"`
+
+	// One or more specific IPv6 addresses to be assigned to the network interface.
+	// You can't use this option if you're specifying a number of IPv6 addresses.
+	Ipv6Addresses []*string `locationName:"ipv6Addresses" locationNameList:"item" type:"list"`
+
+	// The ID of the network interface.
+	//
+	// NetworkInterfaceId is a required field
+	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssignIpv6AddressesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssignIpv6AddressesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssignIpv6AddressesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssignIpv6AddressesInput"}
+	if s.NetworkInterfaceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("NetworkInterfaceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIpv6AddressCount sets the Ipv6AddressCount field's value.
+func (s *AssignIpv6AddressesInput) SetIpv6AddressCount(v int64) *AssignIpv6AddressesInput {
+	s.Ipv6AddressCount = &v
+	return s
+}
+
+// SetIpv6Addresses sets the Ipv6Addresses field's value.
+func (s *AssignIpv6AddressesInput) SetIpv6Addresses(v []*string) *AssignIpv6AddressesInput {
+	s.Ipv6Addresses = v
+	return s
+}
+
+// SetNetworkInterfaceId sets the NetworkInterfaceId field's value.
+func (s *AssignIpv6AddressesInput) SetNetworkInterfaceId(v string) *AssignIpv6AddressesInput {
+	s.NetworkInterfaceId = &v
+	return s
+}
+
+type AssignIpv6AddressesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The IPv6 addresses assigned to the network interface.
+	AssignedIpv6Addresses []*string `locationName:"assignedIpv6Addresses" locationNameList:"item" type:"list"`
+
+	// The ID of the network interface.
+	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string"`
+}
+
+// String returns the string representation
+func (s AssignIpv6AddressesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssignIpv6AddressesOutput) GoString() string {
+	return s.String()
+}
+
+// SetAssignedIpv6Addresses sets the AssignedIpv6Addresses field's value.
+func (s *AssignIpv6AddressesOutput) SetAssignedIpv6Addresses(v []*string) *AssignIpv6AddressesOutput {
+	s.AssignedIpv6Addresses = v
+	return s
+}
+
+// SetNetworkInterfaceId sets the NetworkInterfaceId field's value.
+func (s *AssignIpv6AddressesOutput) SetNetworkInterfaceId(v string) *AssignIpv6AddressesOutput {
+	s.NetworkInterfaceId = &v
+	return s
+}
+
 // Contains the parameters for AssignPrivateIpAddresses.
 type AssignPrivateIpAddressesInput struct {
 	_ struct{} `type:"structure"`
@@ -15415,6 +16061,171 @@ func (s AssociateRouteTableOutput) GoString() string {
 // SetAssociationId sets the AssociationId field's value.
 func (s *AssociateRouteTableOutput) SetAssociationId(v string) *AssociateRouteTableOutput {
 	s.AssociationId = &v
+	return s
+}
+
+type AssociateSubnetCidrBlockInput struct {
+	_ struct{} `type:"structure"`
+
+	// The IPv6 CIDR block for your subnet. The subnet must have a /64 prefix length.
+	//
+	// Ipv6CidrBlock is a required field
+	Ipv6CidrBlock *string `locationName:"ipv6CidrBlock" type:"string" required:"true"`
+
+	// The ID of your subnet.
+	//
+	// SubnetId is a required field
+	SubnetId *string `locationName:"subnetId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateSubnetCidrBlockInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateSubnetCidrBlockInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateSubnetCidrBlockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateSubnetCidrBlockInput"}
+	if s.Ipv6CidrBlock == nil {
+		invalidParams.Add(request.NewErrParamRequired("Ipv6CidrBlock"))
+	}
+	if s.SubnetId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SubnetId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIpv6CidrBlock sets the Ipv6CidrBlock field's value.
+func (s *AssociateSubnetCidrBlockInput) SetIpv6CidrBlock(v string) *AssociateSubnetCidrBlockInput {
+	s.Ipv6CidrBlock = &v
+	return s
+}
+
+// SetSubnetId sets the SubnetId field's value.
+func (s *AssociateSubnetCidrBlockInput) SetSubnetId(v string) *AssociateSubnetCidrBlockInput {
+	s.SubnetId = &v
+	return s
+}
+
+type AssociateSubnetCidrBlockOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IPv6 CIDR block association.
+	Ipv6CidrBlockAssociation *SubnetIpv6CidrBlockAssociation `locationName:"ipv6CidrBlockAssociation" type:"structure"`
+
+	// The ID of the subnet.
+	SubnetId *string `locationName:"subnetId" type:"string"`
+}
+
+// String returns the string representation
+func (s AssociateSubnetCidrBlockOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateSubnetCidrBlockOutput) GoString() string {
+	return s.String()
+}
+
+// SetIpv6CidrBlockAssociation sets the Ipv6CidrBlockAssociation field's value.
+func (s *AssociateSubnetCidrBlockOutput) SetIpv6CidrBlockAssociation(v *SubnetIpv6CidrBlockAssociation) *AssociateSubnetCidrBlockOutput {
+	s.Ipv6CidrBlockAssociation = v
+	return s
+}
+
+// SetSubnetId sets the SubnetId field's value.
+func (s *AssociateSubnetCidrBlockOutput) SetSubnetId(v string) *AssociateSubnetCidrBlockOutput {
+	s.SubnetId = &v
+	return s
+}
+
+type AssociateVpcCidrBlockInput struct {
+	_ struct{} `type:"structure"`
+
+	// Requests an Amazon-provided IPv6 CIDR block with a /56 prefix length for
+	// the VPC. You cannot specify the range of IPv6 addresses, or the size of the
+	// CIDR block.
+	AmazonProvidedIpv6CidrBlock *bool `locationName:"amazonProvidedIpv6CidrBlock" type:"boolean"`
+
+	// The ID of the VPC.
+	//
+	// VpcId is a required field
+	VpcId *string `locationName:"vpcId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateVpcCidrBlockInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateVpcCidrBlockInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateVpcCidrBlockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateVpcCidrBlockInput"}
+	if s.VpcId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VpcId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAmazonProvidedIpv6CidrBlock sets the AmazonProvidedIpv6CidrBlock field's value.
+func (s *AssociateVpcCidrBlockInput) SetAmazonProvidedIpv6CidrBlock(v bool) *AssociateVpcCidrBlockInput {
+	s.AmazonProvidedIpv6CidrBlock = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *AssociateVpcCidrBlockInput) SetVpcId(v string) *AssociateVpcCidrBlockInput {
+	s.VpcId = &v
+	return s
+}
+
+type AssociateVpcCidrBlockOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IPv6 CIDR block association.
+	Ipv6CidrBlockAssociation *VpcIpv6CidrBlockAssociation `locationName:"ipv6CidrBlockAssociation" type:"structure"`
+
+	// The ID of the VPC.
+	VpcId *string `locationName:"vpcId" type:"string"`
+}
+
+// String returns the string representation
+func (s AssociateVpcCidrBlockOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateVpcCidrBlockOutput) GoString() string {
+	return s.String()
+}
+
+// SetIpv6CidrBlockAssociation sets the Ipv6CidrBlockAssociation field's value.
+func (s *AssociateVpcCidrBlockOutput) SetIpv6CidrBlockAssociation(v *VpcIpv6CidrBlockAssociation) *AssociateVpcCidrBlockOutput {
+	s.Ipv6CidrBlockAssociation = v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *AssociateVpcCidrBlockOutput) SetVpcId(v string) *AssociateVpcCidrBlockOutput {
+	s.VpcId = &v
 	return s
 }
 
@@ -15925,8 +16736,8 @@ func (s *AttributeValue) SetValue(v string) *AttributeValue {
 type AuthorizeSecurityGroupEgressInput struct {
 	_ struct{} `type:"structure"`
 
-	// The CIDR IP address range. We recommend that you specify the CIDR range in
-	// a set of IP permissions instead.
+	// The CIDR IPv4 address range. We recommend that you specify the CIDR range
+	// in a set of IP permissions instead.
 	CidrIp *string `locationName:"cidrIp" type:"string"`
 
 	// Checks whether you have the required permissions for the action, without
@@ -16062,7 +16873,7 @@ func (s AuthorizeSecurityGroupEgressOutput) GoString() string {
 type AuthorizeSecurityGroupIngressInput struct {
 	_ struct{} `type:"structure"`
 
-	// The CIDR IP address range. You can't specify this parameter when specifying
+	// The CIDR IPv4 address range. You can't specify this parameter when specifying
 	// a source security group.
 	CidrIp *string `type:"string"`
 
@@ -16072,8 +16883,8 @@ type AuthorizeSecurityGroupIngressInput struct {
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
-	// The start of port range for the TCP and UDP protocols, or an ICMP type number.
-	// For the ICMP type number, use -1 to specify all ICMP types.
+	// The start of port range for the TCP and UDP protocols, or an ICMP/ICMPv6
+	// type number. For the ICMP/ICMPv6 type number, use -1 to specify all types.
 	FromPort *int64 `type:"integer"`
 
 	// The ID of the security group. Required for a nondefault VPC.
@@ -16087,8 +16898,11 @@ type AuthorizeSecurityGroupIngressInput struct {
 	IpPermissions []*IpPermission `locationNameList:"item" type:"list"`
 
 	// The IP protocol name (tcp, udp, icmp) or number (see Protocol Numbers (http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)).
-	// (VPC only) Use -1 to specify all traffic. If you specify -1, traffic on all
-	// ports is allowed, regardless of any ports you specify.
+	// (VPC only) Use -1 to specify all protocols. If you specify -1, or a protocol
+	// number other than tcp, udp, icmp, or 58 (ICMPv6), traffic on all ports is
+	// allowed, regardless of any ports you specify. For tcp, udp, and icmp, you
+	// must specify a port range. For protocol 58 (ICMPv6), you can optionally specify
+	// a port range; if you don't, traffic for all types and codes is allowed.
 	IpProtocol *string `type:"string"`
 
 	// [EC2-Classic, default VPC] The name of the source security group. You can't
@@ -16108,8 +16922,8 @@ type AuthorizeSecurityGroupIngressInput struct {
 	// with a specific IP protocol and port range, use a set of IP permissions instead.
 	SourceSecurityGroupOwnerId *string `type:"string"`
 
-	// The end of port range for the TCP and UDP protocols, or an ICMP code number.
-	// For the ICMP code number, use -1 to specify all ICMP codes for the ICMP type.
+	// The end of port range for the TCP and UDP protocols, or an ICMP/ICMPv6 code
+	// number. For the ICMP/ICMPv6 code number, use -1 to specify all codes.
 	ToPort *int64 `type:"integer"`
 }
 
@@ -18106,6 +18920,99 @@ func (s *CreateDhcpOptionsOutput) SetDhcpOptions(v *DhcpOptions) *CreateDhcpOpti
 	return s
 }
 
+type CreateEgressOnlyInternetGatewayInput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique, case-sensitive identifier you provide to ensure the idempotency of
+	// the request. For more information, see How to Ensure Idempotency (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Run_Instance_Idempotency.html).
+	ClientToken *string `type:"string"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The ID of the VPC for which to create the egress-only Internet gateway.
+	//
+	// VpcId is a required field
+	VpcId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s CreateEgressOnlyInternetGatewayInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateEgressOnlyInternetGatewayInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreateEgressOnlyInternetGatewayInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreateEgressOnlyInternetGatewayInput"}
+	if s.VpcId == nil {
+		invalidParams.Add(request.NewErrParamRequired("VpcId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateEgressOnlyInternetGatewayInput) SetClientToken(v string) *CreateEgressOnlyInternetGatewayInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *CreateEgressOnlyInternetGatewayInput) SetDryRun(v bool) *CreateEgressOnlyInternetGatewayInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *CreateEgressOnlyInternetGatewayInput) SetVpcId(v string) *CreateEgressOnlyInternetGatewayInput {
+	s.VpcId = &v
+	return s
+}
+
+type CreateEgressOnlyInternetGatewayOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Unique, case-sensitive identifier you provide to ensure the idempotency of
+	// the request.
+	ClientToken *string `locationName:"clientToken" type:"string"`
+
+	// Information about the egress-only Internet gateway.
+	EgressOnlyInternetGateway *EgressOnlyInternetGateway `locationName:"egressOnlyInternetGateway" type:"structure"`
+}
+
+// String returns the string representation
+func (s CreateEgressOnlyInternetGatewayOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreateEgressOnlyInternetGatewayOutput) GoString() string {
+	return s.String()
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreateEgressOnlyInternetGatewayOutput) SetClientToken(v string) *CreateEgressOnlyInternetGatewayOutput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetEgressOnlyInternetGateway sets the EgressOnlyInternetGateway field's value.
+func (s *CreateEgressOnlyInternetGatewayOutput) SetEgressOnlyInternetGateway(v *EgressOnlyInternetGateway) *CreateEgressOnlyInternetGatewayOutput {
+	s.EgressOnlyInternetGateway = v
+	return s
+}
+
 // Contains the parameters for CreateFlowLogs.
 type CreateFlowLogsInput struct {
 	_ struct{} `type:"structure"`
@@ -18722,10 +19629,8 @@ func (s *CreateNatGatewayOutput) SetNatGateway(v *NatGateway) *CreateNatGatewayO
 type CreateNetworkAclEntryInput struct {
 	_ struct{} `type:"structure"`
 
-	// The network range to allow or deny, in CIDR notation (for example 172.16.0.0/24).
-	//
-	// CidrBlock is a required field
-	CidrBlock *string `locationName:"cidrBlock" type:"string" required:"true"`
+	// The IPv4 network range to allow or deny, in CIDR notation (for example 172.16.0.0/24).
+	CidrBlock *string `locationName:"cidrBlock" type:"string"`
 
 	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have
@@ -18739,9 +19644,12 @@ type CreateNetworkAclEntryInput struct {
 	// Egress is a required field
 	Egress *bool `locationName:"egress" type:"boolean" required:"true"`
 
-	// ICMP protocol: The ICMP type and code. Required if specifying ICMP for the
-	// protocol.
+	// ICMP protocol: The ICMP or ICMPv6 type and code. Required if specifying the
+	// ICMP protocol, or protocol 58 (ICMPv6) with an IPv6 CIDR block.
 	IcmpTypeCode *IcmpTypeCode `locationName:"Icmp" type:"structure"`
+
+	// The IPv6 network range to allow or deny, in CIDR notation (for example 2001:db8:1234:1a00::/64).
+	Ipv6CidrBlock *string `locationName:"ipv6CidrBlock" type:"string"`
 
 	// The ID of the network ACL.
 	//
@@ -18751,7 +19659,13 @@ type CreateNetworkAclEntryInput struct {
 	// TCP or UDP protocols: The range of ports the rule applies to.
 	PortRange *PortRange `locationName:"portRange" type:"structure"`
 
-	// The protocol. A value of -1 means all protocols.
+	// The protocol. A value of -1 or all means all protocols. If you specify all,
+	// -1, or a protocol number other than tcp, udp, or icmp, traffic on all ports
+	// is allowed, regardless of any ports or ICMP types or codes you specify. If
+	// you specify protocol 58 (ICMPv6) and specify an IPv4 CIDR block, traffic
+	// for all ICMP types and codes allowed, regardless of any that you specify.
+	// If you specify protocol 58 (ICMPv6) and specify an IPv6 CIDR block, you must
+	// specify an ICMP type and code.
 	//
 	// Protocol is a required field
 	Protocol *string `locationName:"protocol" type:"string" required:"true"`
@@ -18784,9 +19698,6 @@ func (s CreateNetworkAclEntryInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateNetworkAclEntryInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateNetworkAclEntryInput"}
-	if s.CidrBlock == nil {
-		invalidParams.Add(request.NewErrParamRequired("CidrBlock"))
-	}
 	if s.Egress == nil {
 		invalidParams.Add(request.NewErrParamRequired("Egress"))
 	}
@@ -18830,6 +19741,12 @@ func (s *CreateNetworkAclEntryInput) SetEgress(v bool) *CreateNetworkAclEntryInp
 // SetIcmpTypeCode sets the IcmpTypeCode field's value.
 func (s *CreateNetworkAclEntryInput) SetIcmpTypeCode(v *IcmpTypeCode) *CreateNetworkAclEntryInput {
 	s.IcmpTypeCode = v
+	return s
+}
+
+// SetIpv6CidrBlock sets the Ipv6CidrBlock field's value.
+func (s *CreateNetworkAclEntryInput) SetIpv6CidrBlock(v string) *CreateNetworkAclEntryInput {
+	s.Ipv6CidrBlock = &v
 	return s
 }
 
@@ -18968,24 +19885,36 @@ type CreateNetworkInterfaceInput struct {
 	// The IDs of one or more security groups.
 	Groups []*string `locationName:"SecurityGroupId" locationNameList:"SecurityGroupId" type:"list"`
 
-	// The primary private IP address of the network interface. If you don't specify
-	// an IP address, Amazon EC2 selects one for you from the subnet range. If you
-	// specify an IP address, you cannot indicate any IP addresses specified in
-	// privateIpAddresses as primary (only one IP address can be designated as primary).
+	// The number of IPv6 addresses to assign to a network interface. Amazon EC2
+	// automatically selects the IPv6 addresses from the subnet range. You can't
+	// use this option if specifying specific IPv6 addresses. If your subnet has
+	// the AssignIpv6AddressOnCreation attribute set to true, you can specify 0
+	// to override this setting.
+	Ipv6AddressCount *int64 `locationName:"ipv6AddressCount" type:"integer"`
+
+	// One or more specific IPv6 addresses from the IPv6 CIDR block range of your
+	// subnet. You can't use this option if you're specifying a number of IPv6 addresses.
+	Ipv6Addresses []*InstanceIpv6Address `locationName:"ipv6Addresses" locationNameList:"item" type:"list"`
+
+	// The primary private IPv4 address of the network interface. If you don't specify
+	// an IPv4 address, Amazon EC2 selects one for you from the subnet's IPv4 CIDR
+	// range. If you specify an IP address, you cannot indicate any IP addresses
+	// specified in privateIpAddresses as primary (only one IP address can be designated
+	// as primary).
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
 
-	// One or more private IP addresses.
+	// One or more private IPv4 addresses.
 	PrivateIpAddresses []*PrivateIpAddressSpecification `locationName:"privateIpAddresses" locationNameList:"item" type:"list"`
 
-	// The number of secondary private IP addresses to assign to a network interface.
-	// When you specify a number of secondary IP addresses, Amazon EC2 selects these
-	// IP addresses within the subnet range. You can't specify this option and specify
-	// more than one private IP address using privateIpAddresses.
+	// The number of secondary private IPv4 addresses to assign to a network interface.
+	// When you specify a number of secondary IPv4 addresses, Amazon EC2 selects
+	// these IP addresses within the subnet's IPv4 CIDR range. You can't specify
+	// this option and specify more than one private IP address using privateIpAddresses.
 	//
 	// The number of IP addresses you can assign to a network interface varies by
-	// instance type. For more information, see Private IP Addresses Per ENI Per
-	// Instance Type (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#AvailableIpPerENI)
-	// in the Amazon Elastic Compute Cloud User Guide.
+	// instance type. For more information, see IP Addresses Per ENI Per Instance
+	// Type (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html#AvailableIpPerENI)
+	// in the Amazon Virtual Private Cloud User Guide.
 	SecondaryPrivateIpAddressCount *int64 `locationName:"secondaryPrivateIpAddressCount" type:"integer"`
 
 	// The ID of the subnet to associate with the network interface.
@@ -19042,6 +19971,18 @@ func (s *CreateNetworkInterfaceInput) SetDryRun(v bool) *CreateNetworkInterfaceI
 // SetGroups sets the Groups field's value.
 func (s *CreateNetworkInterfaceInput) SetGroups(v []*string) *CreateNetworkInterfaceInput {
 	s.Groups = v
+	return s
+}
+
+// SetIpv6AddressCount sets the Ipv6AddressCount field's value.
+func (s *CreateNetworkInterfaceInput) SetIpv6AddressCount(v int64) *CreateNetworkInterfaceInput {
+	s.Ipv6AddressCount = &v
+	return s
+}
+
+// SetIpv6Addresses sets the Ipv6Addresses field's value.
+func (s *CreateNetworkInterfaceInput) SetIpv6Addresses(v []*InstanceIpv6Address) *CreateNetworkInterfaceInput {
+	s.Ipv6Addresses = v
 	return s
 }
 
@@ -19289,17 +20230,22 @@ func (s *CreateReservedInstancesListingOutput) SetReservedInstancesListings(v []
 type CreateRouteInput struct {
 	_ struct{} `type:"structure"`
 
-	// The CIDR address block used for the destination match. Routing decisions
+	// The IPv4 CIDR address block used for the destination match. Routing decisions
 	// are based on the most specific match.
-	//
-	// DestinationCidrBlock is a required field
-	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string" required:"true"`
+	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string"`
+
+	// The IPv6 CIDR block used for the destination match. Routing decisions are
+	// based on the most specific match.
+	DestinationIpv6CidrBlock *string `locationName:"destinationIpv6CidrBlock" type:"string"`
 
 	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have
 	// the required permissions, the error response is DryRunOperation. Otherwise,
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
+
+	// [IPv6 traffic only] The ID of an egress-only Internet gateway.
+	EgressOnlyInternetGatewayId *string `locationName:"egressOnlyInternetGatewayId" type:"string"`
 
 	// The ID of an Internet gateway or virtual private gateway attached to your
 	// VPC.
@@ -19309,7 +20255,7 @@ type CreateRouteInput struct {
 	// an instance ID unless exactly one network interface is attached.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
-	// The ID of a NAT gateway.
+	// [IPv4 traffic only] The ID of a NAT gateway.
 	NatGatewayId *string `locationName:"natGatewayId" type:"string"`
 
 	// The ID of a network interface.
@@ -19337,9 +20283,6 @@ func (s CreateRouteInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *CreateRouteInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "CreateRouteInput"}
-	if s.DestinationCidrBlock == nil {
-		invalidParams.Add(request.NewErrParamRequired("DestinationCidrBlock"))
-	}
 	if s.RouteTableId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RouteTableId"))
 	}
@@ -19356,9 +20299,21 @@ func (s *CreateRouteInput) SetDestinationCidrBlock(v string) *CreateRouteInput {
 	return s
 }
 
+// SetDestinationIpv6CidrBlock sets the DestinationIpv6CidrBlock field's value.
+func (s *CreateRouteInput) SetDestinationIpv6CidrBlock(v string) *CreateRouteInput {
+	s.DestinationIpv6CidrBlock = &v
+	return s
+}
+
 // SetDryRun sets the DryRun field's value.
 func (s *CreateRouteInput) SetDryRun(v bool) *CreateRouteInput {
 	s.DryRun = &v
+	return s
+}
+
+// SetEgressOnlyInternetGatewayId sets the EgressOnlyInternetGatewayId field's value.
+func (s *CreateRouteInput) SetEgressOnlyInternetGatewayId(v string) *CreateRouteInput {
+	s.EgressOnlyInternetGatewayId = &v
 	return s
 }
 
@@ -19761,7 +20716,7 @@ type CreateSubnetInput struct {
 	// VPC, we may not necessarily select a different zone for each subnet.
 	AvailabilityZone *string `type:"string"`
 
-	// The network range for the subnet, in CIDR notation. For example, 10.0.0.0/24.
+	// The IPv4 network range for the subnet, in CIDR notation. For example, 10.0.0.0/24.
 	//
 	// CidrBlock is a required field
 	CidrBlock *string `type:"string" required:"true"`
@@ -19771,6 +20726,10 @@ type CreateSubnetInput struct {
 	// the required permissions, the error response is DryRunOperation. Otherwise,
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
+
+	// The IPv6 network range for the subnet, in CIDR notation. The subnet size
+	// must use a /64 prefix length.
+	Ipv6CidrBlock *string `type:"string"`
 
 	// The ID of the VPC.
 	//
@@ -19819,6 +20778,12 @@ func (s *CreateSubnetInput) SetCidrBlock(v string) *CreateSubnetInput {
 // SetDryRun sets the DryRun field's value.
 func (s *CreateSubnetInput) SetDryRun(v bool) *CreateSubnetInput {
 	s.DryRun = &v
+	return s
+}
+
+// SetIpv6CidrBlock sets the Ipv6CidrBlock field's value.
+func (s *CreateSubnetInput) SetIpv6CidrBlock(v string) *CreateSubnetInput {
+	s.Ipv6CidrBlock = &v
 	return s
 }
 
@@ -19959,7 +20924,7 @@ type CreateVolumeInput struct {
 	Encrypted *bool `locationName:"encrypted" type:"boolean"`
 
 	// Only valid for Provisioned IOPS SSD volumes. The number of I/O operations
-	// per second (IOPS) to provision for the volume, with a maximum ratio of 30
+	// per second (IOPS) to provision for the volume, with a maximum ratio of 50
 	// IOPS/GiB.
 	//
 	// Constraint: Range is 100 to 20000 for Provisioned IOPS SSD volumes
@@ -20271,7 +21236,12 @@ func (s *CreateVpcEndpointOutput) SetVpcEndpoint(v *VpcEndpoint) *CreateVpcEndpo
 type CreateVpcInput struct {
 	_ struct{} `type:"structure"`
 
-	// The network range for the VPC, in CIDR notation. For example, 10.0.0.0/16.
+	// Requests an Amazon-provided IPv6 CIDR block with a /56 prefix length for
+	// the VPC. You cannot specify the range of IP addresses, or the size of the
+	// CIDR block.
+	AmazonProvidedIpv6CidrBlock *bool `locationName:"amazonProvidedIpv6CidrBlock" type:"boolean"`
+
+	// The IPv4 network range for the VPC, in CIDR notation. For example, 10.0.0.0/16.
 	//
 	// CidrBlock is a required field
 	CidrBlock *string `type:"string" required:"true"`
@@ -20316,6 +21286,12 @@ func (s *CreateVpcInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAmazonProvidedIpv6CidrBlock sets the AmazonProvidedIpv6CidrBlock field's value.
+func (s *CreateVpcInput) SetAmazonProvidedIpv6CidrBlock(v bool) *CreateVpcInput {
+	s.AmazonProvidedIpv6CidrBlock = &v
+	return s
 }
 
 // SetCidrBlock sets the CidrBlock field's value.
@@ -20908,6 +21884,79 @@ func (s DeleteDhcpOptionsOutput) GoString() string {
 	return s.String()
 }
 
+type DeleteEgressOnlyInternetGatewayInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// The ID of the egress-only Internet gateway.
+	//
+	// EgressOnlyInternetGatewayId is a required field
+	EgressOnlyInternetGatewayId *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeleteEgressOnlyInternetGatewayInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteEgressOnlyInternetGatewayInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeleteEgressOnlyInternetGatewayInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeleteEgressOnlyInternetGatewayInput"}
+	if s.EgressOnlyInternetGatewayId == nil {
+		invalidParams.Add(request.NewErrParamRequired("EgressOnlyInternetGatewayId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DeleteEgressOnlyInternetGatewayInput) SetDryRun(v bool) *DeleteEgressOnlyInternetGatewayInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetEgressOnlyInternetGatewayId sets the EgressOnlyInternetGatewayId field's value.
+func (s *DeleteEgressOnlyInternetGatewayInput) SetEgressOnlyInternetGatewayId(v string) *DeleteEgressOnlyInternetGatewayInput {
+	s.EgressOnlyInternetGatewayId = &v
+	return s
+}
+
+type DeleteEgressOnlyInternetGatewayOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Returns true if the request succeeds; otherwise, it returns an error.
+	ReturnCode *bool `locationName:"returnCode" type:"boolean"`
+}
+
+// String returns the string representation
+func (s DeleteEgressOnlyInternetGatewayOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeleteEgressOnlyInternetGatewayOutput) GoString() string {
+	return s.String()
+}
+
+// SetReturnCode sets the ReturnCode field's value.
+func (s *DeleteEgressOnlyInternetGatewayOutput) SetReturnCode(v bool) *DeleteEgressOnlyInternetGatewayOutput {
+	s.ReturnCode = &v
+	return s
+}
+
 // Contains the parameters for DeleteFlowLogs.
 type DeleteFlowLogsInput struct {
 	_ struct{} `type:"structure"`
@@ -21456,11 +22505,13 @@ func (s DeletePlacementGroupOutput) GoString() string {
 type DeleteRouteInput struct {
 	_ struct{} `type:"structure"`
 
-	// The CIDR range for the route. The value you specify must match the CIDR for
-	// the route exactly.
-	//
-	// DestinationCidrBlock is a required field
-	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string" required:"true"`
+	// The IPv4 CIDR range for the route. The value you specify must match the CIDR
+	// for the route exactly.
+	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string"`
+
+	// The IPv6 CIDR range for the route. The value you specify must match the CIDR
+	// for the route exactly.
+	DestinationIpv6CidrBlock *string `locationName:"destinationIpv6CidrBlock" type:"string"`
 
 	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have
@@ -21487,9 +22538,6 @@ func (s DeleteRouteInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *DeleteRouteInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "DeleteRouteInput"}
-	if s.DestinationCidrBlock == nil {
-		invalidParams.Add(request.NewErrParamRequired("DestinationCidrBlock"))
-	}
 	if s.RouteTableId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RouteTableId"))
 	}
@@ -21503,6 +22551,12 @@ func (s *DeleteRouteInput) Validate() error {
 // SetDestinationCidrBlock sets the DestinationCidrBlock field's value.
 func (s *DeleteRouteInput) SetDestinationCidrBlock(v string) *DeleteRouteInput {
 	s.DestinationCidrBlock = &v
+	return s
+}
+
+// SetDestinationIpv6CidrBlock sets the DestinationIpv6CidrBlock field's value.
+func (s *DeleteRouteInput) SetDestinationIpv6CidrBlock(v string) *DeleteRouteInput {
+	s.DestinationIpv6CidrBlock = &v
 	return s
 }
 
@@ -23153,6 +24207,94 @@ func (s *DescribeDhcpOptionsOutput) SetDhcpOptions(v []*DhcpOptions) *DescribeDh
 	return s
 }
 
+type DescribeEgressOnlyInternetGatewaysInput struct {
+	_ struct{} `type:"structure"`
+
+	// Checks whether you have the required permissions for the action, without
+	// actually making the request, and provides an error response. If you have
+	// the required permissions, the error response is DryRunOperation. Otherwise,
+	// it is UnauthorizedOperation.
+	DryRun *bool `type:"boolean"`
+
+	// One or more egress-only Internet gateway IDs.
+	EgressOnlyInternetGatewayIds []*string `locationName:"EgressOnlyInternetGatewayId" locationNameList:"item" type:"list"`
+
+	// The maximum number of results to return for the request in a single page.
+	// The remaining results can be seen by sending another request with the returned
+	// NextToken value. This value can be between 5 and 1000; if MaxResults is given
+	// a value larger than 1000, only 1000 results are returned.
+	MaxResults *int64 `type:"integer"`
+
+	// The token to retrieve the next page of results.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeEgressOnlyInternetGatewaysInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEgressOnlyInternetGatewaysInput) GoString() string {
+	return s.String()
+}
+
+// SetDryRun sets the DryRun field's value.
+func (s *DescribeEgressOnlyInternetGatewaysInput) SetDryRun(v bool) *DescribeEgressOnlyInternetGatewaysInput {
+	s.DryRun = &v
+	return s
+}
+
+// SetEgressOnlyInternetGatewayIds sets the EgressOnlyInternetGatewayIds field's value.
+func (s *DescribeEgressOnlyInternetGatewaysInput) SetEgressOnlyInternetGatewayIds(v []*string) *DescribeEgressOnlyInternetGatewaysInput {
+	s.EgressOnlyInternetGatewayIds = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeEgressOnlyInternetGatewaysInput) SetMaxResults(v int64) *DescribeEgressOnlyInternetGatewaysInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeEgressOnlyInternetGatewaysInput) SetNextToken(v string) *DescribeEgressOnlyInternetGatewaysInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeEgressOnlyInternetGatewaysOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the egress-only Internet gateways.
+	EgressOnlyInternetGateways []*EgressOnlyInternetGateway `locationName:"egressOnlyInternetGatewaySet" locationNameList:"item" type:"list"`
+
+	// The token to use to retrieve the next page of results.
+	NextToken *string `locationName:"nextToken" type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeEgressOnlyInternetGatewaysOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEgressOnlyInternetGatewaysOutput) GoString() string {
+	return s.String()
+}
+
+// SetEgressOnlyInternetGateways sets the EgressOnlyInternetGateways field's value.
+func (s *DescribeEgressOnlyInternetGatewaysOutput) SetEgressOnlyInternetGateways(v []*EgressOnlyInternetGateway) *DescribeEgressOnlyInternetGatewaysOutput {
+	s.EgressOnlyInternetGateways = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeEgressOnlyInternetGatewaysOutput) SetNextToken(v string) *DescribeEgressOnlyInternetGatewaysOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Contains the parameters for DescribeExportTasks.
 type DescribeExportTasksInput struct {
 	_ struct{} `type:"structure"`
@@ -23929,6 +25071,9 @@ type DescribeImagesInput struct {
 	//
 	//    * description - The description of the image (provided during image creation).
 	//
+	//    * ena-support - A Boolean that indicates whether enhanced networking with
+	//    ENA is enabled.
+	//
 	//    * hypervisor - The hypervisor type (ovm | xen).
 	//
 	//    * image-id - The ID of the image.
@@ -24648,6 +25793,18 @@ type DescribeInstancesInput struct {
 	//
 	//    * architecture - The instance architecture (i386 | x86_64).
 	//
+	//    * association.public-ip - The address of the Elastic IP address (IPv4)
+	//    bound to the network interface.
+	//
+	//    * association.ip-owner-id - The owner of the Elastic IP address (IPv4)
+	//    associated with the network interface.
+	//
+	//    * association.allocation-id - The allocation ID returned when you allocated
+	//    the Elastic IP address (IPv4) for your network interface.
+	//
+	//    * association.association-id - The association ID returned when the network
+	//    interface was associated with an IPv4 address.
+	//
 	//    * availability-zone - The Availability Zone of the instance.
 	//
 	//    * block-device-mapping.attach-time - The attach time for an EBS volume
@@ -24706,7 +25863,7 @@ type DescribeInstancesInput struct {
 	//    * instance.group-name - The name of the security group for the instance.
 	//
 	//
-	//    * ip-address - The public IP address of the instance.
+	//    * ip-address - The public IPv4 address of the instance.
 	//
 	//    * kernel-id - The kernel ID.
 	//
@@ -24718,8 +25875,82 @@ type DescribeInstancesInput struct {
 	//
 	//    * launch-time - The time when the instance was launched.
 	//
-	//    * monitoring-state - Indicates whether monitoring is enabled for the instance
+	//    * monitoring-state - Indicates whether detailed monitoring is enabled
 	//    (disabled | enabled).
+	//
+	//    * network-interface.addresses.private-ip-address - The private IPv4 address
+	//    associated with the network interface.
+	//
+	//    * network-interface.addresses.primary - Specifies whether the IPv4 address
+	//    of the network interface is the primary private IPv4 address.
+	//
+	//    * network-interface.addresses.association.public-ip - The ID of the association
+	//    of an Elastic IP address (IPv4) with a network interface.
+	//
+	//    * network-interface.addresses.association.ip-owner-id - The owner ID of
+	//    the private IPv4 address associated with the network interface.
+	//
+	//    * network-interface.attachment.attachment-id - The ID of the interface
+	//    attachment.
+	//
+	//    * network-interface.attachment.instance-id - The ID of the instance to
+	//    which the network interface is attached.
+	//
+	//    * network-interface.attachment.instance-owner-id - The owner ID of the
+	//    instance to which the network interface is attached.
+	//
+	//    * network-interface.attachment.device-index - The device index to which
+	//    the network interface is attached.
+	//
+	//    * network-interface.attachment.status - The status of the attachment (attaching
+	//    | attached | detaching | detached).
+	//
+	//    * network-interface.attachment.attach-time - The time that the network
+	//    interface was attached to an instance.
+	//
+	//    * network-interface.attachment.delete-on-termination - Specifies whether
+	//    the attachment is deleted when an instance is terminated.
+	//
+	//    * network-interface.availability-zone - The Availability Zone for the
+	//    network interface.
+	//
+	//    * network-interface.description - The description of the network interface.
+	//
+	//    * network-interface.group-id - The ID of a security group associated with
+	//    the network interface.
+	//
+	//    * network-interface.group-name - The name of a security group associated
+	//    with the network interface.
+	//
+	//    * network-interface.ipv6-addresses.ipv6-address - The IPv6 address associated
+	//    with the network interface.
+	//
+	//    * network-interface.mac-address - The MAC address of the network interface.
+	//
+	//    * network-interface.network-interface-id - The ID of the network interface.
+	//
+	//    * network-interface.owner-id - The ID of the owner of the network interface.
+	//
+	//    * network-interface.private-dns-name - The private DNS name of the network
+	//    interface.
+	//
+	//    * network-interface.requester-id - The requester ID for the network interface.
+	//
+	//    * network-interface.requester-managed - Indicates whether the network
+	//    interface is being managed by AWS.
+	//
+	//    * network-interface.status - The status of the network interface (available)
+	//    | in-use).
+	//
+	//    * network-interface.source-dest-check - Whether the network interface
+	//    performs source/destination checking. A value of true means checking is
+	//    enabled, and false means checking is disabled. The value must be false
+	//    for the network interface to perform network address translation (NAT)
+	//    in your VPC.
+	//
+	//    * network-interface.subnet-id - The ID of the subnet for the network interface.
+	//
+	//    * network-interface.vpc-id - The ID of the VPC for the network interface.
 	//
 	//    * owner-id - The AWS account ID of the instance owner.
 	//
@@ -24728,9 +25959,9 @@ type DescribeInstancesInput struct {
 	//    * platform - The platform. Use windows if you have Windows instances;
 	//    otherwise, leave blank.
 	//
-	//    * private-dns-name - The private DNS name of the instance.
+	//    * private-dns-name - The private IPv4 DNS name of the instance.
 	//
-	//    * private-ip-address - The private IP address of the instance.
+	//    * private-ip-address - The private IPv4 address of the instance.
 	//
 	//    * product-code - The product code associated with the AMI used to launch
 	//    the instance.
@@ -24793,89 +26024,6 @@ type DescribeInstancesInput struct {
 	//    | hvm).
 	//
 	//    * vpc-id - The ID of the VPC that the instance is running in.
-	//
-	//    * network-interface.description - The description of the network interface.
-	//
-	//    * network-interface.subnet-id - The ID of the subnet for the network interface.
-	//
-	//    * network-interface.vpc-id - The ID of the VPC for the network interface.
-	//
-	//    * network-interface.network-interface-id - The ID of the network interface.
-	//
-	//    * network-interface.owner-id - The ID of the owner of the network interface.
-	//
-	//    * network-interface.availability-zone - The Availability Zone for the
-	//    network interface.
-	//
-	//    * network-interface.requester-id - The requester ID for the network interface.
-	//
-	//    * network-interface.requester-managed - Indicates whether the network
-	//    interface is being managed by AWS.
-	//
-	//    * network-interface.status - The status of the network interface (available)
-	//    | in-use).
-	//
-	//    * network-interface.mac-address - The MAC address of the network interface.
-	//
-	//    * network-interface.private-dns-name - The private DNS name of the network
-	//    interface.
-	//
-	//    * network-interface.source-dest-check - Whether the network interface
-	//    performs source/destination checking. A value of true means checking is
-	//    enabled, and false means checking is disabled. The value must be false
-	//    for the network interface to perform network address translation (NAT)
-	//    in your VPC.
-	//
-	//    * network-interface.group-id - The ID of a security group associated with
-	//    the network interface.
-	//
-	//    * network-interface.group-name - The name of a security group associated
-	//    with the network interface.
-	//
-	//    * network-interface.attachment.attachment-id - The ID of the interface
-	//    attachment.
-	//
-	//    * network-interface.attachment.instance-id - The ID of the instance to
-	//    which the network interface is attached.
-	//
-	//    * network-interface.attachment.instance-owner-id - The owner ID of the
-	//    instance to which the network interface is attached.
-	//
-	//    * network-interface.addresses.private-ip-address - The private IP address
-	//    associated with the network interface.
-	//
-	//    * network-interface.attachment.device-index - The device index to which
-	//    the network interface is attached.
-	//
-	//    * network-interface.attachment.status - The status of the attachment (attaching
-	//    | attached | detaching | detached).
-	//
-	//    * network-interface.attachment.attach-time - The time that the network
-	//    interface was attached to an instance.
-	//
-	//    * network-interface.attachment.delete-on-termination - Specifies whether
-	//    the attachment is deleted when an instance is terminated.
-	//
-	//    * network-interface.addresses.primary - Specifies whether the IP address
-	//    of the network interface is the primary private IP address.
-	//
-	//    * network-interface.addresses.association.public-ip - The ID of the association
-	//    of an Elastic IP address with a network interface.
-	//
-	//    * network-interface.addresses.association.ip-owner-id - The owner ID of
-	//    the private IP address associated with the network interface.
-	//
-	//    * association.public-ip - The address of the Elastic IP address bound
-	//    to the network interface.
-	//
-	//    * association.ip-owner-id - The owner of the Elastic IP address associated
-	//    with the network interface.
-	//
-	//    * association.allocation-id - The allocation ID returned when you allocated
-	//    the Elastic IP address for your network interface.
-	//
-	//    * association.association-id - The association ID returned when the network
-	//    interface was associated with an IP address.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
 	// One or more instance IDs.
@@ -25359,13 +26507,15 @@ type DescribeNetworkAclsInput struct {
 	//    * default - Indicates whether the ACL is the default network ACL for the
 	//    VPC.
 	//
-	//    * entry.cidr - The CIDR range specified in the entry.
+	//    * entry.cidr - The IPv4 CIDR range specified in the entry.
 	//
 	//    * entry.egress - Indicates whether the entry applies to egress traffic.
 	//
 	//    * entry.icmp.code - The ICMP code specified in the entry, if any.
 	//
 	//    * entry.icmp.type - The ICMP type specified in the entry, if any.
+	//
+	//    * entry.ipv6-cidr - The IPv6 CIDR range specified in the entry.
 	//
 	//    * entry.port-range.from - The start of the port range specified in the
 	//    entry.
@@ -25589,31 +26739,32 @@ type DescribeNetworkInterfacesInput struct {
 
 	// One or more filters.
 	//
-	//    * addresses.private-ip-address - The private IP addresses associated with
-	//    the network interface.
+	//    * addresses.private-ip-address - The private IPv4 addresses associated
+	//    with the network interface.
 	//
-	//    * addresses.primary - Whether the private IP address is the primary IP
-	//    address associated with the network interface.
+	//    * addresses.primary - Whether the private IPv4 address is the primary
+	//    IP address associated with the network interface.
 	//
 	//    * addresses.association.public-ip - The association ID returned when the
-	//    network interface was associated with the Elastic IP address.
+	//    network interface was associated with the Elastic IP address (IPv4).
 	//
 	//    * addresses.association.owner-id - The owner ID of the addresses associated
 	//    with the network interface.
 	//
 	//    * association.association-id - The association ID returned when the network
-	//    interface was associated with an IP address.
+	//    interface was associated with an IPv4 address.
 	//
 	//    * association.allocation-id - The allocation ID returned when you allocated
-	//    the Elastic IP address for your network interface.
+	//    the Elastic IP address (IPv4) for your network interface.
 	//
-	//    * association.ip-owner-id - The owner of the Elastic IP address associated
-	//    with the network interface.
+	//    * association.ip-owner-id - The owner of the Elastic IP address (IPv4)
+	//    associated with the network interface.
 	//
-	//    * association.public-ip - The address of the Elastic IP address bound
-	//    to the network interface.
+	//    * association.public-ip - The address of the Elastic IP address (IPv4)
+	//    bound to the network interface.
 	//
-	//    * association.public-dns-name - The public DNS name for the network interface.
+	//    * association.public-dns-name - The public DNS name for the network interface
+	//    (IPv4).
 	//
 	//    * attachment.attachment-id - The ID of the interface attachment.
 	//
@@ -25647,16 +26798,19 @@ type DescribeNetworkInterfacesInput struct {
 	//    * group-name - The name of a security group associated with the network
 	//    interface.
 	//
+	//    * ipv6-addresses.ipv6-address - An IPv6 address associated with the network
+	//    interface.
+	//
 	//    * mac-address - The MAC address of the network interface.
 	//
 	//    * network-interface-id - The ID of the network interface.
 	//
 	//    * owner-id - The AWS account ID of the network interface owner.
 	//
-	//    * private-ip-address - The private IP address or addresses of the network
+	//    * private-ip-address - The private IPv4 address or addresses of the network
 	//    interface.
 	//
-	//    * private-dns-name - The private DNS name of the network interface.
+	//    * private-dns-name - The private DNS name of the network interface (IPv4).
 	//
 	//    * requester-id - The ID of the entity that launched the instance on your
 	//    behalf (for example, AWS Management Console, Auto Scaling, and so on).
@@ -26598,11 +27752,17 @@ type DescribeRouteTablesInput struct {
 	//
 	//    * route-table-id - The ID of the route table.
 	//
-	//    * route.destination-cidr-block - The CIDR range specified in a route in
-	//    the table.
+	//    * route.destination-cidr-block - The IPv4 CIDR range specified in a route
+	//    in the table.
+	//
+	//    * route.destination-ipv6-cidr-block - The IPv6 CIDR range specified in
+	//    a route in the route table.
 	//
 	//    * route.destination-prefix-list-id - The ID (prefix) of the AWS service
 	//    specified in a route in the table.
+	//
+	//    * route.egress-only-internet-gateway-id - The ID of an egress-only Internet
+	//    gateway specified in a route in the route table.
 	//
 	//    * route.gateway-id - The ID of a gateway specified in a route in the table.
 	//
@@ -27074,7 +28234,8 @@ type DescribeSecurityGroupsInput struct {
 	//
 	//    * group-name - The name of the security group.
 	//
-	//    * ip-permission.cidr - A CIDR range that has been granted permission.
+	//    * ip-permission.cidr - An IPv4 CIDR range that has been granted permission
+	//    in a security group rule.
 	//
 	//    * ip-permission.from-port - The start of port range for the TCP and UDP
 	//    protocols, or an ICMP type number.
@@ -27084,6 +28245,9 @@ type DescribeSecurityGroupsInput struct {
 	//
 	//    * ip-permission.group-name - The name of a security group that has been
 	//    granted permission.
+	//
+	//    * ip-permission.ipv6-cidr - An IPv6 CIDR range that has been granted permission
+	//    in a security group rule.
 	//
 	//    * ip-permission.protocol - The IP protocol for the permission (tcp | udp
 	//    | icmp or a protocol number).
@@ -28091,7 +29255,8 @@ type DescribeSpotPriceHistoryInput struct {
 	//    than or less than comparison is not supported.
 	Filters []*Filter `locationName:"Filter" locationNameList:"Filter" type:"list"`
 
-	// Filters the results by the specified instance types.
+	// Filters the results by the specified instance types. Note that T2 and HS1
+	// instance types are not supported.
 	InstanceTypes []*string `locationName:"InstanceType" type:"list"`
 
 	// The maximum number of results to return in a single call. Specify a value
@@ -28333,15 +29498,24 @@ type DescribeSubnetsInput struct {
 	//    * availabilityZone - The Availability Zone for the subnet. You can also
 	//    use availability-zone as the filter name.
 	//
-	//    * available-ip-address-count - The number of IP addresses in the subnet
+	//    * available-ip-address-count - The number of IPv4 addresses in the subnet
 	//    that are available.
 	//
-	//    * cidrBlock - The CIDR block of the subnet. The CIDR block you specify
+	//    * cidrBlock - The IPv4 CIDR block of the subnet. The CIDR block you specify
 	//    must exactly match the subnet's CIDR block for information to be returned
 	//    for the subnet. You can also use cidr or cidr-block as the filter names.
 	//
 	//    * defaultForAz - Indicates whether this is the default subnet for the
 	//    Availability Zone. You can also use default-for-az as the filter name.
+	//
+	//    * ipv6-cidr-block-association.ipv6-cidr-block - An IPv6 CIDR block associated
+	//    with the subnet.
+	//
+	//    * ipv6-cidr-block-association.association-id - An association ID for an
+	//    IPv6 CIDR block associated with the subnet.
+	//
+	//    * ipv6-cidr-block-association.state - The state of an IPv6 CIDR block
+	//    associated with the subnet.
 	//
 	//    * state - The state of the subnet (pending | available).
 	//
@@ -29416,7 +30590,7 @@ type DescribeVpcPeeringConnectionsInput struct {
 
 	// One or more filters.
 	//
-	//    * accepter-vpc-info.cidr-block - The CIDR block of the peer VPC.
+	//    * accepter-vpc-info.cidr-block - The IPv4 CIDR block of the peer VPC.
 	//
 	//    * accepter-vpc-info.owner-id - The AWS account ID of the owner of the
 	//    peer VPC.
@@ -29425,7 +30599,8 @@ type DescribeVpcPeeringConnectionsInput struct {
 	//
 	//    * expiration-time - The expiration date and time for the VPC peering connection.
 	//
-	//    * requester-vpc-info.cidr-block - The CIDR block of the requester's VPC.
+	//    * requester-vpc-info.cidr-block - The IPv4 CIDR block of the requester's
+	//    VPC.
 	//
 	//    * requester-vpc-info.owner-id - The AWS account ID of the owner of the
 	//    requester VPC.
@@ -29524,11 +30699,21 @@ type DescribeVpcsInput struct {
 
 	// One or more filters.
 	//
-	//    * cidr - The CIDR block of the VPC. The CIDR block you specify must exactly
-	//    match the VPC's CIDR block for information to be returned for the VPC.
-	//    Must contain the slash followed by one or two digits (for example, /28).
+	//    * cidr - The IPv4 CIDR block of the VPC. The CIDR block you specify must
+	//    exactly match the VPC's CIDR block for information to be returned for
+	//    the VPC. Must contain the slash followed by one or two digits (for example,
+	//    /28).
 	//
 	//    * dhcp-options-id - The ID of a set of DHCP options.
+	//
+	//    * ipv6-cidr-block-association.ipv6-cidr-block - An IPv6 CIDR block associated
+	//    with the VPC.
+	//
+	//    * ipv6-cidr-block-association.association-id - The association ID for
+	//    an IPv6 CIDR block associated with the VPC.
+	//
+	//    * ipv6-cidr-block-association.state - The state of an IPv6 CIDR block
+	//    associated with the VPC.
 	//
 	//    * isDefault - Indicates whether the VPC is the default VPC.
 	//
@@ -30614,6 +31799,146 @@ func (s DisassociateRouteTableOutput) GoString() string {
 	return s.String()
 }
 
+type DisassociateSubnetCidrBlockInput struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID for the CIDR block.
+	//
+	// AssociationId is a required field
+	AssociationId *string `locationName:"associationId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DisassociateSubnetCidrBlockInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateSubnetCidrBlockInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateSubnetCidrBlockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateSubnetCidrBlockInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DisassociateSubnetCidrBlockInput) SetAssociationId(v string) *DisassociateSubnetCidrBlockInput {
+	s.AssociationId = &v
+	return s
+}
+
+type DisassociateSubnetCidrBlockOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IPv6 CIDR block association.
+	Ipv6CidrBlockAssociation *SubnetIpv6CidrBlockAssociation `locationName:"ipv6CidrBlockAssociation" type:"structure"`
+
+	// The ID of the subnet.
+	SubnetId *string `locationName:"subnetId" type:"string"`
+}
+
+// String returns the string representation
+func (s DisassociateSubnetCidrBlockOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateSubnetCidrBlockOutput) GoString() string {
+	return s.String()
+}
+
+// SetIpv6CidrBlockAssociation sets the Ipv6CidrBlockAssociation field's value.
+func (s *DisassociateSubnetCidrBlockOutput) SetIpv6CidrBlockAssociation(v *SubnetIpv6CidrBlockAssociation) *DisassociateSubnetCidrBlockOutput {
+	s.Ipv6CidrBlockAssociation = v
+	return s
+}
+
+// SetSubnetId sets the SubnetId field's value.
+func (s *DisassociateSubnetCidrBlockOutput) SetSubnetId(v string) *DisassociateSubnetCidrBlockOutput {
+	s.SubnetId = &v
+	return s
+}
+
+type DisassociateVpcCidrBlockInput struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID for the CIDR block.
+	//
+	// AssociationId is a required field
+	AssociationId *string `locationName:"associationId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DisassociateVpcCidrBlockInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateVpcCidrBlockInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateVpcCidrBlockInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateVpcCidrBlockInput"}
+	if s.AssociationId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AssociationId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *DisassociateVpcCidrBlockInput) SetAssociationId(v string) *DisassociateVpcCidrBlockInput {
+	s.AssociationId = &v
+	return s
+}
+
+type DisassociateVpcCidrBlockOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the IPv6 CIDR block association.
+	Ipv6CidrBlockAssociation *VpcIpv6CidrBlockAssociation `locationName:"ipv6CidrBlockAssociation" type:"structure"`
+
+	// The ID of the VPC.
+	VpcId *string `locationName:"vpcId" type:"string"`
+}
+
+// String returns the string representation
+func (s DisassociateVpcCidrBlockOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateVpcCidrBlockOutput) GoString() string {
+	return s.String()
+}
+
+// SetIpv6CidrBlockAssociation sets the Ipv6CidrBlockAssociation field's value.
+func (s *DisassociateVpcCidrBlockOutput) SetIpv6CidrBlockAssociation(v *VpcIpv6CidrBlockAssociation) *DisassociateVpcCidrBlockOutput {
+	s.Ipv6CidrBlockAssociation = v
+	return s
+}
+
+// SetVpcId sets the VpcId field's value.
+func (s *DisassociateVpcCidrBlockOutput) SetVpcId(v string) *DisassociateVpcCidrBlockOutput {
+	s.VpcId = &v
+	return s
+}
+
 // Describes a disk image.
 type DiskImage struct {
 	_ struct{} `type:"structure"`
@@ -31024,6 +32349,39 @@ func (s *EbsInstanceBlockDeviceSpecification) SetDeleteOnTermination(v bool) *Eb
 // SetVolumeId sets the VolumeId field's value.
 func (s *EbsInstanceBlockDeviceSpecification) SetVolumeId(v string) *EbsInstanceBlockDeviceSpecification {
 	s.VolumeId = &v
+	return s
+}
+
+// Describes an egress-only Internet gateway.
+type EgressOnlyInternetGateway struct {
+	_ struct{} `type:"structure"`
+
+	// Information about the attachment of the egress-only Internet gateway.
+	Attachments []*InternetGatewayAttachment `locationName:"attachmentSet" locationNameList:"item" type:"list"`
+
+	// The ID of the egress-only Internet gateway.
+	EgressOnlyInternetGatewayId *string `locationName:"egressOnlyInternetGatewayId" type:"string"`
+}
+
+// String returns the string representation
+func (s EgressOnlyInternetGateway) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EgressOnlyInternetGateway) GoString() string {
+	return s.String()
+}
+
+// SetAttachments sets the Attachments field's value.
+func (s *EgressOnlyInternetGateway) SetAttachments(v []*InternetGatewayAttachment) *EgressOnlyInternetGateway {
+	s.Attachments = v
+	return s
+}
+
+// SetEgressOnlyInternetGatewayId sets the EgressOnlyInternetGatewayId field's value.
+func (s *EgressOnlyInternetGateway) SetEgressOnlyInternetGatewayId(v string) *EgressOnlyInternetGateway {
+	s.EgressOnlyInternetGatewayId = &v
 	return s
 }
 
@@ -32084,13 +33442,13 @@ type GetReservedInstancesExchangeQuoteInput struct {
 	// it is UnauthorizedOperation.
 	DryRun *bool `type:"boolean"`
 
-	// The ID/s of the Convertible Reserved Instances you want to exchange.
+	// The IDs of the Convertible Reserved Instances to exchange.
 	//
 	// ReservedInstanceIds is a required field
 	ReservedInstanceIds []*string `locationName:"ReservedInstanceId" locationNameList:"ReservedInstanceId" type:"list" required:"true"`
 
-	// The configuration requirements of the Convertible Reserved Instances you
-	// want in exchange for your current Convertible Reserved Instances.
+	// The configuration requirements of the Convertible Reserved Instances to exchange
+	// for your current Convertible Reserved Instances.
 	TargetConfigurations []*TargetConfigurationRequest `locationName:"TargetConfiguration" locationNameList:"TargetConfigurationRequest" type:"list"`
 }
 
@@ -32152,7 +33510,7 @@ type GetReservedInstancesExchangeQuoteOutput struct {
 	// The currency of the transaction.
 	CurrencyCode *string `locationName:"currencyCode" type:"string"`
 
-	// If true, the exchange is valid. If false, the exchange cannot be performed.
+	// If true, the exchange is valid. If false, the exchange cannot be completed.
 	IsValidExchange *bool `locationName:"isValidExchange" type:"boolean"`
 
 	// The new end date of the reservation term.
@@ -32173,7 +33531,7 @@ type GetReservedInstancesExchangeQuoteOutput struct {
 	// The values of the target Convertible Reserved Instances.
 	TargetConfigurationValueSet []*TargetReservationValue `locationName:"targetConfigurationValueSet" locationNameList:"item" type:"list"`
 
-	// Describes the reason why the exchange can not be completed.
+	// Describes the reason why the exchange cannot be completed.
 	ValidationFailureReason *string `locationName:"validationFailureReason" type:"string"`
 }
 
@@ -32797,10 +34155,10 @@ func (s *IamInstanceProfileSpecification) SetName(v string) *IamInstanceProfileS
 type IcmpTypeCode struct {
 	_ struct{} `type:"structure"`
 
-	// The ICMP type. A value of -1 means all types.
+	// The ICMP code. A value of -1 means all codes for the specified ICMP type.
 	Code *int64 `locationName:"code" type:"integer"`
 
-	// The ICMP code. A value of -1 means all codes for the specified ICMP type.
+	// The ICMP type. A value of -1 means all types.
 	Type *int64 `locationName:"type" type:"integer"`
 }
 
@@ -34408,7 +35766,7 @@ type Instance struct {
 	// The time the instance was launched.
 	LaunchTime *time.Time `locationName:"launchTime" type:"timestamp" timestampFormat:"iso8601"`
 
-	// The monitoring information for the instance.
+	// The monitoring for the instance.
 	Monitoring *Monitoring `locationName:"monitoring" type:"structure"`
 
 	// [EC2-VPC] One or more network interfaces for the instance.
@@ -34420,24 +35778,28 @@ type Instance struct {
 	// The value is Windows for Windows instances; otherwise blank.
 	Platform *string `locationName:"platform" type:"string" enum:"PlatformValues"`
 
-	// The private DNS name assigned to the instance. This DNS name can only be
-	// used inside the Amazon EC2 network. This name is not available until the
-	// instance enters the running state. For EC2-VPC, this name is only available
-	// if you've enabled DNS hostnames for your VPC.
+	// (IPv4 only) The private DNS hostname name assigned to the instance. This
+	// DNS hostname can only be used inside the Amazon EC2 network. This name is
+	// not available until the instance enters the running state.
+	//
+	// [EC2-VPC] The Amazon-provided DNS server will resolve Amazon-provided private
+	// DNS hostnames if you've enabled DNS resolution and DNS hostnames in your
+	// VPC. If you are not using the Amazon-provided DNS server in your VPC, your
+	// custom domain name servers must resolve the hostname as appropriate.
 	PrivateDnsName *string `locationName:"privateDnsName" type:"string"`
 
-	// The private IP address assigned to the instance.
+	// The private IPv4 address assigned to the instance.
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
 
 	// The product codes attached to this instance, if applicable.
 	ProductCodes []*ProductCode `locationName:"productCodes" locationNameList:"item" type:"list"`
 
-	// The public DNS name assigned to the instance. This name is not available
-	// until the instance enters the running state. For EC2-VPC, this name is only
-	// available if you've enabled DNS hostnames for your VPC.
+	// (IPv4 only) The public DNS name assigned to the instance. This name is not
+	// available until the instance enters the running state. For EC2-VPC, this
+	// name is only available if you've enabled DNS hostnames for your VPC.
 	PublicDnsName *string `locationName:"dnsName" type:"string"`
 
-	// The public IP address assigned to the instance, if applicable.
+	// The public IPv4 address assigned to the instance, if applicable.
 	PublicIpAddress *string `locationName:"ipAddress" type:"string"`
 
 	// The RAM disk associated with this instance, if applicable.
@@ -34922,14 +36284,38 @@ func (s *InstanceExportDetails) SetTargetEnvironment(v string) *InstanceExportDe
 	return s
 }
 
-// Describes the monitoring information of the instance.
+// Describes an IPv6 address.
+type InstanceIpv6Address struct {
+	_ struct{} `type:"structure"`
+
+	// The IPv6 address.
+	Ipv6Address *string `locationName:"ipv6Address" type:"string"`
+}
+
+// String returns the string representation
+func (s InstanceIpv6Address) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstanceIpv6Address) GoString() string {
+	return s.String()
+}
+
+// SetIpv6Address sets the Ipv6Address field's value.
+func (s *InstanceIpv6Address) SetIpv6Address(v string) *InstanceIpv6Address {
+	s.Ipv6Address = &v
+	return s
+}
+
+// Describes the monitoring of an instance.
 type InstanceMonitoring struct {
 	_ struct{} `type:"structure"`
 
 	// The ID of the instance.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
-	// The monitoring information.
+	// The monitoring for the instance.
 	Monitoring *Monitoring `locationName:"monitoring" type:"structure"`
 }
 
@@ -34959,7 +36345,7 @@ func (s *InstanceMonitoring) SetMonitoring(v *Monitoring) *InstanceMonitoring {
 type InstanceNetworkInterface struct {
 	_ struct{} `type:"structure"`
 
-	// The association information for an Elastic IP associated with the network
+	// The association information for an Elastic IPv4 associated with the network
 	// interface.
 	Association *InstanceNetworkInterfaceAssociation `locationName:"association" type:"structure"`
 
@@ -34971,6 +36357,9 @@ type InstanceNetworkInterface struct {
 
 	// One or more security groups.
 	Groups []*GroupIdentifier `locationName:"groupSet" locationNameList:"item" type:"list"`
+
+	// One or more IPv6 addresses associated with the network interface.
+	Ipv6Addresses []*InstanceIpv6Address `locationName:"ipv6AddressesSet" locationNameList:"item" type:"list"`
 
 	// The MAC address.
 	MacAddress *string `locationName:"macAddress" type:"string"`
@@ -34984,10 +36373,10 @@ type InstanceNetworkInterface struct {
 	// The private DNS name.
 	PrivateDnsName *string `locationName:"privateDnsName" type:"string"`
 
-	// The IP address of the network interface within the subnet.
+	// The IPv4 address of the network interface within the subnet.
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
 
-	// The private IP addresses associated with the network interface.
+	// One or more private IPv4 addresses associated with the network interface.
 	PrivateIpAddresses []*InstancePrivateIpAddress `locationName:"privateIpAddressesSet" locationNameList:"item" type:"list"`
 
 	// Indicates whether to validate network traffic to or from this network interface.
@@ -35034,6 +36423,12 @@ func (s *InstanceNetworkInterface) SetDescription(v string) *InstanceNetworkInte
 // SetGroups sets the Groups field's value.
 func (s *InstanceNetworkInterface) SetGroups(v []*GroupIdentifier) *InstanceNetworkInterface {
 	s.Groups = v
+	return s
+}
+
+// SetIpv6Addresses sets the Ipv6Addresses field's value.
+func (s *InstanceNetworkInterface) SetIpv6Addresses(v []*InstanceIpv6Address) *InstanceNetworkInterface {
+	s.Ipv6Addresses = v
 	return s
 }
 
@@ -35097,7 +36492,7 @@ func (s *InstanceNetworkInterface) SetVpcId(v string) *InstanceNetworkInterface 
 	return s
 }
 
-// Describes association information for an Elastic IP address.
+// Describes association information for an Elastic IP address (IPv4).
 type InstanceNetworkInterfaceAssociation struct {
 	_ struct{} `type:"structure"`
 
@@ -35203,7 +36598,7 @@ func (s *InstanceNetworkInterfaceAttachment) SetStatus(v string) *InstanceNetwor
 type InstanceNetworkInterfaceSpecification struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates whether to assign a public IP address to an instance you launch
+	// Indicates whether to assign a public IPv4 address to an instance you launch
 	// in a VPC. The public IP address can only be assigned to a network interface
 	// for eth0, and can only be assigned to a new network interface, not an existing
 	// one. You cannot specify more than one network interface in the request. If
@@ -35228,20 +36623,34 @@ type InstanceNetworkInterfaceSpecification struct {
 	// creating a network interface when launching an instance.
 	Groups []*string `locationName:"SecurityGroupId" locationNameList:"SecurityGroupId" type:"list"`
 
+	// A number of IPv6 addresses to assign to the network interface. Amazon EC2
+	// chooses the IPv6 addresses from the range of the subnet. You cannot specify
+	// this option and the option to assign specific IPv6 addresses in the same
+	// request. You can specify this option if you've specified a minimum number
+	// of instances to launch.
+	Ipv6AddressCount *int64 `locationName:"ipv6AddressCount" type:"integer"`
+
+	// One or more IPv6 addresses to assign to the network interface. You cannot
+	// specify this option and the option to assign a number of IPv6 addresses in
+	// the same request. You cannot specify this option if you've specified a minimum
+	// number of instances to launch.
+	Ipv6Addresses []*InstanceIpv6Address `locationName:"ipv6AddressesSet" queryName:"Ipv6Addresses" locationNameList:"item" type:"list"`
+
 	// The ID of the network interface.
 	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string"`
 
-	// The private IP address of the network interface. Applies only if creating
+	// The private IPv4 address of the network interface. Applies only if creating
 	// a network interface when launching an instance. You cannot specify this option
 	// if you're launching more than one instance in a RunInstances request.
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
 
-	// One or more private IP addresses to assign to the network interface. Only
-	// one private IP address can be designated as primary. You cannot specify this
-	// option if you're launching more than one instance in a RunInstances request.
+	// One or more private IPv4 addresses to assign to the network interface. Only
+	// one private IPv4 address can be designated as primary. You cannot specify
+	// this option if you're launching more than one instance in a RunInstances
+	// request.
 	PrivateIpAddresses []*PrivateIpAddressSpecification `locationName:"privateIpAddressesSet" queryName:"PrivateIpAddresses" locationNameList:"item" type:"list"`
 
-	// The number of secondary private IP addresses. You can't specify this option
+	// The number of secondary private IPv4 addresses. You can't specify this option
 	// and specify more than one private IP address using the private IP addresses
 	// option. You cannot specify this option if you're launching more than one
 	// instance in a RunInstances request.
@@ -35312,6 +36721,18 @@ func (s *InstanceNetworkInterfaceSpecification) SetGroups(v []*string) *Instance
 	return s
 }
 
+// SetIpv6AddressCount sets the Ipv6AddressCount field's value.
+func (s *InstanceNetworkInterfaceSpecification) SetIpv6AddressCount(v int64) *InstanceNetworkInterfaceSpecification {
+	s.Ipv6AddressCount = &v
+	return s
+}
+
+// SetIpv6Addresses sets the Ipv6Addresses field's value.
+func (s *InstanceNetworkInterfaceSpecification) SetIpv6Addresses(v []*InstanceIpv6Address) *InstanceNetworkInterfaceSpecification {
+	s.Ipv6Addresses = v
+	return s
+}
+
 // SetNetworkInterfaceId sets the NetworkInterfaceId field's value.
 func (s *InstanceNetworkInterfaceSpecification) SetNetworkInterfaceId(v string) *InstanceNetworkInterfaceSpecification {
 	s.NetworkInterfaceId = &v
@@ -35342,21 +36763,21 @@ func (s *InstanceNetworkInterfaceSpecification) SetSubnetId(v string) *InstanceN
 	return s
 }
 
-// Describes a private IP address.
+// Describes a private IPv4 address.
 type InstancePrivateIpAddress struct {
 	_ struct{} `type:"structure"`
 
 	// The association information for an Elastic IP address for the network interface.
 	Association *InstanceNetworkInterfaceAssociation `locationName:"association" type:"structure"`
 
-	// Indicates whether this IP address is the primary private IP address of the
-	// network interface.
+	// Indicates whether this IPv4 address is the primary private IP address of
+	// the network interface.
 	Primary *bool `locationName:"primary" type:"boolean"`
 
-	// The private DNS name.
+	// The private IPv4 DNS name.
 	PrivateDnsName *string `locationName:"privateDnsName" type:"string"`
 
-	// The private IP address of the network interface.
+	// The private IPv4 address of the network interface.
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
 }
 
@@ -35394,7 +36815,7 @@ func (s *InstancePrivateIpAddress) SetPrivateIpAddress(v string) *InstancePrivat
 	return s
 }
 
-// Describes the current state of the instance.
+// Describes the current state of an instance.
 type InstanceState struct {
 	_ struct{} `type:"structure"`
 
@@ -35728,7 +37149,8 @@ func (s *InternetGateway) SetTags(v []*Tag) *InternetGateway {
 	return s
 }
 
-// Describes the attachment of a VPC to an Internet gateway.
+// Describes the attachment of a VPC to an Internet gateway or an egress-only
+// Internet gateway.
 type InternetGatewayAttachment struct {
 	_ struct{} `type:"structure"`
 
@@ -35765,19 +37187,25 @@ func (s *InternetGatewayAttachment) SetVpcId(v string) *InternetGatewayAttachmen
 type IpPermission struct {
 	_ struct{} `type:"structure"`
 
-	// The start of port range for the TCP and UDP protocols, or an ICMP type number.
-	// A value of -1 indicates all ICMP types.
+	// The start of port range for the TCP and UDP protocols, or an ICMP/ICMPv6
+	// type number. A value of -1 indicates all ICMP/ICMPv6 types.
 	FromPort *int64 `locationName:"fromPort" type:"integer"`
 
-	// The IP protocol name (for tcp, udp, and icmp) or number (see Protocol Numbers
-	// (http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)).
+	// The IP protocol name (tcp, udp, icmp) or number (see Protocol Numbers (http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml)).
 	//
-	// [EC2-VPC only] When you authorize or revoke security group rules, you can
-	// use -1 to specify all.
+	// [EC2-VPC only] Use -1 to specify all protocols. When authorizing security
+	// group rules, specifying -1 or a protocol number other than tcp, udp, icmp,
+	// or 58 (ICMPv6) allows traffic on all ports, regardless of any port range
+	// you specify. For tcp, udp, and icmp, you must specify a port range. For 58
+	// (ICMPv6), you can optionally specify a port range; if you don't, traffic
+	// for all types and codes is allowed when authorizing rules.
 	IpProtocol *string `locationName:"ipProtocol" type:"string"`
 
-	// One or more IP ranges.
+	// One or more IPv4 ranges.
 	IpRanges []*IpRange `locationName:"ipRanges" locationNameList:"item" type:"list"`
+
+	// [EC2-VPC only] One or more IPv6 ranges.
+	Ipv6Ranges []*Ipv6Range `locationName:"ipv6Ranges" locationNameList:"item" type:"list"`
 
 	// (Valid for AuthorizeSecurityGroupEgress, RevokeSecurityGroupEgress and DescribeSecurityGroups
 	// only) One or more prefix list IDs for an AWS service. In an AuthorizeSecurityGroupEgress
@@ -35785,8 +37213,8 @@ type IpPermission struct {
 	// from instances associated with the security group.
 	PrefixListIds []*PrefixListId `locationName:"prefixListIds" locationNameList:"item" type:"list"`
 
-	// The end of port range for the TCP and UDP protocols, or an ICMP code. A value
-	// of -1 indicates all ICMP codes for the specified ICMP type.
+	// The end of port range for the TCP and UDP protocols, or an ICMP/ICMPv6 code.
+	// A value of -1 indicates all ICMP/ICMPv6 codes for the specified ICMP type.
 	ToPort *int64 `locationName:"toPort" type:"integer"`
 
 	// One or more security group and AWS account ID pairs.
@@ -35821,6 +37249,12 @@ func (s *IpPermission) SetIpRanges(v []*IpRange) *IpPermission {
 	return s
 }
 
+// SetIpv6Ranges sets the Ipv6Ranges field's value.
+func (s *IpPermission) SetIpv6Ranges(v []*Ipv6Range) *IpPermission {
+	s.Ipv6Ranges = v
+	return s
+}
+
 // SetPrefixListIds sets the PrefixListIds field's value.
 func (s *IpPermission) SetPrefixListIds(v []*PrefixListId) *IpPermission {
 	s.PrefixListIds = v
@@ -35839,12 +37273,12 @@ func (s *IpPermission) SetUserIdGroupPairs(v []*UserIdGroupPair) *IpPermission {
 	return s
 }
 
-// Describes an IP range.
+// Describes an IPv4 range.
 type IpRange struct {
 	_ struct{} `type:"structure"`
 
-	// The CIDR range. You can either specify a CIDR range or a source security
-	// group, not both.
+	// The IPv4 CIDR range. You can either specify a CIDR range or a source security
+	// group, not both. To specify a single IPv4 address, use the /32 prefix.
 	CidrIp *string `locationName:"cidrIp" type:"string"`
 }
 
@@ -35861,6 +37295,55 @@ func (s IpRange) GoString() string {
 // SetCidrIp sets the CidrIp field's value.
 func (s *IpRange) SetCidrIp(v string) *IpRange {
 	s.CidrIp = &v
+	return s
+}
+
+// Describes an IPv6 CIDR block.
+type Ipv6CidrBlock struct {
+	_ struct{} `type:"structure"`
+
+	// The IPv6 CIDR block.
+	Ipv6CidrBlock *string `locationName:"ipv6CidrBlock" type:"string"`
+}
+
+// String returns the string representation
+func (s Ipv6CidrBlock) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Ipv6CidrBlock) GoString() string {
+	return s.String()
+}
+
+// SetIpv6CidrBlock sets the Ipv6CidrBlock field's value.
+func (s *Ipv6CidrBlock) SetIpv6CidrBlock(v string) *Ipv6CidrBlock {
+	s.Ipv6CidrBlock = &v
+	return s
+}
+
+// [EC2-VPC only] Describes an IPv6 range.
+type Ipv6Range struct {
+	_ struct{} `type:"structure"`
+
+	// The IPv6 CIDR range. You can either specify a CIDR range or a source security
+	// group, not both. To specify a single IPv6 address, use the /128 prefix.
+	CidrIpv6 *string `locationName:"cidrIpv6" type:"string"`
+}
+
+// String returns the string representation
+func (s Ipv6Range) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Ipv6Range) GoString() string {
+	return s.String()
+}
+
+// SetCidrIpv6 sets the CidrIpv6 field's value.
+func (s *Ipv6Range) SetCidrIpv6(v string) *Ipv6Range {
+	s.CidrIpv6 = &v
 	return s
 }
 
@@ -36004,10 +37487,11 @@ type LaunchSpecification struct {
 	// The name of the key pair.
 	KeyName *string `locationName:"keyName" type:"string"`
 
-	// Describes the monitoring for the instance.
+	// Describes the monitoring of an instance.
 	Monitoring *RunInstancesMonitoringEnabled `locationName:"monitoring" type:"structure"`
 
-	// One or more network interfaces.
+	// One or more network interfaces. If you specify a network interface, you must
+	// specify subnet IDs and security group IDs using the network interface.
 	NetworkInterfaces []*InstanceNetworkInterfaceSpecification `locationName:"networkInterfaceSet" locationNameList:"item" type:"list"`
 
 	// The placement information for the instance.
@@ -37223,8 +38707,16 @@ func (s *ModifySpotFleetRequestOutput) SetReturn(v bool) *ModifySpotFleetRequest
 type ModifySubnetAttributeInput struct {
 	_ struct{} `type:"structure"`
 
-	// Specify true to indicate that instances launched into the specified subnet
-	// should be assigned public IP address.
+	// Specify true to indicate that network interfaces created in the specified
+	// subnet should be assigned an IPv6 address. This includes a network interface
+	// that's created when launching an instance into the subnet (the instance therefore
+	// receives an IPv6 address).
+	AssignIpv6AddressOnCreation *AttributeBooleanValue `type:"structure"`
+
+	// Specify true to indicate that network interfaces created in the specified
+	// subnet should be assigned a public IPv4 address. This includes a network
+	// interface that's created when launching an instance into the subnet (the
+	// instance therefore receives a public IPv4 address).
 	MapPublicIpOnLaunch *AttributeBooleanValue `type:"structure"`
 
 	// The ID of the subnet.
@@ -37254,6 +38746,12 @@ func (s *ModifySubnetAttributeInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetAssignIpv6AddressOnCreation sets the AssignIpv6AddressOnCreation field's value.
+func (s *ModifySubnetAttributeInput) SetAssignIpv6AddressOnCreation(v *AttributeBooleanValue) *ModifySubnetAttributeInput {
+	s.AssignIpv6AddressOnCreation = v
+	return s
 }
 
 // SetMapPublicIpOnLaunch sets the MapPublicIpOnLaunch field's value.
@@ -37707,7 +39205,7 @@ func (s *MonitorInstancesInput) SetInstanceIds(v []*string) *MonitorInstancesInp
 type MonitorInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Monitoring information for one or more instances.
+	// The monitoring information.
 	InstanceMonitorings []*InstanceMonitoring `locationName:"instancesSet" locationNameList:"item" type:"list"`
 }
 
@@ -37727,11 +39225,12 @@ func (s *MonitorInstancesOutput) SetInstanceMonitorings(v []*InstanceMonitoring)
 	return s
 }
 
-// Describes the monitoring for the instance.
+// Describes the monitoring of an instance.
 type Monitoring struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates whether monitoring is enabled for the instance.
+	// Indicates whether detailed monitoring is enabled. Otherwise, basic monitoring
+	// is enabled.
 	State *string `locationName:"state" type:"string" enum:"MonitoringState"`
 }
 
@@ -38181,7 +39680,7 @@ func (s *NetworkAclAssociation) SetSubnetId(v string) *NetworkAclAssociation {
 type NetworkAclEntry struct {
 	_ struct{} `type:"structure"`
 
-	// The network range to allow or deny, in CIDR notation.
+	// The IPv4 network range to allow or deny, in CIDR notation.
 	CidrBlock *string `locationName:"cidrBlock" type:"string"`
 
 	// Indicates whether the rule is an egress rule (applied to traffic leaving
@@ -38190,6 +39689,9 @@ type NetworkAclEntry struct {
 
 	// ICMP protocol: The ICMP type and code.
 	IcmpTypeCode *IcmpTypeCode `locationName:"icmpTypeCode" type:"structure"`
+
+	// The IPv6 network range to allow or deny, in CIDR notation.
+	Ipv6CidrBlock *string `locationName:"ipv6CidrBlock" type:"string"`
 
 	// TCP or UDP protocols: The range of ports the rule applies to.
 	PortRange *PortRange `locationName:"portRange" type:"structure"`
@@ -38233,6 +39735,12 @@ func (s *NetworkAclEntry) SetIcmpTypeCode(v *IcmpTypeCode) *NetworkAclEntry {
 	return s
 }
 
+// SetIpv6CidrBlock sets the Ipv6CidrBlock field's value.
+func (s *NetworkAclEntry) SetIpv6CidrBlock(v string) *NetworkAclEntry {
+	s.Ipv6CidrBlock = &v
+	return s
+}
+
 // SetPortRange sets the PortRange field's value.
 func (s *NetworkAclEntry) SetPortRange(v *PortRange) *NetworkAclEntry {
 	s.PortRange = v
@@ -38261,8 +39769,8 @@ func (s *NetworkAclEntry) SetRuleNumber(v int64) *NetworkAclEntry {
 type NetworkInterface struct {
 	_ struct{} `type:"structure"`
 
-	// The association information for an Elastic IP associated with the network
-	// interface.
+	// The association information for an Elastic IP address (IPv4) associated with
+	// the network interface.
 	Association *NetworkInterfaceAssociation `locationName:"association" type:"structure"`
 
 	// The network interface attachment.
@@ -38280,6 +39788,9 @@ type NetworkInterface struct {
 	// The type of interface.
 	InterfaceType *string `locationName:"interfaceType" type:"string" enum:"NetworkInterfaceType"`
 
+	// The IPv6 addresses associated with the network interface.
+	Ipv6Addresses []*NetworkInterfaceIpv6Address `locationName:"ipv6AddressesSet" locationNameList:"item" type:"list"`
+
 	// The MAC address.
 	MacAddress *string `locationName:"macAddress" type:"string"`
 
@@ -38292,10 +39803,10 @@ type NetworkInterface struct {
 	// The private DNS name.
 	PrivateDnsName *string `locationName:"privateDnsName" type:"string"`
 
-	// The IP address of the network interface within the subnet.
+	// The IPv4 address of the network interface within the subnet.
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
 
-	// The private IP addresses associated with the network interface.
+	// The private IPv4 addresses associated with the network interface.
 	PrivateIpAddresses []*NetworkInterfacePrivateIpAddress `locationName:"privateIpAddressesSet" locationNameList:"item" type:"list"`
 
 	// The ID of the entity that launched the instance on your behalf (for example,
@@ -38364,6 +39875,12 @@ func (s *NetworkInterface) SetGroups(v []*GroupIdentifier) *NetworkInterface {
 // SetInterfaceType sets the InterfaceType field's value.
 func (s *NetworkInterface) SetInterfaceType(v string) *NetworkInterface {
 	s.InterfaceType = &v
+	return s
+}
+
+// SetIpv6Addresses sets the Ipv6Addresses field's value.
+func (s *NetworkInterface) SetIpv6Addresses(v []*NetworkInterfaceIpv6Address) *NetworkInterface {
+	s.Ipv6Addresses = v
 	return s
 }
 
@@ -38445,7 +39962,7 @@ func (s *NetworkInterface) SetVpcId(v string) *NetworkInterface {
 	return s
 }
 
-// Describes association information for an Elastic IP address.
+// Describes association information for an Elastic IP address (IPv4 only).
 type NetworkInterfaceAssociation struct {
 	_ struct{} `type:"structure"`
 
@@ -38616,22 +40133,46 @@ func (s *NetworkInterfaceAttachmentChanges) SetDeleteOnTermination(v bool) *Netw
 	return s
 }
 
-// Describes the private IP address of a network interface.
+// Describes an IPv6 address associated with a network interface.
+type NetworkInterfaceIpv6Address struct {
+	_ struct{} `type:"structure"`
+
+	// The IPv6 address.
+	Ipv6Address *string `locationName:"ipv6Address" type:"string"`
+}
+
+// String returns the string representation
+func (s NetworkInterfaceIpv6Address) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s NetworkInterfaceIpv6Address) GoString() string {
+	return s.String()
+}
+
+// SetIpv6Address sets the Ipv6Address field's value.
+func (s *NetworkInterfaceIpv6Address) SetIpv6Address(v string) *NetworkInterfaceIpv6Address {
+	s.Ipv6Address = &v
+	return s
+}
+
+// Describes the private IPv4 address of a network interface.
 type NetworkInterfacePrivateIpAddress struct {
 	_ struct{} `type:"structure"`
 
-	// The association information for an Elastic IP address associated with the
-	// network interface.
+	// The association information for an Elastic IP address (IPv4) associated with
+	// the network interface.
 	Association *NetworkInterfaceAssociation `locationName:"association" type:"structure"`
 
-	// Indicates whether this IP address is the primary private IP address of the
-	// network interface.
+	// Indicates whether this IPv4 address is the primary private IPv4 address of
+	// the network interface.
 	Primary *bool `locationName:"primary" type:"boolean"`
 
 	// The private DNS name.
 	PrivateDnsName *string `locationName:"privateDnsName" type:"string"`
 
-	// The private IP address.
+	// The private IPv4 address.
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
 }
 
@@ -38789,7 +40330,7 @@ func (s *PeeringConnectionOptionsRequest) SetAllowEgressFromLocalVpcToRemoteClas
 	return s
 }
 
-// Describes the placement for the instance.
+// Describes the placement of an instance.
 type Placement struct {
 	_ struct{} `type:"structure"`
 
@@ -39133,15 +40674,15 @@ func (s *PricingDetail) SetPrice(v float64) *PricingDetail {
 	return s
 }
 
-// Describes a secondary private IP address for a network interface.
+// Describes a secondary private IPv4 address for a network interface.
 type PrivateIpAddressSpecification struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates whether the private IP address is the primary private IP address.
-	// Only one IP address can be designated as primary.
+	// Indicates whether the private IPv4 address is the primary private IPv4 address.
+	// Only one IPv4 address can be designated as primary.
 	Primary *bool `locationName:"primary" type:"boolean"`
 
-	// The private IP addresses.
+	// The private IPv4 addresses.
 	//
 	// PrivateIpAddress is a required field
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string" required:"true"`
@@ -40420,10 +41961,8 @@ func (s *ReplaceNetworkAclAssociationOutput) SetNewAssociationId(v string) *Repl
 type ReplaceNetworkAclEntryInput struct {
 	_ struct{} `type:"structure"`
 
-	// The network range to allow or deny, in CIDR notation.
-	//
-	// CidrBlock is a required field
-	CidrBlock *string `locationName:"cidrBlock" type:"string" required:"true"`
+	// The IPv4 network range to allow or deny, in CIDR notation (for example 172.16.0.0/24).
+	CidrBlock *string `locationName:"cidrBlock" type:"string"`
 
 	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have
@@ -40438,9 +41977,12 @@ type ReplaceNetworkAclEntryInput struct {
 	// Egress is a required field
 	Egress *bool `locationName:"egress" type:"boolean" required:"true"`
 
-	// ICMP protocol: The ICMP type and code. Required if specifying 1 (ICMP) for
-	// the protocol.
+	// ICMP protocol: The ICMP or ICMPv6 type and code. Required if specifying the
+	// ICMP (1) protocol, or protocol 58 (ICMPv6) with an IPv6 CIDR block.
 	IcmpTypeCode *IcmpTypeCode `locationName:"Icmp" type:"structure"`
+
+	// The IPv6 network range to allow or deny, in CIDR notation (for example 2001:bd8:1234:1a00::/64).
+	Ipv6CidrBlock *string `locationName:"ipv6CidrBlock" type:"string"`
 
 	// The ID of the ACL.
 	//
@@ -40448,10 +41990,16 @@ type ReplaceNetworkAclEntryInput struct {
 	NetworkAclId *string `locationName:"networkAclId" type:"string" required:"true"`
 
 	// TCP or UDP protocols: The range of ports the rule applies to. Required if
-	// specifying 6 (TCP) or 17 (UDP) for the protocol.
+	// specifying TCP (6) or UDP (17) for the protocol.
 	PortRange *PortRange `locationName:"portRange" type:"structure"`
 
-	// The IP protocol. You can specify all or -1 to mean all protocols.
+	// The IP protocol. You can specify all or -1 to mean all protocols. If you
+	// specify all, -1, or a protocol number other than tcp, udp, or icmp, traffic
+	// on all ports is allowed, regardless of any ports or ICMP types or codes you
+	// specify. If you specify protocol 58 (ICMPv6) and specify an IPv4 CIDR block,
+	// traffic for all ICMP types and codes allowed, regardless of any that you
+	// specify. If you specify protocol 58 (ICMPv6) and specify an IPv6 CIDR block,
+	// you must specify an ICMP type and code.
 	//
 	// Protocol is a required field
 	Protocol *string `locationName:"protocol" type:"string" required:"true"`
@@ -40480,9 +42028,6 @@ func (s ReplaceNetworkAclEntryInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *ReplaceNetworkAclEntryInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ReplaceNetworkAclEntryInput"}
-	if s.CidrBlock == nil {
-		invalidParams.Add(request.NewErrParamRequired("CidrBlock"))
-	}
 	if s.Egress == nil {
 		invalidParams.Add(request.NewErrParamRequired("Egress"))
 	}
@@ -40526,6 +42071,12 @@ func (s *ReplaceNetworkAclEntryInput) SetEgress(v bool) *ReplaceNetworkAclEntryI
 // SetIcmpTypeCode sets the IcmpTypeCode field's value.
 func (s *ReplaceNetworkAclEntryInput) SetIcmpTypeCode(v *IcmpTypeCode) *ReplaceNetworkAclEntryInput {
 	s.IcmpTypeCode = v
+	return s
+}
+
+// SetIpv6CidrBlock sets the Ipv6CidrBlock field's value.
+func (s *ReplaceNetworkAclEntryInput) SetIpv6CidrBlock(v string) *ReplaceNetworkAclEntryInput {
+	s.Ipv6CidrBlock = &v
 	return s
 }
 
@@ -40577,11 +42128,13 @@ func (s ReplaceNetworkAclEntryOutput) GoString() string {
 type ReplaceRouteInput struct {
 	_ struct{} `type:"structure"`
 
-	// The CIDR address block used for the destination match. The value you provide
-	// must match the CIDR of an existing route in the table.
-	//
-	// DestinationCidrBlock is a required field
-	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string" required:"true"`
+	// The IPv4 CIDR address block used for the destination match. The value you
+	// provide must match the CIDR of an existing route in the table.
+	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string"`
+
+	// The IPv6 CIDR address block used for the destination match. The value you
+	// provide must match the CIDR of an existing route in the table.
+	DestinationIpv6CidrBlock *string `locationName:"destinationIpv6CidrBlock" type:"string"`
 
 	// Checks whether you have the required permissions for the action, without
 	// actually making the request, and provides an error response. If you have
@@ -40589,13 +42142,16 @@ type ReplaceRouteInput struct {
 	// it is UnauthorizedOperation.
 	DryRun *bool `locationName:"dryRun" type:"boolean"`
 
+	// [IPv6 traffic only] The ID of an egress-only Internet gateway.
+	EgressOnlyInternetGatewayId *string `locationName:"egressOnlyInternetGatewayId" type:"string"`
+
 	// The ID of an Internet gateway or virtual private gateway.
 	GatewayId *string `locationName:"gatewayId" type:"string"`
 
 	// The ID of a NAT instance in your VPC.
 	InstanceId *string `locationName:"instanceId" type:"string"`
 
-	// The ID of a NAT gateway.
+	// [IPv4 traffic only] The ID of a NAT gateway.
 	NatGatewayId *string `locationName:"natGatewayId" type:"string"`
 
 	// The ID of a network interface.
@@ -40623,9 +42179,6 @@ func (s ReplaceRouteInput) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *ReplaceRouteInput) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "ReplaceRouteInput"}
-	if s.DestinationCidrBlock == nil {
-		invalidParams.Add(request.NewErrParamRequired("DestinationCidrBlock"))
-	}
 	if s.RouteTableId == nil {
 		invalidParams.Add(request.NewErrParamRequired("RouteTableId"))
 	}
@@ -40642,9 +42195,21 @@ func (s *ReplaceRouteInput) SetDestinationCidrBlock(v string) *ReplaceRouteInput
 	return s
 }
 
+// SetDestinationIpv6CidrBlock sets the DestinationIpv6CidrBlock field's value.
+func (s *ReplaceRouteInput) SetDestinationIpv6CidrBlock(v string) *ReplaceRouteInput {
+	s.DestinationIpv6CidrBlock = &v
+	return s
+}
+
 // SetDryRun sets the DryRun field's value.
 func (s *ReplaceRouteInput) SetDryRun(v bool) *ReplaceRouteInput {
 	s.DryRun = &v
+	return s
+}
+
+// SetEgressOnlyInternetGatewayId sets the EgressOnlyInternetGatewayId field's value.
+func (s *ReplaceRouteInput) SetEgressOnlyInternetGatewayId(v string) *ReplaceRouteInput {
+	s.EgressOnlyInternetGatewayId = &v
 	return s
 }
 
@@ -41257,10 +42822,11 @@ type RequestSpotLaunchSpecification struct {
 	// The name of the key pair.
 	KeyName *string `locationName:"keyName" type:"string"`
 
-	// Describes the monitoring for the instance.
+	// Describes the monitoring of an instance.
 	Monitoring *RunInstancesMonitoringEnabled `locationName:"monitoring" type:"structure"`
 
-	// One or more network interfaces.
+	// One or more network interfaces. If you specify a network interface, you must
+	// specify subnet IDs and security group IDs using the network interface.
 	NetworkInterfaces []*InstanceNetworkInterfaceSpecification `locationName:"NetworkInterface" locationNameList:"item" type:"list"`
 
 	// The placement information for the instance.
@@ -41780,7 +43346,8 @@ type ReservedInstancesConfiguration struct {
 	// EC2-Classic or EC2-VPC.
 	Platform *string `locationName:"platform" type:"string"`
 
-	// Whether the Reserved Instance is standard or convertible.
+	// Whether the Reserved Instance is applied to instances in a region or instances
+	// in a specific Availability Zone.
 	Scope *string `locationName:"scope" type:"string" enum:"scope"`
 }
 
@@ -42925,11 +44492,17 @@ func (s RevokeSecurityGroupIngressOutput) GoString() string {
 type Route struct {
 	_ struct{} `type:"structure"`
 
-	// The CIDR block used for the destination match.
+	// The IPv4 CIDR block used for the destination match.
 	DestinationCidrBlock *string `locationName:"destinationCidrBlock" type:"string"`
+
+	// The IPv6 CIDR block used for the destination match.
+	DestinationIpv6CidrBlock *string `locationName:"destinationIpv6CidrBlock" type:"string"`
 
 	// The prefix of the AWS service.
 	DestinationPrefixListId *string `locationName:"destinationPrefixListId" type:"string"`
+
+	// The ID of the egress-only Internet gateway.
+	EgressOnlyInternetGatewayId *string `locationName:"egressOnlyInternetGatewayId" type:"string"`
 
 	// The ID of a gateway attached to your VPC.
 	GatewayId *string `locationName:"gatewayId" type:"string"`
@@ -42981,9 +44554,21 @@ func (s *Route) SetDestinationCidrBlock(v string) *Route {
 	return s
 }
 
+// SetDestinationIpv6CidrBlock sets the DestinationIpv6CidrBlock field's value.
+func (s *Route) SetDestinationIpv6CidrBlock(v string) *Route {
+	s.DestinationIpv6CidrBlock = &v
+	return s
+}
+
 // SetDestinationPrefixListId sets the DestinationPrefixListId field's value.
 func (s *Route) SetDestinationPrefixListId(v string) *Route {
 	s.DestinationPrefixListId = &v
+	return s
+}
+
+// SetEgressOnlyInternetGatewayId sets the EgressOnlyInternetGatewayId field's value.
+func (s *Route) SetEgressOnlyInternetGatewayId(v string) *Route {
+	s.EgressOnlyInternetGatewayId = &v
 	return s
 }
 
@@ -43178,12 +44763,10 @@ type RunInstancesInput struct {
 	ClientToken *string `locationName:"clientToken" type:"string"`
 
 	// If you set this parameter to true, you can't terminate the instance using
-	// the Amazon EC2 console, CLI, or API; otherwise, you can. If you set this
-	// parameter to true and then later want to be able to terminate the instance,
-	// you must first change the value of the disableApiTermination attribute to
-	// false using ModifyInstanceAttribute. Alternatively, if you set InstanceInitiatedShutdownBehavior
-	// to terminate, you can terminate the instance by running the shutdown command
-	// from the instance.
+	// the Amazon EC2 console, CLI, or API; otherwise, you can. To change this attribute
+	// to false after launch, use ModifyInstanceAttribute. Alternatively, if you
+	// set InstanceInitiatedShutdownBehavior to terminate, you can terminate the
+	// instance by running the shutdown command from the instance.
 	//
 	// Default: false
 	DisableApiTermination *bool `locationName:"disableApiTermination" type:"boolean"`
@@ -43222,6 +44805,20 @@ type RunInstancesInput struct {
 	//
 	// Default: m1.small
 	InstanceType *string `type:"string" enum:"InstanceType"`
+
+	// [EC2-VPC] A number of IPv6 addresses to associate with the primary network
+	// interface. Amazon EC2 chooses the IPv6 addresses from the range of your subnet.
+	// You cannot specify this option and the option to assign specific IPv6 addresses
+	// in the same request. You can specify this option if you've specified a minimum
+	// number of instances to launch.
+	Ipv6AddressCount *int64 `type:"integer"`
+
+	// [EC2-VPC] Specify one or more IPv6 addresses from the range of the subnet
+	// to associate with the primary network interface. You cannot specify this
+	// option and the option to assign a number of IPv6 addresses in the same request.
+	// You cannot specify this option if you've specified a minimum number of instances
+	// to launch.
+	Ipv6Addresses []*InstanceIpv6Address `locationName:"Ipv6Address" locationNameList:"item" type:"list"`
 
 	// The ID of the kernel.
 	//
@@ -43270,17 +44867,13 @@ type RunInstancesInput struct {
 	// The placement for the instance.
 	Placement *Placement `type:"structure"`
 
-	// [EC2-VPC] The primary IP address. You must specify a value from the IP address
-	// range of the subnet.
+	// [EC2-VPC] The primary IPv4 address. You must specify a value from the IPv4
+	// address range of the subnet.
 	//
-	// Only one private IP address can be designated as primary. Therefore, you
-	// can't specify this parameter if PrivateIpAddresses.n.Primary is set to true
-	// and PrivateIpAddresses.n.PrivateIpAddress is set to an IP address.
-	//
-	// You cannot specify this option if you're launching more than one instance
-	// in the request.
-	//
-	// Default: We select an IP address from the IP address range of the subnet.
+	// Only one private IP address can be designated as primary. You can't specify
+	// this option if you've specified the option to designate a private IP address
+	// as the primary IP address in a network interface specification. You cannot
+	// specify this option if you're launching more than one instance in the request.
 	PrivateIpAddress *string `locationName:"privateIpAddress" type:"string"`
 
 	// The ID of the RAM disk.
@@ -43417,6 +45010,18 @@ func (s *RunInstancesInput) SetInstanceType(v string) *RunInstancesInput {
 	return s
 }
 
+// SetIpv6AddressCount sets the Ipv6AddressCount field's value.
+func (s *RunInstancesInput) SetIpv6AddressCount(v int64) *RunInstancesInput {
+	s.Ipv6AddressCount = &v
+	return s
+}
+
+// SetIpv6Addresses sets the Ipv6Addresses field's value.
+func (s *RunInstancesInput) SetIpv6Addresses(v []*InstanceIpv6Address) *RunInstancesInput {
+	s.Ipv6Addresses = v
+	return s
+}
+
 // SetKernelId sets the KernelId field's value.
 func (s *RunInstancesInput) SetKernelId(v string) *RunInstancesInput {
 	s.KernelId = &v
@@ -43495,11 +45100,12 @@ func (s *RunInstancesInput) SetUserData(v string) *RunInstancesInput {
 	return s
 }
 
-// Describes the monitoring for the instance.
+// Describes the monitoring of an instance.
 type RunInstancesMonitoringEnabled struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates whether monitoring is enabled for the instance.
+	// Indicates whether detailed monitoring is enabled. Otherwise, basic monitoring
+	// is enabled.
 	//
 	// Enabled is a required field
 	Enabled *bool `locationName:"enabled" type:"boolean" required:"true"`
@@ -44315,6 +45921,30 @@ func (s *ScheduledInstancesIamInstanceProfile) SetName(v string) *ScheduledInsta
 	return s
 }
 
+// Describes an IPv6 address.
+type ScheduledInstancesIpv6Address struct {
+	_ struct{} `type:"structure"`
+
+	// The IPv6 address.
+	Ipv6Address *string `type:"string"`
+}
+
+// String returns the string representation
+func (s ScheduledInstancesIpv6Address) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ScheduledInstancesIpv6Address) GoString() string {
+	return s.String()
+}
+
+// SetIpv6Address sets the Ipv6Address field's value.
+func (s *ScheduledInstancesIpv6Address) SetIpv6Address(v string) *ScheduledInstancesIpv6Address {
+	s.Ipv6Address = &v
+	return s
+}
+
 // Describes the launch specification for a Scheduled Instance.
 //
 // If you are launching the Scheduled Instance in EC2-VPC, you must specify
@@ -44509,8 +46139,8 @@ func (s *ScheduledInstancesMonitoring) SetEnabled(v bool) *ScheduledInstancesMon
 type ScheduledInstancesNetworkInterface struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates whether to assign a public IP address to instances launched in
-	// a VPC. The public IP address can only be assigned to a network interface
+	// Indicates whether to assign a public IPv4 address to instances launched in
+	// a VPC. The public IPv4 address can only be assigned to a network interface
 	// for eth0, and can only be assigned to a new network interface, not an existing
 	// one. You cannot specify more than one network interface in the request. If
 	// launching into a default subnet, the default value is true.
@@ -44528,16 +46158,23 @@ type ScheduledInstancesNetworkInterface struct {
 	// The IDs of one or more security groups.
 	Groups []*string `locationName:"Group" locationNameList:"SecurityGroupId" type:"list"`
 
+	// The number of IPv6 addresses to assign to the network interface. The IPv6
+	// addresses are automatically selected from the subnet range.
+	Ipv6AddressCount *int64 `type:"integer"`
+
+	// One or more specific IPv6 addresses from the subnet range.
+	Ipv6Addresses []*ScheduledInstancesIpv6Address `locationName:"Ipv6Address" locationNameList:"Ipv6Address" type:"list"`
+
 	// The ID of the network interface.
 	NetworkInterfaceId *string `type:"string"`
 
-	// The IP address of the network interface within the subnet.
+	// The IPv4 address of the network interface within the subnet.
 	PrivateIpAddress *string `type:"string"`
 
-	// The private IP addresses.
+	// The private IPv4 addresses.
 	PrivateIpAddressConfigs []*ScheduledInstancesPrivateIpAddressConfig `locationName:"PrivateIpAddressConfig" locationNameList:"PrivateIpAddressConfigSet" type:"list"`
 
-	// The number of secondary private IP addresses.
+	// The number of secondary private IPv4 addresses.
 	SecondaryPrivateIpAddressCount *int64 `type:"integer"`
 
 	// The ID of the subnet.
@@ -44581,6 +46218,18 @@ func (s *ScheduledInstancesNetworkInterface) SetDeviceIndex(v int64) *ScheduledI
 // SetGroups sets the Groups field's value.
 func (s *ScheduledInstancesNetworkInterface) SetGroups(v []*string) *ScheduledInstancesNetworkInterface {
 	s.Groups = v
+	return s
+}
+
+// SetIpv6AddressCount sets the Ipv6AddressCount field's value.
+func (s *ScheduledInstancesNetworkInterface) SetIpv6AddressCount(v int64) *ScheduledInstancesNetworkInterface {
+	s.Ipv6AddressCount = &v
+	return s
+}
+
+// SetIpv6Addresses sets the Ipv6Addresses field's value.
+func (s *ScheduledInstancesNetworkInterface) SetIpv6Addresses(v []*ScheduledInstancesIpv6Address) *ScheduledInstancesNetworkInterface {
+	s.Ipv6Addresses = v
 	return s
 }
 
@@ -44647,15 +46296,15 @@ func (s *ScheduledInstancesPlacement) SetGroupName(v string) *ScheduledInstances
 	return s
 }
 
-// Describes a private IP address for a Scheduled Instance.
+// Describes a private IPv4 address for a Scheduled Instance.
 type ScheduledInstancesPrivateIpAddressConfig struct {
 	_ struct{} `type:"structure"`
 
-	// Indicates whether this is a primary IP address. Otherwise, this is a secondary
-	// IP address.
+	// Indicates whether this is a primary IPv4 address. Otherwise, this is a secondary
+	// IPv4 address.
 	Primary *bool `type:"boolean"`
 
-	// The IP address.
+	// The IPv4 address.
 	PrivateIpAddress *string `type:"string"`
 }
 
@@ -45400,7 +47049,7 @@ type SpotFleetLaunchSpecification struct {
 	// The ID of the AMI.
 	ImageId *string `locationName:"imageId" type:"string"`
 
-	// The instance type.
+	// The instance type. Note that T2 and HS1 instance types are not supported.
 	InstanceType *string `locationName:"instanceType" type:"string" enum:"InstanceType"`
 
 	// The ID of the kernel.
@@ -45412,7 +47061,8 @@ type SpotFleetLaunchSpecification struct {
 	// Enable or disable monitoring for the instances.
 	Monitoring *SpotFleetMonitoring `locationName:"monitoring" type:"structure"`
 
-	// One or more network interfaces.
+	// One or more network interfaces. If you specify a network interface, you must
+	// specify subnet IDs and security group IDs using the network interface.
 	NetworkInterfaces []*InstanceNetworkInterfaceSpecification `locationName:"networkInterfaceSet" locationNameList:"item" type:"list"`
 
 	// The placement information.
@@ -46180,7 +47830,7 @@ type SpotPrice struct {
 	// The Availability Zone.
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string"`
 
-	// The instance type.
+	// The instance type. Note that T2 and HS1 instance types are not supported.
 	InstanceType *string `locationName:"instanceType" type:"string" enum:"InstanceType"`
 
 	// A general description of the AMI.
@@ -46636,20 +48286,28 @@ func (s *Storage) SetS3(v *S3Storage) *Storage {
 type Subnet struct {
 	_ struct{} `type:"structure"`
 
+	// Indicates whether a network interface created in this subnet (including a
+	// network interface created by RunInstances) receives an IPv6 address.
+	AssignIpv6AddressOnCreation *bool `locationName:"assignIpv6AddressOnCreation" type:"boolean"`
+
 	// The Availability Zone of the subnet.
 	AvailabilityZone *string `locationName:"availabilityZone" type:"string"`
 
-	// The number of unused IP addresses in the subnet. Note that the IP addresses
-	// for any stopped instances are considered unavailable.
+	// The number of unused private IPv4 addresses in the subnet. Note that the
+	// IPv4 addresses for any stopped instances are considered unavailable.
 	AvailableIpAddressCount *int64 `locationName:"availableIpAddressCount" type:"integer"`
 
-	// The CIDR block assigned to the subnet.
+	// The IPv4 CIDR block assigned to the subnet.
 	CidrBlock *string `locationName:"cidrBlock" type:"string"`
 
 	// Indicates whether this is the default subnet for the Availability Zone.
 	DefaultForAz *bool `locationName:"defaultForAz" type:"boolean"`
 
-	// Indicates whether instances launched in this subnet receive a public IP address.
+	// Information about the IPv6 CIDR blocks associated with the subnet.
+	Ipv6CidrBlockAssociationSet []*SubnetIpv6CidrBlockAssociation `locationName:"ipv6CidrBlockAssociationSet" locationNameList:"item" type:"list"`
+
+	// Indicates whether instances launched in this subnet receive a public IPv4
+	// address.
 	MapPublicIpOnLaunch *bool `locationName:"mapPublicIpOnLaunch" type:"boolean"`
 
 	// The current state of the subnet.
@@ -46675,6 +48333,12 @@ func (s Subnet) GoString() string {
 	return s.String()
 }
 
+// SetAssignIpv6AddressOnCreation sets the AssignIpv6AddressOnCreation field's value.
+func (s *Subnet) SetAssignIpv6AddressOnCreation(v bool) *Subnet {
+	s.AssignIpv6AddressOnCreation = &v
+	return s
+}
+
 // SetAvailabilityZone sets the AvailabilityZone field's value.
 func (s *Subnet) SetAvailabilityZone(v string) *Subnet {
 	s.AvailabilityZone = &v
@@ -46696,6 +48360,12 @@ func (s *Subnet) SetCidrBlock(v string) *Subnet {
 // SetDefaultForAz sets the DefaultForAz field's value.
 func (s *Subnet) SetDefaultForAz(v bool) *Subnet {
 	s.DefaultForAz = &v
+	return s
+}
+
+// SetIpv6CidrBlockAssociationSet sets the Ipv6CidrBlockAssociationSet field's value.
+func (s *Subnet) SetIpv6CidrBlockAssociationSet(v []*SubnetIpv6CidrBlockAssociation) *Subnet {
+	s.Ipv6CidrBlockAssociationSet = v
 	return s
 }
 
@@ -46726,6 +48396,81 @@ func (s *Subnet) SetTags(v []*Tag) *Subnet {
 // SetVpcId sets the VpcId field's value.
 func (s *Subnet) SetVpcId(v string) *Subnet {
 	s.VpcId = &v
+	return s
+}
+
+// Describes the state of a CIDR block.
+type SubnetCidrBlockState struct {
+	_ struct{} `type:"structure"`
+
+	// The state of a CIDR block.
+	State *string `locationName:"state" type:"string" enum:"SubnetCidrBlockStateCode"`
+
+	// A message about the status of the CIDR block, if applicable.
+	StatusMessage *string `locationName:"statusMessage" type:"string"`
+}
+
+// String returns the string representation
+func (s SubnetCidrBlockState) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SubnetCidrBlockState) GoString() string {
+	return s.String()
+}
+
+// SetState sets the State field's value.
+func (s *SubnetCidrBlockState) SetState(v string) *SubnetCidrBlockState {
+	s.State = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *SubnetCidrBlockState) SetStatusMessage(v string) *SubnetCidrBlockState {
+	s.StatusMessage = &v
+	return s
+}
+
+// Describes an IPv6 CIDR block associated with a subnet.
+type SubnetIpv6CidrBlockAssociation struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID for the CIDR block.
+	AssociationId *string `locationName:"associationId" type:"string"`
+
+	// The IPv6 CIDR block.
+	Ipv6CidrBlock *string `locationName:"ipv6CidrBlock" type:"string"`
+
+	// Information about the state of the CIDR block.
+	Ipv6CidrBlockState *SubnetCidrBlockState `locationName:"ipv6CidrBlockState" type:"structure"`
+}
+
+// String returns the string representation
+func (s SubnetIpv6CidrBlockAssociation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s SubnetIpv6CidrBlockAssociation) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *SubnetIpv6CidrBlockAssociation) SetAssociationId(v string) *SubnetIpv6CidrBlockAssociation {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIpv6CidrBlock sets the Ipv6CidrBlock field's value.
+func (s *SubnetIpv6CidrBlockAssociation) SetIpv6CidrBlock(v string) *SubnetIpv6CidrBlockAssociation {
+	s.Ipv6CidrBlock = &v
+	return s
+}
+
+// SetIpv6CidrBlockState sets the Ipv6CidrBlockState field's value.
+func (s *SubnetIpv6CidrBlockAssociation) SetIpv6CidrBlockState(v *SubnetCidrBlockState) *SubnetIpv6CidrBlockAssociation {
+	s.Ipv6CidrBlockState = v
 	return s
 }
 
@@ -46861,9 +48606,7 @@ type TargetConfigurationRequest struct {
 	// applied to. This parameter is reserved and cannot be specified in a request
 	InstanceCount *int64 `type:"integer"`
 
-	// The Convertible Reserved Instance offering ID. If this isn't included in
-	// the request, the response lists your current Convertible Reserved Instance/s
-	// and their value/s.
+	// The Convertible Reserved Instance offering ID.
 	//
 	// OfferingId is a required field
 	OfferingId *string `type:"string" required:"true"`
@@ -47018,6 +48761,90 @@ func (s *TerminateInstancesOutput) SetTerminatingInstances(v []*InstanceStateCha
 	return s
 }
 
+type UnassignIpv6AddressesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The IPv6 addresses to unassign from the network interface.
+	//
+	// Ipv6Addresses is a required field
+	Ipv6Addresses []*string `locationName:"ipv6Addresses" locationNameList:"item" type:"list" required:"true"`
+
+	// The ID of the network interface.
+	//
+	// NetworkInterfaceId is a required field
+	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s UnassignIpv6AddressesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnassignIpv6AddressesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UnassignIpv6AddressesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UnassignIpv6AddressesInput"}
+	if s.Ipv6Addresses == nil {
+		invalidParams.Add(request.NewErrParamRequired("Ipv6Addresses"))
+	}
+	if s.NetworkInterfaceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("NetworkInterfaceId"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetIpv6Addresses sets the Ipv6Addresses field's value.
+func (s *UnassignIpv6AddressesInput) SetIpv6Addresses(v []*string) *UnassignIpv6AddressesInput {
+	s.Ipv6Addresses = v
+	return s
+}
+
+// SetNetworkInterfaceId sets the NetworkInterfaceId field's value.
+func (s *UnassignIpv6AddressesInput) SetNetworkInterfaceId(v string) *UnassignIpv6AddressesInput {
+	s.NetworkInterfaceId = &v
+	return s
+}
+
+type UnassignIpv6AddressesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the network interface.
+	NetworkInterfaceId *string `locationName:"networkInterfaceId" type:"string"`
+
+	// The IPv6 addresses that have been unassigned from the network interface.
+	UnassignedIpv6Addresses []*string `locationName:"unassignedIpv6Addresses" locationNameList:"item" type:"list"`
+}
+
+// String returns the string representation
+func (s UnassignIpv6AddressesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UnassignIpv6AddressesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNetworkInterfaceId sets the NetworkInterfaceId field's value.
+func (s *UnassignIpv6AddressesOutput) SetNetworkInterfaceId(v string) *UnassignIpv6AddressesOutput {
+	s.NetworkInterfaceId = &v
+	return s
+}
+
+// SetUnassignedIpv6Addresses sets the UnassignedIpv6Addresses field's value.
+func (s *UnassignIpv6AddressesOutput) SetUnassignedIpv6Addresses(v []*string) *UnassignIpv6AddressesOutput {
+	s.UnassignedIpv6Addresses = v
+	return s
+}
+
 // Contains the parameters for UnassignPrivateIpAddresses.
 type UnassignPrivateIpAddressesInput struct {
 	_ struct{} `type:"structure"`
@@ -47141,7 +48968,7 @@ func (s *UnmonitorInstancesInput) SetInstanceIds(v []*string) *UnmonitorInstance
 type UnmonitorInstancesOutput struct {
 	_ struct{} `type:"structure"`
 
-	// Monitoring information for one or more instances.
+	// The monitoring information.
 	InstanceMonitorings []*InstanceMonitoring `locationName:"instancesSet" locationNameList:"item" type:"list"`
 }
 
@@ -47949,7 +49776,7 @@ func (s *VolumeStatusItem) SetVolumeStatus(v *VolumeStatusInfo) *VolumeStatusIte
 type Vpc struct {
 	_ struct{} `type:"structure"`
 
-	// The CIDR block for the VPC.
+	// The IPv4 CIDR block for the VPC.
 	CidrBlock *string `locationName:"cidrBlock" type:"string"`
 
 	// The ID of the set of DHCP options you've associated with the VPC (or default
@@ -47958,6 +49785,9 @@ type Vpc struct {
 
 	// The allowed tenancy of instances launched into the VPC.
 	InstanceTenancy *string `locationName:"instanceTenancy" type:"string" enum:"Tenancy"`
+
+	// Information about the IPv6 CIDR blocks associated with the VPC.
+	Ipv6CidrBlockAssociationSet []*VpcIpv6CidrBlockAssociation `locationName:"ipv6CidrBlockAssociationSet" locationNameList:"item" type:"list"`
 
 	// Indicates whether the VPC is the default VPC.
 	IsDefault *bool `locationName:"isDefault" type:"boolean"`
@@ -47997,6 +49827,12 @@ func (s *Vpc) SetDhcpOptionsId(v string) *Vpc {
 // SetInstanceTenancy sets the InstanceTenancy field's value.
 func (s *Vpc) SetInstanceTenancy(v string) *Vpc {
 	s.InstanceTenancy = &v
+	return s
+}
+
+// SetIpv6CidrBlockAssociationSet sets the Ipv6CidrBlockAssociationSet field's value.
+func (s *Vpc) SetIpv6CidrBlockAssociationSet(v []*VpcIpv6CidrBlockAssociation) *Vpc {
+	s.Ipv6CidrBlockAssociationSet = v
 	return s
 }
 
@@ -48054,6 +49890,39 @@ func (s *VpcAttachment) SetState(v string) *VpcAttachment {
 // SetVpcId sets the VpcId field's value.
 func (s *VpcAttachment) SetVpcId(v string) *VpcAttachment {
 	s.VpcId = &v
+	return s
+}
+
+// Describes the state of a CIDR block.
+type VpcCidrBlockState struct {
+	_ struct{} `type:"structure"`
+
+	// The state of the CIDR block.
+	State *string `locationName:"state" type:"string" enum:"VpcCidrBlockStateCode"`
+
+	// A message about the status of the CIDR block, if applicable.
+	StatusMessage *string `locationName:"statusMessage" type:"string"`
+}
+
+// String returns the string representation
+func (s VpcCidrBlockState) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VpcCidrBlockState) GoString() string {
+	return s.String()
+}
+
+// SetState sets the State field's value.
+func (s *VpcCidrBlockState) SetState(v string) *VpcCidrBlockState {
+	s.State = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *VpcCidrBlockState) SetStatusMessage(v string) *VpcCidrBlockState {
+	s.StatusMessage = &v
 	return s
 }
 
@@ -48174,6 +50043,48 @@ func (s *VpcEndpoint) SetVpcEndpointId(v string) *VpcEndpoint {
 // SetVpcId sets the VpcId field's value.
 func (s *VpcEndpoint) SetVpcId(v string) *VpcEndpoint {
 	s.VpcId = &v
+	return s
+}
+
+// Describes an IPv6 CIDR block associated with a VPC.
+type VpcIpv6CidrBlockAssociation struct {
+	_ struct{} `type:"structure"`
+
+	// The association ID for the IPv6 CIDR block.
+	AssociationId *string `locationName:"associationId" type:"string"`
+
+	// The IPv6 CIDR block.
+	Ipv6CidrBlock *string `locationName:"ipv6CidrBlock" type:"string"`
+
+	// Information about the state of the CIDR block.
+	Ipv6CidrBlockState *VpcCidrBlockState `locationName:"ipv6CidrBlockState" type:"structure"`
+}
+
+// String returns the string representation
+func (s VpcIpv6CidrBlockAssociation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s VpcIpv6CidrBlockAssociation) GoString() string {
+	return s.String()
+}
+
+// SetAssociationId sets the AssociationId field's value.
+func (s *VpcIpv6CidrBlockAssociation) SetAssociationId(v string) *VpcIpv6CidrBlockAssociation {
+	s.AssociationId = &v
+	return s
+}
+
+// SetIpv6CidrBlock sets the Ipv6CidrBlock field's value.
+func (s *VpcIpv6CidrBlockAssociation) SetIpv6CidrBlock(v string) *VpcIpv6CidrBlockAssociation {
+	s.Ipv6CidrBlock = &v
+	return s
+}
+
+// SetIpv6CidrBlockState sets the Ipv6CidrBlockState field's value.
+func (s *VpcIpv6CidrBlockAssociation) SetIpv6CidrBlockState(v *VpcCidrBlockState) *VpcIpv6CidrBlockAssociation {
+	s.Ipv6CidrBlockState = v
 	return s
 }
 
@@ -48330,8 +50241,11 @@ func (s *VpcPeeringConnectionStateReason) SetMessage(v string) *VpcPeeringConnec
 type VpcPeeringConnectionVpcInfo struct {
 	_ struct{} `type:"structure"`
 
-	// The CIDR block for the VPC.
+	// The IPv4 CIDR block for the VPC.
 	CidrBlock *string `locationName:"cidrBlock" type:"string"`
+
+	// The IPv6 CIDR block for the VPC.
+	Ipv6CidrBlockSet []*Ipv6CidrBlock `locationName:"ipv6CidrBlockSet" locationNameList:"item" type:"list"`
 
 	// The AWS account ID of the VPC owner.
 	OwnerId *string `locationName:"ownerId" type:"string"`
@@ -48357,6 +50271,12 @@ func (s VpcPeeringConnectionVpcInfo) GoString() string {
 // SetCidrBlock sets the CidrBlock field's value.
 func (s *VpcPeeringConnectionVpcInfo) SetCidrBlock(v string) *VpcPeeringConnectionVpcInfo {
 	s.CidrBlock = &v
+	return s
+}
+
+// SetIpv6CidrBlockSet sets the Ipv6CidrBlockSet field's value.
+func (s *VpcPeeringConnectionVpcInfo) SetIpv6CidrBlockSet(v []*Ipv6CidrBlock) *VpcPeeringConnectionVpcInfo {
+	s.Ipv6CidrBlockSet = v
 	return s
 }
 
@@ -49296,6 +51216,12 @@ const (
 
 	// InstanceTypeD28xlarge is a InstanceType enum value
 	InstanceTypeD28xlarge = "d2.8xlarge"
+
+	// InstanceTypeF12xlarge is a InstanceType enum value
+	InstanceTypeF12xlarge = "f1.2xlarge"
+
+	// InstanceTypeF116xlarge is a InstanceType enum value
+	InstanceTypeF116xlarge = "f1.16xlarge"
 )
 
 const (
@@ -49751,6 +51677,26 @@ const (
 )
 
 const (
+	// SubnetCidrBlockStateCodeAssociating is a SubnetCidrBlockStateCode enum value
+	SubnetCidrBlockStateCodeAssociating = "associating"
+
+	// SubnetCidrBlockStateCodeAssociated is a SubnetCidrBlockStateCode enum value
+	SubnetCidrBlockStateCodeAssociated = "associated"
+
+	// SubnetCidrBlockStateCodeDisassociating is a SubnetCidrBlockStateCode enum value
+	SubnetCidrBlockStateCodeDisassociating = "disassociating"
+
+	// SubnetCidrBlockStateCodeDisassociated is a SubnetCidrBlockStateCode enum value
+	SubnetCidrBlockStateCodeDisassociated = "disassociated"
+
+	// SubnetCidrBlockStateCodeFailing is a SubnetCidrBlockStateCode enum value
+	SubnetCidrBlockStateCodeFailing = "failing"
+
+	// SubnetCidrBlockStateCodeFailed is a SubnetCidrBlockStateCode enum value
+	SubnetCidrBlockStateCodeFailed = "failed"
+)
+
+const (
 	// SubnetStatePending is a SubnetState enum value
 	SubnetStatePending = "pending"
 
@@ -49897,6 +51843,26 @@ const (
 
 	// VpcAttributeNameEnableDnsHostnames is a VpcAttributeName enum value
 	VpcAttributeNameEnableDnsHostnames = "enableDnsHostnames"
+)
+
+const (
+	// VpcCidrBlockStateCodeAssociating is a VpcCidrBlockStateCode enum value
+	VpcCidrBlockStateCodeAssociating = "associating"
+
+	// VpcCidrBlockStateCodeAssociated is a VpcCidrBlockStateCode enum value
+	VpcCidrBlockStateCodeAssociated = "associated"
+
+	// VpcCidrBlockStateCodeDisassociating is a VpcCidrBlockStateCode enum value
+	VpcCidrBlockStateCodeDisassociating = "disassociating"
+
+	// VpcCidrBlockStateCodeDisassociated is a VpcCidrBlockStateCode enum value
+	VpcCidrBlockStateCodeDisassociated = "disassociated"
+
+	// VpcCidrBlockStateCodeFailing is a VpcCidrBlockStateCode enum value
+	VpcCidrBlockStateCodeFailing = "failing"
+
+	// VpcCidrBlockStateCodeFailed is a VpcCidrBlockStateCode enum value
+	VpcCidrBlockStateCodeFailed = "failed"
 )
 
 const (
