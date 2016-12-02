@@ -881,6 +881,73 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 	}
 }
 
+// This tests that when a CBD resource depends on a non-CBD resource,
+// we can still properly apply changes that require new for both.
+func TestContext2Apply_createBeforeDestroy_dependsNonCBD(t *testing.T) {
+	m := testModule(t, "apply-cbd-depends-non-cbd")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "abc",
+							},
+						},
+					},
+
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+							Attributes: map[string]string{
+								"require_new": "abc",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if p, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.bar:
+  ID = foo
+  require_new = yes
+  type = aws_instance
+  value = foo
+aws_instance.foo:
+  ID = foo
+  require_new = yes
+  type = aws_instance
+	`)
+}
+
 func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 	h := new(MockHook)
 	m := testModule(t, "apply-good-create-before")
