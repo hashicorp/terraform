@@ -80,7 +80,7 @@ func TestResourceProvider_windowsInstallChefClient(t *testing.T) {
 		c.Commands = tc.Commands
 		c.UploadScripts = tc.UploadScripts
 
-		p, err := decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -186,7 +186,7 @@ func TestResourceProvider_windowsCreateConfigFiles(t *testing.T) {
 		c.Commands = tc.Commands
 		c.Uploads = tc.Uploads
 
-		p, err := decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}

@@ -463,8 +463,3 @@ func (d *ResourceData) get(addr []string, source getSource) getResult {
 		Schema:         schema,
 	}
 }
-
-// TODO: Get rid of usages and remove. Added to fix chef provisioner
-func (d *ResourceData) GetRawConfig() *terraform.ResourceConfig {
-	return d.config
-}

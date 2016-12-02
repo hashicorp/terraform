@@ -140,7 +140,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -212,7 +212,7 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -336,7 +336,7 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 	for k, tc := range cases {
 		c.Commands = tc.Commands
 
-		p, err := decodeConfig(tc.Config)
+		p, err := decodeConfig(getTestResourceData(tc.Config))
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -349,4 +349,8 @@ func TestResourceProvider_configureVaults(t *testing.T) {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}
 	}
+}
+
+func getTestResourceData(c *terraform.ResourceConfig) *schema.ResourceData {
+	return ResourceProvisioner().(*schema.Provisioner).TestResourceData(c)
 }
