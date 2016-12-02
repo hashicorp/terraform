@@ -42,6 +42,10 @@ func (t *OrphanResourceTransformer) Transform(g *Graph) error {
 }
 
 func (t *OrphanResourceTransformer) transform(g *Graph, ms *ModuleState) error {
+	if ms == nil {
+		return nil
+	}
+
 	// Get the configuration for this path. The configuration might be
 	// nil if the module was removed from the configuration. This is okay,
 	// this just means that every resource is an orphan.
