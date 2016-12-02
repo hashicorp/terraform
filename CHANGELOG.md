@@ -34,7 +34,8 @@ BUG FIXES:
   * core: Certain invalid configurations will no longer print "illegal". [GH-10448]
   * command/console: variable access works [GH-10446]
   * provider/aws: Do not return a root device for instance store backed AMIs. [GH-9483]
-  * provider/aws resource_aws_opsworks_application does not accept document_root parameter [GH-10477]
+  * provider/aws: resource_aws_opsworks_application does not accept document_root parameter [GH-10477]
+  * provider/aws: bug fix when specifying level on aws_opsworks_permission [GH-10394]
 
 ## 0.8.0-rc1 (November 23, 2016)
 
