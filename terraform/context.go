@@ -162,13 +162,18 @@ func NewContext(opts *ContextOpts) (*Context, error) {
 		}
 	}
 
+	diff := opts.Diff
+	if diff == nil {
+		diff = &Diff{}
+	}
+
 	return &Context{
 		components: &basicComponentFactory{
 			providers:    opts.Providers,
 			provisioners: opts.Provisioners,
 		},
 		destroy:   opts.Destroy,
-		diff:      opts.Diff,
+		diff:      diff,
 		hooks:     hooks,
 		module:    opts.Module,
 		shadow:    opts.Shadow,
