@@ -9,14 +9,13 @@ import (
 )
 
 func TestAccAWSOpsworksPermission(t *testing.T) {
-	rName := fmt.Sprintf("test-user-%d", acctest.RandInt())
-	roleName := fmt.Sprintf("tf-ops-user-profile-%d", acctest.RandInt())
+	sName := fmt.Sprintf("tf-ops-perm-%d", acctest.RandInt())
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAwsOpsworksPermissionCreate(rName, roleName),
+				Config: testAccAwsOpsworksPermissionCreate(sName, "true", "true", "iam_only"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_permission.tf-acc-perm", "allow_ssh", "true",
@@ -29,19 +28,61 @@ func TestAccAWSOpsworksPermission(t *testing.T) {
 					),
 				),
 			},
+			resource.TestStep{
+				Config: testAccAwsOpsworksPermissionCreate(sName, "true", "false", "iam_only"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_permission.tf-acc-perm", "allow_ssh", "true",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_permission.tf-acc-perm", "allow_sudo", "false",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_permission.tf-acc-perm", "level", "iam_only",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAwsOpsworksPermissionCreate(sName, "false", "false", "deny"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_permission.tf-acc-perm", "allow_ssh", "false",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_permission.tf-acc-perm", "allow_sudo", "false",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_permission.tf-acc-perm", "level", "deny",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAwsOpsworksPermissionCreate(sName, "false", "false", "show"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_permission.tf-acc-perm", "allow_ssh", "false",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_permission.tf-acc-perm", "allow_sudo", "false",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_permission.tf-acc-perm", "level", "show",
+					),
+				),
+			},
 		},
 	})
 }
 
-func testAccAwsOpsworksPermissionCreate(rn, roleName string) string {
+func testAccAwsOpsworksPermissionCreate(name, ssh, sudo, level string) string {
 	return fmt.Sprintf(`
 resource "aws_opsworks_permission" "tf-acc-perm" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
 
-  allow_ssh = true
-  allow_sudo = true
+  allow_ssh = %s
+  allow_sudo = %s
   user_arn = "${aws_opsworks_user_profile.user.user_arn}"
-  level = "iam_only"
+  level = "%s"
 }
 
 resource "aws_opsworks_user_profile" "user" {
@@ -55,5 +96,5 @@ resource "aws_iam_user" "user" {
 }
 	
 %s
-`, rn, testAccAwsOpsworksStackConfigNoVpcCreate(rn))
+`, ssh, sudo, level, name, testAccAwsOpsworksStackConfigVpcCreate(name))
 }
