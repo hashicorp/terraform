@@ -849,3 +849,46 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 		t.Fatal("err:", e)
 	}
 }
+
+// Manually validate using the new PlanGraphBuilder
+func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
+	m := testModule(t, "apply-vars")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]interface{}{
+			"foo":       "us-west-2",
+			"test_list": []interface{}{"Hello", "World"},
+			"test_map": map[string]interface{}{
+				"Hello": "World",
+				"Foo":   "Bar",
+				"Baz":   "Foo",
+			},
+			"amis": []map[string]interface{}{
+				map[string]interface{}{
+					"us-east-1": "override",
+				},
+			},
+		},
+	})
+
+	graph, err := (&PlanGraphBuilder{
+		Module:    c.module,
+		State:     NewState(),
+		Providers: c.components.ResourceProviders(),
+		Targets:   c.targets,
+	}).Build(RootModulePath)
+
+	walker, err := c.walk(graph, graph, walkValidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(walker.ValidationErrors) > 0 {
+		t.Fatal(walker.ValidationErrors)
+	}
+}
