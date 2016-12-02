@@ -148,7 +148,7 @@ func testCheckAzureRMNetworkSecurityRuleDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Network Security Rule still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Network Security Rule still exists:\n%#v", resp.SecurityRulePropertiesFormat)
 		}
 	}
 

@@ -120,7 +120,7 @@ func testCheckAzureRMVirtualMachineScaleSetDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Virtual Machine Scale Set still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Virtual Machine Scale Set still exists:\n%#v", resp.VirtualMachineScaleSetProperties)
 		}
 	}
 
