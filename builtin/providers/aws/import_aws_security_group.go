@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -80,7 +81,9 @@ func resourceAwsSecurityGroupImportState(
 			// XXX If the rule contained more than one source security group, this
 			// will choose one of them. We actually need to create one rule for each
 			// source security group.
-			setFromIPPerm(d, sg, perm)
+			if err := setFromIPPerm(d, sg, perm); err != nil {
+				return nil, errwrap.Wrapf("Error importing AWS Security Group: {{err}}", err)
+			}
 			results = append(results, d)
 		}
 	}

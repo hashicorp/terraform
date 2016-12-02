@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -154,7 +155,27 @@ func (t *CreateBeforeDestroyTransformer) Transform(g *Graph) error {
 
 		// If the node doesn't need to create before destroy, then continue
 		if !dn.CreateBeforeDestroy() {
-			continue
+			if noCreateBeforeDestroyAncestors(g, dn) {
+				continue
+			}
+
+			// PURPOSELY HACKY FIX SINCE THIS TRANSFORM IS DEPRECATED.
+			// This is a hacky way to fix GH-10439. For a detailed description
+			// of the fix, see CBDEdgeTransformer, which is the equivalent
+			// transform used by the new graphs.
+			//
+			// This transform is deprecated because it is only used by the
+			// old graphs which are going to be removed.
+			var update *config.Resource
+			if dn, ok := v.(*graphNodeResourceDestroy); ok {
+				update = dn.Original.Resource
+			}
+			if dn, ok := v.(*graphNodeResourceDestroyFlat); ok {
+				update = dn.Original.Resource
+			}
+			if update != nil {
+				update.Lifecycle.CreateBeforeDestroy = true
+			}
 		}
 
 		// Get the creation side of this node
@@ -198,6 +219,30 @@ func (t *CreateBeforeDestroyTransformer) Transform(g *Graph) error {
 	}
 
 	return nil
+}
+
+// noCreateBeforeDestroyAncestors verifies that a vertex has no ancestors that
+// are CreateBeforeDestroy.
+// If this vertex has an ancestor with CreateBeforeDestroy, we will need to
+// inherit that behavior and re-order the edges even if this node type doesn't
+// directly implement CreateBeforeDestroy.
+func noCreateBeforeDestroyAncestors(g *Graph, v dag.Vertex) bool {
+	s, _ := g.Ancestors(v)
+	if s == nil {
+		return true
+	}
+	for _, v := range s.List() {
+		dn, ok := v.(GraphNodeDestroy)
+		if !ok {
+			continue
+		}
+
+		if dn.CreateBeforeDestroy() {
+			// some ancestor is CreateBeforeDestroy, so we need to follow suit
+			return false
+		}
+	}
+	return true
 }
 
 // PruneDestroyTransformer is a GraphTransformer that removes the destroy

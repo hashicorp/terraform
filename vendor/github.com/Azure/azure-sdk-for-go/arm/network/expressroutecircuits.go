@@ -26,7 +26,7 @@ import (
 
 // ExpressRouteCircuitsClient is the the Microsoft Azure Network management
 // API provides a RESTful set of web services that interact with Microsoft
-// Azure Networks service to manage your network resrources. The API has
+// Azure Networks service to manage your network resources. The API has
 // entities that capture the relationship between an end user and the
 // Microsoft Azure Networks service.
 type ExpressRouteCircuitsClient struct {
@@ -36,7 +36,13 @@ type ExpressRouteCircuitsClient struct {
 // NewExpressRouteCircuitsClient creates an instance of the
 // ExpressRouteCircuitsClient client.
 func NewExpressRouteCircuitsClient(subscriptionID string) ExpressRouteCircuitsClient {
-	return ExpressRouteCircuitsClient{New(subscriptionID)}
+	return NewExpressRouteCircuitsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewExpressRouteCircuitsClientWithBaseURI creates an instance of the
+// ExpressRouteCircuitsClient client.
+func NewExpressRouteCircuitsClientWithBaseURI(baseURI string, subscriptionID string) ExpressRouteCircuitsClient {
+	return ExpressRouteCircuitsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put ExpressRouteCircuit operation creates/updates a
@@ -176,7 +182,7 @@ func (client ExpressRouteCircuitsClient) DeleteResponder(resp *http.Response) (r
 	return
 }
 
-// Get the Get ExpressRouteCircuit operation retreives information about the
+// Get the Get ExpressRouteCircuit operation retrieves information about the
 // specified ExpressRouteCircuit.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
@@ -240,7 +246,7 @@ func (client ExpressRouteCircuitsClient) GetResponder(resp *http.Response) (resu
 	return
 }
 
-// GetPeeringStats the Liststats ExpressRouteCircuit opertion retrieves all
+// GetPeeringStats the List stats ExpressRouteCircuit operation retrieves all
 // the stats from a ExpressRouteCircuits in a resource group.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
@@ -305,8 +311,8 @@ func (client ExpressRouteCircuitsClient) GetPeeringStatsResponder(resp *http.Res
 	return
 }
 
-// GetStats the Liststats ExpressRouteCircuit opertion retrieves all the stats
-// from a ExpressRouteCircuits in a resource group.
+// GetStats the List stats ExpressRouteCircuit operation retrieves all the
+// stats from a ExpressRouteCircuits in a resource group.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
 // name of the circuit.
@@ -369,7 +375,7 @@ func (client ExpressRouteCircuitsClient) GetStatsResponder(resp *http.Response) 
 	return
 }
 
-// List the List ExpressRouteCircuit opertion retrieves all the
+// List the List ExpressRouteCircuit operation retrieves all the
 // ExpressRouteCircuits in a resource group.
 //
 // resourceGroupName is the name of the resource group.
@@ -435,7 +441,7 @@ func (client ExpressRouteCircuitsClient) ListResponder(resp *http.Response) (res
 func (client ExpressRouteCircuitsClient) ListNextResults(lastResults ExpressRouteCircuitListResult) (result ExpressRouteCircuitListResult, err error) {
 	req, err := lastResults.ExpressRouteCircuitListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -444,18 +450,18 @@ func (client ExpressRouteCircuitsClient) ListNextResults(lastResults ExpressRout
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
 }
 
-// ListAll the List ExpressRouteCircuit opertion retrieves all the
+// ListAll the List ExpressRouteCircuit operation retrieves all the
 // ExpressRouteCircuits in a subscription.
 func (client ExpressRouteCircuitsClient) ListAll() (result ExpressRouteCircuitListResult, err error) {
 	req, err := client.ListAllPreparer()
@@ -518,7 +524,7 @@ func (client ExpressRouteCircuitsClient) ListAllResponder(resp *http.Response) (
 func (client ExpressRouteCircuitsClient) ListAllNextResults(lastResults ExpressRouteCircuitListResult) (result ExpressRouteCircuitListResult, err error) {
 	req, err := lastResults.ExpressRouteCircuitListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -527,18 +533,18 @@ func (client ExpressRouteCircuitsClient) ListAllNextResults(lastResults ExpressR
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return
 }
 
-// ListArpTable the ListArpTable from ExpressRouteCircuit opertion retrieves
+// ListArpTable the ListArpTable from ExpressRouteCircuit operation retrieves
 // the currently advertised arp table associated with the
 // ExpressRouteCircuits in a resource group. This method may poll for
 // completion. Polling can be canceled by passing the cancel channel
@@ -610,7 +616,7 @@ func (client ExpressRouteCircuitsClient) ListArpTableResponder(resp *http.Respon
 	return
 }
 
-// ListRoutesTable the ListRoutesTable from ExpressRouteCircuit opertion
+// ListRoutesTable the ListRoutesTable from ExpressRouteCircuit operation
 // retrieves the currently advertised routes table associated with the
 // ExpressRouteCircuits in a resource group. This method may poll for
 // completion. Polling can be canceled by passing the cancel channel
@@ -683,7 +689,7 @@ func (client ExpressRouteCircuitsClient) ListRoutesTableResponder(resp *http.Res
 }
 
 // ListRoutesTableSummary the ListRoutesTable from ExpressRouteCircuit
-// opertion retrieves the currently advertised routes table associated with
+// operation retrieves the currently advertised routes table associated with
 // the ExpressRouteCircuits in a resource group. This method may poll for
 // completion. Polling can be canceled by passing the cancel channel
 // argument. The channel will be used to cancel polling and any outstanding

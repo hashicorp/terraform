@@ -49,3 +49,11 @@ The following attributes are exported:
 * `id` - The db security group ID.
 * `arn` - The arn of the DB security group.
 
+
+## Import
+
+DB Security groups can be imported using the `name`, e.g. 
+
+```
+$ terraform import aws_db_security_group.default aws_rds_sg-1
+```

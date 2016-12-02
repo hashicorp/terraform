@@ -21,12 +21,13 @@ package network
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
 // SecurityRulesClient is the the Microsoft Azure Network management API
 // provides a RESTful set of web services that interact with Microsoft Azure
-// Networks service to manage your network resrources. The API has entities
+// Networks service to manage your network resources. The API has entities
 // that capture the relationship between an end user and the Microsoft Azure
 // Networks service.
 type SecurityRulesClient struct {
@@ -36,7 +37,13 @@ type SecurityRulesClient struct {
 // NewSecurityRulesClient creates an instance of the SecurityRulesClient
 // client.
 func NewSecurityRulesClient(subscriptionID string) SecurityRulesClient {
-	return SecurityRulesClient{New(subscriptionID)}
+	return NewSecurityRulesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewSecurityRulesClientWithBaseURI creates an instance of the
+// SecurityRulesClient client.
+func NewSecurityRulesClientWithBaseURI(baseURI string, subscriptionID string) SecurityRulesClient {
+	return SecurityRulesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put network security rule operation creates/updates a
@@ -51,6 +58,15 @@ func NewSecurityRulesClient(subscriptionID string) SecurityRulesClient {
 // is parameters supplied to the create/update network security rule
 // operation
 func (client SecurityRulesClient) CreateOrUpdate(resourceGroupName string, networkSecurityGroupName string, securityRuleName string, securityRuleParameters SecurityRule, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: securityRuleParameters,
+			Constraints: []validation.Constraint{{Target: "securityRuleParameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "securityRuleParameters.Properties.SourceAddressPrefix", Name: validation.Null, Rule: true, Chain: nil},
+					{Target: "securityRuleParameters.Properties.DestinationAddressPrefix", Name: validation.Null, Rule: true, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "network.SecurityRulesClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, networkSecurityGroupName, securityRuleName, securityRuleParameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.SecurityRulesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -182,7 +198,7 @@ func (client SecurityRulesClient) DeleteResponder(resp *http.Response) (result a
 	return
 }
 
-// Get the Get NetworkSecurityRule operation retreives information about the
+// Get the Get NetworkSecurityRule operation retrieves information about the
 // specified network security rule.
 //
 // resourceGroupName is the name of the resource group.
@@ -248,7 +264,7 @@ func (client SecurityRulesClient) GetResponder(resp *http.Response) (result Secu
 	return
 }
 
-// List the List network security rule opertion retrieves all the security
+// List the List network security rule operation retrieves all the security
 // rules in a network security group.
 //
 // resourceGroupName is the name of the resource group.
@@ -316,7 +332,7 @@ func (client SecurityRulesClient) ListResponder(resp *http.Response) (result Sec
 func (client SecurityRulesClient) ListNextResults(lastResults SecurityRuleListResult) (result SecurityRuleListResult, err error) {
 	req, err := lastResults.SecurityRuleListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.SecurityRulesClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.SecurityRulesClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -325,12 +341,12 @@ func (client SecurityRulesClient) ListNextResults(lastResults SecurityRuleListRe
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.SecurityRulesClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.SecurityRulesClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.SecurityRulesClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.SecurityRulesClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

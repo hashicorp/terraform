@@ -21,14 +21,14 @@ package cdn
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
 // NameAvailabilityClient is the use these APIs to manage Azure CDN resources
 // through the Azure Resource Manager. You must make sure that requests made
-// to these resources are secure. For more information, see <a
-// href="https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx">Authenticating
-// Azure Resource Manager requests.</a>
+// to these resources are secure. For more information, see
+// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
 type NameAvailabilityClient struct {
 	ManagementClient
 }
@@ -36,13 +36,26 @@ type NameAvailabilityClient struct {
 // NewNameAvailabilityClient creates an instance of the NameAvailabilityClient
 // client.
 func NewNameAvailabilityClient(subscriptionID string) NameAvailabilityClient {
-	return NameAvailabilityClient{New(subscriptionID)}
+	return NewNameAvailabilityClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewNameAvailabilityClientWithBaseURI creates an instance of the
+// NameAvailabilityClient client.
+func NewNameAvailabilityClientWithBaseURI(baseURI string, subscriptionID string) NameAvailabilityClient {
+	return NameAvailabilityClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CheckNameAvailability sends the check name availability request.
 //
 // checkNameAvailabilityInput is input to check.
 func (client NameAvailabilityClient) CheckNameAvailability(checkNameAvailabilityInput CheckNameAvailabilityInput) (result CheckNameAvailabilityOutput, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: checkNameAvailabilityInput,
+			Constraints: []validation.Constraint{{Target: "checkNameAvailabilityInput.Name", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "checkNameAvailabilityInput.Type", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.NameAvailabilityClient", "CheckNameAvailability")
+	}
+
 	req, err := client.CheckNameAvailabilityPreparer(checkNameAvailabilityInput)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.NameAvailabilityClient", "CheckNameAvailability", nil, "Failure preparing request")

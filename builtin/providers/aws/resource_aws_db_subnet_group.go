@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -131,7 +130,7 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 	// list tags for resource
 	// set tags
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSsubgrpARN(d, meta)
+	arn, err := buildRDSsubgrpARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		log.Printf("[DEBUG] Error building ARN for DB Subnet Group, not setting Tags for group %s", *subnetGroup.DBSubnetGroupName)
 	} else {
@@ -179,7 +178,7 @@ func resourceAwsDbSubnetGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if arn, err := buildRDSsubgrpARN(d, meta); err == nil {
+	if arn, err := buildRDSsubgrpARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		} else {
@@ -228,18 +227,16 @@ func resourceAwsDbSubnetGroupDeleteRefreshFunc(
 	}
 }
 
-func buildRDSsubgrpARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
+func buildRDSsubgrpARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
 	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:subgrp:%s", region, accountID, d.Id())
+	if accountid == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
+	}
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:subgrp:%s", partition, region, accountid, identifier)
 	return arn, nil
+
 }
 
 func validateSubnetGroupName(v interface{}, k string) (ws []string, errors []error) {

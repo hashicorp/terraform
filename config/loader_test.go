@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+func TestErrNoConfigsFound_impl(t *testing.T) {
+	var _ error = new(ErrNoConfigsFound)
+}
+
 func TestIsEmptyDir(t *testing.T) {
 	val, err := IsEmptyDir(fixtureDir)
 	if err != nil {
@@ -43,6 +47,15 @@ func TestLoadFile_badType(t *testing.T) {
 	if err == nil {
 		t.Fatal("should have error")
 	}
+}
+
+func TestLoadFile_gitCrypt(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "git-crypt.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	t.Logf("err: %s", err)
 }
 
 func TestLoadFile_lifecycleKeyCheck(t *testing.T) {
@@ -137,7 +150,7 @@ func TestLoadFileEscapedQuotes(t *testing.T) {
 		t.Fatalf("expected syntax error as escaped quotes are no longer supported")
 	}
 
-	if !strings.Contains(err.Error(), "syntax error") {
+	if !strings.Contains(err.Error(), "parse error") {
 		t.Fatalf("expected \"syntax error\", got: %s", err)
 	}
 }
@@ -154,6 +167,11 @@ func TestLoadFileBasic(t *testing.T) {
 
 	if c.Dir != "" {
 		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	expectedTF := &Terraform{RequiredVersion: "foo"}
+	if !reflect.DeepEqual(c.Terraform, expectedTF) {
+		t.Fatalf("bad: %#v", c.Terraform)
 	}
 
 	expectedAtlas := &AtlasConfig{Name: "mitchellh/foo"}
@@ -282,6 +300,26 @@ func TestLoadFileBasic_modules(t *testing.T) {
 	}
 }
 
+func TestLoadFile_outputDependsOn(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "output-depends-on.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	actual := outputsStr(c.Outputs)
+	if actual != strings.TrimSpace(outputDependsOnStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadJSONBasic(t *testing.T) {
 	raw, err := ioutil.ReadFile(filepath.Join(fixtureDir, "basic.tf.json"))
 	if err != nil {
@@ -323,6 +361,69 @@ func TestLoadJSONBasic(t *testing.T) {
 
 	actual = outputsStr(c.Outputs)
 	if actual != strings.TrimSpace(basicOutputsStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestLoadJSONAmbiguous(t *testing.T) {
+	js := `
+{
+  "variable": {
+    "first": {
+      "default": {
+        "key": "val"
+      }
+    },
+    "second": {
+      "description": "Described",
+      "default": {
+        "key": "val"
+      }
+    }
+  }
+}
+`
+
+	c, err := LoadJSON([]byte(js))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(c.Variables) != 2 {
+		t.Fatal("config should have 2 variables, found", len(c.Variables))
+	}
+
+	first := &Variable{
+		Name:    "first",
+		Default: map[string]interface{}{"key": "val"},
+	}
+	second := &Variable{
+		Name:        "second",
+		Description: "Described",
+		Default:     map[string]interface{}{"key": "val"},
+	}
+
+	if !reflect.DeepEqual(first, c.Variables[0]) {
+		t.Fatalf("\nexpected: %#v\ngot:      %#v", first, c.Variables[0])
+	}
+
+	if !reflect.DeepEqual(second, c.Variables[1]) {
+		t.Fatalf("\nexpected: %#v\ngot:      %#v", second, c.Variables[1])
+	}
+}
+
+func TestLoadFileBasic_jsonNoName(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "resource-no-name.tf.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(basicJsonNoNameResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 }
@@ -446,6 +547,22 @@ func TestLoadDir_override(t *testing.T) {
 	}
 }
 
+func TestLoadDir_overrideVar(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "dir-override-var"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(dirOverrideVarsVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadFile_mismatchedVariableTypes(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "variable-mismatched-type.tf"))
 	if err == nil {
@@ -470,6 +587,18 @@ func TestLoadFile_badVariableTypes(t *testing.T) {
 	}
 }
 
+func TestLoadFile_variableNoName(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "variable-no-name.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "'variable' must be followed") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
+	}
+}
+
 func TestLoadFile_provisioners(t *testing.T) {
 	c, err := LoadFile(filepath.Join(fixtureDir, "provisioners.tf"))
 	if err != nil {
@@ -483,6 +612,18 @@ func TestLoadFile_provisioners(t *testing.T) {
 	actual := resourcesStr(c.Resources)
 	if actual != strings.TrimSpace(provisionerResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestLoadFile_unnamedOutput(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "output-unnamed.tf"))
+	if err == nil {
+		t.Fatalf("bad: expected error")
+	}
+
+	errorStr := err.Error()
+	if !strings.Contains(errorStr, "'output' must be followed") {
+		t.Fatalf("bad: expected error has wrong text: %s", errorStr)
 	}
 }
 
@@ -837,6 +978,11 @@ foo
   bar
 `
 
+const basicJsonNoNameResourcesStr = `
+aws_security_group.allow_external_http_https (x1)
+  tags
+`
+
 const dirBasicOutputsStr = `
 web_ip
   vars
@@ -922,6 +1068,12 @@ foo
   bar
 `
 
+const dirOverrideVarsVariablesStr = `
+foo
+  baz
+  bar
+`
+
 const importProvidersStr = `
 aws
   bar
@@ -972,6 +1124,12 @@ aws_instance.web (x1)
   vars
     resource: aws_security_group.firewall.foo
     user: var.foo
+`
+
+const outputDependsOnStr = `
+value
+  dependsOn
+    foo
 `
 
 const variablesVariablesStr = `

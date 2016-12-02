@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rackspace/gophercloud/openstack/objectstorage/v1/containers"
 )
 
 func TestAccObjectStorageV1Container_basic(t *testing.T) {
@@ -56,22 +56,20 @@ func testAccCheckObjectStorageV1ContainerDestroy(s *terraform.State) error {
 
 var testAccObjectStorageV1Container_basic = fmt.Sprintf(`
 	resource "openstack_objectstorage_container_v1" "container_1" {
-		region = "%s"
 		name = "tf-test-container"
 		metadata {
 			test = "true"
 		}
 		content_type = "application/json"
-	}`,
-	OS_REGION_NAME)
+	}
+`)
 
 var testAccObjectStorageV1Container_update = fmt.Sprintf(`
 	resource "openstack_objectstorage_container_v1" "container_1" {
-		region = "%s"
 		name = "tf-test-container"
 		metadata {
 			test = "true"
 		}
 		content_type = "text/plain"
-	}`,
-	OS_REGION_NAME)
+	}
+`)

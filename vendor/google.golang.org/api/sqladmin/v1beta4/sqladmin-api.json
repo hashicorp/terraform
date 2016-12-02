@@ -1,14 +1,14 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"bRFOOrZKfO9LweMbPqu0kcu6De8/OLx7eYKI1NQCi-ys96oQ7ZJUHE8\"",
+ "etag": "\"C5oy1hgQsABtYOYIOXWcR3BgYqU/Bw6HlPfCUqTIhF647hFuWCHD0c8\"",
  "discoveryVersion": "v1",
  "id": "sqladmin:v1beta4",
  "name": "sqladmin",
  "canonicalName": "SQL Admin",
  "version": "v1beta4",
- "revision": "20160222",
+ "revision": "20160712",
  "title": "Cloud SQL Administration API",
- "description": "API for Cloud SQL database instance management.",
+ "description": "Creates and configures Cloud SQL instances, which provide fully-managed MySQL databases.",
  "ownerDomain": "google.com",
  "ownerName": "Google",
  "icons": {
@@ -134,6 +134,10 @@
    "type": "object",
    "description": "A database instance backup run resource.",
    "properties": {
+    "description": {
+     "type": "string",
+     "description": "The description of this run, only applicable to on-demand backups."
+    },
     "endTime": {
      "type": "string",
      "description": "The time the backup operation completed in UTC timezone in RFC 3339 format, for example 2012-11-15T16:19:00.094Z.",
@@ -174,6 +178,10 @@
     "status": {
      "type": "string",
      "description": "The status of this run."
+    },
+    "type": {
+     "type": "string",
+     "description": "The type of this run; can be either \"AUTOMATED\" or \"ON_DEMAND\"."
     },
     "windowStartTime": {
      "type": "string",
@@ -332,7 +340,7 @@
     },
     "databaseVersion": {
      "type": "string",
-     "description": "The database engine type and version. Can be MYSQL_5_5 or MYSQL_5_6. Defaults to MYSQL_5_6. The databaseVersion can not be changed after instance creation."
+     "description": "The database engine type and version. The databaseVersion can not be changed after instance creation. Can be MYSQL_5_5, MYSQL_5_6 or MYSQL_5_7. Defaults to MYSQL_5_6. MYSQL_5_7 is applicable only to Second Generation instances."
     },
     "etag": {
      "type": "string",
@@ -348,7 +356,7 @@
       },
       "name": {
        "type": "string",
-       "description": "The name of the failover replica."
+       "description": "The name of the failover replica. If specified at instance creation, a failover replica is created for the instance. The name doesn't include the project ID. This property is applicable only to Second Generation instances."
       }
      }
     },
@@ -552,7 +560,7 @@
     },
     "appliesTo": {
      "type": "array",
-     "description": "The database version this flag applies to. Can be MYSQL_5_5, MYSQL_5_6, or both.",
+     "description": "The database version this flag applies to. Can be MYSQL_5_5, MYSQL_5_6, or MYSQL_5_7. MYSQL_5_7 is applicable only to Second Generation instances.",
      "items": {
       "type": "string"
      }
@@ -1063,7 +1071,7 @@
    "properties": {
     "activationPolicy": {
      "type": "string",
-     "description": "The activation policy for this instance. This specifies when the instance should be activated and is applicable only when the instance state is RUNNABLE. This can be one of the following.\nALWAYS: The instance should always be active.\nNEVER: The instance should never be activated.\nON_DEMAND: The instance is activated upon receiving requests; only applicable to First Generation instances."
+     "description": "The activation policy specifies when the instance is activated; it is applicable only when the instance state is RUNNABLE. The activation policy cannot be updated together with other settings for Second Generation instances. Valid values:\nALWAYS: The instance is on; it is not deactivated by inactivity.\nNEVER: The instance is off; it is not activated, even if a connection request arrives.\nON_DEMAND: The instance responds to incoming requests, and turns itself off when not in use. Instances with PER_USE pricing turn off after 15 minutes of inactivity. Instances with PER_PACKAGE pricing turn off after 12 hours of inactivity."
     },
     "authorizedGaeApplications": {
      "type": "array",
@@ -1082,12 +1090,12 @@
     },
     "dataDiskSizeGb": {
      "type": "string",
-     "description": "The size of data disk, in GB. The data disk size minimum is 10GB. This property is only applicable to Second Generation instances.",
+     "description": "The size of data disk, in GB. The data disk size minimum is 10GB. Applies only to Second Generation instances.",
      "format": "int64"
     },
     "dataDiskType": {
      "type": "string",
-     "description": "The type of data disk. Only supported for Second Generation instances. The default type is PD_SSD. This property is only applicable to Second Generation instances."
+     "description": "The type of data disk. Only supported for Second Generation instances. The default type is PD_SSD. Applies only to Second Generation instances."
     },
     "databaseFlags": {
      "type": "array",
@@ -1115,7 +1123,7 @@
     },
     "maintenanceWindow": {
      "$ref": "MaintenanceWindow",
-     "description": "The maintenance window for this instance. This specifies when the instance may be restarted for maintenance purposes. This property is only applicable to Second Generation instances."
+     "description": "The maintenance window for this instance. This specifies when the instance may be restarted for maintenance purposes. Applies only to Second Generation instances."
     },
     "pricingPlan": {
      "type": "string",
@@ -1134,6 +1142,10 @@
        "sql.instances.update"
       ]
      }
+    },
+    "storageAutoResize": {
+     "type": "boolean",
+     "description": "Configuration to increase storage size automatically. The default value is false. Applies only to Second Generation instances."
     },
     "tier": {
      "type": "string",
@@ -1237,12 +1249,16 @@
    "properties": {
     "clientCert": {
      "$ref": "SslCertDetail",
-     "description": "The new client certificate and private key. The new certificate will not work until the instance is restarted."
+     "description": "The new client certificate and private key. The new certificate will not work until the instance is restarted for First Generation instances."
     },
     "kind": {
      "type": "string",
      "description": "This is always sql#sslCertsInsert.",
      "default": "sql#sslCertsInsert"
+    },
+    "operation": {
+     "$ref": "Operation",
+     "description": "The operation to track the ssl certs insert request."
     },
     "serverCaCert": {
      "$ref": "SslCert",
@@ -1461,6 +1477,36 @@
       "https://www.googleapis.com/auth/cloud-platform",
       "https://www.googleapis.com/auth/sqlservice.admin"
      ]
+    },
+    "insert": {
+     "id": "sql.backupRuns.insert",
+     "path": "projects/{project}/instances/{instance}/backupRuns",
+     "httpMethod": "POST",
+     "description": "Creates a new backup run on demand.",
+     "parameters": {
+      "instance": {
+       "type": "string",
+       "description": "Cloud SQL instance ID. This does not include the project ID.",
+       "required": true,
+       "location": "path"
+      },
+      "project": {
+       "type": "string",
+       "description": "Project ID of the project that contains the instance.",
+       "required": true,
+       "location": "path"
+      }
+     },
+     "parameterOrder": [
+      "project",
+      "instance"
+     ],
+     "request": {
+      "$ref": "BackupRun"
+     },
+     "response": {
+      "$ref": "Operation"
+     }
     },
     "list": {
      "id": "sql.backupRuns.list",

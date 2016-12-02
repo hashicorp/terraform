@@ -26,16 +26,21 @@ import (
 
 // OperationsClient is the use these APIs to manage Azure CDN resources
 // through the Azure Resource Manager. You must make sure that requests made
-// to these resources are secure. For more information, see <a
-// href="https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx">Authenticating
-// Azure Resource Manager requests.</a>
+// to these resources are secure. For more information, see
+// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
 type OperationsClient struct {
 	ManagementClient
 }
 
 // NewOperationsClient creates an instance of the OperationsClient client.
 func NewOperationsClient(subscriptionID string) OperationsClient {
-	return OperationsClient{New(subscriptionID)}
+	return NewOperationsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewOperationsClientWithBaseURI creates an instance of the OperationsClient
+// client.
+func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
+	return OperationsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // List sends the list request.

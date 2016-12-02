@@ -32,14 +32,22 @@ type ProvidersClient struct {
 
 // NewProvidersClient creates an instance of the ProvidersClient client.
 func NewProvidersClient(subscriptionID string) ProvidersClient {
-	return ProvidersClient{New(subscriptionID)}
+	return NewProvidersClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewProvidersClientWithBaseURI creates an instance of the ProvidersClient
+// client.
+func NewProvidersClientWithBaseURI(baseURI string, subscriptionID string) ProvidersClient {
+	return ProvidersClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Get gets a resource provider.
 //
-// resourceProviderNamespace is namespace of the resource provider.
-func (client ProvidersClient) Get(resourceProviderNamespace string) (result Provider, err error) {
-	req, err := client.GetPreparer(resourceProviderNamespace)
+// resourceProviderNamespace is namespace of the resource provider. expand is
+// the $expand query parameter. e.g. To include property aliases in response,
+// use $expand=resourceTypes/aliases.
+func (client ProvidersClient) Get(resourceProviderNamespace string, expand string) (result Provider, err error) {
+	req, err := client.GetPreparer(resourceProviderNamespace, expand)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "Get", nil, "Failure preparing request")
 	}
@@ -59,7 +67,7 @@ func (client ProvidersClient) Get(resourceProviderNamespace string) (result Prov
 }
 
 // GetPreparer prepares the Get request.
-func (client ProvidersClient) GetPreparer(resourceProviderNamespace string) (*http.Request, error) {
+func (client ProvidersClient) GetPreparer(resourceProviderNamespace string, expand string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceProviderNamespace": autorest.Encode("path", resourceProviderNamespace),
 		"subscriptionId":            autorest.Encode("path", client.SubscriptionID),
@@ -67,6 +75,9 @@ func (client ProvidersClient) GetPreparer(resourceProviderNamespace string) (*ht
 
 	queryParameters := map[string]interface{}{
 		"api-version": client.APIVersion,
+	}
+	if len(expand) > 0 {
+		queryParameters["$expand"] = autorest.Encode("query", expand)
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -98,9 +109,11 @@ func (client ProvidersClient) GetResponder(resp *http.Response) (result Provider
 
 // List gets a list of resource providers.
 //
-// top is query parameters. If null is passed returns all deployments.
-func (client ProvidersClient) List(top *int32) (result ProviderListResult, err error) {
-	req, err := client.ListPreparer(top)
+// top is query parameters. If null is passed returns all deployments. expand
+// is the $expand query parameter. e.g. To include property aliases in
+// response, use $expand=resourceTypes/aliases.
+func (client ProvidersClient) List(top *int32, expand string) (result ProviderListResult, err error) {
+	req, err := client.ListPreparer(top, expand)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", nil, "Failure preparing request")
 	}
@@ -120,7 +133,7 @@ func (client ProvidersClient) List(top *int32) (result ProviderListResult, err e
 }
 
 // ListPreparer prepares the List request.
-func (client ProvidersClient) ListPreparer(top *int32) (*http.Request, error) {
+func (client ProvidersClient) ListPreparer(top *int32, expand string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
 	}
@@ -130,6 +143,9 @@ func (client ProvidersClient) ListPreparer(top *int32) (*http.Request, error) {
 	}
 	if top != nil {
 		queryParameters["$top"] = autorest.Encode("query", *top)
+	}
+	if len(expand) > 0 {
+		queryParameters["$expand"] = autorest.Encode("query", expand)
 	}
 
 	preparer := autorest.CreatePreparer(
@@ -163,7 +179,7 @@ func (client ProvidersClient) ListResponder(resp *http.Response) (result Provide
 func (client ProvidersClient) ListNextResults(lastResults ProviderListResult) (result ProviderListResult, err error) {
 	req, err := lastResults.ProviderListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -172,12 +188,12 @@ func (client ProvidersClient) ListNextResults(lastResults ProviderListResult) (r
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

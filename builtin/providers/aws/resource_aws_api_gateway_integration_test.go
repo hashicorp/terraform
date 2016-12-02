@@ -188,11 +188,9 @@ resource "aws_api_gateway_integration" "test" {
     "application/xml" = "#set($inputRoot = $input.path('$'))\n{ }"
   }
 
-  request_parameters_in_json = <<PARAMS
-  {
-	  "integration.request.header.X-Authorization": "'static'"
+  request_parameters = {
+	  "integration.request.header.X-Authorization" = "'static'"
   }
-  PARAMS
 
   type = "HTTP"
   uri = "https://www.google.de"
@@ -228,11 +226,9 @@ resource "aws_api_gateway_integration" "test" {
   resource_id = "${aws_api_gateway_resource.test.id}"
   http_method = "${aws_api_gateway_method.test.http_method}"
 
-  request_parameters_in_json = <<PARAMS
-  {
-	  "integration.request.header.X-Authorization": "'updated'"
+  request_parameters = {
+	  "integration.request.header.X-Authorization" = "'updated'"
   }
-  PARAMS
 
   type = "MOCK"
   passthrough_behavior = "NEVER"

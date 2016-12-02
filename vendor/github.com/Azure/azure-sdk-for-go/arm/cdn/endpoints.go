@@ -19,24 +19,29 @@ package cdn
 // regenerated.
 
 import (
-	"net/http"
-
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
+	"net/http"
 )
 
 // EndpointsClient is the use these APIs to manage Azure CDN resources through
 // the Azure Resource Manager. You must make sure that requests made to these
-// resources are secure. For more information, see <a
-// href="https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx">Authenticating
-// Azure Resource Manager requests.</a>
+// resources are secure. For more information, see
+// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
 type EndpointsClient struct {
 	ManagementClient
 }
 
 // NewEndpointsClient creates an instance of the EndpointsClient client.
 func NewEndpointsClient(subscriptionID string) EndpointsClient {
-	return EndpointsClient{New(subscriptionID)}
+	return NewEndpointsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewEndpointsClientWithBaseURI creates an instance of the EndpointsClient
+// client.
+func NewEndpointsClientWithBaseURI(baseURI string, subscriptionID string) EndpointsClient {
+	return EndpointsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Create sends the create request. This method may poll for completion.
@@ -48,6 +53,14 @@ func NewEndpointsClient(subscriptionID string) EndpointsClient {
 // profile within the resource group. resourceGroupName is name of the
 // resource group within the Azure subscription.
 func (client EndpointsClient) Create(endpointName string, endpointProperties EndpointCreateParameters, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: endpointProperties,
+			Constraints: []validation.Constraint{{Target: "endpointProperties.Location", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "endpointProperties.Properties", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "endpointProperties.Properties.Origins", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "Create")
+	}
+
 	req, err := client.CreatePreparer(endpointName, endpointProperties, profileName, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "Create", nil, "Failure preparing request")
@@ -319,6 +332,12 @@ func (client EndpointsClient) ListByProfileResponder(resp *http.Response) (resul
 // resource group. resourceGroupName is name of the resource group within the
 // Azure subscription.
 func (client EndpointsClient) LoadContent(endpointName string, contentFilePaths LoadParameters, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: contentFilePaths,
+			Constraints: []validation.Constraint{{Target: "contentFilePaths.ContentPaths", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "LoadContent")
+	}
+
 	req, err := client.LoadContentPreparer(endpointName, contentFilePaths, profileName, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "LoadContent", nil, "Failure preparing request")
@@ -392,6 +411,12 @@ func (client EndpointsClient) LoadContentResponder(resp *http.Response) (result 
 // within the resource group. resourceGroupName is name of the resource group
 // within the Azure subscription.
 func (client EndpointsClient) PurgeContent(endpointName string, contentFilePaths PurgeParameters, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: contentFilePaths,
+			Constraints: []validation.Constraint{{Target: "contentFilePaths.ContentPaths", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "PurgeContent")
+	}
+
 	req, err := client.PurgeContentPreparer(endpointName, contentFilePaths, profileName, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "PurgeContent", nil, "Failure preparing request")
@@ -668,6 +693,12 @@ func (client EndpointsClient) UpdateResponder(resp *http.Response) (result autor
 // of the CDN profile within the resource group. resourceGroupName is name of
 // the resource group within the Azure subscription.
 func (client EndpointsClient) ValidateCustomDomain(endpointName string, customDomainProperties ValidateCustomDomainInput, profileName string, resourceGroupName string) (result ValidateCustomDomainOutput, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: customDomainProperties,
+			Constraints: []validation.Constraint{{Target: "customDomainProperties.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.EndpointsClient", "ValidateCustomDomain")
+	}
+
 	req, err := client.ValidateCustomDomainPreparer(endpointName, customDomainProperties, profileName, resourceGroupName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.EndpointsClient", "ValidateCustomDomain", nil, "Failure preparing request")

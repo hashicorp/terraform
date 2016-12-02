@@ -39,7 +39,7 @@ func TestAccAWSInstance_basic(t *testing.T) {
 		// we'll import as VPC security groups, which is fine. We verify
 		// VPC security group import in other tests
 		IDRefreshName:   "aws_instance.foo",
-		IDRefreshIgnore: []string{"user_data", "security_groups", "vpc_security_group_ids"},
+		IDRefreshIgnore: []string{"security_groups", "vpc_security_group_ids"},
 
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
@@ -195,7 +195,7 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 		PreCheck:      func() { testAccPreCheck(t) },
 		IDRefreshName: "aws_instance.foo",
 		IDRefreshIgnore: []string{
-			"ephemeral_block_device", "user_data", "security_groups", "vpc_security_groups"},
+			"ephemeral_block_device", "security_groups", "vpc_security_groups"},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
@@ -239,6 +239,46 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ephemeral_block_device.1692014856.virtual_name", "ephemeral0"),
 					testCheck(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_rootInstanceStore(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: `
+					resource "aws_instance" "foo" {
+						# us-west-2
+						# Amazon Linux HVM Instance Store 64-bit (2016.09.0)
+						# https://aws.amazon.com/amazon-linux-ami
+						ami = "ami-44c36524"
+
+						# Only certain instance types support ephemeral root instance stores.
+						# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html
+						instance_type = "m3.medium"
+					}`,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ami", "ami-44c36524"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_optimized", "false"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "instance_type", "m3.medium"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.#", "0"),
 				),
 			},
 		},
@@ -346,7 +386,7 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:        func() { testAccPreCheck(t) },
 		IDRefreshName:   "aws_instance.foo",
-		IDRefreshIgnore: []string{"associate_public_ip_address", "user_data"},
+		IDRefreshIgnore: []string{"associate_public_ip_address"},
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
@@ -358,7 +398,7 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo",
 						"user_data",
-						"2fad308761514d9d73c3c7fdc877607e06cf950d"),
+						"562a3e32810edf6ff09994f050f12e799452379d"),
 				),
 			},
 		},

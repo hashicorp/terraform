@@ -8,10 +8,10 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
-	"github.com/rackspace/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/pagination"
 )
 
 func resourceNetworkingFloatingIPV2() *schema.Resource {
@@ -57,6 +57,11 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -75,12 +80,16 @@ func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 	if len(poolID) == 0 {
 		return fmt.Errorf("No network found with name: %s", d.Get("pool").(string))
 	}
-	createOpts := floatingips.CreateOpts{
-		FloatingNetworkID: poolID,
-		PortID:            d.Get("port_id").(string),
-		TenantID:          d.Get("tenant_id").(string),
-		FixedIP:           d.Get("fixed_ip").(string),
+	createOpts := FloatingIPCreateOpts{
+		floatingips.CreateOpts{
+			FloatingNetworkID: poolID,
+			PortID:            d.Get("port_id").(string),
+			TenantID:          d.Get("tenant_id").(string),
+			FixedIP:           d.Get("fixed_ip").(string),
+		},
+		MapValueSpecs(d),
 	}
+
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	floatingIP, err := floatingips.Create(networkingClient, createOpts).Extract()
 	if err != nil {
@@ -139,7 +148,8 @@ func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{})
 	var updateOpts floatingips.UpdateOpts
 
 	if d.HasChange("port_id") {
-		updateOpts.PortID = d.Get("port_id").(string)
+		portID := d.Get("port_id").(string)
+		updateOpts.PortID = &portID
 	}
 
 	log.Printf("[DEBUG] Update Options: %#v", updateOpts)
@@ -259,26 +269,20 @@ func waitForFloatingIPDelete(networkingClient *gophercloud.ServiceClient, fId st
 
 		f, err := floatingips.Get(networkingClient, fId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return f, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Floating IP %s", fId)
 				return f, "DELETED", nil
 			}
+			return f, "ACTIVE", err
 		}
 
 		err = floatingips.Delete(networkingClient, fId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return f, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Floating IP %s", fId)
 				return f, "DELETED", nil
 			}
+			return f, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Floating IP %s still active.\n", fId)

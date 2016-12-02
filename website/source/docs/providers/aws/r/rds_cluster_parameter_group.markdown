@@ -56,7 +56,7 @@ The following attributes are exported:
 
 ## Import
 
-Redshift Clusters can be imported using the `name`, e.g. 
+RDS Cluster Parameter Groups can be imported using the `name`, e.g. 
 
 ```
 $ terraform import aws_rds_cluster_parameter_group.cluster_pg production-pg-1

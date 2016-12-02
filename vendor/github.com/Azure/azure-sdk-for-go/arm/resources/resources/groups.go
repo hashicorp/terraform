@@ -21,6 +21,7 @@ package resources
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -31,7 +32,12 @@ type GroupsClient struct {
 
 // NewGroupsClient creates an instance of the GroupsClient client.
 func NewGroupsClient(subscriptionID string) GroupsClient {
-	return GroupsClient{New(subscriptionID)}
+	return NewGroupsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewGroupsClientWithBaseURI creates an instance of the GroupsClient client.
+func NewGroupsClientWithBaseURI(baseURI string, subscriptionID string) GroupsClient {
+	return GroupsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CheckExistence checks whether resource group exists.
@@ -39,6 +45,14 @@ func NewGroupsClient(subscriptionID string) GroupsClient {
 // resourceGroupName is the name of the resource group to check. The name is
 // case insensitive.
 func (client GroupsClient) CheckExistence(resourceGroupName string) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "CheckExistence")
+	}
+
 	req, err := client.CheckExistencePreparer(resourceGroupName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "CheckExistence", nil, "Failure preparing request")
@@ -101,6 +115,19 @@ func (client GroupsClient) CheckExistenceResponder(resp *http.Response) (result 
 // updated. parameters is parameters supplied to the create or update
 // resource group service operation.
 func (client GroupsClient) CreateOrUpdate(resourceGroupName string, parameters ResourceGroup) (result ResourceGroup, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.ProvisioningState", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
+				{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "parameters.ID", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -167,6 +194,14 @@ func (client GroupsClient) CreateOrUpdateResponder(resp *http.Response) (result 
 // resourceGroupName is the name of the resource group to be deleted. The name
 // is case insensitive.
 func (client GroupsClient) Delete(resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "Delete")
+	}
+
 	req, err := client.DeletePreparer(resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "Delete", nil, "Failure preparing request")
@@ -231,6 +266,14 @@ func (client GroupsClient) DeleteResponder(resp *http.Response) (result autorest
 // updated. parameters is parameters supplied to the export template resource
 // group operation.
 func (client GroupsClient) ExportTemplate(resourceGroupName string, parameters ExportTemplateRequest) (result ResourceGroupExportResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "ExportTemplate")
+	}
+
 	req, err := client.ExportTemplatePreparer(resourceGroupName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ExportTemplate", nil, "Failure preparing request")
@@ -295,6 +338,14 @@ func (client GroupsClient) ExportTemplateResponder(resp *http.Response) (result 
 // resourceGroupName is the name of the resource group to get. The name is
 // case insensitive.
 func (client GroupsClient) Get(resourceGroupName string) (result ResourceGroup, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "Get")
+	}
+
 	req, err := client.GetPreparer(resourceGroupName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "Get", nil, "Failure preparing request")
@@ -423,7 +474,7 @@ func (client GroupsClient) ListResponder(resp *http.Response) (result ResourceGr
 func (client GroupsClient) ListNextResults(lastResults ResourceGroupListResult) (result ResourceGroupListResult, err error) {
 	req, err := lastResults.ResourceGroupListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -432,12 +483,12 @@ func (client GroupsClient) ListNextResults(lastResults ResourceGroupListResult) 
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -446,10 +497,19 @@ func (client GroupsClient) ListNextResults(lastResults ResourceGroupListResult) 
 // ListResources get all of the resources under a subscription.
 //
 // resourceGroupName is query parameters. If null is passed returns all
-// resource groups. filter is the filter to apply on the operation. top is
-// query parameters. If null is passed returns all resource groups.
-func (client GroupsClient) ListResources(resourceGroupName string, filter string, top *int32) (result ResourceListResult, err error) {
-	req, err := client.ListResourcesPreparer(resourceGroupName, filter, top)
+// resource groups. filter is the filter to apply on the operation. expand is
+// the $expand query parameter top is query parameters. If null is passed
+// returns all resource groups.
+func (client GroupsClient) ListResources(resourceGroupName string, filter string, expand string, top *int32) (result ResourceListResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "ListResources")
+	}
+
+	req, err := client.ListResourcesPreparer(resourceGroupName, filter, expand, top)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", nil, "Failure preparing request")
 	}
@@ -469,7 +529,7 @@ func (client GroupsClient) ListResources(resourceGroupName string, filter string
 }
 
 // ListResourcesPreparer prepares the ListResources request.
-func (client GroupsClient) ListResourcesPreparer(resourceGroupName string, filter string, top *int32) (*http.Request, error) {
+func (client GroupsClient) ListResourcesPreparer(resourceGroupName string, filter string, expand string, top *int32) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
 		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
@@ -480,6 +540,9 @@ func (client GroupsClient) ListResourcesPreparer(resourceGroupName string, filte
 	}
 	if len(filter) > 0 {
 		queryParameters["$filter"] = autorest.Encode("query", filter)
+	}
+	if len(expand) > 0 {
+		queryParameters["$expand"] = autorest.Encode("query", expand)
 	}
 	if top != nil {
 		queryParameters["$top"] = autorest.Encode("query", *top)
@@ -516,7 +579,7 @@ func (client GroupsClient) ListResourcesResponder(resp *http.Response) (result R
 func (client GroupsClient) ListResourcesNextResults(lastResults ResourceListResult) (result ResourceListResult, err error) {
 	req, err := lastResults.ResourceListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -525,12 +588,12 @@ func (client GroupsClient) ListResourcesNextResults(lastResults ResourceListResu
 	resp, err := client.ListResourcesSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResourcesResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "resources.GroupsClient", "ListResources", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -545,6 +608,16 @@ func (client GroupsClient) ListResourcesNextResults(lastResults ResourceListResu
 // updated. The name is case insensitive. parameters is parameters supplied
 // to the update state resource group service operation.
 func (client GroupsClient) Patch(resourceGroupName string, parameters ResourceGroup) (result ResourceGroup, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.ID", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.GroupsClient", "Patch")
+	}
+
 	req, err := client.PatchPreparer(resourceGroupName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.GroupsClient", "Patch", nil, "Failure preparing request")

@@ -336,7 +336,7 @@ func resourceAwsDirectoryServiceDirectoryCreate(d *schema.ResourceData, meta int
 				d.Id(), *ds.Stage)
 			return ds, *ds.Stage, nil
 		},
-		Timeout: 30 * time.Minute,
+		Timeout: 45 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(

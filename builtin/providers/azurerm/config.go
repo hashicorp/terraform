@@ -1,6 +1,7 @@
 package azurerm
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,9 +9,12 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
+	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
+	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
+	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
 	"github.com/Azure/azure-sdk-for-go/arm/trafficmanager"
 	mainStorage "github.com/Azure/azure-sdk-for-go/storage"
@@ -23,6 +27,12 @@ import (
 // ArmClient contains the handles to all the specific Azure Resource Manager
 // resource classes' respective clients.
 type ArmClient struct {
+	clientId       string
+	tenantId       string
+	subscriptionId string
+
+	StopContext context.Context
+
 	rivieraClient *riviera.Client
 
 	availSetClient         compute.AvailabilitySetsClient
@@ -45,15 +55,20 @@ type ArmClient struct {
 	vnetGatewayConnectionsClient network.VirtualNetworkGatewayConnectionsClient
 	vnetGatewayClient            network.VirtualNetworkGatewaysClient
 	vnetClient                   network.VirtualNetworksClient
+	vnetPeeringsClient           network.VirtualNetworkPeeringsClient
 	routeTablesClient            network.RouteTablesClient
 	routesClient                 network.RoutesClient
 
 	cdnProfilesClient  cdn.ProfilesClient
 	cdnEndpointsClient cdn.EndpointsClient
 
+	eventHubClient           eventhub.EventHubsClient
+	eventHubNamespacesClient eventhub.NamespacesClient
+
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
 	tagsClient          resources.TagsClient
+	resourceFindClient  resources.Client
 
 	jobsClient            scheduler.JobsClient
 	jobsCollectionsClient scheduler.JobCollectionsClient
@@ -65,6 +80,12 @@ type ArmClient struct {
 
 	trafficManagerProfilesClient  trafficmanager.ProfilesClient
 	trafficManagerEndpointsClient trafficmanager.EndpointsClient
+
+	serviceBusNamespacesClient    servicebus.NamespacesClient
+	serviceBusTopicsClient        servicebus.TopicsClient
+	serviceBusSubscriptionsClient servicebus.SubscriptionsClient
+
+	keyVaultClient keyvault.VaultsClient
 }
 
 func withRequestLogging() autorest.SendDecorator {
@@ -104,7 +125,11 @@ func setUserAgent(client *autorest.Client) {
 // *ArmClient based on the Config's current settings.
 func (c *Config) getArmClient() (*ArmClient, error) {
 	// client declarations:
-	client := ArmClient{}
+	client := ArmClient{
+		clientId:       c.ClientID,
+		tenantId:       c.TenantID,
+		subscriptionId: c.SubscriptionID,
+	}
 
 	rivieraClient, err := riviera.NewClient(&riviera.AzureResourceManagerCredentials{
 		ClientID:       c.ClientID,
@@ -131,12 +156,7 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 		return nil, err
 	}
 
-	// This is necessary because no-one thought about API usability. OAuthConfigForTenant
-	// returns a pointer, which can be nil. NewServicePrincipalToken does not take a pointer.
-	// Consequently we have to nil check this and do _something_ if it is nil, which should
-	// be either an invariant of OAuthConfigForTenant (guarantee the token is not nil if
-	// there is no error), or NewServicePrincipalToken should error out if the configuration
-	// is required and is nil. This is the worst of all worlds, however.
+	// OAuthConfigForTenant returns a pointer, which can be nil.
 	if oauthConfig == nil {
 		return nil, fmt.Errorf("Unable to configure OAuthConfig for tenant %s", c.TenantID)
 	}
@@ -196,6 +216,18 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	agc.Authorizer = spt
 	agc.Sender = autorest.CreateSender(withRequestLogging())
 	client.appGatewayClient = agc
+
+	ehc := eventhub.NewEventHubsClient(c.SubscriptionID)
+	setUserAgent(&ehc.Client)
+	ehc.Authorizer = spt
+	ehc.Sender = autorest.CreateSender(withRequestLogging())
+	client.eventHubClient = ehc
+
+	ehnc := eventhub.NewNamespacesClient(c.SubscriptionID)
+	setUserAgent(&ehnc.Client)
+	ehnc.Authorizer = spt
+	ehnc.Sender = autorest.CreateSender(withRequestLogging())
+	client.eventHubNamespacesClient = ehnc
 
 	ifc := network.NewInterfacesClient(c.SubscriptionID)
 	setUserAgent(&ifc.Client)
@@ -257,6 +289,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vnc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vnetClient = vnc
 
+	vnpc := network.NewVirtualNetworkPeeringsClient(c.SubscriptionID)
+	setUserAgent(&vnpc.Client)
+	vnpc.Authorizer = spt
+	vnpc.Sender = autorest.CreateSender(withRequestLogging())
+	client.vnetPeeringsClient = vnpc
+
 	rtc := network.NewRouteTablesClient(c.SubscriptionID)
 	setUserAgent(&rtc.Client)
 	rtc.Authorizer = spt
@@ -286,6 +324,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tc.Authorizer = spt
 	tc.Sender = autorest.CreateSender(withRequestLogging())
 	client.tagsClient = tc
+
+	rf := resources.NewClient(c.SubscriptionID)
+	setUserAgent(&rf.Client)
+	rf.Authorizer = spt
+	rf.Sender = autorest.CreateSender(withRequestLogging())
+	client.resourceFindClient = rf
 
 	jc := scheduler.NewJobsClient(c.SubscriptionID)
 	setUserAgent(&jc.Client)
@@ -341,6 +385,30 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerEndpointsClient = tmec
 
+	sbnc := servicebus.NewNamespacesClient(c.SubscriptionID)
+	setUserAgent(&sbnc.Client)
+	sbnc.Authorizer = spt
+	sbnc.Sender = autorest.CreateSender(withRequestLogging())
+	client.serviceBusNamespacesClient = sbnc
+
+	sbtc := servicebus.NewTopicsClient(c.SubscriptionID)
+	setUserAgent(&sbtc.Client)
+	sbtc.Authorizer = spt
+	sbtc.Sender = autorest.CreateSender(withRequestLogging())
+	client.serviceBusTopicsClient = sbtc
+
+	sbsc := servicebus.NewSubscriptionsClient(c.SubscriptionID)
+	setUserAgent(&sbsc.Client)
+	sbsc.Authorizer = spt
+	sbsc.Sender = autorest.CreateSender(withRequestLogging())
+	client.serviceBusSubscriptionsClient = sbsc
+
+	kvc := keyvault.NewVaultsClient(c.SubscriptionID)
+	setUserAgent(&kvc.Client)
+	kvc.Authorizer = spt
+	kvc.Sender = autorest.CreateSender(withRequestLogging())
+	client.keyVaultClient = kvc
+
 	return &client, nil
 }
 
@@ -380,6 +448,25 @@ func (armClient *ArmClient) getBlobStorageClientForStorageAccount(resourceGroupN
 	blobClient := storageClient.GetBlobService()
 	return &blobClient, true, nil
 }
+
+func (armClient *ArmClient) getFileServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.FileServiceClient, bool, error) {
+	key, accountExists, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
+	if err != nil {
+		return nil, accountExists, err
+	}
+	if accountExists == false {
+		return nil, false, nil
+	}
+
+	storageClient, err := mainStorage.NewBasicClient(storageAccountName, key)
+	if err != nil {
+		return nil, true, fmt.Errorf("Error creating storage client for storage account %q: %s", storageAccountName, err)
+	}
+
+	fileClient := storageClient.GetFileService()
+	return &fileClient, true, nil
+}
+
 func (armClient *ArmClient) getTableServiceClientForStorageAccount(resourceGroupName, storageAccountName string) (*mainStorage.TableServiceClient, bool, error) {
 	key, accountExists, err := armClient.getKeyForStorageAccount(resourceGroupName, storageAccountName)
 	if err != nil {

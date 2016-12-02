@@ -1,0 +1,2 @@
+variable "foo" {}
+variable "foo" {}

@@ -21,6 +21,7 @@ package compute
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -32,7 +33,13 @@ type VirtualMachinesClient struct {
 // NewVirtualMachinesClient creates an instance of the VirtualMachinesClient
 // client.
 func NewVirtualMachinesClient(subscriptionID string) VirtualMachinesClient {
-	return VirtualMachinesClient{New(subscriptionID)}
+	return NewVirtualMachinesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewVirtualMachinesClientWithBaseURI creates an instance of the
+// VirtualMachinesClient client.
+func NewVirtualMachinesClientWithBaseURI(baseURI string, subscriptionID string) VirtualMachinesClient {
+	return VirtualMachinesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Capture captures the VM by copying virtual hard disks of the VM and outputs
@@ -45,6 +52,14 @@ func NewVirtualMachinesClient(subscriptionID string) VirtualMachinesClient {
 // the virtual machine. parameters is parameters supplied to the Capture
 // Virtual Machine operation.
 func (client VirtualMachinesClient) Capture(resourceGroupName string, vmName string, parameters VirtualMachineCaptureParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.VhdPrefix", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "parameters.DestinationContainerName", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "parameters.OverwriteVhds", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "compute.VirtualMachinesClient", "Capture")
+	}
+
 	req, err := client.CapturePreparer(resourceGroupName, vmName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "Capture", nil, "Failure preparing request")
@@ -115,6 +130,33 @@ func (client VirtualMachinesClient) CaptureResponder(resp *http.Response) (resul
 // the virtual machine. parameters is parameters supplied to the Create
 // Virtual Machine operation.
 func (client VirtualMachinesClient) CreateOrUpdate(resourceGroupName string, vmName string, parameters VirtualMachine, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings", Name: validation.Null, Rule: false,
+							Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.DiskEncryptionKey", Name: validation.Null, Rule: false,
+								Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.DiskEncryptionKey.SecretURL", Name: validation.Null, Rule: true, Chain: nil},
+									{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.DiskEncryptionKey.SourceVault", Name: validation.Null, Rule: true, Chain: nil},
+								}},
+								{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.KeyEncryptionKey", Name: validation.Null, Rule: false,
+									Chain: []validation.Constraint{{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.KeyEncryptionKey.KeyURL", Name: validation.Null, Rule: true, Chain: nil},
+										{Target: "parameters.Properties.StorageProfile.OsDisk.EncryptionSettings.KeyEncryptionKey.SourceVault", Name: validation.Null, Rule: true, Chain: nil},
+									}},
+							}},
+							{Target: "parameters.Properties.StorageProfile.OsDisk.Name", Name: validation.Null, Rule: true, Chain: nil},
+							{Target: "parameters.Properties.StorageProfile.OsDisk.Vhd", Name: validation.Null, Rule: true, Chain: nil},
+						}},
+					}},
+					{Target: "parameters.Properties.ProvisioningState", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					{Target: "parameters.Properties.InstanceView", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					{Target: "parameters.Properties.VMID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				}},
+				{Target: "parameters.Resources", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "compute.VirtualMachinesClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, vmName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -501,6 +543,30 @@ func (client VirtualMachinesClient) ListResponder(resp *http.Response) (result V
 	return
 }
 
+// ListNextResults retrieves the next set of results, if any.
+func (client VirtualMachinesClient) ListNextResults(lastResults VirtualMachineListResult) (result VirtualMachineListResult, err error) {
+	req, err := lastResults.VirtualMachineListResultPreparer()
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "List", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+
+	resp, err := client.ListSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "List", resp, "Failure sending next results request")
+	}
+
+	result, err = client.ListResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "List", resp, "Failure responding to next results request")
+	}
+
+	return
+}
+
 // ListAll gets the list of Virtual Machines in the subscription. Use nextLink
 // property in the response to get the next page of Virtual Machines. Do this
 // till nextLink is not null to fetch all the Virtual Machines.
@@ -565,7 +631,7 @@ func (client VirtualMachinesClient) ListAllResponder(resp *http.Response) (resul
 func (client VirtualMachinesClient) ListAllNextResults(lastResults VirtualMachineListResult) (result VirtualMachineListResult, err error) {
 	req, err := lastResults.VirtualMachineListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -574,12 +640,12 @@ func (client VirtualMachinesClient) ListAllNextResults(lastResults VirtualMachin
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return

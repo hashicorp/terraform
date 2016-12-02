@@ -4,7 +4,7 @@ page_title: "AWS: aws_opsworks_permission"
 sidebar_current: "docs-aws-resource-opsworks-permission"
 description: |-
   Provides an OpsWorks permission resource.
--------------------------------------------
+---
 
 # aws\_opsworks\_permission
 
@@ -26,8 +26,8 @@ resource "aws_opsworks_permission" "my_stack_permission" {
 
 The following arguments are supported:
 
-* `allow_ssh` - (Optional) Whethe the user is allowed to use SSH to communicate with the instance
-* `allow_sudo` - (Optional) Whethe the user is allowed to use sudo to elevate privileges
+* `allow_ssh` - (Optional) Whether the user is allowed to use SSH to communicate with the instance
+* `allow_sudo` - (Optional) Whether the user is allowed to use sudo to elevate privileges
 * `user_arn` - (Required) The user's IAM ARN to set permissions for
 * `level` - (Optional) The users permission level. Mus be one of `deny`, `show`, `deploy`, `manage`, `iam_only` 
 * `stack_id` - (Required) The stack to set the permissions for 

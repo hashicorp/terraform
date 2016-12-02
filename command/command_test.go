@@ -1,7 +1,10 @@
 package command
 
 import (
+	"flag"
+	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +12,7 @@ import (
 
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -25,6 +29,19 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
 }
 
 func tempDir(t *testing.T) string {
@@ -82,6 +99,20 @@ func testModule(t *testing.T, name string) *module.Tree {
 	return mod
 }
 
+// testPlan returns a non-nil noop plan.
+func testPlan(t *testing.T) *terraform.Plan {
+	state := terraform.NewState()
+	state.RootModule().Outputs["foo"] = &terraform.OutputState{
+		Type:  "string",
+		Value: "foo",
+	}
+
+	return &terraform.Plan{
+		Module: testModule(t, "apply"),
+		State:  state,
+	}
+}
+
 func testPlanFile(t *testing.T, plan *terraform.Plan) string {
 	path := testTempFile(t)
 
@@ -115,7 +146,7 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 
 // testState returns a test State structure that we use for a lot of tests.
 func testState() *terraform.State {
-	return &terraform.State{
+	state := &terraform.State{
 		Version: 2,
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
@@ -132,6 +163,8 @@ func testState() *terraform.State {
 			},
 		},
 	}
+	state.Init()
+	return state
 }
 
 func testStateFile(t *testing.T, s *terraform.State) string {
@@ -238,6 +271,42 @@ func testTempDir(t *testing.T) string {
 	return d
 }
 
+// testRename renames the path to new and returns a function to defer to
+// revert the rename.
+func testRename(t *testing.T, base, path, new string) func() {
+	if base != "" {
+		path = filepath.Join(base, path)
+		new = filepath.Join(base, new)
+	}
+
+	if err := os.Rename(path, new); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return func() {
+		// Just re-rename and ignore the return value
+		testRename(t, "", new, path)
+	}
+}
+
+// testChdir changes the directory and returns a function to defer to
+// revert the old cwd.
+func testChdir(t *testing.T, new string) func() {
+	old, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := os.Chdir(new); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	return func() {
+		// Re-run the function ignoring the defer result
+		testChdir(t, old)
+	}
+}
+
 // testCwd is used to change the current working directory
 // into a test directory that should be remoted after
 func testCwd(t *testing.T) (string, string) {
@@ -266,5 +335,69 @@ func testFixCwd(t *testing.T, tmp, cwd string) {
 
 	if err := os.RemoveAll(tmp); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+// testStdinPipe changes os.Stdin to be a pipe that sends the data from
+// the reader before closing the pipe.
+//
+// The returned function should be deferred to properly clean up and restore
+// the original stdin.
+func testStdinPipe(t *testing.T, src io.Reader) func() {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Modify stdin to point to our new pipe
+	old := os.Stdin
+	os.Stdin = r
+
+	// Copy the data from the reader to the pipe
+	go func() {
+		defer w.Close()
+		io.Copy(w, src)
+	}()
+
+	return func() {
+		// Close our read end
+		r.Close()
+
+		// Reset stdin
+		os.Stdin = old
+	}
+}
+
+// Modify os.Stdout to write to the given buffer. Note that this is generally
+// not useful since the commands are configured to write to a cli.Ui, not
+// Stdout directly. Commands like `console` though use the raw stdout.
+func testStdoutCapture(t *testing.T, dst io.Writer) func() {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Modify stdout
+	old := os.Stdout
+	os.Stdout = w
+
+	// Copy
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		defer r.Close()
+		io.Copy(dst, r)
+	}()
+
+	return func() {
+		// Close the writer end of the pipe
+		w.Sync()
+		w.Close()
+
+		// Reset stdout
+		os.Stdout = old
+
+		// Wait for the data copy to complete to avoid a race reading data
+		<-doneCh
 	}
 }

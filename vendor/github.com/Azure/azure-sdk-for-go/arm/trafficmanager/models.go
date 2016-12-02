@@ -36,7 +36,7 @@ type DNSConfig struct {
 	TTL          *int64  `json:"ttl,omitempty"`
 }
 
-// Endpoint is class respresenting a Traffic Manager endpoint.
+// Endpoint is class representing a Traffic Manager endpoint.
 type Endpoint struct {
 	autorest.Response `json:"-"`
 	ID                *string             `json:"id,omitempty"`
@@ -45,7 +45,7 @@ type Endpoint struct {
 	Properties        *EndpointProperties `json:"properties,omitempty"`
 }
 
-// EndpointProperties is class respresenting a Traffic Manager endpoint
+// EndpointProperties is class representing a Traffic Manager endpoint
 // properties.
 type EndpointProperties struct {
 	TargetResourceID      *string `json:"targetResourceId,omitempty"`

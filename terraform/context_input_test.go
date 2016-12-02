@@ -617,3 +617,44 @@ func TestContext2Input_interpolateVar(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
+
+func TestContext2Input_hcl(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-hcl")
+	p := testProvider("hcl")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"hcl": testProviderFuncFixed(p),
+		},
+		Variables: map[string]interface{}{},
+		UIInput:   input,
+	})
+
+	input.InputReturnMap = map[string]string{
+		"var.listed": `["a", "b"]`,
+		"var.mapped": `{x = "y", w = "z"}`,
+	}
+
+	if err := ctx.Input(InputModeVar | InputModeVarUnset); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actualStr := strings.TrimSpace(state.String())
+	expectedStr := strings.TrimSpace(testTerraformInputHCL)
+	if actualStr != expectedStr {
+		t.Logf("expected: \n%s", expectedStr)
+		t.Fatalf("bad: \n%s", actualStr)
+	}
+}

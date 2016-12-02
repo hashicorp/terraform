@@ -154,7 +154,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 			"database_version": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "MYSQL_5_5",
+				Default:  "MYSQL_5_6",
 				ForceNew: true,
 			},
 
@@ -617,9 +617,13 @@ func resourceSqlDatabaseInstanceRead(d *schema.ResourceData, meta interface{}) e
 			}
 
 			if vp, okp := _ipConfiguration["authorized_networks"]; okp && vp != nil {
+				_authorizedNetworksList := vp.([]interface{})
 				_ipc_map := make(map[string]interface{})
-				// First keep track of localy defined ip configurations
-				for _, _ipc := range _ipConfigurationList {
+				// First keep track of locally defined ip configurations
+				for _, _ipc := range _authorizedNetworksList {
+					if _ipc == nil {
+						continue
+					}
 					_entry := _ipc.(map[string]interface{})
 					if _entry["value"] == nil {
 						continue
@@ -911,7 +915,7 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 				}
 
 				if vp, okp := _ipConfiguration["authorized_networks"]; okp || len(_oldAuthorizedNetworkList) > 0 {
-					oldAuthorizedNetworks := settings.IpConfiguration.AuthorizedNetworks
+					oldAuthorizedNetworks := instance.Settings.IpConfiguration.AuthorizedNetworks
 					settings.IpConfiguration.AuthorizedNetworks = make([]*sqladmin.AclEntry, 0)
 
 					_authorizedNetworksList := make([]interface{}, 0)
@@ -932,28 +936,26 @@ func resourceSqlDatabaseInstanceUpdate(d *schema.ResourceData, meta interface{})
 								settings.IpConfiguration.AuthorizedNetworks, entry)
 						}
 					}
-					// finally, insert only those that were previously defined
+					// finally, update old entries and insert new ones
 					// and are still defined.
 					for _, _ipc := range _authorizedNetworksList {
 						_entry := _ipc.(map[string]interface{})
-						if _, ok_old := _oipc_map[_entry["value"].(string)]; ok_old {
-							entry := &sqladmin.AclEntry{}
+						entry := &sqladmin.AclEntry{}
 
-							if vpp, okpp := _entry["expiration_time"]; okpp {
-								entry.ExpirationTime = vpp.(string)
-							}
-
-							if vpp, okpp := _entry["name"]; okpp {
-								entry.Name = vpp.(string)
-							}
-
-							if vpp, okpp := _entry["value"]; okpp {
-								entry.Value = vpp.(string)
-							}
-
-							settings.IpConfiguration.AuthorizedNetworks = append(
-								settings.IpConfiguration.AuthorizedNetworks, entry)
+						if vpp, okpp := _entry["expiration_time"]; okpp {
+							entry.ExpirationTime = vpp.(string)
 						}
+
+						if vpp, okpp := _entry["name"]; okpp {
+							entry.Name = vpp.(string)
+						}
+
+						if vpp, okpp := _entry["value"]; okpp {
+							entry.Value = vpp.(string)
+						}
+
+						settings.IpConfiguration.AuthorizedNetworks = append(
+							settings.IpConfiguration.AuthorizedNetworks, entry)
 					}
 				}
 			}

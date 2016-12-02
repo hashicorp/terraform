@@ -175,14 +175,15 @@ func resourceArmNetworkSecurityRuleRead(d *schema.ResourceData, meta interface{}
 	sgRuleName := id.Path["securityRules"]
 
 	resp, err := secRuleClient.Get(resGroup, networkSGName, sgRuleName)
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Network Security Rule %s: %s", sgRuleName, err)
 	}
 
+	d.Set("resource_group_name", resGroup)
 	d.Set("access", resp.Properties.Access)
 	d.Set("destination_address_prefix", resp.Properties.DestinationAddressPrefix)
 	d.Set("destination_port_range", resp.Properties.DestinationPortRange)

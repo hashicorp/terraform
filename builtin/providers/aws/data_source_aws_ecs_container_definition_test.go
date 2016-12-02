@@ -15,7 +15,9 @@ func TestAccAWSEcsDataSource_ecsContainerDefinition(t *testing.T) {
 				Config: testAccCheckAwsEcsContainerDefinitionDataSourceConfig,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("data.aws_ecs_container_definition.mongo", "image", "mongo:latest"),
+					resource.TestCheckResourceAttr("data.aws_ecs_container_definition.mongo", "image_digest", "latest"),
 					resource.TestCheckResourceAttr("data.aws_ecs_container_definition.mongo", "memory", "128"),
+					resource.TestCheckResourceAttr("data.aws_ecs_container_definition.mongo", "memory_reservation", "64"),
 					resource.TestCheckResourceAttr("data.aws_ecs_container_definition.mongo", "cpu", "128"),
 					resource.TestCheckResourceAttr("data.aws_ecs_container_definition.mongo", "environment.SECRET", "KEY"),
 				),
@@ -42,6 +44,7 @@ resource "aws_ecs_task_definition" "mongo" {
     "essential": true,
     "image": "mongo:latest",
     "memory": 128,
+    "memoryReservation": 64,
     "name": "mongodb"
   }
 ]

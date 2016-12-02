@@ -22,7 +22,7 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -30,6 +30,8 @@ func TestAccAWSRDSCluster_basic(t *testing.T) {
 						"aws_rds_cluster.default", "storage_encrypted", "false"),
 					resource.TestCheckResourceAttr(
 						"aws_rds_cluster.default", "db_cluster_parameter_group_name", "default.aurora5.6"),
+					resource.TestCheckResourceAttrSet(
+						"aws_rds_cluster.default", "reader_endpoint"),
 				),
 			},
 		},
@@ -45,7 +47,7 @@ func TestAccAWSRDSCluster_updateTags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -53,7 +55,7 @@ func TestAccAWSRDSCluster_updateTags(t *testing.T) {
 						"aws_rds_cluster.default", "tags.%", "1"),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfigUpdatedTags(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -74,7 +76,7 @@ func TestAccAWSRDSCluster_kmsKey(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig_kmsKey(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -94,7 +96,7 @@ func TestAccAWSRDSCluster_encrypted(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig_encrypted(acctest.RandInt()),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),
@@ -117,7 +119,7 @@ func TestAccAWSRDSCluster_backupsUpdate(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSClusterConfig_backups(ri),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSClusterExists("aws_rds_cluster.default", &v),

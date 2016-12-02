@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 )
 
 func resourceNetworkingPortV2() *schema.Resource {
@@ -96,6 +96,30 @@ func resourceNetworkingPortV2() *schema.Resource {
 					},
 				},
 			},
+			"allowed_address_pairs": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: false,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"ip_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"mac_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -107,16 +131,20 @@ func resourceNetworkingPortV2Create(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	createOpts := ports.CreateOpts{
-		Name:           d.Get("name").(string),
-		AdminStateUp:   resourcePortAdminStateUpV2(d),
-		NetworkID:      d.Get("network_id").(string),
-		MACAddress:     d.Get("mac_address").(string),
-		TenantID:       d.Get("tenant_id").(string),
-		DeviceOwner:    d.Get("device_owner").(string),
-		SecurityGroups: resourcePortSecurityGroupsV2(d),
-		DeviceID:       d.Get("device_id").(string),
-		FixedIPs:       resourcePortFixedIpsV2(d),
+	createOpts := PortCreateOpts{
+		ports.CreateOpts{
+			Name:                d.Get("name").(string),
+			AdminStateUp:        resourcePortAdminStateUpV2(d),
+			NetworkID:           d.Get("network_id").(string),
+			MACAddress:          d.Get("mac_address").(string),
+			TenantID:            d.Get("tenant_id").(string),
+			DeviceOwner:         d.Get("device_owner").(string),
+			SecurityGroups:      resourcePortSecurityGroupsV2(d),
+			DeviceID:            d.Get("device_id").(string),
+			FixedIPs:            resourcePortFixedIpsV2(d),
+			AllowedAddressPairs: resourceAllowedAddressPairsV2(d),
+		},
+		MapValueSpecs(d),
 	}
 
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
@@ -155,7 +183,7 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 		return CheckDeleted(d, err, "port")
 	}
 
-	log.Printf("[DEBUG] Retreived Port %s: %+v", d.Id(), p)
+	log.Printf("[DEBUG] Retrieved Port %s: %+v", d.Id(), p)
 
 	d.Set("name", p.Name)
 	d.Set("admin_state_up", p.AdminStateUp)
@@ -175,6 +203,16 @@ func resourceNetworkingPortV2Read(d *schema.ResourceData, meta interface{}) erro
 		ips = append(ips, ip)
 	}
 	d.Set("fixed_ip", ips)
+
+	// Convert AllowedAddressPairs to list of map
+	var pairs []map[string]interface{}
+	for _, pairObject := range p.AllowedAddressPairs {
+		pair := make(map[string]interface{})
+		pair["ip_address"] = pairObject.IPAddress
+		pair["mac_address"] = pairObject.MACAddress
+		pairs = append(pairs, pair)
+	}
+	d.Set("allowed_address_pairs", pairs)
 
 	return nil
 }
@@ -210,6 +248,10 @@ func resourceNetworkingPortV2Update(d *schema.ResourceData, meta interface{}) er
 
 	if d.HasChange("fixed_ip") {
 		updateOpts.FixedIPs = resourcePortFixedIpsV2(d)
+	}
+
+	if d.HasChange("allowed_address_pairs") {
+		updateOpts.AllowedAddressPairs = resourceAllowedAddressPairsV2(d)
 	}
 
 	log.Printf("[DEBUG] Updating Port %s with options: %+v", d.Id(), updateOpts)
@@ -272,7 +314,25 @@ func resourcePortFixedIpsV2(d *schema.ResourceData) interface{} {
 		}
 	}
 	return ip
+}
 
+func resourceAllowedAddressPairsV2(d *schema.ResourceData) []ports.AddressPair {
+	// ports.AddressPair
+	rawPairs := d.Get("allowed_address_pairs").([]interface{})
+
+	if len(rawPairs) == 0 {
+		return nil
+	}
+
+	pairs := make([]ports.AddressPair, len(rawPairs))
+	for i, raw := range rawPairs {
+		rawMap := raw.(map[string]interface{})
+		pairs[i] = ports.AddressPair{
+			IPAddress:  rawMap["ip_address"].(string),
+			MACAddress: rawMap["mac_address"].(string),
+		}
+	}
+	return pairs
 }
 
 func resourcePortAdminStateUpV2(d *schema.ResourceData) *bool {
@@ -307,26 +367,20 @@ func waitForNetworkPortDelete(networkingClient *gophercloud.ServiceClient, portI
 
 		p, err := ports.Get(networkingClient, portId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		err = ports.Delete(networkingClient, portId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return p, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Port %s", portId)
 				return p, "DELETED", nil
 			}
+			return p, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Port %s still active.\n", portId)

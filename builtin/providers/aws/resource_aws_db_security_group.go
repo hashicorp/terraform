@@ -4,12 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -23,6 +21,9 @@ func resourceAwsDbSecurityGroup() *schema.Resource {
 		Read:   resourceAwsDbSecurityGroupRead,
 		Update: resourceAwsDbSecurityGroupUpdate,
 		Delete: resourceAwsDbSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": &schema.Schema{
@@ -159,10 +160,15 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	for _, g := range sg.EC2SecurityGroups {
-		rule := map[string]interface{}{
-			"security_group_name":     *g.EC2SecurityGroupName,
-			"security_group_id":       *g.EC2SecurityGroupId,
-			"security_group_owner_id": *g.EC2SecurityGroupOwnerId,
+		rule := map[string]interface{}{}
+		if g.EC2SecurityGroupId != nil {
+			rule["security_group_id"] = *g.EC2SecurityGroupId
+		}
+		if g.EC2SecurityGroupName != nil {
+			rule["security_group_name"] = *g.EC2SecurityGroupName
+		}
+		if g.EC2SecurityGroupOwnerId != nil {
+			rule["security_group_owner_id"] = *g.EC2SecurityGroupOwnerId
 		}
 		rules.Add(rule)
 	}
@@ -170,7 +176,7 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("ingress", rules)
 
 	conn := meta.(*AWSClient).rdsconn
-	arn, err := buildRDSSecurityGroupARN(d, meta)
+	arn, err := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if sg.DBSecurityGroupName != nil && *sg.DBSecurityGroupName != "" {
@@ -201,7 +207,7 @@ func resourceAwsDbSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).rdsconn
 
 	d.Partial(true)
-	if arn, err := buildRDSSecurityGroupARN(d, meta); err == nil {
+	if arn, err := buildRDSSecurityGroupARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		} else {
@@ -415,16 +421,14 @@ func resourceAwsDbSecurityGroupStateRefreshFunc(
 	}
 }
 
-func buildRDSSecurityGroupARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
+func buildRDSSecurityGroupARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
 	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:secgrp:%s", region, accountID, d.Id())
+	if accountid == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
+	}
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:secgrp:%s", partition, region, accountid, identifier)
 	return arn, nil
+
 }

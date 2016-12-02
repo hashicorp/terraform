@@ -6,10 +6,12 @@
 package command
 
 import (
+	archiveprovider "github.com/hashicorp/terraform/builtin/providers/archive"
 	atlasprovider "github.com/hashicorp/terraform/builtin/providers/atlas"
 	awsprovider "github.com/hashicorp/terraform/builtin/providers/aws"
 	azureprovider "github.com/hashicorp/terraform/builtin/providers/azure"
 	azurermprovider "github.com/hashicorp/terraform/builtin/providers/azurerm"
+	bitbucketprovider "github.com/hashicorp/terraform/builtin/providers/bitbucket"
 	chefprovider "github.com/hashicorp/terraform/builtin/providers/chef"
 	clcprovider "github.com/hashicorp/terraform/builtin/providers/clc"
 	cloudflareprovider "github.com/hashicorp/terraform/builtin/providers/cloudflare"
@@ -32,11 +34,14 @@ import (
 	logentriesprovider "github.com/hashicorp/terraform/builtin/providers/logentries"
 	mailgunprovider "github.com/hashicorp/terraform/builtin/providers/mailgun"
 	mysqlprovider "github.com/hashicorp/terraform/builtin/providers/mysql"
+	nomadprovider "github.com/hashicorp/terraform/builtin/providers/nomad"
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
+	pagerdutyprovider "github.com/hashicorp/terraform/builtin/providers/pagerduty"
 	postgresqlprovider "github.com/hashicorp/terraform/builtin/providers/postgresql"
 	powerdnsprovider "github.com/hashicorp/terraform/builtin/providers/powerdns"
+	rabbitmqprovider "github.com/hashicorp/terraform/builtin/providers/rabbitmq"
 	randomprovider "github.com/hashicorp/terraform/builtin/providers/random"
 	rundeckprovider "github.com/hashicorp/terraform/builtin/providers/rundeck"
 	scalewayprovider "github.com/hashicorp/terraform/builtin/providers/scaleway"
@@ -48,6 +53,7 @@ import (
 	tlsprovider "github.com/hashicorp/terraform/builtin/providers/tls"
 	tritonprovider "github.com/hashicorp/terraform/builtin/providers/triton"
 	ultradnsprovider "github.com/hashicorp/terraform/builtin/providers/ultradns"
+	vaultprovider "github.com/hashicorp/terraform/builtin/providers/vault"
 	vcdprovider "github.com/hashicorp/terraform/builtin/providers/vcd"
 	vsphereprovider "github.com/hashicorp/terraform/builtin/providers/vsphere"
 	chefresourceprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
@@ -60,10 +66,12 @@ import (
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
+	"archive":      archiveprovider.Provider,
 	"atlas":        atlasprovider.Provider,
 	"aws":          awsprovider.Provider,
 	"azure":        azureprovider.Provider,
 	"azurerm":      azurermprovider.Provider,
+	"bitbucket":    bitbucketprovider.Provider,
 	"chef":         chefprovider.Provider,
 	"clc":          clcprovider.Provider,
 	"cloudflare":   cloudflareprovider.Provider,
@@ -86,11 +94,14 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"logentries":   logentriesprovider.Provider,
 	"mailgun":      mailgunprovider.Provider,
 	"mysql":        mysqlprovider.Provider,
+	"nomad":        nomadprovider.Provider,
 	"null":         nullprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"packet":       packetprovider.Provider,
+	"pagerduty":    pagerdutyprovider.Provider,
 	"postgresql":   postgresqlprovider.Provider,
 	"powerdns":     powerdnsprovider.Provider,
+	"rabbitmq":     rabbitmqprovider.Provider,
 	"random":       randomprovider.Provider,
 	"rundeck":      rundeckprovider.Provider,
 	"scaleway":     scalewayprovider.Provider,
@@ -102,6 +113,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"tls":          tlsprovider.Provider,
 	"triton":       tritonprovider.Provider,
 	"ultradns":     ultradnsprovider.Provider,
+	"vault":        vaultprovider.Provider,
 	"vcd":          vcdprovider.Provider,
 	"vsphere":      vsphereprovider.Provider,
 }

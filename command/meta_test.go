@@ -175,7 +175,11 @@ func TestMetaInputMode_vars(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if m.InputMode()&terraform.InputModeVar != 0 {
+	if m.InputMode()&terraform.InputModeVar == 0 {
+		t.Fatalf("bad: %#v", m.InputMode())
+	}
+
+	if m.InputMode()&terraform.InputModeVarUnset == 0 {
 		t.Fatalf("bad: %#v", m.InputMode())
 	}
 }

@@ -77,7 +77,7 @@ func resourceComputeProjectMetadataCreate(d *schema.ResourceData, meta interface
 
 		log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
-		return computeOperationWaitGlobal(config, op, "SetCommonMetadata")
+		return computeOperationWaitGlobal(config, op, project.Name, "SetCommonMetadata")
 	}
 
 	err = MetadataRetryWrapper(createMD)
@@ -156,7 +156,7 @@ func resourceComputeProjectMetadataUpdate(d *schema.ResourceData, meta interface
 			// Optimistic locking requires the fingerprint received to match
 			// the fingerprint we send the server, if there is a mismatch then we
 			// are working on old data, and must retry
-			return computeOperationWaitGlobal(config, op, "SetCommonMetadata")
+			return computeOperationWaitGlobal(config, op, project.Name, "SetCommonMetadata")
 		}
 
 		err := MetadataRetryWrapper(updateMD)
@@ -194,7 +194,7 @@ func resourceComputeProjectMetadataDelete(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] SetCommonMetadata: %d (%s)", op.Id, op.SelfLink)
 
-	err = computeOperationWaitGlobal(config, op, "SetCommonMetadata")
+	err = computeOperationWaitGlobal(config, op, project.Name, "SetCommonMetadata")
 	if err != nil {
 		return err
 	}

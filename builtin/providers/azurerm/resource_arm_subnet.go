@@ -16,6 +16,9 @@ func resourceArmSubnet() *schema.Resource {
 		Read:   resourceArmSubnetRead,
 		Update: resourceArmSubnetCreate,
 		Delete: resourceArmSubnetDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -131,15 +134,29 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	name := id.Path["subnets"]
 
 	resp, err := subnetClient.Get(resGroup, vnetName, name, "")
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
-	}
+
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Subnet %s: %s", name, err)
 	}
 
-	if resp.Properties.IPConfigurations != nil && len(*resp.Properties.IPConfigurations) > 0 {
+	d.Set("name", name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("virtual_network_name", vnetName)
+	d.Set("address_prefix", resp.Properties.AddressPrefix)
+
+	if resp.Properties.NetworkSecurityGroup != nil {
+		d.Set("network_security_group_id", resp.Properties.NetworkSecurityGroup.ID)
+	}
+
+	if resp.Properties.RouteTable != nil {
+		d.Set("route_table_id", resp.Properties.RouteTable.ID)
+	}
+
+	if resp.Properties.IPConfigurations != nil {
 		ips := make([]string, 0, len(*resp.Properties.IPConfigurations))
 		for _, ip := range *resp.Properties.IPConfigurations {
 			ips = append(ips, *ip.ID)
@@ -148,6 +165,8 @@ func resourceArmSubnetRead(d *schema.ResourceData, meta interface{}) error {
 		if err := d.Set("ip_configurations", ips); err != nil {
 			return err
 		}
+	} else {
+		d.Set("ip_configurations", []string{})
 	}
 
 	return nil

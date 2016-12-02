@@ -45,8 +45,8 @@ The following arguments are supported:
 
 * `rest_api_id` - (Required) The ID of the associated REST API
 * `resource_id` - (Required) The API resource ID
-* `http_method` - (Required) The HTTP method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`)
-* `type` - (Required) The integration input's type (HTTP, MOCK, AWS)
+* `http_method` - (Required) The HTTP method (`GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTION`, `ANY`)
+* `type` - (Required) The integration input's type (HTTP, MOCK, AWS, AWS_PROXY, HTTP_PROXY)
 * `uri` - (Optional) The input's URI (HTTP, AWS). **Required** if `type` is `HTTP` or `AWS`.
   For HTTP integrations, the URI must be a fully formed, encoded HTTP(S) URL according to the RFC-3986 specification . For AWS integrations, the URI should be of the form `arn:aws:apigateway:{region}:{subdomain.service|service}:{path|action}/{service_api}`. `region`, `subdomain` and `service` are used to determine the right endpoint.
   e.g. `arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:012345678901:function:my-func/invocations`
@@ -56,9 +56,7 @@ The following arguments are supported:
   Not all methods are compatible with all `AWS` integrations.
   e.g. Lambda function [can only be invoked](https://github.com/awslabs/aws-apigateway-importer/issues/9#issuecomment-129651005) via `POST`.
 * `request_templates` - (Optional) A map of the integration's request templates.
+* `request_parameters` - (Optional) A map of request query string parameters and headers that should be passed to the backend responder.
+  For example: `request_parameters = { "integration.request.header.X-Some-Other-Header" = "method.request.header.X-Some-Header" }`
 * `passthrough_behavior` - (Optional) The integration passthrough behavior (`WHEN_NO_MATCH`, `WHEN_NO_TEMPLATES`, `NEVER`).  **Required** if `request_templates` is used.
-* `request_parameters_in_json` - (Optional) A map written as a JSON string specifying
-  the request query string parameters and headers that should be passed to the
-  backend responder.
-  For example: `request_parameters_in_json = "{\"integration.request.header.X-Some-Other-Header\":\"method.request.header.X-Some-Header\"}"` 
-  would add the header `X-Some-Header` from method to the integration as the header `X-Some-Other-Header`.
+* `request_parameters_in_json` - **Deprecated**, use `request_parameters` instead.

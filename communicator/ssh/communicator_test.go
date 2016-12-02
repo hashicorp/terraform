@@ -5,9 +5,7 @@ package ssh
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -144,48 +142,6 @@ func TestStart(t *testing.T) {
 				"type":     "ssh",
 				"user":     "user",
 				"password": "pass",
-				"host":     parts[0],
-				"port":     parts[1],
-				"timeout":  "30s",
-			},
-		},
-	}
-
-	c, err := New(r)
-	if err != nil {
-		t.Fatalf("error creating communicator: %s", err)
-	}
-
-	var cmd remote.Cmd
-	stdout := new(bytes.Buffer)
-	cmd.Command = "echo foo"
-	cmd.Stdout = stdout
-
-	err = c.Start(&cmd)
-	if err != nil {
-		t.Fatalf("error executing remote command: %s", err)
-	}
-}
-
-func TestStart_KeyFile(t *testing.T) {
-	address := newMockLineServer(t)
-	parts := strings.Split(address, ":")
-
-	keyFile, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	keyFilePath := keyFile.Name()
-	keyFile.Write([]byte(testClientPrivateKey))
-	keyFile.Close()
-	defer os.Remove(keyFilePath)
-
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "ssh",
-				"user":     "user",
-				"key_file": keyFilePath,
 				"host":     parts[0],
 				"port":     parts[1],
 				"timeout":  "30s",

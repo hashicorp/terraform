@@ -17,6 +17,11 @@ type GraphNodeStateRepresentative interface {
 // OrphanTransformer is a GraphTransformer that adds orphans to the
 // graph. This transformer adds both resource and module orphans.
 type OrphanTransformer struct {
+	// Resource is resource configuration. This is only non-nil when
+	// expanding a resource that is in the configuration. It can't be
+	// dependend on.
+	Resource *config.Resource
+
 	// State is the global state. We require the global state to
 	// properly find module orphans at our path.
 	State *State
@@ -80,6 +85,7 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 			resourceVertexes[i] = g.Add(&graphNodeOrphanResource{
 				Path:        g.Path,
 				ResourceKey: rsk,
+				Resource:    t.Resource,
 				Provider:    rs.Provider,
 				dependentOn: rs.Dependencies,
 			})
@@ -159,6 +165,7 @@ func (n *graphNodeOrphanModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error
 type graphNodeOrphanResource struct {
 	Path        []string
 	ResourceKey *ResourceStateKey
+	Resource    *config.Resource
 	Provider    string
 
 	dependentOn []string
@@ -209,6 +216,8 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 
 	// Build instance info
 	info := &InstanceInfo{Id: n.ResourceKey.String(), Type: n.ResourceKey.Type}
+	info.uniqueExtra = "destroy"
+
 	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
 
 	// Each resource mode has its own lifecycle
@@ -280,6 +289,11 @@ func (n *graphNodeOrphanResource) managedResourceEvalNodes(info *InstanceInfo) [
 					Info:   info,
 					State:  &state,
 					Output: &diff,
+				},
+				&EvalCheckPreventDestroy{
+					Resource:   n.Resource,
+					ResourceId: n.ResourceKey.String(),
+					Diff:       &diff,
 				},
 				&EvalWriteDiff{
 					Name: n.ResourceKey.String(),

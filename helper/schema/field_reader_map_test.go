@@ -41,6 +41,17 @@ func TestMapFieldReader(t *testing.T) {
 				"setDeep.10.value": "foo",
 				"setDeep.50.index": "50",
 				"setDeep.50.value": "bar",
+
+				"mapInt.%":   "2",
+				"mapInt.one": "1",
+				"mapInt.two": "2",
+
+				"mapFloat.%":         "1",
+				"mapFloat.oneDotTwo": "1.2",
+
+				"mapBool.%":     "2",
+				"mapBool.True":  "true",
+				"mapBool.False": "false",
 			}),
 		}
 	})

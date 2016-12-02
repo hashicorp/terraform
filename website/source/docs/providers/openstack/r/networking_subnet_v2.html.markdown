@@ -73,6 +73,8 @@ The following arguments are supported:
     object structure is documented below. Changing this updates the host routes
     for the existing subnet.
 
+* `value_specs` - (Optional) Map of additional options.
+
 The `allocation_pools` block supports:
 
 * `start` - (Required) The starting address.

@@ -29,7 +29,7 @@ resource "google_compute_instance_template" "foobar" {
   tags = ["foo", "bar"]
 
   disk {
-    source_image = "debian-cloud/debian-7-wheezy-v20160301"
+    source_image = "debian-cloud/debian-8"
   }
 
   network_interface {

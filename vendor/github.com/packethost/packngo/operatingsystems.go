@@ -18,16 +18,17 @@ type OS struct {
 	Distro  string `json:"distro"`
 	Version string `json:"version"`
 }
+
 func (o OS) String() string {
 	return Stringify(o)
 }
 
-// OSServiceOp implements OSService 
+// OSServiceOp implements OSService
 type OSServiceOp struct {
 	client *Client
 }
 
-// List returns all available operating systems 
+// List returns all available operating systems
 func (s *OSServiceOp) List() ([]OS, *Response, error) {
 	req, err := s.client.NewRequest("GET", osBasePath, nil)
 	if err != nil {

@@ -150,7 +150,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 			VpcPeeringConnectionId: aws.String(d.Get("vpc_peering_connection_id").(string)),
 		}
 	default:
-		return fmt.Errorf("Error: invalid target type specified.")
+		return fmt.Errorf("An invalid target type specified: %s", setTarget)
 	}
 	log.Printf("[DEBUG] Route create config: %s", createOpts)
 
@@ -180,7 +180,7 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	var route *ec2.Route
-	err = resource.Retry(15*time.Second, func() *resource.RetryError {
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
 		route, err = findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
 		return resource.RetryableError(err)
 	})
@@ -195,8 +195,16 @@ func resourceAwsRouteCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsRouteRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
-	route, err := findResourceRoute(conn, d.Get("route_table_id").(string), d.Get("destination_cidr_block").(string))
+	routeTableId := d.Get("route_table_id").(string)
+
+	route, err := findResourceRoute(conn, routeTableId, d.Get("destination_cidr_block").(string))
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidRouteTableID.NotFound" {
+			log.Printf("[WARN] Route Table %q could not be found. Removing Route from state.",
+				routeTableId)
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 	resourceAwsRouteSetResourceData(d, route)
@@ -219,11 +227,12 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	var numTargets int
 	var setTarget string
+
 	allowedTargets := []string{
 		"gateway_id",
 		"nat_gateway_id",
-		"instance_id",
 		"network_interface_id",
+		"instance_id",
 		"vpc_peering_connection_id",
 	}
 	replaceOpts := &ec2.ReplaceRouteInput{}
@@ -236,8 +245,18 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	if numTargets > 1 {
-		return routeTargetValidationError
+	switch setTarget {
+	//instance_id is a special case due to the fact that AWS will "discover" the network_interace_id
+	//when it creates the route and return that data.  In the case of an update, we should ignore the
+	//existing network_interface_id
+	case "instance_id":
+		if numTargets > 2 || (numTargets == 2 && len(d.Get("network_interface_id").(string)) == 0) {
+			return routeTargetValidationError
+		}
+	default:
+		if numTargets > 1 {
+			return routeTargetValidationError
+		}
 	}
 
 	// Formulate ReplaceRouteInput based on the target type
@@ -259,8 +278,6 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 			RouteTableId:         aws.String(d.Get("route_table_id").(string)),
 			DestinationCidrBlock: aws.String(d.Get("destination_cidr_block").(string)),
 			InstanceId:           aws.String(d.Get("instance_id").(string)),
-			//NOOP: Ensure we don't blow away network interface id that is set after instance is launched
-			NetworkInterfaceId: aws.String(d.Get("network_interface_id").(string)),
 		}
 	case "network_interface_id":
 		replaceOpts = &ec2.ReplaceRouteInput{
@@ -275,7 +292,7 @@ func resourceAwsRouteUpdate(d *schema.ResourceData, meta interface{}) error {
 			VpcPeeringConnectionId: aws.String(d.Get("vpc_peering_connection_id").(string)),
 		}
 	default:
-		return fmt.Errorf("Error: invalid target type specified.")
+		return fmt.Errorf("An invalid target type specified: %s", setTarget)
 	}
 	log.Printf("[DEBUG] Route replace config: %s", replaceOpts)
 
@@ -338,11 +355,15 @@ func resourceAwsRouteExists(d *schema.ResourceData, meta interface{}) (bool, err
 
 	res, err := conn.DescribeRouteTables(findOpts)
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidRouteTableID.NotFound" {
+			log.Printf("[WARN] Route Table %q could not be found.", routeTableId)
+			return false, nil
+		}
 		return false, fmt.Errorf("Error while checking if route exists: %s", err)
 	}
 
 	if len(res.RouteTables) < 1 || res.RouteTables[0] == nil {
-		log.Printf("[WARN] Route table %s is gone, so route does not exist.",
+		log.Printf("[WARN] Route Table %q is gone, or route does not exist.",
 			routeTableId)
 		return false, nil
 	}
@@ -376,7 +397,7 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 	}
 
 	if len(resp.RouteTables) < 1 || resp.RouteTables[0] == nil {
-		return nil, fmt.Errorf("Route table %s is gone, so route does not exist.",
+		return nil, fmt.Errorf("Route Table %q is gone, or route does not exist.",
 			routeTableID)
 	}
 
@@ -386,7 +407,6 @@ func findResourceRoute(conn *ec2.EC2, rtbid string, cidr string) (*ec2.Route, er
 		}
 	}
 
-	return nil, fmt.Errorf(
-		`error finding matching route for Route table (%s) and destination CIDR block (%s)`,
-		rtbid, cidr)
+	return nil, fmt.Errorf("Unable to find matching route for Route Table (%s) "+
+		"and destination CIDR block (%s).", rtbid, cidr)
 }

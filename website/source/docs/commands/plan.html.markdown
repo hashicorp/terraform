@@ -51,6 +51,7 @@ The command-line flags are all optional. The list of available flags are:
 * `-refresh=true` - Update the state prior to checking for differences.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
+  Ignored when [remote state](/docs/state/remote/index.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/internals/resource-addressing.html) to target. Operation will

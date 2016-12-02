@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"errors"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -16,10 +17,10 @@ func TestAccPostgresqlDatabase_Basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPostgresqlDatabaseDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPostgresqlDatabaseConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckPostgresqlDatabaseExists("postgresql_database.mydb", "myrole"),
+					testAccCheckPostgresqlDatabaseExists("postgresql_database.mydb"),
 					resource.TestCheckResourceAttr(
 						"postgresql_database.mydb", "name", "mydb"),
 					resource.TestCheckResourceAttr(
@@ -37,12 +38,14 @@ func TestAccPostgresqlDatabase_DefaultOwner(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckPostgresqlDatabaseDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccPostgresqlDatabaseConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckPostgresqlDatabaseExists("postgresql_database.mydb_default_owner", ""),
+					testAccCheckPostgresqlDatabaseExists("postgresql_database.mydb_default_owner"),
 					resource.TestCheckResourceAttr(
 						"postgresql_database.mydb_default_owner", "name", "mydb_default_owner"),
+					resource.TestCheckResourceAttrSet(
+						"postgresql_database.mydb_default_owner", "owner"),
 				),
 			},
 		},
@@ -64,14 +67,14 @@ func testAccCheckPostgresqlDatabaseDestroy(s *terraform.State) error {
 		}
 
 		if exists {
-			return fmt.Errorf("Db still exists after destroy")
+			return errors.New("Db still exists after destroy")
 		}
 	}
 
 	return nil
 }
 
-func testAccCheckPostgresqlDatabaseExists(n string, owner string) resource.TestCheckFunc {
+func testAccCheckPostgresqlDatabaseExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -79,12 +82,7 @@ func testAccCheckPostgresqlDatabaseExists(n string, owner string) resource.TestC
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No ID is set")
-		}
-
-		actualOwner := rs.Primary.Attributes["owner"]
-		if actualOwner != owner {
-			return fmt.Errorf("Wrong owner for db expected %s got %s", owner, actualOwner)
+			return errors.New("No ID is set")
 		}
 
 		client := testAccProvider.Meta().(*Client)
@@ -95,7 +93,7 @@ func testAccCheckPostgresqlDatabaseExists(n string, owner string) resource.TestC
 		}
 
 		if !exists {
-			return fmt.Errorf("Db not found")
+			return errors.New("Db not found")
 		}
 
 		return nil

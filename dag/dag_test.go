@@ -1,12 +1,31 @@
 package dag
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/hashicorp/terraform/helper/logging"
 )
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Verbose() {
+		// if we're verbose, use the logging requested by TF_LOG
+		logging.SetOutput()
+	} else {
+		// otherwise silence all logs
+		log.SetOutput(ioutil.Discard)
+	}
+
+	os.Exit(m.Run())
+}
 
 func TestAcyclicGraphRoot(t *testing.T) {
 	var g AcyclicGraph

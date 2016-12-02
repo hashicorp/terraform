@@ -26,7 +26,7 @@ func TestAccAWSLambdaFunction_importLocalFile(t *testing.T) {
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"filename"},
+				ImportStateVerifyIgnore: []string{"filename", "publish"},
 			},
 		},
 	})
@@ -50,7 +50,7 @@ func TestAccAWSLambdaFunction_importLocalFile_VPC(t *testing.T) {
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"filename"},
+				ImportStateVerifyIgnore: []string{"filename", "publish"},
 			},
 		},
 	})
@@ -74,7 +74,7 @@ func TestAccAWSLambdaFunction_importS3(t *testing.T) {
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"s3_bucket", "s3_key"},
+				ImportStateVerifyIgnore: []string{"s3_bucket", "s3_key", "publish"},
 			},
 		},
 	})

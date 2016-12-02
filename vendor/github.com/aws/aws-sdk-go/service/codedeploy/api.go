@@ -19,6 +19,8 @@ const opAddTagsToOnPremisesInstances = "AddTagsToOnPremisesInstances"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See AddTagsToOnPremisesInstances for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -55,7 +57,37 @@ func (c *CodeDeploy) AddTagsToOnPremisesInstancesRequest(input *AddTagsToOnPremi
 	return
 }
 
+// AddTagsToOnPremisesInstances API operation for AWS CodeDeploy.
+//
 // Adds tags to on-premises instances.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation AddTagsToOnPremisesInstances for usage and error information.
+//
+// Returned Error Codes:
+//   * InstanceNameRequiredException
+//   An on-premises instance name was not specified.
+//
+//   * TagRequiredException
+//   A tag was not specified.
+//
+//   * InvalidTagException
+//   The specified tag was specified in an invalid format.
+//
+//   * TagLimitExceededException
+//   The maximum allowed number of tags was exceeded.
+//
+//   * InstanceLimitExceededException
+//   The maximum number of allowed on-premises instances in a single call was
+//   exceeded.
+//
+//   * InstanceNotRegisteredException
+//   The specified on-premises instance is not registered.
+//
 func (c *CodeDeploy) AddTagsToOnPremisesInstances(input *AddTagsToOnPremisesInstancesInput) (*AddTagsToOnPremisesInstancesOutput, error) {
 	req, out := c.AddTagsToOnPremisesInstancesRequest(input)
 	err := req.Send()
@@ -68,6 +100,8 @@ const opBatchGetApplicationRevisions = "BatchGetApplicationRevisions"
 // client's request for the BatchGetApplicationRevisions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See BatchGetApplicationRevisions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -103,7 +137,36 @@ func (c *CodeDeploy) BatchGetApplicationRevisionsRequest(input *BatchGetApplicat
 	return
 }
 
+// BatchGetApplicationRevisions API operation for AWS CodeDeploy.
+//
 // Gets information about one or more application revisions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation BatchGetApplicationRevisions for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * RevisionRequiredException
+//   The revision ID was not specified.
+//
+//   * InvalidRevisionException
+//   The revision was specified in an invalid format.
+//
+//   * BatchLimitExceededException
+//   The maximum number of names or IDs allowed for this request (100) was exceeded.
+//
 func (c *CodeDeploy) BatchGetApplicationRevisions(input *BatchGetApplicationRevisionsInput) (*BatchGetApplicationRevisionsOutput, error) {
 	req, out := c.BatchGetApplicationRevisionsRequest(input)
 	err := req.Send()
@@ -116,6 +179,8 @@ const opBatchGetApplications = "BatchGetApplications"
 // client's request for the BatchGetApplications operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See BatchGetApplications for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -151,7 +216,30 @@ func (c *CodeDeploy) BatchGetApplicationsRequest(input *BatchGetApplicationsInpu
 	return
 }
 
+// BatchGetApplications API operation for AWS CodeDeploy.
+//
 // Gets information about one or more applications.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation BatchGetApplications for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * BatchLimitExceededException
+//   The maximum number of names or IDs allowed for this request (100) was exceeded.
+//
 func (c *CodeDeploy) BatchGetApplications(input *BatchGetApplicationsInput) (*BatchGetApplicationsOutput, error) {
 	req, out := c.BatchGetApplicationsRequest(input)
 	err := req.Send()
@@ -164,6 +252,8 @@ const opBatchGetDeploymentGroups = "BatchGetDeploymentGroups"
 // client's request for the BatchGetDeploymentGroups operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See BatchGetDeploymentGroups for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -199,7 +289,36 @@ func (c *CodeDeploy) BatchGetDeploymentGroupsRequest(input *BatchGetDeploymentGr
 	return
 }
 
+// BatchGetDeploymentGroups API operation for AWS CodeDeploy.
+//
 // Get information about one or more deployment groups.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation BatchGetDeploymentGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * DeploymentGroupNameRequiredException
+//   The deployment group name was not specified.
+//
+//   * InvalidDeploymentGroupNameException
+//   The deployment group name was specified in an invalid format.
+//
+//   * BatchLimitExceededException
+//   The maximum number of names or IDs allowed for this request (100) was exceeded.
+//
 func (c *CodeDeploy) BatchGetDeploymentGroups(input *BatchGetDeploymentGroupsInput) (*BatchGetDeploymentGroupsOutput, error) {
 	req, out := c.BatchGetDeploymentGroupsRequest(input)
 	err := req.Send()
@@ -212,6 +331,8 @@ const opBatchGetDeploymentInstances = "BatchGetDeploymentInstances"
 // client's request for the BatchGetDeploymentInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See BatchGetDeploymentInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -247,8 +368,37 @@ func (c *CodeDeploy) BatchGetDeploymentInstancesRequest(input *BatchGetDeploymen
 	return
 }
 
+// BatchGetDeploymentInstances API operation for AWS CodeDeploy.
+//
 // Gets information about one or more instance that are part of a deployment
 // group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation BatchGetDeploymentInstances for usage and error information.
+//
+// Returned Error Codes:
+//   * DeploymentIdRequiredException
+//   At least one deployment ID must be specified.
+//
+//   * DeploymentDoesNotExistException
+//   The deployment does not exist with the applicable IAM user or AWS account.
+//
+//   * InstanceIdRequiredException
+//   The instance ID was not specified.
+//
+//   * InvalidDeploymentIdException
+//   At least one of the deployment IDs was specified in an invalid format.
+//
+//   * InvalidInstanceNameException
+//   The specified on-premises instance name was specified in an invalid format.
+//
+//   * BatchLimitExceededException
+//   The maximum number of names or IDs allowed for this request (100) was exceeded.
+//
 func (c *CodeDeploy) BatchGetDeploymentInstances(input *BatchGetDeploymentInstancesInput) (*BatchGetDeploymentInstancesOutput, error) {
 	req, out := c.BatchGetDeploymentInstancesRequest(input)
 	err := req.Send()
@@ -261,6 +411,8 @@ const opBatchGetDeployments = "BatchGetDeployments"
 // client's request for the BatchGetDeployments operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See BatchGetDeployments for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -296,7 +448,27 @@ func (c *CodeDeploy) BatchGetDeploymentsRequest(input *BatchGetDeploymentsInput)
 	return
 }
 
+// BatchGetDeployments API operation for AWS CodeDeploy.
+//
 // Gets information about one or more deployments.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation BatchGetDeployments for usage and error information.
+//
+// Returned Error Codes:
+//   * DeploymentIdRequiredException
+//   At least one deployment ID must be specified.
+//
+//   * InvalidDeploymentIdException
+//   At least one of the deployment IDs was specified in an invalid format.
+//
+//   * BatchLimitExceededException
+//   The maximum number of names or IDs allowed for this request (100) was exceeded.
+//
 func (c *CodeDeploy) BatchGetDeployments(input *BatchGetDeploymentsInput) (*BatchGetDeploymentsOutput, error) {
 	req, out := c.BatchGetDeploymentsRequest(input)
 	err := req.Send()
@@ -309,6 +481,8 @@ const opBatchGetOnPremisesInstances = "BatchGetOnPremisesInstances"
 // client's request for the BatchGetOnPremisesInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See BatchGetOnPremisesInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -344,7 +518,27 @@ func (c *CodeDeploy) BatchGetOnPremisesInstancesRequest(input *BatchGetOnPremise
 	return
 }
 
+// BatchGetOnPremisesInstances API operation for AWS CodeDeploy.
+//
 // Gets information about one or more on-premises instances.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation BatchGetOnPremisesInstances for usage and error information.
+//
+// Returned Error Codes:
+//   * InstanceNameRequiredException
+//   An on-premises instance name was not specified.
+//
+//   * InvalidInstanceNameException
+//   The specified on-premises instance name was specified in an invalid format.
+//
+//   * BatchLimitExceededException
+//   The maximum number of names or IDs allowed for this request (100) was exceeded.
+//
 func (c *CodeDeploy) BatchGetOnPremisesInstances(input *BatchGetOnPremisesInstancesInput) (*BatchGetOnPremisesInstancesOutput, error) {
 	req, out := c.BatchGetOnPremisesInstancesRequest(input)
 	err := req.Send()
@@ -357,6 +551,8 @@ const opCreateApplication = "CreateApplication"
 // client's request for the CreateApplication operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateApplication for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -392,7 +588,31 @@ func (c *CodeDeploy) CreateApplicationRequest(input *CreateApplicationInput) (re
 	return
 }
 
+// CreateApplication API operation for AWS CodeDeploy.
+//
 // Creates an application.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation CreateApplication for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationAlreadyExistsException
+//   An application with the specified name already exists with the applicable
+//   IAM user or AWS account.
+//
+//   * ApplicationLimitExceededException
+//   More applications were attempted to be created than are allowed.
+//
 func (c *CodeDeploy) CreateApplication(input *CreateApplicationInput) (*CreateApplicationOutput, error) {
 	req, out := c.CreateApplicationRequest(input)
 	err := req.Send()
@@ -405,6 +625,8 @@ const opCreateDeployment = "CreateDeployment"
 // client's request for the CreateDeployment operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateDeployment for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -440,7 +662,64 @@ func (c *CodeDeploy) CreateDeploymentRequest(input *CreateDeploymentInput) (req 
 	return
 }
 
+// CreateDeployment API operation for AWS CodeDeploy.
+//
 // Deploys an application revision through the specified deployment group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation CreateDeployment for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * DeploymentGroupNameRequiredException
+//   The deployment group name was not specified.
+//
+//   * InvalidDeploymentGroupNameException
+//   The deployment group name was specified in an invalid format.
+//
+//   * DeploymentGroupDoesNotExistException
+//   The named deployment group does not exist with the applicable IAM user or
+//   AWS account.
+//
+//   * RevisionRequiredException
+//   The revision ID was not specified.
+//
+//   * RevisionDoesNotExistException
+//   The named revision does not exist with the applicable IAM user or AWS account.
+//
+//   * InvalidRevisionException
+//   The revision was specified in an invalid format.
+//
+//   * InvalidDeploymentConfigNameException
+//   The deployment configuration name was specified in an invalid format.
+//
+//   * DeploymentConfigDoesNotExistException
+//   The deployment configuration does not exist with the applicable IAM user
+//   or AWS account.
+//
+//   * DescriptionTooLongException
+//   The description is too long.
+//
+//   * DeploymentLimitExceededException
+//   The number of allowed deployments was exceeded.
+//
+//   * InvalidAutoRollbackConfigException
+//   The automatic rollback configuration was specified in an invalid format.
+//   For example, automatic rollback is enabled but an invalid triggering event
+//   type or no event types were listed.
+//
 func (c *CodeDeploy) CreateDeployment(input *CreateDeploymentInput) (*CreateDeploymentOutput, error) {
 	req, out := c.CreateDeploymentRequest(input)
 	err := req.Send()
@@ -453,6 +732,8 @@ const opCreateDeploymentConfig = "CreateDeploymentConfig"
 // client's request for the CreateDeploymentConfig operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateDeploymentConfig for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -488,7 +769,34 @@ func (c *CodeDeploy) CreateDeploymentConfigRequest(input *CreateDeploymentConfig
 	return
 }
 
+// CreateDeploymentConfig API operation for AWS CodeDeploy.
+//
 // Creates a deployment configuration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation CreateDeploymentConfig for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidDeploymentConfigNameException
+//   The deployment configuration name was specified in an invalid format.
+//
+//   * DeploymentConfigNameRequiredException
+//   The deployment configuration name was not specified.
+//
+//   * DeploymentConfigAlreadyExistsException
+//   A deployment configuration with the specified name already exists with the
+//   applicable IAM user or AWS account.
+//
+//   * InvalidMinimumHealthyHostValueException
+//   The minimum healthy instance value was specified in an invalid format.
+//
+//   * DeploymentConfigLimitExceededException
+//   The deployment configurations limit was exceeded.
+//
 func (c *CodeDeploy) CreateDeploymentConfig(input *CreateDeploymentConfigInput) (*CreateDeploymentConfigOutput, error) {
 	req, out := c.CreateDeploymentConfigRequest(input)
 	err := req.Send()
@@ -501,6 +809,8 @@ const opCreateDeploymentGroup = "CreateDeploymentGroup"
 // client's request for the CreateDeploymentGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateDeploymentGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -536,7 +846,94 @@ func (c *CodeDeploy) CreateDeploymentGroupRequest(input *CreateDeploymentGroupIn
 	return
 }
 
+// CreateDeploymentGroup API operation for AWS CodeDeploy.
+//
 // Creates a deployment group to which application revisions will be deployed.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation CreateDeploymentGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * DeploymentGroupNameRequiredException
+//   The deployment group name was not specified.
+//
+//   * InvalidDeploymentGroupNameException
+//   The deployment group name was specified in an invalid format.
+//
+//   * DeploymentGroupAlreadyExistsException
+//   A deployment group with the specified name already exists with the applicable
+//   IAM user or AWS account.
+//
+//   * InvalidEC2TagException
+//   The tag was specified in an invalid format.
+//
+//   * InvalidTagException
+//   The specified tag was specified in an invalid format.
+//
+//   * InvalidAutoScalingGroupException
+//   The Auto Scaling group was specified in an invalid format or does not exist.
+//
+//   * InvalidDeploymentConfigNameException
+//   The deployment configuration name was specified in an invalid format.
+//
+//   * DeploymentConfigDoesNotExistException
+//   The deployment configuration does not exist with the applicable IAM user
+//   or AWS account.
+//
+//   * RoleRequiredException
+//   The role ID was not specified.
+//
+//   * InvalidRoleException
+//   The service role ARN was specified in an invalid format. Or, if an Auto Scaling
+//   group was specified, the specified service role does not grant the appropriate
+//   permissions to Auto Scaling.
+//
+//   * DeploymentGroupLimitExceededException
+//   The deployment groups limit was exceeded.
+//
+//   * LifecycleHookLimitExceededException
+//   The limit for lifecycle hooks was exceeded.
+//
+//   * InvalidTriggerConfigException
+//   The trigger was specified in an invalid format.
+//
+//   * TriggerTargetsLimitExceededException
+//   The maximum allowed number of triggers was exceeded.
+//
+//   * InvalidAlarmConfigException
+//   The format of the alarm configuration is invalid. Possible causes include:
+//
+//      * The alarm list is null.
+//
+//      * The alarm object is null.
+//
+//      * The alarm name is empty or null or exceeds the 255 character limit.
+//
+//      * Two alarms with the same name have been specified.
+//
+//      * The alarm configuration is enabled but the alarm list is empty.
+//
+//   * AlarmsLimitExceededException
+//   The maximum number of alarms for a deployment group (10) was exceeded.
+//
+//   * InvalidAutoRollbackConfigException
+//   The automatic rollback configuration was specified in an invalid format.
+//   For example, automatic rollback is enabled but an invalid triggering event
+//   type or no event types were listed.
+//
 func (c *CodeDeploy) CreateDeploymentGroup(input *CreateDeploymentGroupInput) (*CreateDeploymentGroupOutput, error) {
 	req, out := c.CreateDeploymentGroupRequest(input)
 	err := req.Send()
@@ -549,6 +946,8 @@ const opDeleteApplication = "DeleteApplication"
 // client's request for the DeleteApplication operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteApplication for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -586,7 +985,24 @@ func (c *CodeDeploy) DeleteApplicationRequest(input *DeleteApplicationInput) (re
 	return
 }
 
+// DeleteApplication API operation for AWS CodeDeploy.
+//
 // Deletes an application.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation DeleteApplication for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
 func (c *CodeDeploy) DeleteApplication(input *DeleteApplicationInput) (*DeleteApplicationOutput, error) {
 	req, out := c.DeleteApplicationRequest(input)
 	err := req.Send()
@@ -599,6 +1015,8 @@ const opDeleteDeploymentConfig = "DeleteDeploymentConfig"
 // client's request for the DeleteDeploymentConfig operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteDeploymentConfig for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -636,10 +1054,33 @@ func (c *CodeDeploy) DeleteDeploymentConfigRequest(input *DeleteDeploymentConfig
 	return
 }
 
+// DeleteDeploymentConfig API operation for AWS CodeDeploy.
+//
 // Deletes a deployment configuration.
 //
-// A deployment configuration cannot be deleted if it is currently in use.
-// Predefined configurations cannot be deleted.
+// A deployment configuration cannot be deleted if it is currently in use. Predefined
+// configurations cannot be deleted.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation DeleteDeploymentConfig for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidDeploymentConfigNameException
+//   The deployment configuration name was specified in an invalid format.
+//
+//   * DeploymentConfigNameRequiredException
+//   The deployment configuration name was not specified.
+//
+//   * DeploymentConfigInUseException
+//   The deployment configuration is still in use.
+//
+//   * InvalidOperationException
+//   An invalid operation was detected.
+//
 func (c *CodeDeploy) DeleteDeploymentConfig(input *DeleteDeploymentConfigInput) (*DeleteDeploymentConfigOutput, error) {
 	req, out := c.DeleteDeploymentConfigRequest(input)
 	err := req.Send()
@@ -652,6 +1093,8 @@ const opDeleteDeploymentGroup = "DeleteDeploymentGroup"
 // client's request for the DeleteDeploymentGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteDeploymentGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -687,7 +1130,35 @@ func (c *CodeDeploy) DeleteDeploymentGroupRequest(input *DeleteDeploymentGroupIn
 	return
 }
 
+// DeleteDeploymentGroup API operation for AWS CodeDeploy.
+//
 // Deletes a deployment group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation DeleteDeploymentGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * DeploymentGroupNameRequiredException
+//   The deployment group name was not specified.
+//
+//   * InvalidDeploymentGroupNameException
+//   The deployment group name was specified in an invalid format.
+//
+//   * InvalidRoleException
+//   The service role ARN was specified in an invalid format. Or, if an Auto Scaling
+//   group was specified, the specified service role does not grant the appropriate
+//   permissions to Auto Scaling.
+//
 func (c *CodeDeploy) DeleteDeploymentGroup(input *DeleteDeploymentGroupInput) (*DeleteDeploymentGroupOutput, error) {
 	req, out := c.DeleteDeploymentGroupRequest(input)
 	err := req.Send()
@@ -700,6 +1171,8 @@ const opDeregisterOnPremisesInstance = "DeregisterOnPremisesInstance"
 // client's request for the DeregisterOnPremisesInstance operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeregisterOnPremisesInstance for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -737,7 +1210,24 @@ func (c *CodeDeploy) DeregisterOnPremisesInstanceRequest(input *DeregisterOnPrem
 	return
 }
 
+// DeregisterOnPremisesInstance API operation for AWS CodeDeploy.
+//
 // Deregisters an on-premises instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation DeregisterOnPremisesInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * InstanceNameRequiredException
+//   An on-premises instance name was not specified.
+//
+//   * InvalidInstanceNameException
+//   The specified on-premises instance name was specified in an invalid format.
+//
 func (c *CodeDeploy) DeregisterOnPremisesInstance(input *DeregisterOnPremisesInstanceInput) (*DeregisterOnPremisesInstanceOutput, error) {
 	req, out := c.DeregisterOnPremisesInstanceRequest(input)
 	err := req.Send()
@@ -750,6 +1240,8 @@ const opGetApplication = "GetApplication"
 // client's request for the GetApplication operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetApplication for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -785,7 +1277,27 @@ func (c *CodeDeploy) GetApplicationRequest(input *GetApplicationInput) (req *req
 	return
 }
 
+// GetApplication API operation for AWS CodeDeploy.
+//
 // Gets information about an application.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation GetApplication for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
 func (c *CodeDeploy) GetApplication(input *GetApplicationInput) (*GetApplicationOutput, error) {
 	req, out := c.GetApplicationRequest(input)
 	err := req.Send()
@@ -798,6 +1310,8 @@ const opGetApplicationRevision = "GetApplicationRevision"
 // client's request for the GetApplicationRevision operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetApplicationRevision for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -833,7 +1347,36 @@ func (c *CodeDeploy) GetApplicationRevisionRequest(input *GetApplicationRevision
 	return
 }
 
+// GetApplicationRevision API operation for AWS CodeDeploy.
+//
 // Gets information about an application revision.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation GetApplicationRevision for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * RevisionDoesNotExistException
+//   The named revision does not exist with the applicable IAM user or AWS account.
+//
+//   * RevisionRequiredException
+//   The revision ID was not specified.
+//
+//   * InvalidRevisionException
+//   The revision was specified in an invalid format.
+//
 func (c *CodeDeploy) GetApplicationRevision(input *GetApplicationRevisionInput) (*GetApplicationRevisionOutput, error) {
 	req, out := c.GetApplicationRevisionRequest(input)
 	err := req.Send()
@@ -846,6 +1389,8 @@ const opGetDeployment = "GetDeployment"
 // client's request for the GetDeployment operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetDeployment for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -881,7 +1426,27 @@ func (c *CodeDeploy) GetDeploymentRequest(input *GetDeploymentInput) (req *reque
 	return
 }
 
+// GetDeployment API operation for AWS CodeDeploy.
+//
 // Gets information about a deployment.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation GetDeployment for usage and error information.
+//
+// Returned Error Codes:
+//   * DeploymentIdRequiredException
+//   At least one deployment ID must be specified.
+//
+//   * InvalidDeploymentIdException
+//   At least one of the deployment IDs was specified in an invalid format.
+//
+//   * DeploymentDoesNotExistException
+//   The deployment does not exist with the applicable IAM user or AWS account.
+//
 func (c *CodeDeploy) GetDeployment(input *GetDeploymentInput) (*GetDeploymentOutput, error) {
 	req, out := c.GetDeploymentRequest(input)
 	err := req.Send()
@@ -894,6 +1459,8 @@ const opGetDeploymentConfig = "GetDeploymentConfig"
 // client's request for the GetDeploymentConfig operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetDeploymentConfig for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -929,7 +1496,28 @@ func (c *CodeDeploy) GetDeploymentConfigRequest(input *GetDeploymentConfigInput)
 	return
 }
 
+// GetDeploymentConfig API operation for AWS CodeDeploy.
+//
 // Gets information about a deployment configuration.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation GetDeploymentConfig for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidDeploymentConfigNameException
+//   The deployment configuration name was specified in an invalid format.
+//
+//   * DeploymentConfigNameRequiredException
+//   The deployment configuration name was not specified.
+//
+//   * DeploymentConfigDoesNotExistException
+//   The deployment configuration does not exist with the applicable IAM user
+//   or AWS account.
+//
 func (c *CodeDeploy) GetDeploymentConfig(input *GetDeploymentConfigInput) (*GetDeploymentConfigOutput, error) {
 	req, out := c.GetDeploymentConfigRequest(input)
 	err := req.Send()
@@ -942,6 +1530,8 @@ const opGetDeploymentGroup = "GetDeploymentGroup"
 // client's request for the GetDeploymentGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetDeploymentGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -977,7 +1567,37 @@ func (c *CodeDeploy) GetDeploymentGroupRequest(input *GetDeploymentGroupInput) (
 	return
 }
 
+// GetDeploymentGroup API operation for AWS CodeDeploy.
+//
 // Gets information about a deployment group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation GetDeploymentGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * DeploymentGroupNameRequiredException
+//   The deployment group name was not specified.
+//
+//   * InvalidDeploymentGroupNameException
+//   The deployment group name was specified in an invalid format.
+//
+//   * DeploymentGroupDoesNotExistException
+//   The named deployment group does not exist with the applicable IAM user or
+//   AWS account.
+//
 func (c *CodeDeploy) GetDeploymentGroup(input *GetDeploymentGroupInput) (*GetDeploymentGroupOutput, error) {
 	req, out := c.GetDeploymentGroupRequest(input)
 	err := req.Send()
@@ -990,6 +1610,8 @@ const opGetDeploymentInstance = "GetDeploymentInstance"
 // client's request for the GetDeploymentInstance operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetDeploymentInstance for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1025,7 +1647,36 @@ func (c *CodeDeploy) GetDeploymentInstanceRequest(input *GetDeploymentInstanceIn
 	return
 }
 
+// GetDeploymentInstance API operation for AWS CodeDeploy.
+//
 // Gets information about an instance as part of a deployment.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation GetDeploymentInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * DeploymentIdRequiredException
+//   At least one deployment ID must be specified.
+//
+//   * DeploymentDoesNotExistException
+//   The deployment does not exist with the applicable IAM user or AWS account.
+//
+//   * InstanceIdRequiredException
+//   The instance ID was not specified.
+//
+//   * InvalidDeploymentIdException
+//   At least one of the deployment IDs was specified in an invalid format.
+//
+//   * InstanceDoesNotExistException
+//   The specified instance does not exist in the deployment group.
+//
+//   * InvalidInstanceNameException
+//   The specified on-premises instance name was specified in an invalid format.
+//
 func (c *CodeDeploy) GetDeploymentInstance(input *GetDeploymentInstanceInput) (*GetDeploymentInstanceOutput, error) {
 	req, out := c.GetDeploymentInstanceRequest(input)
 	err := req.Send()
@@ -1038,6 +1689,8 @@ const opGetOnPremisesInstance = "GetOnPremisesInstance"
 // client's request for the GetOnPremisesInstance operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetOnPremisesInstance for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1073,7 +1726,27 @@ func (c *CodeDeploy) GetOnPremisesInstanceRequest(input *GetOnPremisesInstanceIn
 	return
 }
 
+// GetOnPremisesInstance API operation for AWS CodeDeploy.
+//
 // Gets information about an on-premises instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation GetOnPremisesInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * InstanceNameRequiredException
+//   An on-premises instance name was not specified.
+//
+//   * InstanceNotRegisteredException
+//   The specified on-premises instance is not registered.
+//
+//   * InvalidInstanceNameException
+//   The specified on-premises instance name was specified in an invalid format.
+//
 func (c *CodeDeploy) GetOnPremisesInstance(input *GetOnPremisesInstanceInput) (*GetOnPremisesInstanceOutput, error) {
 	req, out := c.GetOnPremisesInstanceRequest(input)
 	err := req.Send()
@@ -1086,6 +1759,8 @@ const opListApplicationRevisions = "ListApplicationRevisions"
 // client's request for the ListApplicationRevisions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListApplicationRevisions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1127,7 +1802,49 @@ func (c *CodeDeploy) ListApplicationRevisionsRequest(input *ListApplicationRevis
 	return
 }
 
+// ListApplicationRevisions API operation for AWS CodeDeploy.
+//
 // Lists information about revisions for an application.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation ListApplicationRevisions for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * InvalidSortByException
+//   The column name to sort by is either not present or was specified in an invalid
+//   format.
+//
+//   * InvalidSortOrderException
+//   The sort order was specified in an invalid format.
+//
+//   * InvalidBucketNameFilterException
+//   The bucket name either doesn't exist or was specified in an invalid format.
+//
+//   * InvalidKeyPrefixFilterException
+//   The specified key prefix filter was specified in an invalid format.
+//
+//   * BucketNameFilterRequiredException
+//   A bucket name is required, but was not provided.
+//
+//   * InvalidDeployedStateFilterException
+//   The deployed state filter was specified in an invalid format.
+//
+//   * InvalidNextTokenException
+//   The next token was specified in an invalid format.
+//
 func (c *CodeDeploy) ListApplicationRevisions(input *ListApplicationRevisionsInput) (*ListApplicationRevisionsOutput, error) {
 	req, out := c.ListApplicationRevisionsRequest(input)
 	err := req.Send()
@@ -1165,6 +1882,8 @@ const opListApplications = "ListApplications"
 // client's request for the ListApplications operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListApplications for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1206,7 +1925,21 @@ func (c *CodeDeploy) ListApplicationsRequest(input *ListApplicationsInput) (req 
 	return
 }
 
+// ListApplications API operation for AWS CodeDeploy.
+//
 // Lists the applications registered with the applicable IAM user or AWS account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation ListApplications for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidNextTokenException
+//   The next token was specified in an invalid format.
+//
 func (c *CodeDeploy) ListApplications(input *ListApplicationsInput) (*ListApplicationsOutput, error) {
 	req, out := c.ListApplicationsRequest(input)
 	err := req.Send()
@@ -1244,6 +1977,8 @@ const opListDeploymentConfigs = "ListDeploymentConfigs"
 // client's request for the ListDeploymentConfigs operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListDeploymentConfigs for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1285,7 +2020,21 @@ func (c *CodeDeploy) ListDeploymentConfigsRequest(input *ListDeploymentConfigsIn
 	return
 }
 
+// ListDeploymentConfigs API operation for AWS CodeDeploy.
+//
 // Lists the deployment configurations with the applicable IAM user or AWS account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation ListDeploymentConfigs for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidNextTokenException
+//   The next token was specified in an invalid format.
+//
 func (c *CodeDeploy) ListDeploymentConfigs(input *ListDeploymentConfigsInput) (*ListDeploymentConfigsOutput, error) {
 	req, out := c.ListDeploymentConfigsRequest(input)
 	err := req.Send()
@@ -1323,6 +2072,8 @@ const opListDeploymentGroups = "ListDeploymentGroups"
 // client's request for the ListDeploymentGroups operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListDeploymentGroups for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1364,8 +2115,31 @@ func (c *CodeDeploy) ListDeploymentGroupsRequest(input *ListDeploymentGroupsInpu
 	return
 }
 
+// ListDeploymentGroups API operation for AWS CodeDeploy.
+//
 // Lists the deployment groups for an application registered with the applicable
 // IAM user or AWS account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation ListDeploymentGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * InvalidNextTokenException
+//   The next token was specified in an invalid format.
+//
 func (c *CodeDeploy) ListDeploymentGroups(input *ListDeploymentGroupsInput) (*ListDeploymentGroupsOutput, error) {
 	req, out := c.ListDeploymentGroupsRequest(input)
 	err := req.Send()
@@ -1403,6 +2177,8 @@ const opListDeploymentInstances = "ListDeploymentInstances"
 // client's request for the ListDeploymentInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListDeploymentInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1444,8 +2220,37 @@ func (c *CodeDeploy) ListDeploymentInstancesRequest(input *ListDeploymentInstanc
 	return
 }
 
+// ListDeploymentInstances API operation for AWS CodeDeploy.
+//
 // Lists the instance for a deployment associated with the applicable IAM user
 // or AWS account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation ListDeploymentInstances for usage and error information.
+//
+// Returned Error Codes:
+//   * DeploymentIdRequiredException
+//   At least one deployment ID must be specified.
+//
+//   * DeploymentDoesNotExistException
+//   The deployment does not exist with the applicable IAM user or AWS account.
+//
+//   * DeploymentNotStartedException
+//   The specified deployment has not started.
+//
+//   * InvalidNextTokenException
+//   The next token was specified in an invalid format.
+//
+//   * InvalidDeploymentIdException
+//   At least one of the deployment IDs was specified in an invalid format.
+//
+//   * InvalidInstanceStatusException
+//   The specified instance status does not exist.
+//
 func (c *CodeDeploy) ListDeploymentInstances(input *ListDeploymentInstancesInput) (*ListDeploymentInstancesOutput, error) {
 	req, out := c.ListDeploymentInstancesRequest(input)
 	err := req.Send()
@@ -1483,6 +2288,8 @@ const opListDeployments = "ListDeployments"
 // client's request for the ListDeployments operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListDeployments for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1524,8 +2331,47 @@ func (c *CodeDeploy) ListDeploymentsRequest(input *ListDeploymentsInput) (req *r
 	return
 }
 
+// ListDeployments API operation for AWS CodeDeploy.
+//
 // Lists the deployments in a deployment group for an application registered
 // with the applicable IAM user or AWS account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation ListDeployments for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * InvalidDeploymentGroupNameException
+//   The deployment group name was specified in an invalid format.
+//
+//   * DeploymentGroupDoesNotExistException
+//   The named deployment group does not exist with the applicable IAM user or
+//   AWS account.
+//
+//   * DeploymentGroupNameRequiredException
+//   The deployment group name was not specified.
+//
+//   * InvalidTimeRangeException
+//   The specified time range was specified in an invalid format.
+//
+//   * InvalidDeploymentStatusException
+//   The specified deployment status doesn't exist or cannot be determined.
+//
+//   * InvalidNextTokenException
+//   The next token was specified in an invalid format.
+//
 func (c *CodeDeploy) ListDeployments(input *ListDeploymentsInput) (*ListDeploymentsOutput, error) {
 	req, out := c.ListDeploymentsRequest(input)
 	err := req.Send()
@@ -1564,6 +2410,8 @@ const opListOnPremisesInstances = "ListOnPremisesInstances"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See ListOnPremisesInstances for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -1598,11 +2446,31 @@ func (c *CodeDeploy) ListOnPremisesInstancesRequest(input *ListOnPremisesInstanc
 	return
 }
 
+// ListOnPremisesInstances API operation for AWS CodeDeploy.
+//
 // Gets a list of names for one or more on-premises instances.
 //
 // Unless otherwise specified, both registered and deregistered on-premises
 // instance names will be listed. To list only registered or deregistered on-premises
 // instance names, use the registration status parameter.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation ListOnPremisesInstances for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidRegistrationStatusException
+//   The registration status was specified in an invalid format.
+//
+//   * InvalidTagFilterException
+//   The specified tag filter was specified in an invalid format.
+//
+//   * InvalidNextTokenException
+//   The next token was specified in an invalid format.
+//
 func (c *CodeDeploy) ListOnPremisesInstances(input *ListOnPremisesInstancesInput) (*ListOnPremisesInstancesOutput, error) {
 	req, out := c.ListOnPremisesInstancesRequest(input)
 	err := req.Send()
@@ -1615,6 +2483,8 @@ const opRegisterApplicationRevision = "RegisterApplicationRevision"
 // client's request for the RegisterApplicationRevision operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RegisterApplicationRevision for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1652,7 +2522,36 @@ func (c *CodeDeploy) RegisterApplicationRevisionRequest(input *RegisterApplicati
 	return
 }
 
+// RegisterApplicationRevision API operation for AWS CodeDeploy.
+//
 // Registers with AWS CodeDeploy a revision for the specified application.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation RegisterApplicationRevision for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * DescriptionTooLongException
+//   The description is too long.
+//
+//   * RevisionRequiredException
+//   The revision ID was not specified.
+//
+//   * InvalidRevisionException
+//   The revision was specified in an invalid format.
+//
 func (c *CodeDeploy) RegisterApplicationRevision(input *RegisterApplicationRevisionInput) (*RegisterApplicationRevisionOutput, error) {
 	req, out := c.RegisterApplicationRevisionRequest(input)
 	err := req.Send()
@@ -1665,6 +2564,8 @@ const opRegisterOnPremisesInstance = "RegisterOnPremisesInstance"
 // client's request for the RegisterOnPremisesInstance operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RegisterOnPremisesInstance for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1702,7 +2603,36 @@ func (c *CodeDeploy) RegisterOnPremisesInstanceRequest(input *RegisterOnPremises
 	return
 }
 
+// RegisterOnPremisesInstance API operation for AWS CodeDeploy.
+//
 // Registers an on-premises instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation RegisterOnPremisesInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * InstanceNameAlreadyRegisteredException
+//   The specified on-premises instance name is already registered.
+//
+//   * IamUserArnAlreadyRegisteredException
+//   The specified IAM user ARN is already registered with an on-premises instance.
+//
+//   * InstanceNameRequiredException
+//   An on-premises instance name was not specified.
+//
+//   * IamUserArnRequiredException
+//   An IAM user ARN was not specified.
+//
+//   * InvalidInstanceNameException
+//   The specified on-premises instance name was specified in an invalid format.
+//
+//   * InvalidIamUserArnException
+//   The IAM user ARN was specified in an invalid format.
+//
 func (c *CodeDeploy) RegisterOnPremisesInstance(input *RegisterOnPremisesInstanceInput) (*RegisterOnPremisesInstanceOutput, error) {
 	req, out := c.RegisterOnPremisesInstanceRequest(input)
 	err := req.Send()
@@ -1715,6 +2645,8 @@ const opRemoveTagsFromOnPremisesInstances = "RemoveTagsFromOnPremisesInstances"
 // client's request for the RemoveTagsFromOnPremisesInstances operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RemoveTagsFromOnPremisesInstances for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1752,7 +2684,37 @@ func (c *CodeDeploy) RemoveTagsFromOnPremisesInstancesRequest(input *RemoveTagsF
 	return
 }
 
+// RemoveTagsFromOnPremisesInstances API operation for AWS CodeDeploy.
+//
 // Removes one or more tags from one or more on-premises instances.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation RemoveTagsFromOnPremisesInstances for usage and error information.
+//
+// Returned Error Codes:
+//   * InstanceNameRequiredException
+//   An on-premises instance name was not specified.
+//
+//   * TagRequiredException
+//   A tag was not specified.
+//
+//   * InvalidTagException
+//   The specified tag was specified in an invalid format.
+//
+//   * TagLimitExceededException
+//   The maximum allowed number of tags was exceeded.
+//
+//   * InstanceLimitExceededException
+//   The maximum number of allowed on-premises instances in a single call was
+//   exceeded.
+//
+//   * InstanceNotRegisteredException
+//   The specified on-premises instance is not registered.
+//
 func (c *CodeDeploy) RemoveTagsFromOnPremisesInstances(input *RemoveTagsFromOnPremisesInstancesInput) (*RemoveTagsFromOnPremisesInstancesOutput, error) {
 	req, out := c.RemoveTagsFromOnPremisesInstancesRequest(input)
 	err := req.Send()
@@ -1765,6 +2727,8 @@ const opStopDeployment = "StopDeployment"
 // client's request for the StopDeployment operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See StopDeployment for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1800,7 +2764,30 @@ func (c *CodeDeploy) StopDeploymentRequest(input *StopDeploymentInput) (req *req
 	return
 }
 
+// StopDeployment API operation for AWS CodeDeploy.
+//
 // Attempts to stop an ongoing deployment.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation StopDeployment for usage and error information.
+//
+// Returned Error Codes:
+//   * DeploymentIdRequiredException
+//   At least one deployment ID must be specified.
+//
+//   * DeploymentDoesNotExistException
+//   The deployment does not exist with the applicable IAM user or AWS account.
+//
+//   * DeploymentAlreadyCompletedException
+//   The deployment is already complete.
+//
+//   * InvalidDeploymentIdException
+//   At least one of the deployment IDs was specified in an invalid format.
+//
 func (c *CodeDeploy) StopDeployment(input *StopDeploymentInput) (*StopDeploymentOutput, error) {
 	req, out := c.StopDeploymentRequest(input)
 	err := req.Send()
@@ -1813,6 +2800,8 @@ const opUpdateApplication = "UpdateApplication"
 // client's request for the UpdateApplication operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateApplication for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1850,7 +2839,31 @@ func (c *CodeDeploy) UpdateApplicationRequest(input *UpdateApplicationInput) (re
 	return
 }
 
+// UpdateApplication API operation for AWS CodeDeploy.
+//
 // Changes the name of an application.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation UpdateApplication for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationAlreadyExistsException
+//   An application with the specified name already exists with the applicable
+//   IAM user or AWS account.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
 func (c *CodeDeploy) UpdateApplication(input *UpdateApplicationInput) (*UpdateApplicationOutput, error) {
 	req, out := c.UpdateApplicationRequest(input)
 	err := req.Send()
@@ -1863,6 +2876,8 @@ const opUpdateDeploymentGroup = "UpdateDeploymentGroup"
 // client's request for the UpdateDeploymentGroup operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See UpdateDeploymentGroup for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1898,7 +2913,92 @@ func (c *CodeDeploy) UpdateDeploymentGroupRequest(input *UpdateDeploymentGroupIn
 	return
 }
 
+// UpdateDeploymentGroup API operation for AWS CodeDeploy.
+//
 // Changes information about a deployment group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS CodeDeploy's
+// API operation UpdateDeploymentGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ApplicationNameRequiredException
+//   The minimum number of required application names was not specified.
+//
+//   * InvalidApplicationNameException
+//   The application name was specified in an invalid format.
+//
+//   * ApplicationDoesNotExistException
+//   The application does not exist with the applicable IAM user or AWS account.
+//
+//   * InvalidDeploymentGroupNameException
+//   The deployment group name was specified in an invalid format.
+//
+//   * DeploymentGroupAlreadyExistsException
+//   A deployment group with the specified name already exists with the applicable
+//   IAM user or AWS account.
+//
+//   * DeploymentGroupNameRequiredException
+//   The deployment group name was not specified.
+//
+//   * DeploymentGroupDoesNotExistException
+//   The named deployment group does not exist with the applicable IAM user or
+//   AWS account.
+//
+//   * InvalidEC2TagException
+//   The tag was specified in an invalid format.
+//
+//   * InvalidTagException
+//   The specified tag was specified in an invalid format.
+//
+//   * InvalidAutoScalingGroupException
+//   The Auto Scaling group was specified in an invalid format or does not exist.
+//
+//   * InvalidDeploymentConfigNameException
+//   The deployment configuration name was specified in an invalid format.
+//
+//   * DeploymentConfigDoesNotExistException
+//   The deployment configuration does not exist with the applicable IAM user
+//   or AWS account.
+//
+//   * InvalidRoleException
+//   The service role ARN was specified in an invalid format. Or, if an Auto Scaling
+//   group was specified, the specified service role does not grant the appropriate
+//   permissions to Auto Scaling.
+//
+//   * LifecycleHookLimitExceededException
+//   The limit for lifecycle hooks was exceeded.
+//
+//   * InvalidTriggerConfigException
+//   The trigger was specified in an invalid format.
+//
+//   * TriggerTargetsLimitExceededException
+//   The maximum allowed number of triggers was exceeded.
+//
+//   * InvalidAlarmConfigException
+//   The format of the alarm configuration is invalid. Possible causes include:
+//
+//      * The alarm list is null.
+//
+//      * The alarm object is null.
+//
+//      * The alarm name is empty or null or exceeds the 255 character limit.
+//
+//      * Two alarms with the same name have been specified.
+//
+//      * The alarm configuration is enabled but the alarm list is empty.
+//
+//   * AlarmsLimitExceededException
+//   The maximum number of alarms for a deployment group (10) was exceeded.
+//
+//   * InvalidAutoRollbackConfigException
+//   The automatic rollback configuration was specified in an invalid format.
+//   For example, automatic rollback is enabled but an invalid triggering event
+//   type or no event types were listed.
+//
 func (c *CodeDeploy) UpdateDeploymentGroup(input *UpdateDeploymentGroupInput) (*UpdateDeploymentGroupOutput, error) {
 	req, out := c.UpdateDeploymentGroupRequest(input)
 	err := req.Send()
@@ -1910,12 +3010,16 @@ type AddTagsToOnPremisesInstancesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The names of the on-premises instances to which to add tags.
+	//
+	// InstanceNames is a required field
 	InstanceNames []*string `locationName:"instanceNames" type:"list" required:"true"`
 
 	// The tag key-value pairs to add to the on-premises instances.
 	//
 	// Keys and values are both required. Keys cannot be null or empty strings.
 	// Value-only tags are not allowed.
+	//
+	// Tags is a required field
 	Tags []*Tag `locationName:"tags" type:"list" required:"true"`
 }
 
@@ -1945,6 +3049,18 @@ func (s *AddTagsToOnPremisesInstancesInput) Validate() error {
 	return nil
 }
 
+// SetInstanceNames sets the InstanceNames field's value.
+func (s *AddTagsToOnPremisesInstancesInput) SetInstanceNames(v []*string) *AddTagsToOnPremisesInstancesInput {
+	s.InstanceNames = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *AddTagsToOnPremisesInstancesInput) SetTags(v []*Tag) *AddTagsToOnPremisesInstancesInput {
+	s.Tags = v
+	return s
+}
+
 type AddTagsToOnPremisesInstancesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1957,6 +3073,82 @@ func (s AddTagsToOnPremisesInstancesOutput) String() string {
 // GoString returns the string representation
 func (s AddTagsToOnPremisesInstancesOutput) GoString() string {
 	return s.String()
+}
+
+// Information about an alarm.
+type Alarm struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the alarm. Maximum length is 255 characters. Each alarm name
+	// can be used only once in a list of alarms.
+	Name *string `locationName:"name" type:"string"`
+}
+
+// String returns the string representation
+func (s Alarm) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Alarm) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *Alarm) SetName(v string) *Alarm {
+	s.Name = &v
+	return s
+}
+
+// Information about alarms associated with the deployment group.
+type AlarmConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// A list of alarms configured for the deployment group. A maximum of 10 alarms
+	// can be added to a deployment group.
+	Alarms []*Alarm `locationName:"alarms" type:"list"`
+
+	// Indicates whether the alarm configuration is enabled.
+	Enabled *bool `locationName:"enabled" type:"boolean"`
+
+	// Indicates whether a deployment should continue if information about the current
+	// state of alarms cannot be retrieved from Amazon CloudWatch. The default value
+	// is false.
+	//
+	//    * true: The deployment will proceed even if alarm status information can't
+	//    be retrieved from Amazon CloudWatch.
+	//
+	//    * false: The deployment will stop if alarm status information can't be
+	//    retrieved from Amazon CloudWatch.
+	IgnorePollAlarmFailure *bool `locationName:"ignorePollAlarmFailure" type:"boolean"`
+}
+
+// String returns the string representation
+func (s AlarmConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AlarmConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetAlarms sets the Alarms field's value.
+func (s *AlarmConfiguration) SetAlarms(v []*Alarm) *AlarmConfiguration {
+	s.Alarms = v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *AlarmConfiguration) SetEnabled(v bool) *AlarmConfiguration {
+	s.Enabled = &v
+	return s
+}
+
+// SetIgnorePollAlarmFailure sets the IgnorePollAlarmFailure field's value.
+func (s *AlarmConfiguration) SetIgnorePollAlarmFailure(v bool) *AlarmConfiguration {
+	s.IgnorePollAlarmFailure = &v
+	return s
 }
 
 // Information about an application.
@@ -1987,6 +3179,65 @@ func (s ApplicationInfo) GoString() string {
 	return s.String()
 }
 
+// SetApplicationId sets the ApplicationId field's value.
+func (s *ApplicationInfo) SetApplicationId(v string) *ApplicationInfo {
+	s.ApplicationId = &v
+	return s
+}
+
+// SetApplicationName sets the ApplicationName field's value.
+func (s *ApplicationInfo) SetApplicationName(v string) *ApplicationInfo {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetCreateTime sets the CreateTime field's value.
+func (s *ApplicationInfo) SetCreateTime(v time.Time) *ApplicationInfo {
+	s.CreateTime = &v
+	return s
+}
+
+// SetLinkedToGitHub sets the LinkedToGitHub field's value.
+func (s *ApplicationInfo) SetLinkedToGitHub(v bool) *ApplicationInfo {
+	s.LinkedToGitHub = &v
+	return s
+}
+
+// Information about a configuration for automatically rolling back to a previous
+// version of an application revision when a deployment doesn't complete successfully.
+type AutoRollbackConfiguration struct {
+	_ struct{} `type:"structure"`
+
+	// Indicates whether a defined automatic rollback configuration is currently
+	// enabled.
+	Enabled *bool `locationName:"enabled" type:"boolean"`
+
+	// The event type or types that trigger a rollback.
+	Events []*string `locationName:"events" type:"list"`
+}
+
+// String returns the string representation
+func (s AutoRollbackConfiguration) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AutoRollbackConfiguration) GoString() string {
+	return s.String()
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *AutoRollbackConfiguration) SetEnabled(v bool) *AutoRollbackConfiguration {
+	s.Enabled = &v
+	return s
+}
+
+// SetEvents sets the Events field's value.
+func (s *AutoRollbackConfiguration) SetEvents(v []*string) *AutoRollbackConfiguration {
+	s.Events = v
+	return s
+}
+
 // Information about an Auto Scaling group.
 type AutoScalingGroup struct {
 	_ struct{} `type:"structure"`
@@ -2008,14 +3259,30 @@ func (s AutoScalingGroup) GoString() string {
 	return s.String()
 }
 
+// SetHook sets the Hook field's value.
+func (s *AutoScalingGroup) SetHook(v string) *AutoScalingGroup {
+	s.Hook = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *AutoScalingGroup) SetName(v string) *AutoScalingGroup {
+	s.Name = &v
+	return s
+}
+
 // Represents the input of a batch get application revisions operation.
 type BatchGetApplicationRevisionsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an AWS CodeDeploy application about which to get revision information.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
 	// Information to get about the application revisions, including type and location.
+	//
+	// Revisions is a required field
 	Revisions []*RevisionLocation `locationName:"revisions" type:"list" required:"true"`
 }
 
@@ -2048,6 +3315,18 @@ func (s *BatchGetApplicationRevisionsInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *BatchGetApplicationRevisionsInput) SetApplicationName(v string) *BatchGetApplicationRevisionsInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetRevisions sets the Revisions field's value.
+func (s *BatchGetApplicationRevisionsInput) SetRevisions(v []*RevisionLocation) *BatchGetApplicationRevisionsInput {
+	s.Revisions = v
+	return s
+}
+
 // Represents the output of a batch get application revisions operation.
 type BatchGetApplicationRevisionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2072,6 +3351,24 @@ func (s BatchGetApplicationRevisionsOutput) GoString() string {
 	return s.String()
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *BatchGetApplicationRevisionsOutput) SetApplicationName(v string) *BatchGetApplicationRevisionsOutput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetErrorMessage sets the ErrorMessage field's value.
+func (s *BatchGetApplicationRevisionsOutput) SetErrorMessage(v string) *BatchGetApplicationRevisionsOutput {
+	s.ErrorMessage = &v
+	return s
+}
+
+// SetRevisions sets the Revisions field's value.
+func (s *BatchGetApplicationRevisionsOutput) SetRevisions(v []*RevisionInfo) *BatchGetApplicationRevisionsOutput {
+	s.Revisions = v
+	return s
+}
+
 // Represents the input of a batch get applications operation.
 type BatchGetApplicationsInput struct {
 	_ struct{} `type:"structure"`
@@ -2088,6 +3385,12 @@ func (s BatchGetApplicationsInput) String() string {
 // GoString returns the string representation
 func (s BatchGetApplicationsInput) GoString() string {
 	return s.String()
+}
+
+// SetApplicationNames sets the ApplicationNames field's value.
+func (s *BatchGetApplicationsInput) SetApplicationNames(v []*string) *BatchGetApplicationsInput {
+	s.ApplicationNames = v
+	return s
 }
 
 // Represents the output of a batch get applications operation.
@@ -2108,15 +3411,25 @@ func (s BatchGetApplicationsOutput) GoString() string {
 	return s.String()
 }
 
+// SetApplicationsInfo sets the ApplicationsInfo field's value.
+func (s *BatchGetApplicationsOutput) SetApplicationsInfo(v []*ApplicationInfo) *BatchGetApplicationsOutput {
+	s.ApplicationsInfo = v
+	return s
+}
+
 // Represents the input of a batch get deployment groups operation.
 type BatchGetDeploymentGroupsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
 	// The deployment groups' names.
+	//
+	// DeploymentGroupNames is a required field
 	DeploymentGroupNames []*string `locationName:"deploymentGroupNames" type:"list" required:"true"`
 }
 
@@ -2149,6 +3462,18 @@ func (s *BatchGetDeploymentGroupsInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *BatchGetDeploymentGroupsInput) SetApplicationName(v string) *BatchGetDeploymentGroupsInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetDeploymentGroupNames sets the DeploymentGroupNames field's value.
+func (s *BatchGetDeploymentGroupsInput) SetDeploymentGroupNames(v []*string) *BatchGetDeploymentGroupsInput {
+	s.DeploymentGroupNames = v
+	return s
+}
+
 // Represents the output of a batch get deployment groups operation.
 type BatchGetDeploymentGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2170,14 +3495,30 @@ func (s BatchGetDeploymentGroupsOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentGroupsInfo sets the DeploymentGroupsInfo field's value.
+func (s *BatchGetDeploymentGroupsOutput) SetDeploymentGroupsInfo(v []*DeploymentGroupInfo) *BatchGetDeploymentGroupsOutput {
+	s.DeploymentGroupsInfo = v
+	return s
+}
+
+// SetErrorMessage sets the ErrorMessage field's value.
+func (s *BatchGetDeploymentGroupsOutput) SetErrorMessage(v string) *BatchGetDeploymentGroupsOutput {
+	s.ErrorMessage = &v
+	return s
+}
+
 // Represents the input of a batch get deployment instances operation.
 type BatchGetDeploymentInstancesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The unique ID of a deployment.
+	//
+	// DeploymentId is a required field
 	DeploymentId *string `locationName:"deploymentId" type:"string" required:"true"`
 
 	// The unique IDs of instances in the deployment group.
+	//
+	// InstanceIds is a required field
 	InstanceIds []*string `locationName:"instanceIds" type:"list" required:"true"`
 }
 
@@ -2207,6 +3548,18 @@ func (s *BatchGetDeploymentInstancesInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *BatchGetDeploymentInstancesInput) SetDeploymentId(v string) *BatchGetDeploymentInstancesInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetInstanceIds sets the InstanceIds field's value.
+func (s *BatchGetDeploymentInstancesInput) SetInstanceIds(v []*string) *BatchGetDeploymentInstancesInput {
+	s.InstanceIds = v
+	return s
+}
+
 // Represents the output of a batch get deployment instance operation.
 type BatchGetDeploymentInstancesOutput struct {
 	_ struct{} `type:"structure"`
@@ -2228,6 +3581,18 @@ func (s BatchGetDeploymentInstancesOutput) GoString() string {
 	return s.String()
 }
 
+// SetErrorMessage sets the ErrorMessage field's value.
+func (s *BatchGetDeploymentInstancesOutput) SetErrorMessage(v string) *BatchGetDeploymentInstancesOutput {
+	s.ErrorMessage = &v
+	return s
+}
+
+// SetInstancesSummary sets the InstancesSummary field's value.
+func (s *BatchGetDeploymentInstancesOutput) SetInstancesSummary(v []*InstanceSummary) *BatchGetDeploymentInstancesOutput {
+	s.InstancesSummary = v
+	return s
+}
+
 // Represents the input of a batch get deployments operation.
 type BatchGetDeploymentsInput struct {
 	_ struct{} `type:"structure"`
@@ -2244,6 +3609,12 @@ func (s BatchGetDeploymentsInput) String() string {
 // GoString returns the string representation
 func (s BatchGetDeploymentsInput) GoString() string {
 	return s.String()
+}
+
+// SetDeploymentIds sets the DeploymentIds field's value.
+func (s *BatchGetDeploymentsInput) SetDeploymentIds(v []*string) *BatchGetDeploymentsInput {
+	s.DeploymentIds = v
+	return s
 }
 
 // Represents the output of a batch get deployments operation.
@@ -2264,6 +3635,12 @@ func (s BatchGetDeploymentsOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentsInfo sets the DeploymentsInfo field's value.
+func (s *BatchGetDeploymentsOutput) SetDeploymentsInfo(v []*DeploymentInfo) *BatchGetDeploymentsOutput {
+	s.DeploymentsInfo = v
+	return s
+}
+
 // Represents the input of a batch get on-premises instances operation.
 type BatchGetOnPremisesInstancesInput struct {
 	_ struct{} `type:"structure"`
@@ -2280,6 +3657,12 @@ func (s BatchGetOnPremisesInstancesInput) String() string {
 // GoString returns the string representation
 func (s BatchGetOnPremisesInstancesInput) GoString() string {
 	return s.String()
+}
+
+// SetInstanceNames sets the InstanceNames field's value.
+func (s *BatchGetOnPremisesInstancesInput) SetInstanceNames(v []*string) *BatchGetOnPremisesInstancesInput {
+	s.InstanceNames = v
+	return s
 }
 
 // Represents the output of a batch get on-premises instances operation.
@@ -2300,12 +3683,20 @@ func (s BatchGetOnPremisesInstancesOutput) GoString() string {
 	return s.String()
 }
 
+// SetInstanceInfos sets the InstanceInfos field's value.
+func (s *BatchGetOnPremisesInstancesOutput) SetInstanceInfos(v []*InstanceInfo) *BatchGetOnPremisesInstancesOutput {
+	s.InstanceInfos = v
+	return s
+}
+
 // Represents the input of a create application operation.
 type CreateApplicationInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the application. This name must be unique with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 }
 
@@ -2335,6 +3726,12 @@ func (s *CreateApplicationInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *CreateApplicationInput) SetApplicationName(v string) *CreateApplicationInput {
+	s.ApplicationName = &v
+	return s
+}
+
 // Represents the output of a create application operation.
 type CreateApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -2353,11 +3750,19 @@ func (s CreateApplicationOutput) GoString() string {
 	return s.String()
 }
 
+// SetApplicationId sets the ApplicationId field's value.
+func (s *CreateApplicationOutput) SetApplicationId(v string) *CreateApplicationOutput {
+	s.ApplicationId = &v
+	return s
+}
+
 // Represents the input of a create deployment configuration operation.
 type CreateDeploymentConfigInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the deployment configuration to create.
+	//
+	// DeploymentConfigName is a required field
 	DeploymentConfigName *string `locationName:"deploymentConfigName" min:"1" type:"string" required:"true"`
 
 	// The minimum number of healthy instances that should be available at any time
@@ -2366,13 +3771,16 @@ type CreateDeploymentConfigInput struct {
 	//
 	// The type parameter takes either of the following values:
 	//
-	//  HOST_COUNT: The value parameter represents the minimum number of healthy
-	// instances as an absolute value. FLEET_PERCENT: The value parameter represents
-	// the minimum number of healthy instances as a percentage of the total number
-	// of instances in the deployment. If you specify FLEET_PERCENT, at the start
-	// of the deployment, AWS CodeDeploy converts the percentage to the equivalent
-	// number of instance and rounds up fractional instances.  The value parameter
-	// takes an integer.
+	//    * HOST_COUNT: The value parameter represents the minimum number of healthy
+	//    instances as an absolute value.
+	//
+	//    * FLEET_PERCENT: The value parameter represents the minimum number of
+	//    healthy instances as a percentage of the total number of instances in
+	//    the deployment. If you specify FLEET_PERCENT, at the start of the deployment,
+	//    AWS CodeDeploy converts the percentage to the equivalent number of instance
+	//    and rounds up fractional instances.
+	//
+	// The value parameter takes an integer.
 	//
 	// For example, to set a minimum of 95% healthy instance, specify a type of
 	// FLEET_PERCENT and a value of 95.
@@ -2405,6 +3813,18 @@ func (s *CreateDeploymentConfigInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentConfigName sets the DeploymentConfigName field's value.
+func (s *CreateDeploymentConfigInput) SetDeploymentConfigName(v string) *CreateDeploymentConfigInput {
+	s.DeploymentConfigName = &v
+	return s
+}
+
+// SetMinimumHealthyHosts sets the MinimumHealthyHosts field's value.
+func (s *CreateDeploymentConfigInput) SetMinimumHealthyHosts(v *MinimumHealthyHosts) *CreateDeploymentConfigInput {
+	s.MinimumHealthyHosts = v
+	return s
+}
+
 // Represents the output of a create deployment configuration operation.
 type CreateDeploymentConfigOutput struct {
 	_ struct{} `type:"structure"`
@@ -2423,13 +3843,29 @@ func (s CreateDeploymentConfigOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentConfigId sets the DeploymentConfigId field's value.
+func (s *CreateDeploymentConfigOutput) SetDeploymentConfigId(v string) *CreateDeploymentConfigOutput {
+	s.DeploymentConfigId = &v
+	return s
+}
+
 // Represents the input of a create deployment group operation.
 type CreateDeploymentGroupInput struct {
 	_ struct{} `type:"structure"`
 
+	// Information to add about Amazon CloudWatch alarms when the deployment group
+	// is created.
+	AlarmConfiguration *AlarmConfiguration `locationName:"alarmConfiguration" type:"structure"`
+
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
+
+	// Configuration information for an automatic rollback that is added when a
+	// deployment group is created.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
 
 	// A list of associated Auto Scaling groups.
 	AutoScalingGroups []*string `locationName:"autoScalingGroups" type:"list"`
@@ -2439,56 +3875,58 @@ type CreateDeploymentGroupInput struct {
 	// configuration that you create by calling the create deployment configuration
 	// operation.
 	//
-	//  CodeDeployDefault.OneAtATime is the default deployment configuration. It
+	// CodeDeployDefault.OneAtATime is the default deployment configuration. It
 	// is used if a configuration isn't specified for the deployment or the deployment
 	// group.
 	//
-	//  The predefined deployment configurations include the following:
+	// The predefined deployment configurations include the following:
 	//
-	//   CodeDeployDefault.AllAtOnce attempts to deploy an application revision
-	// to as many instance as possible at once. The status of the overall deployment
-	// will be displayed as Succeeded if the application revision is deployed to
-	// one or more of the instances. The status of the overall deployment will be
-	// displayed as Failed if the application revision is not deployed to any of
-	// the instances. Using an example of nine instance, CodeDeployDefault.AllAtOnce
-	// will attempt to deploy to all nine instance at once. The overall deployment
-	// will succeed if deployment to even a single instance is successful; it will
-	// fail only if deployments to all nine instance fail.
+	//    * CodeDeployDefault.AllAtOnce attempts to deploy an application revision
+	//    to as many instances as possible at once. The status of the overall deployment
+	//    will be displayed as Succeeded if the application revision is deployed
+	//    to one or more of the instances. The status of the overall deployment
+	//    will be displayed as Failed if the application revision is not deployed
+	//    to any of the instances. Using an example of nine instances, CodeDeployDefault.AllAtOnce
+	//    will attempt to deploy to all nine instances at once. The overall deployment
+	//    will succeed if deployment to even a single instance is successful; it
+	//    will fail only if deployments to all nine instances fail.
 	//
-	//   CodeDeployDefault.HalfAtATime deploys to up to half of the instances at
-	// a time (with fractions rounded down). The overall deployment succeeds if
-	// the application revision is deployed to at least half of the instances (with
-	// fractions rounded up); otherwise, the deployment fails. In the example of
-	// nine instances, it will deploy to up to four instance at a time. The overall
-	// deployment succeeds if deployment to five or more instances succeed; otherwise,
-	// the deployment fails. The deployment may be successfully deployed to some
-	// instances even if the overall deployment fails.
+	//    * CodeDeployDefault.HalfAtATime deploys to up to half of the instances
+	//    at a time (with fractions rounded down). The overall deployment succeeds
+	//    if the application revision is deployed to at least half of the instances
+	//    (with fractions rounded up); otherwise, the deployment fails. In the example
+	//    of nine instances, it will deploy to up to four instances at a time. The
+	//    overall deployment succeeds if deployment to five or more instances succeed;
+	//    otherwise, the deployment fails. The deployment may be successfully deployed
+	//    to some instances even if the overall deployment fails.
 	//
-	//   CodeDeployDefault.OneAtATime deploys the application revision to only
-	// one instance at a time.
+	//    * CodeDeployDefault.OneAtATime deploys the application revision to only
+	//    one instance at a time.
 	//
 	// For deployment groups that contain more than one instance:
 	//
-	//   The overall deployment succeeds if the application revision is deployed
-	// to all of the instances. The exception to this rule is if deployment to the
-	// last instance fails, the overall deployment still succeeds. This is because
-	// AWS CodeDeploy allows only one instance at a time to be taken offline with
-	// the CodeDeployDefault.OneAtATime configuration.
+	// The overall deployment succeeds if the application revision is deployed to
+	//    all of the instances. The exception to this rule is if deployment to the
+	//    last instance fails, the overall deployment still succeeds. This is because
+	//    AWS CodeDeploy allows only one instance at a time to be taken offline
+	//    with the CodeDeployDefault.OneAtATime configuration.
 	//
-	//   The overall deployment fails as soon as the application revision fails
-	// to be deployed to any but the last instance. The deployment may be successfully
-	// deployed to some instances even if the overall deployment fails.
+	// The overall deployment fails as soon as the application revision fails to
+	//    be deployed to any but the last instance. The deployment may be successfully
+	//    deployed to some instances even if the overall deployment fails.
 	//
-	//   In an example using nine instance, it will deploy to one instance at a
-	// time. The overall deployment succeeds if deployment to the first eight instance
-	// is successful; the overall deployment fails if deployment to any of the first
-	// eight instance fails.
+	// In an example using nine instances, it will deploy to one instance at a time.
+	//    The overall deployment succeeds if deployment to the first eight instances
+	//    is successful; the overall deployment fails if deployment to any of the
+	//    first eight instances fails.
 	//
-	//   For deployment groups that contain only one instance, the overall deployment
-	// is successful only if deployment to the single instance is successful
+	// For deployment groups that contain only one instance, the overall deployment
+	//    is successful only if deployment to the single instance is successful
 	DeploymentConfigName *string `locationName:"deploymentConfigName" min:"1" type:"string"`
 
 	// The name of a new deployment group for the specified application.
+	//
+	// DeploymentGroupName is a required field
 	DeploymentGroupName *string `locationName:"deploymentGroupName" min:"1" type:"string" required:"true"`
 
 	// The Amazon EC2 tags on which to filter.
@@ -2499,9 +3937,13 @@ type CreateDeploymentGroupInput struct {
 
 	// A service role ARN that allows AWS CodeDeploy to act on the user's behalf
 	// when interacting with AWS services.
+	//
+	// ServiceRoleArn is a required field
 	ServiceRoleArn *string `locationName:"serviceRoleArn" type:"string" required:"true"`
 
 	// Information about triggers to create when the deployment group is created.
+	// For examples, see Create a Trigger for an AWS CodeDeploy Event (http://docs.aws.amazon.com/codedeploy/latest/userguide/how-to-notify-sns.html)
+	// in the AWS CodeDeploy User Guide.
 	TriggerConfigurations []*TriggerConfig `locationName:"triggerConfigurations" type:"list"`
 }
 
@@ -2543,6 +3985,66 @@ func (s *CreateDeploymentGroupInput) Validate() error {
 	return nil
 }
 
+// SetAlarmConfiguration sets the AlarmConfiguration field's value.
+func (s *CreateDeploymentGroupInput) SetAlarmConfiguration(v *AlarmConfiguration) *CreateDeploymentGroupInput {
+	s.AlarmConfiguration = v
+	return s
+}
+
+// SetApplicationName sets the ApplicationName field's value.
+func (s *CreateDeploymentGroupInput) SetApplicationName(v string) *CreateDeploymentGroupInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetAutoRollbackConfiguration sets the AutoRollbackConfiguration field's value.
+func (s *CreateDeploymentGroupInput) SetAutoRollbackConfiguration(v *AutoRollbackConfiguration) *CreateDeploymentGroupInput {
+	s.AutoRollbackConfiguration = v
+	return s
+}
+
+// SetAutoScalingGroups sets the AutoScalingGroups field's value.
+func (s *CreateDeploymentGroupInput) SetAutoScalingGroups(v []*string) *CreateDeploymentGroupInput {
+	s.AutoScalingGroups = v
+	return s
+}
+
+// SetDeploymentConfigName sets the DeploymentConfigName field's value.
+func (s *CreateDeploymentGroupInput) SetDeploymentConfigName(v string) *CreateDeploymentGroupInput {
+	s.DeploymentConfigName = &v
+	return s
+}
+
+// SetDeploymentGroupName sets the DeploymentGroupName field's value.
+func (s *CreateDeploymentGroupInput) SetDeploymentGroupName(v string) *CreateDeploymentGroupInput {
+	s.DeploymentGroupName = &v
+	return s
+}
+
+// SetEc2TagFilters sets the Ec2TagFilters field's value.
+func (s *CreateDeploymentGroupInput) SetEc2TagFilters(v []*EC2TagFilter) *CreateDeploymentGroupInput {
+	s.Ec2TagFilters = v
+	return s
+}
+
+// SetOnPremisesInstanceTagFilters sets the OnPremisesInstanceTagFilters field's value.
+func (s *CreateDeploymentGroupInput) SetOnPremisesInstanceTagFilters(v []*TagFilter) *CreateDeploymentGroupInput {
+	s.OnPremisesInstanceTagFilters = v
+	return s
+}
+
+// SetServiceRoleArn sets the ServiceRoleArn field's value.
+func (s *CreateDeploymentGroupInput) SetServiceRoleArn(v string) *CreateDeploymentGroupInput {
+	s.ServiceRoleArn = &v
+	return s
+}
+
+// SetTriggerConfigurations sets the TriggerConfigurations field's value.
+func (s *CreateDeploymentGroupInput) SetTriggerConfigurations(v []*TriggerConfig) *CreateDeploymentGroupInput {
+	s.TriggerConfigurations = v
+	return s
+}
+
 // Represents the output of a create deployment group operation.
 type CreateDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -2561,13 +4063,25 @@ func (s CreateDeploymentGroupOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentGroupId sets the DeploymentGroupId field's value.
+func (s *CreateDeploymentGroupOutput) SetDeploymentGroupId(v string) *CreateDeploymentGroupOutput {
+	s.DeploymentGroupId = &v
+	return s
+}
+
 // Represents the input of a create deployment operation.
 type CreateDeploymentInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
+
+	// Configuration information for an automatic rollback that is added when a
+	// deployment is created.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
 
 	// The name of a deployment configuration associated with the applicable IAM
 	// user or AWS account.
@@ -2596,6 +4110,10 @@ type CreateDeploymentInput struct {
 
 	// The type and location of the revision to deploy.
 	Revision *RevisionLocation `locationName:"revision" type:"structure"`
+
+	// Indicates whether to deploy to all instances or only to instances that are
+	// not running the latest application revision.
+	UpdateOutdatedInstancesOnly *bool `locationName:"updateOutdatedInstancesOnly" type:"boolean"`
 }
 
 // String returns the string representation
@@ -2630,6 +4148,54 @@ func (s *CreateDeploymentInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *CreateDeploymentInput) SetApplicationName(v string) *CreateDeploymentInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetAutoRollbackConfiguration sets the AutoRollbackConfiguration field's value.
+func (s *CreateDeploymentInput) SetAutoRollbackConfiguration(v *AutoRollbackConfiguration) *CreateDeploymentInput {
+	s.AutoRollbackConfiguration = v
+	return s
+}
+
+// SetDeploymentConfigName sets the DeploymentConfigName field's value.
+func (s *CreateDeploymentInput) SetDeploymentConfigName(v string) *CreateDeploymentInput {
+	s.DeploymentConfigName = &v
+	return s
+}
+
+// SetDeploymentGroupName sets the DeploymentGroupName field's value.
+func (s *CreateDeploymentInput) SetDeploymentGroupName(v string) *CreateDeploymentInput {
+	s.DeploymentGroupName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreateDeploymentInput) SetDescription(v string) *CreateDeploymentInput {
+	s.Description = &v
+	return s
+}
+
+// SetIgnoreApplicationStopFailures sets the IgnoreApplicationStopFailures field's value.
+func (s *CreateDeploymentInput) SetIgnoreApplicationStopFailures(v bool) *CreateDeploymentInput {
+	s.IgnoreApplicationStopFailures = &v
+	return s
+}
+
+// SetRevision sets the Revision field's value.
+func (s *CreateDeploymentInput) SetRevision(v *RevisionLocation) *CreateDeploymentInput {
+	s.Revision = v
+	return s
+}
+
+// SetUpdateOutdatedInstancesOnly sets the UpdateOutdatedInstancesOnly field's value.
+func (s *CreateDeploymentInput) SetUpdateOutdatedInstancesOnly(v bool) *CreateDeploymentInput {
+	s.UpdateOutdatedInstancesOnly = &v
+	return s
+}
+
 // Represents the output of a create deployment operation.
 type CreateDeploymentOutput struct {
 	_ struct{} `type:"structure"`
@@ -2648,12 +4214,20 @@ func (s CreateDeploymentOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *CreateDeploymentOutput) SetDeploymentId(v string) *CreateDeploymentOutput {
+	s.DeploymentId = &v
+	return s
+}
+
 // Represents the input of a delete application operation.
 type DeleteApplicationInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 }
 
@@ -2683,6 +4257,12 @@ func (s *DeleteApplicationInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *DeleteApplicationInput) SetApplicationName(v string) *DeleteApplicationInput {
+	s.ApplicationName = &v
+	return s
+}
+
 type DeleteApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2703,6 +4283,8 @@ type DeleteDeploymentConfigInput struct {
 
 	// The name of a deployment configuration associated with the applicable IAM
 	// user or AWS account.
+	//
+	// DeploymentConfigName is a required field
 	DeploymentConfigName *string `locationName:"deploymentConfigName" min:"1" type:"string" required:"true"`
 }
 
@@ -2732,6 +4314,12 @@ func (s *DeleteDeploymentConfigInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentConfigName sets the DeploymentConfigName field's value.
+func (s *DeleteDeploymentConfigInput) SetDeploymentConfigName(v string) *DeleteDeploymentConfigInput {
+	s.DeploymentConfigName = &v
+	return s
+}
+
 type DeleteDeploymentConfigOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2752,9 +4340,13 @@ type DeleteDeploymentGroupInput struct {
 
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
 	// The name of an existing deployment group for the specified application.
+	//
+	// DeploymentGroupName is a required field
 	DeploymentGroupName *string `locationName:"deploymentGroupName" min:"1" type:"string" required:"true"`
 }
 
@@ -2790,6 +4382,18 @@ func (s *DeleteDeploymentGroupInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *DeleteDeploymentGroupInput) SetApplicationName(v string) *DeleteDeploymentGroupInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetDeploymentGroupName sets the DeploymentGroupName field's value.
+func (s *DeleteDeploymentGroupInput) SetDeploymentGroupName(v string) *DeleteDeploymentGroupInput {
+	s.DeploymentGroupName = &v
+	return s
+}
+
 // Represents the output of a delete deployment group operation.
 type DeleteDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -2811,6 +4415,12 @@ func (s DeleteDeploymentGroupOutput) String() string {
 // GoString returns the string representation
 func (s DeleteDeploymentGroupOutput) GoString() string {
 	return s.String()
+}
+
+// SetHooksNotCleanedUp sets the HooksNotCleanedUp field's value.
+func (s *DeleteDeploymentGroupOutput) SetHooksNotCleanedUp(v []*AutoScalingGroup) *DeleteDeploymentGroupOutput {
+	s.HooksNotCleanedUp = v
+	return s
 }
 
 // Information about a deployment configuration.
@@ -2840,12 +4450,43 @@ func (s DeploymentConfigInfo) GoString() string {
 	return s.String()
 }
 
+// SetCreateTime sets the CreateTime field's value.
+func (s *DeploymentConfigInfo) SetCreateTime(v time.Time) *DeploymentConfigInfo {
+	s.CreateTime = &v
+	return s
+}
+
+// SetDeploymentConfigId sets the DeploymentConfigId field's value.
+func (s *DeploymentConfigInfo) SetDeploymentConfigId(v string) *DeploymentConfigInfo {
+	s.DeploymentConfigId = &v
+	return s
+}
+
+// SetDeploymentConfigName sets the DeploymentConfigName field's value.
+func (s *DeploymentConfigInfo) SetDeploymentConfigName(v string) *DeploymentConfigInfo {
+	s.DeploymentConfigName = &v
+	return s
+}
+
+// SetMinimumHealthyHosts sets the MinimumHealthyHosts field's value.
+func (s *DeploymentConfigInfo) SetMinimumHealthyHosts(v *MinimumHealthyHosts) *DeploymentConfigInfo {
+	s.MinimumHealthyHosts = v
+	return s
+}
+
 // Information about a deployment group.
 type DeploymentGroupInfo struct {
 	_ struct{} `type:"structure"`
 
+	// A list of alarms associated with the deployment group.
+	AlarmConfiguration *AlarmConfiguration `locationName:"alarmConfiguration" type:"structure"`
+
 	// The application name.
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string"`
+
+	// Information about the automatic rollback configuration associated with the
+	// deployment group.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
 
 	// A list of associated Auto Scaling groups.
 	AutoScalingGroups []*AutoScalingGroup `locationName:"autoScalingGroups" type:"list"`
@@ -2872,7 +4513,7 @@ type DeploymentGroupInfo struct {
 	// and location.
 	TargetRevision *RevisionLocation `locationName:"targetRevision" type:"structure"`
 
-	// A list of associated triggers.
+	// Information about triggers associated with the deployment group.
 	TriggerConfigurations []*TriggerConfig `locationName:"triggerConfigurations" type:"list"`
 }
 
@@ -2886,12 +4527,88 @@ func (s DeploymentGroupInfo) GoString() string {
 	return s.String()
 }
 
+// SetAlarmConfiguration sets the AlarmConfiguration field's value.
+func (s *DeploymentGroupInfo) SetAlarmConfiguration(v *AlarmConfiguration) *DeploymentGroupInfo {
+	s.AlarmConfiguration = v
+	return s
+}
+
+// SetApplicationName sets the ApplicationName field's value.
+func (s *DeploymentGroupInfo) SetApplicationName(v string) *DeploymentGroupInfo {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetAutoRollbackConfiguration sets the AutoRollbackConfiguration field's value.
+func (s *DeploymentGroupInfo) SetAutoRollbackConfiguration(v *AutoRollbackConfiguration) *DeploymentGroupInfo {
+	s.AutoRollbackConfiguration = v
+	return s
+}
+
+// SetAutoScalingGroups sets the AutoScalingGroups field's value.
+func (s *DeploymentGroupInfo) SetAutoScalingGroups(v []*AutoScalingGroup) *DeploymentGroupInfo {
+	s.AutoScalingGroups = v
+	return s
+}
+
+// SetDeploymentConfigName sets the DeploymentConfigName field's value.
+func (s *DeploymentGroupInfo) SetDeploymentConfigName(v string) *DeploymentGroupInfo {
+	s.DeploymentConfigName = &v
+	return s
+}
+
+// SetDeploymentGroupId sets the DeploymentGroupId field's value.
+func (s *DeploymentGroupInfo) SetDeploymentGroupId(v string) *DeploymentGroupInfo {
+	s.DeploymentGroupId = &v
+	return s
+}
+
+// SetDeploymentGroupName sets the DeploymentGroupName field's value.
+func (s *DeploymentGroupInfo) SetDeploymentGroupName(v string) *DeploymentGroupInfo {
+	s.DeploymentGroupName = &v
+	return s
+}
+
+// SetEc2TagFilters sets the Ec2TagFilters field's value.
+func (s *DeploymentGroupInfo) SetEc2TagFilters(v []*EC2TagFilter) *DeploymentGroupInfo {
+	s.Ec2TagFilters = v
+	return s
+}
+
+// SetOnPremisesInstanceTagFilters sets the OnPremisesInstanceTagFilters field's value.
+func (s *DeploymentGroupInfo) SetOnPremisesInstanceTagFilters(v []*TagFilter) *DeploymentGroupInfo {
+	s.OnPremisesInstanceTagFilters = v
+	return s
+}
+
+// SetServiceRoleArn sets the ServiceRoleArn field's value.
+func (s *DeploymentGroupInfo) SetServiceRoleArn(v string) *DeploymentGroupInfo {
+	s.ServiceRoleArn = &v
+	return s
+}
+
+// SetTargetRevision sets the TargetRevision field's value.
+func (s *DeploymentGroupInfo) SetTargetRevision(v *RevisionLocation) *DeploymentGroupInfo {
+	s.TargetRevision = v
+	return s
+}
+
+// SetTriggerConfigurations sets the TriggerConfigurations field's value.
+func (s *DeploymentGroupInfo) SetTriggerConfigurations(v []*TriggerConfig) *DeploymentGroupInfo {
+	s.TriggerConfigurations = v
+	return s
+}
+
 // Information about a deployment.
 type DeploymentInfo struct {
 	_ struct{} `type:"structure"`
 
 	// The application name.
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string"`
+
+	// Information about the automatic rollback configuration associated with the
+	// deployment.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
 
 	// A timestamp indicating when the deployment was complete.
 	CompleteTime *time.Time `locationName:"completeTime" type:"timestamp" timestampFormat:"unix"`
@@ -2901,8 +4618,11 @@ type DeploymentInfo struct {
 
 	// The means by which the deployment was created:
 	//
-	//  user: A user created the deployment. autoscaling: Auto Scaling created
-	// the deployment.
+	//    * user: A user created the deployment.
+	//
+	//    * autoscaling: Auto Scaling created the deployment.
+	//
+	//    * codeDeployRollback: A rollback process created the deployment.
 	Creator *string `locationName:"creator" type:"string" enum:"DeploymentCreator"`
 
 	// The deployment configuration name.
@@ -2938,6 +4658,9 @@ type DeploymentInfo struct {
 	// from which to retrieve them.
 	Revision *RevisionLocation `locationName:"revision" type:"structure"`
 
+	// Information about a deployment rollback.
+	RollbackInfo *RollbackInfo `locationName:"rollbackInfo" type:"structure"`
+
 	// A timestamp indicating when the deployment was deployed to the deployment
 	// group.
 	//
@@ -2948,6 +4671,10 @@ type DeploymentInfo struct {
 
 	// The current state of the deployment as a whole.
 	Status *string `locationName:"status" type:"string" enum:"DeploymentStatus"`
+
+	// Indicates whether only instances that are not running the latest application
+	// revision are to be deployed to.
+	UpdateOutdatedInstancesOnly *bool `locationName:"updateOutdatedInstancesOnly" type:"boolean"`
 }
 
 // String returns the string representation
@@ -2958,6 +4685,108 @@ func (s DeploymentInfo) String() string {
 // GoString returns the string representation
 func (s DeploymentInfo) GoString() string {
 	return s.String()
+}
+
+// SetApplicationName sets the ApplicationName field's value.
+func (s *DeploymentInfo) SetApplicationName(v string) *DeploymentInfo {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetAutoRollbackConfiguration sets the AutoRollbackConfiguration field's value.
+func (s *DeploymentInfo) SetAutoRollbackConfiguration(v *AutoRollbackConfiguration) *DeploymentInfo {
+	s.AutoRollbackConfiguration = v
+	return s
+}
+
+// SetCompleteTime sets the CompleteTime field's value.
+func (s *DeploymentInfo) SetCompleteTime(v time.Time) *DeploymentInfo {
+	s.CompleteTime = &v
+	return s
+}
+
+// SetCreateTime sets the CreateTime field's value.
+func (s *DeploymentInfo) SetCreateTime(v time.Time) *DeploymentInfo {
+	s.CreateTime = &v
+	return s
+}
+
+// SetCreator sets the Creator field's value.
+func (s *DeploymentInfo) SetCreator(v string) *DeploymentInfo {
+	s.Creator = &v
+	return s
+}
+
+// SetDeploymentConfigName sets the DeploymentConfigName field's value.
+func (s *DeploymentInfo) SetDeploymentConfigName(v string) *DeploymentInfo {
+	s.DeploymentConfigName = &v
+	return s
+}
+
+// SetDeploymentGroupName sets the DeploymentGroupName field's value.
+func (s *DeploymentInfo) SetDeploymentGroupName(v string) *DeploymentInfo {
+	s.DeploymentGroupName = &v
+	return s
+}
+
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *DeploymentInfo) SetDeploymentId(v string) *DeploymentInfo {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetDeploymentOverview sets the DeploymentOverview field's value.
+func (s *DeploymentInfo) SetDeploymentOverview(v *DeploymentOverview) *DeploymentInfo {
+	s.DeploymentOverview = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *DeploymentInfo) SetDescription(v string) *DeploymentInfo {
+	s.Description = &v
+	return s
+}
+
+// SetErrorInformation sets the ErrorInformation field's value.
+func (s *DeploymentInfo) SetErrorInformation(v *ErrorInformation) *DeploymentInfo {
+	s.ErrorInformation = v
+	return s
+}
+
+// SetIgnoreApplicationStopFailures sets the IgnoreApplicationStopFailures field's value.
+func (s *DeploymentInfo) SetIgnoreApplicationStopFailures(v bool) *DeploymentInfo {
+	s.IgnoreApplicationStopFailures = &v
+	return s
+}
+
+// SetRevision sets the Revision field's value.
+func (s *DeploymentInfo) SetRevision(v *RevisionLocation) *DeploymentInfo {
+	s.Revision = v
+	return s
+}
+
+// SetRollbackInfo sets the RollbackInfo field's value.
+func (s *DeploymentInfo) SetRollbackInfo(v *RollbackInfo) *DeploymentInfo {
+	s.RollbackInfo = v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *DeploymentInfo) SetStartTime(v time.Time) *DeploymentInfo {
+	s.StartTime = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *DeploymentInfo) SetStatus(v string) *DeploymentInfo {
+	s.Status = &v
+	return s
+}
+
+// SetUpdateOutdatedInstancesOnly sets the UpdateOutdatedInstancesOnly field's value.
+func (s *DeploymentInfo) SetUpdateOutdatedInstancesOnly(v bool) *DeploymentInfo {
+	s.UpdateOutdatedInstancesOnly = &v
+	return s
 }
 
 // Information about the deployment status of the instances in the deployment.
@@ -2991,11 +4820,43 @@ func (s DeploymentOverview) GoString() string {
 	return s.String()
 }
 
+// SetFailed sets the Failed field's value.
+func (s *DeploymentOverview) SetFailed(v int64) *DeploymentOverview {
+	s.Failed = &v
+	return s
+}
+
+// SetInProgress sets the InProgress field's value.
+func (s *DeploymentOverview) SetInProgress(v int64) *DeploymentOverview {
+	s.InProgress = &v
+	return s
+}
+
+// SetPending sets the Pending field's value.
+func (s *DeploymentOverview) SetPending(v int64) *DeploymentOverview {
+	s.Pending = &v
+	return s
+}
+
+// SetSkipped sets the Skipped field's value.
+func (s *DeploymentOverview) SetSkipped(v int64) *DeploymentOverview {
+	s.Skipped = &v
+	return s
+}
+
+// SetSucceeded sets the Succeeded field's value.
+func (s *DeploymentOverview) SetSucceeded(v int64) *DeploymentOverview {
+	s.Succeeded = &v
+	return s
+}
+
 // Represents the input of a deregister on-premises instance operation.
 type DeregisterOnPremisesInstanceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the on-premises instance to deregister.
+	//
+	// InstanceName is a required field
 	InstanceName *string `locationName:"instanceName" type:"string" required:"true"`
 }
 
@@ -3022,6 +4883,12 @@ func (s *DeregisterOnPremisesInstanceInput) Validate() error {
 	return nil
 }
 
+// SetInstanceName sets the InstanceName field's value.
+func (s *DeregisterOnPremisesInstanceInput) SetInstanceName(v string) *DeregisterOnPremisesInstanceInput {
+	s.InstanceName = &v
+	return s
+}
+
 type DeregisterOnPremisesInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3042,12 +4909,19 @@ type Diagnostics struct {
 
 	// The associated error code:
 	//
-	//  Success: The specified script ran. ScriptMissing: The specified script
-	// was not found in the specified location. ScriptNotExecutable: The specified
-	// script is not a recognized executable file type. ScriptTimedOut: The specified
-	// script did not finish running in the specified time period. ScriptFailed:
-	// The specified script failed to run as expected. UnknownError: The specified
-	// script did not run for an unknown reason.
+	//    * Success: The specified script ran.
+	//
+	//    * ScriptMissing: The specified script was not found in the specified location.
+	//
+	//    * ScriptNotExecutable: The specified script is not a recognized executable
+	//    file type.
+	//
+	//    * ScriptTimedOut: The specified script did not finish running in the specified
+	//    time period.
+	//
+	//    * ScriptFailed: The specified script failed to run as expected.
+	//
+	//    * UnknownError: The specified script did not run for an unknown reason.
 	ErrorCode *string `locationName:"errorCode" type:"string" enum:"LifecycleErrorCode"`
 
 	// The last portion of the diagnostic log.
@@ -3073,6 +4947,30 @@ func (s Diagnostics) GoString() string {
 	return s.String()
 }
 
+// SetErrorCode sets the ErrorCode field's value.
+func (s *Diagnostics) SetErrorCode(v string) *Diagnostics {
+	s.ErrorCode = &v
+	return s
+}
+
+// SetLogTail sets the LogTail field's value.
+func (s *Diagnostics) SetLogTail(v string) *Diagnostics {
+	s.LogTail = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *Diagnostics) SetMessage(v string) *Diagnostics {
+	s.Message = &v
+	return s
+}
+
+// SetScriptName sets the ScriptName field's value.
+func (s *Diagnostics) SetScriptName(v string) *Diagnostics {
+	s.ScriptName = &v
+	return s
+}
+
 // Information about a tag filter.
 type EC2TagFilter struct {
 	_ struct{} `type:"structure"`
@@ -3082,7 +4980,11 @@ type EC2TagFilter struct {
 
 	// The tag filter type:
 	//
-	//  KEY_ONLY: Key only. VALUE_ONLY: Value only. KEY_AND_VALUE: Key and value.
+	//    * KEY_ONLY: Key only.
+	//
+	//    * VALUE_ONLY: Value only.
+	//
+	//    * KEY_AND_VALUE: Key and value.
 	Type *string `type:"string" enum:"EC2TagFilterType"`
 
 	// The tag filter value.
@@ -3099,30 +5001,65 @@ func (s EC2TagFilter) GoString() string {
 	return s.String()
 }
 
+// SetKey sets the Key field's value.
+func (s *EC2TagFilter) SetKey(v string) *EC2TagFilter {
+	s.Key = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *EC2TagFilter) SetType(v string) *EC2TagFilter {
+	s.Type = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *EC2TagFilter) SetValue(v string) *EC2TagFilter {
+	s.Value = &v
+	return s
+}
+
 // Information about a deployment error.
 type ErrorInformation struct {
 	_ struct{} `type:"structure"`
 
 	// The error code:
 	//
-	//  APPLICATION_MISSING: The application was missing. This error code will
-	// most likely be raised if the application is deleted after the deployment
-	// is created but before it is started. DEPLOYMENT_GROUP_MISSING: The deployment
-	// group was missing. This error code will most likely be raised if the deployment
-	// group is deleted after the deployment is created but before it is started.
-	// HEALTH_CONSTRAINTS: The deployment failed on too many instances to be successfully
-	// deployed within the instance health constraints specified. HEALTH_CONSTRAINTS_INVALID:
-	// The revision cannot be successfully deployed within the instance health constraints
-	// specified. IAM_ROLE_MISSING: The service role cannot be accessed. IAM_ROLE_PERMISSIONS:
-	// The service role does not have the correct permissions. INTERNAL_ERROR: There
-	// was an internal error. NO_EC2_SUBSCRIPTION: The calling account is not subscribed
-	// to the Amazon EC2 service. NO_INSTANCES: No instance were specified, or no
-	// instance can be found. OVER_MAX_INSTANCES: The maximum number of instance
-	// was exceeded. THROTTLED: The operation was throttled because the calling
-	// account exceeded the throttling limits of one or more AWS services. TIMEOUT:
-	// The deployment has timed out. REVISION_MISSING: The revision ID was missing.
-	// This error code will most likely be raised if the revision is deleted after
-	// the deployment is created but before it is started.
+	//    * APPLICATION_MISSING: The application was missing. This error code will
+	//    most likely be raised if the application is deleted after the deployment
+	//    is created but before it is started.
+	//
+	//    * DEPLOYMENT_GROUP_MISSING: The deployment group was missing. This error
+	//    code will most likely be raised if the deployment group is deleted after
+	//    the deployment is created but before it is started.
+	//
+	//    * HEALTH_CONSTRAINTS: The deployment failed on too many instances to be
+	//    successfully deployed within the instance health constraints specified.
+	//
+	//    * HEALTH_CONSTRAINTS_INVALID: The revision cannot be successfully deployed
+	//    within the instance health constraints specified.
+	//
+	//    * IAM_ROLE_MISSING: The service role cannot be accessed.
+	//
+	//    * IAM_ROLE_PERMISSIONS: The service role does not have the correct permissions.
+	//
+	//    * INTERNAL_ERROR: There was an internal error.
+	//
+	//    * NO_EC2_SUBSCRIPTION: The calling account is not subscribed to the Amazon
+	//    EC2 service.
+	//
+	//    * NO_INSTANCES: No instance were specified, or no instance can be found.
+	//
+	//    * OVER_MAX_INSTANCES: The maximum number of instance was exceeded.
+	//
+	//    * THROTTLED: The operation was throttled because the calling account exceeded
+	//    the throttling limits of one or more AWS services.
+	//
+	//    * TIMEOUT: The deployment has timed out.
+	//
+	//    * REVISION_MISSING: The revision ID was missing. This error code will
+	//    most likely be raised if the revision is deleted after the deployment
+	//    is created but before it is started.
 	Code *string `locationName:"code" type:"string" enum:"ErrorCode"`
 
 	// An accompanying error message.
@@ -3137,6 +5074,18 @@ func (s ErrorInformation) String() string {
 // GoString returns the string representation
 func (s ErrorInformation) GoString() string {
 	return s.String()
+}
+
+// SetCode sets the Code field's value.
+func (s *ErrorInformation) SetCode(v string) *ErrorInformation {
+	s.Code = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *ErrorInformation) SetMessage(v string) *ErrorInformation {
+	s.Message = &v
+	return s
 }
 
 // Information about an application revision.
@@ -3169,12 +5118,44 @@ func (s GenericRevisionInfo) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentGroups sets the DeploymentGroups field's value.
+func (s *GenericRevisionInfo) SetDeploymentGroups(v []*string) *GenericRevisionInfo {
+	s.DeploymentGroups = v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *GenericRevisionInfo) SetDescription(v string) *GenericRevisionInfo {
+	s.Description = &v
+	return s
+}
+
+// SetFirstUsedTime sets the FirstUsedTime field's value.
+func (s *GenericRevisionInfo) SetFirstUsedTime(v time.Time) *GenericRevisionInfo {
+	s.FirstUsedTime = &v
+	return s
+}
+
+// SetLastUsedTime sets the LastUsedTime field's value.
+func (s *GenericRevisionInfo) SetLastUsedTime(v time.Time) *GenericRevisionInfo {
+	s.LastUsedTime = &v
+	return s
+}
+
+// SetRegisterTime sets the RegisterTime field's value.
+func (s *GenericRevisionInfo) SetRegisterTime(v time.Time) *GenericRevisionInfo {
+	s.RegisterTime = &v
+	return s
+}
+
 // Represents the input of a get application operation.
 type GetApplicationInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 }
 
@@ -3204,6 +5185,12 @@ func (s *GetApplicationInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *GetApplicationInput) SetApplicationName(v string) *GetApplicationInput {
+	s.ApplicationName = &v
+	return s
+}
+
 // Represents the output of a get application operation.
 type GetApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -3222,14 +5209,24 @@ func (s GetApplicationOutput) GoString() string {
 	return s.String()
 }
 
+// SetApplication sets the Application field's value.
+func (s *GetApplicationOutput) SetApplication(v *ApplicationInfo) *GetApplicationOutput {
+	s.Application = v
+	return s
+}
+
 // Represents the input of a get application revision operation.
 type GetApplicationRevisionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the application that corresponds to the revision.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
 	// Information about the application revision to get, including type and location.
+	//
+	// Revision is a required field
 	Revision *RevisionLocation `locationName:"revision" type:"structure" required:"true"`
 }
 
@@ -3262,6 +5259,18 @@ func (s *GetApplicationRevisionInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *GetApplicationRevisionInput) SetApplicationName(v string) *GetApplicationRevisionInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetRevision sets the Revision field's value.
+func (s *GetApplicationRevisionInput) SetRevision(v *RevisionLocation) *GetApplicationRevisionInput {
+	s.Revision = v
+	return s
+}
+
 // Represents the output of a get application revision operation.
 type GetApplicationRevisionOutput struct {
 	_ struct{} `type:"structure"`
@@ -3286,12 +5295,32 @@ func (s GetApplicationRevisionOutput) GoString() string {
 	return s.String()
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *GetApplicationRevisionOutput) SetApplicationName(v string) *GetApplicationRevisionOutput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetRevision sets the Revision field's value.
+func (s *GetApplicationRevisionOutput) SetRevision(v *RevisionLocation) *GetApplicationRevisionOutput {
+	s.Revision = v
+	return s
+}
+
+// SetRevisionInfo sets the RevisionInfo field's value.
+func (s *GetApplicationRevisionOutput) SetRevisionInfo(v *GenericRevisionInfo) *GetApplicationRevisionOutput {
+	s.RevisionInfo = v
+	return s
+}
+
 // Represents the input of a get deployment configuration operation.
 type GetDeploymentConfigInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of a deployment configuration associated with the applicable IAM
 	// user or AWS account.
+	//
+	// DeploymentConfigName is a required field
 	DeploymentConfigName *string `locationName:"deploymentConfigName" min:"1" type:"string" required:"true"`
 }
 
@@ -3321,6 +5350,12 @@ func (s *GetDeploymentConfigInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentConfigName sets the DeploymentConfigName field's value.
+func (s *GetDeploymentConfigInput) SetDeploymentConfigName(v string) *GetDeploymentConfigInput {
+	s.DeploymentConfigName = &v
+	return s
+}
+
 // Represents the output of a get deployment configuration operation.
 type GetDeploymentConfigOutput struct {
 	_ struct{} `type:"structure"`
@@ -3339,15 +5374,25 @@ func (s GetDeploymentConfigOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentConfigInfo sets the DeploymentConfigInfo field's value.
+func (s *GetDeploymentConfigOutput) SetDeploymentConfigInfo(v *DeploymentConfigInfo) *GetDeploymentConfigOutput {
+	s.DeploymentConfigInfo = v
+	return s
+}
+
 // Represents the input of a get deployment group operation.
 type GetDeploymentGroupInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
 	// The name of an existing deployment group for the specified application.
+	//
+	// DeploymentGroupName is a required field
 	DeploymentGroupName *string `locationName:"deploymentGroupName" min:"1" type:"string" required:"true"`
 }
 
@@ -3383,6 +5428,18 @@ func (s *GetDeploymentGroupInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *GetDeploymentGroupInput) SetApplicationName(v string) *GetDeploymentGroupInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetDeploymentGroupName sets the DeploymentGroupName field's value.
+func (s *GetDeploymentGroupInput) SetDeploymentGroupName(v string) *GetDeploymentGroupInput {
+	s.DeploymentGroupName = &v
+	return s
+}
+
 // Represents the output of a get deployment group operation.
 type GetDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -3401,11 +5458,19 @@ func (s GetDeploymentGroupOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentGroupInfo sets the DeploymentGroupInfo field's value.
+func (s *GetDeploymentGroupOutput) SetDeploymentGroupInfo(v *DeploymentGroupInfo) *GetDeploymentGroupOutput {
+	s.DeploymentGroupInfo = v
+	return s
+}
+
 // Represents the input of a get deployment operation.
 type GetDeploymentInput struct {
 	_ struct{} `type:"structure"`
 
 	// A deployment ID associated with the applicable IAM user or AWS account.
+	//
+	// DeploymentId is a required field
 	DeploymentId *string `locationName:"deploymentId" type:"string" required:"true"`
 }
 
@@ -3432,14 +5497,24 @@ func (s *GetDeploymentInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *GetDeploymentInput) SetDeploymentId(v string) *GetDeploymentInput {
+	s.DeploymentId = &v
+	return s
+}
+
 // Represents the input of a get deployment instance operation.
 type GetDeploymentInstanceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The unique ID of a deployment.
+	//
+	// DeploymentId is a required field
 	DeploymentId *string `locationName:"deploymentId" type:"string" required:"true"`
 
 	// The unique ID of an instance in the deployment group.
+	//
+	// InstanceId is a required field
 	InstanceId *string `locationName:"instanceId" type:"string" required:"true"`
 }
 
@@ -3469,6 +5544,18 @@ func (s *GetDeploymentInstanceInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *GetDeploymentInstanceInput) SetDeploymentId(v string) *GetDeploymentInstanceInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *GetDeploymentInstanceInput) SetInstanceId(v string) *GetDeploymentInstanceInput {
+	s.InstanceId = &v
+	return s
+}
+
 // Represents the output of a get deployment instance operation.
 type GetDeploymentInstanceOutput struct {
 	_ struct{} `type:"structure"`
@@ -3485,6 +5572,12 @@ func (s GetDeploymentInstanceOutput) String() string {
 // GoString returns the string representation
 func (s GetDeploymentInstanceOutput) GoString() string {
 	return s.String()
+}
+
+// SetInstanceSummary sets the InstanceSummary field's value.
+func (s *GetDeploymentInstanceOutput) SetInstanceSummary(v *InstanceSummary) *GetDeploymentInstanceOutput {
+	s.InstanceSummary = v
+	return s
 }
 
 // Represents the output of a get deployment operation.
@@ -3505,11 +5598,19 @@ func (s GetDeploymentOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentInfo sets the DeploymentInfo field's value.
+func (s *GetDeploymentOutput) SetDeploymentInfo(v *DeploymentInfo) *GetDeploymentOutput {
+	s.DeploymentInfo = v
+	return s
+}
+
 // Represents the input of a get on-premises instance operation.
 type GetOnPremisesInstanceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of the on-premises instance about which to get information.
+	//
+	// InstanceName is a required field
 	InstanceName *string `locationName:"instanceName" type:"string" required:"true"`
 }
 
@@ -3536,6 +5637,12 @@ func (s *GetOnPremisesInstanceInput) Validate() error {
 	return nil
 }
 
+// SetInstanceName sets the InstanceName field's value.
+func (s *GetOnPremisesInstanceInput) SetInstanceName(v string) *GetOnPremisesInstanceInput {
+	s.InstanceName = &v
+	return s
+}
+
 // Represents the output of a get on-premises instance operation.
 type GetOnPremisesInstanceOutput struct {
 	_ struct{} `type:"structure"`
@@ -3552,6 +5659,12 @@ func (s GetOnPremisesInstanceOutput) String() string {
 // GoString returns the string representation
 func (s GetOnPremisesInstanceOutput) GoString() string {
 	return s.String()
+}
+
+// SetInstanceInfo sets the InstanceInfo field's value.
+func (s *GetOnPremisesInstanceOutput) SetInstanceInfo(v *InstanceInfo) *GetOnPremisesInstanceOutput {
+	s.InstanceInfo = v
+	return s
 }
 
 // Information about the location of application artifacts stored in GitHub.
@@ -3577,6 +5690,18 @@ func (s GitHubLocation) String() string {
 // GoString returns the string representation
 func (s GitHubLocation) GoString() string {
 	return s.String()
+}
+
+// SetCommitId sets the CommitId field's value.
+func (s *GitHubLocation) SetCommitId(v string) *GitHubLocation {
+	s.CommitId = &v
+	return s
+}
+
+// SetRepository sets the Repository field's value.
+func (s *GitHubLocation) SetRepository(v string) *GitHubLocation {
+	s.Repository = &v
+	return s
 }
 
 // Information about an on-premises instance.
@@ -3613,6 +5738,42 @@ func (s InstanceInfo) GoString() string {
 	return s.String()
 }
 
+// SetDeregisterTime sets the DeregisterTime field's value.
+func (s *InstanceInfo) SetDeregisterTime(v time.Time) *InstanceInfo {
+	s.DeregisterTime = &v
+	return s
+}
+
+// SetIamUserArn sets the IamUserArn field's value.
+func (s *InstanceInfo) SetIamUserArn(v string) *InstanceInfo {
+	s.IamUserArn = &v
+	return s
+}
+
+// SetInstanceArn sets the InstanceArn field's value.
+func (s *InstanceInfo) SetInstanceArn(v string) *InstanceInfo {
+	s.InstanceArn = &v
+	return s
+}
+
+// SetInstanceName sets the InstanceName field's value.
+func (s *InstanceInfo) SetInstanceName(v string) *InstanceInfo {
+	s.InstanceName = &v
+	return s
+}
+
+// SetRegisterTime sets the RegisterTime field's value.
+func (s *InstanceInfo) SetRegisterTime(v time.Time) *InstanceInfo {
+	s.RegisterTime = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *InstanceInfo) SetTags(v []*Tag) *InstanceInfo {
+	s.Tags = v
+	return s
+}
+
 // Information about an instance in a deployment.
 type InstanceSummary struct {
 	_ struct{} `type:"structure"`
@@ -3631,11 +5792,17 @@ type InstanceSummary struct {
 
 	// The deployment status for this instance:
 	//
-	//  Pending: The deployment is pending for this instance. In Progress: The
-	// deployment is in progress for this instance. Succeeded: The deployment has
-	// succeeded for this instance. Failed: The deployment has failed for this instance.
-	// Skipped: The deployment has been skipped for this instance. Unknown: The
-	// deployment status is unknown for this instance.
+	//    * Pending: The deployment is pending for this instance.
+	//
+	//    * In Progress: The deployment is in progress for this instance.
+	//
+	//    * Succeeded: The deployment has succeeded for this instance.
+	//
+	//    * Failed: The deployment has failed for this instance.
+	//
+	//    * Skipped: The deployment has been skipped for this instance.
+	//
+	//    * Unknown: The deployment status is unknown for this instance.
 	Status *string `locationName:"status" type:"string" enum:"InstanceStatus"`
 }
 
@@ -3647,6 +5814,36 @@ func (s InstanceSummary) String() string {
 // GoString returns the string representation
 func (s InstanceSummary) GoString() string {
 	return s.String()
+}
+
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *InstanceSummary) SetDeploymentId(v string) *InstanceSummary {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *InstanceSummary) SetInstanceId(v string) *InstanceSummary {
+	s.InstanceId = &v
+	return s
+}
+
+// SetLastUpdatedAt sets the LastUpdatedAt field's value.
+func (s *InstanceSummary) SetLastUpdatedAt(v time.Time) *InstanceSummary {
+	s.LastUpdatedAt = &v
+	return s
+}
+
+// SetLifecycleEvents sets the LifecycleEvents field's value.
+func (s *InstanceSummary) SetLifecycleEvents(v []*LifecycleEvent) *InstanceSummary {
+	s.LifecycleEvents = v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *InstanceSummary) SetStatus(v string) *InstanceSummary {
+	s.Status = &v
+	return s
 }
 
 // Information about a deployment lifecycle event.
@@ -3668,11 +5865,17 @@ type LifecycleEvent struct {
 
 	// The deployment lifecycle event status:
 	//
-	//  Pending: The deployment lifecycle event is pending. InProgress: The deployment
-	// lifecycle event is in progress. Succeeded: The deployment lifecycle event
-	// ran successfully. Failed: The deployment lifecycle event has failed. Skipped:
-	// The deployment lifecycle event has been skipped. Unknown: The deployment
-	// lifecycle event is unknown.
+	//    * Pending: The deployment lifecycle event is pending.
+	//
+	//    * InProgress: The deployment lifecycle event is in progress.
+	//
+	//    * Succeeded: The deployment lifecycle event ran successfully.
+	//
+	//    * Failed: The deployment lifecycle event has failed.
+	//
+	//    * Skipped: The deployment lifecycle event has been skipped.
+	//
+	//    * Unknown: The deployment lifecycle event is unknown.
 	Status *string `locationName:"status" type:"string" enum:"LifecycleEventStatus"`
 }
 
@@ -3686,20 +5889,55 @@ func (s LifecycleEvent) GoString() string {
 	return s.String()
 }
 
+// SetDiagnostics sets the Diagnostics field's value.
+func (s *LifecycleEvent) SetDiagnostics(v *Diagnostics) *LifecycleEvent {
+	s.Diagnostics = v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *LifecycleEvent) SetEndTime(v time.Time) *LifecycleEvent {
+	s.EndTime = &v
+	return s
+}
+
+// SetLifecycleEventName sets the LifecycleEventName field's value.
+func (s *LifecycleEvent) SetLifecycleEventName(v string) *LifecycleEvent {
+	s.LifecycleEventName = &v
+	return s
+}
+
+// SetStartTime sets the StartTime field's value.
+func (s *LifecycleEvent) SetStartTime(v time.Time) *LifecycleEvent {
+	s.StartTime = &v
+	return s
+}
+
+// SetStatus sets the Status field's value.
+func (s *LifecycleEvent) SetStatus(v string) *LifecycleEvent {
+	s.Status = &v
+	return s
+}
+
 // Represents the input of a list application revisions operation.
 type ListApplicationRevisionsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
 	// Whether to list revisions based on whether the revision is the target revision
 	// of an deployment group:
 	//
-	//  include: List revisions that are target revisions of a deployment group.
-	// exclude: Do not list revisions that are target revisions of a deployment
-	// group. ignore: List all revisions.
+	//    * include: List revisions that are target revisions of a deployment group.
+	//
+	//    * exclude: Do not list revisions that are target revisions of a deployment
+	//    group.
+	//
+	//    * ignore: List all revisions.
 	Deployed *string `locationName:"deployed" type:"string" enum:"ListStateFilterAction"`
 
 	// An identifier returned from the previous list application revisions call.
@@ -3716,17 +5954,24 @@ type ListApplicationRevisionsInput struct {
 
 	// The column name to use to sort the list results:
 	//
-	//  registerTime: Sort by the time the revisions were registered with AWS CodeDeploy.
-	// firstUsedTime: Sort by the time the revisions were first used in a deployment.
-	// lastUsedTime: Sort by the time the revisions were last used in a deployment.
-	//  If not specified or set to null, the results will be returned in an arbitrary
+	//    * registerTime: Sort by the time the revisions were registered with AWS
+	//    CodeDeploy.
+	//
+	//    * firstUsedTime: Sort by the time the revisions were first used in a deployment.
+	//
+	//    * lastUsedTime: Sort by the time the revisions were last used in a deployment.
+	//
+	// If not specified or set to null, the results will be returned in an arbitrary
 	// order.
 	SortBy *string `locationName:"sortBy" type:"string" enum:"ApplicationRevisionSortBy"`
 
 	// The order in which to sort the list results:
 	//
-	//  ascending: ascending order. descending: descending order.  If not specified,
-	// the results will be sorted in ascending order.
+	//    * ascending: ascending order.
+	//
+	//    * descending: descending order.
+	//
+	// If not specified, the results will be sorted in ascending order.
 	//
 	// If set to null, the results will be sorted in an arbitrary order.
 	SortOrder *string `locationName:"sortOrder" type:"string" enum:"SortOrder"`
@@ -3758,6 +6003,48 @@ func (s *ListApplicationRevisionsInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *ListApplicationRevisionsInput) SetApplicationName(v string) *ListApplicationRevisionsInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetDeployed sets the Deployed field's value.
+func (s *ListApplicationRevisionsInput) SetDeployed(v string) *ListApplicationRevisionsInput {
+	s.Deployed = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListApplicationRevisionsInput) SetNextToken(v string) *ListApplicationRevisionsInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetS3Bucket sets the S3Bucket field's value.
+func (s *ListApplicationRevisionsInput) SetS3Bucket(v string) *ListApplicationRevisionsInput {
+	s.S3Bucket = &v
+	return s
+}
+
+// SetS3KeyPrefix sets the S3KeyPrefix field's value.
+func (s *ListApplicationRevisionsInput) SetS3KeyPrefix(v string) *ListApplicationRevisionsInput {
+	s.S3KeyPrefix = &v
+	return s
+}
+
+// SetSortBy sets the SortBy field's value.
+func (s *ListApplicationRevisionsInput) SetSortBy(v string) *ListApplicationRevisionsInput {
+	s.SortBy = &v
+	return s
+}
+
+// SetSortOrder sets the SortOrder field's value.
+func (s *ListApplicationRevisionsInput) SetSortOrder(v string) *ListApplicationRevisionsInput {
+	s.SortOrder = &v
+	return s
+}
+
 // Represents the output of a list application revisions operation.
 type ListApplicationRevisionsOutput struct {
 	_ struct{} `type:"structure"`
@@ -3781,6 +6068,18 @@ func (s ListApplicationRevisionsOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListApplicationRevisionsOutput) SetNextToken(v string) *ListApplicationRevisionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRevisions sets the Revisions field's value.
+func (s *ListApplicationRevisionsOutput) SetRevisions(v []*RevisionLocation) *ListApplicationRevisionsOutput {
+	s.Revisions = v
+	return s
+}
+
 // Represents the input of a list applications operation.
 type ListApplicationsInput struct {
 	_ struct{} `type:"structure"`
@@ -3798,6 +6097,12 @@ func (s ListApplicationsInput) String() string {
 // GoString returns the string representation
 func (s ListApplicationsInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListApplicationsInput) SetNextToken(v string) *ListApplicationsInput {
+	s.NextToken = &v
+	return s
 }
 
 // Represents the output of a list applications operation.
@@ -3823,6 +6128,18 @@ func (s ListApplicationsOutput) GoString() string {
 	return s.String()
 }
 
+// SetApplications sets the Applications field's value.
+func (s *ListApplicationsOutput) SetApplications(v []*string) *ListApplicationsOutput {
+	s.Applications = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListApplicationsOutput) SetNextToken(v string) *ListApplicationsOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Represents the input of a list deployment configurations operation.
 type ListDeploymentConfigsInput struct {
 	_ struct{} `type:"structure"`
@@ -3841,6 +6158,12 @@ func (s ListDeploymentConfigsInput) String() string {
 // GoString returns the string representation
 func (s ListDeploymentConfigsInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDeploymentConfigsInput) SetNextToken(v string) *ListDeploymentConfigsInput {
+	s.NextToken = &v
+	return s
 }
 
 // Represents the output of a list deployment configurations operation.
@@ -3867,12 +6190,26 @@ func (s ListDeploymentConfigsOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeploymentConfigsList sets the DeploymentConfigsList field's value.
+func (s *ListDeploymentConfigsOutput) SetDeploymentConfigsList(v []*string) *ListDeploymentConfigsOutput {
+	s.DeploymentConfigsList = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDeploymentConfigsOutput) SetNextToken(v string) *ListDeploymentConfigsOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Represents the input of a list deployment groups operation.
 type ListDeploymentGroupsInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
 	// An identifier returned from the previous list deployment groups call. It
@@ -3906,6 +6243,18 @@ func (s *ListDeploymentGroupsInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *ListDeploymentGroupsInput) SetApplicationName(v string) *ListDeploymentGroupsInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDeploymentGroupsInput) SetNextToken(v string) *ListDeploymentGroupsInput {
+	s.NextToken = &v
+	return s
+}
+
 // Represents the output of a list deployment groups operation.
 type ListDeploymentGroupsOutput struct {
 	_ struct{} `type:"structure"`
@@ -3932,20 +6281,46 @@ func (s ListDeploymentGroupsOutput) GoString() string {
 	return s.String()
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *ListDeploymentGroupsOutput) SetApplicationName(v string) *ListDeploymentGroupsOutput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetDeploymentGroups sets the DeploymentGroups field's value.
+func (s *ListDeploymentGroupsOutput) SetDeploymentGroups(v []*string) *ListDeploymentGroupsOutput {
+	s.DeploymentGroups = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDeploymentGroupsOutput) SetNextToken(v string) *ListDeploymentGroupsOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Represents the input of a list deployment instances operation.
 type ListDeploymentInstancesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The unique ID of a deployment.
+	//
+	// DeploymentId is a required field
 	DeploymentId *string `locationName:"deploymentId" type:"string" required:"true"`
 
 	// A subset of instances to list by status:
 	//
-	//  Pending: Include those instance with pending deployments. InProgress: Include
-	// those instance where deployments are still in progress. Succeeded: Include
-	// those instances with successful deployments. Failed: Include those instance
-	// with failed deployments. Skipped: Include those instance with skipped deployments.
-	// Unknown: Include those instance with deployments in an unknown state.
+	//    * Pending: Include those instance with pending deployments.
+	//
+	//    * InProgress: Include those instance where deployments are still in progress.
+	//
+	//    * Succeeded: Include those instances with successful deployments.
+	//
+	//    * Failed: Include those instance with failed deployments.
+	//
+	//    * Skipped: Include those instance with skipped deployments.
+	//
+	//    * Unknown: Include those instance with deployments in an unknown state.
 	InstanceStatusFilter []*string `locationName:"instanceStatusFilter" type:"list"`
 
 	// An identifier returned from the previous list deployment instances call.
@@ -3976,6 +6351,24 @@ func (s *ListDeploymentInstancesInput) Validate() error {
 	return nil
 }
 
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *ListDeploymentInstancesInput) SetDeploymentId(v string) *ListDeploymentInstancesInput {
+	s.DeploymentId = &v
+	return s
+}
+
+// SetInstanceStatusFilter sets the InstanceStatusFilter field's value.
+func (s *ListDeploymentInstancesInput) SetInstanceStatusFilter(v []*string) *ListDeploymentInstancesInput {
+	s.InstanceStatusFilter = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDeploymentInstancesInput) SetNextToken(v string) *ListDeploymentInstancesInput {
+	s.NextToken = &v
+	return s
+}
+
 // Represents the output of a list deployment instances operation.
 type ListDeploymentInstancesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3999,6 +6392,18 @@ func (s ListDeploymentInstancesOutput) GoString() string {
 	return s.String()
 }
 
+// SetInstancesList sets the InstancesList field's value.
+func (s *ListDeploymentInstancesOutput) SetInstancesList(v []*string) *ListDeploymentInstancesOutput {
+	s.InstancesList = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDeploymentInstancesOutput) SetNextToken(v string) *ListDeploymentInstancesOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Represents the input of a list deployments operation.
 type ListDeploymentsInput struct {
 	_ struct{} `type:"structure"`
@@ -4015,11 +6420,17 @@ type ListDeploymentsInput struct {
 
 	// A subset of deployments to list by status:
 	//
-	//  Created: Include created deployments in the resulting list. Queued: Include
-	// queued deployments in the resulting list. In Progress: Include in-progress
-	// deployments in the resulting list. Succeeded: Include successful deployments
-	// in the resulting list. Failed: Include failed deployments in the resulting
-	// list. Stopped: Include stopped deployments in the resulting list.
+	//    * Created: Include created deployments in the resulting list.
+	//
+	//    * Queued: Include queued deployments in the resulting list.
+	//
+	//    * In Progress: Include in-progress deployments in the resulting list.
+	//
+	//    * Succeeded: Include successful deployments in the resulting list.
+	//
+	//    * Failed: Include failed deployments in the resulting list.
+	//
+	//    * Stopped: Include stopped deployments in the resulting list.
 	IncludeOnlyStatuses []*string `locationName:"includeOnlyStatuses" type:"list"`
 
 	// An identifier returned from the previous list deployments call. It can be
@@ -4053,6 +6464,36 @@ func (s *ListDeploymentsInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *ListDeploymentsInput) SetApplicationName(v string) *ListDeploymentsInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetCreateTimeRange sets the CreateTimeRange field's value.
+func (s *ListDeploymentsInput) SetCreateTimeRange(v *TimeRange) *ListDeploymentsInput {
+	s.CreateTimeRange = v
+	return s
+}
+
+// SetDeploymentGroupName sets the DeploymentGroupName field's value.
+func (s *ListDeploymentsInput) SetDeploymentGroupName(v string) *ListDeploymentsInput {
+	s.DeploymentGroupName = &v
+	return s
+}
+
+// SetIncludeOnlyStatuses sets the IncludeOnlyStatuses field's value.
+func (s *ListDeploymentsInput) SetIncludeOnlyStatuses(v []*string) *ListDeploymentsInput {
+	s.IncludeOnlyStatuses = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDeploymentsInput) SetNextToken(v string) *ListDeploymentsInput {
+	s.NextToken = &v
+	return s
+}
+
 // Represents the output of a list deployments operation.
 type ListDeploymentsOutput struct {
 	_ struct{} `type:"structure"`
@@ -4076,9 +6517,19 @@ func (s ListDeploymentsOutput) GoString() string {
 	return s.String()
 }
 
+// SetDeployments sets the Deployments field's value.
+func (s *ListDeploymentsOutput) SetDeployments(v []*string) *ListDeploymentsOutput {
+	s.Deployments = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListDeploymentsOutput) SetNextToken(v string) *ListDeploymentsOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Represents the input of a list on-premises instances operation.
-//
-// .
 type ListOnPremisesInstancesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4088,9 +6539,11 @@ type ListOnPremisesInstancesInput struct {
 
 	// The registration status of the on-premises instances:
 	//
-	//  Deregistered: Include deregistered on-premises instances in the resulting
-	// list. Registered: Include registered on-premises instances in the resulting
-	// list.
+	//    * Deregistered: Include deregistered on-premises instances in the resulting
+	//    list.
+	//
+	//    * Registered: Include registered on-premises instances in the resulting
+	//    list.
 	RegistrationStatus *string `locationName:"registrationStatus" type:"string" enum:"RegistrationStatus"`
 
 	// The on-premises instance tags that will be used to restrict the corresponding
@@ -4106,6 +6559,24 @@ func (s ListOnPremisesInstancesInput) String() string {
 // GoString returns the string representation
 func (s ListOnPremisesInstancesInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListOnPremisesInstancesInput) SetNextToken(v string) *ListOnPremisesInstancesInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetRegistrationStatus sets the RegistrationStatus field's value.
+func (s *ListOnPremisesInstancesInput) SetRegistrationStatus(v string) *ListOnPremisesInstancesInput {
+	s.RegistrationStatus = &v
+	return s
+}
+
+// SetTagFilters sets the TagFilters field's value.
+func (s *ListOnPremisesInstancesInput) SetTagFilters(v []*TagFilter) *ListOnPremisesInstancesInput {
+	s.TagFilters = v
+	return s
 }
 
 // Represents the output of list on-premises instances operation.
@@ -4131,21 +6602,35 @@ func (s ListOnPremisesInstancesOutput) GoString() string {
 	return s.String()
 }
 
+// SetInstanceNames sets the InstanceNames field's value.
+func (s *ListOnPremisesInstancesOutput) SetInstanceNames(v []*string) *ListOnPremisesInstancesOutput {
+	s.InstanceNames = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListOnPremisesInstancesOutput) SetNextToken(v string) *ListOnPremisesInstancesOutput {
+	s.NextToken = &v
+	return s
+}
+
 // Information about minimum healthy instance.
 type MinimumHealthyHosts struct {
 	_ struct{} `type:"structure"`
 
 	// The minimum healthy instance type:
 	//
-	//  HOST_COUNT: The minimum number of healthy instance as an absolute value.
-	// FLEET_PERCENT: The minimum number of healthy instance as a percentage of
-	// the total number of instance in the deployment.  In an example of nine instance,
-	// if a HOST_COUNT of six is specified, deploy to up to three instances at a
-	// time. The deployment will be successful if six or more instances are deployed
-	// to successfully; otherwise, the deployment fails. If a FLEET_PERCENT of 40
-	// is specified, deploy to up to five instance at a time. The deployment will
-	// be successful if four or more instance are deployed to successfully; otherwise,
-	// the deployment fails.
+	//    * HOST_COUNT: The minimum number of healthy instance as an absolute value.
+	//
+	//    * FLEET_PERCENT: The minimum number of healthy instance as a percentage
+	//    of the total number of instance in the deployment.
+	//
+	// In an example of nine instance, if a HOST_COUNT of six is specified, deploy
+	// to up to three instances at a time. The deployment will be successful if
+	// six or more instances are deployed to successfully; otherwise, the deployment
+	// fails. If a FLEET_PERCENT of 40 is specified, deploy to up to five instance
+	// at a time. The deployment will be successful if four or more instance are
+	// deployed to successfully; otherwise, the deployment fails.
 	//
 	// In a call to the get deployment configuration operation, CodeDeployDefault.OneAtATime
 	// will return a minimum healthy instance type of MOST_CONCURRENCY and a value
@@ -4172,12 +6657,26 @@ func (s MinimumHealthyHosts) GoString() string {
 	return s.String()
 }
 
+// SetType sets the Type field's value.
+func (s *MinimumHealthyHosts) SetType(v string) *MinimumHealthyHosts {
+	s.Type = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *MinimumHealthyHosts) SetValue(v int64) *MinimumHealthyHosts {
+	s.Value = &v
+	return s
+}
+
 // Represents the input of a register application revision operation.
 type RegisterApplicationRevisionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The name of an AWS CodeDeploy application associated with the applicable
 	// IAM user or AWS account.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
 
 	// A comment about the revision.
@@ -4185,6 +6684,8 @@ type RegisterApplicationRevisionInput struct {
 
 	// Information about the application revision to register, including type and
 	// location.
+	//
+	// Revision is a required field
 	Revision *RevisionLocation `locationName:"revision" type:"structure" required:"true"`
 }
 
@@ -4217,6 +6718,24 @@ func (s *RegisterApplicationRevisionInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *RegisterApplicationRevisionInput) SetApplicationName(v string) *RegisterApplicationRevisionInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *RegisterApplicationRevisionInput) SetDescription(v string) *RegisterApplicationRevisionInput {
+	s.Description = &v
+	return s
+}
+
+// SetRevision sets the Revision field's value.
+func (s *RegisterApplicationRevisionInput) SetRevision(v *RevisionLocation) *RegisterApplicationRevisionInput {
+	s.Revision = v
+	return s
+}
+
 type RegisterApplicationRevisionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4236,9 +6755,13 @@ type RegisterOnPremisesInstanceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the IAM user to associate with the on-premises instance.
+	//
+	// IamUserArn is a required field
 	IamUserArn *string `locationName:"iamUserArn" type:"string" required:"true"`
 
 	// The name of the on-premises instance to register.
+	//
+	// InstanceName is a required field
 	InstanceName *string `locationName:"instanceName" type:"string" required:"true"`
 }
 
@@ -4268,6 +6791,18 @@ func (s *RegisterOnPremisesInstanceInput) Validate() error {
 	return nil
 }
 
+// SetIamUserArn sets the IamUserArn field's value.
+func (s *RegisterOnPremisesInstanceInput) SetIamUserArn(v string) *RegisterOnPremisesInstanceInput {
+	s.IamUserArn = &v
+	return s
+}
+
+// SetInstanceName sets the InstanceName field's value.
+func (s *RegisterOnPremisesInstanceInput) SetInstanceName(v string) *RegisterOnPremisesInstanceInput {
+	s.InstanceName = &v
+	return s
+}
+
 type RegisterOnPremisesInstanceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4287,9 +6822,13 @@ type RemoveTagsFromOnPremisesInstancesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The names of the on-premises instances from which to remove tags.
+	//
+	// InstanceNames is a required field
 	InstanceNames []*string `locationName:"instanceNames" type:"list" required:"true"`
 
 	// The tag key-value pairs to remove from the on-premises instances.
+	//
+	// Tags is a required field
 	Tags []*Tag `locationName:"tags" type:"list" required:"true"`
 }
 
@@ -4317,6 +6856,18 @@ func (s *RemoveTagsFromOnPremisesInstancesInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetInstanceNames sets the InstanceNames field's value.
+func (s *RemoveTagsFromOnPremisesInstancesInput) SetInstanceNames(v []*string) *RemoveTagsFromOnPremisesInstancesInput {
+	s.InstanceNames = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *RemoveTagsFromOnPremisesInstancesInput) SetTags(v []*Tag) *RemoveTagsFromOnPremisesInstancesInput {
+	s.Tags = v
+	return s
 }
 
 type RemoveTagsFromOnPremisesInstancesOutput struct {
@@ -4354,6 +6905,18 @@ func (s RevisionInfo) GoString() string {
 	return s.String()
 }
 
+// SetGenericRevisionInfo sets the GenericRevisionInfo field's value.
+func (s *RevisionInfo) SetGenericRevisionInfo(v *GenericRevisionInfo) *RevisionInfo {
+	s.GenericRevisionInfo = v
+	return s
+}
+
+// SetRevisionLocation sets the RevisionLocation field's value.
+func (s *RevisionInfo) SetRevisionLocation(v *RevisionLocation) *RevisionInfo {
+	s.RevisionLocation = v
+	return s
+}
+
 // Information about the location of an application revision.
 type RevisionLocation struct {
 	_ struct{} `type:"structure"`
@@ -4363,8 +6926,9 @@ type RevisionLocation struct {
 
 	// The type of application revision:
 	//
-	//  S3: An application revision stored in Amazon S3. GitHub: An application
-	// revision stored in GitHub.
+	//    * S3: An application revision stored in Amazon S3.
+	//
+	//    * GitHub: An application revision stored in GitHub.
 	RevisionType *string `locationName:"revisionType" type:"string" enum:"RevisionLocationType"`
 
 	// Information about the location of application artifacts stored in Amazon
@@ -4382,6 +6946,68 @@ func (s RevisionLocation) GoString() string {
 	return s.String()
 }
 
+// SetGitHubLocation sets the GitHubLocation field's value.
+func (s *RevisionLocation) SetGitHubLocation(v *GitHubLocation) *RevisionLocation {
+	s.GitHubLocation = v
+	return s
+}
+
+// SetRevisionType sets the RevisionType field's value.
+func (s *RevisionLocation) SetRevisionType(v string) *RevisionLocation {
+	s.RevisionType = &v
+	return s
+}
+
+// SetS3Location sets the S3Location field's value.
+func (s *RevisionLocation) SetS3Location(v *S3Location) *RevisionLocation {
+	s.S3Location = v
+	return s
+}
+
+// Information about a deployment rollback.
+type RollbackInfo struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the deployment rollback.
+	RollbackDeploymentId *string `locationName:"rollbackDeploymentId" type:"string"`
+
+	// Information describing the status of a deployment rollback; for example,
+	// whether the deployment can't be rolled back, is in progress, failed, or succeeded.
+	RollbackMessage *string `locationName:"rollbackMessage" type:"string"`
+
+	// The deployment ID of the deployment that was underway and triggered a rollback
+	// deployment because it failed or was stopped.
+	RollbackTriggeringDeploymentId *string `locationName:"rollbackTriggeringDeploymentId" type:"string"`
+}
+
+// String returns the string representation
+func (s RollbackInfo) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RollbackInfo) GoString() string {
+	return s.String()
+}
+
+// SetRollbackDeploymentId sets the RollbackDeploymentId field's value.
+func (s *RollbackInfo) SetRollbackDeploymentId(v string) *RollbackInfo {
+	s.RollbackDeploymentId = &v
+	return s
+}
+
+// SetRollbackMessage sets the RollbackMessage field's value.
+func (s *RollbackInfo) SetRollbackMessage(v string) *RollbackInfo {
+	s.RollbackMessage = &v
+	return s
+}
+
+// SetRollbackTriggeringDeploymentId sets the RollbackTriggeringDeploymentId field's value.
+func (s *RollbackInfo) SetRollbackTriggeringDeploymentId(v string) *RollbackInfo {
+	s.RollbackTriggeringDeploymentId = &v
+	return s
+}
+
 // Information about the location of application artifacts stored in Amazon
 // S3.
 type S3Location struct {
@@ -4392,8 +7018,11 @@ type S3Location struct {
 
 	// The file type of the application revision. Must be one of the following:
 	//
-	//  tar: A tar archive file. tgz: A compressed tar archive file. zip: A zip
-	// archive file.
+	//    * tar: A tar archive file.
+	//
+	//    * tgz: A compressed tar archive file.
+	//
+	//    * zip: A zip archive file.
 	BundleType *string `locationName:"bundleType" type:"string" enum:"BundleType"`
 
 	// The ETag of the Amazon S3 object that represents the bundled artifacts for
@@ -4425,11 +7054,48 @@ func (s S3Location) GoString() string {
 	return s.String()
 }
 
+// SetBucket sets the Bucket field's value.
+func (s *S3Location) SetBucket(v string) *S3Location {
+	s.Bucket = &v
+	return s
+}
+
+// SetBundleType sets the BundleType field's value.
+func (s *S3Location) SetBundleType(v string) *S3Location {
+	s.BundleType = &v
+	return s
+}
+
+// SetETag sets the ETag field's value.
+func (s *S3Location) SetETag(v string) *S3Location {
+	s.ETag = &v
+	return s
+}
+
+// SetKey sets the Key field's value.
+func (s *S3Location) SetKey(v string) *S3Location {
+	s.Key = &v
+	return s
+}
+
+// SetVersion sets the Version field's value.
+func (s *S3Location) SetVersion(v string) *S3Location {
+	s.Version = &v
+	return s
+}
+
 // Represents the input of a stop deployment operation.
 type StopDeploymentInput struct {
 	_ struct{} `type:"structure"`
 
+	// Indicates, when a deployment is stopped, whether instances that have been
+	// updated should be rolled back to the previous version of the application
+	// revision.
+	AutoRollbackEnabled *bool `locationName:"autoRollbackEnabled" type:"boolean"`
+
 	// The unique ID of a deployment.
+	//
+	// DeploymentId is a required field
 	DeploymentId *string `locationName:"deploymentId" type:"string" required:"true"`
 }
 
@@ -4456,14 +7122,27 @@ func (s *StopDeploymentInput) Validate() error {
 	return nil
 }
 
+// SetAutoRollbackEnabled sets the AutoRollbackEnabled field's value.
+func (s *StopDeploymentInput) SetAutoRollbackEnabled(v bool) *StopDeploymentInput {
+	s.AutoRollbackEnabled = &v
+	return s
+}
+
+// SetDeploymentId sets the DeploymentId field's value.
+func (s *StopDeploymentInput) SetDeploymentId(v string) *StopDeploymentInput {
+	s.DeploymentId = &v
+	return s
+}
+
 // Represents the output of a stop deployment operation.
 type StopDeploymentOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The status of the stop deployment operation:
 	//
-	//  Pending: The stop operation is pending. Succeeded: The stop operation was
-	// successful.
+	//    * Pending: The stop operation is pending.
+	//
+	//    * Succeeded: The stop operation was successful.
 	Status *string `locationName:"status" type:"string" enum:"StopStatus"`
 
 	// An accompanying status message.
@@ -4478,6 +7157,18 @@ func (s StopDeploymentOutput) String() string {
 // GoString returns the string representation
 func (s StopDeploymentOutput) GoString() string {
 	return s.String()
+}
+
+// SetStatus sets the Status field's value.
+func (s *StopDeploymentOutput) SetStatus(v string) *StopDeploymentOutput {
+	s.Status = &v
+	return s
+}
+
+// SetStatusMessage sets the StatusMessage field's value.
+func (s *StopDeploymentOutput) SetStatusMessage(v string) *StopDeploymentOutput {
+	s.StatusMessage = &v
+	return s
 }
 
 // Information about a tag.
@@ -4501,6 +7192,18 @@ func (s Tag) GoString() string {
 	return s.String()
 }
 
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
 // Information about an on-premises instance tag filter.
 type TagFilter struct {
 	_ struct{} `type:"structure"`
@@ -4510,7 +7213,11 @@ type TagFilter struct {
 
 	// The on-premises instance tag filter type:
 	//
-	//  KEY_ONLY: Key only. VALUE_ONLY: Value only. KEY_AND_VALUE: Key and value.
+	//    * KEY_ONLY: Key only.
+	//
+	//    * VALUE_ONLY: Value only.
+	//
+	//    * KEY_AND_VALUE: Key and value.
 	Type *string `type:"string" enum:"TagFilterType"`
 
 	// The on-premises instance tag filter value.
@@ -4525,6 +7232,24 @@ func (s TagFilter) String() string {
 // GoString returns the string representation
 func (s TagFilter) GoString() string {
 	return s.String()
+}
+
+// SetKey sets the Key field's value.
+func (s *TagFilter) SetKey(v string) *TagFilter {
+	s.Key = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *TagFilter) SetType(v string) *TagFilter {
+	s.Type = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *TagFilter) SetValue(v string) *TagFilter {
+	s.Value = &v
+	return s
 }
 
 // Information about a time range.
@@ -4552,16 +7277,23 @@ func (s TimeRange) GoString() string {
 	return s.String()
 }
 
+// SetEnd sets the End field's value.
+func (s *TimeRange) SetEnd(v time.Time) *TimeRange {
+	s.End = &v
+	return s
+}
+
+// SetStart sets the Start field's value.
+func (s *TimeRange) SetStart(v time.Time) *TimeRange {
+	s.Start = &v
+	return s
+}
+
 // Information about notification triggers for the deployment group.
 type TriggerConfig struct {
 	_ struct{} `type:"structure"`
 
 	// The event type or types for which notifications are triggered.
-	//
-	// The following event type values are supported:
-	//
-	//  DEPLOYMENT_START DEPLOYMENT_SUCCESS DEPLOYMENT_FAILURE DEPLOYMENT_STOP
-	// INSTANCE_START INSTANCE_SUCCESS INSTANCE_FAILURE
 	TriggerEvents []*string `locationName:"triggerEvents" type:"list"`
 
 	// The name of the notification trigger.
@@ -4580,6 +7312,24 @@ func (s TriggerConfig) String() string {
 // GoString returns the string representation
 func (s TriggerConfig) GoString() string {
 	return s.String()
+}
+
+// SetTriggerEvents sets the TriggerEvents field's value.
+func (s *TriggerConfig) SetTriggerEvents(v []*string) *TriggerConfig {
+	s.TriggerEvents = v
+	return s
+}
+
+// SetTriggerName sets the TriggerName field's value.
+func (s *TriggerConfig) SetTriggerName(v string) *TriggerConfig {
+	s.TriggerName = &v
+	return s
+}
+
+// SetTriggerTargetArn sets the TriggerTargetArn field's value.
+func (s *TriggerConfig) SetTriggerTargetArn(v string) *TriggerConfig {
+	s.TriggerTargetArn = &v
+	return s
 }
 
 // Represents the input of an update application operation.
@@ -4619,6 +7369,18 @@ func (s *UpdateApplicationInput) Validate() error {
 	return nil
 }
 
+// SetApplicationName sets the ApplicationName field's value.
+func (s *UpdateApplicationInput) SetApplicationName(v string) *UpdateApplicationInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetNewApplicationName sets the NewApplicationName field's value.
+func (s *UpdateApplicationInput) SetNewApplicationName(v string) *UpdateApplicationInput {
+	s.NewApplicationName = &v
+	return s
+}
+
 type UpdateApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -4637,8 +7399,18 @@ func (s UpdateApplicationOutput) GoString() string {
 type UpdateDeploymentGroupInput struct {
 	_ struct{} `type:"structure"`
 
+	// Information to add or change about Amazon CloudWatch alarms when the deployment
+	// group is updated.
+	AlarmConfiguration *AlarmConfiguration `locationName:"alarmConfiguration" type:"structure"`
+
 	// The application name corresponding to the deployment group to update.
+	//
+	// ApplicationName is a required field
 	ApplicationName *string `locationName:"applicationName" min:"1" type:"string" required:"true"`
+
+	// Information for an automatic rollback configuration that is added or changed
+	// when a deployment group is updated.
+	AutoRollbackConfiguration *AutoRollbackConfiguration `locationName:"autoRollbackConfiguration" type:"structure"`
 
 	// The replacement list of Auto Scaling groups to be included in the deployment
 	// group, if you want to change them. To keep the Auto Scaling groups, enter
@@ -4647,6 +7419,8 @@ type UpdateDeploymentGroupInput struct {
 	AutoScalingGroups []*string `locationName:"autoScalingGroups" type:"list"`
 
 	// The current name of the deployment group.
+	//
+	// CurrentDeploymentGroupName is a required field
 	CurrentDeploymentGroupName *string `locationName:"currentDeploymentGroupName" min:"1" type:"string" required:"true"`
 
 	// The replacement deployment configuration name to use, if you want to change
@@ -4670,6 +7444,8 @@ type UpdateDeploymentGroupInput struct {
 	ServiceRoleArn *string `locationName:"serviceRoleArn" type:"string"`
 
 	// Information about triggers to change when the deployment group is updated.
+	// For examples, see Modify Triggers in an AWS CodeDeploy Deployment Group (http://docs.aws.amazon.com/codedeploy/latest/userguide/how-to-notify-edit.html)
+	// in the AWS CodeDeploy User Guide.
 	TriggerConfigurations []*TriggerConfig `locationName:"triggerConfigurations" type:"list"`
 }
 
@@ -4711,6 +7487,72 @@ func (s *UpdateDeploymentGroupInput) Validate() error {
 	return nil
 }
 
+// SetAlarmConfiguration sets the AlarmConfiguration field's value.
+func (s *UpdateDeploymentGroupInput) SetAlarmConfiguration(v *AlarmConfiguration) *UpdateDeploymentGroupInput {
+	s.AlarmConfiguration = v
+	return s
+}
+
+// SetApplicationName sets the ApplicationName field's value.
+func (s *UpdateDeploymentGroupInput) SetApplicationName(v string) *UpdateDeploymentGroupInput {
+	s.ApplicationName = &v
+	return s
+}
+
+// SetAutoRollbackConfiguration sets the AutoRollbackConfiguration field's value.
+func (s *UpdateDeploymentGroupInput) SetAutoRollbackConfiguration(v *AutoRollbackConfiguration) *UpdateDeploymentGroupInput {
+	s.AutoRollbackConfiguration = v
+	return s
+}
+
+// SetAutoScalingGroups sets the AutoScalingGroups field's value.
+func (s *UpdateDeploymentGroupInput) SetAutoScalingGroups(v []*string) *UpdateDeploymentGroupInput {
+	s.AutoScalingGroups = v
+	return s
+}
+
+// SetCurrentDeploymentGroupName sets the CurrentDeploymentGroupName field's value.
+func (s *UpdateDeploymentGroupInput) SetCurrentDeploymentGroupName(v string) *UpdateDeploymentGroupInput {
+	s.CurrentDeploymentGroupName = &v
+	return s
+}
+
+// SetDeploymentConfigName sets the DeploymentConfigName field's value.
+func (s *UpdateDeploymentGroupInput) SetDeploymentConfigName(v string) *UpdateDeploymentGroupInput {
+	s.DeploymentConfigName = &v
+	return s
+}
+
+// SetEc2TagFilters sets the Ec2TagFilters field's value.
+func (s *UpdateDeploymentGroupInput) SetEc2TagFilters(v []*EC2TagFilter) *UpdateDeploymentGroupInput {
+	s.Ec2TagFilters = v
+	return s
+}
+
+// SetNewDeploymentGroupName sets the NewDeploymentGroupName field's value.
+func (s *UpdateDeploymentGroupInput) SetNewDeploymentGroupName(v string) *UpdateDeploymentGroupInput {
+	s.NewDeploymentGroupName = &v
+	return s
+}
+
+// SetOnPremisesInstanceTagFilters sets the OnPremisesInstanceTagFilters field's value.
+func (s *UpdateDeploymentGroupInput) SetOnPremisesInstanceTagFilters(v []*TagFilter) *UpdateDeploymentGroupInput {
+	s.OnPremisesInstanceTagFilters = v
+	return s
+}
+
+// SetServiceRoleArn sets the ServiceRoleArn field's value.
+func (s *UpdateDeploymentGroupInput) SetServiceRoleArn(v string) *UpdateDeploymentGroupInput {
+	s.ServiceRoleArn = &v
+	return s
+}
+
+// SetTriggerConfigurations sets the TriggerConfigurations field's value.
+func (s *UpdateDeploymentGroupInput) SetTriggerConfigurations(v []*TriggerConfig) *UpdateDeploymentGroupInput {
+	s.TriggerConfigurations = v
+	return s
+}
+
 // Represents the output of an update deployment group operation.
 type UpdateDeploymentGroupOutput struct {
 	_ struct{} `type:"structure"`
@@ -4733,195 +7575,287 @@ func (s UpdateDeploymentGroupOutput) GoString() string {
 	return s.String()
 }
 
+// SetHooksNotCleanedUp sets the HooksNotCleanedUp field's value.
+func (s *UpdateDeploymentGroupOutput) SetHooksNotCleanedUp(v []*AutoScalingGroup) *UpdateDeploymentGroupOutput {
+	s.HooksNotCleanedUp = v
+	return s
+}
+
 const (
-	// @enum ApplicationRevisionSortBy
+	// ApplicationRevisionSortByRegisterTime is a ApplicationRevisionSortBy enum value
 	ApplicationRevisionSortByRegisterTime = "registerTime"
-	// @enum ApplicationRevisionSortBy
+
+	// ApplicationRevisionSortByFirstUsedTime is a ApplicationRevisionSortBy enum value
 	ApplicationRevisionSortByFirstUsedTime = "firstUsedTime"
-	// @enum ApplicationRevisionSortBy
+
+	// ApplicationRevisionSortByLastUsedTime is a ApplicationRevisionSortBy enum value
 	ApplicationRevisionSortByLastUsedTime = "lastUsedTime"
 )
 
 const (
-	// @enum BundleType
+	// AutoRollbackEventDeploymentFailure is a AutoRollbackEvent enum value
+	AutoRollbackEventDeploymentFailure = "DEPLOYMENT_FAILURE"
+
+	// AutoRollbackEventDeploymentStopOnAlarm is a AutoRollbackEvent enum value
+	AutoRollbackEventDeploymentStopOnAlarm = "DEPLOYMENT_STOP_ON_ALARM"
+
+	// AutoRollbackEventDeploymentStopOnRequest is a AutoRollbackEvent enum value
+	AutoRollbackEventDeploymentStopOnRequest = "DEPLOYMENT_STOP_ON_REQUEST"
+)
+
+const (
+	// BundleTypeTar is a BundleType enum value
 	BundleTypeTar = "tar"
-	// @enum BundleType
+
+	// BundleTypeTgz is a BundleType enum value
 	BundleTypeTgz = "tgz"
-	// @enum BundleType
+
+	// BundleTypeZip is a BundleType enum value
 	BundleTypeZip = "zip"
 )
 
 const (
-	// @enum DeploymentCreator
+	// DeploymentCreatorUser is a DeploymentCreator enum value
 	DeploymentCreatorUser = "user"
-	// @enum DeploymentCreator
+
+	// DeploymentCreatorAutoscaling is a DeploymentCreator enum value
 	DeploymentCreatorAutoscaling = "autoscaling"
+
+	// DeploymentCreatorCodeDeployRollback is a DeploymentCreator enum value
+	DeploymentCreatorCodeDeployRollback = "codeDeployRollback"
 )
 
 const (
-	// @enum DeploymentStatus
+	// DeploymentStatusCreated is a DeploymentStatus enum value
 	DeploymentStatusCreated = "Created"
-	// @enum DeploymentStatus
+
+	// DeploymentStatusQueued is a DeploymentStatus enum value
 	DeploymentStatusQueued = "Queued"
-	// @enum DeploymentStatus
+
+	// DeploymentStatusInProgress is a DeploymentStatus enum value
 	DeploymentStatusInProgress = "InProgress"
-	// @enum DeploymentStatus
+
+	// DeploymentStatusSucceeded is a DeploymentStatus enum value
 	DeploymentStatusSucceeded = "Succeeded"
-	// @enum DeploymentStatus
+
+	// DeploymentStatusFailed is a DeploymentStatus enum value
 	DeploymentStatusFailed = "Failed"
-	// @enum DeploymentStatus
+
+	// DeploymentStatusStopped is a DeploymentStatus enum value
 	DeploymentStatusStopped = "Stopped"
 )
 
 const (
-	// @enum EC2TagFilterType
+	// EC2TagFilterTypeKeyOnly is a EC2TagFilterType enum value
 	EC2TagFilterTypeKeyOnly = "KEY_ONLY"
-	// @enum EC2TagFilterType
+
+	// EC2TagFilterTypeValueOnly is a EC2TagFilterType enum value
 	EC2TagFilterTypeValueOnly = "VALUE_ONLY"
-	// @enum EC2TagFilterType
+
+	// EC2TagFilterTypeKeyAndValue is a EC2TagFilterType enum value
 	EC2TagFilterTypeKeyAndValue = "KEY_AND_VALUE"
 )
 
 const (
-	// @enum ErrorCode
+	// ErrorCodeDeploymentGroupMissing is a ErrorCode enum value
 	ErrorCodeDeploymentGroupMissing = "DEPLOYMENT_GROUP_MISSING"
-	// @enum ErrorCode
+
+	// ErrorCodeApplicationMissing is a ErrorCode enum value
 	ErrorCodeApplicationMissing = "APPLICATION_MISSING"
-	// @enum ErrorCode
+
+	// ErrorCodeRevisionMissing is a ErrorCode enum value
 	ErrorCodeRevisionMissing = "REVISION_MISSING"
-	// @enum ErrorCode
+
+	// ErrorCodeIamRoleMissing is a ErrorCode enum value
 	ErrorCodeIamRoleMissing = "IAM_ROLE_MISSING"
-	// @enum ErrorCode
+
+	// ErrorCodeIamRolePermissions is a ErrorCode enum value
 	ErrorCodeIamRolePermissions = "IAM_ROLE_PERMISSIONS"
-	// @enum ErrorCode
+
+	// ErrorCodeNoEc2Subscription is a ErrorCode enum value
 	ErrorCodeNoEc2Subscription = "NO_EC2_SUBSCRIPTION"
-	// @enum ErrorCode
+
+	// ErrorCodeOverMaxInstances is a ErrorCode enum value
 	ErrorCodeOverMaxInstances = "OVER_MAX_INSTANCES"
-	// @enum ErrorCode
+
+	// ErrorCodeNoInstances is a ErrorCode enum value
 	ErrorCodeNoInstances = "NO_INSTANCES"
-	// @enum ErrorCode
+
+	// ErrorCodeTimeout is a ErrorCode enum value
 	ErrorCodeTimeout = "TIMEOUT"
-	// @enum ErrorCode
+
+	// ErrorCodeHealthConstraintsInvalid is a ErrorCode enum value
 	ErrorCodeHealthConstraintsInvalid = "HEALTH_CONSTRAINTS_INVALID"
-	// @enum ErrorCode
+
+	// ErrorCodeHealthConstraints is a ErrorCode enum value
 	ErrorCodeHealthConstraints = "HEALTH_CONSTRAINTS"
-	// @enum ErrorCode
+
+	// ErrorCodeInternalError is a ErrorCode enum value
 	ErrorCodeInternalError = "INTERNAL_ERROR"
-	// @enum ErrorCode
+
+	// ErrorCodeThrottled is a ErrorCode enum value
 	ErrorCodeThrottled = "THROTTLED"
+
+	// ErrorCodeAlarmActive is a ErrorCode enum value
+	ErrorCodeAlarmActive = "ALARM_ACTIVE"
+
+	// ErrorCodeAgentIssue is a ErrorCode enum value
+	ErrorCodeAgentIssue = "AGENT_ISSUE"
+
+	// ErrorCodeAutoScalingIamRolePermissions is a ErrorCode enum value
+	ErrorCodeAutoScalingIamRolePermissions = "AUTO_SCALING_IAM_ROLE_PERMISSIONS"
+
+	// ErrorCodeAutoScalingConfiguration is a ErrorCode enum value
+	ErrorCodeAutoScalingConfiguration = "AUTO_SCALING_CONFIGURATION"
+
+	// ErrorCodeManualStop is a ErrorCode enum value
+	ErrorCodeManualStop = "MANUAL_STOP"
 )
 
 const (
-	// @enum InstanceStatus
+	// InstanceStatusPending is a InstanceStatus enum value
 	InstanceStatusPending = "Pending"
-	// @enum InstanceStatus
+
+	// InstanceStatusInProgress is a InstanceStatus enum value
 	InstanceStatusInProgress = "InProgress"
-	// @enum InstanceStatus
+
+	// InstanceStatusSucceeded is a InstanceStatus enum value
 	InstanceStatusSucceeded = "Succeeded"
-	// @enum InstanceStatus
+
+	// InstanceStatusFailed is a InstanceStatus enum value
 	InstanceStatusFailed = "Failed"
-	// @enum InstanceStatus
+
+	// InstanceStatusSkipped is a InstanceStatus enum value
 	InstanceStatusSkipped = "Skipped"
-	// @enum InstanceStatus
+
+	// InstanceStatusUnknown is a InstanceStatus enum value
 	InstanceStatusUnknown = "Unknown"
 )
 
 const (
-	// @enum LifecycleErrorCode
+	// LifecycleErrorCodeSuccess is a LifecycleErrorCode enum value
 	LifecycleErrorCodeSuccess = "Success"
-	// @enum LifecycleErrorCode
+
+	// LifecycleErrorCodeScriptMissing is a LifecycleErrorCode enum value
 	LifecycleErrorCodeScriptMissing = "ScriptMissing"
-	// @enum LifecycleErrorCode
+
+	// LifecycleErrorCodeScriptNotExecutable is a LifecycleErrorCode enum value
 	LifecycleErrorCodeScriptNotExecutable = "ScriptNotExecutable"
-	// @enum LifecycleErrorCode
+
+	// LifecycleErrorCodeScriptTimedOut is a LifecycleErrorCode enum value
 	LifecycleErrorCodeScriptTimedOut = "ScriptTimedOut"
-	// @enum LifecycleErrorCode
+
+	// LifecycleErrorCodeScriptFailed is a LifecycleErrorCode enum value
 	LifecycleErrorCodeScriptFailed = "ScriptFailed"
-	// @enum LifecycleErrorCode
+
+	// LifecycleErrorCodeUnknownError is a LifecycleErrorCode enum value
 	LifecycleErrorCodeUnknownError = "UnknownError"
 )
 
 const (
-	// @enum LifecycleEventStatus
+	// LifecycleEventStatusPending is a LifecycleEventStatus enum value
 	LifecycleEventStatusPending = "Pending"
-	// @enum LifecycleEventStatus
+
+	// LifecycleEventStatusInProgress is a LifecycleEventStatus enum value
 	LifecycleEventStatusInProgress = "InProgress"
-	// @enum LifecycleEventStatus
+
+	// LifecycleEventStatusSucceeded is a LifecycleEventStatus enum value
 	LifecycleEventStatusSucceeded = "Succeeded"
-	// @enum LifecycleEventStatus
+
+	// LifecycleEventStatusFailed is a LifecycleEventStatus enum value
 	LifecycleEventStatusFailed = "Failed"
-	// @enum LifecycleEventStatus
+
+	// LifecycleEventStatusSkipped is a LifecycleEventStatus enum value
 	LifecycleEventStatusSkipped = "Skipped"
-	// @enum LifecycleEventStatus
+
+	// LifecycleEventStatusUnknown is a LifecycleEventStatus enum value
 	LifecycleEventStatusUnknown = "Unknown"
 )
 
 const (
-	// @enum ListStateFilterAction
+	// ListStateFilterActionInclude is a ListStateFilterAction enum value
 	ListStateFilterActionInclude = "include"
-	// @enum ListStateFilterAction
+
+	// ListStateFilterActionExclude is a ListStateFilterAction enum value
 	ListStateFilterActionExclude = "exclude"
-	// @enum ListStateFilterAction
+
+	// ListStateFilterActionIgnore is a ListStateFilterAction enum value
 	ListStateFilterActionIgnore = "ignore"
 )
 
 const (
-	// @enum MinimumHealthyHostsType
+	// MinimumHealthyHostsTypeHostCount is a MinimumHealthyHostsType enum value
 	MinimumHealthyHostsTypeHostCount = "HOST_COUNT"
-	// @enum MinimumHealthyHostsType
+
+	// MinimumHealthyHostsTypeFleetPercent is a MinimumHealthyHostsType enum value
 	MinimumHealthyHostsTypeFleetPercent = "FLEET_PERCENT"
 )
 
 const (
-	// @enum RegistrationStatus
+	// RegistrationStatusRegistered is a RegistrationStatus enum value
 	RegistrationStatusRegistered = "Registered"
-	// @enum RegistrationStatus
+
+	// RegistrationStatusDeregistered is a RegistrationStatus enum value
 	RegistrationStatusDeregistered = "Deregistered"
 )
 
 const (
-	// @enum RevisionLocationType
+	// RevisionLocationTypeS3 is a RevisionLocationType enum value
 	RevisionLocationTypeS3 = "S3"
-	// @enum RevisionLocationType
+
+	// RevisionLocationTypeGitHub is a RevisionLocationType enum value
 	RevisionLocationTypeGitHub = "GitHub"
 )
 
 const (
-	// @enum SortOrder
+	// SortOrderAscending is a SortOrder enum value
 	SortOrderAscending = "ascending"
-	// @enum SortOrder
+
+	// SortOrderDescending is a SortOrder enum value
 	SortOrderDescending = "descending"
 )
 
 const (
-	// @enum StopStatus
+	// StopStatusPending is a StopStatus enum value
 	StopStatusPending = "Pending"
-	// @enum StopStatus
+
+	// StopStatusSucceeded is a StopStatus enum value
 	StopStatusSucceeded = "Succeeded"
 )
 
 const (
-	// @enum TagFilterType
+	// TagFilterTypeKeyOnly is a TagFilterType enum value
 	TagFilterTypeKeyOnly = "KEY_ONLY"
-	// @enum TagFilterType
+
+	// TagFilterTypeValueOnly is a TagFilterType enum value
 	TagFilterTypeValueOnly = "VALUE_ONLY"
-	// @enum TagFilterType
+
+	// TagFilterTypeKeyAndValue is a TagFilterType enum value
 	TagFilterTypeKeyAndValue = "KEY_AND_VALUE"
 )
 
 const (
-	// @enum TriggerEventType
+	// TriggerEventTypeDeploymentStart is a TriggerEventType enum value
 	TriggerEventTypeDeploymentStart = "DeploymentStart"
-	// @enum TriggerEventType
+
+	// TriggerEventTypeDeploymentSuccess is a TriggerEventType enum value
 	TriggerEventTypeDeploymentSuccess = "DeploymentSuccess"
-	// @enum TriggerEventType
+
+	// TriggerEventTypeDeploymentFailure is a TriggerEventType enum value
 	TriggerEventTypeDeploymentFailure = "DeploymentFailure"
-	// @enum TriggerEventType
+
+	// TriggerEventTypeDeploymentStop is a TriggerEventType enum value
 	TriggerEventTypeDeploymentStop = "DeploymentStop"
-	// @enum TriggerEventType
+
+	// TriggerEventTypeDeploymentRollback is a TriggerEventType enum value
+	TriggerEventTypeDeploymentRollback = "DeploymentRollback"
+
+	// TriggerEventTypeInstanceStart is a TriggerEventType enum value
 	TriggerEventTypeInstanceStart = "InstanceStart"
-	// @enum TriggerEventType
+
+	// TriggerEventTypeInstanceSuccess is a TriggerEventType enum value
 	TriggerEventTypeInstanceSuccess = "InstanceSuccess"
-	// @enum TriggerEventType
+
+	// TriggerEventTypeInstanceFailure is a TriggerEventType enum value
 	TriggerEventTypeInstanceFailure = "InstanceFailure"
 )

@@ -21,6 +21,7 @@ package resources
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -32,7 +33,13 @@ type DeploymentsClient struct {
 
 // NewDeploymentsClient creates an instance of the DeploymentsClient client.
 func NewDeploymentsClient(subscriptionID string) DeploymentsClient {
-	return DeploymentsClient{New(subscriptionID)}
+	return NewDeploymentsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewDeploymentsClientWithBaseURI creates an instance of the
+// DeploymentsClient client.
+func NewDeploymentsClientWithBaseURI(baseURI string, subscriptionID string) DeploymentsClient {
+	return DeploymentsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Cancel cancel a currently running template deployment.
@@ -40,6 +47,18 @@ func NewDeploymentsClient(subscriptionID string) DeploymentsClient {
 // resourceGroupName is the name of the resource group. The name is case
 // insensitive. deploymentName is the name of the deployment.
 func (client DeploymentsClient) Cancel(resourceGroupName string, deploymentName string) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: deploymentName,
+			Constraints: []validation.Constraint{{Target: "deploymentName", Name: validation.MaxLength, Rule: 64, Chain: nil},
+				{Target: "deploymentName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "deploymentName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentsClient", "Cancel")
+	}
+
 	req, err := client.CancelPreparer(resourceGroupName, deploymentName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "Cancel", nil, "Failure preparing request")
@@ -102,6 +121,18 @@ func (client DeploymentsClient) CancelResponder(resp *http.Response) (result aut
 // resourceGroupName is the name of the resource group to check. The name is
 // case insensitive. deploymentName is the name of the deployment.
 func (client DeploymentsClient) CheckExistence(resourceGroupName string, deploymentName string) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: deploymentName,
+			Constraints: []validation.Constraint{{Target: "deploymentName", Name: validation.MaxLength, Rule: 64, Chain: nil},
+				{Target: "deploymentName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "deploymentName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentsClient", "CheckExistence")
+	}
+
 	req, err := client.CheckExistencePreparer(resourceGroupName, deploymentName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "CheckExistence", nil, "Failure preparing request")
@@ -168,6 +199,25 @@ func (client DeploymentsClient) CheckExistenceResponder(resp *http.Response) (re
 // insensitive. deploymentName is the name of the deployment. parameters is
 // additional parameters supplied to the operation.
 func (client DeploymentsClient) CreateOrUpdate(resourceGroupName string, deploymentName string, parameters Deployment, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: deploymentName,
+			Constraints: []validation.Constraint{{Target: "deploymentName", Name: validation.MaxLength, Rule: 64, Chain: nil},
+				{Target: "deploymentName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "deploymentName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink.URI", Name: validation.Null, Rule: true, Chain: nil}}},
+					{Target: "parameters.Properties.ParametersLink", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Properties.ParametersLink.URI", Name: validation.Null, Rule: true, Chain: nil}}},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentsClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, deploymentName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -236,6 +286,18 @@ func (client DeploymentsClient) CreateOrUpdateResponder(resp *http.Response) (re
 // resourceGroupName is the name of the resource group. The name is case
 // insensitive. deploymentName is the name of the deployment to be deleted.
 func (client DeploymentsClient) Delete(resourceGroupName string, deploymentName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: deploymentName,
+			Constraints: []validation.Constraint{{Target: "deploymentName", Name: validation.MaxLength, Rule: 64, Chain: nil},
+				{Target: "deploymentName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "deploymentName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentsClient", "Delete")
+	}
+
 	req, err := client.DeletePreparer(resourceGroupName, deploymentName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "Delete", nil, "Failure preparing request")
@@ -300,6 +362,18 @@ func (client DeploymentsClient) DeleteResponder(resp *http.Response) (result aut
 // resourceGroupName is the name of the resource group. The name is case
 // insensitive. deploymentName is the name of the deployment.
 func (client DeploymentsClient) ExportTemplate(resourceGroupName string, deploymentName string) (result DeploymentExportResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: deploymentName,
+			Constraints: []validation.Constraint{{Target: "deploymentName", Name: validation.MaxLength, Rule: 64, Chain: nil},
+				{Target: "deploymentName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "deploymentName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentsClient", "ExportTemplate")
+	}
+
 	req, err := client.ExportTemplatePreparer(resourceGroupName, deploymentName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "ExportTemplate", nil, "Failure preparing request")
@@ -363,6 +437,18 @@ func (client DeploymentsClient) ExportTemplateResponder(resp *http.Response) (re
 // resourceGroupName is the name of the resource group to get. The name is
 // case insensitive. deploymentName is the name of the deployment.
 func (client DeploymentsClient) Get(resourceGroupName string, deploymentName string) (result DeploymentExtended, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: deploymentName,
+			Constraints: []validation.Constraint{{Target: "deploymentName", Name: validation.MaxLength, Rule: 64, Chain: nil},
+				{Target: "deploymentName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "deploymentName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentsClient", "Get")
+	}
+
 	req, err := client.GetPreparer(resourceGroupName, deploymentName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "Get", nil, "Failure preparing request")
@@ -427,6 +513,14 @@ func (client DeploymentsClient) GetResponder(resp *http.Response) (result Deploy
 // is case insensitive. filter is the filter to apply on the operation. top
 // is query parameters. If null is passed returns all deployments.
 func (client DeploymentsClient) List(resourceGroupName string, filter string, top *int32) (result DeploymentListResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentsClient", "List")
+	}
+
 	req, err := client.ListPreparer(resourceGroupName, filter, top)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "List", nil, "Failure preparing request")
@@ -494,7 +588,7 @@ func (client DeploymentsClient) ListResponder(resp *http.Response) (result Deplo
 func (client DeploymentsClient) ListNextResults(lastResults DeploymentListResult) (result DeploymentListResult, err error) {
 	req, err := lastResults.DeploymentListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -503,12 +597,12 @@ func (client DeploymentsClient) ListNextResults(lastResults DeploymentListResult
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "resources.DeploymentsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "resources.DeploymentsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -520,6 +614,25 @@ func (client DeploymentsClient) ListNextResults(lastResults DeploymentListResult
 // insensitive. deploymentName is the name of the deployment. parameters is
 // deployment to validate.
 func (client DeploymentsClient) Validate(resourceGroupName string, deploymentName string, parameters Deployment) (result DeploymentValidateResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: deploymentName,
+			Constraints: []validation.Constraint{{Target: "deploymentName", Name: validation.MaxLength, Rule: 64, Chain: nil},
+				{Target: "deploymentName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "deploymentName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.TemplateLink.URI", Name: validation.Null, Rule: true, Chain: nil}}},
+					{Target: "parameters.Properties.ParametersLink", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Properties.ParametersLink.URI", Name: validation.Null, Rule: true, Chain: nil}}},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "resources.DeploymentsClient", "Validate")
+	}
+
 	req, err := client.ValidatePreparer(resourceGroupName, deploymentName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "resources.DeploymentsClient", "Validate", nil, "Failure preparing request")

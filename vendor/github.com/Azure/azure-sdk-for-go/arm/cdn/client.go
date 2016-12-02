@@ -2,8 +2,8 @@
 //
 // Use these APIs to manage Azure CDN resources through the Azure Resource
 // Manager. You must make sure that requests made to these resources are
-// secure. For more information, see Authenticating Azure Resource Manager
-// requests (https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx).
+// secure. For more information, see
+// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
 package cdn
 
 // Copyright (c) Microsoft and contributors.  All rights reserved.
@@ -46,9 +46,14 @@ type ManagementClient struct {
 
 // New creates an instance of the ManagementClient client.
 func New(subscriptionID string) ManagementClient {
+	return NewWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewWithBaseURI creates an instance of the ManagementClient client.
+func NewWithBaseURI(baseURI string, subscriptionID string) ManagementClient {
 	return ManagementClient{
 		Client:         autorest.NewClientWithUserAgent(UserAgent()),
-		BaseURI:        DefaultBaseURI,
+		BaseURI:        baseURI,
 		APIVersion:     APIVersion,
 		SubscriptionID: subscriptionID,
 	}

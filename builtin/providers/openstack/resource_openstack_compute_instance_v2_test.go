@@ -8,12 +8,13 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
-	"github.com/rackspace/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/floatingips"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/pagination"
 )
 
 func TestAccComputeV2Instance_basic(t *testing.T) {
@@ -148,6 +149,11 @@ func TestAccComputeV2Instance_volumeDetachPostCreation(t *testing.T) {
 		}`)
 
 	var testAccComputeV2Instance_volumeDetachPostCreationInstance = fmt.Sprintf(`
+		resource "openstack_blockstorage_volume_v1" "myvol" {
+			name = "myvol"
+			size = 1
+		}
+
 		resource "openstack_compute_instance_v2" "foo" {
 			name = "terraform-test"
 			security_groups = ["default"]
@@ -169,7 +175,7 @@ func TestAccComputeV2Instance_volumeDetachPostCreation(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeDetachPostCreationInstance,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeDoesNotExist(t, "openstack_blockstorage_volume_v1.myvol", &volume),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.myvol", &volume),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumesDetached(&instance),
 				),
@@ -178,9 +184,254 @@ func TestAccComputeV2Instance_volumeDetachPostCreation(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2Instance_volumeDetachAdditionalVolumePostCreation(t *testing.T) {
+	var instance servers.Server
+	var volume_1 volumes.Volume
+	var volume_2 volumes.Volume
+
+	var testAccComputeV2Instance_volumeDetachAdditionalVolumePostCreationInstanceAndVolume = fmt.Sprintf(`
+
+		resource "openstack_blockstorage_volume_v1" "root_volume" {
+			name = "root_volume"
+			size = 1
+			image_id = "%s"
+		}
+
+		resource "openstack_blockstorage_volume_v1" "additional_volume" {
+			name = "additional_volume"
+			size = 1
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+
+			block_device {
+				uuid = "${openstack_blockstorage_volume_v1.root_volume.id}"
+				source_type = "volume"
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = false
+			}
+
+			volume {
+				volume_id = "${openstack_blockstorage_volume_v1.additional_volume.id}"
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	var testAccComputeV2Instance_volumeDetachPostCreationInstance = fmt.Sprintf(`
+
+		resource "openstack_blockstorage_volume_v1" "root_volume" {
+			name = "root_volume"
+			size = 1
+			image_id = "%s"
+		}
+
+		resource "openstack_blockstorage_volume_v1" "additional_volume" {
+			name = "additional_volume"
+			size = 1
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+
+			block_device {
+				uuid = "${openstack_blockstorage_volume_v1.root_volume.id}"
+				source_type = "volume"
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = false
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_volumeDetachAdditionalVolumePostCreationInstanceAndVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume_2),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_1),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_2),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_volumeDetachPostCreationInstance,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume_2),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_1),
+					testAccCheckComputeV2InstanceVolumeDetached(&instance, "openstack_blockstorage_volume_v1.additional_volume"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_volumeAttachInstanceDelete(t *testing.T) {
+	var instance servers.Server
+	var volume_1 volumes.Volume
+	var volume_2 volumes.Volume
+
+	var testAccComputeV2Instance_volumeAttachInstanceDelete_1 = fmt.Sprintf(`
+		resource "openstack_blockstorage_volume_v1" "root_volume" {
+			name = "root_volume"
+			size = 1
+			image_id = "%s"
+		}
+
+		resource "openstack_blockstorage_volume_v1" "additional_volume" {
+			name = "additional_volume"
+			size = 1
+		}
+
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			security_groups = ["default"]
+
+			block_device {
+				uuid = "${openstack_blockstorage_volume_v1.root_volume.id}"
+				source_type = "volume"
+				boot_index = 0
+				destination_type = "volume"
+				delete_on_termination = false
+			}
+
+			volume {
+				volume_id = "${openstack_blockstorage_volume_v1.additional_volume.id}"
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	var testAccComputeV2Instance_volumeAttachInstanceDelete_2 = fmt.Sprintf(`
+		resource "openstack_blockstorage_volume_v1" "root_volume" {
+			name = "root_volume"
+			size = 1
+			image_id = "%s"
+		}
+
+		resource "openstack_blockstorage_volume_v1" "additional_volume" {
+			name = "additional_volume"
+			size = 1
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_volumeAttachInstanceDelete_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume_2),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_1),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_2),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_volumeAttachInstanceDelete_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume_2),
+					testAccCheckComputeV2InstanceDoesNotExist(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceVolumeDetached(&instance, "openstack_blockstorage_volume_v1.root_volume"),
+					testAccCheckComputeV2InstanceVolumeDetached(&instance, "openstack_blockstorage_volume_v1.additional_volume"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_volumeAttachToNewInstance(t *testing.T) {
+	var instance_1 servers.Server
+	var instance_2 servers.Server
+	var volume_1 volumes.Volume
+
+	var testAccComputeV2Instance_volumeAttachToNewInstance_1 = fmt.Sprintf(`
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+			name = "volume_1"
+			size = 1
+		}
+
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+
+			volume {
+				volume_id = "${openstack_blockstorage_volume_v1.volume_1.id}"
+			}
+		}
+
+		resource "openstack_compute_instance_v2" "instance_2" {
+			depends_on = ["openstack_compute_instance_v2.instance_1"]
+			name = "instance_2"
+			security_groups = ["default"]
+		}`)
+
+	var testAccComputeV2Instance_volumeAttachToNewInstance_2 = fmt.Sprintf(`
+			resource "openstack_blockstorage_volume_v1" "volume_1" {
+				name = "volume_1"
+				size = 1
+			}
+
+			resource "openstack_compute_instance_v2" "instance_1" {
+				name = "instance_1"
+				security_groups = ["default"]
+			}
+
+			resource "openstack_compute_instance_v2" "instance_2" {
+				depends_on = ["openstack_compute_instance_v2.instance_1"]
+				name = "instance_2"
+				security_groups = ["default"]
+
+				volume {
+					volume_id = "${openstack_blockstorage_volume_v1.volume_1.id}"
+				}
+			}`)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_volumeAttachToNewInstance_1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume_1),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_2", &instance_2),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance_1, &volume_1),
+					testAccCheckComputeV2InstanceVolumeDetached(&instance_2, "openstack_blockstorage_volume_v1.volume_1"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeV2Instance_volumeAttachToNewInstance_2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume_1),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_2", &instance_2),
+					testAccCheckComputeV2InstanceVolumeDetached(&instance_1, "openstack_blockstorage_volume_v1.volume_1"),
+					testAccCheckComputeV2InstanceVolumeAttachment(&instance_2, &volume_1),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeV2Instance_floatingIPAttachGlobally(t *testing.T) {
 	var instance servers.Server
-	var fip floatingip.FloatingIP
+	var fip floatingips.FloatingIP
 	var testAccComputeV2Instance_floatingIPAttachGlobally = fmt.Sprintf(`
 		resource "openstack_compute_floatingip_v2" "myip" {
 		}
@@ -215,7 +466,7 @@ func TestAccComputeV2Instance_floatingIPAttachGlobally(t *testing.T) {
 
 func TestAccComputeV2Instance_floatingIPAttachToNetwork(t *testing.T) {
 	var instance servers.Server
-	var fip floatingip.FloatingIP
+	var fip floatingips.FloatingIP
 	var testAccComputeV2Instance_floatingIPAttachToNetwork = fmt.Sprintf(`
 		resource "openstack_compute_floatingip_v2" "myip" {
 		}
@@ -251,7 +502,7 @@ func TestAccComputeV2Instance_floatingIPAttachToNetwork(t *testing.T) {
 
 func TestAccComputeV2Instance_floatingIPAttachAndChange(t *testing.T) {
 	var instance servers.Server
-	var fip floatingip.FloatingIP
+	var fip floatingips.FloatingIP
 	var testAccComputeV2Instance_floatingIPAttachToNetwork_1 = fmt.Sprintf(`
 		resource "openstack_compute_floatingip_v2" "myip_1" {
 		}
@@ -837,6 +1088,26 @@ func testAccCheckComputeV2InstanceExists(t *testing.T, n string, instance *serve
 	}
 }
 
+func testAccCheckComputeV2InstanceDoesNotExist(t *testing.T, n string, instance *servers.Server) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		config := testAccProvider.Meta().(*Config)
+		computeClient, err := config.computeV2Client(OS_REGION_NAME)
+		if err != nil {
+			return fmt.Errorf("(testAccCheckComputeV2InstanceExists) Error creating OpenStack compute client: %s", err)
+		}
+
+		_, err = servers.Get(computeClient, instance.ID).Extract()
+		if err != nil {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
+				return nil
+			}
+			return err
+		}
+
+		return fmt.Errorf("Instance still exists")
+	}
+}
+
 func testAccCheckComputeV2InstanceMetadata(
 	instance *servers.Server, k string, v string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -849,7 +1120,7 @@ func testAccCheckComputeV2InstanceMetadata(
 				continue
 			}
 
-			if v == value.(string) {
+			if v == value {
 				return nil
 			}
 
@@ -946,7 +1217,7 @@ func testAccCheckComputeV2InstanceBootVolumeAttachment(
 }
 
 func testAccCheckComputeV2InstanceFloatingIPAttach(
-	instance *servers.Server, fip *floatingip.FloatingIP) resource.TestCheckFunc {
+	instance *servers.Server, fip *floatingips.FloatingIP) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if fip.InstanceID == instance.ID {
 			return nil
@@ -992,4 +1263,42 @@ func TestAccComputeV2Instance_stop_before_destroy(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckComputeV2InstanceVolumeDetached(instance *servers.Server, volume_id string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		var attachments []volumeattach.VolumeAttachment
+
+		rs, ok := s.RootModule().Resources[volume_id]
+		if !ok {
+			return fmt.Errorf("Not found: %s", volume_id)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		config := testAccProvider.Meta().(*Config)
+		computeClient, err := config.computeV2Client(OS_REGION_NAME)
+		if err != nil {
+			return err
+		}
+		err = volumeattach.List(computeClient, instance.ID).EachPage(func(page pagination.Page) (bool, error) {
+			actual, err := volumeattach.ExtractVolumeAttachments(page)
+			if err != nil {
+				return false, fmt.Errorf("Unable to lookup attachment: %s", err)
+			}
+
+			attachments = actual
+			return true, nil
+		})
+
+		for _, attachment := range attachments {
+			if attachment.VolumeID == rs.Primary.ID {
+				return fmt.Errorf("Volume is still attached.")
+			}
+		}
+
+		return nil
+	}
 }

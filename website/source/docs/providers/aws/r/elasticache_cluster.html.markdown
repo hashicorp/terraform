@@ -85,6 +85,8 @@ names to associate with this cache cluster
 Amazon Resource Name (ARN) of a Redis RDB snapshot file stored in Amazon S3.
 Example: `arn:aws:s3:::my_bucket/snapshot1.rdb`
 
+* `snapshot_name` - (Optional) The name of a snapshot from which to restore data into the new node group.  Changing the `snapshot_name` forces a new resource. 
+
 * `snapshot_window` - (Optional, Redis only) The daily time range (in UTC) during which ElastiCache will
 begin taking a daily snapshot of your cache cluster. Example: 05:00-09:00
 
@@ -115,7 +117,17 @@ The following attributes are exported:
 * `cache_nodes` - List of node objects including `id`, `address`, `port` and `availability_zone`.
    Referenceable e.g. as `${aws_elasticache_cluster.bar.cache_nodes.0.address}`
 
-* `configuration_endpoint` - (Memcached only) The configuration endpoint to allow host discovery
+* `configuration_endpoint` - (Memcached only) The configuration endpoint to allow host discovery.
+* `cluster_address` - (Memcached only) The DNS name of the cache cluster without the port appended.
 
 [1]: https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_ModifyCacheCluster.html
-[2]: https://docs.aws.amazon.com/fr_fr/AmazonElastiCache/latest/UserGuide/Clusters.Modify.html
+[2]: https://docs.aws.amazon.com/AmazonElastiCache/latest/UserGuide/Clusters.Modify.html
+
+
+## Import
+
+ElastiCache Clusters can be imported using the `cluster_id`, e.g.
+
+```
+$ terraform import aws_elasticache_cluster.my_cluster my_cluster
+```

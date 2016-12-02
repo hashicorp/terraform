@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/security/rules"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
 )
 
 func resourceNetworkingSecGroupRuleV2() *schema.Resource {
@@ -106,15 +106,27 @@ func resourceNetworkingSecGroupRuleV2Create(d *schema.ResourceData, meta interfa
 	}
 
 	opts := rules.CreateOpts{
-		Direction:      d.Get("direction").(string),
-		EtherType:      d.Get("ethertype").(string),
 		SecGroupID:     d.Get("security_group_id").(string),
 		PortRangeMin:   d.Get("port_range_min").(int),
 		PortRangeMax:   d.Get("port_range_max").(int),
-		Protocol:       d.Get("protocol").(string),
 		RemoteGroupID:  d.Get("remote_group_id").(string),
 		RemoteIPPrefix: d.Get("remote_ip_prefix").(string),
 		TenantID:       d.Get("tenant_id").(string),
+	}
+
+	if v, ok := d.GetOk("direction"); ok {
+		direction := resourceNetworkingSecGroupRuleV2DetermineDirection(v.(string))
+		opts.Direction = direction
+	}
+
+	if v, ok := d.GetOk("ethertype"); ok {
+		ethertype := resourceNetworkingSecGroupRuleV2DetermineEtherType(v.(string))
+		opts.EtherType = ethertype
+	}
+
+	if v, ok := d.GetOk("protocol"); ok {
+		protocol := resourceNetworkingSecGroupRuleV2DetermineProtocol(v.(string))
+		opts.Protocol = protocol
 	}
 
 	log.Printf("[DEBUG] Create OpenStack Neutron security group: %#v", opts)
@@ -185,32 +197,64 @@ func resourceNetworkingSecGroupRuleV2Delete(d *schema.ResourceData, meta interfa
 	return err
 }
 
+func resourceNetworkingSecGroupRuleV2DetermineDirection(v string) rules.RuleDirection {
+	var direction rules.RuleDirection
+	switch v {
+	case "ingress":
+		direction = rules.DirIngress
+	case "egress":
+		direction = rules.DirEgress
+	}
+
+	return direction
+}
+
+func resourceNetworkingSecGroupRuleV2DetermineEtherType(v string) rules.RuleEtherType {
+	var etherType rules.RuleEtherType
+	switch v {
+	case "IPv4":
+		etherType = rules.EtherType4
+	case "IPv6":
+		etherType = rules.EtherType6
+	}
+
+	return etherType
+}
+
+func resourceNetworkingSecGroupRuleV2DetermineProtocol(v string) rules.RuleProtocol {
+	var protocol rules.RuleProtocol
+	switch v {
+	case "tcp":
+		protocol = rules.ProtocolTCP
+	case "udp":
+		protocol = rules.ProtocolUDP
+	case "icmp":
+		protocol = rules.ProtocolICMP
+	}
+
+	return protocol
+}
+
 func waitForSecGroupRuleDelete(networkingClient *gophercloud.ServiceClient, secGroupRuleId string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		log.Printf("[DEBUG] Attempting to delete OpenStack Security Group Rule %s.\n", secGroupRuleId)
 
 		r, err := rules.Get(networkingClient, secGroupRuleId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Neutron Security Group Rule %s", secGroupRuleId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		err = rules.Delete(networkingClient, secGroupRuleId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return r, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Neutron Security Group Rule %s", secGroupRuleId)
 				return r, "DELETED", nil
 			}
+			return r, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Neutron Security Group Rule %s still active.\n", secGroupRuleId)

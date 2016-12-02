@@ -22,6 +22,9 @@ func resourceAwsRedshiftSecurityGroup() *schema.Resource {
 		Read:   resourceAwsRedshiftSecurityGroupRead,
 		Update: resourceAwsRedshiftSecurityGroupUpdate,
 		Delete: resourceAwsRedshiftSecurityGroupDelete,
+		Importer: &schema.ResourceImporter{
+			State: resourceAwsRedshiftClusterImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -344,7 +347,7 @@ func expandRedshiftSGAuthorizeIngress(configured []interface{}) ([]redshift.Auth
 	var ingress []redshift.AuthorizeClusterSecurityGroupIngressInput
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
@@ -372,7 +375,7 @@ func expandRedshiftSGRevokeIngress(configured []interface{}) ([]redshift.RevokeC
 	var ingress []redshift.RevokeClusterSecurityGroupIngressInput
 
 	// Loop over our configured parameters and create
-	// an array of aws-sdk-go compatabile objects
+	// an array of aws-sdk-go compatible objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 

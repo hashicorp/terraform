@@ -1,11 +1,14 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"sync/atomic"
 	"testing"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -349,6 +352,30 @@ func TestTest_stepError(t *testing.T) {
 
 	if !checkDestroy {
 		t.Fatal("didn't call check for destroy")
+	}
+}
+
+func TestComposeAggregateTestCheckFunc(t *testing.T) {
+	check1 := func(s *terraform.State) error {
+		return errors.New("Error 1")
+	}
+
+	check2 := func(s *terraform.State) error {
+		return errors.New("Error 2")
+	}
+
+	f := ComposeAggregateTestCheckFunc(check1, check2)
+	err := f(nil)
+	if err == nil {
+		t.Fatalf("Expected errors")
+	}
+
+	multi := err.(*multierror.Error)
+	if !strings.Contains(multi.Errors[0].Error(), "Error 1") {
+		t.Fatalf("Expected Error 1, Got %s", multi.Errors[0])
+	}
+	if !strings.Contains(multi.Errors[1].Error(), "Error 2") {
+		t.Fatalf("Expected Error 2, Got %s", multi.Errors[1])
 	}
 }
 

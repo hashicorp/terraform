@@ -21,7 +21,7 @@ import (
 // (http://elasticbeanstalk.s3.amazonaws.com/doc/2010-12-01/AWSElasticBeanstalk.wsdl).
 // To install the Software Development Kits (SDKs), Integrated Development Environment
 // (IDE) Toolkits, and command line tools that enable you to access the API,
-// go to Tools for Amazon Web Services (https://aws.amazon.com/tools/).
+// go to Tools for Amazon Web Services (http://aws.amazon.com/tools/).
 //
 // Endpoints
 //

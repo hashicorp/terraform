@@ -899,7 +899,7 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		},
 
 		// include the owner id, but from a different account. This is reflects
-		// EC2 Classic when refering to groups by name
+		// EC2 Classic when referring to groups by name
 		{
 			ownerId: aws.String("user1234"),
 			pairs: []*ec2.UserIdGroupPair{
@@ -918,7 +918,7 @@ func TestFlattenSecurityGroups(t *testing.T) {
 		},
 
 		// include the owner id, but from a different account. This reflects in
-		// EC2 VPC when refering to groups by id
+		// EC2 VPC when referring to groups by id
 		{
 			ownerId: aws.String("user1234"),
 			pairs: []*ec2.UserIdGroupPair{
@@ -1010,5 +1010,161 @@ func TestFlattenApiGatewayStageKeys(t *testing.T) {
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
+	}
+}
+
+func TestExpandPolicyAttributes(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"name":  "Protocol-TLSv1",
+			"value": "false",
+		},
+		map[string]interface{}{
+			"name":  "Protocol-TLSv1.1",
+			"value": "false",
+		},
+		map[string]interface{}{
+			"name":  "Protocol-TLSv1.2",
+			"value": "true",
+		},
+	}
+	attributes, err := expandPolicyAttributes(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	if len(attributes) != 3 {
+		t.Fatalf("expected number of attributes to be 3, but got %d", len(attributes))
+	}
+
+	expected := &elb.PolicyAttribute{
+		AttributeName:  aws.String("Protocol-TLSv1.2"),
+		AttributeValue: aws.String("true"),
+	}
+
+	if !reflect.DeepEqual(attributes[2], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			attributes[2],
+			expected)
+	}
+}
+
+func TestExpandPolicyAttributes_invalid(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"name":  "Protocol-TLSv1.2",
+			"value": "true",
+		},
+	}
+	attributes, err := expandPolicyAttributes(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := &elb.PolicyAttribute{
+		AttributeName:  aws.String("Protocol-TLSv1.2"),
+		AttributeValue: aws.String("false"),
+	}
+
+	if reflect.DeepEqual(attributes[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			attributes[0],
+			expected)
+	}
+}
+
+func TestExpandPolicyAttributes_empty(t *testing.T) {
+	var expanded []interface{}
+
+	attributes, err := expandPolicyAttributes(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	if len(attributes) != 0 {
+		t.Fatalf("expected number of attributes to be 0, but got %d", len(attributes))
+	}
+}
+
+func TestFlattenPolicyAttributes(t *testing.T) {
+	cases := []struct {
+		Input  []*elb.PolicyAttributeDescription
+		Output []interface{}
+	}{
+		{
+			Input: []*elb.PolicyAttributeDescription{
+				&elb.PolicyAttributeDescription{
+					AttributeName:  aws.String("Protocol-TLSv1.2"),
+					AttributeValue: aws.String("true"),
+				},
+			},
+			Output: []interface{}{
+				map[string]string{
+					"name":  "Protocol-TLSv1.2",
+					"value": "true",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenPolicyAttributes(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
+	}
+}
+
+func TestNormalizeJsonString(t *testing.T) {
+	var err error
+	var actual string
+
+	// Well formatted and valid.
+	validJson := `{
+   "abc": {
+      "def": 123,
+      "xyz": [
+         {
+            "a": "ホリネズミ"
+         },
+         {
+            "b": "1\\n2"
+         }
+      ]
+   }
+}`
+	expected := `{"abc":{"def":123,"xyz":[{"a":"ホリネズミ"},{"b":"1\\n2"}]}}`
+
+	actual, err = normalizeJsonString(validJson)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing JSON, but got: %s", err)
+	}
+
+	if actual != expected {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, expected)
+	}
+
+	// Well formatted but not valid,
+	// missing closing squre bracket.
+	invalidJson := `{
+   "abc": {
+      "def": 123,
+      "xyz": [
+         {
+            "a": "1"
+         }
+      }
+   }
+}`
+	actual, err = normalizeJsonString(invalidJson)
+	if err == nil {
+		t.Fatalf("Expected to throw an error while parsing JSON, but got: %s", err)
+	}
+
+	// We expect the invalid JSON to be shown back to us again.
+	if actual != invalidJson {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", expected, invalidJson)
 	}
 }

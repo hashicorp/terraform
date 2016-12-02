@@ -7,6 +7,99 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+func TestParseResourceAddressInternal(t *testing.T) {
+	cases := map[string]struct {
+		Input    string
+		Expected *ResourceAddress
+		Output   string
+	}{
+		"basic resource": {
+			"aws_instance.foo",
+			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			"aws_instance.foo",
+		},
+
+		"basic resource with count": {
+			"aws_instance.foo.1",
+			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        1,
+			},
+			"aws_instance.foo[1]",
+		},
+
+		"data resource": {
+			"data.aws_ami.foo",
+			&ResourceAddress{
+				Mode:         config.DataResourceMode,
+				Type:         "aws_ami",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			"data.aws_ami.foo",
+		},
+
+		"data resource with count": {
+			"data.aws_ami.foo.1",
+			&ResourceAddress{
+				Mode:         config.DataResourceMode,
+				Type:         "aws_ami",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        1,
+			},
+			"data.aws_ami.foo[1]",
+		},
+
+		"non-data resource with 4 elements": {
+			"aws_instance.foo.bar.1",
+			nil,
+			"",
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tc.Input, func(t *testing.T) {
+			out, err := parseResourceAddressInternal(tc.Input)
+			if (err != nil) != (tc.Expected == nil) {
+				t.Fatalf("%s: unexpected err: %#v", tn, err)
+			}
+			if err != nil {
+				return
+			}
+
+			if !reflect.DeepEqual(out, tc.Expected) {
+				t.Fatalf("bad: %q\n\nexpected:\n%#v\n\ngot:\n%#v", tn, tc.Expected, out)
+			}
+
+			// Compare outputs if those exist
+			expected := tc.Input
+			if tc.Output != "" {
+				expected = tc.Output
+			}
+			if out.String() != expected {
+				t.Fatalf("bad: %q\n\nexpected: %s\n\ngot: %s", tn, expected, out)
+			}
+
+			// Compare equality because the internal parse is used
+			// to compare equality to equal inputs.
+			if !out.Equals(tc.Expected) {
+				t.Fatalf("expected equality:\n\n%#v\n\n%#v", out, tc.Expected)
+			}
+		})
+	}
+}
+
 func TestParseResourceAddress(t *testing.T) {
 	cases := map[string]struct {
 		Input    string
@@ -459,5 +552,54 @@ func TestResourceAddressEquals(t *testing.T) {
 			t.Fatalf("%q: expected equals: %t, got %t for:\n%#v\n%#v",
 				tn, tc.Expect, actual, tc.Address, tc.Other)
 		}
+	}
+}
+
+func TestResourceAddressStateId(t *testing.T) {
+	cases := map[string]struct {
+		Input    *ResourceAddress
+		Expected string
+	}{
+		"basic resource": {
+			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			"aws_instance.foo",
+		},
+
+		"basic resource with index": {
+			&ResourceAddress{
+				Mode:         config.ManagedResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        2,
+			},
+			"aws_instance.foo.2",
+		},
+
+		"data resource": {
+			&ResourceAddress{
+				Mode:         config.DataResourceMode,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			"data.aws_instance.foo",
+		},
+	}
+
+	for tn, tc := range cases {
+		t.Run(tn, func(t *testing.T) {
+			actual := tc.Input.stateId()
+			if actual != tc.Expected {
+				t.Fatalf("bad: %q\n\nexpected: %s\n\ngot: %s", tn, tc.Expected, actual)
+			}
+		})
 	}
 }

@@ -31,6 +31,7 @@ The following arguments are supported:
 * `test_type` - (Required) The type of Test. Either HTTP or TCP
 * `paused` - (Optional) Whether or not the test is paused. Defaults to false.
 * `timeout` - (Optional) The timeout of the test in seconds.
+* `contact_id` - (Optional) The ID of the contact group to associate with the test.
 
 
 ## Attributes Reference

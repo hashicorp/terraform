@@ -21,21 +21,27 @@ package cdn
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
 // ProfilesClient is the use these APIs to manage Azure CDN resources through
 // the Azure Resource Manager. You must make sure that requests made to these
-// resources are secure. For more information, see <a
-// href="https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx">Authenticating
-// Azure Resource Manager requests.</a>
+// resources are secure. For more information, see
+// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
 type ProfilesClient struct {
 	ManagementClient
 }
 
 // NewProfilesClient creates an instance of the ProfilesClient client.
 func NewProfilesClient(subscriptionID string) ProfilesClient {
-	return ProfilesClient{New(subscriptionID)}
+	return NewProfilesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewProfilesClientWithBaseURI creates an instance of the ProfilesClient
+// client.
+func NewProfilesClientWithBaseURI(baseURI string, subscriptionID string) ProfilesClient {
+	return ProfilesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // Create sends the create request. This method may poll for completion.
@@ -47,6 +53,13 @@ func NewProfilesClient(subscriptionID string) ProfilesClient {
 // resourceGroupName is name of the resource group within the Azure
 // subscription.
 func (client ProfilesClient) Create(profileName string, profileProperties ProfileCreateParameters, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: profileProperties,
+			Constraints: []validation.Constraint{{Target: "profileProperties.Location", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "profileProperties.Sku", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.ProfilesClient", "Create")
+	}
+
 	req, err := client.CreatePreparer(profileName, profileProperties, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "Create", nil, "Failure preparing request")

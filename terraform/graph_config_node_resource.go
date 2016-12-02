@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/dot"
 )
 
 // GraphNodeCountDependent is implemented by resources for giving only
@@ -128,14 +127,17 @@ func (n *GraphNodeConfigResource) Name() string {
 }
 
 // GraphNodeDotter impl.
-func (n *GraphNodeConfigResource) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+func (n *GraphNodeConfigResource) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 	if n.Destroy && !opts.Verbose {
 		return nil
 	}
-	return dot.NewNode(name, map[string]string{
-		"label": n.Name(),
-		"shape": "box",
-	})
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "box",
+		},
+	}
 }
 
 // GraphNodeFlattenable impl.
@@ -156,7 +158,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	steps := make([]GraphTransformer, 0, 5)
 
 	// Expand counts.
-	steps = append(steps, &ResourceCountTransformer{
+	steps = append(steps, &ResourceCountTransformerOld{
 		Resource: n.Resource,
 		Destroy:  n.Destroy,
 		Targets:  n.Targets,
@@ -168,8 +170,9 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 		// expand orphans, which have all the same semantics in a destroy
 		// as a primary or tainted resource.
 		steps = append(steps, &OrphanTransformer{
-			State: state,
-			View:  n.Resource.Id(),
+			Resource: n.Resource,
+			State:    state,
+			View:     n.Resource.Id(),
 		})
 
 		steps = append(steps, &DeposedTransformer{
@@ -188,7 +191,11 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	steps = append(steps, &RootTransformer{})
 
 	// Build the graph
-	b := &BasicGraphBuilder{Steps: steps}
+	b := &BasicGraphBuilder{
+		Steps:    steps,
+		Validate: true,
+		Name:     "GraphNodeConfigResource",
+	}
 	return b.Build(ctx.Path())
 }
 
@@ -214,6 +221,7 @@ func (n *GraphNodeConfigResource) EvalTree() EvalNode {
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalInterpolate{Config: n.Resource.RawCount},
+			&EvalCountCheckComputed{Resource: n.Resource},
 			&EvalOpFilter{
 				Ops:  []walkOperation{walkValidate},
 				Node: &EvalValidateCount{Resource: n.Resource},

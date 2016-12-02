@@ -26,3 +26,19 @@ func TestUIInputInput(t *testing.T) {
 		t.Fatalf("bad: %#v", v)
 	}
 }
+
+func TestUIInputInput_spaces(t *testing.T) {
+	i := &UIInput{
+		Reader: bytes.NewBufferString("foo bar\n"),
+		Writer: bytes.NewBuffer(nil),
+	}
+
+	v, err := i.Input(&terraform.InputOpts{})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v != "foo bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+}

@@ -19,6 +19,8 @@ const opAddPermission = "AddPermission"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See AddPermission for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -55,8 +57,31 @@ func (c *SNS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 	return
 }
 
+// AddPermission API operation for Amazon Simple Notification Service.
+//
 // Adds a statement to a topic's access control policy, granting access for
 // the specified AWS accounts to the specified actions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation AddPermission for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) AddPermission(input *AddPermissionInput) (*AddPermissionOutput, error) {
 	req, out := c.AddPermissionRequest(input)
 	err := req.Send()
@@ -69,6 +94,8 @@ const opCheckIfPhoneNumberIsOptedOut = "CheckIfPhoneNumberIsOptedOut"
 // client's request for the CheckIfPhoneNumberIsOptedOut operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CheckIfPhoneNumberIsOptedOut for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -104,12 +131,36 @@ func (c *SNS) CheckIfPhoneNumberIsOptedOutRequest(input *CheckIfPhoneNumberIsOpt
 	return
 }
 
+// CheckIfPhoneNumberIsOptedOut API operation for Amazon Simple Notification Service.
+//
 // Accepts a phone number and indicates whether the phone holder has opted out
 // of receiving SMS messages from your account. You cannot send SMS messages
 // to a number that is opted out.
 //
 // To resume sending messages, you can opt in the number by using the OptInPhoneNumber
 // action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation CheckIfPhoneNumberIsOptedOut for usage and error information.
+//
+// Returned Error Codes:
+//   * Throttled
+//   Indicates that the rate at which requests have been submitted for this action
+//   exceeds the limit for your account.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
 func (c *SNS) CheckIfPhoneNumberIsOptedOut(input *CheckIfPhoneNumberIsOptedOutInput) (*CheckIfPhoneNumberIsOptedOutOutput, error) {
 	req, out := c.CheckIfPhoneNumberIsOptedOutRequest(input)
 	err := req.Send()
@@ -122,6 +173,8 @@ const opConfirmSubscription = "ConfirmSubscription"
 // client's request for the ConfirmSubscription operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ConfirmSubscription for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -157,11 +210,37 @@ func (c *SNS) ConfirmSubscriptionRequest(input *ConfirmSubscriptionInput) (req *
 	return
 }
 
+// ConfirmSubscription API operation for Amazon Simple Notification Service.
+//
 // Verifies an endpoint owner's intent to receive messages by validating the
 // token sent to the endpoint by an earlier Subscribe action. If the token is
 // valid, the action creates a new subscription and returns its Amazon Resource
 // Name (ARN). This call requires an AWS signature only when the AuthenticateOnUnsubscribe
 // flag is set to "true".
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation ConfirmSubscription for usage and error information.
+//
+// Returned Error Codes:
+//   * SubscriptionLimitExceeded
+//   Indicates that the customer already owns the maximum allowed number of subscriptions.
+//
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) ConfirmSubscription(input *ConfirmSubscriptionInput) (*ConfirmSubscriptionOutput, error) {
 	req, out := c.ConfirmSubscriptionRequest(input)
 	err := req.Send()
@@ -174,6 +253,8 @@ const opCreatePlatformApplication = "CreatePlatformApplication"
 // client's request for the CreatePlatformApplication operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreatePlatformApplication for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -209,6 +290,8 @@ func (c *SNS) CreatePlatformApplicationRequest(input *CreatePlatformApplicationI
 	return
 }
 
+// CreatePlatformApplication API operation for Amazon Simple Notification Service.
+//
 // Creates a platform application object for one of the supported push notification
 // services, such as APNS and GCM, to which devices and mobile apps may register.
 // You must specify PlatformPrincipal and PlatformCredential attributes when
@@ -235,6 +318,24 @@ func (c *SNS) CreatePlatformApplicationRequest(input *CreatePlatformApplicationI
 // Getting Started with Google Cloud Messaging for Android (http://docs.aws.amazon.com/sns/latest/dg/mobile-push-gcm.html),
 // Getting Started with MPNS (http://docs.aws.amazon.com/sns/latest/dg/mobile-push-mpns.html),
 // or Getting Started with WNS (http://docs.aws.amazon.com/sns/latest/dg/mobile-push-wns.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation CreatePlatformApplication for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) CreatePlatformApplication(input *CreatePlatformApplicationInput) (*CreatePlatformApplicationOutput, error) {
 	req, out := c.CreatePlatformApplicationRequest(input)
 	err := req.Send()
@@ -247,6 +348,8 @@ const opCreatePlatformEndpoint = "CreatePlatformEndpoint"
 // client's request for the CreatePlatformEndpoint operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreatePlatformEndpoint for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -282,6 +385,8 @@ func (c *SNS) CreatePlatformEndpointRequest(input *CreatePlatformEndpointInput) 
 	return
 }
 
+// CreatePlatformEndpoint API operation for Amazon Simple Notification Service.
+//
 // Creates an endpoint for a device and mobile app on one of the supported push
 // notification services, such as GCM and APNS. CreatePlatformEndpoint requires
 // the PlatformApplicationArn that is returned from CreatePlatformApplication.
@@ -296,6 +401,27 @@ func (c *SNS) CreatePlatformEndpointRequest(input *CreatePlatformEndpointInput) 
 // When using CreatePlatformEndpoint with Baidu, two attributes must be provided:
 // ChannelId and UserId. The token field must also contain the ChannelId. For
 // more information, see Creating an Amazon SNS Endpoint for Baidu (http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePushBaiduEndpoint.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation CreatePlatformEndpoint for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) CreatePlatformEndpoint(input *CreatePlatformEndpointInput) (*CreatePlatformEndpointOutput, error) {
 	req, out := c.CreatePlatformEndpointRequest(input)
 	err := req.Send()
@@ -308,6 +434,8 @@ const opCreateTopic = "CreateTopic"
 // client's request for the CreateTopic operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateTopic for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -343,11 +471,34 @@ func (c *SNS) CreateTopicRequest(input *CreateTopicInput) (req *request.Request,
 	return
 }
 
+// CreateTopic API operation for Amazon Simple Notification Service.
+//
 // Creates a topic to which notifications can be published. Users can create
 // at most 100,000 topics. For more information, see http://aws.amazon.com/sns
 // (http://aws.amazon.com/sns/). This action is idempotent, so if the requester
 // already owns a topic with the specified name, that topic's ARN is returned
 // without creating a new topic.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation CreateTopic for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * TopicLimitExceeded
+//   Indicates that the customer already owns the maximum allowed number of topics.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) CreateTopic(input *CreateTopicInput) (*CreateTopicOutput, error) {
 	req, out := c.CreateTopicRequest(input)
 	err := req.Send()
@@ -360,6 +511,8 @@ const opDeleteEndpoint = "DeleteEndpoint"
 // client's request for the DeleteEndpoint operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteEndpoint for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -397,12 +550,32 @@ func (c *SNS) DeleteEndpointRequest(input *DeleteEndpointInput) (req *request.Re
 	return
 }
 
+// DeleteEndpoint API operation for Amazon Simple Notification Service.
+//
 // Deletes the endpoint for a device and mobile app from Amazon SNS. This action
 // is idempotent. For more information, see Using Amazon SNS Mobile Push Notifications
 // (http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html).
 //
 // When you delete an endpoint that is also subscribed to a topic, then you
 // must also unsubscribe the endpoint from the topic.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation DeleteEndpoint for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) DeleteEndpoint(input *DeleteEndpointInput) (*DeleteEndpointOutput, error) {
 	req, out := c.DeleteEndpointRequest(input)
 	err := req.Send()
@@ -415,6 +588,8 @@ const opDeletePlatformApplication = "DeletePlatformApplication"
 // client's request for the DeletePlatformApplication operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeletePlatformApplication for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -452,9 +627,29 @@ func (c *SNS) DeletePlatformApplicationRequest(input *DeletePlatformApplicationI
 	return
 }
 
+// DeletePlatformApplication API operation for Amazon Simple Notification Service.
+//
 // Deletes a platform application object for one of the supported push notification
 // services, such as APNS and GCM. For more information, see Using Amazon SNS
 // Mobile Push Notifications (http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation DeletePlatformApplication for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) DeletePlatformApplication(input *DeletePlatformApplicationInput) (*DeletePlatformApplicationOutput, error) {
 	req, out := c.DeletePlatformApplicationRequest(input)
 	err := req.Send()
@@ -467,6 +662,8 @@ const opDeleteTopic = "DeleteTopic"
 // client's request for the DeleteTopic operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteTopic for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -504,10 +701,33 @@ func (c *SNS) DeleteTopicRequest(input *DeleteTopicInput) (req *request.Request,
 	return
 }
 
+// DeleteTopic API operation for Amazon Simple Notification Service.
+//
 // Deletes a topic and all its subscriptions. Deleting a topic might prevent
 // some messages previously sent to the topic from being delivered to subscribers.
 // This action is idempotent, so deleting a topic that does not exist does not
 // result in an error.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation DeleteTopic for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) DeleteTopic(input *DeleteTopicInput) (*DeleteTopicOutput, error) {
 	req, out := c.DeleteTopicRequest(input)
 	err := req.Send()
@@ -520,6 +740,8 @@ const opGetEndpointAttributes = "GetEndpointAttributes"
 // client's request for the GetEndpointAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetEndpointAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -555,9 +777,32 @@ func (c *SNS) GetEndpointAttributesRequest(input *GetEndpointAttributesInput) (r
 	return
 }
 
+// GetEndpointAttributes API operation for Amazon Simple Notification Service.
+//
 // Retrieves the endpoint attributes for a device on one of the supported push
 // notification services, such as GCM and APNS. For more information, see Using
 // Amazon SNS Mobile Push Notifications (http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation GetEndpointAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) GetEndpointAttributes(input *GetEndpointAttributesInput) (*GetEndpointAttributesOutput, error) {
 	req, out := c.GetEndpointAttributesRequest(input)
 	err := req.Send()
@@ -570,6 +815,8 @@ const opGetPlatformApplicationAttributes = "GetPlatformApplicationAttributes"
 // client's request for the GetPlatformApplicationAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetPlatformApplicationAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -605,9 +852,32 @@ func (c *SNS) GetPlatformApplicationAttributesRequest(input *GetPlatformApplicat
 	return
 }
 
+// GetPlatformApplicationAttributes API operation for Amazon Simple Notification Service.
+//
 // Retrieves the attributes of the platform application object for the supported
 // push notification services, such as APNS and GCM. For more information, see
 // Using Amazon SNS Mobile Push Notifications (http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation GetPlatformApplicationAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) GetPlatformApplicationAttributes(input *GetPlatformApplicationAttributesInput) (*GetPlatformApplicationAttributesOutput, error) {
 	req, out := c.GetPlatformApplicationAttributesRequest(input)
 	err := req.Send()
@@ -620,6 +890,8 @@ const opGetSMSAttributes = "GetSMSAttributes"
 // client's request for the GetSMSAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetSMSAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -655,9 +927,33 @@ func (c *SNS) GetSMSAttributesRequest(input *GetSMSAttributesInput) (req *reques
 	return
 }
 
+// GetSMSAttributes API operation for Amazon Simple Notification Service.
+//
 // Returns the settings for sending SMS messages from your account.
 //
 // These settings are set with the SetSMSAttributes action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation GetSMSAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * Throttled
+//   Indicates that the rate at which requests have been submitted for this action
+//   exceeds the limit for your account.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
 func (c *SNS) GetSMSAttributes(input *GetSMSAttributesInput) (*GetSMSAttributesOutput, error) {
 	req, out := c.GetSMSAttributesRequest(input)
 	err := req.Send()
@@ -670,6 +966,8 @@ const opGetSubscriptionAttributes = "GetSubscriptionAttributes"
 // client's request for the GetSubscriptionAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetSubscriptionAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -705,7 +1003,30 @@ func (c *SNS) GetSubscriptionAttributesRequest(input *GetSubscriptionAttributesI
 	return
 }
 
+// GetSubscriptionAttributes API operation for Amazon Simple Notification Service.
+//
 // Returns all of the properties of a subscription.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation GetSubscriptionAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) GetSubscriptionAttributes(input *GetSubscriptionAttributesInput) (*GetSubscriptionAttributesOutput, error) {
 	req, out := c.GetSubscriptionAttributesRequest(input)
 	err := req.Send()
@@ -718,6 +1039,8 @@ const opGetTopicAttributes = "GetTopicAttributes"
 // client's request for the GetTopicAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetTopicAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -753,8 +1076,31 @@ func (c *SNS) GetTopicAttributesRequest(input *GetTopicAttributesInput) (req *re
 	return
 }
 
+// GetTopicAttributes API operation for Amazon Simple Notification Service.
+//
 // Returns all of the properties of a topic. Topic properties returned might
 // differ based on the authorization of the user.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation GetTopicAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) GetTopicAttributes(input *GetTopicAttributesInput) (*GetTopicAttributesOutput, error) {
 	req, out := c.GetTopicAttributesRequest(input)
 	err := req.Send()
@@ -767,6 +1113,8 @@ const opListEndpointsByPlatformApplication = "ListEndpointsByPlatformApplication
 // client's request for the ListEndpointsByPlatformApplication operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListEndpointsByPlatformApplication for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -808,6 +1156,8 @@ func (c *SNS) ListEndpointsByPlatformApplicationRequest(input *ListEndpointsByPl
 	return
 }
 
+// ListEndpointsByPlatformApplication API operation for Amazon Simple Notification Service.
+//
 // Lists the endpoints and endpoint attributes for devices in a supported push
 // notification service, such as GCM and APNS. The results for ListEndpointsByPlatformApplication
 // are paginated and return a limited list of endpoints, up to 100. If additional
@@ -816,6 +1166,27 @@ func (c *SNS) ListEndpointsByPlatformApplicationRequest(input *ListEndpointsByPl
 // again using the NextToken string received from the previous call. When there
 // are no more records to return, NextToken will be null. For more information,
 // see Using Amazon SNS Mobile Push Notifications (http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation ListEndpointsByPlatformApplication for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) ListEndpointsByPlatformApplication(input *ListEndpointsByPlatformApplicationInput) (*ListEndpointsByPlatformApplicationOutput, error) {
 	req, out := c.ListEndpointsByPlatformApplicationRequest(input)
 	err := req.Send()
@@ -854,6 +1225,8 @@ const opListPhoneNumbersOptedOut = "ListPhoneNumbersOptedOut"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See ListPhoneNumbersOptedOut for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -888,6 +1261,8 @@ func (c *SNS) ListPhoneNumbersOptedOutRequest(input *ListPhoneNumbersOptedOutInp
 	return
 }
 
+// ListPhoneNumbersOptedOut API operation for Amazon Simple Notification Service.
+//
 // Returns a list of phone numbers that are opted out, meaning you cannot send
 // SMS messages to them.
 //
@@ -897,6 +1272,28 @@ func (c *SNS) ListPhoneNumbersOptedOutRequest(input *ListPhoneNumbersOptedOutInp
 // the next page, you call ListPhoneNumbersOptedOut again using the NextToken
 // string received from the previous call. When there are no more records to
 // return, NextToken will be null.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation ListPhoneNumbersOptedOut for usage and error information.
+//
+// Returned Error Codes:
+//   * Throttled
+//   Indicates that the rate at which requests have been submitted for this action
+//   exceeds the limit for your account.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
 func (c *SNS) ListPhoneNumbersOptedOut(input *ListPhoneNumbersOptedOutInput) (*ListPhoneNumbersOptedOutOutput, error) {
 	req, out := c.ListPhoneNumbersOptedOutRequest(input)
 	err := req.Send()
@@ -909,6 +1306,8 @@ const opListPlatformApplications = "ListPlatformApplications"
 // client's request for the ListPlatformApplications operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListPlatformApplications for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -950,6 +1349,8 @@ func (c *SNS) ListPlatformApplicationsRequest(input *ListPlatformApplicationsInp
 	return
 }
 
+// ListPlatformApplications API operation for Amazon Simple Notification Service.
+//
 // Lists the platform application objects for the supported push notification
 // services, such as APNS and GCM. The results for ListPlatformApplications
 // are paginated and return a limited list of applications, up to 100. If additional
@@ -958,6 +1359,24 @@ func (c *SNS) ListPlatformApplicationsRequest(input *ListPlatformApplicationsInp
 // using the NextToken string received from the previous call. When there are
 // no more records to return, NextToken will be null. For more information,
 // see Using Amazon SNS Mobile Push Notifications (http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation ListPlatformApplications for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) ListPlatformApplications(input *ListPlatformApplicationsInput) (*ListPlatformApplicationsOutput, error) {
 	req, out := c.ListPlatformApplicationsRequest(input)
 	err := req.Send()
@@ -995,6 +1414,8 @@ const opListSubscriptions = "ListSubscriptions"
 // client's request for the ListSubscriptions operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListSubscriptions for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1036,10 +1457,30 @@ func (c *SNS) ListSubscriptionsRequest(input *ListSubscriptionsInput) (req *requ
 	return
 }
 
+// ListSubscriptions API operation for Amazon Simple Notification Service.
+//
 // Returns a list of the requester's subscriptions. Each call returns a limited
 // list of subscriptions, up to 100. If there are more subscriptions, a NextToken
 // is also returned. Use the NextToken parameter in a new ListSubscriptions
 // call to get further results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation ListSubscriptions for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) ListSubscriptions(input *ListSubscriptionsInput) (*ListSubscriptionsOutput, error) {
 	req, out := c.ListSubscriptionsRequest(input)
 	err := req.Send()
@@ -1077,6 +1518,8 @@ const opListSubscriptionsByTopic = "ListSubscriptionsByTopic"
 // client's request for the ListSubscriptionsByTopic operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListSubscriptionsByTopic for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1118,10 +1561,33 @@ func (c *SNS) ListSubscriptionsByTopicRequest(input *ListSubscriptionsByTopicInp
 	return
 }
 
+// ListSubscriptionsByTopic API operation for Amazon Simple Notification Service.
+//
 // Returns a list of the subscriptions to a specific topic. Each call returns
 // a limited list of subscriptions, up to 100. If there are more subscriptions,
 // a NextToken is also returned. Use the NextToken parameter in a new ListSubscriptionsByTopic
 // call to get further results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation ListSubscriptionsByTopic for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) ListSubscriptionsByTopic(input *ListSubscriptionsByTopicInput) (*ListSubscriptionsByTopicOutput, error) {
 	req, out := c.ListSubscriptionsByTopicRequest(input)
 	err := req.Send()
@@ -1159,6 +1625,8 @@ const opListTopics = "ListTopics"
 // client's request for the ListTopics operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListTopics for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1200,9 +1668,29 @@ func (c *SNS) ListTopicsRequest(input *ListTopicsInput) (req *request.Request, o
 	return
 }
 
+// ListTopics API operation for Amazon Simple Notification Service.
+//
 // Returns a list of the requester's topics. Each call returns a limited list
 // of topics, up to 100. If there are more topics, a NextToken is also returned.
 // Use the NextToken parameter in a new ListTopics call to get further results.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation ListTopics for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) ListTopics(input *ListTopicsInput) (*ListTopicsOutput, error) {
 	req, out := c.ListTopicsRequest(input)
 	err := req.Send()
@@ -1241,6 +1729,8 @@ const opOptInPhoneNumber = "OptInPhoneNumber"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See OptInPhoneNumber for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -1275,10 +1765,34 @@ func (c *SNS) OptInPhoneNumberRequest(input *OptInPhoneNumberInput) (req *reques
 	return
 }
 
+// OptInPhoneNumber API operation for Amazon Simple Notification Service.
+//
 // Use this request to opt in a phone number that is opted out, which enables
 // you to resume sending SMS messages to the number.
 //
 // You can opt in a phone number only once every 30 days.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation OptInPhoneNumber for usage and error information.
+//
+// Returned Error Codes:
+//   * Throttled
+//   Indicates that the rate at which requests have been submitted for this action
+//   exceeds the limit for your account.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
 func (c *SNS) OptInPhoneNumber(input *OptInPhoneNumberInput) (*OptInPhoneNumberOutput, error) {
 	req, out := c.OptInPhoneNumberRequest(input)
 	err := req.Send()
@@ -1291,6 +1805,8 @@ const opPublish = "Publish"
 // client's request for the Publish operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See Publish for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1326,6 +1842,8 @@ func (c *SNS) PublishRequest(input *PublishInput) (req *request.Request, output 
 	return
 }
 
+// Publish API operation for Amazon Simple Notification Service.
+//
 // Sends a message to all of a topic's subscribed endpoints. When a messageId
 // is returned, the message has been saved and Amazon SNS will attempt to deliver
 // it to the topic's subscribers shortly. The format of the outgoing message
@@ -1334,11 +1852,40 @@ func (c *SNS) PublishRequest(input *PublishInput) (req *request.Request, output 
 // To use the Publish action for sending a message to a mobile endpoint, such
 // as an app on a Kindle device or mobile phone, you must specify the EndpointArn
 // for the TargetArn parameter. The EndpointArn is returned when making a call
-// with the CreatePlatformEndpoint action. The second example below shows a
-// request and response for publishing to a mobile endpoint.
+// with the CreatePlatformEndpoint action.
 //
 // For more information about formatting messages, see Send Custom Platform-Specific
 // Payloads in Messages to Mobile Devices (http://docs.aws.amazon.com/sns/latest/dg/mobile-push-send-custommessage.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation Publish for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * ParameterValueInvalid
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
+//   * EndpointDisabled
+//   Exception error indicating endpoint disabled.
+//
+//   * PlatformApplicationDisabled
+//   Exception error indicating platform application disabled.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) Publish(input *PublishInput) (*PublishOutput, error) {
 	req, out := c.PublishRequest(input)
 	err := req.Send()
@@ -1351,6 +1898,8 @@ const opRemovePermission = "RemovePermission"
 // client's request for the RemovePermission operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RemovePermission for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1388,7 +1937,30 @@ func (c *SNS) RemovePermissionRequest(input *RemovePermissionInput) (req *reques
 	return
 }
 
+// RemovePermission API operation for Amazon Simple Notification Service.
+//
 // Removes a statement from a topic's access control policy.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation RemovePermission for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) RemovePermission(input *RemovePermissionInput) (*RemovePermissionOutput, error) {
 	req, out := c.RemovePermissionRequest(input)
 	err := req.Send()
@@ -1401,6 +1973,8 @@ const opSetEndpointAttributes = "SetEndpointAttributes"
 // client's request for the SetEndpointAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetEndpointAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1438,9 +2012,32 @@ func (c *SNS) SetEndpointAttributesRequest(input *SetEndpointAttributesInput) (r
 	return
 }
 
+// SetEndpointAttributes API operation for Amazon Simple Notification Service.
+//
 // Sets the attributes for an endpoint for a device on one of the supported
 // push notification services, such as GCM and APNS. For more information, see
 // Using Amazon SNS Mobile Push Notifications (http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation SetEndpointAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) SetEndpointAttributes(input *SetEndpointAttributesInput) (*SetEndpointAttributesOutput, error) {
 	req, out := c.SetEndpointAttributesRequest(input)
 	err := req.Send()
@@ -1453,6 +2050,8 @@ const opSetPlatformApplicationAttributes = "SetPlatformApplicationAttributes"
 // client's request for the SetPlatformApplicationAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetPlatformApplicationAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1490,11 +2089,34 @@ func (c *SNS) SetPlatformApplicationAttributesRequest(input *SetPlatformApplicat
 	return
 }
 
+// SetPlatformApplicationAttributes API operation for Amazon Simple Notification Service.
+//
 // Sets the attributes of the platform application object for the supported
 // push notification services, such as APNS and GCM. For more information, see
 // Using Amazon SNS Mobile Push Notifications (http://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html).
 // For information on configuring attributes for message delivery status, see
 // Using Amazon SNS Application Attributes for Message Delivery Status (http://docs.aws.amazon.com/sns/latest/dg/sns-msg-status.html).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation SetPlatformApplicationAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) SetPlatformApplicationAttributes(input *SetPlatformApplicationAttributesInput) (*SetPlatformApplicationAttributesOutput, error) {
 	req, out := c.SetPlatformApplicationAttributesRequest(input)
 	err := req.Send()
@@ -1507,6 +2129,8 @@ const opSetSMSAttributes = "SetSMSAttributes"
 // client's request for the SetSMSAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetSMSAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1542,6 +2166,8 @@ func (c *SNS) SetSMSAttributesRequest(input *SetSMSAttributesInput) (req *reques
 	return
 }
 
+// SetSMSAttributes API operation for Amazon Simple Notification Service.
+//
 // Use this request to set the default settings for sending SMS messages and
 // receiving daily SMS usage reports.
 //
@@ -1549,6 +2175,28 @@ func (c *SNS) SetSMSAttributesRequest(input *SetSMSAttributesInput) (req *reques
 // the Publish action with the MessageAttributes.entry.N parameter. For more
 // information, see Sending an SMS Message (http://docs.aws.amazon.com/sns/latest/dg/sms_publish-to-phone.html)
 // in the Amazon SNS Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation SetSMSAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * Throttled
+//   Indicates that the rate at which requests have been submitted for this action
+//   exceeds the limit for your account.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) SetSMSAttributes(input *SetSMSAttributesInput) (*SetSMSAttributesOutput, error) {
 	req, out := c.SetSMSAttributesRequest(input)
 	err := req.Send()
@@ -1561,6 +2209,8 @@ const opSetSubscriptionAttributes = "SetSubscriptionAttributes"
 // client's request for the SetSubscriptionAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetSubscriptionAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1598,7 +2248,30 @@ func (c *SNS) SetSubscriptionAttributesRequest(input *SetSubscriptionAttributesI
 	return
 }
 
+// SetSubscriptionAttributes API operation for Amazon Simple Notification Service.
+//
 // Allows a subscription owner to set an attribute of the topic to a new value.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation SetSubscriptionAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) SetSubscriptionAttributes(input *SetSubscriptionAttributesInput) (*SetSubscriptionAttributesOutput, error) {
 	req, out := c.SetSubscriptionAttributesRequest(input)
 	err := req.Send()
@@ -1611,6 +2284,8 @@ const opSetTopicAttributes = "SetTopicAttributes"
 // client's request for the SetTopicAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetTopicAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1648,7 +2323,30 @@ func (c *SNS) SetTopicAttributesRequest(input *SetTopicAttributesInput) (req *re
 	return
 }
 
+// SetTopicAttributes API operation for Amazon Simple Notification Service.
+//
 // Allows a topic owner to set an attribute of the topic to a new value.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation SetTopicAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) SetTopicAttributes(input *SetTopicAttributesInput) (*SetTopicAttributesOutput, error) {
 	req, out := c.SetTopicAttributesRequest(input)
 	err := req.Send()
@@ -1661,6 +2359,8 @@ const opSubscribe = "Subscribe"
 // client's request for the Subscribe operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See Subscribe for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1696,10 +2396,36 @@ func (c *SNS) SubscribeRequest(input *SubscribeInput) (req *request.Request, out
 	return
 }
 
+// Subscribe API operation for Amazon Simple Notification Service.
+//
 // Prepares to subscribe an endpoint by sending the endpoint a confirmation
 // message. To actually create a subscription, the endpoint owner must call
 // the ConfirmSubscription action with the token from the confirmation message.
 // Confirmation tokens are valid for three days.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation Subscribe for usage and error information.
+//
+// Returned Error Codes:
+//   * SubscriptionLimitExceeded
+//   Indicates that the customer already owns the maximum allowed number of subscriptions.
+//
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
 func (c *SNS) Subscribe(input *SubscribeInput) (*SubscribeOutput, error) {
 	req, out := c.SubscribeRequest(input)
 	err := req.Send()
@@ -1712,6 +2438,8 @@ const opUnsubscribe = "Unsubscribe"
 // client's request for the Unsubscribe operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See Unsubscribe for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1749,12 +2477,35 @@ func (c *SNS) UnsubscribeRequest(input *UnsubscribeInput) (req *request.Request,
 	return
 }
 
+// Unsubscribe API operation for Amazon Simple Notification Service.
+//
 // Deletes a subscription. If the subscription requires authentication for deletion,
 // only the owner of the subscription or the topic's owner can unsubscribe,
 // and an AWS signature is required. If the Unsubscribe call does not require
 // authentication and the requester is not the subscription owner, a final cancellation
 // message is delivered to the endpoint, so that the endpoint owner can easily
 // resubscribe to the topic if the Unsubscribe request was unintended.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Notification Service's
+// API operation Unsubscribe for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidParameter
+//   Indicates that a request parameter does not comply with the associated constraints.
+//
+//   * InternalError
+//   Indicates an internal service error.
+//
+//   * AuthorizationError
+//   Indicates that the user has been denied access to the requested resource.
+//
+//   * NotFound
+//   Indicates that the requested resource does not exist.
+//
 func (c *SNS) Unsubscribe(input *UnsubscribeInput) (*UnsubscribeOutput, error) {
 	req, out := c.UnsubscribeRequest(input)
 	err := req.Send()
@@ -1767,17 +2518,25 @@ type AddPermissionInput struct {
 	// The AWS account IDs of the users (principals) who will be given access to
 	// the specified actions. The users must have AWS accounts, but do not need
 	// to be signed up for this service.
+	//
+	// AWSAccountId is a required field
 	AWSAccountId []*string `type:"list" required:"true"`
 
 	// The action you want to allow for the specified principal(s).
 	//
 	// Valid values: any Amazon SNS action name.
+	//
+	// ActionName is a required field
 	ActionName []*string `type:"list" required:"true"`
 
 	// A unique identifier for the new policy statement.
+	//
+	// Label is a required field
 	Label *string `type:"string" required:"true"`
 
 	// The ARN of the topic whose access control policy you wish to modify.
+	//
+	// TopicArn is a required field
 	TopicArn *string `type:"string" required:"true"`
 }
 
@@ -1813,6 +2572,30 @@ func (s *AddPermissionInput) Validate() error {
 	return nil
 }
 
+// SetAWSAccountId sets the AWSAccountId field's value.
+func (s *AddPermissionInput) SetAWSAccountId(v []*string) *AddPermissionInput {
+	s.AWSAccountId = v
+	return s
+}
+
+// SetActionName sets the ActionName field's value.
+func (s *AddPermissionInput) SetActionName(v []*string) *AddPermissionInput {
+	s.ActionName = v
+	return s
+}
+
+// SetLabel sets the Label field's value.
+func (s *AddPermissionInput) SetLabel(v string) *AddPermissionInput {
+	s.Label = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *AddPermissionInput) SetTopicArn(v string) *AddPermissionInput {
+	s.TopicArn = &v
+	return s
+}
+
 type AddPermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1832,6 +2615,8 @@ type CheckIfPhoneNumberIsOptedOutInput struct {
 	_ struct{} `type:"structure"`
 
 	// The phone number for which you want to check the opt out status.
+	//
+	// PhoneNumber is a required field
 	PhoneNumber *string `locationName:"phoneNumber" type:"string" required:"true"`
 }
 
@@ -1858,17 +2643,23 @@ func (s *CheckIfPhoneNumberIsOptedOutInput) Validate() error {
 	return nil
 }
 
+// SetPhoneNumber sets the PhoneNumber field's value.
+func (s *CheckIfPhoneNumberIsOptedOutInput) SetPhoneNumber(v string) *CheckIfPhoneNumberIsOptedOutInput {
+	s.PhoneNumber = &v
+	return s
+}
+
 // The response from the CheckIfPhoneNumberIsOptedOut action.
 type CheckIfPhoneNumberIsOptedOutOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Indicates whether the phone number is opted out:
 	//
-	//  true – The phone number is opted out, meaning you cannot publish SMS messages
-	// to it.
+	//    * true – The phone number is opted out, meaning you cannot publish SMS
+	//    messages to it.
 	//
-	// false – The phone number is opted in, meaning you can publish SMS messages
-	// to it.
+	//    * false – The phone number is opted in, meaning you can publish SMS messages
+	//    to it.
 	IsOptedOut *bool `locationName:"isOptedOut" type:"boolean"`
 }
 
@@ -1882,6 +2673,12 @@ func (s CheckIfPhoneNumberIsOptedOutOutput) GoString() string {
 	return s.String()
 }
 
+// SetIsOptedOut sets the IsOptedOut field's value.
+func (s *CheckIfPhoneNumberIsOptedOutOutput) SetIsOptedOut(v bool) *CheckIfPhoneNumberIsOptedOutOutput {
+	s.IsOptedOut = &v
+	return s
+}
+
 // Input for ConfirmSubscription action.
 type ConfirmSubscriptionInput struct {
 	_ struct{} `type:"structure"`
@@ -1893,9 +2690,13 @@ type ConfirmSubscriptionInput struct {
 	AuthenticateOnUnsubscribe *string `type:"string"`
 
 	// Short-lived token sent to an endpoint during the Subscribe action.
+	//
+	// Token is a required field
 	Token *string `type:"string" required:"true"`
 
 	// The ARN of the topic for which you wish to confirm a subscription.
+	//
+	// TopicArn is a required field
 	TopicArn *string `type:"string" required:"true"`
 }
 
@@ -1925,6 +2726,24 @@ func (s *ConfirmSubscriptionInput) Validate() error {
 	return nil
 }
 
+// SetAuthenticateOnUnsubscribe sets the AuthenticateOnUnsubscribe field's value.
+func (s *ConfirmSubscriptionInput) SetAuthenticateOnUnsubscribe(v string) *ConfirmSubscriptionInput {
+	s.AuthenticateOnUnsubscribe = &v
+	return s
+}
+
+// SetToken sets the Token field's value.
+func (s *ConfirmSubscriptionInput) SetToken(v string) *ConfirmSubscriptionInput {
+	s.Token = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *ConfirmSubscriptionInput) SetTopicArn(v string) *ConfirmSubscriptionInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for ConfirmSubscriptions action.
 type ConfirmSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
@@ -1943,20 +2762,32 @@ func (s ConfirmSubscriptionOutput) GoString() string {
 	return s.String()
 }
 
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *ConfirmSubscriptionOutput) SetSubscriptionArn(v string) *ConfirmSubscriptionOutput {
+	s.SubscriptionArn = &v
+	return s
+}
+
 // Input for CreatePlatformApplication action.
 type CreatePlatformApplicationInput struct {
 	_ struct{} `type:"structure"`
 
 	// For a list of attributes, see SetPlatformApplicationAttributes (http://docs.aws.amazon.com/sns/latest/api/API_SetPlatformApplicationAttributes.html)
+	//
+	// Attributes is a required field
 	Attributes map[string]*string `type:"map" required:"true"`
 
 	// Application names must be made up of only uppercase and lowercase ASCII letters,
 	// numbers, underscores, hyphens, and periods, and must be between 1 and 256
 	// characters long.
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 
 	// The following platforms are supported: ADM (Amazon Device Messaging), APNS
 	// (Apple Push Notification Service), APNS_SANDBOX, and GCM (Google Cloud Messaging).
+	//
+	// Platform is a required field
 	Platform *string `type:"string" required:"true"`
 }
 
@@ -1989,6 +2820,24 @@ func (s *CreatePlatformApplicationInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *CreatePlatformApplicationInput) SetAttributes(v map[string]*string) *CreatePlatformApplicationInput {
+	s.Attributes = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreatePlatformApplicationInput) SetName(v string) *CreatePlatformApplicationInput {
+	s.Name = &v
+	return s
+}
+
+// SetPlatform sets the Platform field's value.
+func (s *CreatePlatformApplicationInput) SetPlatform(v string) *CreatePlatformApplicationInput {
+	s.Platform = &v
+	return s
+}
+
 // Response from CreatePlatformApplication action.
 type CreatePlatformApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -2007,6 +2856,12 @@ func (s CreatePlatformApplicationOutput) GoString() string {
 	return s.String()
 }
 
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *CreatePlatformApplicationOutput) SetPlatformApplicationArn(v string) *CreatePlatformApplicationOutput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 // Input for CreatePlatformEndpoint action.
 type CreatePlatformEndpointInput struct {
 	_ struct{} `type:"structure"`
@@ -2020,6 +2875,8 @@ type CreatePlatformEndpointInput struct {
 
 	// PlatformApplicationArn returned from CreatePlatformApplication is used to
 	// create a an endpoint.
+	//
+	// PlatformApplicationArn is a required field
 	PlatformApplicationArn *string `type:"string" required:"true"`
 
 	// Unique identifier created by the notification service for an app on a device.
@@ -2027,6 +2884,8 @@ type CreatePlatformEndpointInput struct {
 	// is being used. For example, when using APNS as the notification service,
 	// you need the device token. Alternatively, when using GCM or ADM, the device
 	// token equivalent is called the registration ID.
+	//
+	// Token is a required field
 	Token *string `type:"string" required:"true"`
 }
 
@@ -2056,6 +2915,30 @@ func (s *CreatePlatformEndpointInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *CreatePlatformEndpointInput) SetAttributes(v map[string]*string) *CreatePlatformEndpointInput {
+	s.Attributes = v
+	return s
+}
+
+// SetCustomUserData sets the CustomUserData field's value.
+func (s *CreatePlatformEndpointInput) SetCustomUserData(v string) *CreatePlatformEndpointInput {
+	s.CustomUserData = &v
+	return s
+}
+
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *CreatePlatformEndpointInput) SetPlatformApplicationArn(v string) *CreatePlatformEndpointInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
+// SetToken sets the Token field's value.
+func (s *CreatePlatformEndpointInput) SetToken(v string) *CreatePlatformEndpointInput {
+	s.Token = &v
+	return s
+}
+
 // Response from CreateEndpoint action.
 type CreatePlatformEndpointOutput struct {
 	_ struct{} `type:"structure"`
@@ -2074,6 +2957,12 @@ func (s CreatePlatformEndpointOutput) GoString() string {
 	return s.String()
 }
 
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *CreatePlatformEndpointOutput) SetEndpointArn(v string) *CreatePlatformEndpointOutput {
+	s.EndpointArn = &v
+	return s
+}
+
 // Input for CreateTopic action.
 type CreateTopicInput struct {
 	_ struct{} `type:"structure"`
@@ -2083,6 +2972,8 @@ type CreateTopicInput struct {
 	// Constraints: Topic names must be made up of only uppercase and lowercase
 	// ASCII letters, numbers, underscores, and hyphens, and must be between 1 and
 	// 256 characters long.
+	//
+	// Name is a required field
 	Name *string `type:"string" required:"true"`
 }
 
@@ -2109,6 +3000,12 @@ func (s *CreateTopicInput) Validate() error {
 	return nil
 }
 
+// SetName sets the Name field's value.
+func (s *CreateTopicInput) SetName(v string) *CreateTopicInput {
+	s.Name = &v
+	return s
+}
+
 // Response from CreateTopic action.
 type CreateTopicOutput struct {
 	_ struct{} `type:"structure"`
@@ -2127,11 +3024,19 @@ func (s CreateTopicOutput) GoString() string {
 	return s.String()
 }
 
+// SetTopicArn sets the TopicArn field's value.
+func (s *CreateTopicOutput) SetTopicArn(v string) *CreateTopicOutput {
+	s.TopicArn = &v
+	return s
+}
+
 // Input for DeleteEndpoint action.
 type DeleteEndpointInput struct {
 	_ struct{} `type:"structure"`
 
 	// EndpointArn of endpoint to delete.
+	//
+	// EndpointArn is a required field
 	EndpointArn *string `type:"string" required:"true"`
 }
 
@@ -2158,6 +3063,12 @@ func (s *DeleteEndpointInput) Validate() error {
 	return nil
 }
 
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *DeleteEndpointInput) SetEndpointArn(v string) *DeleteEndpointInput {
+	s.EndpointArn = &v
+	return s
+}
+
 type DeleteEndpointOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2177,6 +3088,8 @@ type DeletePlatformApplicationInput struct {
 	_ struct{} `type:"structure"`
 
 	// PlatformApplicationArn of platform application object to delete.
+	//
+	// PlatformApplicationArn is a required field
 	PlatformApplicationArn *string `type:"string" required:"true"`
 }
 
@@ -2203,6 +3116,12 @@ func (s *DeletePlatformApplicationInput) Validate() error {
 	return nil
 }
 
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *DeletePlatformApplicationInput) SetPlatformApplicationArn(v string) *DeletePlatformApplicationInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 type DeletePlatformApplicationOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2221,6 +3140,8 @@ type DeleteTopicInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the topic you want to delete.
+	//
+	// TopicArn is a required field
 	TopicArn *string `type:"string" required:"true"`
 }
 
@@ -2245,6 +3166,12 @@ func (s *DeleteTopicInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *DeleteTopicInput) SetTopicArn(v string) *DeleteTopicInput {
+	s.TopicArn = &v
+	return s
 }
 
 type DeleteTopicOutput struct {
@@ -2282,11 +3209,25 @@ func (s Endpoint) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *Endpoint) SetAttributes(v map[string]*string) *Endpoint {
+	s.Attributes = v
+	return s
+}
+
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *Endpoint) SetEndpointArn(v string) *Endpoint {
+	s.EndpointArn = &v
+	return s
+}
+
 // Input for GetEndpointAttributes action.
 type GetEndpointAttributesInput struct {
 	_ struct{} `type:"structure"`
 
 	// EndpointArn for GetEndpointAttributes input.
+	//
+	// EndpointArn is a required field
 	EndpointArn *string `type:"string" required:"true"`
 }
 
@@ -2313,24 +3254,30 @@ func (s *GetEndpointAttributesInput) Validate() error {
 	return nil
 }
 
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *GetEndpointAttributesInput) SetEndpointArn(v string) *GetEndpointAttributesInput {
+	s.EndpointArn = &v
+	return s
+}
+
 // Response from GetEndpointAttributes of the EndpointArn.
 type GetEndpointAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Attributes include the following:
 	//
-	//  CustomUserData -- arbitrary user data to associate with the endpoint. Amazon
-	// SNS does not use this data. The data must be in UTF-8 format and less than
-	// 2KB.
+	//    * CustomUserData -- arbitrary user data to associate with the endpoint.
+	//    Amazon SNS does not use this data. The data must be in UTF-8 format and
+	//    less than 2KB.
 	//
-	// Enabled -- flag that enables/disables delivery to the endpoint. Amazon SNS
-	// will set this to false when a notification service indicates to Amazon SNS
-	// that the endpoint is invalid. Users can set it back to true, typically after
-	// updating Token.
+	//    * Enabled -- flag that enables/disables delivery to the endpoint. Amazon
+	//    SNS will set this to false when a notification service indicates to Amazon
+	//    SNS that the endpoint is invalid. Users can set it back to true, typically
+	//    after updating Token.
 	//
-	// Token -- device token, also referred to as a registration id, for an app
-	// and mobile device. This is returned from the notification service when an
-	// app and mobile device are registered with the notification service.
+	//    * Token -- device token, also referred to as a registration id, for an
+	//    app and mobile device. This is returned from the notification service
+	//    when an app and mobile device are registered with the notification service.
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -2344,11 +3291,19 @@ func (s GetEndpointAttributesOutput) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *GetEndpointAttributesOutput) SetAttributes(v map[string]*string) *GetEndpointAttributesOutput {
+	s.Attributes = v
+	return s
+}
+
 // Input for GetPlatformApplicationAttributes action.
 type GetPlatformApplicationAttributesInput struct {
 	_ struct{} `type:"structure"`
 
 	// PlatformApplicationArn for GetPlatformApplicationAttributesInput.
+	//
+	// PlatformApplicationArn is a required field
 	PlatformApplicationArn *string `type:"string" required:"true"`
 }
 
@@ -2375,24 +3330,30 @@ func (s *GetPlatformApplicationAttributesInput) Validate() error {
 	return nil
 }
 
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *GetPlatformApplicationAttributesInput) SetPlatformApplicationArn(v string) *GetPlatformApplicationAttributesInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 // Response for GetPlatformApplicationAttributes action.
 type GetPlatformApplicationAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Attributes include the following:
 	//
-	//  EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
-	// should be sent.
+	//    * EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
+	//    should be sent.
 	//
-	// EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
-	// should be sent.
+	//    * EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
+	//    should be sent.
 	//
-	// EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
-	// should be sent.
+	//    * EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
+	//    should be sent.
 	//
-	// EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
-	// should be sent upon Direct Publish delivery failure (permanent) to one of
-	// the application's endpoints.
+	//    * EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
+	//    should be sent upon Direct Publish delivery failure (permanent) to one
+	//    of the application's endpoints.
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -2404,6 +3365,12 @@ func (s GetPlatformApplicationAttributesOutput) String() string {
 // GoString returns the string representation
 func (s GetPlatformApplicationAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetAttributes sets the Attributes field's value.
+func (s *GetPlatformApplicationAttributesOutput) SetAttributes(v map[string]*string) *GetPlatformApplicationAttributesOutput {
+	s.Attributes = v
+	return s
 }
 
 // The input for the GetSMSAttributes request.
@@ -2429,6 +3396,12 @@ func (s GetSMSAttributesInput) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *GetSMSAttributesInput) SetAttributes(v []*string) *GetSMSAttributesInput {
+	s.Attributes = v
+	return s
+}
+
 // The response from the GetSMSAttributes request.
 type GetSMSAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -2447,11 +3420,19 @@ func (s GetSMSAttributesOutput) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *GetSMSAttributesOutput) SetAttributes(v map[string]*string) *GetSMSAttributesOutput {
+	s.Attributes = v
+	return s
+}
+
 // Input for GetSubscriptionAttributes.
 type GetSubscriptionAttributesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the subscription whose properties you want to get.
+	//
+	// SubscriptionArn is a required field
 	SubscriptionArn *string `type:"string" required:"true"`
 }
 
@@ -2478,6 +3459,12 @@ func (s *GetSubscriptionAttributesInput) Validate() error {
 	return nil
 }
 
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *GetSubscriptionAttributesInput) SetSubscriptionArn(v string) *GetSubscriptionAttributesInput {
+	s.SubscriptionArn = &v
+	return s
+}
+
 // Response for GetSubscriptionAttributes action.
 type GetSubscriptionAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -2485,21 +3472,21 @@ type GetSubscriptionAttributesOutput struct {
 	// A map of the subscription's attributes. Attributes in this map include the
 	// following:
 	//
-	//   SubscriptionArn -- the subscription's ARN
+	//    * SubscriptionArn -- the subscription's ARN
 	//
-	//   TopicArn -- the topic ARN that the subscription is associated with
+	//    * TopicArn -- the topic ARN that the subscription is associated with
 	//
-	//   Owner -- the AWS account ID of the subscription's owner
+	//    * Owner -- the AWS account ID of the subscription's owner
 	//
-	//   ConfirmationWasAuthenticated -- true if the subscription confirmation
-	// request was authenticated
+	//    * ConfirmationWasAuthenticated -- true if the subscription confirmation
+	//    request was authenticated
 	//
-	//   DeliveryPolicy -- the JSON serialization of the subscription's delivery
-	// policy
+	//    * DeliveryPolicy -- the JSON serialization of the subscription's delivery
+	//    policy
 	//
-	//   EffectiveDeliveryPolicy -- the JSON serialization of the effective delivery
-	// policy that takes into account the topic delivery policy and account system
-	// defaults
+	//    * EffectiveDeliveryPolicy -- the JSON serialization of the effective delivery
+	//    policy that takes into account the topic delivery policy and account system
+	//    defaults
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -2513,11 +3500,19 @@ func (s GetSubscriptionAttributesOutput) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *GetSubscriptionAttributesOutput) SetAttributes(v map[string]*string) *GetSubscriptionAttributesOutput {
+	s.Attributes = v
+	return s
+}
+
 // Input for GetTopicAttributes action.
 type GetTopicAttributesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the topic whose properties you want to get.
+	//
+	// TopicArn is a required field
 	TopicArn *string `type:"string" required:"true"`
 }
 
@@ -2544,33 +3539,40 @@ func (s *GetTopicAttributesInput) Validate() error {
 	return nil
 }
 
+// SetTopicArn sets the TopicArn field's value.
+func (s *GetTopicAttributesInput) SetTopicArn(v string) *GetTopicAttributesInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for GetTopicAttributes action.
 type GetTopicAttributesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A map of the topic's attributes. Attributes in this map include the following:
 	//
-	//  TopicArn -- the topic's ARN
+	//    * TopicArn -- the topic's ARN
 	//
-	// Owner -- the AWS account ID of the topic's owner
+	//    * Owner -- the AWS account ID of the topic's owner
 	//
-	// Policy -- the JSON serialization of the topic's access control policy
+	//    * Policy -- the JSON serialization of the topic's access control policy
 	//
-	// DisplayName -- the human-readable name used in the "From" field for notifications
-	// to email and email-json endpoints
+	//    * DisplayName -- the human-readable name used in the "From" field for
+	//    notifications to email and email-json endpoints
 	//
-	// SubscriptionsPending -- the number of subscriptions pending confirmation
-	// on this topic
+	//    * SubscriptionsPending -- the number of subscriptions pending confirmation
+	//    on this topic
 	//
-	// SubscriptionsConfirmed -- the number of confirmed subscriptions on this
-	// topic
+	//    * SubscriptionsConfirmed -- the number of confirmed subscriptions on this
+	//    topic
 	//
-	// SubscriptionsDeleted -- the number of deleted subscriptions on this topic
+	//    * SubscriptionsDeleted -- the number of deleted subscriptions on this
+	//    topic
 	//
-	// DeliveryPolicy -- the JSON serialization of the topic's delivery policy
+	//    * DeliveryPolicy -- the JSON serialization of the topic's delivery policy
 	//
-	// EffectiveDeliveryPolicy -- the JSON serialization of the effective delivery
-	// policy that takes into account system defaults
+	//    * EffectiveDeliveryPolicy -- the JSON serialization of the effective delivery
+	//    policy that takes into account system defaults
 	Attributes map[string]*string `type:"map"`
 }
 
@@ -2584,6 +3586,12 @@ func (s GetTopicAttributesOutput) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *GetTopicAttributesOutput) SetAttributes(v map[string]*string) *GetTopicAttributesOutput {
+	s.Attributes = v
+	return s
+}
+
 // Input for ListEndpointsByPlatformApplication action.
 type ListEndpointsByPlatformApplicationInput struct {
 	_ struct{} `type:"structure"`
@@ -2594,6 +3602,8 @@ type ListEndpointsByPlatformApplicationInput struct {
 	NextToken *string `type:"string"`
 
 	// PlatformApplicationArn for ListEndpointsByPlatformApplicationInput action.
+	//
+	// PlatformApplicationArn is a required field
 	PlatformApplicationArn *string `type:"string" required:"true"`
 }
 
@@ -2620,6 +3630,18 @@ func (s *ListEndpointsByPlatformApplicationInput) Validate() error {
 	return nil
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListEndpointsByPlatformApplicationInput) SetNextToken(v string) *ListEndpointsByPlatformApplicationInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *ListEndpointsByPlatformApplicationInput) SetPlatformApplicationArn(v string) *ListEndpointsByPlatformApplicationInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 // Response for ListEndpointsByPlatformApplication action.
 type ListEndpointsByPlatformApplicationOutput struct {
 	_ struct{} `type:"structure"`
@@ -2642,6 +3664,18 @@ func (s ListEndpointsByPlatformApplicationOutput) GoString() string {
 	return s.String()
 }
 
+// SetEndpoints sets the Endpoints field's value.
+func (s *ListEndpointsByPlatformApplicationOutput) SetEndpoints(v []*Endpoint) *ListEndpointsByPlatformApplicationOutput {
+	s.Endpoints = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListEndpointsByPlatformApplicationOutput) SetNextToken(v string) *ListEndpointsByPlatformApplicationOutput {
+	s.NextToken = &v
+	return s
+}
+
 // The input for the ListPhoneNumbersOptedOut action.
 type ListPhoneNumbersOptedOutInput struct {
 	_ struct{} `type:"structure"`
@@ -2660,6 +3694,12 @@ func (s ListPhoneNumbersOptedOutInput) String() string {
 // GoString returns the string representation
 func (s ListPhoneNumbersOptedOutInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPhoneNumbersOptedOutInput) SetNextToken(v string) *ListPhoneNumbersOptedOutInput {
+	s.NextToken = &v
+	return s
 }
 
 // The response from the ListPhoneNumbersOptedOut action.
@@ -2685,6 +3725,18 @@ func (s ListPhoneNumbersOptedOutOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListPhoneNumbersOptedOutOutput) SetNextToken(v string) *ListPhoneNumbersOptedOutOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPhoneNumbers sets the PhoneNumbers field's value.
+func (s *ListPhoneNumbersOptedOutOutput) SetPhoneNumbers(v []*string) *ListPhoneNumbersOptedOutOutput {
+	s.PhoneNumbers = v
+	return s
+}
+
 // Input for ListPlatformApplications action.
 type ListPlatformApplicationsInput struct {
 	_ struct{} `type:"structure"`
@@ -2702,6 +3754,12 @@ func (s ListPlatformApplicationsInput) String() string {
 // GoString returns the string representation
 func (s ListPlatformApplicationsInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListPlatformApplicationsInput) SetNextToken(v string) *ListPlatformApplicationsInput {
+	s.NextToken = &v
+	return s
 }
 
 // Response for ListPlatformApplications action.
@@ -2726,6 +3784,18 @@ func (s ListPlatformApplicationsOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListPlatformApplicationsOutput) SetNextToken(v string) *ListPlatformApplicationsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPlatformApplications sets the PlatformApplications field's value.
+func (s *ListPlatformApplicationsOutput) SetPlatformApplications(v []*PlatformApplication) *ListPlatformApplicationsOutput {
+	s.PlatformApplications = v
+	return s
+}
+
 // Input for ListSubscriptionsByTopic action.
 type ListSubscriptionsByTopicInput struct {
 	_ struct{} `type:"structure"`
@@ -2734,6 +3804,8 @@ type ListSubscriptionsByTopicInput struct {
 	NextToken *string `type:"string"`
 
 	// The ARN of the topic for which you wish to find subscriptions.
+	//
+	// TopicArn is a required field
 	TopicArn *string `type:"string" required:"true"`
 }
 
@@ -2760,6 +3832,18 @@ func (s *ListSubscriptionsByTopicInput) Validate() error {
 	return nil
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListSubscriptionsByTopicInput) SetNextToken(v string) *ListSubscriptionsByTopicInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *ListSubscriptionsByTopicInput) SetTopicArn(v string) *ListSubscriptionsByTopicInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for ListSubscriptionsByTopic action.
 type ListSubscriptionsByTopicOutput struct {
 	_ struct{} `type:"structure"`
@@ -2782,6 +3866,18 @@ func (s ListSubscriptionsByTopicOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListSubscriptionsByTopicOutput) SetNextToken(v string) *ListSubscriptionsByTopicOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSubscriptions sets the Subscriptions field's value.
+func (s *ListSubscriptionsByTopicOutput) SetSubscriptions(v []*Subscription) *ListSubscriptionsByTopicOutput {
+	s.Subscriptions = v
+	return s
+}
+
 // Input for ListSubscriptions action.
 type ListSubscriptionsInput struct {
 	_ struct{} `type:"structure"`
@@ -2798,6 +3894,12 @@ func (s ListSubscriptionsInput) String() string {
 // GoString returns the string representation
 func (s ListSubscriptionsInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListSubscriptionsInput) SetNextToken(v string) *ListSubscriptionsInput {
+	s.NextToken = &v
+	return s
 }
 
 // Response for ListSubscriptions action
@@ -2822,6 +3924,18 @@ func (s ListSubscriptionsOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListSubscriptionsOutput) SetNextToken(v string) *ListSubscriptionsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetSubscriptions sets the Subscriptions field's value.
+func (s *ListSubscriptionsOutput) SetSubscriptions(v []*Subscription) *ListSubscriptionsOutput {
+	s.Subscriptions = v
+	return s
+}
+
 type ListTopicsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2837,6 +3951,12 @@ func (s ListTopicsInput) String() string {
 // GoString returns the string representation
 func (s ListTopicsInput) GoString() string {
 	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListTopicsInput) SetNextToken(v string) *ListTopicsInput {
+	s.NextToken = &v
+	return s
 }
 
 // Response for ListTopics action.
@@ -2861,6 +3981,18 @@ func (s ListTopicsOutput) GoString() string {
 	return s.String()
 }
 
+// SetNextToken sets the NextToken field's value.
+func (s *ListTopicsOutput) SetNextToken(v string) *ListTopicsOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetTopics sets the Topics field's value.
+func (s *ListTopicsOutput) SetTopics(v []*Topic) *ListTopicsOutput {
+	s.Topics = v
+	return s
+}
+
 // The user-specified message attribute value. For string data types, the value
 // attribute has the same restrictions on the content as the message body. For
 // more information, see Publish (http://docs.aws.amazon.com/sns/latest/api/API_Publish.html).
@@ -2881,6 +4013,8 @@ type MessageAttributeValue struct {
 
 	// Amazon SNS supports the following logical data types: String, Number, and
 	// Binary. For more information, see Message Attribute Data Types (http://docs.aws.amazon.com/sns/latest/dg/SNSMessageAttributes.html#SNSMessageAttributes.DataTypes).
+	//
+	// DataType is a required field
 	DataType *string `type:"string" required:"true"`
 
 	// Strings are Unicode with UTF8 binary encoding. For a list of code values,
@@ -2911,11 +4045,31 @@ func (s *MessageAttributeValue) Validate() error {
 	return nil
 }
 
+// SetBinaryValue sets the BinaryValue field's value.
+func (s *MessageAttributeValue) SetBinaryValue(v []byte) *MessageAttributeValue {
+	s.BinaryValue = v
+	return s
+}
+
+// SetDataType sets the DataType field's value.
+func (s *MessageAttributeValue) SetDataType(v string) *MessageAttributeValue {
+	s.DataType = &v
+	return s
+}
+
+// SetStringValue sets the StringValue field's value.
+func (s *MessageAttributeValue) SetStringValue(v string) *MessageAttributeValue {
+	s.StringValue = &v
+	return s
+}
+
 // Input for the OptInPhoneNumber action.
 type OptInPhoneNumberInput struct {
 	_ struct{} `type:"structure"`
 
 	// The phone number to opt in.
+	//
+	// PhoneNumber is a required field
 	PhoneNumber *string `locationName:"phoneNumber" type:"string" required:"true"`
 }
 
@@ -2940,6 +4094,12 @@ func (s *OptInPhoneNumberInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetPhoneNumber sets the PhoneNumber field's value.
+func (s *OptInPhoneNumberInput) SetPhoneNumber(v string) *OptInPhoneNumberInput {
+	s.PhoneNumber = &v
+	return s
 }
 
 // The response for the OptInPhoneNumber action.
@@ -2978,6 +4138,18 @@ func (s PlatformApplication) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *PlatformApplication) SetAttributes(v map[string]*string) *PlatformApplication {
+	s.Attributes = v
+	return s
+}
+
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *PlatformApplication) SetPlatformApplicationArn(v string) *PlatformApplication {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 // Input for Publish action.
 type PublishInput struct {
 	_ struct{} `type:"structure"`
@@ -2987,38 +4159,39 @@ type PublishInput struct {
 	// If you want to send the same message to all transport protocols, include
 	// the text of the message as a String value.
 	//
-	// If you want to send different messages for each transport protocol, set
-	// the value of the MessageStructure parameter to json and use a JSON object
-	// for the Message parameter. See the Examples section for the format of the
-	// JSON object.
+	// If you want to send different messages for each transport protocol, set the
+	// value of the MessageStructure parameter to json and use a JSON object for
+	// the Message parameter.
 	//
 	// Constraints: Messages must be UTF-8 encoded strings at most 256 KB in size
 	// (262144 bytes, not 262144 characters).
 	//
 	// JSON-specific constraints:
 	//
-	//   Keys in the JSON object that correspond to supported transport protocols
-	// must have simple JSON string values.
+	//    * Keys in the JSON object that correspond to supported transport protocols
+	//    must have simple JSON string values.
 	//
-	//   The values will be parsed (unescaped) before they are used in outgoing
-	// messages.
+	//    * The values will be parsed (unescaped) before they are used in outgoing
+	//    messages.
 	//
-	//   Outbound notifications are JSON encoded (meaning that the characters will
-	// be reescaped for sending).
+	//    * Outbound notifications are JSON encoded (meaning that the characters
+	//    will be reescaped for sending).
 	//
-	//   Values have a minimum length of 0 (the empty string, "", is allowed).
+	//    * Values have a minimum length of 0 (the empty string, "", is allowed).
 	//
-	//   Values have a maximum length bounded by the overall message size (so,
-	// including multiple protocols may limit message sizes).
+	//    * Values have a maximum length bounded by the overall message size (so,
+	//    including multiple protocols may limit message sizes).
 	//
-	//   Non-string values will cause the key to be ignored.
+	//    * Non-string values will cause the key to be ignored.
 	//
-	//   Keys that do not correspond to supported transport protocols are ignored.
+	//    * Keys that do not correspond to supported transport protocols are ignored.
 	//
-	//   Duplicate keys are not allowed.
+	//    * Duplicate keys are not allowed.
 	//
-	//   Failure to parse or validate any key or value in the message will cause
-	// the Publish call to return an error (no partial delivery).
+	//    * Failure to parse or validate any key or value in the message will cause
+	//    the Publish call to return an error (no partial delivery).
+	//
+	// Message is a required field
 	Message *string `type:"string" required:"true"`
 
 	// Message attributes for Publish action.
@@ -3029,13 +4202,13 @@ type PublishInput struct {
 	// message to your SMS subscribers and a longer message to your email subscribers.
 	// If you set MessageStructure to json, the value of the Message parameter must:
 	//
-	//   be a syntactically valid JSON object; and
+	//    * be a syntactically valid JSON object; and
 	//
-	//   contain at least a top-level JSON key of "default" with a value that is
-	// a string.
+	//    * contain at least a top-level JSON key of "default" with a value that
+	//    is a string.
 	//
-	//    You can define other top-level keys that define the message you want
-	// to send to a specific transport protocol (e.g., "http").
+	// You can define other top-level keys that define the message you want to send
+	// to a specific transport protocol (e.g., "http").
 	//
 	// For information about sending different messages for each protocol using
 	// the AWS Management Console, go to Create Different Messages for Each Protocol
@@ -3106,6 +4279,48 @@ func (s *PublishInput) Validate() error {
 	return nil
 }
 
+// SetMessage sets the Message field's value.
+func (s *PublishInput) SetMessage(v string) *PublishInput {
+	s.Message = &v
+	return s
+}
+
+// SetMessageAttributes sets the MessageAttributes field's value.
+func (s *PublishInput) SetMessageAttributes(v map[string]*MessageAttributeValue) *PublishInput {
+	s.MessageAttributes = v
+	return s
+}
+
+// SetMessageStructure sets the MessageStructure field's value.
+func (s *PublishInput) SetMessageStructure(v string) *PublishInput {
+	s.MessageStructure = &v
+	return s
+}
+
+// SetPhoneNumber sets the PhoneNumber field's value.
+func (s *PublishInput) SetPhoneNumber(v string) *PublishInput {
+	s.PhoneNumber = &v
+	return s
+}
+
+// SetSubject sets the Subject field's value.
+func (s *PublishInput) SetSubject(v string) *PublishInput {
+	s.Subject = &v
+	return s
+}
+
+// SetTargetArn sets the TargetArn field's value.
+func (s *PublishInput) SetTargetArn(v string) *PublishInput {
+	s.TargetArn = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *PublishInput) SetTopicArn(v string) *PublishInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for Publish action.
 type PublishOutput struct {
 	_ struct{} `type:"structure"`
@@ -3126,14 +4341,24 @@ func (s PublishOutput) GoString() string {
 	return s.String()
 }
 
+// SetMessageId sets the MessageId field's value.
+func (s *PublishOutput) SetMessageId(v string) *PublishOutput {
+	s.MessageId = &v
+	return s
+}
+
 // Input for RemovePermission action.
 type RemovePermissionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The unique label of the statement you want to remove.
+	//
+	// Label is a required field
 	Label *string `type:"string" required:"true"`
 
 	// The ARN of the topic whose access control policy you wish to modify.
+	//
+	// TopicArn is a required field
 	TopicArn *string `type:"string" required:"true"`
 }
 
@@ -3163,6 +4388,18 @@ func (s *RemovePermissionInput) Validate() error {
 	return nil
 }
 
+// SetLabel sets the Label field's value.
+func (s *RemovePermissionInput) SetLabel(v string) *RemovePermissionInput {
+	s.Label = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *RemovePermissionInput) SetTopicArn(v string) *RemovePermissionInput {
+	s.TopicArn = &v
+	return s
+}
+
 type RemovePermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3183,21 +4420,25 @@ type SetEndpointAttributesInput struct {
 
 	// A map of the endpoint attributes. Attributes in this map include the following:
 	//
-	//  CustomUserData -- arbitrary user data to associate with the endpoint. Amazon
-	// SNS does not use this data. The data must be in UTF-8 format and less than
-	// 2KB.
+	//    * CustomUserData -- arbitrary user data to associate with the endpoint.
+	//    Amazon SNS does not use this data. The data must be in UTF-8 format and
+	//    less than 2KB.
 	//
-	// Enabled -- flag that enables/disables delivery to the endpoint. Amazon SNS
-	// will set this to false when a notification service indicates to Amazon SNS
-	// that the endpoint is invalid. Users can set it back to true, typically after
-	// updating Token.
+	//    * Enabled -- flag that enables/disables delivery to the endpoint. Amazon
+	//    SNS will set this to false when a notification service indicates to Amazon
+	//    SNS that the endpoint is invalid. Users can set it back to true, typically
+	//    after updating Token.
 	//
-	// Token -- device token, also referred to as a registration id, for an app
-	// and mobile device. This is returned from the notification service when an
-	// app and mobile device are registered with the notification service.
+	//    * Token -- device token, also referred to as a registration id, for an
+	//    app and mobile device. This is returned from the notification service
+	//    when an app and mobile device are registered with the notification service.
+	//
+	// Attributes is a required field
 	Attributes map[string]*string `type:"map" required:"true"`
 
 	// EndpointArn used for SetEndpointAttributes action.
+	//
+	// EndpointArn is a required field
 	EndpointArn *string `type:"string" required:"true"`
 }
 
@@ -3227,6 +4468,18 @@ func (s *SetEndpointAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *SetEndpointAttributesInput) SetAttributes(v map[string]*string) *SetEndpointAttributesInput {
+	s.Attributes = v
+	return s
+}
+
+// SetEndpointArn sets the EndpointArn field's value.
+func (s *SetEndpointAttributesInput) SetEndpointArn(v string) *SetEndpointAttributesInput {
+	s.EndpointArn = &v
+	return s
+}
+
 type SetEndpointAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3248,38 +4501,44 @@ type SetPlatformApplicationAttributesInput struct {
 	// A map of the platform application attributes. Attributes in this map include
 	// the following:
 	//
-	//  PlatformCredential -- The credential received from the notification service.
-	// For APNS/APNS_SANDBOX, PlatformCredential is private key. For GCM, PlatformCredential
-	// is "API key". For ADM, PlatformCredential is "client secret".
+	//    * PlatformCredential -- The credential received from the notification
+	//    service. For APNS/APNS_SANDBOX, PlatformCredential is private key. For
+	//    GCM, PlatformCredential is "API key". For ADM, PlatformCredential is "client
+	//    secret".
 	//
-	// PlatformPrincipal -- The principal received from the notification service.
-	// For APNS/APNS_SANDBOX, PlatformPrincipal is SSL certificate. For GCM, PlatformPrincipal
-	// is not applicable. For ADM, PlatformPrincipal is "client id".
+	//    * PlatformPrincipal -- The principal received from the notification service.
+	//    For APNS/APNS_SANDBOX, PlatformPrincipal is SSL certificate. For GCM,
+	//    PlatformPrincipal is not applicable. For ADM, PlatformPrincipal is "client
+	//    id".
 	//
-	// EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
-	// should be sent.
+	//    * EventEndpointCreated -- Topic ARN to which EndpointCreated event notifications
+	//    should be sent.
 	//
-	// EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
-	// should be sent.
+	//    * EventEndpointDeleted -- Topic ARN to which EndpointDeleted event notifications
+	//    should be sent.
 	//
-	// EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
-	// should be sent.
+	//    * EventEndpointUpdated -- Topic ARN to which EndpointUpdate event notifications
+	//    should be sent.
 	//
-	// EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
-	// should be sent upon Direct Publish delivery failure (permanent) to one of
-	// the application's endpoints.
+	//    * EventDeliveryFailure -- Topic ARN to which DeliveryFailure event notifications
+	//    should be sent upon Direct Publish delivery failure (permanent) to one
+	//    of the application's endpoints.
 	//
-	// SuccessFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write access
-	// to use CloudWatch Logs on your behalf.
+	//    * SuccessFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write
+	//    access to use CloudWatch Logs on your behalf.
 	//
-	// FailureFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write access
-	// to use CloudWatch Logs on your behalf.
+	//    * FailureFeedbackRoleArn -- IAM role ARN used to give Amazon SNS write
+	//    access to use CloudWatch Logs on your behalf.
 	//
-	// SuccessFeedbackSampleRate -- Sample rate percentage (0-100) of successfully
-	// delivered messages.
+	//    * SuccessFeedbackSampleRate -- Sample rate percentage (0-100) of successfully
+	//    delivered messages.
+	//
+	// Attributes is a required field
 	Attributes map[string]*string `type:"map" required:"true"`
 
 	// PlatformApplicationArn for SetPlatformApplicationAttributes action.
+	//
+	// PlatformApplicationArn is a required field
 	PlatformApplicationArn *string `type:"string" required:"true"`
 }
 
@@ -3309,6 +4568,18 @@ func (s *SetPlatformApplicationAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *SetPlatformApplicationAttributesInput) SetAttributes(v map[string]*string) *SetPlatformApplicationAttributesInput {
+	s.Attributes = v
+	return s
+}
+
+// SetPlatformApplicationArn sets the PlatformApplicationArn field's value.
+func (s *SetPlatformApplicationAttributesInput) SetPlatformApplicationArn(v string) *SetPlatformApplicationAttributesInput {
+	s.PlatformApplicationArn = &v
+	return s
+}
+
 type SetPlatformApplicationAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3335,12 +4606,16 @@ type SetSMSAttributesInput struct {
 	// an SMS message would incur a cost that exceeds this limit, it stops sending
 	// SMS messages within minutes.
 	//
-	//  Amazon SNS stops sending SMS messages within minutes of the limit being
-	// crossed. During that interval, if you continue to send SMS messages, you
-	// will incur costs that exceed your limit.
+	// Amazon SNS stops sending SMS messages within minutes of the limit being crossed.
+	// During that interval, if you continue to send SMS messages, you will incur
+	// costs that exceed your limit.
 	//
-	//  DeliveryStatusIAMRole – The ARN of the IAM role that allows Amazon SNS
-	// to write logs about SMS deliveries in CloudWatch Logs. For each SMS message
+	// By default, the spend limit is set to the maximum allowed by Amazon SNS.
+	// If you want to exceed the maximum, contact AWS Support (https://aws.amazon.com/premiumsupport/)
+	// or your AWS sales representative for a service limit increase.
+	//
+	// DeliveryStatusIAMRole – The ARN of the IAM role that allows Amazon SNS to
+	// write logs about SMS deliveries in CloudWatch Logs. For each SMS message
 	// that you send, Amazon SNS writes a log that includes the message price, the
 	// success or failure status, the reason for failure (if the message failed),
 	// the message dwell time, and other information.
@@ -3356,45 +4631,47 @@ type SetSMSAttributesInput struct {
 	// The sender ID can be 1 - 11 alphanumeric characters, and it must contain
 	// at least one letter.
 	//
-	// DefaultSMSType – The type of SMS message that you will send by default.
-	// You can assign the following values:
+	// DefaultSMSType – The type of SMS message that you will send by default. You
+	// can assign the following values:
 	//
-	//   Promotional – Noncritical messages, such as marketing messages. Amazon
-	// SNS optimizes the message delivery to incur the lowest cost.
+	//    * Promotional – (Default) Noncritical messages, such as marketing messages.
+	//    Amazon SNS optimizes the message delivery to incur the lowest cost.
 	//
-	//   Transactional – (Default) Critical messages that support customer transactions,
-	// such as one-time passcodes for multi-factor authentication. Amazon SNS optimizes
-	// the message delivery to achieve the highest reliability.
+	//    * Transactional – Critical messages that support customer transactions,
+	//    such as one-time passcodes for multi-factor authentication. Amazon SNS
+	//    optimizes the message delivery to achieve the highest reliability.
 	//
-	//   UsageReportS3Bucket – The name of the Amazon S3 bucket to receive daily
-	// SMS usage reports from Amazon SNS. Each day, Amazon SNS will deliver a usage
+	// UsageReportS3Bucket – The name of the Amazon S3 bucket to receive daily SMS
+	// usage reports from Amazon SNS. Each day, Amazon SNS will deliver a usage
 	// report as a CSV file to the bucket. The report includes the following information
 	// for each SMS message that was successfully delivered by your account:
 	//
-	//   Time that the message was published (in UTC)
+	//    * Time that the message was published (in UTC)
 	//
-	//   Message ID
+	//    * Message ID
 	//
-	//   Destination phone number
+	//    * Destination phone number
 	//
-	//   Message type
+	//    * Message type
 	//
-	//   Delivery status
+	//    * Delivery status
 	//
-	//   Message price (in USD)
+	//    * Message price (in USD)
 	//
-	//   Part number (a message is split into multiple parts if it is too long
-	// for a single message)
+	//    * Part number (a message is split into multiple parts if it is too long
+	//    for a single message)
 	//
-	//   Total number of parts
+	//    * Total number of parts
 	//
-	//   To receive the report, the bucket must have a policy that allows the Amazon
+	// To receive the report, the bucket must have a policy that allows the Amazon
 	// SNS service principle to perform the s3:PutObject and s3:GetBucketLocation
 	// actions.
 	//
-	// For an example bucket policy and usage report, see Viewing Statistics About
-	// SMS Message Delivery (http://docs.aws.amazon.com/sns/latest/dg/sms_stats.html)
-	// in the Amazon SNS Developer Guide.
+	// For an example bucket policy and usage report, see Monitoring SMS Activity
+	// (http://docs.aws.amazon.com/sns/latest/dg/sms_stats.html) in the Amazon SNS
+	// Developer Guide.
+	//
+	// Attributes is a required field
 	Attributes map[string]*string `locationName:"attributes" type:"map" required:"true"`
 }
 
@@ -3421,6 +4698,12 @@ func (s *SetSMSAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *SetSMSAttributesInput) SetAttributes(v map[string]*string) *SetSMSAttributesInput {
+	s.Attributes = v
+	return s
+}
+
 // The response for the SetSMSAttributes action.
 type SetSMSAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3444,12 +4727,16 @@ type SetSubscriptionAttributesInput struct {
 	// attributes are mutable.
 	//
 	// Valid values: DeliveryPolicy | RawMessageDelivery
+	//
+	// AttributeName is a required field
 	AttributeName *string `type:"string" required:"true"`
 
 	// The new value for the attribute in JSON format.
 	AttributeValue *string `type:"string"`
 
 	// The ARN of the subscription to modify.
+	//
+	// SubscriptionArn is a required field
 	SubscriptionArn *string `type:"string" required:"true"`
 }
 
@@ -3479,6 +4766,24 @@ func (s *SetSubscriptionAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributeName sets the AttributeName field's value.
+func (s *SetSubscriptionAttributesInput) SetAttributeName(v string) *SetSubscriptionAttributesInput {
+	s.AttributeName = &v
+	return s
+}
+
+// SetAttributeValue sets the AttributeValue field's value.
+func (s *SetSubscriptionAttributesInput) SetAttributeValue(v string) *SetSubscriptionAttributesInput {
+	s.AttributeValue = &v
+	return s
+}
+
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *SetSubscriptionAttributesInput) SetSubscriptionArn(v string) *SetSubscriptionAttributesInput {
+	s.SubscriptionArn = &v
+	return s
+}
+
 type SetSubscriptionAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3501,12 +4806,16 @@ type SetTopicAttributesInput struct {
 	// are mutable.
 	//
 	// Valid values: Policy | DisplayName | DeliveryPolicy
+	//
+	// AttributeName is a required field
 	AttributeName *string `type:"string" required:"true"`
 
 	// The new value for the attribute.
 	AttributeValue *string `type:"string"`
 
 	// The ARN of the topic to modify.
+	//
+	// TopicArn is a required field
 	TopicArn *string `type:"string" required:"true"`
 }
 
@@ -3536,6 +4845,24 @@ func (s *SetTopicAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributeName sets the AttributeName field's value.
+func (s *SetTopicAttributesInput) SetAttributeName(v string) *SetTopicAttributesInput {
+	s.AttributeName = &v
+	return s
+}
+
+// SetAttributeValue sets the AttributeValue field's value.
+func (s *SetTopicAttributesInput) SetAttributeValue(v string) *SetTopicAttributesInput {
+	s.AttributeValue = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *SetTopicAttributesInput) SetTopicArn(v string) *SetTopicAttributesInput {
+	s.TopicArn = &v
+	return s
+}
+
 type SetTopicAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3556,46 +4883,50 @@ type SubscribeInput struct {
 
 	// The endpoint that you want to receive notifications. Endpoints vary by protocol:
 	//
-	//   For the http protocol, the endpoint is an URL beginning with "http://"
+	//    * For the http protocol, the endpoint is an URL beginning with "http://"
 	//
-	//   For the https protocol, the endpoint is a URL beginning with "https://"
+	//    * For the https protocol, the endpoint is a URL beginning with "https://"
 	//
-	//   For the email protocol, the endpoint is an email address
+	//    * For the email protocol, the endpoint is an email address
 	//
-	//   For the email-json protocol, the endpoint is an email address
+	//    * For the email-json protocol, the endpoint is an email address
 	//
-	//   For the sms protocol, the endpoint is a phone number of an SMS-enabled
-	// device
+	//    * For the sms protocol, the endpoint is a phone number of an SMS-enabled
+	//    device
 	//
-	//   For the sqs protocol, the endpoint is the ARN of an Amazon SQS queue
+	//    * For the sqs protocol, the endpoint is the ARN of an Amazon SQS queue
 	//
-	//   For the application protocol, the endpoint is the EndpointArn of a mobile
-	// app and device.
+	//    * For the application protocol, the endpoint is the EndpointArn of a mobile
+	//    app and device.
 	//
-	//   For the lambda protocol, the endpoint is the ARN of an AWS Lambda function.
+	//    * For the lambda protocol, the endpoint is the ARN of an AWS Lambda function.
 	Endpoint *string `type:"string"`
 
 	// The protocol you want to use. Supported protocols include:
 	//
-	//   http -- delivery of JSON-encoded message via HTTP POST
+	//    * http -- delivery of JSON-encoded message via HTTP POST
 	//
-	//   https -- delivery of JSON-encoded message via HTTPS POST
+	//    * https -- delivery of JSON-encoded message via HTTPS POST
 	//
-	//   email -- delivery of message via SMTP
+	//    * email -- delivery of message via SMTP
 	//
-	//   email-json -- delivery of JSON-encoded message via SMTP
+	//    * email-json -- delivery of JSON-encoded message via SMTP
 	//
-	//   sms -- delivery of message via SMS
+	//    * sms -- delivery of message via SMS
 	//
-	//   sqs -- delivery of JSON-encoded message to an Amazon SQS queue
+	//    * sqs -- delivery of JSON-encoded message to an Amazon SQS queue
 	//
-	//   application -- delivery of JSON-encoded message to an EndpointArn for
-	// a mobile app and device.
+	//    * application -- delivery of JSON-encoded message to an EndpointArn for
+	//    a mobile app and device.
 	//
-	//   lambda -- delivery of JSON-encoded message to an AWS Lambda function.
+	//    * lambda -- delivery of JSON-encoded message to an AWS Lambda function.
+	//
+	// Protocol is a required field
 	Protocol *string `type:"string" required:"true"`
 
 	// The ARN of the topic you want to subscribe to.
+	//
+	// TopicArn is a required field
 	TopicArn *string `type:"string" required:"true"`
 }
 
@@ -3625,6 +4956,24 @@ func (s *SubscribeInput) Validate() error {
 	return nil
 }
 
+// SetEndpoint sets the Endpoint field's value.
+func (s *SubscribeInput) SetEndpoint(v string) *SubscribeInput {
+	s.Endpoint = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *SubscribeInput) SetProtocol(v string) *SubscribeInput {
+	s.Protocol = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *SubscribeInput) SetTopicArn(v string) *SubscribeInput {
+	s.TopicArn = &v
+	return s
+}
+
 // Response for Subscribe action.
 type SubscribeOutput struct {
 	_ struct{} `type:"structure"`
@@ -3642,6 +4991,12 @@ func (s SubscribeOutput) String() string {
 // GoString returns the string representation
 func (s SubscribeOutput) GoString() string {
 	return s.String()
+}
+
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *SubscribeOutput) SetSubscriptionArn(v string) *SubscribeOutput {
+	s.SubscriptionArn = &v
+	return s
 }
 
 // A wrapper type for the attributes of an Amazon SNS subscription.
@@ -3674,6 +5029,36 @@ func (s Subscription) GoString() string {
 	return s.String()
 }
 
+// SetEndpoint sets the Endpoint field's value.
+func (s *Subscription) SetEndpoint(v string) *Subscription {
+	s.Endpoint = &v
+	return s
+}
+
+// SetOwner sets the Owner field's value.
+func (s *Subscription) SetOwner(v string) *Subscription {
+	s.Owner = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *Subscription) SetProtocol(v string) *Subscription {
+	s.Protocol = &v
+	return s
+}
+
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *Subscription) SetSubscriptionArn(v string) *Subscription {
+	s.SubscriptionArn = &v
+	return s
+}
+
+// SetTopicArn sets the TopicArn field's value.
+func (s *Subscription) SetTopicArn(v string) *Subscription {
+	s.TopicArn = &v
+	return s
+}
+
 // A wrapper type for the topic's Amazon Resource Name (ARN). To retrieve a
 // topic's attributes, use GetTopicAttributes.
 type Topic struct {
@@ -3693,11 +5078,19 @@ func (s Topic) GoString() string {
 	return s.String()
 }
 
+// SetTopicArn sets the TopicArn field's value.
+func (s *Topic) SetTopicArn(v string) *Topic {
+	s.TopicArn = &v
+	return s
+}
+
 // Input for Unsubscribe action.
 type UnsubscribeInput struct {
 	_ struct{} `type:"structure"`
 
 	// The ARN of the subscription to be deleted.
+	//
+	// SubscriptionArn is a required field
 	SubscriptionArn *string `type:"string" required:"true"`
 }
 
@@ -3722,6 +5115,12 @@ func (s *UnsubscribeInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetSubscriptionArn sets the SubscriptionArn field's value.
+func (s *UnsubscribeInput) SetSubscriptionArn(v string) *UnsubscribeInput {
+	s.SubscriptionArn = &v
+	return s
 }
 
 type UnsubscribeOutput struct {

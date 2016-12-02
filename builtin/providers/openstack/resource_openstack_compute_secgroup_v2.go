@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 )
 
 func resourceComputeSecGroupV2() *schema.Resource {
@@ -197,15 +197,11 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 			rule := resourceSecGroupRuleV2(d, r)
 			err := secgroups.DeleteRule(computeClient, rule.ID).ExtractErr()
 			if err != nil {
-				errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-				if !ok {
-					return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
-				}
-				if errCode.Actual == 404 {
+				if _, ok := err.(gophercloud.ErrDefault404); ok {
 					continue
-				} else {
-					return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s)", rule.ID, d.Id())
 				}
+
+				return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s)", rule.ID, d.Id())
 			} else {
 				log.Printf("[DEBUG] Removed rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
 			}

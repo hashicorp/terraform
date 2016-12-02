@@ -5,8 +5,6 @@ import (
 	"log"
 	"testing"
 
-	mysqlc "github.com/ziutek/mymysql/mysql"
-
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -26,6 +24,15 @@ func TestAccUser(t *testing.T) {
 					resource.TestCheckResourceAttr("mysql_user.test", "password", "password"),
 				),
 			},
+			resource.TestStep{
+				Config: testAccUserConfig_newPass,
+				Check: resource.ComposeTestCheckFunc(
+					testAccUserExists("mysql_user.test"),
+					resource.TestCheckResourceAttr("mysql_user.test", "user", "jdoe"),
+					resource.TestCheckResourceAttr("mysql_user.test", "host", "example.com"),
+					resource.TestCheckResourceAttr("mysql_user.test", "password", "password2"),
+				),
+			},
 		},
 	})
 }
@@ -41,7 +48,7 @@ func testAccUserExists(rn string) resource.TestCheckFunc {
 			return fmt.Errorf("user id not set")
 		}
 
-		conn := testAccProvider.Meta().(mysqlc.Conn)
+		conn := testAccProvider.Meta().(*providerConfiguration).Conn
 		stmtSQL := fmt.Sprintf("SELECT count(*) from mysql.user where CONCAT(user, '@', host) = '%s'", rs.Primary.ID)
 		log.Println("Executing statement:", stmtSQL)
 		rows, _, err := conn.Query(stmtSQL)
@@ -57,7 +64,7 @@ func testAccUserExists(rn string) resource.TestCheckFunc {
 }
 
 func testAccUserCheckDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(mysqlc.Conn)
+	conn := testAccProvider.Meta().(*providerConfiguration).Conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mysql_user" {
@@ -82,5 +89,13 @@ resource "mysql_user" "test" {
         user = "jdoe"
         host = "example.com"
         password = "password"
+}
+`
+
+const testAccUserConfig_newPass = `
+resource "mysql_user" "test" {
+        user = "jdoe"
+        host = "example.com"
+        password = "password2"
 }
 `

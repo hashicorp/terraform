@@ -111,6 +111,8 @@ type BlobProperties struct {
 	ContentLength         int64    `xml:"Content-Length"`
 	ContentType           string   `xml:"Content-Type"`
 	ContentEncoding       string   `xml:"Content-Encoding"`
+	CacheControl          string   `xml:"Cache-Control"`
+	ContentLanguage       string   `xml:"Cache-Language"`
 	BlobType              BlobType `xml:"x-ms-blob-blob-type"`
 	SequenceNumber        int64    `xml:"x-ms-blob-sequence-number"`
 	CopyID                string   `xml:"CopyId"`
@@ -120,6 +122,16 @@ type BlobProperties struct {
 	CopyCompletionTime    string   `xml:"CopyCompletionTime"`
 	CopyStatusDescription string   `xml:"CopyStatusDescription"`
 	LeaseStatus           string   `xml:"LeaseStatus"`
+}
+
+// BlobHeaders contains various properties of a blob and is an entry
+// in SetBlobProperties
+type BlobHeaders struct {
+	ContentMD5      string `header:"x-ms-blob-content-md5"`
+	ContentLanguage string `header:"x-ms-blob-content-language"`
+	ContentEncoding string `header:"x-ms-blob-content-encoding"`
+	ContentType     string `header:"x-ms-blob-content-type"`
+	CacheControl    string `header:"x-ms-blob-cache-control"`
 }
 
 // BlobListResponse contains the response fields from ListBlobs call.
@@ -242,6 +254,23 @@ const (
 	blobCopyStatusSuccess = "success"
 	blobCopyStatusAborted = "aborted"
 	blobCopyStatusFailed  = "failed"
+)
+
+// lease constants.
+const (
+	leaseHeaderPrefix = "x-ms-lease-"
+	leaseID           = "x-ms-lease-id"
+	leaseAction       = "x-ms-lease-action"
+	leaseBreakPeriod  = "x-ms-lease-break-period"
+	leaseDuration     = "x-ms-lease-duration"
+	leaseProposedID   = "x-ms-proposed-lease-id"
+	leaseTime         = "x-ms-lease-time"
+
+	acquireLease = "acquire"
+	renewLease   = "renew"
+	changeLease  = "change"
+	releaseLease = "release"
+	breakLease   = "break"
 )
 
 // BlockListType is used to filter out types of blocks in a Get Blocks List call
@@ -474,7 +503,6 @@ func (b BlobStorageClient) ListBlobs(container string, params ListBlobsParameter
 func (b BlobStorageClient) BlobExists(container, name string) (bool, error) {
 	verb := "HEAD"
 	uri := b.client.getEndpoint(blobServiceName, pathForBlob(container, name), url.Values{})
-
 	headers := b.client.getStandardHeaders()
 	resp, err := b.client.exec(verb, uri, headers, nil)
 	if resp != nil {
@@ -549,6 +577,134 @@ func (b BlobStorageClient) getBlobRange(container, name, bytesRange string, extr
 	return resp, err
 }
 
+// leasePut is common PUT code for the various aquire/release/break etc functions.
+func (b BlobStorageClient) leaseCommonPut(container string, name string, headers map[string]string, expectedStatus int) (http.Header, error) {
+	params := url.Values{"comp": {"lease"}}
+	uri := b.client.getEndpoint(blobServiceName, pathForBlob(container, name), params)
+
+	resp, err := b.client.exec("PUT", uri, headers, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.body.Close()
+
+	if err := checkRespCode(resp.statusCode, []int{expectedStatus}); err != nil {
+		return nil, err
+	}
+
+	return resp.headers, nil
+}
+
+// AcquireLease creates a lease for a blob as per https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
+// returns leaseID acquired
+func (b BlobStorageClient) AcquireLease(container string, name string, leaseTimeInSeconds int, proposedLeaseID string) (returnedLeaseID string, err error) {
+	headers := b.client.getStandardHeaders()
+	headers[leaseAction] = acquireLease
+	headers[leaseProposedID] = proposedLeaseID
+	headers[leaseDuration] = strconv.Itoa(leaseTimeInSeconds)
+
+	respHeaders, err := b.leaseCommonPut(container, name, headers, http.StatusCreated)
+	if err != nil {
+		return "", err
+	}
+
+	returnedLeaseID = respHeaders.Get(http.CanonicalHeaderKey(leaseID))
+
+	if returnedLeaseID != "" {
+		return returnedLeaseID, nil
+	}
+
+	// what should we return in case of HTTP 201 but no lease ID?
+	// or it just cant happen? (brave words)
+	return "", errors.New("LeaseID not returned")
+}
+
+// BreakLease breaks the lease for a blob as per https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
+// Returns the timeout remaining in the lease in seconds
+func (b BlobStorageClient) BreakLease(container string, name string) (breakTimeout int, err error) {
+	headers := b.client.getStandardHeaders()
+	headers[leaseAction] = breakLease
+	return b.breakLeaseCommon(container, name, headers)
+}
+
+// BreakLeaseWithBreakPeriod breaks the lease for a blob as per https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
+// breakPeriodInSeconds is used to determine how long until new lease can be created.
+// Returns the timeout remaining in the lease in seconds
+func (b BlobStorageClient) BreakLeaseWithBreakPeriod(container string, name string, breakPeriodInSeconds int) (breakTimeout int, err error) {
+	headers := b.client.getStandardHeaders()
+	headers[leaseAction] = breakLease
+	headers[leaseBreakPeriod] = strconv.Itoa(breakPeriodInSeconds)
+	return b.breakLeaseCommon(container, name, headers)
+}
+
+// breakLeaseCommon is common code for both version of BreakLease (with and without break period)
+func (b BlobStorageClient) breakLeaseCommon(container string, name string, headers map[string]string) (breakTimeout int, err error) {
+
+	respHeaders, err := b.leaseCommonPut(container, name, headers, http.StatusAccepted)
+	if err != nil {
+		return 0, err
+	}
+
+	breakTimeoutStr := respHeaders.Get(http.CanonicalHeaderKey(leaseTime))
+	if breakTimeoutStr != "" {
+		breakTimeout, err = strconv.Atoi(breakTimeoutStr)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return breakTimeout, nil
+}
+
+// ChangeLease changes a lease ID for a blob as per https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
+// Returns the new LeaseID acquired
+func (b BlobStorageClient) ChangeLease(container string, name string, currentLeaseID string, proposedLeaseID string) (newLeaseID string, err error) {
+	headers := b.client.getStandardHeaders()
+	headers[leaseAction] = changeLease
+	headers[leaseID] = currentLeaseID
+	headers[leaseProposedID] = proposedLeaseID
+
+	respHeaders, err := b.leaseCommonPut(container, name, headers, http.StatusOK)
+	if err != nil {
+		return "", err
+	}
+
+	newLeaseID = respHeaders.Get(http.CanonicalHeaderKey(leaseID))
+	if newLeaseID != "" {
+		return newLeaseID, nil
+	}
+
+	return "", errors.New("LeaseID not returned")
+}
+
+// ReleaseLease releases the lease for a blob as per https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
+func (b BlobStorageClient) ReleaseLease(container string, name string, currentLeaseID string) error {
+	headers := b.client.getStandardHeaders()
+	headers[leaseAction] = releaseLease
+	headers[leaseID] = currentLeaseID
+
+	_, err := b.leaseCommonPut(container, name, headers, http.StatusOK)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RenewLease renews the lease for a blob as per https://msdn.microsoft.com/en-us/library/azure/ee691972.aspx
+func (b BlobStorageClient) RenewLease(container string, name string, currentLeaseID string) error {
+	headers := b.client.getStandardHeaders()
+	headers[leaseAction] = renewLease
+	headers[leaseID] = currentLeaseID
+
+	_, err := b.leaseCommonPut(container, name, headers, http.StatusOK)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // GetBlobProperties provides various information about the specified
 // blob. See https://msdn.microsoft.com/en-us/library/azure/dd179394.aspx
 func (b BlobStorageClient) GetBlobProperties(container, name string) (*BlobProperties, error) {
@@ -590,6 +746,9 @@ func (b BlobStorageClient) GetBlobProperties(container, name string) (*BlobPrope
 		ContentMD5:            resp.headers.Get("Content-MD5"),
 		ContentLength:         contentLength,
 		ContentEncoding:       resp.headers.Get("Content-Encoding"),
+		ContentType:           resp.headers.Get("Content-Type"),
+		CacheControl:          resp.headers.Get("Cache-Control"),
+		ContentLanguage:       resp.headers.Get("Content-Language"),
 		SequenceNumber:        sequenceNum,
 		CopyCompletionTime:    resp.headers.Get("x-ms-copy-completion-time"),
 		CopyStatusDescription: resp.headers.Get("x-ms-copy-status-description"),
@@ -600,6 +759,34 @@ func (b BlobStorageClient) GetBlobProperties(container, name string) (*BlobPrope
 		BlobType:              BlobType(resp.headers.Get("x-ms-blob-type")),
 		LeaseStatus:           resp.headers.Get("x-ms-lease-status"),
 	}, nil
+}
+
+// SetBlobProperties replaces the BlobHeaders for the specified blob.
+//
+// Some keys may be converted to Camel-Case before sending. All keys
+// are returned in lower case by GetBlobProperties. HTTP header names
+// are case-insensitive so case munging should not matter to other
+// applications either.
+//
+// See https://msdn.microsoft.com/en-us/library/azure/ee691966.aspx
+func (b BlobStorageClient) SetBlobProperties(container, name string, blobHeaders BlobHeaders) error {
+	params := url.Values{"comp": {"properties"}}
+	uri := b.client.getEndpoint(blobServiceName, pathForBlob(container, name), params)
+	headers := b.client.getStandardHeaders()
+
+	extraHeaders := headersFromStruct(blobHeaders)
+
+	for k, v := range extraHeaders {
+		headers[k] = v
+	}
+
+	resp, err := b.client.exec("PUT", uri, headers, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.body.Close()
+
+	return checkRespCode(resp.statusCode, []int{http.StatusOK})
 }
 
 // SetBlobMetadata replaces the metadata for the specified blob.
@@ -1033,9 +1220,24 @@ func (b BlobStorageClient) GetBlobSASURI(container, name string, expiry time.Tim
 		blobURL           = b.GetBlobURL(container, name)
 	)
 	canonicalizedResource, err := b.client.buildCanonicalizedResource(blobURL)
+
 	if err != nil {
 		return "", err
 	}
+
+	// "The canonicalizedresouce portion of the string is a canonical path to the signed resource.
+	// It must include the service name (blob, table, queue or file) for version 2015-02-21 or
+	// later, the storage account name, and the resource name, and must be URL-decoded.
+	// -- https://msdn.microsoft.com/en-us/library/azure/dn140255.aspx
+
+	// We need to replace + with %2b first to avoid being treated as a space (which is correct for query strings, but not the path component).
+	canonicalizedResource = strings.Replace(canonicalizedResource, "+", "%2b", -1)
+
+	canonicalizedResource, err = url.QueryUnescape(canonicalizedResource)
+	if err != nil {
+		return "", err
+	}
+
 	signedExpiry := expiry.UTC().Format(time.RFC3339)
 	signedResource := "b"
 

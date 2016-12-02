@@ -21,12 +21,13 @@ package network
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
 // SubnetsClient is the the Microsoft Azure Network management API provides a
 // RESTful set of web services that interact with Microsoft Azure Networks
-// service to manage your network resrources. The API has entities that
+// service to manage your network resources. The API has entities that
 // capture the relationship between an end user and the Microsoft Azure
 // Networks service.
 type SubnetsClient struct {
@@ -35,19 +36,42 @@ type SubnetsClient struct {
 
 // NewSubnetsClient creates an instance of the SubnetsClient client.
 func NewSubnetsClient(subscriptionID string) SubnetsClient {
-	return SubnetsClient{New(subscriptionID)}
+	return NewSubnetsClientWithBaseURI(DefaultBaseURI, subscriptionID)
 }
 
-// CreateOrUpdate the Put Subnet operation creates/updates a subnet in
-// thespecified virtual network This method may poll for completion. Polling
-// can be canceled by passing the cancel channel argument. The channel will
-// be used to cancel polling and any outstanding HTTP requests.
+// NewSubnetsClientWithBaseURI creates an instance of the SubnetsClient client.
+func NewSubnetsClientWithBaseURI(baseURI string, subscriptionID string) SubnetsClient {
+	return SubnetsClient{NewWithBaseURI(baseURI, subscriptionID)}
+}
+
+// CreateOrUpdate the Put Subnet operation creates/updates a subnet in the
+// specified virtual network This method may poll for completion. Polling can
+// be canceled by passing the cancel channel argument. The channel will be
+// used to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
 // the name of the virtual network. subnetName is the name of the subnet.
 // subnetParameters is parameters supplied to the create/update Subnet
 // operation
 func (client SubnetsClient) CreateOrUpdate(resourceGroupName string, virtualNetworkName string, subnetName string, subnetParameters Subnet, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: subnetParameters,
+			Constraints: []validation.Constraint{{Target: "subnetParameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "subnetParameters.Properties.NetworkSecurityGroup", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "subnetParameters.Properties.NetworkSecurityGroup.Properties", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "subnetParameters.Properties.NetworkSecurityGroup.Properties.NetworkInterfaces", Name: validation.ReadOnly, Rule: true, Chain: nil},
+							{Target: "subnetParameters.Properties.NetworkSecurityGroup.Properties.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						}},
+					}},
+					{Target: "subnetParameters.Properties.RouteTable", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "subnetParameters.Properties.RouteTable.Properties", Name: validation.Null, Rule: false,
+							Chain: []validation.Constraint{{Target: "subnetParameters.Properties.RouteTable.Properties.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
+						}},
+					{Target: "subnetParameters.Properties.IPConfigurations", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "network.SubnetsClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, virtualNetworkName, subnetName, subnetParameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.SubnetsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -178,7 +202,7 @@ func (client SubnetsClient) DeleteResponder(resp *http.Response) (result autores
 	return
 }
 
-// Get the Get subnet operation retreives information about the specified
+// Get the Get subnet operation retrieves information about the specified
 // subnet.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
@@ -247,7 +271,7 @@ func (client SubnetsClient) GetResponder(resp *http.Response) (result Subnet, er
 	return
 }
 
-// List the List subnets opertion retrieves all the subnets in a virtual
+// List the List subnets operation retrieves all the subnets in a virtual
 // network.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
@@ -315,7 +339,7 @@ func (client SubnetsClient) ListResponder(resp *http.Response) (result SubnetLis
 func (client SubnetsClient) ListNextResults(lastResults SubnetListResult) (result SubnetListResult, err error) {
 	req, err := lastResults.SubnetListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.SubnetsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.SubnetsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -324,12 +348,12 @@ func (client SubnetsClient) ListNextResults(lastResults SubnetListResult) (resul
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.SubnetsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.SubnetsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.SubnetsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.SubnetsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

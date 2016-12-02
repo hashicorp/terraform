@@ -26,7 +26,7 @@ import (
 
 // VirtualNetworkGatewaysClient is the the Microsoft Azure Network management
 // API provides a RESTful set of web services that interact with Microsoft
-// Azure Networks service to manage your network resrources. The API has
+// Azure Networks service to manage your network resources. The API has
 // entities that capture the relationship between an end user and the
 // Microsoft Azure Networks service.
 type VirtualNetworkGatewaysClient struct {
@@ -36,7 +36,13 @@ type VirtualNetworkGatewaysClient struct {
 // NewVirtualNetworkGatewaysClient creates an instance of the
 // VirtualNetworkGatewaysClient client.
 func NewVirtualNetworkGatewaysClient(subscriptionID string) VirtualNetworkGatewaysClient {
-	return VirtualNetworkGatewaysClient{New(subscriptionID)}
+	return NewVirtualNetworkGatewaysClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewVirtualNetworkGatewaysClientWithBaseURI creates an instance of the
+// VirtualNetworkGatewaysClient client.
+func NewVirtualNetworkGatewaysClientWithBaseURI(baseURI string, subscriptionID string) VirtualNetworkGatewaysClient {
+	return VirtualNetworkGatewaysClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put VirtualNetworkGateway operation creates/updates a
@@ -111,7 +117,7 @@ func (client VirtualNetworkGatewaysClient) CreateOrUpdateResponder(resp *http.Re
 	return
 }
 
-// Delete the Delete VirtualNetworkGateway operation deletes the specifed
+// Delete the Delete VirtualNetworkGateway operation deletes the specified
 // virtual network Gateway through Network resource provider. This method may
 // poll for completion. Polling can be canceled by passing the cancel channel
 // argument. The channel will be used to cancel polling and any outstanding
@@ -312,7 +318,7 @@ func (client VirtualNetworkGatewaysClient) GetResponder(resp *http.Response) (re
 	return
 }
 
-// List the List VirtualNetworkGateways opertion retrieves all the virtual
+// List the List VirtualNetworkGateways operation retrieves all the virtual
 // network gateways stored.
 //
 // resourceGroupName is the name of the resource group.
@@ -378,7 +384,7 @@ func (client VirtualNetworkGatewaysClient) ListResponder(resp *http.Response) (r
 func (client VirtualNetworkGatewaysClient) ListNextResults(lastResults VirtualNetworkGatewayListResult) (result VirtualNetworkGatewayListResult, err error) {
 	req, err := lastResults.VirtualNetworkGatewayListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.VirtualNetworkGatewaysClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.VirtualNetworkGatewaysClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -387,12 +393,12 @@ func (client VirtualNetworkGatewaysClient) ListNextResults(lastResults VirtualNe
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.VirtualNetworkGatewaysClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.VirtualNetworkGatewaysClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.VirtualNetworkGatewaysClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.VirtualNetworkGatewaysClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

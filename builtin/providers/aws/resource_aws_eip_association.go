@@ -119,7 +119,9 @@ func resourceAwsEipAssociationRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if response.Addresses == nil || len(response.Addresses) == 0 {
-		return fmt.Errorf("Unable to find EIP Association: %s", d.Id())
+		log.Printf("[INFO] EIP Association ID Not Found. Refreshing from state")
+		d.SetId("")
+		return nil
 	}
 
 	return readAwsEipAssociation(d, response.Addresses[0])

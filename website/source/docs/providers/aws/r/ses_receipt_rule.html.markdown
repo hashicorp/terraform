@@ -41,7 +41,6 @@ The following arguments are supported:
 * `after` - (Optional) The name of the rule to place this rule after
 * `enabled` - (Optional) If true, the rule will be enabled
 * `recipients` - (Optional) A list of email addresses
-* `recipients` - (Optional) A list of email addresses
 * `scan_enabled` - (Optional) If true, incoming emails will be scanned for spam and viruses
 * `tls_policy` - (Optional) Require or Optional
 * `add_header_action` - (Optional) A list of Add Header Action blocks. Documented below.

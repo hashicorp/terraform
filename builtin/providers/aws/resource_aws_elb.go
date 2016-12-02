@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -92,9 +94,10 @@ func resourceAwsElb() *schema.Resource {
 			},
 
 			"idle_timeout": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  60,
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Default:      60,
+				ValidateFunc: validateIntegerInRange(1, 3600),
 			},
 
 			"connection_draining": &schema.Schema{
@@ -115,9 +118,10 @@ func resourceAwsElb() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"interval": &schema.Schema{
-							Type:     schema.TypeInt,
-							Optional: true,
-							Default:  60,
+							Type:         schema.TypeInt,
+							Optional:     true,
+							Default:      60,
+							ValidateFunc: validateAccessLogsInterval,
 						},
 						"bucket": &schema.Schema{
 							Type:     schema.TypeString,
@@ -126,6 +130,11 @@ func resourceAwsElb() *schema.Resource {
 						"bucket_prefix": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+						},
+						"enabled": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
 						},
 					},
 				},
@@ -137,23 +146,27 @@ func resourceAwsElb() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"instance_port": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateIntegerInRange(1, 65535),
 						},
 
 						"instance_protocol": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateListenerProtocol,
 						},
 
 						"lb_port": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateIntegerInRange(1, 65535),
 						},
 
 						"lb_protocol": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateListenerProtocol,
 						},
 
 						"ssl_certificate_id": &schema.Schema{
@@ -173,28 +186,33 @@ func resourceAwsElb() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"healthy_threshold": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateIntegerInRange(2, 10),
 						},
 
 						"unhealthy_threshold": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateIntegerInRange(2, 10),
 						},
 
 						"target": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateHeathCheckTarget,
 						},
 
 						"interval": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateIntegerInRange(5, 300),
 						},
 
 						"timeout": &schema.Schema{
-							Type:     schema.TypeInt,
-							Required: true,
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateIntegerInRange(2, 60),
 						},
 					},
 				},
@@ -520,7 +538,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		} else if len(logs) == 1 {
 			log := logs[0].(map[string]interface{})
 			accessLog := &elb.AccessLog{
-				Enabled:      aws.Bool(true),
+				Enabled:      aws.Bool(log["enabled"].(bool)),
 				EmitInterval: aws.Int64(int64(log["interval"].(int))),
 				S3BucketName: aws.String(log["bucket"].(string)),
 			}
@@ -677,19 +695,6 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		removed := expandStringList(os.Difference(ns).List())
 		added := expandStringList(ns.Difference(os).List())
 
-		if len(added) > 0 {
-			attachOpts := &elb.AttachLoadBalancerToSubnetsInput{
-				LoadBalancerName: aws.String(d.Id()),
-				Subnets:          added,
-			}
-
-			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
-			_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
-			if err != nil {
-				return fmt.Errorf("Failure adding ELB subnets: %s", err)
-			}
-		}
-
 		if len(removed) > 0 {
 			detachOpts := &elb.DetachLoadBalancerFromSubnetsInput{
 				LoadBalancerName: aws.String(d.Id()),
@@ -700,6 +705,33 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			_, err := elbconn.DetachLoadBalancerFromSubnets(detachOpts)
 			if err != nil {
 				return fmt.Errorf("Failure removing ELB subnets: %s", err)
+			}
+		}
+
+		if len(added) > 0 {
+			attachOpts := &elb.AttachLoadBalancerToSubnetsInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Subnets:          added,
+			}
+
+			log.Printf("[DEBUG] ELB attach subnets opts: %s", attachOpts)
+			err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+				_, err := elbconn.AttachLoadBalancerToSubnets(attachOpts)
+				if err != nil {
+					if awsErr, ok := err.(awserr.Error); ok {
+						// eventually consistent issue with removing a subnet in AZ1 and
+						// immediately adding a new one in the same AZ
+						if awsErr.Code() == "InvalidConfigurationRequest" && strings.Contains(awsErr.Message(), "cannot be attached to multiple subnets in the same AZ") {
+							log.Printf("[DEBUG] retrying az association")
+							return resource.RetryableError(awsErr)
+						}
+					}
+					return resource.NonRetryableError(err)
+				}
+				return nil
+			})
+			if err != nil {
+				return fmt.Errorf("Failure adding ELB subnets: %s", err)
 			}
 		}
 
@@ -801,4 +833,113 @@ func sourceSGIdByName(meta interface{}, sg, vpcId string) (string, error) {
 
 	group := resp.SecurityGroups[0]
 	return *group.GroupId, nil
+}
+
+func validateAccessLogsInterval(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(int)
+
+	// Check if the value is either 5 or 60 (minutes).
+	if value != 5 && value != 60 {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Access Logs interval \"%d\". "+
+				"Valid intervals are either 5 or 60 (minutes).",
+			k, value))
+	}
+	return
+}
+
+func validateHeathCheckTarget(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	// Parse the Health Check target value.
+	matches := regexp.MustCompile(`\A(\w+):(\d+)(.+)?\z`).FindStringSubmatch(value)
+
+	// Check if the value contains a valid target.
+	if matches == nil || len(matches) < 1 {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Health Check: %s",
+			k, value))
+
+		// Invalid target? Return immediately,
+		// there is no need to collect other
+		// errors.
+		return
+	}
+
+	// Check if the value contains a valid protocol.
+	if !isValidProtocol(matches[1]) {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Health Check protocol %q. "+
+				"Valid protocols are either %q, %q, %q, or %q.",
+			k, matches[1], "TCP", "SSL", "HTTP", "HTTPS"))
+	}
+
+	// Check if the value contains a valid port range.
+	port, _ := strconv.Atoi(matches[2])
+	if port < 1 || port > 65535 {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Health Check target port \"%d\". "+
+				"Valid port is in the range from 1 to 65535 inclusive.",
+			k, port))
+	}
+
+	switch strings.ToLower(matches[1]) {
+	case "tcp", "ssl":
+		// Check if value is in the form <PROTOCOL>:<PORT> for TCP and/or SSL.
+		if matches[3] != "" {
+			errors = append(errors, fmt.Errorf(
+				"%q cannot contain a path in the Health Check target: %s",
+				k, value))
+		}
+		break
+	case "http", "https":
+		// Check if value is in the form <PROTOCOL>:<PORT>/<PATH> for HTTP and/or HTTPS.
+		if matches[3] == "" {
+			errors = append(errors, fmt.Errorf(
+				"%q must contain a path in the Health Check target: %s",
+				k, value))
+		}
+
+		// Cannot be longer than 1024 multibyte characters.
+		if len([]rune(matches[3])) > 1024 {
+			errors = append(errors, fmt.Errorf("%q cannot contain a path longer "+
+				"than 1024 characters in the Health Check target: %s",
+				k, value))
+		}
+		break
+	}
+
+	return
+}
+
+func validateListenerProtocol(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if !isValidProtocol(value) {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Listener protocol %q. "+
+				"Valid protocols are either %q, %q, %q, or %q.",
+			k, value, "TCP", "SSL", "HTTP", "HTTPS"))
+	}
+	return
+}
+
+func isValidProtocol(s string) bool {
+	if s == "" {
+		return false
+	}
+	s = strings.ToLower(s)
+
+	validProtocols := map[string]bool{
+		"http":  true,
+		"https": true,
+		"ssl":   true,
+		"tcp":   true,
+	}
+
+	if _, ok := validProtocols[s]; !ok {
+		return false
+	}
+
+	return true
 }

@@ -21,12 +21,13 @@ package network
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
 // PublicIPAddressesClient is the the Microsoft Azure Network management API
 // provides a RESTful set of web services that interact with Microsoft Azure
-// Networks service to manage your network resrources. The API has entities
+// Networks service to manage your network resources. The API has entities
 // that capture the relationship between an end user and the Microsoft Azure
 // Networks service.
 type PublicIPAddressesClient struct {
@@ -36,7 +37,13 @@ type PublicIPAddressesClient struct {
 // NewPublicIPAddressesClient creates an instance of the
 // PublicIPAddressesClient client.
 func NewPublicIPAddressesClient(subscriptionID string) PublicIPAddressesClient {
-	return PublicIPAddressesClient{New(subscriptionID)}
+	return NewPublicIPAddressesClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewPublicIPAddressesClientWithBaseURI creates an instance of the
+// PublicIPAddressesClient client.
+func NewPublicIPAddressesClientWithBaseURI(baseURI string, subscriptionID string) PublicIPAddressesClient {
+	return PublicIPAddressesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate the Put PublicIPAddress operation creates/updates a
@@ -48,6 +55,34 @@ func NewPublicIPAddressesClient(subscriptionID string) PublicIPAddressesClient {
 // the name of the publicIpAddress. parameters is parameters supplied to the
 // create/update PublicIPAddress operation
 func (client PublicIPAddressesClient) CreateOrUpdate(resourceGroupName string, publicIPAddressName string, parameters PublicIPAddress, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.IPConfiguration", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.IPConfiguration.Properties", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Properties.IPConfiguration.Properties.Subnet", Name: validation.Null, Rule: false,
+							Chain: []validation.Constraint{{Target: "parameters.Properties.IPConfiguration.Properties.Subnet.Properties", Name: validation.Null, Rule: false,
+								Chain: []validation.Constraint{{Target: "parameters.Properties.IPConfiguration.Properties.Subnet.Properties.NetworkSecurityGroup", Name: validation.Null, Rule: false,
+									Chain: []validation.Constraint{{Target: "parameters.Properties.IPConfiguration.Properties.Subnet.Properties.NetworkSecurityGroup.Properties", Name: validation.Null, Rule: false,
+										Chain: []validation.Constraint{{Target: "parameters.Properties.IPConfiguration.Properties.Subnet.Properties.NetworkSecurityGroup.Properties.NetworkInterfaces", Name: validation.ReadOnly, Rule: true, Chain: nil},
+											{Target: "parameters.Properties.IPConfiguration.Properties.Subnet.Properties.NetworkSecurityGroup.Properties.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil},
+										}},
+									}},
+									{Target: "parameters.Properties.IPConfiguration.Properties.Subnet.Properties.RouteTable", Name: validation.Null, Rule: false,
+										Chain: []validation.Constraint{{Target: "parameters.Properties.IPConfiguration.Properties.Subnet.Properties.RouteTable.Properties", Name: validation.Null, Rule: false,
+											Chain: []validation.Constraint{{Target: "parameters.Properties.IPConfiguration.Properties.Subnet.Properties.RouteTable.Properties.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
+										}},
+									{Target: "parameters.Properties.IPConfiguration.Properties.Subnet.Properties.IPConfigurations", Name: validation.ReadOnly, Rule: true, Chain: nil},
+								}},
+							}},
+							{Target: "parameters.Properties.IPConfiguration.Properties.PublicIPAddress", Name: validation.Null, Rule: false, Chain: nil},
+						}},
+					}},
+					{Target: "parameters.Properties.IPConfiguration", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "network.PublicIPAddressesClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, publicIPAddressName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -176,7 +211,7 @@ func (client PublicIPAddressesClient) DeleteResponder(resp *http.Response) (resu
 	return
 }
 
-// Get the Get publicIpAddress operation retreives information about the
+// Get the Get publicIpAddress operation retrieves information about the
 // specified pubicIpAddress
 //
 // resourceGroupName is the name of the resource group. publicIPAddressName is
@@ -243,7 +278,7 @@ func (client PublicIPAddressesClient) GetResponder(resp *http.Response) (result 
 	return
 }
 
-// List the List publicIpAddress opertion retrieves all the publicIpAddresses
+// List the List publicIpAddress operation retrieves all the publicIpAddresses
 // in a resource group.
 //
 // resourceGroupName is the name of the resource group.
@@ -309,7 +344,7 @@ func (client PublicIPAddressesClient) ListResponder(resp *http.Response) (result
 func (client PublicIPAddressesClient) ListNextResults(lastResults PublicIPAddressListResult) (result PublicIPAddressListResult, err error) {
 	req, err := lastResults.PublicIPAddressListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -318,18 +353,18 @@ func (client PublicIPAddressesClient) ListNextResults(lastResults PublicIPAddres
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
 }
 
-// ListAll the List publicIpAddress opertion retrieves all the
+// ListAll the List publicIpAddress operation retrieves all the
 // publicIpAddresses in a subscription.
 func (client PublicIPAddressesClient) ListAll() (result PublicIPAddressListResult, err error) {
 	req, err := client.ListAllPreparer()
@@ -392,7 +427,7 @@ func (client PublicIPAddressesClient) ListAllResponder(resp *http.Response) (res
 func (client PublicIPAddressesClient) ListAllNextResults(lastResults PublicIPAddressListResult) (result PublicIPAddressListResult, err error) {
 	req, err := lastResults.PublicIPAddressListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -401,12 +436,12 @@ func (client PublicIPAddressesClient) ListAllNextResults(lastResults PublicIPAdd
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.PublicIPAddressesClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return

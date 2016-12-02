@@ -19,10 +19,10 @@ package storage
 // regenerated.
 
 import (
-	"net/http"
-
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
+	"net/http"
 )
 
 // AccountsClient is the the Storage Management Client.
@@ -32,7 +32,13 @@ type AccountsClient struct {
 
 // NewAccountsClient creates an instance of the AccountsClient client.
 func NewAccountsClient(subscriptionID string) AccountsClient {
-	return AccountsClient{New(subscriptionID)}
+	return NewAccountsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewAccountsClientWithBaseURI creates an instance of the AccountsClient
+// client.
+func NewAccountsClientWithBaseURI(baseURI string, subscriptionID string) AccountsClient {
+	return AccountsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CheckNameAvailability checks that account name is valid and is not in use.
@@ -41,6 +47,13 @@ func NewAccountsClient(subscriptionID string) AccountsClient {
 // resource group. Storage account names must be between 3 and 24 characters
 // in length and use numbers and lower-case letters only.
 func (client AccountsClient) CheckNameAvailability(accountName AccountCheckNameAvailabilityParameters) (result CheckNameAvailabilityResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName.Name", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "accountName.Type", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "CheckNameAvailability")
+	}
+
 	req, err := client.CheckNameAvailabilityPreparer(accountName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "storage.AccountsClient", "CheckNameAvailability", nil, "Failure preparing request")
@@ -114,6 +127,28 @@ func (client AccountsClient) CheckNameAvailabilityResponder(resp *http.Response)
 // characters in length and use numbers and lower-case letters only.
 // parameters is the parameters to provide for the created account.
 func (client AccountsClient) Create(resourceGroupName string, accountName string, parameters AccountCreateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}},
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Sku", Name: validation.Null, Rule: true,
+				Chain: []validation.Constraint{{Target: "parameters.Sku.Tier", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
+				{Target: "parameters.Location", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "parameters.Properties", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "parameters.Properties.CustomDomain", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "parameters.Properties.CustomDomain.Name", Name: validation.Null, Rule: true, Chain: nil}}},
+						{Target: "parameters.Properties.Encryption", Name: validation.Null, Rule: false,
+							Chain: []validation.Constraint{{Target: "parameters.Properties.Encryption.Services", Name: validation.Null, Rule: false,
+								Chain: []validation.Constraint{{Target: "parameters.Properties.Encryption.Services.Blob", Name: validation.Null, Rule: false,
+									Chain: []validation.Constraint{{Target: "parameters.Properties.Encryption.Services.Blob.LastEnabledTime", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
+								}},
+								{Target: "parameters.Properties.Encryption.KeySource", Name: validation.Null, Rule: true, Chain: nil},
+							}},
+					}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "Create")
+	}
+
 	req, err := client.CreatePreparer(resourceGroupName, accountName, parameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "storage.AccountsClient", "Create", nil, "Failure preparing request")
@@ -182,6 +217,13 @@ func (client AccountsClient) CreateResponder(resp *http.Response) (result autore
 // specified resource group. Storage account names must be between 3 and 24
 // characters in length and use numbers and lower-case letters only.
 func (client AccountsClient) Delete(resourceGroupName string, accountName string) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "Delete")
+	}
+
 	req, err := client.DeletePreparer(resourceGroupName, accountName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "storage.AccountsClient", "Delete", nil, "Failure preparing request")
@@ -248,6 +290,13 @@ func (client AccountsClient) DeleteResponder(resp *http.Response) (result autore
 // specified resource group. Storage account names must be between 3 and 24
 // characters in length and use numbers and lower-case letters only.
 func (client AccountsClient) GetProperties(resourceGroupName string, accountName string) (result Account, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "GetProperties")
+	}
+
 	req, err := client.GetPropertiesPreparer(resourceGroupName, accountName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "storage.AccountsClient", "GetProperties", nil, "Failure preparing request")
@@ -434,6 +483,13 @@ func (client AccountsClient) ListByResourceGroupResponder(resp *http.Response) (
 // resourceGroupName is the name of the resource group. accountName is the
 // name of the storage account.
 func (client AccountsClient) ListKeys(resourceGroupName string, accountName string) (result AccountListKeysResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "ListKeys")
+	}
+
 	req, err := client.ListKeysPreparer(resourceGroupName, accountName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "storage.AccountsClient", "ListKeys", nil, "Failure preparing request")
@@ -501,6 +557,15 @@ func (client AccountsClient) ListKeysResponder(resp *http.Response) (result Acco
 // regenerateKey is specifies name of the key which should be regenerated.
 // key1 or key2 for the default keys
 func (client AccountsClient) RegenerateKey(resourceGroupName string, accountName string, regenerateKey AccountRegenerateKeyParameters) (result AccountListKeysResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}},
+		{TargetValue: regenerateKey,
+			Constraints: []validation.Constraint{{Target: "regenerateKey.KeyName", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "RegenerateKey")
+	}
+
 	req, err := client.RegenerateKeyPreparer(resourceGroupName, accountName, regenerateKey)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "storage.AccountsClient", "RegenerateKey", nil, "Failure preparing request")
@@ -578,6 +643,13 @@ func (client AccountsClient) RegenerateKeyResponder(resp *http.Response) (result
 // characters in length and use numbers and lower-case letters only.
 // parameters is the parameters to provide for the updated account.
 func (client AccountsClient) Update(resourceGroupName string, accountName string, parameters AccountUpdateParameters) (result Account, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: accountName,
+			Constraints: []validation.Constraint{{Target: "accountName", Name: validation.MaxLength, Rule: 24, Chain: nil},
+				{Target: "accountName", Name: validation.MinLength, Rule: 3, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "storage.AccountsClient", "Update")
+	}
+
 	req, err := client.UpdatePreparer(resourceGroupName, accountName, parameters)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "storage.AccountsClient", "Update", nil, "Failure preparing request")

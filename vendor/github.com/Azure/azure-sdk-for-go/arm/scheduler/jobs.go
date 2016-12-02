@@ -21,6 +21,7 @@ package scheduler
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -31,7 +32,12 @@ type JobsClient struct {
 
 // NewJobsClient creates an instance of the JobsClient client.
 func NewJobsClient(subscriptionID string) JobsClient {
-	return JobsClient{New(subscriptionID)}
+	return NewJobsClientWithBaseURI(DefaultBaseURI, subscriptionID)
+}
+
+// NewJobsClientWithBaseURI creates an instance of the JobsClient client.
+func NewJobsClientWithBaseURI(baseURI string, subscriptionID string) JobsClient {
+	return JobsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
 // CreateOrUpdate provisions a new job or updates an existing job.
@@ -39,6 +45,24 @@ func NewJobsClient(subscriptionID string) JobsClient {
 // resourceGroupName is the resource group name. jobCollectionName is the job
 // collection name. jobName is the job name. job is the job definition.
 func (client JobsClient) CreateOrUpdate(resourceGroupName string, jobCollectionName string, jobName string, job JobDefinition) (result JobDefinition, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: job,
+			Constraints: []validation.Constraint{{Target: "job.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "job.Properties.Status", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "job.Properties.Status.ExecutionCount", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "job.Properties.Status.FailureCount", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "job.Properties.Status.FaultedCount", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "job.Properties.Status.LastExecutionTime", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "job.Properties.Status.NextExecutionTime", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					}},
+					{Target: "job.Properties.Status", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				}},
+				{Target: "job.ID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "job.Type", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "job.Name", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "scheduler.JobsClient", "CreateOrUpdate")
+	}
+
 	req, err := client.CreateOrUpdatePreparer(resourceGroupName, jobCollectionName, jobName, job)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "CreateOrUpdate", nil, "Failure preparing request")
@@ -235,6 +259,15 @@ func (client JobsClient) GetResponder(resp *http.Response) (result JobDefinition
 // to begin requesting entries. filter is the filter to apply on the job
 // state.
 func (client JobsClient) List(resourceGroupName string, jobCollectionName string, top *int32, skip *int32, filter string) (result JobListResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: top,
+			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "top", Name: validation.InclusiveMaximum, Rule: 100, Chain: nil},
+					{Target: "top", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "scheduler.JobsClient", "List")
+	}
+
 	req, err := client.ListPreparer(resourceGroupName, jobCollectionName, top, skip, filter)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "List", nil, "Failure preparing request")
@@ -306,7 +339,7 @@ func (client JobsClient) ListResponder(resp *http.Response) (result JobListResul
 func (client JobsClient) ListNextResults(lastResults JobListResult) (result JobListResult, err error) {
 	req, err := lastResults.JobListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -315,12 +348,12 @@ func (client JobsClient) ListNextResults(lastResults JobListResult) (result JobL
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "scheduler.JobsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -334,6 +367,15 @@ func (client JobsClient) ListNextResults(lastResults JobListResult) (result JobL
 // job history list from which to begin requesting entries. filter is the
 // filter to apply on the job state.
 func (client JobsClient) ListJobHistory(resourceGroupName string, jobCollectionName string, jobName string, top *int32, skip *int32, filter string) (result JobHistoryListResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: top,
+			Constraints: []validation.Constraint{{Target: "top", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "top", Name: validation.InclusiveMaximum, Rule: 100, Chain: nil},
+					{Target: "top", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "scheduler.JobsClient", "ListJobHistory")
+	}
+
 	req, err := client.ListJobHistoryPreparer(resourceGroupName, jobCollectionName, jobName, top, skip, filter)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "ListJobHistory", nil, "Failure preparing request")
@@ -406,7 +448,7 @@ func (client JobsClient) ListJobHistoryResponder(resp *http.Response) (result Jo
 func (client JobsClient) ListJobHistoryNextResults(lastResults JobHistoryListResult) (result JobHistoryListResult, err error) {
 	req, err := lastResults.JobHistoryListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "ListJobHistory", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "ListJobHistory", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -415,12 +457,12 @@ func (client JobsClient) ListJobHistoryNextResults(lastResults JobHistoryListRes
 	resp, err := client.ListJobHistorySender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "ListJobHistory", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "ListJobHistory", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListJobHistoryResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "scheduler.JobsClient", "ListJobHistory", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "scheduler.JobsClient", "ListJobHistory", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -431,6 +473,14 @@ func (client JobsClient) ListJobHistoryNextResults(lastResults JobHistoryListRes
 // resourceGroupName is the resource group name. jobCollectionName is the job
 // collection name. jobName is the job name. job is the job definition.
 func (client JobsClient) Patch(resourceGroupName string, jobCollectionName string, jobName string, job JobDefinition) (result JobDefinition, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: job,
+			Constraints: []validation.Constraint{{Target: "job.ID", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "job.Type", Name: validation.ReadOnly, Rule: true, Chain: nil},
+				{Target: "job.Name", Name: validation.ReadOnly, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "scheduler.JobsClient", "Patch")
+	}
+
 	req, err := client.PatchPreparer(resourceGroupName, jobCollectionName, jobName, job)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "scheduler.JobsClient", "Patch", nil, "Failure preparing request")

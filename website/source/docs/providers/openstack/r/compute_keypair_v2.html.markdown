@@ -34,6 +34,8 @@ The following arguments are supported:
 * `public_key` - (Required) A pregenerated OpenSSH-formatted public key.
     Changing this creates a new keypair.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Attributes Reference
 
 The following attributes are exported:

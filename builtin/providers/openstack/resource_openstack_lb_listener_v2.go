@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/listeners"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/listeners"
 )
 
 func resourceListenerV2() *schema.Resource {
@@ -178,7 +178,7 @@ func resourceListenerV2Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LBV2 listener")
 	}
 
-	log.Printf("[DEBUG] Retreived OpenStack LBaaSV2 listener %s: %+v", d.Id(), listener)
+	log.Printf("[DEBUG] Retrieved OpenStack LBaaSV2 listener %s: %+v", d.Id(), listener)
 
 	d.Set("id", listener.ID)
 	d.Set("name", listener.Name)
@@ -285,27 +285,29 @@ func waitForListenerDelete(networkingClient *gophercloud.ServiceClient, listener
 
 		listener, err := listeners.Get(networkingClient, listenerID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return listener, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 listener %s", listenerID)
 				return listener, "DELETED", nil
 			}
+			return listener, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] Openstack LBaaSV2 listener: %+v", listener)
 		err = listeners.Delete(networkingClient, listenerID).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return listener, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack LBaaSV2 listener %s", listenerID)
 				return listener, "DELETED", nil
 			}
+
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					log.Printf("[DEBUG] OpenStack LBaaSV2 listener (%s) is still in use.", listenerID)
+					return listener, "ACTIVE", nil
+				}
+			}
+
+			return listener, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack LBaaSV2 listener %s still active.", listenerID)

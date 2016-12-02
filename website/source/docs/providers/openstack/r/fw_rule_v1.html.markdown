@@ -39,7 +39,8 @@ The following arguments are supported:
     updates the `description` of an existing firewall rule.
 
 * `protocol` - (Required) The protocol type on which the firewall rule operates.
-    Changing this updates the `protocol` of an existing firewall rule.
+    Valid values are: `tcp`, `udp`, `icmp`, and `any`. Changing this updates the
+    `protocol` of an existing firewall rule.
 
 * `action` - (Required) Action to be taken ( must be "allow" or "deny") when the
     firewall rule matches. Changing this updates the `action` of an existing
@@ -71,6 +72,8 @@ The following arguments are supported:
 * `tenant_id` - (Optional) The owner of the firewall rule. Required if admin
     wants to create a firewall rule for another tenant. Changing this creates a
     new firewall rule.
+
+* `value_specs` - (Optional) Map of additional options.
 
 ## Attributes Reference
 

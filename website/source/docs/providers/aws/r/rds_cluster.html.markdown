@@ -17,7 +17,7 @@ For more information on Amazon Aurora, see [Aurora on Amazon RDS][2] in the Amaz
 
 Changes to a RDS Cluster can occur when you manually change a
 parameter, such as `port`, and are reflected in the next maintenance
-window. Because of this, Terraform may report a difference in it's planning
+window. Because of this, Terraform may report a difference in its planning
 phase because a modification has not yet taken place. You can use the
 `apply_immediately` flag to instruct the service to apply the change immediately
 (see documentation below).
@@ -79,7 +79,7 @@ Default: A 30-minute window selected at random from an 8-hour block of time per 
      `false`. See [Amazon RDS Documentation for more information.](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
 * `db_subnet_group_name` - (Optional) A DB subnet group to associate with this DB instance. **NOTE:** This must match the `db_subnet_group_name` specified on every [`aws_rds_cluster_instance`](/docs/providers/aws/r/rds_cluster_instance.html) in the cluster.
 * `db_cluster_parameter_group_name` - (Optional) A cluster parameter group to associate with the cluster.
-* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to true
+* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to true.
 
 ## Attributes Reference
 
@@ -94,6 +94,8 @@ The following attributes are exported:
 * `preferred_backup_window` - The backup window
 * `preferred_maintenance_window` - The maintenance window
 * `endpoint` - The DNS address of the RDS instance
+* `reader_endpoint` - A read-only endpoint for the Aurora cluster, automatically
+load-balanced across replicas
 * `engine` - The database engine
 * `engine_version` - The database engine version
 * `maintenance_window` - The instance maintenance window
@@ -108,7 +110,7 @@ The following attributes are exported:
 
 [2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster_instance.html
-[4]: http://docs.aws.amazon.com/fr_fr/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
+[4]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_UpgradeDBInstance.Maintenance.html
 
 ## Import
 
