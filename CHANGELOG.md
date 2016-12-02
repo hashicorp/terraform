@@ -1,4 +1,4 @@
-## 0.8.0-rc2 (unreleased)
+## 0.8.0-rc2 (December 2, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
@@ -7,37 +7,37 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
- * **New DataSource:** `aws_route_table` [GH-10301]
- * **New Interpolation Function:** `timestamp` [GH-10475]
+ * **New DataSource:** `aws_route_table` ([#10301](https://github.com/hashicorp/terraform/issues/10301))
+ * **New Interpolation Function:** `timestamp` ([#10475](https://github.com/hashicorp/terraform/issues/10475))
 
 IMPROVEMENTS:
 
- * core: Plan will show deposed-only destroys for create-before-destroy resources. [GH-10404]
- * provider/aws: Enforced kms_key_* attributes to be ARNs [GH-10356]
- * provider/aws: IPv6 Support To Cloudfront [GH-10332]
- * provider/aws: Support import of aws_iam_instance_profile [GH-10436]
- * provider/aws: Increase `aws_emr_cluster` timeout [GH-10444]
- * provider/aws: Support Automatic Rollback of CodeDeploy deployments and CloudWatch Alarms for a Deployment Group [GH-9039]
- * provider/aws: Allow importing of aws_iam_role, aws_iam_role_policy and aws_iam_policy [GH-9398]
- * provider/aws: Added s3 bucket region attribute management [GH-10482]
- * provider/azurerm: support import of routes, fix route_table [GH-10389]
- * provider/azurerm: create common schema for location field, add diff suppress [GH-10409]
- * provider/github: supports importing resources [GH-10382]
- * provider/postgresql: Added 'connect_timeout' argument to provider 'postgresql' [GH-10380]
- * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_static_nat` resource [GH-10420]
- * provider/google: Added support for session affinity to compute_backend_service [GH-10387]
- * provider/google: Projects are now importable [GH-10469]
+ * core: Plan will show deposed-only destroys for create-before-destroy resources. ([#10404](https://github.com/hashicorp/terraform/issues/10404))
+ * provider/aws: Enforced kms_key_* attributes to be ARNs ([#10356](https://github.com/hashicorp/terraform/issues/10356))
+ * provider/aws: IPv6 Support To Cloudfront ([#10332](https://github.com/hashicorp/terraform/issues/10332))
+ * provider/aws: Support import of aws_iam_instance_profile ([#10436](https://github.com/hashicorp/terraform/issues/10436))
+ * provider/aws: Increase `aws_emr_cluster` timeout ([#10444](https://github.com/hashicorp/terraform/issues/10444))
+ * provider/aws: Support Automatic Rollback of CodeDeploy deployments and CloudWatch Alarms for a Deployment Group ([#9039](https://github.com/hashicorp/terraform/issues/9039))
+ * provider/aws: Allow importing of aws_iam_role, aws_iam_role_policy and aws_iam_policy ([#9398](https://github.com/hashicorp/terraform/issues/9398))
+ * provider/aws: Added s3 bucket region attribute management ([#10482](https://github.com/hashicorp/terraform/issues/10482))
+ * provider/azurerm: support import of routes, fix route_table ([#10389](https://github.com/hashicorp/terraform/issues/10389))
+ * provider/azurerm: create common schema for location field, add diff suppress ([#10409](https://github.com/hashicorp/terraform/issues/10409))
+ * provider/github: supports importing resources ([#10382](https://github.com/hashicorp/terraform/issues/10382))
+ * provider/postgresql: Added 'connect_timeout' argument to provider 'postgresql' ([#10380](https://github.com/hashicorp/terraform/issues/10380))
+ * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_static_nat` resource ([#10420](https://github.com/hashicorp/terraform/issues/10420))
+ * provider/google: Added support for session affinity to compute_backend_service ([#10387](https://github.com/hashicorp/terraform/issues/10387))
+ * provider/google: Projects are now importable ([#10469](https://github.com/hashicorp/terraform/issues/10469))
 
 BUG FIXES:
 
-  * core: Changed attribute console output shows up on Windows. [GH-10417]
-  * core: Destroying deposed resources in create before destroy waits until the creation step of its specific index. (0.8 regression) [GH-10416]
-  * core: Certain invalid configurations will no longer print "illegal". [GH-10448]
-  * core: Fix a crash that could occur when multiple deposed instances exist. [GH-10504]
-  * command/console: variable access works [GH-10446]
-  * provider/aws: Do not return a root device for instance store backed AMIs. [GH-9483]
-  * provider/aws: resource_aws_opsworks_application does not accept document_root parameter [GH-10477]
-  * provider/aws: bug fix when specifying level on aws_opsworks_permission [GH-10394]
+  * core: Changed attribute console output shows up on Windows. ([#10417](https://github.com/hashicorp/terraform/issues/10417))
+  * core: Destroying deposed resources in create before destroy waits until the creation step of its specific index. (0.8 regression) ([#10416](https://github.com/hashicorp/terraform/issues/10416))
+  * core: Certain invalid configurations will no longer print "illegal". ([#10448](https://github.com/hashicorp/terraform/issues/10448))
+  * core: Fix a crash that could occur when multiple deposed instances exist. ([#10504](https://github.com/hashicorp/terraform/issues/10504))
+  * command/console: variable access works ([#10446](https://github.com/hashicorp/terraform/issues/10446))
+  * provider/aws: Do not return a root device for instance store backed AMIs. ([#9483](https://github.com/hashicorp/terraform/issues/9483))
+  * provider/aws: resource_aws_opsworks_application does not accept document_root parameter ([#10477](https://github.com/hashicorp/terraform/issues/10477))
+  * provider/aws: bug fix when specifying level on aws_opsworks_permission ([#10394](https://github.com/hashicorp/terraform/issues/10394))
 
 ## 0.8.0-rc1 (November 23, 2016)
 
@@ -159,7 +159,7 @@ BUG FIXES:
 ## 0.7.14 (unreleased)
 
 BUG FIXES:
- * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine [GH-10340]
+ * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine ([#10340](https://github.com/hashicorp/terraform/issues/10340))
 
 
 
