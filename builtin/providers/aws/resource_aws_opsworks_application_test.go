@@ -47,6 +47,9 @@ func TestAccAWSOpsworksApplication(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_application.tf-acc-app", "environment.3077298702.secret", "",
 					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_application.tf-acc-app", "document_root", "foo",
+					),
 				),
 			},
 			resource.TestStep{
@@ -155,7 +158,7 @@ func testAccCheckAwsOpsworksApplicationDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAwsOpsworksApplicationCreate = testAccAwsOpsworksStackConfigNoVpcCreate("tf-ops-acc-application") + `
+var testAccAwsOpsworksApplicationCreate = testAccAwsOpsworksStackConfigVpcCreate("tf-ops-acc-application") + `
 resource "aws_opsworks_application" "tf-acc-app" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
   name = "tf-ops-acc-application"
@@ -165,10 +168,11 @@ resource "aws_opsworks_application" "tf-acc-app" {
     type = "other"
   }
 	environment = { key = "key1" value = "value1" secure = false}
+	document_root = "foo"
 }
 `
 
-var testAccAwsOpsworksApplicationUpdate = testAccAwsOpsworksStackConfigNoVpcCreate("tf-ops-acc-application") + `
+var testAccAwsOpsworksApplicationUpdate = testAccAwsOpsworksStackConfigVpcCreate("tf-ops-acc-application") + `
 resource "aws_opsworks_application" "tf-acc-app" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
   name = "tf-ops-acc-application"
