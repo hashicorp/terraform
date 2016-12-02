@@ -20,7 +20,7 @@ func TestProvisioner(t *testing.T) {
 	}
 }
 
-func TestResourceProvider_Validate_good(t *testing.T) {
+func TestResourceProvider_Validate_bad_old_inline_as_string(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
 		"inline": "echo foo",
 	})
@@ -29,8 +29,8 @@ func TestResourceProvider_Validate_good(t *testing.T) {
 	if len(warn) > 0 {
 		t.Fatalf("Warnings: %v", warn)
 	}
-	if len(errs) > 0 {
-		t.Fatalf("Errors: %v", errs)
+	if len(errs) == 0 {
+		t.Fatalf("Should have errors")
 	}
 }
 
