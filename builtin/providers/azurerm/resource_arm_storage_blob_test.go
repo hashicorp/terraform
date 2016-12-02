@@ -163,6 +163,28 @@ func TestAccAzureRMStorageBlob_basic(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMStorageBlob_disappears(t *testing.T) {
+	ri := acctest.RandInt()
+	rs := strings.ToLower(acctest.RandString(11))
+	config := fmt.Sprintf(testAccAzureRMStorageBlob_basic, ri, rs)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMStorageBlobDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMStorageBlobExists("azurerm_storage_blob.test"),
+					testCheckAzureRMStorageBlobDisappears("azurerm_storage_blob.test"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 func TestAccAzureRMStorageBlobBlock_source(t *testing.T) {
 	ri := acctest.RandInt()
 	rs1 := strings.ToLower(acctest.RandString(11))
@@ -330,6 +352,40 @@ func testCheckAzureRMStorageBlobExists(name string) resource.TestCheckFunc {
 	}
 }
 
+func testCheckAzureRMStorageBlobDisappears(name string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		name := rs.Primary.Attributes["name"]
+		storageAccountName := rs.Primary.Attributes["storage_account_name"]
+		storageContainerName := rs.Primary.Attributes["storage_container_name"]
+		resourceGroup, hasResourceGroup := rs.Primary.Attributes["resource_group_name"]
+		if !hasResourceGroup {
+			return fmt.Errorf("Bad: no resource group found in state for storage blob: %s", name)
+		}
+
+		armClient := testAccProvider.Meta().(*ArmClient)
+		blobClient, accountExists, err := armClient.getBlobStorageClientForStorageAccount(resourceGroup, storageAccountName)
+		if err != nil {
+			return err
+		}
+		if !accountExists {
+			return fmt.Errorf("Bad: Storage Account %q does not exist", storageAccountName)
+		}
+
+		_, err = blobClient.DeleteBlobIfExists(storageContainerName, name, map[string]string{})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
 func testCheckAzureRMStorageBlobMatchesFile(name string, kind storage.BlobType, filePath string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
@@ -426,7 +482,7 @@ func testCheckAzureRMStorageBlobDestroy(s *terraform.State) error {
 
 var testAccAzureRMStorageBlob_basic = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 
@@ -462,7 +518,7 @@ resource "azurerm_storage_blob" "test" {
 
 var testAccAzureRMStorageBlobBlock_source = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 
@@ -500,7 +556,7 @@ resource "azurerm_storage_blob" "source" {
 
 var testAccAzureRMStorageBlobPage_source = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 
@@ -538,7 +594,7 @@ resource "azurerm_storage_blob" "source" {
 
 var testAccAzureRMStorageBlob_source_uri = `
 resource "azurerm_resource_group" "test" {
-    name = "acctestrg-%d"
+    name = "acctestRG-%d"
     location = "westus"
 }
 

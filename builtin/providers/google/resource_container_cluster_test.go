@@ -43,6 +43,23 @@ func TestAccContainerCluster_withNodeConfig(t *testing.T) {
 	})
 }
 
+func TestAccContainerCluster_withNodeConfigScopeAlias(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withNodeConfigScopeAlias,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_node_config_scope_alias"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContainerCluster_network(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -141,6 +158,24 @@ resource "google_container_cluster" "with_node_config" {
 			"https://www.googleapis.com/auth/logging.write",
 			"https://www.googleapis.com/auth/monitoring"
 		]
+	}
+}`, acctest.RandString(10))
+
+var testAccContainerCluster_withNodeConfigScopeAlias = fmt.Sprintf(`
+resource "google_container_cluster" "with_node_config_scope_alias" {
+	name = "cluster-test-%s"
+	zone = "us-central1-f"
+	initial_node_count = 1
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	node_config {
+		machine_type = "g1-small"
+		disk_size_gb = 15
+		oauth_scopes = [ "compute-rw", "storage-ro", "logging-write", "monitoring" ]
 	}
 }`, acctest.RandString(10))
 

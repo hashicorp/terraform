@@ -11,7 +11,44 @@ import (
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"regexp"
 )
+
+func TestValidateRedshiftClusterDbName(t *testing.T) {
+	validNames := []string{
+		"testdbname",
+		"test_dbname",
+		"testdbname123",
+		"TestDBname",
+		"testdbname$hashicorp",
+		"_dbname",
+	}
+	for _, v := range validNames {
+		_, errors := validateRedshiftClusterDbName(v, "name")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid Redshift DBName: %q", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"!",
+		"/",
+		" ",
+		":",
+		";",
+		"test name",
+		"/slash-at-the-beginning",
+		"slash-at-the-end/",
+		"",
+		randomString(100),
+	}
+	for _, v := range invalidNames {
+		_, errors := validateRedshiftClusterDbName(v, "name")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Redshift DBName", v)
+		}
+	}
+}
 
 func TestAccAWSRedshiftCluster_basic(t *testing.T) {
 	var v redshift.Cluster
@@ -24,7 +61,7 @@ func TestAccAWSRedshiftCluster_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: config,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -32,6 +69,65 @@ func TestAccAWSRedshiftCluster_basic(t *testing.T) {
 						"aws_redshift_cluster.default", "cluster_type", "single-node"),
 					resource.TestCheckResourceAttr(
 						"aws_redshift_cluster.default", "publicly_accessible", "true"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRedshiftCluster_kmsKey(t *testing.T) {
+	var v redshift.Cluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	config := fmt.Sprintf(testAccAWSRedshiftClusterConfig_kmsKey, ri, ri)
+	keyRegex := regexp.MustCompile("^arn:aws:([a-zA-Z0-9\\-])+:([a-z]{2}-[a-z]+-\\d{1})?:(\\d{12})?:(.*)$")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "cluster_type", "single-node"),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "publicly_accessible", "true"),
+					resource.TestMatchResourceAttr("aws_redshift_cluster.default", "kms_key_id", keyRegex),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRedshiftCluster_enhancedVpcRoutingEnabled(t *testing.T) {
+	var v redshift.Cluster
+
+	ri := rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+	preConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_enhancedVpcRoutingEnabled, ri)
+	postConfig := fmt.Sprintf(testAccAWSRedshiftClusterConfig_enhancedVpcRoutingDisabled, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "enhanced_vpc_routing", "true"),
+				),
+			},
+			{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
+					resource.TestCheckResourceAttr(
+						"aws_redshift_cluster.default", "enhanced_vpc_routing", "false"),
 				),
 			},
 		},
@@ -50,7 +146,7 @@ func TestAccAWSRedshiftCluster_loggingEnabled(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -61,7 +157,7 @@ func TestAccAWSRedshiftCluster_loggingEnabled(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -85,7 +181,7 @@ func TestAccAWSRedshiftCluster_iamRoles(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -94,7 +190,7 @@ func TestAccAWSRedshiftCluster_iamRoles(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -118,7 +214,7 @@ func TestAccAWSRedshiftCluster_publiclyAccessible(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -127,7 +223,7 @@ func TestAccAWSRedshiftCluster_publiclyAccessible(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -151,7 +247,7 @@ func TestAccAWSRedshiftCluster_updateNodeCount(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -160,7 +256,7 @@ func TestAccAWSRedshiftCluster_updateNodeCount(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -184,7 +280,7 @@ func TestAccAWSRedshiftCluster_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRedshiftClusterDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: preConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -194,7 +290,7 @@ func TestAccAWSRedshiftCluster_tags(t *testing.T) {
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: postConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRedshiftClusterExists("aws_redshift_cluster.default", &v),
@@ -304,42 +400,6 @@ func TestResourceAWSRedshiftClusterIdentifierValidation(t *testing.T) {
 
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected the Redshift Cluster cluster_identifier to trigger a validation error")
-		}
-	}
-}
-
-func TestResourceAWSRedshiftClusterDbNameValidation(t *testing.T) {
-	cases := []struct {
-		Value    string
-		ErrCount int
-	}{
-		{
-			Value:    "tEsting",
-			ErrCount: 1,
-		},
-		{
-			Value:    "testing1",
-			ErrCount: 0,
-		},
-		{
-			Value:    "testing-",
-			ErrCount: 1,
-		},
-		{
-			Value:    "",
-			ErrCount: 2,
-		},
-		{
-			Value:    randomString(65),
-			ErrCount: 1,
-		},
-	}
-
-	for _, tc := range cases {
-		_, errors := validateRedshiftClusterDbName(tc.Value, "aws_redshift_cluster_database_name")
-
-		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Redshift Cluster database_name to trigger a validation error")
 		}
 	}
 }
@@ -469,6 +529,69 @@ resource "aws_redshift_cluster" "default" {
   automated_snapshot_retention_period = 0
   allow_version_upgrade = false
 }`
+
+var testAccAWSRedshiftClusterConfig_kmsKey = `
+resource "aws_kms_key" "foo" {
+  description = "Terraform acc test %d"
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  kms_key_id = "${aws_kms_key.foo.arn}"
+  encrypted = true
+}`
+
+var testAccAWSRedshiftClusterConfig_enhancedVpcRoutingEnabled = `
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  enhanced_vpc_routing = true
+}
+`
+
+var testAccAWSRedshiftClusterConfig_enhancedVpcRoutingDisabled = `
+resource "aws_redshift_cluster" "default" {
+  cluster_identifier = "tf-redshift-cluster-%d"
+  availability_zone = "us-west-2a"
+  database_name = "mydb"
+  master_username = "foo_test"
+  master_password = "Mustbe8characters"
+  node_type = "dc1.large"
+  automated_snapshot_retention_period = 0
+  allow_version_upgrade = false
+  enhanced_vpc_routing = false
+}
+`
 
 var testAccAWSRedshiftClusterConfig_loggingDisabled = `
 resource "aws_redshift_cluster" "default" {

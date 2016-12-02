@@ -98,6 +98,10 @@ func (c *TableServiceClient) QueryTableEntities(tableName AzureTable, previousCo
 
 	resp, err := c.client.execTable("GET", uri, headers, nil)
 
+	if err != nil {
+		return nil, nil, err
+	}
+
 	contToken := extractContinuationTokenFromHeaders(resp.headers)
 
 	if err != nil {

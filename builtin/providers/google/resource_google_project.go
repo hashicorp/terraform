@@ -29,6 +29,9 @@ func resourceGoogleProject() *schema.Resource {
 		Read:   resourceGoogleProjectRead,
 		Update: resourceGoogleProjectUpdate,
 		Delete: resourceGoogleProjectDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{

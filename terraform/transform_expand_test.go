@@ -30,7 +30,7 @@ func TestExpandTransform(t *testing.T) {
 		t.Fatalf("not subgraph: %#v", out)
 	}
 
-	actual := strings.TrimSpace(sn.Subgraph().String())
+	actual := strings.TrimSpace(sn.Subgraph().(*Graph).String())
 	expected := strings.TrimSpace(testExpandTransformStr)
 	if actual != expected {
 		t.Fatalf("bad: %s", actual)
@@ -66,7 +66,7 @@ type testSubgraph struct {
 	Graph *Graph
 }
 
-func (n *testSubgraph) Subgraph() *Graph {
+func (n *testSubgraph) Subgraph() dag.Grapher {
 	return n.Graph
 }
 

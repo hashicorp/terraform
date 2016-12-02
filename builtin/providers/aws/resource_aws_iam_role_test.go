@@ -20,11 +20,14 @@ func TestAccAWSRole_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRoleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRoleConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
 					testAccCheckAWSRoleAttributes(&conf),
+					resource.TestCheckResourceAttrSet(
+						"aws_iam_role.role", "create_date",
+					),
 				),
 			},
 		},
@@ -41,7 +44,7 @@ func TestAccAWSRole_namePrefix(t *testing.T) {
 		Providers:       testAccProviders,
 		CheckDestroy:    testAccCheckAWSRoleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRolePrefixNameConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
@@ -61,14 +64,14 @@ func TestAccAWSRole_testNameChange(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSRoleDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSRolePre,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role_update_test", &conf),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSRolePost,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role_update_test", &conf),
@@ -165,17 +168,17 @@ func testAccCheckAWSRoleAttributes(role *iam.GetRoleOutput) resource.TestCheckFu
 
 const testAccAWSRoleConfig = `
 resource "aws_iam_role" "role" {
-	name   = "test-role"
-	path = "/"
-	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+  name   = "test-role"
+  path = "/"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
 }
 `
 
 const testAccAWSRolePrefixNameConfig = `
 resource "aws_iam_role" "role" {
-    name_prefix = "test-role-"
-    path = "/"
-    assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+  name_prefix = "test-role-"
+  path = "/"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
 }
 `
 

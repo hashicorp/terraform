@@ -21,14 +21,14 @@ package cdn
 import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
 // OriginsClient is the use these APIs to manage Azure CDN resources through
 // the Azure Resource Manager. You must make sure that requests made to these
-// resources are secure. For more information, see <a
-// href="https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx">Authenticating
-// Azure Resource Manager requests.</a>
+// resources are secure. For more information, see
+// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
 type OriginsClient struct {
 	ManagementClient
 }
@@ -53,6 +53,13 @@ func NewOriginsClientWithBaseURI(baseURI string, subscriptionID string) OriginsC
 // CDN profile within the resource group. resourceGroupName is name of the
 // resource group within the Azure subscription.
 func (client OriginsClient) Create(originName string, originProperties OriginParameters, endpointName string, profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: originProperties,
+			Constraints: []validation.Constraint{{Target: "originProperties.Properties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "originProperties.Properties.HostName", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.OriginsClient", "Create")
+	}
+
 	req, err := client.CreatePreparer(originName, originProperties, endpointName, profileName, resourceGroupName, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.OriginsClient", "Create", nil, "Failure preparing request")

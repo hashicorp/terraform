@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -59,24 +58,57 @@ func TestApply(t *testing.T) {
 	}
 }
 
+// high water mark counter
+type hwm struct {
+	sync.Mutex
+	val int
+	max int
+}
+
+func (t *hwm) Inc() {
+	t.Lock()
+	defer t.Unlock()
+	t.val++
+	if t.val > t.max {
+		t.max = t.val
+	}
+}
+
+func (t *hwm) Dec() {
+	t.Lock()
+	defer t.Unlock()
+	t.val--
+}
+
+func (t *hwm) Max() int {
+	t.Lock()
+	defer t.Unlock()
+	return t.max
+}
+
 func TestApply_parallelism(t *testing.T) {
 	provider := testProvider()
 	statePath := testTempFile(t)
 
+	par := 4
+
 	// This blocks all the appy functions. We close it when we exit so
 	// they end quickly after this test finishes.
 	block := make(chan struct{})
-	defer close(block)
+	// signal how many goroutines have started
+	started := make(chan int, 100)
 
-	var runCount uint64
+	runCount := &hwm{}
+
 	provider.ApplyFn = func(
 		i *terraform.InstanceInfo,
 		s *terraform.InstanceState,
 		d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
 		// Increment so we're counting parallelism
-		atomic.AddUint64(&runCount, 1)
-
-		// Block until we're done
+		started <- 1
+		runCount.Inc()
+		defer runCount.Dec()
+		// Block here to stage up our max number of parallel instances
 		<-block
 
 		return nil, nil
@@ -90,30 +122,46 @@ func TestApply_parallelism(t *testing.T) {
 		},
 	}
 
-	par := uint64(5)
 	args := []string{
 		"-state", statePath,
 		fmt.Sprintf("-parallelism=%d", par),
 		testFixturePath("parallelism"),
 	}
 
-	// Run in a goroutine. We still try to catch any errors and
-	// get them on the error channel.
-	errCh := make(chan string, 1)
+	// Run in a goroutine. We can get any errors from the ui.OutputWriter
+	doneCh := make(chan int, 1)
 	go func() {
-		if code := c.Run(args); code != 0 {
-			errCh <- ui.OutputWriter.String()
-		}
+		doneCh <- c.Run(args)
 	}()
+
+	timeout := time.After(5 * time.Second)
+
+	// ensure things are running
+	for i := 0; i < par; i++ {
+		select {
+		case <-timeout:
+			t.Fatal("timeout waiting for all goroutines to start")
+		case <-started:
+		}
+	}
+
+	// a little extra sleep, since we can't ensure all goroutines from the walk have
+	// really started
+	time.Sleep(100 * time.Millisecond)
+	close(block)
+
 	select {
-	case <-time.After(1000 * time.Millisecond):
-	case err := <-errCh:
-		t.Fatalf("err: %s", err)
+	case res := <-doneCh:
+		if res != 0 {
+			t.Fatal(ui.OutputWriter.String())
+		}
+	case <-timeout:
+		t.Fatal("timeout waiting from Run()")
 	}
 
 	// The total in flight should equal the parallelism
-	if rc := atomic.LoadUint64(&runCount); rc != par {
-		t.Fatalf("Expected parallelism: %d, got: %d", par, rc)
+	if runCount.Max() != par {
+		t.Fatalf("Expected parallelism: %d, got: %d", par, runCount.Max())
 	}
 }
 
@@ -359,6 +407,47 @@ func TestApply_input(t *testing.T) {
 	}
 }
 
+// When only a partial set of the variables are set, Terraform
+// should still ask for the unset ones by default (with -input=true)
+func TestApply_inputPartial(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = bytes.NewBufferString("one\ntwo\n")
+	defaultInputWriter = new(bytes.Buffer)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-var", "foo=foovalue",
+		testFixturePath("apply-input-partial"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	expected := strings.TrimSpace(`
+<no state>
+Outputs:
+
+bar = one
+foo = foovalue
+	`)
+	testStateOutput(t, statePath, expected)
+}
+
 func TestApply_noArgs(t *testing.T) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -457,6 +546,79 @@ func TestApply_plan(t *testing.T) {
 	}
 	if state == nil {
 		t.Fatal("state should not be nil")
+	}
+}
+
+func TestApply_plan_backup(t *testing.T) {
+	planPath := testPlanFile(t, testPlan(t))
+	statePath := testTempFile(t)
+	backupPath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-backup", backupPath,
+		planPath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	{
+		// Should have a backup file
+		f, err := os.Open(backupPath)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		_, err = terraform.ReadState(f)
+		f.Close()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+}
+
+func TestApply_plan_noBackup(t *testing.T) {
+	planPath := testPlanFile(t, testPlan(t))
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-backup", "-",
+		planPath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Ensure there is no backup
+	_, err := os.Stat(statePath + DefaultBackupExtension)
+	if err == nil || !os.IsNotExist(err) {
+		t.Fatalf("backup should not exist")
+	}
+
+	// Ensure there is no literal "-"
+	_, err = os.Stat("-")
+	if err == nil || !os.IsNotExist(err) {
+		t.Fatalf("backup should not exist")
 	}
 }
 

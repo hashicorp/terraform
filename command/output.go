@@ -247,7 +247,9 @@ func (c *OutputCommand) Help() string {
 Usage: terraform output [options] [NAME]
 
   Reads an output variable from a Terraform state file and prints
-  the value.  If NAME is not specified, all outputs are printed.
+  the value. With no additional arguments, output will display all
+  the outputs for the root module.  If NAME is not specified, all
+  outputs are printed.
 
 Options:
 

@@ -44,6 +44,12 @@ func (v *TypeCheck) Visit(root ast.Node) error {
 	defer v.lock.Unlock()
 	defer v.reset()
 	root.Accept(v.visit)
+
+	// If the resulting type is unknown, then just let the whole thing go.
+	if v.err == errExitUnknown {
+		v.err = nil
+	}
+
 	return v.err
 }
 
@@ -87,6 +93,10 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 		pos := raw.Pos()
 		v.err = fmt.Errorf("At column %d, line %d: %s",
 			pos.Column, pos.Line, err)
+	}
+
+	if v.StackPeek() == ast.TypeUnknown {
+		v.err = errExitUnknown
 	}
 
 	return result
@@ -242,15 +252,14 @@ func (tc *typeCheckOutput) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	}
 
 	// If there is only one argument and it is a list, we evaluate to a list
-	if len(types) == 1 && types[0] == ast.TypeList {
-		v.StackPush(ast.TypeList)
-		return n, nil
-	}
-
-	// If there is only one argument and it is a map, we evaluate to a map
-	if len(types) == 1 && types[0] == ast.TypeMap {
-		v.StackPush(ast.TypeMap)
-		return n, nil
+	if len(types) == 1 {
+		switch t := types[0]; t {
+		case ast.TypeList:
+			fallthrough
+		case ast.TypeMap:
+			v.StackPush(t)
+			return n, nil
+		}
 	}
 
 	// Otherwise, all concat args must be strings, so validate that
@@ -294,6 +303,13 @@ func (tc *typeCheckVariableAccess) TypeCheck(v *TypeCheck) (ast.Node, error) {
 			"unknown variable accessed: %s", tc.n.Name)
 	}
 
+	// Check if the variable contains any unknown types. If so, then
+	// mark it as unknown.
+	if ast.IsUnknown(variable) {
+		v.StackPush(ast.TypeUnknown)
+		return tc.n, nil
+	}
+
 	// Add the type to the stack
 	v.StackPush(variable.Type)
 
@@ -305,30 +321,35 @@ type typeCheckIndex struct {
 }
 
 func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
+	keyType := v.StackPop()
+	targetType := v.StackPop()
+
 	// Ensure we have a VariableAccess as the target
 	varAccessNode, ok := tc.n.Target.(*ast.VariableAccess)
 	if !ok {
-		return nil, fmt.Errorf("target of an index must be a VariableAccess node, was %T", tc.n.Target)
+		return nil, fmt.Errorf(
+			"target of an index must be a VariableAccess node, was %T", tc.n.Target)
 	}
 
 	// Get the variable
 	variable, ok := v.Scope.LookupVar(varAccessNode.Name)
 	if !ok {
-		return nil, fmt.Errorf("unknown variable accessed: %s", varAccessNode.Name)
+		return nil, fmt.Errorf(
+			"unknown variable accessed: %s", varAccessNode.Name)
 	}
 
-	keyType, err := tc.n.Key.Type(v.Scope)
-	if err != nil {
-		return nil, err
-	}
-
-	switch variable.Type {
+	switch targetType {
 	case ast.TypeList:
 		if keyType != ast.TypeInt {
-			return nil, fmt.Errorf("key of an index must be an int, was %s", keyType)
+			tc.n.Key = v.ImplicitConversion(keyType, ast.TypeInt, tc.n.Key)
+			if tc.n.Key == nil {
+				return nil, fmt.Errorf(
+					"key of an index must be an int, was %s", keyType)
+			}
 		}
 
-		valType, err := ast.VariableListElementTypesAreHomogenous(varAccessNode.Name, variable.Value.([]ast.Variable))
+		valType, err := ast.VariableListElementTypesAreHomogenous(
+			varAccessNode.Name, variable.Value.([]ast.Variable))
 		if err != nil {
 			return tc.n, err
 		}
@@ -337,10 +358,15 @@ func (tc *typeCheckIndex) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		return tc.n, nil
 	case ast.TypeMap:
 		if keyType != ast.TypeString {
-			return nil, fmt.Errorf("key of an index must be a string, was %s", keyType)
+			tc.n.Key = v.ImplicitConversion(keyType, ast.TypeString, tc.n.Key)
+			if tc.n.Key == nil {
+				return nil, fmt.Errorf(
+					"key of an index must be a string, was %s", keyType)
+			}
 		}
 
-		valType, err := ast.VariableMapValueTypesAreHomogenous(varAccessNode.Name, variable.Value.(map[string]ast.Variable))
+		valType, err := ast.VariableMapValueTypesAreHomogenous(
+			varAccessNode.Name, variable.Value.(map[string]ast.Variable))
 		if err != nil {
 			return tc.n, err
 		}
@@ -388,4 +414,12 @@ func (v *TypeCheck) StackPop() ast.Type {
 	var x ast.Type
 	x, v.Stack = v.Stack[len(v.Stack)-1], v.Stack[:len(v.Stack)-1]
 	return x
+}
+
+func (v *TypeCheck) StackPeek() ast.Type {
+	if len(v.Stack) == 0 {
+		return ast.TypeInvalid
+	}
+
+	return v.Stack[len(v.Stack)-1]
 }

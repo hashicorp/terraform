@@ -6,12 +6,12 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-
-	"github.com/aws/aws-sdk-go/aws"
-	events "github.com/aws/aws-sdk-go/service/cloudwatchevents"
 )
 
 func resourceAwsCloudWatchEventRule() *schema.Resource {
@@ -71,12 +71,15 @@ func resourceAwsCloudWatchEventRule() *schema.Resource {
 func resourceAwsCloudWatchEventRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cloudwatcheventsconn
 
-	input := buildPutRuleInputStruct(d)
+	input, err := buildPutRuleInputStruct(d)
+	if err != nil {
+		return errwrap.Wrapf("Creating CloudWatch Event Rule failed: {{err}}", err)
+	}
 	log.Printf("[DEBUG] Creating CloudWatch Event Rule: %s", input)
 
 	// IAM Roles take some time to propagate
 	var out *events.PutRuleOutput
-	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+	err = resource.Retry(30*time.Second, func() *resource.RetryError {
 		var err error
 		out, err = conn.PutRule(input)
 		pattern := regexp.MustCompile("cannot be assumed by principal '[a-z]+\\.amazonaws\\.com'\\.$")
@@ -92,7 +95,7 @@ func resourceAwsCloudWatchEventRuleCreate(d *schema.ResourceData, meta interface
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("Creating CloudWatch Event Rule failed: %s", err)
+		return errwrap.Wrapf("Creating CloudWatch Event Rule failed: {{err}}", err)
 	}
 
 	d.Set("arn", out.RuleArn)
@@ -126,7 +129,10 @@ func resourceAwsCloudWatchEventRuleRead(d *schema.ResourceData, meta interface{}
 	d.Set("arn", out.Arn)
 	d.Set("description", out.Description)
 	if out.EventPattern != nil {
-		pattern, _ := normalizeJsonString(*out.EventPattern)
+		pattern, err := normalizeJsonString(*out.EventPattern)
+		if err != nil {
+			return errwrap.Wrapf("event pattern contains an invalid JSON: {{err}}", err)
+		}
 		d.Set("event_pattern", pattern)
 	}
 	d.Set("name", out.Name)
@@ -157,11 +163,14 @@ func resourceAwsCloudWatchEventRuleUpdate(d *schema.ResourceData, meta interface
 		log.Printf("[DEBUG] CloudWatch Event Rule (%q) enabled", d.Id())
 	}
 
-	input := buildPutRuleInputStruct(d)
+	input, err := buildPutRuleInputStruct(d)
+	if err != nil {
+		return errwrap.Wrapf("Updating CloudWatch Event Rule failed: {{err}}", err)
+	}
 	log.Printf("[DEBUG] Updating CloudWatch Event Rule: %s", input)
 
 	// IAM Roles take some time to propagate
-	err := resource.Retry(30*time.Second, func() *resource.RetryError {
+	err = resource.Retry(30*time.Second, func() *resource.RetryError {
 		_, err := conn.PutRule(input)
 		pattern := regexp.MustCompile("cannot be assumed by principal '[a-z]+\\.amazonaws\\.com'\\.$")
 		if err != nil {
@@ -176,7 +185,7 @@ func resourceAwsCloudWatchEventRuleUpdate(d *schema.ResourceData, meta interface
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("Updating CloudWatch Event Rule failed: %s", err)
+		return errwrap.Wrapf("Updating CloudWatch Event Rule failed: {{err}}", err)
 	}
 
 	if d.HasChange("is_enabled") && !d.Get("is_enabled").(bool) {
@@ -210,7 +219,7 @@ func resourceAwsCloudWatchEventRuleDelete(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func buildPutRuleInputStruct(d *schema.ResourceData) *events.PutRuleInput {
+func buildPutRuleInputStruct(d *schema.ResourceData) (*events.PutRuleInput, error) {
 	input := events.PutRuleInput{
 		Name: aws.String(d.Get("name").(string)),
 	}
@@ -218,7 +227,10 @@ func buildPutRuleInputStruct(d *schema.ResourceData) *events.PutRuleInput {
 		input.Description = aws.String(v.(string))
 	}
 	if v, ok := d.GetOk("event_pattern"); ok {
-		pattern, _ := normalizeJsonString(v.(string))
+		pattern, err := normalizeJsonString(v)
+		if err != nil {
+			return nil, errwrap.Wrapf("event pattern contains an invalid JSON: {{err}}", err)
+		}
 		input.EventPattern = aws.String(pattern)
 	}
 	if v, ok := d.GetOk("role_arn"); ok {
@@ -230,7 +242,7 @@ func buildPutRuleInputStruct(d *schema.ResourceData) *events.PutRuleInput {
 
 	input.State = aws.String(getStringStateFromBoolean(d.Get("is_enabled").(bool)))
 
-	return &input
+	return &input, nil
 }
 
 // State is represented as (ENABLED|DISABLED) in the API

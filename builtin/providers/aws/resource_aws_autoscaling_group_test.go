@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -293,6 +294,43 @@ func TestAccAWSAutoScalingGroup_enablingMetrics(t *testing.T) {
 	})
 }
 
+func TestAccAWSAutoScalingGroup_suspendingProcesses(t *testing.T) {
+	var group autoscaling.Group
+	randName := fmt.Sprintf("terraform-test-%s", acctest.RandString(10))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSAutoScalingGroupConfig(randName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.#", "0"),
+				),
+			},
+			{
+				Config: testAccAWSAutoScalingGroupConfigWithSuspendedProcesses(randName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.#", "2"),
+				),
+			},
+			{
+				Config: testAccAWSAutoScalingGroupConfigWithSuspendedProcessesUpdated(randName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "suspended_processes.#", "2"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSAutoScalingGroup_withMetrics(t *testing.T) {
 	var group autoscaling.Group
 
@@ -424,6 +462,27 @@ func TestAccAWSAutoScalingGroup_initialLifecycleHook(t *testing.T) {
 						"aws_autoscaling_group.bar", "initial_lifecycle_hook.391359060.name", "launching"),
 					testAccCheckAWSAutoScalingGroupInitialLifecycleHookExists(
 						"aws_autoscaling_group.bar", "initial_lifecycle_hook.391359060.name"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSAutoScalingGroup_ALB_TargetGroups_ELBCapacity(t *testing.T) {
+	var group autoscaling.Group
+	var tg elbv2.TargetGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAWSALBTargetGroupExists("aws_alb_target_group.test", &tg),
+					testAccCheckAWSALBTargetGroupHealthy(&tg),
 				),
 			},
 		},
@@ -642,6 +701,30 @@ func testAccCheckAWSAutoScalingGroupAttributesVPCZoneIdentifer(group *autoscalin
 
 		if remaining != 0 {
 			return fmt.Errorf("Bad VPC Zone Identifier match\nexpected: %s\ngot:%s", zones, subnets)
+		}
+
+		return nil
+	}
+}
+
+// testAccCheckAWSALBTargetGroupHealthy checks an *elbv2.TargetGroup to make
+// sure that all instances in it are healthy.
+func testAccCheckAWSALBTargetGroupHealthy(res *elbv2.TargetGroup) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).elbv2conn
+
+		resp, err := conn.DescribeTargetHealth(&elbv2.DescribeTargetHealthInput{
+			TargetGroupArn: res.TargetGroupArn,
+		})
+
+		if err != nil {
+			return err
+		}
+
+		for _, target := range resp.TargetHealthDescriptions {
+			if target.TargetHealth == nil || target.TargetHealth.State == nil || *target.TargetHealth.State != "healthy" {
+				return errors.New("Not all instances in target group are healthy yet, but should be")
+			}
 		}
 
 		return nil
@@ -1301,4 +1384,213 @@ resource "aws_autoscaling_group" "bar" {
   }
 }
 `, name)
+}
+
+const testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "default" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = "true"
+  enable_dns_support   = "true"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity"
+  }
+}
+
+resource "aws_alb" "test_lb" {
+  subnets = ["${aws_subnet.main.id}", "${aws_subnet.alt.id}"]
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity"
+  }
+}
+
+resource "aws_alb_listener" "test_listener" {
+  load_balancer_arn = "${aws_alb.test_lb.arn}"
+  port              = "80"
+
+  default_action {
+    target_group_arn = "${aws_alb_target_group.test.arn}"
+    type             = "forward"
+  }
+}
+
+resource "aws_alb_target_group" "test" {
+  name     = "tf-example-alb-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${aws_vpc.default.id}"
+
+  health_check {
+    path              = "/"
+    healthy_threshold = "2"
+    timeout           = "2"
+    interval          = "5"
+  }
+}
+
+resource "aws_subnet" "main" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity"
+  }
+}
+
+resource "aws_subnet" "alt" {
+  vpc_id            = "${aws_vpc.default.id}"
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-west-2b"
+
+  tags {
+    Name = "testAccAWSAutoScalingGroupConfig_ALB_TargetGroup_ELBCapacity"
+  }
+}
+
+resource "aws_internet_gateway" "internet_gateway" {
+  vpc_id = "${aws_vpc.default.id}"
+}
+
+resource "aws_route_table" "route_table" {
+  vpc_id = "${aws_vpc.default.id}"
+}
+
+resource "aws_route_table_association" "route_table_association_main" {
+  subnet_id      = "${aws_subnet.main.id}"
+  route_table_id = "${aws_route_table.route_table.id}"
+}
+
+resource "aws_route_table_association" "route_table_association_alt" {
+  subnet_id      = "${aws_subnet.alt.id}"
+  route_table_id = "${aws_route_table.route_table.id}"
+}
+
+resource "aws_route" "public_default_route" {
+  route_table_id         = "${aws_route_table.route_table.id}"
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = "${aws_internet_gateway.internet_gateway.id}"
+}
+
+data "aws_ami" "test_ami" {
+  most_recent = true
+
+  filter {
+    name   = "owner-alias"
+    values = ["amazon"]
+  }
+
+  filter {
+    name   = "name"
+    values = ["amzn-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
+resource "aws_launch_configuration" "foobar" {
+  image_id                    = "${data.aws_ami.test_ami.id}"
+  instance_type               = "t2.micro"
+  associate_public_ip_address = "true"
+
+  user_data = <<EOS
+#!/bin/bash
+yum -y install httpd
+echo "hello world" > /var/www/html/index.html
+chkconfig httpd on
+service httpd start
+EOS
+}
+
+resource "aws_autoscaling_group" "bar" {
+  vpc_zone_identifier = [
+    "${aws_subnet.main.id}",
+    "${aws_subnet.alt.id}",
+  ]
+
+  target_group_arns = ["${aws_alb_target_group.test.arn}"]
+
+  max_size                  = 2
+  min_size                  = 2
+  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  desired_capacity          = 2
+  wait_for_elb_capacity     = 2
+  force_delete              = true
+  termination_policies      = ["OldestInstance"]
+  launch_configuration      = "${aws_launch_configuration.foobar.name}"
+}
+`
+
+func testAccAWSAutoScalingGroupConfigWithSuspendedProcesses(name string) string {
+	return fmt.Sprintf(`
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_placement_group" "test" {
+  name = "asg_pg_%s"
+  strategy = "cluster"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  name = "%s"
+  max_size = 5
+  min_size = 2
+  health_check_type = "ELB"
+  desired_capacity = 4
+  force_delete = true
+  termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
+
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+
+  suspended_processes = ["AlarmNotification","ScheduledActions"]
+
+  tag {
+    key = "Foo"
+    value = "foo-bar"
+    propagate_at_launch = true
+  }
+}
+`, name, name)
+}
+
+func testAccAWSAutoScalingGroupConfigWithSuspendedProcessesUpdated(name string) string {
+	return fmt.Sprintf(`
+resource "aws_launch_configuration" "foobar" {
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_placement_group" "test" {
+  name = "asg_pg_%s"
+  strategy = "cluster"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  name = "%s"
+  max_size = 5
+  min_size = 2
+  health_check_type = "ELB"
+  desired_capacity = 4
+  force_delete = true
+  termination_policies = ["OldestInstance","ClosestToNextInstanceHour"]
+
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+
+  suspended_processes = ["AZRebalance","ScheduledActions"]
+
+  tag {
+    key = "Foo"
+    value = "foo-bar"
+    propagate_at_launch = true
+  }
+}
+`, name, name)
 }

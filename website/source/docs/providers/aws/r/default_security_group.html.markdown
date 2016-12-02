@@ -22,9 +22,14 @@ into management. We can do this because these default security groups cannot be
 destroyed, and are created with a known set of default ingress/egress rules. 
 
 When Terraform first adopts the Default Security Group, it **immediately removes all
-ingress and egress rules in the ACL**. It then proceeds to create any rules specified in the 
+ingress and egress rules in the Security Group**. It then proceeds to create any rules specified in the 
 configuration. This step is required so that only the rules specified in the 
 configuration are created.
+
+This resource treats it's inline rules as absolute; only the rules defined
+inline are created, and any additions/removals external to this resource will
+result in diff shown. For these reasons, this resource is incompatible with the 
+`aws_security_group_rule` resource.
 
 For more information about Default Security Groups, see the AWS Documentation on 
 [Default Security Groups][aws-default-security-groups].
@@ -41,7 +46,7 @@ resource "aws_vpc" "mainvpc" {
 }
 
 resource "aws_default_security_group" "default" {
-  vpc_id = "${aws_vpc.mainvpc.vpc_id}"
+  vpc_id = "${aws_vpc.mainvpc.id}"
 
   ingress {
     protocol  = -1
@@ -70,7 +75,7 @@ resource "aws_vpc" "mainvpc" {
 }
 
 resource "aws_default_security_group" "default" {
-  vpc_id = "${aws_vpc.mainvpc.vpc_id}"
+  vpc_id = "${aws_vpc.mainvpc.vpc}"
 
   ingress {
     protocol  = -1
@@ -87,10 +92,6 @@ The arguments of an `aws_default_security_group` differ slightly from `aws_secur
 resources. Namely, the `name` argument is computed, and the `name_prefix` attribute
 removed. The following arguments are still supported: 
 
-* `description` - (Optional, Forces new resource) The security group description. Defaults to
-  "Managed by Terraform". Cannot be "". __NOTE__: This field maps to the AWS
-  `GroupDescription` attribute, for which there is no Update API. If you'd like
-  to classify your security groups in a way that can be updated, use `tags`.
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
 * `egress` - (Optional, VPC only) Can be specified multiple times for each

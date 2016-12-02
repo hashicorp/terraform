@@ -545,6 +545,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("spot_price", lc.SpotPrice)
 	d.Set("enable_monitoring", lc.InstanceMonitoring.Enabled)
 	d.Set("security_groups", lc.SecurityGroups)
+	d.Set("associate_public_ip_address", lc.AssociatePublicIpAddress)
 
 	d.Set("vpc_classic_link_id", lc.ClassicLinkVPCId)
 	d.Set("vpc_classic_link_security_groups", lc.ClassicLinkVPCSecurityGroups)

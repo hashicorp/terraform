@@ -35,6 +35,7 @@ To make a resource importable, please see the
 * aws_cloudwatch_log_group
 * aws_cloudwatch_metric_alarm
 * aws_customer_gateway
+* aws_db_event_subscription
 * aws_db_instance
 * aws_db_option_group
 * aws_db_parameter_group
@@ -48,6 +49,7 @@ To make a resource importable, please see the
 * aws_eip
 * aws_elastic_beanstalk_application
 * aws_elastic_beanstalk_environment
+* aws_elasticache_cluster
 * aws_elasticache_parameter_group
 * aws_elasticache_subnet_group
 * aws_elb
@@ -55,6 +57,7 @@ To make a resource importable, please see the
 * aws_glacier_vault
 * aws_iam_account_password_policy
 * aws_iam_group
+* aws_iam_instance_profile
 * aws_iam_saml_provider
 * aws_iam_user
 * aws_instance
@@ -66,6 +69,8 @@ To make a resource importable, please see the
 * aws_nat_gateway
 * aws_network_acl
 * aws_network_interface
+* aws_opsworks_custom_layer
+* aws_opsworks_stack
 * aws_placement_group
 * aws_rds_cluster
 * aws_rds_cluster_instance
@@ -78,6 +83,7 @@ To make a resource importable, please see the
 * aws_route53_health_check
 * aws_route53_zone
 * aws_route_table
+* aws_s3_bucket
 * aws_security_group
 * aws_ses_receipt_filter
 * aws_ses_receipt_rule_set
@@ -120,6 +126,17 @@ To make a resource importable, please see the
 
 * fastly_service_v1
 
+### Google
+
+* google_compute_autoscaler
+* google_compute_firewall
+* google_compute_forwarding_rule
+* google_compute_http_health_check
+* google_compute_instance_group_manager
+* google_compute_instance_template
+* google_compute_target_pool
+* google_project
+
 ### OpenStack
 
 * openstack_blockstorage_volume_v1
@@ -149,4 +166,3 @@ To make a resource importable, please see the
 * triton_key
 * triton_machine
 * triton_vlan
-

@@ -27,10 +27,24 @@ func resourceAwsKeyPair() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"key_name": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"key_name_prefix"},
+			},
+			"key_name_prefix": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					if len(value) > 100 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 100 characters, name is limited to 255", k))
+					}
+					return
+				},
 			},
 			"public_key": &schema.Schema{
 				Type:     schema.TypeString,
@@ -56,8 +70,12 @@ func resourceAwsKeyPair() *schema.Resource {
 func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	keyName := d.Get("key_name").(string)
-	if keyName == "" {
+	var keyName string
+	if v, ok := d.GetOk("key_name"); ok {
+		keyName = v.(string)
+	} else if v, ok := d.GetOk("key_name_prefix"); ok {
+		keyName = resource.PrefixedUniqueId(v.(string))
+	} else {
 		keyName = resource.UniqueId()
 	}
 

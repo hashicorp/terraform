@@ -1,10 +1,10 @@
 // Package network implements the Azure ARM Network service API version
-// 2016-06-01.
+// 2016-09-01.
 //
 // The Microsoft Azure Network management API provides a RESTful set of web
 // services that interact with Microsoft Azure Networks service to manage
-// your network resrources. The API has entities that capture the
-// relationship between an end user and the Microsoft Azure Networks service.
+// your network resources. The API has entities that capture the relationship
+// between an end user and the Microsoft Azure Networks service.
 package network
 
 // Copyright (c) Microsoft and contributors.  All rights reserved.
@@ -33,7 +33,7 @@ import (
 
 const (
 	// APIVersion is the version of the Network
-	APIVersion = "2016-06-01"
+	APIVersion = "2016-09-01"
 
 	// DefaultBaseURI is the default URI used for the service Network
 	DefaultBaseURI = "https://management.azure.com"

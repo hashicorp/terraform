@@ -16,7 +16,7 @@ Stores the state as an artifact in [Manta](https://www.joyent.com/manta).
 terraform remote config \
 	-backend=manta \
 	-backend-config="path=random/path" \
-  -backend-config="objecName=terraform.tfstate"
+	-backend-config="objecName=terraform.tfstate"
 ```
 
 ## Example Referencing
@@ -26,7 +26,7 @@ data "terraform_remote_state" "foo" {
 	backend = "manta"
 	config {
 		path = "random/path"
-    objectName = "terraform.tfstate"
+		objectName = "terraform.tfstate"
 	}
 }
 ```

@@ -69,6 +69,8 @@ The following arguments are supported:
     to create a firewall for another tenant. Changing this creates a new
     firewall.
 
+* `value_specs` - (Optional) Map of additional options.
+
 ## Attributes Reference
 
 The following attributes are exported:

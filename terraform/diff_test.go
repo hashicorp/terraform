@@ -7,7 +7,12 @@ import (
 )
 
 func TestDiffEmpty(t *testing.T) {
-	diff := new(Diff)
+	var diff *Diff
+	if !diff.Empty() {
+		t.Fatal("should be empty")
+	}
+
+	diff = new(Diff)
 	if !diff.Empty() {
 		t.Fatal("should be empty")
 	}
@@ -37,6 +42,111 @@ func TestDiffEmpty_taintedIsNotEmpty(t *testing.T) {
 
 	if diff.Empty() {
 		t.Fatal("should not be empty, since DestroyTainted was set")
+	}
+}
+
+func TestDiffEqual(t *testing.T) {
+	cases := map[string]struct {
+		D1, D2 *Diff
+		Equal  bool
+	}{
+		"nil": {
+			nil,
+			new(Diff),
+			false,
+		},
+
+		"empty": {
+			new(Diff),
+			new(Diff),
+			true,
+		},
+
+		"different module order": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}},
+					&ModuleDiff{Path: []string{"root", "bar"}},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "bar"}},
+					&ModuleDiff{Path: []string{"root", "foo"}},
+				},
+			},
+			true,
+		},
+
+		"different module diff destroys": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: false},
+				},
+			},
+			true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			actual := tc.D1.Equal(tc.D2)
+			if actual != tc.Equal {
+				t.Fatalf("expected: %v\n\n%#v\n\n%#v", tc.Equal, tc.D1, tc.D2)
+			}
+		})
+	}
+}
+
+func TestDiffPrune(t *testing.T) {
+	cases := map[string]struct {
+		D1, D2 *Diff
+	}{
+		"nil": {
+			nil,
+			nil,
+		},
+
+		"empty": {
+			new(Diff),
+			new(Diff),
+		},
+
+		"empty module": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}},
+				},
+			},
+			&Diff{},
+		},
+
+		"destroy module": {
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+			&Diff{
+				Modules: []*ModuleDiff{
+					&ModuleDiff{Path: []string{"root", "foo"}, Destroy: true},
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			tc.D1.Prune()
+			if !tc.D1.Equal(tc.D2) {
+				t.Fatalf("bad:\n\n%#v\n\n%#v", tc.D1, tc.D2)
+			}
+		})
 	}
 }
 
@@ -112,6 +222,39 @@ func TestModuleDiff_ChangeType(t *testing.T) {
 		if actual != tc.Result {
 			t.Fatalf("%d: %#v", i, actual)
 		}
+	}
+}
+
+func TestDiff_DeepCopy(t *testing.T) {
+	cases := map[string]*Diff{
+		"empty": &Diff{},
+
+		"basic diff": &Diff{
+			Modules: []*ModuleDiff{
+				&ModuleDiff{
+					Path: []string{"root"},
+					Resources: map[string]*InstanceDiff{
+						"aws_instance.foo": &InstanceDiff{
+							Attributes: map[string]*ResourceAttrDiff{
+								"num": &ResourceAttrDiff{
+									Old: "0",
+									New: "2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			dup := tc.DeepCopy()
+			if !reflect.DeepEqual(dup, tc) {
+				t.Fatalf("\n%#v\n\n%#v", dup, tc)
+			}
+		})
 	}
 }
 
@@ -471,6 +614,75 @@ func TestInstanceDiffSame(t *testing.T) {
 			"diff RequiresNew; old: true, new: false",
 		},
 
+		// NewComputed on primitive
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// NewComputed on primitive, removed
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.foo}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{},
+			},
+			true,
+			"",
+		},
+
+		// NewComputed on set, removed
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.1": &ResourceAttrDiff{
+						Old:        "foo",
+						New:        "",
+						NewRemoved: true,
+					},
+					"foo.2": &ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
 		{
 			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
@@ -533,6 +745,76 @@ func TestInstanceDiffSame(t *testing.T) {
 			},
 			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{},
+			},
+			true,
+			"",
+		},
+
+		// Computed can change RequiresNew by removal, and that's okay
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "0",
+						NewComputed: true,
+						RequiresNew: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{},
+			},
+			true,
+			"",
+		},
+
+		// Computed can change Destroy by removal, and that's okay
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "0",
+						NewComputed: true,
+						RequiresNew: true,
+					},
+				},
+
+				Destroy: true,
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{},
+			},
+			true,
+			"",
+		},
+
+		// Computed can change Destroy by elements
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old:         "0",
+						NewComputed: true,
+						RequiresNew: true,
+					},
+				},
+
+				Destroy: true,
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "1",
+						New: "1",
+					},
+					"foo.12": &ResourceAttrDiff{
+						Old:         "4",
+						New:         "12",
+						RequiresNew: true,
+					},
+				},
+
+				Destroy: true,
 			},
 			true,
 			"",
@@ -703,6 +985,100 @@ func TestInstanceDiffSame(t *testing.T) {
 						Old:         "",
 						New:         "new",
 						RequiresNew: true,
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// Innner computed set should allow outer change in key
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~1.outer_val": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"foo.~1.inner.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~1.inner.~2.value": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.bar}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.12.outer_val": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"foo.12.inner.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.12.inner.42.value": &ResourceAttrDiff{
+						Old: "",
+						New: "baz",
+					},
+				},
+			},
+			true,
+			"",
+		},
+
+		// Innner computed list should allow outer change in key
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~1.outer_val": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"foo.~1.inner.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~1.inner.0.value": &ResourceAttrDiff{
+						Old:         "",
+						New:         "${var.bar}",
+						NewComputed: true,
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.12.outer_val": &ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+					"foo.12.inner.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.12.inner.0.value": &ResourceAttrDiff{
+						Old: "",
+						New: "baz",
 					},
 				},
 			},

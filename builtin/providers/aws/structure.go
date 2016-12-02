@@ -166,7 +166,7 @@ func expandIPPerms(
 		// AWS's behavior in the error message.
 		if *perm.IpProtocol == "-1" && (*perm.FromPort != 0 || *perm.ToPort != 0) {
 			return nil, fmt.Errorf(
-				"from_port (%d) and to_port (%d) must both be 0 to use the the 'ALL' \"-1\" protocol!",
+				"from_port (%d) and to_port (%d) must both be 0 to use the 'ALL' \"-1\" protocol!",
 				*perm.FromPort, *perm.ToPort)
 		}
 
@@ -624,10 +624,14 @@ func flattenOptions(list []*rds.Option) []map[string]interface{} {
 			if i.OptionSettings != nil {
 				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
 				for _, j := range i.OptionSettings {
-					settings = append(settings, map[string]interface{}{
-						"name":  *j.Name,
-						"value": *j.Value,
-					})
+					setting := map[string]interface{}{
+						"name": *j.Name,
+					}
+					if j.Value != nil {
+						setting["value"] = *j.Value
+					}
+
+					settings = append(settings, setting)
 				}
 
 				r["option_settings"] = settings
@@ -679,7 +683,7 @@ func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]in
 		if i.ParameterValue != nil {
 			result = append(result, map[string]interface{}{
 				"name":  strings.ToLower(*i.ParameterName),
-				"value": strings.ToLower(*i.ParameterValue),
+				"value": *i.ParameterValue,
 			})
 		}
 	}
@@ -756,6 +760,26 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentId
 	return att
+}
+
+func flattenElastiCacheSecurityGroupNames(securityGroups []*elasticache.CacheSecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.CacheSecurityGroupName != nil {
+			result = append(result, *sg.CacheSecurityGroupName)
+		}
+	}
+	return result
+}
+
+func flattenElastiCacheSecurityGroupIds(securityGroups []*elasticache.SecurityGroupMembership) []string {
+	result := make([]string, 0, len(securityGroups))
+	for _, sg := range securityGroups {
+		if sg.SecurityGroupId != nil {
+			result = append(result, *sg.SecurityGroupId)
+		}
+	}
+	return result
 }
 
 // Flattens step adjustments into a list of map[string]interface.
@@ -926,6 +950,24 @@ func flattenDSVpcSettings(
 	return []map[string]interface{}{settings}
 }
 
+func flattenLambdaEnvironment(lambdaEnv *lambda.EnvironmentResponse) []interface{} {
+	envs := make(map[string]interface{})
+	en := make(map[string]string)
+
+	if lambdaEnv == nil {
+		return nil
+	}
+
+	for k, v := range lambdaEnv.Variables {
+		en[k] = *v
+	}
+	if len(en) > 0 {
+		envs["variables"] = en
+	}
+
+	return []interface{}{envs}
+}
+
 func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]interface{} {
 	settings := make(map[string]interface{}, 0)
 
@@ -933,7 +975,11 @@ func flattenLambdaVpcConfigResponse(s *lambda.VpcConfigResponse) []map[string]in
 		return nil
 	}
 
-	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && s.VpcId == nil {
+	var emptyVpc bool
+	if s.VpcId == nil || *s.VpcId == "" {
+		emptyVpc = true
+	}
+	if len(s.SubnetIds) == 0 && len(s.SecurityGroupIds) == 0 && emptyVpc {
 		return nil
 	}
 
@@ -1032,6 +1078,16 @@ func flattenCloudFormationResources(cfResources []*cloudformation.Resource) map[
 		resources[*o.ResourceKey] = *o.ResourceValue
 	}
 	return resources
+}
+
+func flattenAsgSuspendedProcesses(list []*autoscaling.SuspendedProcess) []string {
+	strs := make([]string, 0, len(list))
+	for _, r := range list {
+		if r.ProcessName != nil {
+			strs = append(strs, *r.ProcessName)
+		}
+	}
+	return strs
 }
 
 func flattenAsgEnabledMetrics(list []*autoscaling.EnabledMetric) []string {

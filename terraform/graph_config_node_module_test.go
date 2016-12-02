@@ -26,14 +26,14 @@ func TestGraphNodeConfigModuleExpand(t *testing.T) {
 
 	g, err := node.Expand(&BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&ConfigTransformer{Module: mod},
+			&ConfigTransformerOld{Module: mod},
 		},
 	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := strings.TrimSpace(g.Subgraph().String())
+	actual := strings.TrimSpace(g.Subgraph().(*Graph).String())
 	expected := strings.TrimSpace(testGraphNodeModuleExpandStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
@@ -51,7 +51,7 @@ func TestGraphNodeConfigModuleExpandFlatten(t *testing.T) {
 
 	g, err := node.Expand(&BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&ConfigTransformer{Module: mod},
+			&ConfigTransformerOld{Module: mod},
 		},
 	})
 	if err != nil {

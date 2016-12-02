@@ -262,6 +262,24 @@ func (s *State) Empty() bool {
 	return len(s.Modules) == 0
 }
 
+// HasResources returns true if the state contains any resources.
+//
+// This is similar to !s.Empty, but returns true also in the case where the
+// state has modules but all of them are devoid of resources.
+func (s *State) HasResources() bool {
+	if s.Empty() {
+		return false
+	}
+
+	for _, mod := range s.Modules {
+		if len(mod.Resources) > 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
 // IsRemote returns true if State represents a state that exists and is
 // remote.
 func (s *State) IsRemote() bool {
@@ -626,6 +644,10 @@ func (s *State) init() {
 	}
 	s.ensureHasLineage()
 
+	// We can't trust that state read from a file doesn't have nil/empty
+	// modules
+	s.prune()
+
 	for _, mod := range s.Modules {
 		mod.init()
 	}
@@ -633,6 +655,7 @@ func (s *State) init() {
 	if s.Remote != nil {
 		s.Remote.init()
 	}
+
 }
 
 func (s *State) EnsureHasLineage() {
@@ -677,6 +700,18 @@ func (s *State) prune() {
 	if s == nil {
 		return
 	}
+
+	// Filter out empty modules.
+	// A module is always assumed to have a path, and it's length isn't always
+	// bounds checked later on. Modules may be "emptied" during destroy, but we
+	// never want to store those in the state.
+	for i := 0; i < len(s.Modules); i++ {
+		if s.Modules[i] == nil || len(s.Modules[i].Path) == 0 {
+			s.Modules = append(s.Modules[:i], s.Modules[i+1:]...)
+			i--
+		}
+	}
+
 	for _, mod := range s.Modules {
 		mod.prune()
 	}
@@ -1056,11 +1091,12 @@ func (m *ModuleState) prune() {
 	defer m.Unlock()
 
 	for k, v := range m.Resources {
-		v.prune()
-
-		if (v.Primary == nil || v.Primary.ID == "") && len(v.Deposed) == 0 {
+		if v == nil || (v.Primary == nil || v.Primary.ID == "") && len(v.Deposed) == 0 {
 			delete(m.Resources, k)
+			continue
 		}
+
+		v.prune()
 	}
 
 	for k, v := range m.Outputs {
@@ -1401,10 +1437,6 @@ func (s *ResourceState) init() {
 
 	if s.Deposed == nil {
 		s.Deposed = make([]*InstanceState, 0)
-	}
-
-	for _, dep := range s.Deposed {
-		dep.init()
 	}
 }
 

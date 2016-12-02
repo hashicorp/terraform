@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/blockstorage/v2/volumes"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
 )
 
 func TestAccBlockStorageV2Volume_basic(t *testing.T) {
@@ -130,11 +130,7 @@ func testAccCheckBlockStorageV2VolumeDoesNotExist(t *testing.T, n string, volume
 
 		_, err = volumes.Get(blockStorageClient, volume.ID).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				return nil
 			}
 			return err

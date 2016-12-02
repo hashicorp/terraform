@@ -3,6 +3,7 @@ package terraform
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -253,30 +254,68 @@ func TestStateModuleOrphans_deepNestedNilConfig(t *testing.T) {
 
 func TestStateDeepCopy(t *testing.T) {
 	cases := []struct {
-		One, Two *State
-		F        func(*State) interface{}
+		State *State
 	}{
 		// Version
 		{
 			&State{Version: 5},
-			&State{Version: 5},
-			func(s *State) interface{} { return s.Version },
 		},
-
 		// TFVersion
 		{
 			&State{TFVersion: "5"},
-			&State{TFVersion: "5"},
-			func(s *State) interface{} { return s.TFVersion },
+		},
+		// Modules
+		{
+			&State{
+				Version: 6,
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		// Deposed
+		// The nil values shouldn't be there if the State was properly init'ed,
+		// but the Copy should still work anyway.
+		{
+			&State{
+				Version: 6,
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: rootModulePath,
+						Resources: map[string]*ResourceState{
+							"test_instance.foo": &ResourceState{
+								Primary: &InstanceState{
+									Meta: map[string]string{},
+								},
+								Deposed: []*InstanceState{
+									{ID: "test"},
+									nil,
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
 	for i, tc := range cases {
-		actual := tc.F(tc.One.DeepCopy())
-		expected := tc.F(tc.Two)
-		if !reflect.DeepEqual(actual, expected) {
-			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, actual, expected)
-		}
+		t.Run(fmt.Sprintf("copy-%d", i), func(t *testing.T) {
+			actual := tc.State.DeepCopy()
+			expected := tc.State
+			if !reflect.DeepEqual(actual, expected) {
+				t.Fatalf("Expected: %#v\nRecevied: %#v\n", expected, actual)
+			}
+		})
 	}
 }
 
@@ -1196,6 +1235,64 @@ func TestStateEmpty(t *testing.T) {
 	}
 }
 
+func TestStateHasResources(t *testing.T) {
+	cases := []struct {
+		In     *State
+		Result bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&State{},
+			false,
+		},
+		{
+			&State{
+				Remote: &RemoteState{Type: "foo"},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+					&ModuleState{
+						Resources: map[string]*ResourceState{
+							"foo.foo": &ResourceState{},
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.In.HasResources() != tc.Result {
+			t.Fatalf("bad %d %#v:\n\n%#v", i, tc.Result, tc.In)
+		}
+	}
+}
+
 func TestStateFromFutureTerraform(t *testing.T) {
 	cases := []struct {
 		In     string
@@ -1574,6 +1671,40 @@ func TestParseResourceStateKey(t *testing.T) {
 		}
 		if (err != nil) != tc.ExpectedErr {
 			t.Fatalf("%s: expected err: %t, got %s", tc.Input, tc.ExpectedErr, err)
+		}
+	}
+}
+
+func TestStateModuleOrphans_empty(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "foo", "bar"},
+			},
+			&ModuleState{
+				Path: []string{},
+			},
+			nil,
+		},
+	}
+
+	state.init()
+
+	// just calling this to check for panic
+	state.ModuleOrphans(RootModulePath, nil)
+
+	for _, mod := range state.Modules {
+		if mod == nil {
+			t.Fatal("found nil module")
+		}
+		if mod.Path == nil {
+			t.Fatal("found nil module path")
+		}
+		if len(mod.Path) == 0 {
+			t.Fatal("found empty module path")
 		}
 	}
 }

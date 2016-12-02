@@ -26,12 +26,7 @@ func resourceArmNetworkInterface() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -246,11 +241,11 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 
 	resp, err := ifaceClient.Get(resGroup, name, "")
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error making Read request on Azure Network Interface %s: %s", name, err)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		d.SetId("")
-		return nil
 	}
 
 	iface := *resp.Properties
@@ -327,6 +322,12 @@ func resourceArmNetworkInterfaceIpConfigurationHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address_allocation"].(string)))
 	if m["public_ip_address_id"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["public_ip_address_id"].(string)))
+	}
+	if m["load_balancer_backend_address_pools_ids"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["load_balancer_backend_address_pools_ids"].(*schema.Set).GoString()))
+	}
+	if m["load_balancer_inbound_nat_rules_ids"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["load_balancer_inbound_nat_rules_ids"].(*schema.Set).GoString()))
 	}
 
 	return hashcode.String(buf.String())

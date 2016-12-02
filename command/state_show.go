@@ -55,6 +55,10 @@ func (c *StateShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	if instance == nil {
+		return 0
+	}
+
 	is := instance.Value.(*terraform.InstanceState)
 
 	// Sort the keys

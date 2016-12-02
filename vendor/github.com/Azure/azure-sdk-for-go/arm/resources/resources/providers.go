@@ -179,7 +179,7 @@ func (client ProvidersClient) ListResponder(resp *http.Response) (result Provide
 func (client ProvidersClient) ListNextResults(lastResults ProviderListResult) (result ProviderListResult, err error) {
 	req, err := lastResults.ProviderListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -188,12 +188,12 @@ func (client ProvidersClient) ListNextResults(lastResults ProviderListResult) (r
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "resources.ProvidersClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return

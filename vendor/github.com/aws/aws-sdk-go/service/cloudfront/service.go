@@ -11,11 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/restxml"
 )
 
-// Amazon CloudFront is a global content delivery network (CDN) service that
-// accelerates delivery of your websites, APIs, video content or other web assets.
-// It integrates with other Amazon Web Services products to give developers
-// and businesses an easy way to accelerate content to end users with no minimum
-// usage commitments.
+// This is the Amazon CloudFront API Reference. This guide is for developers
+// who need detailed information about the CloudFront API actions, data types,
+// and errors. For detailed information about CloudFront features and their
+// associated API calls, see the Amazon CloudFront Developer Guide.
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type CloudFront struct {
@@ -55,7 +54,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 				ServiceName:   ServiceName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
-				APIVersion:    "2016-09-07",
+				APIVersion:    "2016-09-29",
 			},
 			handlers,
 		),

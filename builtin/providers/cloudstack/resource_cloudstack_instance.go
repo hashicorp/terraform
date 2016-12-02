@@ -40,6 +40,7 @@ func resourceCloudStackInstance() *schema.Resource {
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -390,7 +391,8 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Attributes that require reboot to update
-	if d.HasChange("name") || d.HasChange("service_offering") || d.HasChange("affinity_group_ids") || d.HasChange("affinity_group_names") || d.HasChange("keypair") || d.HasChange("user_data") {
+	if d.HasChange("name") || d.HasChange("service_offering") || d.HasChange("affinity_group_ids") ||
+		d.HasChange("affinity_group_names") || d.HasChange("keypair") || d.HasChange("user_data") {
 		// Before we can actually make these changes, the virtual machine must be stopped
 		_, err := cs.VirtualMachine.StopVirtualMachine(
 			cs.VirtualMachine.NewStopVirtualMachineParams(d.Id()))
@@ -452,7 +454,16 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 				}
 			}
 
+			// Set the new groups
 			p.SetAffinitygroupids(groups)
+
+			// Update the affinity groups
+			_, err = cs.AffinityGroup.UpdateVMAffinityGroup(p)
+			if err != nil {
+				return fmt.Errorf(
+					"Error updating the affinity groups for instance %s: %s", name, err)
+			}
+			d.SetPartial("affinity_group_ids")
 		}
 
 		// Check if the affinity group names have changed and if so, update the names
@@ -466,7 +477,16 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 				}
 			}
 
-			p.SetAffinitygroupids(groups)
+			// Set the new groups
+			p.SetAffinitygroupnames(groups)
+
+			// Update the affinity groups
+			_, err = cs.AffinityGroup.UpdateVMAffinityGroup(p)
+			if err != nil {
+				return fmt.Errorf(
+					"Error updating the affinity groups for instance %s: %s", name, err)
+			}
+			d.SetPartial("affinity_group_names")
 		}
 
 		// Check if the keypair has changed and if so, update the keypair
@@ -513,6 +533,7 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	d.Partial(false)
+
 	return resourceCloudStackInstanceRead(d, meta)
 }
 

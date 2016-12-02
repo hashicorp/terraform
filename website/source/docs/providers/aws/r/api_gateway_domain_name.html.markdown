@@ -69,6 +69,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The internal id assigned to this domain name by API Gateway.
+* `certificate_upload_date` - The upload date associated with the domain certificate.
 * `cloudfront_domain_name` - The hostname created by Cloudfront to represent
   the distribution that implements this domain name mapping.
 * `cloudfront_zone_id` - For convenience, the hosted zone id (`Z2FDTNDATAQYW2`)

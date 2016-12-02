@@ -19,6 +19,8 @@ const opAddPermission = "AddPermission"
 // value can be used to capture response data after the request's "Send" method
 // is called.
 //
+// See AddPermission for usage and error information.
+//
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
 // access properties on the request object before or after sending the request. If
@@ -55,6 +57,8 @@ func (c *SQS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 	return
 }
 
+// AddPermission API operation for Amazon Simple Queue Service.
+//
 // Adds a permission to a queue for a specific principal (http://docs.aws.amazon.com/general/latest/gr/glos-chap.html#P).
 // This allows for sharing access to the queue.
 //
@@ -63,14 +67,33 @@ func (c *SQS) AddPermissionRequest(input *AddPermissionInput) (req *request.Requ
 // For more information about these permissions, see Shared Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/acp-overview.html)
 // in the Amazon SQS Developer Guide.
 //
-//  AddPermission writes an Amazon SQS-generated policy. If you want to write
+// AddPermission writes an Amazon SQS-generated policy. If you want to write
 // your own policy, use SetQueueAttributes to upload your policy. For more information
 // about writing your own policy, see Using The Access Policy Language (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AccessPolicyLanguage.html)
 // in the Amazon SQS Developer Guide.
 //
-//  Some API actions take lists of parameters. These lists are specified using
+// Some API actions take lists of parameters. These lists are specified using
 // the param.n notation. Values of n are integers starting from 1. For example,
 // a parameter list with two elements looks like this:
+//
+// &Attribute.1=this
+//
+// &Attribute.2=that
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation AddPermission for usage and error information.
+//
+// Returned Error Codes:
+//   * OverLimit
+//   The action that you requested would violate a limit. For example, ReceiveMessage
+//   returns this error if the maximum number of messages inflight has already
+//   been reached. AddPermission returns this error if the maximum number of permissions
+//   for the queue has already been reached.
+//
 func (c *SQS) AddPermission(input *AddPermissionInput) (*AddPermissionOutput, error) {
 	req, out := c.AddPermissionRequest(input)
 	err := req.Send()
@@ -83,6 +106,8 @@ const opChangeMessageVisibility = "ChangeMessageVisibility"
 // client's request for the ChangeMessageVisibility operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ChangeMessageVisibility for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -120,6 +145,8 @@ func (c *SQS) ChangeMessageVisibilityRequest(input *ChangeMessageVisibilityInput
 	return
 }
 
+// ChangeMessageVisibility API operation for Amazon Simple Queue Service.
+//
 // Changes the visibility timeout of a specified message in a queue to a new
 // value. The maximum allowed timeout value you can set the value to is 12 hours.
 // This means you can't extend the timeout of a message in an existing queue
@@ -135,8 +162,8 @@ func (c *SQS) ChangeMessageVisibilityRequest(input *ChangeMessageVisibilityInput
 // to call ChangeMessageVisibility to extend the visibility timeout to a maximum
 // of 12 hours. If you try to extend beyond 12 hours, the request will be rejected.
 //
-// There is a 120,000 limit for the number of inflight messages per queue.
-// Messages are inflight after they have been received from the queue by a consuming
+// There is a 120,000 limit for the number of inflight messages per queue. Messages
+// are inflight after they have been received from the queue by a consuming
 // component, but have not yet been deleted from the queue. If you reach the
 // 120,000 limit, you will receive an OverLimit error message from Amazon SQS.
 // To help avoid reaching the limit, you should delete the messages from the
@@ -153,6 +180,21 @@ func (c *SQS) ChangeMessageVisibilityRequest(input *ChangeMessageVisibilityInput
 // visibility timeout for the message the next time it is received reverts to
 // the original timeout value, not the value you set with the ChangeMessageVisibility
 // action.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation ChangeMessageVisibility for usage and error information.
+//
+// Returned Error Codes:
+//   * AWS.SimpleQueueService.MessageNotInflight
+//   The message referred to is not in flight.
+//
+//   * ReceiptHandleIsInvalid
+//   The receipt handle provided is not valid.
+//
 func (c *SQS) ChangeMessageVisibility(input *ChangeMessageVisibilityInput) (*ChangeMessageVisibilityOutput, error) {
 	req, out := c.ChangeMessageVisibilityRequest(input)
 	err := req.Send()
@@ -165,6 +207,8 @@ const opChangeMessageVisibilityBatch = "ChangeMessageVisibilityBatch"
 // client's request for the ChangeMessageVisibilityBatch operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ChangeMessageVisibilityBatch for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -200,18 +244,45 @@ func (c *SQS) ChangeMessageVisibilityBatchRequest(input *ChangeMessageVisibility
 	return
 }
 
+// ChangeMessageVisibilityBatch API operation for Amazon Simple Queue Service.
+//
 // Changes the visibility timeout of multiple messages. This is a batch version
 // of ChangeMessageVisibility. The result of the action on each message is reported
 // individually in the response. You can send up to 10 ChangeMessageVisibility
 // requests with each ChangeMessageVisibilityBatch action.
 //
-// Because the batch request can result in a combination of successful and
-// unsuccessful actions, you should check for batch errors even when the call
-// returns an HTTP status code of 200.
+// Because the batch request can result in a combination of successful and unsuccessful
+// actions, you should check for batch errors even when the call returns an
+// HTTP status code of 200.
 //
 // Some API actions take lists of parameters. These lists are specified using
 // the param.n notation. Values of n are integers starting from 1. For example,
 // a parameter list with two elements looks like this:
+//
+// &Attribute.1=this
+//
+// &Attribute.2=that
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation ChangeMessageVisibilityBatch for usage and error information.
+//
+// Returned Error Codes:
+//   * AWS.SimpleQueueService.TooManyEntriesInBatchRequest
+//   Batch request contains more number of entries than permissible.
+//
+//   * AWS.SimpleQueueService.EmptyBatchRequest
+//   Batch request doesn't contain an entry.
+//
+//   * AWS.SimpleQueueService.BatchEntryIdsNotDistinct
+//   Two or more batch entries have the same Id in the request.
+//
+//   * AWS.SimpleQueueService.InvalidBatchEntryId
+//   The Id of a batch entry in a batch request doesn't abide by the specification.
+//
 func (c *SQS) ChangeMessageVisibilityBatch(input *ChangeMessageVisibilityBatchInput) (*ChangeMessageVisibilityBatchOutput, error) {
 	req, out := c.ChangeMessageVisibilityBatchRequest(input)
 	err := req.Send()
@@ -224,6 +295,8 @@ const opCreateQueue = "CreateQueue"
 // client's request for the CreateQueue operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See CreateQueue for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -259,29 +332,66 @@ func (c *SQS) CreateQueueRequest(input *CreateQueueInput) (req *request.Request,
 	return
 }
 
-// Creates a new queue, or returns the URL of an existing one. When you request
-// CreateQueue, you provide a name for the queue. To successfully create a new
-// queue, you must provide a name that is unique within the scope of your own
-// queues.
+// CreateQueue API operation for Amazon Simple Queue Service.
 //
-//  If you delete a queue, you must wait at least 60 seconds before creating
-// a queue with the same name.
+// Creates a new standard or FIFO queue or returns the URL of an existing queue.
+// You can pass one or more attributes in the request.
 //
-//  You may pass one or more attributes in the request. If you do not provide
-// a value for any attribute, the queue will have the default value for that
-// attribute.
+//    * If you don't specify the FifoQueue attribute, Amazon SQS creates a standard
+//    queue.
 //
-// Use GetQueueUrl to get a queue's URL. GetQueueUrl requires only the QueueName
-// parameter.
+//  You can't change the queue type after you create it and you can't convert
+//    an existing standard queue into a FIFO queue. You must either create a
+//    new FIFO queue for your application or delete your existing standard queue
+//    and recreate it as a FIFO queue. For more information, see  Moving From
+//    a Standard Queue to a FIFO Queue (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues-moving.html)
+//    in the Amazon SQS Developer Guide.
 //
-// If you provide the name of an existing queue, along with the exact names
-// and values of all the queue's attributes, CreateQueue returns the queue URL
-// for the existing queue. If the queue name, attribute names, or attribute
-// values do not match an existing queue, CreateQueue returns an error.
+//    * If you don't provide a value for an attribute, the queue is created
+//    with the default value for the attribute.
 //
-// Some API actions take lists of parameters. These lists are specified using
-// the param.n notation. Values of n are integers starting from 1. For example,
-// a parameter list with two elements looks like this:
+//    * If you delete a queue, you must wait at least 60 seconds before creating
+//    a queue with the same name.
+//
+// To successfully create a new queue, you must provide a queue name that adheres
+// to the limits related to queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/limits-queues.html)
+// and is unique within the scope of your queues.
+//
+// To get the queue URL, use the GetQueueUrl action. GetQueueUrl requires only
+// the QueueName parameter.
+//
+//    * If you provide the name of an existing queue along with the exact names
+//    and values of all the queue's attributes, CreateQueue returns the queue
+//    URL for the existing queue.
+//
+//    * If the queue name, attribute names, or attribute values don't match
+//    an existing queue, CreateQueue returns an error.
+//
+// Some API actions take lists of parameters. Specify these lists using the
+// param.n notation. Values of n are integers starting from 1. The following
+// is an example of a parameter list with two elements:
+//
+// &Attribute.1=this
+//
+// &Attribute.2=that
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation CreateQueue for usage and error information.
+//
+// Returned Error Codes:
+//   * AWS.SimpleQueueService.QueueDeletedRecently
+//   You must wait 60 seconds after deleting a queue before you can create another
+//   with the same name.
+//
+//   * QueueAlreadyExists
+//   A queue already exists with this name. Amazon SQS returns this error only
+//   if the request includes attributes whose values differ from those of the
+//   existing queue.
+//
 func (c *SQS) CreateQueue(input *CreateQueueInput) (*CreateQueueOutput, error) {
 	req, out := c.CreateQueueRequest(input)
 	err := req.Send()
@@ -294,6 +404,8 @@ const opDeleteMessage = "DeleteMessage"
 // client's request for the DeleteMessage operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteMessage for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -331,6 +443,8 @@ func (c *SQS) DeleteMessageRequest(input *DeleteMessageInput) (req *request.Requ
 	return
 }
 
+// DeleteMessage API operation for Amazon Simple Queue Service.
+//
 // Deletes the specified message from the specified queue. You specify the message
 // by using the message's receipt handle and not the message ID you received
 // when you sent the message. Even if the message is locked by another reader
@@ -338,19 +452,33 @@ func (c *SQS) DeleteMessageRequest(input *DeleteMessageInput) (req *request.Requ
 // If you leave a message in the queue for longer than the queue's configured
 // retention period, Amazon SQS automatically deletes it.
 //
-//   The receipt handle is associated with a specific instance of receiving
-// the message. If you receive a message more than once, the receipt handle
-// you get each time you receive the message is different. When you request
-// DeleteMessage, if you don't provide the most recently received receipt handle
-// for the message, the request will still succeed, but the message might not
-// be deleted.
+// The receipt handle is associated with a specific instance of receiving the
+// message. If you receive a message more than once, the receipt handle you
+// get each time you receive the message is different. When you request DeleteMessage,
+// if you don't provide the most recently received receipt handle for the message,
+// the request will still succeed, but the message might not be deleted.
 //
-//    It is possible you will receive a message even after you have deleted
-// it. This might happen on rare occasions if one of the servers storing a copy
+// It is possible you will receive a message even after you have deleted it.
+// This might happen on rare occasions if one of the servers storing a copy
 // of the message is unavailable when you request to delete the message. The
 // copy remains on the server and might be returned to you again on a subsequent
 // receive request. You should create your system to be idempotent so that receiving
 // a particular message more than once is not a problem.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation DeleteMessage for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidIdFormat
+//   The receipt handle is not valid for the current version.
+//
+//   * ReceiptHandleIsInvalid
+//   The receipt handle provided is not valid.
+//
 func (c *SQS) DeleteMessage(input *DeleteMessageInput) (*DeleteMessageOutput, error) {
 	req, out := c.DeleteMessageRequest(input)
 	err := req.Send()
@@ -363,6 +491,8 @@ const opDeleteMessageBatch = "DeleteMessageBatch"
 // client's request for the DeleteMessageBatch operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteMessageBatch for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -398,17 +528,44 @@ func (c *SQS) DeleteMessageBatchRequest(input *DeleteMessageBatchInput) (req *re
 	return
 }
 
+// DeleteMessageBatch API operation for Amazon Simple Queue Service.
+//
 // Deletes up to ten messages from the specified queue. This is a batch version
 // of DeleteMessage. The result of the delete action on each message is reported
 // individually in the response.
 //
-//   Because the batch request can result in a combination of successful and
-// unsuccessful actions, you should check for batch errors even when the call
-// returns an HTTP status code of 200.
+// Because the batch request can result in a combination of successful and unsuccessful
+// actions, you should check for batch errors even when the call returns an
+// HTTP status code of 200.
 //
-//  Some API actions take lists of parameters. These lists are specified using
+// Some API actions take lists of parameters. These lists are specified using
 // the param.n notation. Values of n are integers starting from 1. For example,
 // a parameter list with two elements looks like this:
+//
+// &Attribute.1=this
+//
+// &Attribute.2=that
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation DeleteMessageBatch for usage and error information.
+//
+// Returned Error Codes:
+//   * AWS.SimpleQueueService.TooManyEntriesInBatchRequest
+//   Batch request contains more number of entries than permissible.
+//
+//   * AWS.SimpleQueueService.EmptyBatchRequest
+//   Batch request doesn't contain an entry.
+//
+//   * AWS.SimpleQueueService.BatchEntryIdsNotDistinct
+//   Two or more batch entries have the same Id in the request.
+//
+//   * AWS.SimpleQueueService.InvalidBatchEntryId
+//   The Id of a batch entry in a batch request doesn't abide by the specification.
+//
 func (c *SQS) DeleteMessageBatch(input *DeleteMessageBatchInput) (*DeleteMessageBatchOutput, error) {
 	req, out := c.DeleteMessageBatchRequest(input)
 	err := req.Send()
@@ -421,6 +578,8 @@ const opDeleteQueue = "DeleteQueue"
 // client's request for the DeleteQueue operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See DeleteQueue for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -458,23 +617,31 @@ func (c *SQS) DeleteQueueRequest(input *DeleteQueueInput) (req *request.Request,
 	return
 }
 
+// DeleteQueue API operation for Amazon Simple Queue Service.
+//
 // Deletes the queue specified by the queue URL, regardless of whether the queue
-// is empty. If the specified queue does not exist, Amazon SQS returns a successful
+// is empty. If the specified queue doesn't exist, Amazon SQS returns a successful
 // response.
 //
-//   Use DeleteQueue with care; once you delete your queue, any messages in
-// the queue are no longer available.
+// Use DeleteQueue with care; once you delete your queue, any messages in the
+// queue are no longer available.
 //
-//   When you delete a queue, the deletion process takes up to 60 seconds.
-// Requests you send involving that queue during the 60 seconds might succeed.
-// For example, a SendMessage request might succeed, but after the 60 seconds,
-// the queue and that message you sent no longer exist. Also, when you delete
-// a queue, you must wait at least 60 seconds before creating a queue with the
-// same name.
+// When you delete a queue, the deletion process takes up to 60 seconds. Requests
+// you send involving that queue during the 60 seconds might succeed. For example,
+// a SendMessage request might succeed, but after the 60 seconds, the queue
+// and that message you sent no longer exist. Also, when you delete a queue,
+// you must wait at least 60 seconds before creating a queue with the same name.
 //
-//  We reserve the right to delete queues that have had no activity for more
+// We reserve the right to delete queues that have had no activity for more
 // than 30 days. For more information, see How Amazon SQS Queues Work (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSConcepts.html)
 // in the Amazon SQS Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation DeleteQueue for usage and error information.
 func (c *SQS) DeleteQueue(input *DeleteQueueInput) (*DeleteQueueOutput, error) {
 	req, out := c.DeleteQueueRequest(input)
 	err := req.Send()
@@ -487,6 +654,8 @@ const opGetQueueAttributes = "GetQueueAttributes"
 // client's request for the GetQueueAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetQueueAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -522,11 +691,29 @@ func (c *SQS) GetQueueAttributesRequest(input *GetQueueAttributesInput) (req *re
 	return
 }
 
+// GetQueueAttributes API operation for Amazon Simple Queue Service.
+//
 // Gets attributes for the specified queue.
 //
 // Some API actions take lists of parameters. These lists are specified using
 // the param.n notation. Values of n are integers starting from 1. For example,
 // a parameter list with two elements looks like this:
+//
+// &Attribute.1=this
+//
+// &Attribute.2=that
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation GetQueueAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidAttributeName
+//   The attribute referred to doesn't exist.
+//
 func (c *SQS) GetQueueAttributes(input *GetQueueAttributesInput) (*GetQueueAttributesOutput, error) {
 	req, out := c.GetQueueAttributesRequest(input)
 	err := req.Send()
@@ -539,6 +726,8 @@ const opGetQueueUrl = "GetQueueUrl"
 // client's request for the GetQueueUrl operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See GetQueueUrl for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -574,14 +763,28 @@ func (c *SQS) GetQueueUrlRequest(input *GetQueueUrlInput) (req *request.Request,
 	return
 }
 
+// GetQueueUrl API operation for Amazon Simple Queue Service.
+//
 // Returns the URL of an existing queue. This action provides a simple way to
 // retrieve the URL of an Amazon SQS queue.
 //
-//  To access a queue that belongs to another AWS account, use the QueueOwnerAWSAccountId
+// To access a queue that belongs to another AWS account, use the QueueOwnerAWSAccountId
 // parameter to specify the account ID of the queue's owner. The queue's owner
 // must grant you permission to access the queue. For more information about
-// shared queue access, see AddPermission or go to Shared Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/acp-overview.html)
+// shared queue access, see AddPermission or see Shared Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/acp-overview.html)
 // in the Amazon SQS Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation GetQueueUrl for usage and error information.
+//
+// Returned Error Codes:
+//   * AWS.SimpleQueueService.NonExistentQueue
+//   The queue referred to doesn't exist.
+//
 func (c *SQS) GetQueueUrl(input *GetQueueUrlInput) (*GetQueueUrlOutput, error) {
 	req, out := c.GetQueueUrlRequest(input)
 	err := req.Send()
@@ -594,6 +797,8 @@ const opListDeadLetterSourceQueues = "ListDeadLetterSourceQueues"
 // client's request for the ListDeadLetterSourceQueues operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListDeadLetterSourceQueues for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -629,11 +834,26 @@ func (c *SQS) ListDeadLetterSourceQueuesRequest(input *ListDeadLetterSourceQueue
 	return
 }
 
+// ListDeadLetterSourceQueues API operation for Amazon Simple Queue Service.
+//
 // Returns a list of your queues that have the RedrivePolicy queue attribute
 // configured with a dead letter queue.
 //
 // For more information about using dead letter queues, see Using Amazon SQS
-// Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html).
+// Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
+// in the Amazon SQS Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation ListDeadLetterSourceQueues for usage and error information.
+//
+// Returned Error Codes:
+//   * AWS.SimpleQueueService.NonExistentQueue
+//   The queue referred to doesn't exist.
+//
 func (c *SQS) ListDeadLetterSourceQueues(input *ListDeadLetterSourceQueuesInput) (*ListDeadLetterSourceQueuesOutput, error) {
 	req, out := c.ListDeadLetterSourceQueuesRequest(input)
 	err := req.Send()
@@ -646,6 +866,8 @@ const opListQueues = "ListQueues"
 // client's request for the ListQueues operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ListQueues for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -681,9 +903,18 @@ func (c *SQS) ListQueuesRequest(input *ListQueuesInput) (req *request.Request, o
 	return
 }
 
+// ListQueues API operation for Amazon Simple Queue Service.
+//
 // Returns a list of your queues. The maximum number of queues that can be returned
 // is 1000. If you specify a value for the optional QueueNamePrefix parameter,
 // only queues with a name beginning with the specified value are returned.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation ListQueues for usage and error information.
 func (c *SQS) ListQueues(input *ListQueuesInput) (*ListQueuesOutput, error) {
 	req, out := c.ListQueuesRequest(input)
 	err := req.Send()
@@ -696,6 +927,8 @@ const opPurgeQueue = "PurgeQueue"
 // client's request for the PurgeQueue operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See PurgeQueue for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -733,16 +966,35 @@ func (c *SQS) PurgeQueueRequest(input *PurgeQueueInput) (req *request.Request, o
 	return
 }
 
+// PurgeQueue API operation for Amazon Simple Queue Service.
+//
 // Deletes the messages in a queue specified by the queue URL.
 //
-// When you use the PurgeQueue API, the deleted messages in the queue cannot
+// When you use the PurgeQueue API, the deleted messages in the queue can't
 // be retrieved.
 //
 // When you purge a queue, the message deletion process takes up to 60 seconds.
 // All messages sent to the queue before calling PurgeQueue will be deleted;
-// messages sent to the queue while it is being purged may be deleted. While
+// messages sent to the queue while it is being purged might be deleted. While
 // the queue is being purged, messages sent to the queue before PurgeQueue was
-// called may be received, but will be deleted within the next minute.
+// called might be received, but will be deleted within the next minute.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation PurgeQueue for usage and error information.
+//
+// Returned Error Codes:
+//   * AWS.SimpleQueueService.NonExistentQueue
+//   The queue referred to doesn't exist.
+//
+//   * AWS.SimpleQueueService.PurgeQueueInProgress
+//   Indicates that the specified queue previously received a PurgeQueue request
+//   within the last 60 seconds, the time it can take to delete the messages in
+//   the queue.
+//
 func (c *SQS) PurgeQueue(input *PurgeQueueInput) (*PurgeQueueOutput, error) {
 	req, out := c.PurgeQueueRequest(input)
 	err := req.Send()
@@ -755,6 +1007,8 @@ const opReceiveMessage = "ReceiveMessage"
 // client's request for the ReceiveMessage operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See ReceiveMessage for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -790,12 +1044,14 @@ func (c *SQS) ReceiveMessageRequest(input *ReceiveMessageInput) (req *request.Re
 	return
 }
 
+// ReceiveMessage API operation for Amazon Simple Queue Service.
+//
 // Retrieves one or more messages, with a maximum limit of 10 messages, from
 // the specified queue. Long poll support is enabled by using the WaitTimeSeconds
 // parameter. For more information, see Amazon SQS Long Poll (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-long-polling.html)
 // in the Amazon SQS Developer Guide.
 //
-//  Short poll is the default behavior where a weighted random set of machines
+// Short poll is the default behavior where a weighted random set of machines
 // is sampled on a ReceiveMessage call. This means only the messages on the
 // sampled machines are returned. If the number of messages in the queue is
 // small (less than 1000), it is likely you will get fewer messages than you
@@ -803,35 +1059,55 @@ func (c *SQS) ReceiveMessageRequest(input *ReceiveMessageInput) (req *request.Re
 // is extremely small, you might not receive any messages in a particular ReceiveMessage
 // response; in which case you should repeat the request.
 //
-//  For each message returned, the response includes the following:
+// For each message returned, the response includes the following:
 //
-//    Message body
+//    * Message body
 //
-//    MD5 digest of the message body. For information about MD5, go to http://www.faqs.org/rfcs/rfc1321.html
-// (http://www.faqs.org/rfcs/rfc1321.html).
+//    *  MD5 digest of the message body. For information about MD5, see RFC1321
+//    (https://www.ietf.org/rfc/rfc1321.txt).
 //
-//    Message ID you received when you sent the message to the queue.
+//    * Message ID you received when you sent the message to the queue.
 //
-//    Receipt handle.
+//    * Receipt handle.
 //
-//    Message attributes.
+//    * Message attributes.
 //
-//    MD5 digest of the message attributes.
+//    * MD5 digest of the message attributes.
 //
-//    The receipt handle is the identifier you must provide when deleting the
-// message. For more information, see Queue and Message Identifiers (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ImportantIdentifiers.html)
+// The receipt handle is the identifier you must provide when deleting the message.
+// For more information, see Queue and Message Identifiers (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ImportantIdentifiers.html)
 // in the Amazon SQS Developer Guide.
 //
-//  You can provide the VisibilityTimeout parameter in your request, which
-// will be applied to the messages that Amazon SQS returns in the response.
-// If you do not include the parameter, the overall visibility timeout for the
-// queue is used for the returned messages. For more information, see Visibility
-// Timeout (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
+// You can provide the VisibilityTimeout parameter in your request, which will
+// be applied to the messages that Amazon SQS returns in the response. If you
+// don't include the parameter, the overall visibility timeout for the queue
+// is used for the returned messages. For more information, see Visibility Timeout
+// (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
 // in the Amazon SQS Developer Guide.
 //
-//   Going forward, new attributes might be added. If you are writing code
-// that calls this action, we recommend that you structure your code so that
-// it can handle new attributes gracefully.
+// A message that is not deleted or a message whose visibility is not extended
+// before the visibility timeout expires counts as a failed receive. Depending
+// on the configuration of the queue, the message might be sent to the dead
+// letter queue.
+//
+// Going forward, new attributes might be added. If you are writing code that
+// calls this action, we recommend that you structure your code so that it can
+// handle new attributes gracefully.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation ReceiveMessage for usage and error information.
+//
+// Returned Error Codes:
+//   * OverLimit
+//   The action that you requested would violate a limit. For example, ReceiveMessage
+//   returns this error if the maximum number of messages inflight has already
+//   been reached. AddPermission returns this error if the maximum number of permissions
+//   for the queue has already been reached.
+//
 func (c *SQS) ReceiveMessage(input *ReceiveMessageInput) (*ReceiveMessageOutput, error) {
 	req, out := c.ReceiveMessageRequest(input)
 	err := req.Send()
@@ -844,6 +1120,8 @@ const opRemovePermission = "RemovePermission"
 // client's request for the RemovePermission operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See RemovePermission for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -881,8 +1159,17 @@ func (c *SQS) RemovePermissionRequest(input *RemovePermissionInput) (req *reques
 	return
 }
 
+// RemovePermission API operation for Amazon Simple Queue Service.
+//
 // Revokes any permissions in the queue policy that matches the specified Label
 // parameter. Only the owner of the queue can remove permissions.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation RemovePermission for usage and error information.
 func (c *SQS) RemovePermission(input *RemovePermissionInput) (*RemovePermissionOutput, error) {
 	req, out := c.RemovePermissionRequest(input)
 	err := req.Send()
@@ -895,6 +1182,8 @@ const opSendMessage = "SendMessage"
 // client's request for the SendMessage operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SendMessage for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -930,18 +1219,33 @@ func (c *SQS) SendMessageRequest(input *SendMessageInput) (req *request.Request,
 	return
 }
 
-// Delivers a message to the specified queue. With Amazon SQS, you now have
-// the ability to send large payload messages that are up to 256KB (262,144
-// bytes) in size. To send large payloads, you must use an AWS SDK that supports
-// SigV4 signing. To verify whether SigV4 is supported for an AWS SDK, check
-// the SDK release notes.
+// SendMessage API operation for Amazon Simple Queue Service.
 //
-//   The following list shows the characters (in Unicode) allowed in your message,
-// according to the W3C XML specification. For more information, go to http://www.w3.org/TR/REC-xml/#charsets
-// (http://www.w3.org/TR/REC-xml/#charsets) If you send any characters not included
-// in the list, your request will be rejected.
+// Delivers a message to the specified queue.
 //
-//  #x9 | #xA | #xD | [#x20 to #xD7FF] | [#xE000 to #xFFFD] | [#x10000 to #x10FFFF]
+// The following list shows the characters (in Unicode) that are allowed in
+// your message, according to the W3C XML specification:
+//
+// #x9 | #xA | #xD | [#x20 to #xD7FF] | [#xE000 to #xFFFD] | [#x10000 to #x10FFFF]
+//
+// For more information, see RFC1321 (https://www.ietf.org/rfc/rfc1321.txt).
+// If you send any characters that aren't included in this list, your request
+// will be rejected.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation SendMessage for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidMessageContents
+//   The message contains characters outside the allowed set.
+//
+//   * AWS.SimpleQueueService.UnsupportedOperation
+//   Error code 400. Unsupported operation.
+//
 func (c *SQS) SendMessage(input *SendMessageInput) (*SendMessageOutput, error) {
 	req, out := c.SendMessageRequest(input)
 	err := req.Send()
@@ -954,6 +1258,8 @@ const opSendMessageBatch = "SendMessageBatch"
 // client's request for the SendMessageBatch operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SendMessageBatch for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -989,32 +1295,67 @@ func (c *SQS) SendMessageBatchRequest(input *SendMessageBatchInput) (req *reques
 	return
 }
 
+// SendMessageBatch API operation for Amazon Simple Queue Service.
+//
 // Delivers up to ten messages to the specified queue. This is a batch version
-// of SendMessage. The result of the send action on each message is reported
-// individually in the response. The maximum allowed individual message size
-// is 256 KB (262,144 bytes).
+// of SendMessage. For a FIFO queue, multiple messages within a single batch
+// are enqueued in the order they are sent.
 //
-// The maximum total payload size (i.e., the sum of all a batch's individual
-// message lengths) is also 256 KB (262,144 bytes).
+// The result of sending each message is reported individually in the response.
+// Because the batch request can result in a combination of successful and unsuccessful
+// actions, you should check for batch errors even when the call returns an
+// HTTP status code of 200.
 //
-// If the DelaySeconds parameter is not specified for an entry, the default
-// for the queue is used.
+// The maximum allowed individual message size and the maximum total payload
+// size (the sum of the individual lengths of all of the batched messages) are
+// both 256 KB (262,144 bytes).
 //
 // The following list shows the characters (in Unicode) that are allowed in
-// your message, according to the W3C XML specification. For more information,
-// go to http://www.faqs.org/rfcs/rfc1321.html (http://www.faqs.org/rfcs/rfc1321.html).
-// If you send any characters that are not included in the list, your request
-// will be rejected.
+// your message, according to the W3C XML specification:
 //
 // #x9 | #xA | #xD | [#x20 to #xD7FF] | [#xE000 to #xFFFD] | [#x10000 to #x10FFFF]
 //
-//   Because the batch request can result in a combination of successful and
-// unsuccessful actions, you should check for batch errors even when the call
-// returns an HTTP status code of 200.
+// For more information, see RFC1321 (https://www.ietf.org/rfc/rfc1321.txt).
+// If you send any characters that aren't included in this list, your request
+// will be rejected.
 //
-//  Some API actions take lists of parameters. These lists are specified using
+// If you don't specify the DelaySeconds parameter for an entry, Amazon SQS
+// uses the default for the queue.
+//
+// Some API actions take lists of parameters. These lists are specified using
 // the param.n notation. Values of n are integers starting from 1. For example,
 // a parameter list with two elements looks like this:
+//
+// &Attribute.1=this
+//
+// &Attribute.2=that
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation SendMessageBatch for usage and error information.
+//
+// Returned Error Codes:
+//   * AWS.SimpleQueueService.TooManyEntriesInBatchRequest
+//   Batch request contains more number of entries than permissible.
+//
+//   * AWS.SimpleQueueService.EmptyBatchRequest
+//   Batch request doesn't contain an entry.
+//
+//   * AWS.SimpleQueueService.BatchEntryIdsNotDistinct
+//   Two or more batch entries have the same Id in the request.
+//
+//   * AWS.SimpleQueueService.BatchRequestTooLong
+//   The length of all the messages put together is more than the limit.
+//
+//   * AWS.SimpleQueueService.InvalidBatchEntryId
+//   The Id of a batch entry in a batch request doesn't abide by the specification.
+//
+//   * AWS.SimpleQueueService.UnsupportedOperation
+//   Error code 400. Unsupported operation.
+//
 func (c *SQS) SendMessageBatch(input *SendMessageBatchInput) (*SendMessageBatchOutput, error) {
 	req, out := c.SendMessageBatchRequest(input)
 	err := req.Send()
@@ -1027,6 +1368,8 @@ const opSetQueueAttributes = "SetQueueAttributes"
 // client's request for the SetQueueAttributes operation. The "output" return
 // value can be used to capture response data after the request's "Send" method
 // is called.
+//
+// See SetQueueAttributes for usage and error information.
 //
 // Creating a request object using this method should be used when you want to inject
 // custom logic into the request's lifecycle using a custom handler, or if you want to
@@ -1064,14 +1407,28 @@ func (c *SQS) SetQueueAttributesRequest(input *SetQueueAttributesInput) (req *re
 	return
 }
 
+// SetQueueAttributes API operation for Amazon Simple Queue Service.
+//
 // Sets the value of one or more queue attributes. When you change a queue's
 // attributes, the change can take up to 60 seconds for most of the attributes
 // to propagate throughout the SQS system. Changes made to the MessageRetentionPeriod
 // attribute can take up to 15 minutes.
 //
-// Going forward, new attributes might be added. If you are writing code that
-// calls this action, we recommend that you structure your code so that it can
-// handle new attributes gracefully.
+// In the future, new attributes might be added. When you write code that calls
+// this action, we recommend structuring your code so that it can handle new
+// attributes gracefully.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Queue Service's
+// API operation SetQueueAttributes for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidAttributeName
+//   The attribute referred to doesn't exist.
+//
 func (c *SQS) SetQueueAttributes(input *SetQueueAttributesInput) (*SetQueueAttributesOutput, error) {
 	req, out := c.SetQueueAttributesRequest(input)
 	err := req.Send()
@@ -1086,6 +1443,8 @@ type AddPermissionInput struct {
 	// does not need to be signed up for Amazon SQS. For information about locating
 	// the AWS account identification, see Your AWS Identifiers (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AWSCredentials.html)
 	// in the Amazon SQS Developer Guide.
+	//
+	// AWSAccountIds is a required field
 	AWSAccountIds []*string `locationNameList:"AWSAccountId" type:"list" flattened:"true" required:"true"`
 
 	// The action the client wants to allow for the specified principal. The following
@@ -1097,16 +1456,22 @@ type AddPermissionInput struct {
 	// Specifying SendMessage, DeleteMessage, or ChangeMessageVisibility for the
 	// ActionName.n also grants permissions for the corresponding batch versions
 	// of those actions: SendMessageBatch, DeleteMessageBatch, and ChangeMessageVisibilityBatch.
+	//
+	// Actions is a required field
 	Actions []*string `locationNameList:"ActionName" type:"list" flattened:"true" required:"true"`
 
 	// The unique identification of the permission you're setting (e.g., AliceSendMessage).
 	// Constraints: Maximum 80 characters; alphanumeric characters, hyphens (-),
 	// and underscores (_) are allowed.
+	//
+	// Label is a required field
 	Label *string `type:"string" required:"true"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -1142,6 +1507,30 @@ func (s *AddPermissionInput) Validate() error {
 	return nil
 }
 
+// SetAWSAccountIds sets the AWSAccountIds field's value.
+func (s *AddPermissionInput) SetAWSAccountIds(v []*string) *AddPermissionInput {
+	s.AWSAccountIds = v
+	return s
+}
+
+// SetActions sets the Actions field's value.
+func (s *AddPermissionInput) SetActions(v []*string) *AddPermissionInput {
+	s.Actions = v
+	return s
+}
+
+// SetLabel sets the Label field's value.
+func (s *AddPermissionInput) SetLabel(v string) *AddPermissionInput {
+	s.Label = &v
+	return s
+}
+
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *AddPermissionInput) SetQueueUrl(v string) *AddPermissionInput {
+	s.QueueUrl = &v
+	return s
+}
+
 type AddPermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1162,15 +1551,21 @@ type BatchResultErrorEntry struct {
 	_ struct{} `type:"structure"`
 
 	// An error code representing why the action failed on this entry.
+	//
+	// Code is a required field
 	Code *string `type:"string" required:"true"`
 
 	// The id of an entry in a batch request.
+	//
+	// Id is a required field
 	Id *string `type:"string" required:"true"`
 
 	// A message explaining why the action failed on this entry.
 	Message *string `type:"string"`
 
 	// Whether the error happened due to the sender's fault.
+	//
+	// SenderFault is a required field
 	SenderFault *bool `type:"boolean" required:"true"`
 }
 
@@ -1184,16 +1579,44 @@ func (s BatchResultErrorEntry) GoString() string {
 	return s.String()
 }
 
+// SetCode sets the Code field's value.
+func (s *BatchResultErrorEntry) SetCode(v string) *BatchResultErrorEntry {
+	s.Code = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *BatchResultErrorEntry) SetId(v string) *BatchResultErrorEntry {
+	s.Id = &v
+	return s
+}
+
+// SetMessage sets the Message field's value.
+func (s *BatchResultErrorEntry) SetMessage(v string) *BatchResultErrorEntry {
+	s.Message = &v
+	return s
+}
+
+// SetSenderFault sets the SenderFault field's value.
+func (s *BatchResultErrorEntry) SetSenderFault(v bool) *BatchResultErrorEntry {
+	s.SenderFault = &v
+	return s
+}
+
 type ChangeMessageVisibilityBatchInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of receipt handles of the messages for which the visibility timeout
 	// must be changed.
+	//
+	// Entries is a required field
 	Entries []*ChangeMessageVisibilityBatchRequestEntry `locationNameList:"ChangeMessageVisibilityBatchRequestEntry" type:"list" flattened:"true" required:"true"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -1233,6 +1656,18 @@ func (s *ChangeMessageVisibilityBatchInput) Validate() error {
 	return nil
 }
 
+// SetEntries sets the Entries field's value.
+func (s *ChangeMessageVisibilityBatchInput) SetEntries(v []*ChangeMessageVisibilityBatchRequestEntry) *ChangeMessageVisibilityBatchInput {
+	s.Entries = v
+	return s
+}
+
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *ChangeMessageVisibilityBatchInput) SetQueueUrl(v string) *ChangeMessageVisibilityBatchInput {
+	s.QueueUrl = &v
+	return s
+}
+
 // For each message in the batch, the response contains a ChangeMessageVisibilityBatchResultEntry
 // tag if the message succeeds or a BatchResultErrorEntry tag if the message
 // fails.
@@ -1240,9 +1675,13 @@ type ChangeMessageVisibilityBatchOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of BatchResultErrorEntry items.
+	//
+	// Failed is a required field
 	Failed []*BatchResultErrorEntry `locationNameList:"BatchResultErrorEntry" type:"list" flattened:"true" required:"true"`
 
 	// A list of ChangeMessageVisibilityBatchResultEntry items.
+	//
+	// Successful is a required field
 	Successful []*ChangeMessageVisibilityBatchResultEntry `locationNameList:"ChangeMessageVisibilityBatchResultEntry" type:"list" flattened:"true" required:"true"`
 }
 
@@ -1256,25 +1695,43 @@ func (s ChangeMessageVisibilityBatchOutput) GoString() string {
 	return s.String()
 }
 
+// SetFailed sets the Failed field's value.
+func (s *ChangeMessageVisibilityBatchOutput) SetFailed(v []*BatchResultErrorEntry) *ChangeMessageVisibilityBatchOutput {
+	s.Failed = v
+	return s
+}
+
+// SetSuccessful sets the Successful field's value.
+func (s *ChangeMessageVisibilityBatchOutput) SetSuccessful(v []*ChangeMessageVisibilityBatchResultEntry) *ChangeMessageVisibilityBatchOutput {
+	s.Successful = v
+	return s
+}
+
 // Encloses a receipt handle and an entry id for each message in ChangeMessageVisibilityBatch.
 //
-//  All of the following parameters are list parameters that must be prefixed
+// All of the following parameters are list parameters that must be prefixed
 // with ChangeMessageVisibilityBatchRequestEntry.n, where n is an integer value
 // starting with 1. For example, a parameter list for this action might look
 // like this:
 //
+// &ChangeMessageVisibilityBatchRequestEntry.1.Id=change_visibility_msg_2
 //
+// &ChangeMessageVisibilityBatchRequestEntry.1.ReceiptHandle=<replaceable>Your_Receipt_Handle</replaceable>
 //
-// Your_Receipt_Handle]]>
+// &ChangeMessageVisibilityBatchRequestEntry.1.VisibilityTimeout=45
 type ChangeMessageVisibilityBatchRequestEntry struct {
 	_ struct{} `type:"structure"`
 
 	// An identifier for this particular receipt handle. This is used to communicate
 	// the result. Note that the Ids of a batch request need to be unique within
 	// the request.
+	//
+	// Id is a required field
 	Id *string `type:"string" required:"true"`
 
 	// A receipt handle.
+	//
+	// ReceiptHandle is a required field
 	ReceiptHandle *string `type:"string" required:"true"`
 
 	// The new value (in seconds) for the message's visibility timeout.
@@ -1307,11 +1764,31 @@ func (s *ChangeMessageVisibilityBatchRequestEntry) Validate() error {
 	return nil
 }
 
+// SetId sets the Id field's value.
+func (s *ChangeMessageVisibilityBatchRequestEntry) SetId(v string) *ChangeMessageVisibilityBatchRequestEntry {
+	s.Id = &v
+	return s
+}
+
+// SetReceiptHandle sets the ReceiptHandle field's value.
+func (s *ChangeMessageVisibilityBatchRequestEntry) SetReceiptHandle(v string) *ChangeMessageVisibilityBatchRequestEntry {
+	s.ReceiptHandle = &v
+	return s
+}
+
+// SetVisibilityTimeout sets the VisibilityTimeout field's value.
+func (s *ChangeMessageVisibilityBatchRequestEntry) SetVisibilityTimeout(v int64) *ChangeMessageVisibilityBatchRequestEntry {
+	s.VisibilityTimeout = &v
+	return s
+}
+
 // Encloses the id of an entry in ChangeMessageVisibilityBatch.
 type ChangeMessageVisibilityBatchResultEntry struct {
 	_ struct{} `type:"structure"`
 
 	// Represents a message whose visibility timeout has been changed successfully.
+	//
+	// Id is a required field
 	Id *string `type:"string" required:"true"`
 }
 
@@ -1325,20 +1802,32 @@ func (s ChangeMessageVisibilityBatchResultEntry) GoString() string {
 	return s.String()
 }
 
+// SetId sets the Id field's value.
+func (s *ChangeMessageVisibilityBatchResultEntry) SetId(v string) *ChangeMessageVisibilityBatchResultEntry {
+	s.Id = &v
+	return s
+}
+
 type ChangeMessageVisibilityInput struct {
 	_ struct{} `type:"structure"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 
 	// The receipt handle associated with the message whose visibility timeout should
 	// be changed. This parameter is returned by the ReceiveMessage action.
+	//
+	// ReceiptHandle is a required field
 	ReceiptHandle *string `type:"string" required:"true"`
 
 	// The new value (in seconds - from 0 to 43200 - maximum 12 hours) for the message's
 	// visibility timeout.
+	//
+	// VisibilityTimeout is a required field
 	VisibilityTimeout *int64 `type:"integer" required:"true"`
 }
 
@@ -1371,6 +1860,24 @@ func (s *ChangeMessageVisibilityInput) Validate() error {
 	return nil
 }
 
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *ChangeMessageVisibilityInput) SetQueueUrl(v string) *ChangeMessageVisibilityInput {
+	s.QueueUrl = &v
+	return s
+}
+
+// SetReceiptHandle sets the ReceiptHandle field's value.
+func (s *ChangeMessageVisibilityInput) SetReceiptHandle(v string) *ChangeMessageVisibilityInput {
+	s.ReceiptHandle = &v
+	return s
+}
+
+// SetVisibilityTimeout sets the VisibilityTimeout field's value.
+func (s *ChangeMessageVisibilityInput) SetVisibilityTimeout(v int64) *ChangeMessageVisibilityInput {
+	s.VisibilityTimeout = &v
+	return s
+}
+
 type ChangeMessageVisibilityOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1391,46 +1898,98 @@ type CreateQueueInput struct {
 	// A map of attributes with their corresponding values.
 	//
 	// The following lists the names, descriptions, and values of the special request
-	// parameters the CreateQueue action uses:
+	// parameters that the CreateQueue action uses:
 	//
-	//  DelaySeconds - The time in seconds that the delivery of all messages in
-	// the queue will be delayed. An integer from 0 to 900 (15 minutes). The default
-	// for this attribute is 0 (zero).
+	//    * DelaySeconds - The number of seconds for which the delivery of all messages
+	//    in the queue is delayed. An integer from 0 to 900 (15 minutes). The default
+	//    is 0 (zero).
 	//
-	// MaximumMessageSize - The limit of how many bytes a message can contain before
-	// Amazon SQS rejects it. An integer from 1024 bytes (1 KiB) up to 262144 bytes
-	// (256 KiB). The default for this attribute is 262144 (256 KiB).
+	//    * MaximumMessageSize - The limit of how many bytes a message can contain
+	//    before Amazon SQS rejects it. An integer from 1,024 bytes (1 KiB) up to
+	//    262,144 bytes (256 KiB). The default is 262,144 (256 KiB).
 	//
-	// MessageRetentionPeriod - The number of seconds Amazon SQS retains a message.
-	// Integer representing seconds, from 60 (1 minute) to 1209600 (14 days). The
-	// default for this attribute is 345600 (4 days).
+	//    * MessageRetentionPeriod - The number of seconds for which Amazon SQS
+	//    retains a message. An integer representing seconds, from 60 (1 minute)
+	//    to 120,9600 (14 days). The default is 345,600 (4 days).
 	//
-	// Policy - The queue's policy. A valid AWS policy. For more information about
-	// policy structure, see Overview of AWS IAM Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PoliciesOverview.html)
-	// in the Amazon IAM User Guide.
+	//    * Policy - The queue's policy. A valid AWS policy. For more information
+	//    about policy structure, see Overview of AWS IAM Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PoliciesOverview.html)
+	//    in the Amazon IAM User Guide.
 	//
-	// ReceiveMessageWaitTimeSeconds - The time for which a ReceiveMessage call
-	// will wait for a message to arrive. An integer from 0 to 20 (seconds). The
-	// default for this attribute is 0.
+	//    * ReceiveMessageWaitTimeSeconds - The number of seconds for which a ReceiveMessage
+	//    action will wait for a message to arrive. An integer from 0 to 20 (seconds).
+	//    The default is 0.
 	//
-	// RedrivePolicy - The parameters for dead letter queue functionality of the
-	// source queue. For more information about RedrivePolicy and dead letter queues,
-	// see Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
-	// in the Amazon SQS Developer Guide.
+	//    * RedrivePolicy - The parameters for the dead letter queue functionality
+	//    of the source queue. For more information about the redrive policy and
+	//    dead letter queues, see Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
+	//    in the Amazon SQS Developer Guide.
 	//
-	// VisibilityTimeout - The visibility timeout for the queue. An integer from
-	// 0 to 43200 (12 hours). The default for this attribute is 30. For more information
-	// about visibility timeout, see Visibility Timeout (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
-	// in the Amazon SQS Developer Guide.
+	// The dead letter queue of a FIFO queue must also be a FIFO queue. Similarly,
+	//    the dead letter queue of a standard queue must also be a standard queue.
 	//
-	//  Any other valid special request parameters that are specified (such as
-	// ApproximateNumberOfMessages, ApproximateNumberOfMessagesDelayed, ApproximateNumberOfMessagesNotVisible,
+	//    * VisibilityTimeout - The visibility timeout for the queue. An integer
+	//    from 0 to 43200 (12 hours). The default is 30. For more information about
+	//    the visibility timeout, see Visibility Timeout (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
+	//    in the Amazon SQS Developer Guide.
+	//
+	// The following attributes apply only to FIFO (first-in-first-out) queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html):
+	//
+	//    * FifoQueue - Designates a queue as FIFO. You can provide this attribute
+	//    only during queue creation; you can't change it for an existing queue.
+	//    When you set this attribute, you must provide a MessageGroupId explicitly.
+	//
+	// For more information, see FIFO Queue Logic (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html#FIFO-queues-understanding-logic)
+	//    in the Amazon SQS Developer Guide.
+	//
+	//    * ContentBasedDeduplication - Enables content-based deduplication. For
+	//    more information, see Exactly-Once Processing (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html#FIFO-queues-exactly-once-processing)
+	//    in the Amazon SQS Developer Guide.
+	//
+	// Every message must have a unique MessageDeduplicationId,
+	//
+	// You may provide a MessageDeduplicationId explicitly.
+	//
+	// If you aren't able to provide a MessageDeduplicationId and you enable ContentBasedDeduplication
+	//    for your queue, Amazon SQS uses a SHA-256 hash to generate the MessageDeduplicationId
+	//    using the body of the message (but not the attributes of the message).
+	//
+	//
+	// If you don't provide a MessageDeduplicationId and the queue doesn't have
+	//    ContentBasedDeduplication set, the action fails with an error.
+	//
+	// If the queue has ContentBasedDeduplication set, your MessageDeduplicationId
+	//    overrides the generated one.
+	//
+	// When ContentBasedDeduplication is in effect, messages with identical content
+	//    sent within the deduplication interval are treated as duplicates and only
+	//    one copy of the message is delivered.
+	//
+	// You can also use ContentBasedDeduplication for messages with identical content
+	//    to be treated as duplicates.
+	//
+	// If you send one message with ContentBasedDeduplication enabled and then another
+	//    message with a MessageDeduplicationId that is the same as the one generated
+	//    for the first MessageDeduplicationId, the two messages are treated as
+	//    duplicates and only one copy of the message is delivered.
+	//
+	// Any other valid special request parameters that are specified (such as ApproximateNumberOfMessages,
+	// ApproximateNumberOfMessagesDelayed, ApproximateNumberOfMessagesNotVisible,
 	// CreatedTimestamp, LastModifiedTimestamp, and QueueArn) will be ignored.
 	Attributes map[string]*string `locationName:"Attribute" locationNameKey:"Name" locationNameValue:"Value" type:"map" flattened:"true"`
 
-	// The name for the queue to be created.
+	// The name of the new queue. The following limits apply to this name:
+	//
+	//    * A queue name can have up to 80 characters.
+	//
+	//    * The following are accepted: alphanumeric chatacters, hyphens (-), and
+	//    underscores (_).
+	//
+	//    * A FIFO queue name must end with the .fifo suffix.
 	//
 	// Queue names are case-sensitive.
+	//
+	// QueueName is a required field
 	QueueName *string `type:"string" required:"true"`
 }
 
@@ -1457,6 +2016,18 @@ func (s *CreateQueueInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *CreateQueueInput) SetAttributes(v map[string]*string) *CreateQueueInput {
+	s.Attributes = v
+	return s
+}
+
+// SetQueueName sets the QueueName field's value.
+func (s *CreateQueueInput) SetQueueName(v string) *CreateQueueInput {
+	s.QueueName = &v
+	return s
+}
+
 // Returns the QueueUrl element of the created queue.
 type CreateQueueOutput struct {
 	_ struct{} `type:"structure"`
@@ -1475,15 +2046,25 @@ func (s CreateQueueOutput) GoString() string {
 	return s.String()
 }
 
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *CreateQueueOutput) SetQueueUrl(v string) *CreateQueueOutput {
+	s.QueueUrl = &v
+	return s
+}
+
 type DeleteMessageBatchInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of receipt handles for the messages to be deleted.
+	//
+	// Entries is a required field
 	Entries []*DeleteMessageBatchRequestEntry `locationNameList:"DeleteMessageBatchRequestEntry" type:"list" flattened:"true" required:"true"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -1523,16 +2104,32 @@ func (s *DeleteMessageBatchInput) Validate() error {
 	return nil
 }
 
+// SetEntries sets the Entries field's value.
+func (s *DeleteMessageBatchInput) SetEntries(v []*DeleteMessageBatchRequestEntry) *DeleteMessageBatchInput {
+	s.Entries = v
+	return s
+}
+
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *DeleteMessageBatchInput) SetQueueUrl(v string) *DeleteMessageBatchInput {
+	s.QueueUrl = &v
+	return s
+}
+
 // For each message in the batch, the response contains a DeleteMessageBatchResultEntry
 // tag if the message is deleted or a BatchResultErrorEntry tag if the message
-// cannot be deleted.
+// can't be deleted.
 type DeleteMessageBatchOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of BatchResultErrorEntry items.
+	//
+	// Failed is a required field
 	Failed []*BatchResultErrorEntry `locationNameList:"BatchResultErrorEntry" type:"list" flattened:"true" required:"true"`
 
 	// A list of DeleteMessageBatchResultEntry items.
+	//
+	// Successful is a required field
 	Successful []*DeleteMessageBatchResultEntry `locationNameList:"DeleteMessageBatchResultEntry" type:"list" flattened:"true" required:"true"`
 }
 
@@ -1546,6 +2143,18 @@ func (s DeleteMessageBatchOutput) GoString() string {
 	return s.String()
 }
 
+// SetFailed sets the Failed field's value.
+func (s *DeleteMessageBatchOutput) SetFailed(v []*BatchResultErrorEntry) *DeleteMessageBatchOutput {
+	s.Failed = v
+	return s
+}
+
+// SetSuccessful sets the Successful field's value.
+func (s *DeleteMessageBatchOutput) SetSuccessful(v []*DeleteMessageBatchResultEntry) *DeleteMessageBatchOutput {
+	s.Successful = v
+	return s
+}
+
 // Encloses a receipt handle and an identifier for it.
 type DeleteMessageBatchRequestEntry struct {
 	_ struct{} `type:"structure"`
@@ -1553,9 +2162,13 @@ type DeleteMessageBatchRequestEntry struct {
 	// An identifier for this particular receipt handle. This is used to communicate
 	// the result. Note that the Ids of a batch request need to be unique within
 	// the request.
+	//
+	// Id is a required field
 	Id *string `type:"string" required:"true"`
 
 	// A receipt handle.
+	//
+	// ReceiptHandle is a required field
 	ReceiptHandle *string `type:"string" required:"true"`
 }
 
@@ -1585,11 +2198,25 @@ func (s *DeleteMessageBatchRequestEntry) Validate() error {
 	return nil
 }
 
+// SetId sets the Id field's value.
+func (s *DeleteMessageBatchRequestEntry) SetId(v string) *DeleteMessageBatchRequestEntry {
+	s.Id = &v
+	return s
+}
+
+// SetReceiptHandle sets the ReceiptHandle field's value.
+func (s *DeleteMessageBatchRequestEntry) SetReceiptHandle(v string) *DeleteMessageBatchRequestEntry {
+	s.ReceiptHandle = &v
+	return s
+}
+
 // Encloses the id an entry in DeleteMessageBatch.
 type DeleteMessageBatchResultEntry struct {
 	_ struct{} `type:"structure"`
 
 	// Represents a successfully deleted message.
+	//
+	// Id is a required field
 	Id *string `type:"string" required:"true"`
 }
 
@@ -1603,15 +2230,25 @@ func (s DeleteMessageBatchResultEntry) GoString() string {
 	return s.String()
 }
 
+// SetId sets the Id field's value.
+func (s *DeleteMessageBatchResultEntry) SetId(v string) *DeleteMessageBatchResultEntry {
+	s.Id = &v
+	return s
+}
+
 type DeleteMessageInput struct {
 	_ struct{} `type:"structure"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 
 	// The receipt handle associated with the message to delete.
+	//
+	// ReceiptHandle is a required field
 	ReceiptHandle *string `type:"string" required:"true"`
 }
 
@@ -1641,6 +2278,18 @@ func (s *DeleteMessageInput) Validate() error {
 	return nil
 }
 
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *DeleteMessageInput) SetQueueUrl(v string) *DeleteMessageInput {
+	s.QueueUrl = &v
+	return s
+}
+
+// SetReceiptHandle sets the ReceiptHandle field's value.
+func (s *DeleteMessageInput) SetReceiptHandle(v string) *DeleteMessageInput {
+	s.ReceiptHandle = &v
+	return s
+}
+
 type DeleteMessageOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1661,6 +2310,8 @@ type DeleteQueueInput struct {
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -1687,6 +2338,12 @@ func (s *DeleteQueueInput) Validate() error {
 	return nil
 }
 
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *DeleteQueueInput) SetQueueUrl(v string) *DeleteQueueInput {
+	s.QueueUrl = &v
+	return s
+}
+
 type DeleteQueueOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1704,62 +2361,77 @@ func (s DeleteQueueOutput) GoString() string {
 type GetQueueAttributesInput struct {
 	_ struct{} `type:"structure"`
 
-	// A list of attributes to retrieve information for. The following attributes
-	// are supported:
+	// A list of attributes for which to retrieve information.
 	//
-	//  All - returns all values.
-	//
-	// ApproximateNumberOfMessages - returns the approximate number of visible
-	// messages in a queue. For more information, see Resources Required to Process
-	// Messages (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ApproximateNumber.html)
-	// in the Amazon SQS Developer Guide.
-	//
-	// ApproximateNumberOfMessagesNotVisible - returns the approximate number of
-	// messages that are not timed-out and not deleted. For more information, see
-	// Resources Required to Process Messages (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ApproximateNumber.html)
-	// in the Amazon SQS Developer Guide.
-	//
-	// VisibilityTimeout - returns the visibility timeout for the queue. For more
-	// information about visibility timeout, see Visibility Timeout (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
-	// in the Amazon SQS Developer Guide.
-	//
-	// CreatedTimestamp - returns the time when the queue was created (epoch time
-	// in seconds).
-	//
-	// LastModifiedTimestamp - returns the time when the queue was last changed
-	// (epoch time in seconds).
-	//
-	// Policy - returns the queue's policy.
-	//
-	// MaximumMessageSize - returns the limit of how many bytes a message can contain
-	// before Amazon SQS rejects it.
-	//
-	// MessageRetentionPeriod - returns the number of seconds Amazon SQS retains
-	// a message.
-	//
-	// QueueArn - returns the queue's Amazon resource name (ARN).
-	//
-	// ApproximateNumberOfMessagesDelayed - returns the approximate number of messages
-	// that are pending to be added to the queue.
-	//
-	// DelaySeconds - returns the default delay on the queue in seconds.
-	//
-	// ReceiveMessageWaitTimeSeconds - returns the time for which a ReceiveMessage
-	// call will wait for a message to arrive.
-	//
-	// RedrivePolicy - returns the parameters for dead letter queue functionality
-	// of the source queue. For more information about RedrivePolicy and dead letter
-	// queues, see Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
-	// in the Amazon SQS Developer Guide.
-	//
-	//  Going forward, new attributes might be added. If you are writing code that
+	// Going forward, new attributes might be added. If you are writing code that
 	// calls this action, we recommend that you structure your code so that it can
 	// handle new attributes gracefully.
+	//
+	// The following attributes are supported:
+	//
+	//    * All - Returns all values.
+	//
+	//    * ApproximateNumberOfMessages - Returns the approximate number of visible
+	//    messages in a queue. For more information, see Resources Required to Process
+	//    Messages (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ApproximateNumber.html)
+	//    in the Amazon SQS Developer Guide.
+	//
+	//    * ApproximateNumberOfMessagesDelayed - Returns the approximate number
+	//    of messages that are waiting to be added to the queue.
+	//
+	//    * ApproximateNumberOfMessagesNotVisible - Returns the approximate number
+	//    of messages that have not timed-out and are not deleted. For more information,
+	//    see Resources Required to Process Messages (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ApproximateNumber.html)
+	//    in the Amazon SQS Developer Guide.
+	//
+	//    * CreatedTimestamp - Returns the time when the queue was created in seconds
+	//    (epoch time).
+	//
+	//    * DelaySeconds - Returns the default delay on the queue in seconds.
+	//
+	//    * LastModifiedTimestamp - Returns the time when the queue was last changed
+	//    in seconds (epoch time).
+	//
+	//    * MaximumMessageSize - Returns the limit of how many bytes a message can
+	//    contain before Amazon SQS rejects it.
+	//
+	//    * MessageRetentionPeriod - Returns the number of seconds for which Amazon
+	//    SQS retains a message.
+	//
+	//    * Policy - Returns the policy of the queue.
+	//
+	//    * QueueArn - Returns the Amazon resource name (ARN) of the queue.
+	//
+	//    * ReceiveMessageWaitTimeSeconds - Returns the number of seconds for which
+	//    ReceiveMessage call will wait for a message to arrive.
+	//
+	//    * RedrivePolicy - Returns the parameters for dead letter queue functionality
+	//    of the source queue. For more information about the redrive policy and
+	//    dead letter queues, see Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
+	//    in the Amazon SQS Developer Guide.
+	//
+	//    * VisibilityTimeout - Returns the visibility timeout for the queue. For
+	//    more information about the visibility timeout, see Visibility Timeout
+	//    (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
+	//    in the Amazon SQS Developer Guide.
+	//
+	// The following attributes apply only to FIFO (first-in-first-out) queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html):
+	//
+	//    * FifoQueue - Returns whether the queue is FIFO. For more information,
+	//    see FIFO Queue Logic (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html#FIFO-queues-understanding-logic)
+	//    in the Amazon SQS Developer Guide.
+	//
+	//    * ContentBasedDeduplication - Returns whether content-based deduplication
+	//    is enabled for the queue. For more information, see Exactly-Once Processing
+	//    (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html#FIFO-queues-exactly-once-processing)
+	//    in the Amazon SQS Developer Guide.
 	AttributeNames []*string `locationNameList:"AttributeName" type:"list" flattened:"true"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -1786,6 +2458,18 @@ func (s *GetQueueAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributeNames sets the AttributeNames field's value.
+func (s *GetQueueAttributesInput) SetAttributeNames(v []*string) *GetQueueAttributesInput {
+	s.AttributeNames = v
+	return s
+}
+
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *GetQueueAttributesInput) SetQueueUrl(v string) *GetQueueAttributesInput {
+	s.QueueUrl = &v
+	return s
+}
+
 // A list of returned queue attributes.
 type GetQueueAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -1804,6 +2488,12 @@ func (s GetQueueAttributesOutput) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *GetQueueAttributesOutput) SetAttributes(v map[string]*string) *GetQueueAttributesOutput {
+	s.Attributes = v
+	return s
+}
+
 type GetQueueUrlInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1811,6 +2501,8 @@ type GetQueueUrlInput struct {
 	// characters, hyphens (-), and underscores (_) are allowed.
 	//
 	// Queue names are case-sensitive.
+	//
+	// QueueName is a required field
 	QueueName *string `type:"string" required:"true"`
 
 	// The AWS account ID of the account that created the queue.
@@ -1840,6 +2532,18 @@ func (s *GetQueueUrlInput) Validate() error {
 	return nil
 }
 
+// SetQueueName sets the QueueName field's value.
+func (s *GetQueueUrlInput) SetQueueName(v string) *GetQueueUrlInput {
+	s.QueueName = &v
+	return s
+}
+
+// SetQueueOwnerAWSAccountId sets the QueueOwnerAWSAccountId field's value.
+func (s *GetQueueUrlInput) SetQueueOwnerAWSAccountId(v string) *GetQueueUrlInput {
+	s.QueueOwnerAWSAccountId = &v
+	return s
+}
+
 // For more information, see Responses (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/UnderstandingResponses.html)
 // in the Amazon SQS Developer Guide.
 type GetQueueUrlOutput struct {
@@ -1859,12 +2563,20 @@ func (s GetQueueUrlOutput) GoString() string {
 	return s.String()
 }
 
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *GetQueueUrlOutput) SetQueueUrl(v string) *GetQueueUrlOutput {
+	s.QueueUrl = &v
+	return s
+}
+
 type ListDeadLetterSourceQueuesInput struct {
 	_ struct{} `type:"structure"`
 
 	// The queue URL of a dead letter queue.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -1891,12 +2603,20 @@ func (s *ListDeadLetterSourceQueuesInput) Validate() error {
 	return nil
 }
 
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *ListDeadLetterSourceQueuesInput) SetQueueUrl(v string) *ListDeadLetterSourceQueuesInput {
+	s.QueueUrl = &v
+	return s
+}
+
 // A list of your dead letter source queues.
 type ListDeadLetterSourceQueuesOutput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of source queue URLs that have the RedrivePolicy queue attribute configured
 	// with a dead letter queue.
+	//
+	// QueueUrls is a required field
 	QueueUrls []*string `locationName:"queueUrls" locationNameList:"QueueUrl" type:"list" flattened:"true" required:"true"`
 }
 
@@ -1908,6 +2628,12 @@ func (s ListDeadLetterSourceQueuesOutput) String() string {
 // GoString returns the string representation
 func (s ListDeadLetterSourceQueuesOutput) GoString() string {
 	return s.String()
+}
+
+// SetQueueUrls sets the QueueUrls field's value.
+func (s *ListDeadLetterSourceQueuesOutput) SetQueueUrls(v []*string) *ListDeadLetterSourceQueuesOutput {
+	s.QueueUrls = v
+	return s
 }
 
 type ListQueuesInput struct {
@@ -1930,6 +2656,12 @@ func (s ListQueuesInput) GoString() string {
 	return s.String()
 }
 
+// SetQueueNamePrefix sets the QueueNamePrefix field's value.
+func (s *ListQueuesInput) SetQueueNamePrefix(v string) *ListQueuesInput {
+	s.QueueNamePrefix = &v
+	return s
+}
+
 // A list of your queues.
 type ListQueuesOutput struct {
 	_ struct{} `type:"structure"`
@@ -1946,6 +2678,12 @@ func (s ListQueuesOutput) String() string {
 // GoString returns the string representation
 func (s ListQueuesOutput) GoString() string {
 	return s.String()
+}
+
+// SetQueueUrls sets the QueueUrls field's value.
+func (s *ListQueuesOutput) SetQueueUrls(v []*string) *ListQueuesOutput {
+	s.QueueUrls = v
+	return s
 }
 
 // An Amazon SQS message.
@@ -1967,11 +2705,12 @@ type Message struct {
 	// An MD5 digest of the non-URL-encoded message attribute string. This can be
 	// used to verify that Amazon SQS received the message correctly. Amazon SQS
 	// first URL decodes the message before creating the MD5 digest. For information
-	// about MD5, go to http://www.faqs.org/rfcs/rfc1321.html (http://www.faqs.org/rfcs/rfc1321.html).
+	// about MD5, see RFC1321 (https://www.ietf.org/rfc/rfc1321.txt).
 	MD5OfMessageAttributes *string `type:"string"`
 
 	// Each message attribute consists of a Name, Type, and Value. For more information,
-	// see Message Attribute Items (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html#SQSMessageAttributesNTV).
+	// see Message Attribute Items (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html#SQSMessageAttributesNTV)
+	// in the Amazon SQS Developer Guide.
 	MessageAttributes map[string]*MessageAttributeValue `locationName:"MessageAttribute" locationNameKey:"Name" locationNameValue:"Value" type:"map" flattened:"true"`
 
 	// A unique identifier for the message. Message IDs are considered unique across
@@ -1994,9 +2733,51 @@ func (s Message) GoString() string {
 	return s.String()
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *Message) SetAttributes(v map[string]*string) *Message {
+	s.Attributes = v
+	return s
+}
+
+// SetBody sets the Body field's value.
+func (s *Message) SetBody(v string) *Message {
+	s.Body = &v
+	return s
+}
+
+// SetMD5OfBody sets the MD5OfBody field's value.
+func (s *Message) SetMD5OfBody(v string) *Message {
+	s.MD5OfBody = &v
+	return s
+}
+
+// SetMD5OfMessageAttributes sets the MD5OfMessageAttributes field's value.
+func (s *Message) SetMD5OfMessageAttributes(v string) *Message {
+	s.MD5OfMessageAttributes = &v
+	return s
+}
+
+// SetMessageAttributes sets the MessageAttributes field's value.
+func (s *Message) SetMessageAttributes(v map[string]*MessageAttributeValue) *Message {
+	s.MessageAttributes = v
+	return s
+}
+
+// SetMessageId sets the MessageId field's value.
+func (s *Message) SetMessageId(v string) *Message {
+	s.MessageId = &v
+	return s
+}
+
+// SetReceiptHandle sets the ReceiptHandle field's value.
+func (s *Message) SetReceiptHandle(v string) *Message {
+	s.ReceiptHandle = &v
+	return s
+}
+
 // The user-specified message attribute value. For string data types, the value
 // attribute has the same restrictions on the content as the message body. For
-// more information, see SendMessage (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html).
+// more information, see SendMessage.
 //
 // Name, type, and value must not be empty or null. In addition, the message
 // body should not be empty or null. All parts of the message attribute, including
@@ -2018,14 +2799,17 @@ type MessageAttributeValue struct {
 	// Binary. For the Number data type, you must use StringValue.
 	//
 	// You can also append custom labels. For more information, see Message Attribute
-	// Data Types (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html#SQSMessageAttributes.DataTypes).
+	// Data Types (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html#SQSMessageAttributes.DataTypes)
+	// in the Amazon SQS Developer Guide.
+	//
+	// DataType is a required field
 	DataType *string `type:"string" required:"true"`
 
 	// Not implemented. Reserved for future use.
 	StringListValues []*string `locationName:"StringListValue" locationNameList:"StringListValue" type:"list" flattened:"true"`
 
 	// Strings are Unicode with UTF8 binary encoding. For a list of code values,
-	// see http://en.wikipedia.org/wiki/ASCII#ASCII_printable_characters (http://en.wikipedia.org/wiki/ASCII#ASCII_printable_characters).
+	// see ASCII Printable Characters (http://en.wikipedia.org/wiki/ASCII#ASCII_printable_characters).
 	StringValue *string `type:"string"`
 }
 
@@ -2052,6 +2836,36 @@ func (s *MessageAttributeValue) Validate() error {
 	return nil
 }
 
+// SetBinaryListValues sets the BinaryListValues field's value.
+func (s *MessageAttributeValue) SetBinaryListValues(v [][]byte) *MessageAttributeValue {
+	s.BinaryListValues = v
+	return s
+}
+
+// SetBinaryValue sets the BinaryValue field's value.
+func (s *MessageAttributeValue) SetBinaryValue(v []byte) *MessageAttributeValue {
+	s.BinaryValue = v
+	return s
+}
+
+// SetDataType sets the DataType field's value.
+func (s *MessageAttributeValue) SetDataType(v string) *MessageAttributeValue {
+	s.DataType = &v
+	return s
+}
+
+// SetStringListValues sets the StringListValues field's value.
+func (s *MessageAttributeValue) SetStringListValues(v []*string) *MessageAttributeValue {
+	s.StringListValues = v
+	return s
+}
+
+// SetStringValue sets the StringValue field's value.
+func (s *MessageAttributeValue) SetStringValue(v string) *MessageAttributeValue {
+	s.StringValue = &v
+	return s
+}
+
 type PurgeQueueInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2059,6 +2873,8 @@ type PurgeQueueInput struct {
 	// API.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -2085,6 +2901,12 @@ func (s *PurgeQueueInput) Validate() error {
 	return nil
 }
 
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *PurgeQueueInput) SetQueueUrl(v string) *PurgeQueueInput {
+	s.QueueUrl = &v
+	return s
+}
+
 type PurgeQueueOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2105,29 +2927,68 @@ type ReceiveMessageInput struct {
 	// A list of attributes that need to be returned along with each message. These
 	// attributes include:
 	//
-	//  All - returns all values.
+	//    * All - Returns all values.
 	//
-	// ApproximateFirstReceiveTimestamp - returns the time when the message was
-	// first received from the queue (epoch time in milliseconds).
+	//    * ApproximateFirstReceiveTimestamp - Returns the time the message was
+	//    first received from the queue (epoch time in milliseconds).
 	//
-	// ApproximateReceiveCount - returns the number of times a message has been
-	// received from the queue but not deleted.
+	//    * ApproximateReceiveCount - Returns the number of times a message has
+	//    been received from the queue but not deleted.
 	//
-	// SenderId - returns the AWS account number (or the IP address, if anonymous
-	// access is allowed) of the sender.
+	//    * SenderId
 	//
-	// SentTimestamp - returns the time when the message was sent to the queue
-	// (epoch time in milliseconds).
+	// For an IAM user, returns the IAM user ID, for example ABCDEFGHI1JKLMNOPQ23R.
 	//
-	//  Any other valid special request parameters that are specified (such as
-	// ApproximateNumberOfMessages, ApproximateNumberOfMessagesDelayed, ApproximateNumberOfMessagesNotVisible,
-	// CreatedTimestamp, DelaySeconds, LastModifiedTimestamp, MaximumMessageSize,
-	// MessageRetentionPeriod, Policy, QueueArn, ReceiveMessageWaitTimeSeconds,
-	// RedrivePolicy, and VisibilityTimeout) will be ignored.
+	// For an IAM role, returns the IAM role ID, for example ABCDE1F2GH3I4JK5LMNOP:i-a123b456.
+	//
+	//    * SentTimestamp - Returns the time the message was sent to the queue (epoch
+	//    time in milliseconds).
+	//
+	//    * MessageDeduplicationId - Returns the value provided by the sender that
+	//    calls the SendMessage action.
+	//
+	//    * MessageGroupId - Returns the value provided by the sender that calls
+	//    the SendMessage action. Messages with the same MessageGroupId are returned
+	//    in sequence.
+	//
+	//    * SequenceNumber - Returns the value provided by Amazon SQS.
+	//
+	// Any other valid special request parameters (such as the following) that are
+	// specified are ignored:
+	//
+	//    * ApproximateNumberOfMessages
+	//
+	//    * ApproximateNumberOfMessagesDelayed
+	//
+	//    * ApproximateNumberOfMessagesNotVisible
+	//
+	//    * CreatedTimestamp
+	//
+	//    * ContentBasedDeduplication
+	//
+	//    * DelaySeconds
+	//
+	//    * LastModifiedTimestamp
+	//
+	//    * MaximumMessageSize
+	//
+	//    * MessageRetentionPeriod
+	//
+	//    * Policy
+	//
+	//    * QueueArn,
+	//
+	//    * ReceiveMessageWaitTimeSeconds
+	//
+	//    * RedrivePolicy
+	//
+	//    * FifoQueue
+	//
+	//    * VisibilityTimeout
 	AttributeNames []*string `locationNameList:"AttributeName" type:"list" flattened:"true"`
 
 	// The maximum number of messages to return. Amazon SQS never returns more messages
-	// than this value but may return fewer. Values can be from 1 to 10. Default
+	// than this value but might return fewer. Values can be from 1 to 10. Default
 	// is 1.
 	//
 	// All of the messages are not necessarily returned.
@@ -2138,7 +2999,7 @@ type ReceiveMessageInput struct {
 	// hyphen (-), and period (.). The name must not start or end with a period,
 	// and it should not have successive periods. The name is case sensitive and
 	// must be unique among all attribute names for the message. The name can be
-	// up to 256 characters long. The name cannot start with "AWS." or "Amazon."
+	// up to 256 characters long. The name can't start with "AWS." or "Amazon."
 	// (or any variations in casing), because these prefixes are reserved for use
 	// by Amazon Web Services.
 	//
@@ -2151,7 +3012,65 @@ type ReceiveMessageInput struct {
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
+
+	// This parameter applies only to FIFO (first-in-first-out) queues.
+	//
+	// The token used for deduplication of ReceiveMessage calls. If a networking
+	// issue occurs after a ReceiveMessage action, and instead of a response you
+	// receive a generic error, you can retry the same action with an identical
+	// ReceiveRequestAttemptId to retrieve the same set of messages, even if their
+	// visibility timeout has not yet expired.
+	//
+	//    * You can use ReceiveRequestAttemptId only for 5 minutes after a ReceiveMessage
+	//    action.
+	//
+	//    * When you set FifoQueue, a caller of the ReceiveMessage action can provide
+	//    a ReceiveRequestAttemptId explicitly.
+	//
+	//    * If a caller of the ReceiveMessage action doesn't provide a ReceiveRequestAttemptId,
+	//    Amazon SQS generates a ReceiveRequestAttemptId.
+	//
+	//    * You can retry the ReceiveMessage action with the same ReceiveRequestAttemptId
+	//    if none of the messages have been modified (deleted or had their visibility
+	//    changes).
+	//
+	//    * During a visibility timeout, subsequent calls with the same ReceiveRequestAttemptId
+	//    return the same messages and receipt handles. If a retry occurs within
+	//    the deduplication interval, it resets the visibility timeout. For more
+	//    information, see Visibility Timeout (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
+	//    in the Amazon Simple Queue Service Developer Guide.
+	//
+	// If a caller of the ReceiveMessage action is still processing messages when
+	//    the visibility timeout expires and messages become visible, another worker
+	//    reading from the same queue can receive the same messages and therefore
+	//    process duplicates. Also, if a reader whose message processing time is
+	//    longer than the visibility timeout tries to delete the processed messages,
+	//    the action fails with an error.
+	//
+	// To mitigate this effect, ensure that your application observes a safe threshold
+	//    before the visibility timeout expires and extend the visibility timeout
+	//    as necessary.
+	//
+	//    * While messages with a particular MessageGroupId are invisible, no more
+	//    messages belonging to the same MessageGroupId are returned until the visibility
+	//    timeout expires. You can still receive messages with another MessageGroupId
+	//    as long as it is also visible.
+	//
+	//    * If a caller of ReceiveMessage can't track the ReceiveRequestAttemptId,
+	//    no retries will work until the original visibility timeout expires. As
+	//    a result, delays might occur but the messages in the queue will remain
+	//    in a strict order.
+	//
+	// The length of ReceiveRequestAttemptId is 128 characters. ReceiveRequestAttemptId
+	// can contain alphanumeric characters (a-z, A-Z, 0-9) and punctuation (!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~).
+	//
+	// For best practices of using ReceiveRequestAttemptId, see Using the ReceiveRequestAttemptId
+	// Request Parameter (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queue-recommendations.html#using-receiverequestattemptid-request-parameter)
+	// in the Amazon Simple Queue Service Developer Guide.
+	ReceiveRequestAttemptId *string `type:"string"`
 
 	// The duration (in seconds) that the received messages are hidden from subsequent
 	// retrieve requests after being retrieved by a ReceiveMessage request.
@@ -2186,6 +3105,48 @@ func (s *ReceiveMessageInput) Validate() error {
 	return nil
 }
 
+// SetAttributeNames sets the AttributeNames field's value.
+func (s *ReceiveMessageInput) SetAttributeNames(v []*string) *ReceiveMessageInput {
+	s.AttributeNames = v
+	return s
+}
+
+// SetMaxNumberOfMessages sets the MaxNumberOfMessages field's value.
+func (s *ReceiveMessageInput) SetMaxNumberOfMessages(v int64) *ReceiveMessageInput {
+	s.MaxNumberOfMessages = &v
+	return s
+}
+
+// SetMessageAttributeNames sets the MessageAttributeNames field's value.
+func (s *ReceiveMessageInput) SetMessageAttributeNames(v []*string) *ReceiveMessageInput {
+	s.MessageAttributeNames = v
+	return s
+}
+
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *ReceiveMessageInput) SetQueueUrl(v string) *ReceiveMessageInput {
+	s.QueueUrl = &v
+	return s
+}
+
+// SetReceiveRequestAttemptId sets the ReceiveRequestAttemptId field's value.
+func (s *ReceiveMessageInput) SetReceiveRequestAttemptId(v string) *ReceiveMessageInput {
+	s.ReceiveRequestAttemptId = &v
+	return s
+}
+
+// SetVisibilityTimeout sets the VisibilityTimeout field's value.
+func (s *ReceiveMessageInput) SetVisibilityTimeout(v int64) *ReceiveMessageInput {
+	s.VisibilityTimeout = &v
+	return s
+}
+
+// SetWaitTimeSeconds sets the WaitTimeSeconds field's value.
+func (s *ReceiveMessageInput) SetWaitTimeSeconds(v int64) *ReceiveMessageInput {
+	s.WaitTimeSeconds = &v
+	return s
+}
+
 // A list of received messages.
 type ReceiveMessageOutput struct {
 	_ struct{} `type:"structure"`
@@ -2204,16 +3165,26 @@ func (s ReceiveMessageOutput) GoString() string {
 	return s.String()
 }
 
+// SetMessages sets the Messages field's value.
+func (s *ReceiveMessageOutput) SetMessages(v []*Message) *ReceiveMessageOutput {
+	s.Messages = v
+	return s
+}
+
 type RemovePermissionInput struct {
 	_ struct{} `type:"structure"`
 
 	// The identification of the permission to remove. This is the label added with
 	// the AddPermission action.
+	//
+	// Label is a required field
 	Label *string `type:"string" required:"true"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -2243,6 +3214,18 @@ func (s *RemovePermissionInput) Validate() error {
 	return nil
 }
 
+// SetLabel sets the Label field's value.
+func (s *RemovePermissionInput) SetLabel(v string) *RemovePermissionInput {
+	s.Label = &v
+	return s
+}
+
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *RemovePermissionInput) SetQueueUrl(v string) *RemovePermissionInput {
+	s.QueueUrl = &v
+	return s
+}
+
 type RemovePermissionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2261,11 +3244,15 @@ type SendMessageBatchInput struct {
 	_ struct{} `type:"structure"`
 
 	// A list of SendMessageBatchRequestEntry items.
+	//
+	// Entries is a required field
 	Entries []*SendMessageBatchRequestEntry `locationNameList:"SendMessageBatchRequestEntry" type:"list" flattened:"true" required:"true"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -2305,6 +3292,18 @@ func (s *SendMessageBatchInput) Validate() error {
 	return nil
 }
 
+// SetEntries sets the Entries field's value.
+func (s *SendMessageBatchInput) SetEntries(v []*SendMessageBatchRequestEntry) *SendMessageBatchInput {
+	s.Entries = v
+	return s
+}
+
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *SendMessageBatchInput) SetQueueUrl(v string) *SendMessageBatchInput {
+	s.QueueUrl = &v
+	return s
+}
+
 // For each message in the batch, the response contains a SendMessageBatchResultEntry
 // tag if the message succeeds or a BatchResultErrorEntry tag if the message
 // fails.
@@ -2313,9 +3312,13 @@ type SendMessageBatchOutput struct {
 
 	// A list of BatchResultErrorEntry items with the error detail about each message
 	// that could not be enqueued.
+	//
+	// Failed is a required field
 	Failed []*BatchResultErrorEntry `locationNameList:"BatchResultErrorEntry" type:"list" flattened:"true" required:"true"`
 
 	// A list of SendMessageBatchResultEntry items.
+	//
+	// Successful is a required field
 	Successful []*SendMessageBatchResultEntry `locationNameList:"SendMessageBatchResultEntry" type:"list" flattened:"true" required:"true"`
 }
 
@@ -2329,24 +3332,123 @@ func (s SendMessageBatchOutput) GoString() string {
 	return s.String()
 }
 
+// SetFailed sets the Failed field's value.
+func (s *SendMessageBatchOutput) SetFailed(v []*BatchResultErrorEntry) *SendMessageBatchOutput {
+	s.Failed = v
+	return s
+}
+
+// SetSuccessful sets the Successful field's value.
+func (s *SendMessageBatchOutput) SetSuccessful(v []*SendMessageBatchResultEntry) *SendMessageBatchOutput {
+	s.Successful = v
+	return s
+}
+
 // Contains the details of a single Amazon SQS message along with a Id.
 type SendMessageBatchRequestEntry struct {
 	_ struct{} `type:"structure"`
 
-	// The number of seconds for which the message has to be delayed.
+	// The number of seconds (0 to 900 - 15 minutes) to delay a specific message.
+	// Messages with a positive DelaySeconds value become available for processing
+	// after the delay time is finished. If you don't specify a value, the default
+	// value for the queue applies.
+	//
+	// When you set FifoQueue, you can't set DelaySeconds per message. You can set
+	// this parameter only on a queue level.
 	DelaySeconds *int64 `type:"integer"`
 
 	// An identifier for the message in this batch. This is used to communicate
 	// the result. Note that the Ids of a batch request need to be unique within
 	// the request.
+	//
+	// Id is a required field
 	Id *string `type:"string" required:"true"`
 
 	// Each message attribute consists of a Name, Type, and Value. For more information,
-	// see Message Attribute Items (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html#SQSMessageAttributesNTV).
+	// see Message Attribute Items (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html#SQSMessageAttributesNTV)
+	// in the Amazon SQS Developer Guide.
 	MessageAttributes map[string]*MessageAttributeValue `locationName:"MessageAttribute" locationNameKey:"Name" locationNameValue:"Value" type:"map" flattened:"true"`
 
 	// Body of the message.
+	//
+	// MessageBody is a required field
 	MessageBody *string `type:"string" required:"true"`
+
+	// This parameter applies only to FIFO (first-in-first-out) queues.
+	//
+	// The token used for deduplication of messages within a 5-minute minimum deduplication
+	// interval. If a message with a particular MessageDeduplicationId is sent successfully,
+	// subsequent messages with the same MessageDeduplicationId are accepted successfully
+	// but aren't delivered. For more information, see  Exactly-Once Processing
+	// (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html#FIFO-queues-exactly-once-processing)
+	// in the Amazon SQS Developer Guide.
+	//
+	//    * Every message must have a unique MessageDeduplicationId,
+	//
+	// You may provide a MessageDeduplicationId explicitly.
+	//
+	// If you aren't able to provide a MessageDeduplicationId and you enable ContentBasedDeduplication
+	//    for your queue, Amazon SQS uses a SHA-256 hash to generate the MessageDeduplicationId
+	//    using the body of the message (but not the attributes of the message).
+	//
+	//
+	// If you don't provide a MessageDeduplicationId and the queue doesn't have
+	//    ContentBasedDeduplication set, the action fails with an error.
+	//
+	// If the queue has ContentBasedDeduplication set, your MessageDeduplicationId
+	//    overrides the generated one.
+	//
+	//    * When ContentBasedDeduplication is in effect, messages with identical
+	//    content sent within the deduplication interval are treated as duplicates
+	//    and only one copy of the message is delivered.
+	//
+	//    * You can also use ContentBasedDeduplication for messages with identical
+	//    content to be treated as duplicates.
+	//
+	//    * If you send one message with ContentBasedDeduplication enabled and then
+	//    another message with a MessageDeduplicationId that is the same as the
+	//    one generated for the first MessageDeduplicationId, the two messages are
+	//    treated as duplicates and only one copy of the message is delivered.
+	//
+	// The MessageDeduplicationId is available to the recipient of the message (this
+	// can be useful for troubleshooting delivery issues).
+	//
+	// If a message is sent successfully but the acknowledgement is lost and the
+	// message is resent with the same MessageDeduplicationId after the deduplication
+	// interval, Amazon SQS can't detect duplicate messages.
+	//
+	// The length of MessageDeduplicationId is 128 characters. MessageDeduplicationId
+	// can contain alphanumeric characters (a-z, A-Z, 0-9) and punctuation (!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~).
+	//
+	// For best practices of using MessageDeduplicationId, see Using the MessageDeduplicationId
+	// Property (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queue-recommendations.html#using-messagededuplicationid-property)
+	// in the Amazon Simple Queue Service Developer Guide.
+	MessageDeduplicationId *string `type:"string"`
+
+	// This parameter applies only to FIFO (first-in-first-out) queues.
+	//
+	// The tag that specifies that a message belongs to a specific message group.
+	// Messages that belong to the same message group are processed in a FIFO manner
+	// (however, messages in different message groups might be processed out of
+	// order). To interleave multiple ordered streams within a single queue, use
+	// MessageGroupId values (for example, session data for multiple users). In
+	// this scenario, multiple readers can process the queue, but the session data
+	// of each user is processed in a FIFO fashion.
+	//
+	//    * You must associate a non-empty MessageGroupId with a message. If you
+	//    don't provide a MessageGroupId, the action fails.
+	//
+	//    * ReceiveMessage might return messages with multiple MessageGroupId values.
+	//    For each MessageGroupId, the messages are sorted by time sent. The caller
+	//    can't specify a MessageGroupId.
+	//
+	// The length of MessageGroupId is 128 characters. Valid values are alphanumeric
+	// characters and punctuation (!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~).
+	//
+	// For best practices of using MessageGroupId, see Using the MessageGroupId
+	// Property (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queue-recommendations.html#using-messagegroupid-property)
+	// in the Amazon Simple Queue Service Developer Guide.
+	MessageGroupId *string `type:"string"`
 }
 
 // String returns the string representation
@@ -2385,27 +3487,77 @@ func (s *SendMessageBatchRequestEntry) Validate() error {
 	return nil
 }
 
+// SetDelaySeconds sets the DelaySeconds field's value.
+func (s *SendMessageBatchRequestEntry) SetDelaySeconds(v int64) *SendMessageBatchRequestEntry {
+	s.DelaySeconds = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *SendMessageBatchRequestEntry) SetId(v string) *SendMessageBatchRequestEntry {
+	s.Id = &v
+	return s
+}
+
+// SetMessageAttributes sets the MessageAttributes field's value.
+func (s *SendMessageBatchRequestEntry) SetMessageAttributes(v map[string]*MessageAttributeValue) *SendMessageBatchRequestEntry {
+	s.MessageAttributes = v
+	return s
+}
+
+// SetMessageBody sets the MessageBody field's value.
+func (s *SendMessageBatchRequestEntry) SetMessageBody(v string) *SendMessageBatchRequestEntry {
+	s.MessageBody = &v
+	return s
+}
+
+// SetMessageDeduplicationId sets the MessageDeduplicationId field's value.
+func (s *SendMessageBatchRequestEntry) SetMessageDeduplicationId(v string) *SendMessageBatchRequestEntry {
+	s.MessageDeduplicationId = &v
+	return s
+}
+
+// SetMessageGroupId sets the MessageGroupId field's value.
+func (s *SendMessageBatchRequestEntry) SetMessageGroupId(v string) *SendMessageBatchRequestEntry {
+	s.MessageGroupId = &v
+	return s
+}
+
 // Encloses a message ID for successfully enqueued message of a SendMessageBatch.
 type SendMessageBatchResultEntry struct {
 	_ struct{} `type:"structure"`
 
 	// An identifier for the message in this batch.
+	//
+	// Id is a required field
 	Id *string `type:"string" required:"true"`
 
 	// An MD5 digest of the non-URL-encoded message attribute string. This can be
 	// used to verify that Amazon SQS received the message batch correctly. Amazon
 	// SQS first URL decodes the message before creating the MD5 digest. For information
-	// about MD5, go to http://www.faqs.org/rfcs/rfc1321.html (http://www.faqs.org/rfcs/rfc1321.html).
+	// about MD5, see RFC1321 (https://www.ietf.org/rfc/rfc1321.txt).
 	MD5OfMessageAttributes *string `type:"string"`
 
 	// An MD5 digest of the non-URL-encoded message body string. This can be used
 	// to verify that Amazon SQS received the message correctly. Amazon SQS first
 	// URL decodes the message before creating the MD5 digest. For information about
-	// MD5, go to http://www.faqs.org/rfcs/rfc1321.html (http://www.faqs.org/rfcs/rfc1321.html).
+	// MD5, see RFC1321 (https://www.ietf.org/rfc/rfc1321.txt).
+	//
+	// MD5OfMessageBody is a required field
 	MD5OfMessageBody *string `type:"string" required:"true"`
 
 	// An identifier for the message.
+	//
+	// MessageId is a required field
 	MessageId *string `type:"string" required:"true"`
+
+	// This element applies only to FIFO (first-in-first-out) queues.
+	//
+	// A large, non-consecutive number that Amazon SQS assigns to each message.
+	//
+	// The length of SequenceNumber is 128 bits. As SequenceNumber continues to
+	// increase for a particular MessageGroupId.
+	SequenceNumber *string `type:"string"`
 }
 
 // String returns the string representation
@@ -2418,6 +3570,36 @@ func (s SendMessageBatchResultEntry) GoString() string {
 	return s.String()
 }
 
+// SetId sets the Id field's value.
+func (s *SendMessageBatchResultEntry) SetId(v string) *SendMessageBatchResultEntry {
+	s.Id = &v
+	return s
+}
+
+// SetMD5OfMessageAttributes sets the MD5OfMessageAttributes field's value.
+func (s *SendMessageBatchResultEntry) SetMD5OfMessageAttributes(v string) *SendMessageBatchResultEntry {
+	s.MD5OfMessageAttributes = &v
+	return s
+}
+
+// SetMD5OfMessageBody sets the MD5OfMessageBody field's value.
+func (s *SendMessageBatchResultEntry) SetMD5OfMessageBody(v string) *SendMessageBatchResultEntry {
+	s.MD5OfMessageBody = &v
+	return s
+}
+
+// SetMessageId sets the MessageId field's value.
+func (s *SendMessageBatchResultEntry) SetMessageId(v string) *SendMessageBatchResultEntry {
+	s.MessageId = &v
+	return s
+}
+
+// SetSequenceNumber sets the SequenceNumber field's value.
+func (s *SendMessageBatchResultEntry) SetSequenceNumber(v string) *SendMessageBatchResultEntry {
+	s.SequenceNumber = &v
+	return s
+}
+
 type SendMessageInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2425,19 +3607,103 @@ type SendMessageInput struct {
 	// Messages with a positive DelaySeconds value become available for processing
 	// after the delay time is finished. If you don't specify a value, the default
 	// value for the queue applies.
+	//
+	// When you set FifoQueue, you can't set DelaySeconds per message. You can set
+	// this parameter only on a queue level.
 	DelaySeconds *int64 `type:"integer"`
 
 	// Each message attribute consists of a Name, Type, and Value. For more information,
-	// see Message Attribute Items (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html#SQSMessageAttributesNTV).
+	// see Message Attribute Items (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html#SQSMessageAttributesNTV)
+	// in the Amazon SQS Developer Guide.
 	MessageAttributes map[string]*MessageAttributeValue `locationName:"MessageAttribute" locationNameKey:"Name" locationNameValue:"Value" type:"map" flattened:"true"`
 
 	// The message to send. String maximum 256 KB in size. For a list of allowed
-	// characters, see the preceding important note.
+	// characters, see the preceding note.
+	//
+	// MessageBody is a required field
 	MessageBody *string `type:"string" required:"true"`
+
+	// This parameter applies only to FIFO (first-in-first-out) queues.
+	//
+	// The token used for deduplication of sent messages. If a message with a particular
+	// MessageDeduplicationId is sent successfully, any messages sent with the same
+	// MessageDeduplicationId are accepted successfully but aren't delivered during
+	// the 5-minute deduplication interval. For more information, see  Exactly-Once
+	// Processing (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html#FIFO-queues-exactly-once-processing)
+	// in the Amazon SQS Developer Guide.
+	//
+	//    * Every message must have a unique MessageDeduplicationId,
+	//
+	// You may provide a MessageDeduplicationId explicitly.
+	//
+	// If you aren't able to provide a MessageDeduplicationId and you enable ContentBasedDeduplication
+	//    for your queue, Amazon SQS uses a SHA-256 hash to generate the MessageDeduplicationId
+	//    using the body of the message (but not the attributes of the message).
+	//
+	//
+	// If you don't provide a MessageDeduplicationId and the queue doesn't have
+	//    ContentBasedDeduplication set, the action fails with an error.
+	//
+	// If the queue has ContentBasedDeduplication set, your MessageDeduplicationId
+	//    overrides the generated one.
+	//
+	//    * When ContentBasedDeduplication is in effect, messages with identical
+	//    content sent within the deduplication interval are treated as duplicates
+	//    and only one copy of the message is delivered.
+	//
+	//    * You can also use ContentBasedDeduplication for messages with identical
+	//    content to be treated as duplicates.
+	//
+	//    * If you send one message with ContentBasedDeduplication enabled and then
+	//    another message with a MessageDeduplicationId that is the same as the
+	//    one generated for the first MessageDeduplicationId, the two messages are
+	//    treated as duplicates and only one copy of the message is delivered.
+	//
+	// The MessageDeduplicationId is available to the recipient of the message (this
+	// can be useful for troubleshooting delivery issues).
+	//
+	// If a message is sent successfully but the acknowledgdment is lost and the
+	// message is resent with the same MessageDeduplicationId after the deduplication
+	// interval, Amazon SQS can't detect duplicate messages.
+	//
+	// The length of MessageDeduplicationId is 128 characters. MessageDeduplicationId
+	// can contain alphanumeric characters (a-z, A-Z, 0-9) and punctuation (!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~).
+	//
+	// For best practices of using MessageDeduplicationId, see Using the MessageDeduplicationId
+	// Property (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queue-recommendations.html#using-messagededuplicationid-property)
+	// in the Amazon Simple Queue Service Developer Guide.
+	MessageDeduplicationId *string `type:"string"`
+
+	// This parameter applies only to FIFO (first-in-first-out) queues.
+	//
+	// The tag that specifies that a message belongs to a specific message group.
+	// Messages that belong to the same message group are processed in a FIFO manner
+	// (however, messages in different message groups might be processed out of
+	// order). To interleave multiple ordered streams within a single queue, use
+	// MessageGroupId values (for example, session data for multiple users). In
+	// this scenario, multiple readers can process the queue, but the session data
+	// of each user is processed in a FIFO fashion.
+	//
+	//    * You must associate a non-empty MessageGroupId with a message. If you
+	//    don't provide a MessageGroupId, the action fails.
+	//
+	//    * ReceiveMessage might return messages with multiple MessageGroupId values.
+	//    For each MessageGroupId, the messages are sorted by time sent. The caller
+	//    can't specify a MessageGroupId.
+	//
+	// The length of MessageGroupId is 128 characters. Valid values are alphanumeric
+	// characters and punctuation (!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~).
+	//
+	// For best practices of using MessageGroupId, see Using the MessageGroupId
+	// Property (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queue-recommendations.html#using-messagegroupid-property)
+	// in the Amazon Simple Queue Service Developer Guide.
+	MessageGroupId *string `type:"string"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -2477,6 +3743,42 @@ func (s *SendMessageInput) Validate() error {
 	return nil
 }
 
+// SetDelaySeconds sets the DelaySeconds field's value.
+func (s *SendMessageInput) SetDelaySeconds(v int64) *SendMessageInput {
+	s.DelaySeconds = &v
+	return s
+}
+
+// SetMessageAttributes sets the MessageAttributes field's value.
+func (s *SendMessageInput) SetMessageAttributes(v map[string]*MessageAttributeValue) *SendMessageInput {
+	s.MessageAttributes = v
+	return s
+}
+
+// SetMessageBody sets the MessageBody field's value.
+func (s *SendMessageInput) SetMessageBody(v string) *SendMessageInput {
+	s.MessageBody = &v
+	return s
+}
+
+// SetMessageDeduplicationId sets the MessageDeduplicationId field's value.
+func (s *SendMessageInput) SetMessageDeduplicationId(v string) *SendMessageInput {
+	s.MessageDeduplicationId = &v
+	return s
+}
+
+// SetMessageGroupId sets the MessageGroupId field's value.
+func (s *SendMessageInput) SetMessageGroupId(v string) *SendMessageInput {
+	s.MessageGroupId = &v
+	return s
+}
+
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *SendMessageInput) SetQueueUrl(v string) *SendMessageInput {
+	s.QueueUrl = &v
+	return s
+}
+
 // The MD5OfMessageBody and MessageId elements.
 type SendMessageOutput struct {
 	_ struct{} `type:"structure"`
@@ -2484,19 +3786,27 @@ type SendMessageOutput struct {
 	// An MD5 digest of the non-URL-encoded message attribute string. This can be
 	// used to verify that Amazon SQS received the message correctly. Amazon SQS
 	// first URL decodes the message before creating the MD5 digest. For information
-	// about MD5, go to http://www.faqs.org/rfcs/rfc1321.html (http://www.faqs.org/rfcs/rfc1321.html).
+	// about MD5, see RFC1321 (https://www.ietf.org/rfc/rfc1321.txt).
 	MD5OfMessageAttributes *string `type:"string"`
 
 	// An MD5 digest of the non-URL-encoded message body string. This can be used
 	// to verify that Amazon SQS received the message correctly. Amazon SQS first
 	// URL decodes the message before creating the MD5 digest. For information about
-	// MD5, go to http://www.faqs.org/rfcs/rfc1321.html (http://www.faqs.org/rfcs/rfc1321.html).
+	// MD5, see RFC1321 (https://www.ietf.org/rfc/rfc1321.txt).
 	MD5OfMessageBody *string `type:"string"`
 
 	// An element containing the message ID of the message sent to the queue. For
 	// more information, see Queue and Message Identifiers (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/ImportantIdentifiers.html)
 	// in the Amazon SQS Developer Guide.
 	MessageId *string `type:"string"`
+
+	// This element applies only to FIFO (first-in-first-out) queues.
+	//
+	// A large, non-consecutive number that Amazon SQS assigns to each message.
+	//
+	// The length of SequenceNumber is 128 bits. SequenceNumber continues to increase
+	// for a particular MessageGroupId.
+	SequenceNumber *string `type:"string"`
 }
 
 // String returns the string representation
@@ -2509,51 +3819,117 @@ func (s SendMessageOutput) GoString() string {
 	return s.String()
 }
 
+// SetMD5OfMessageAttributes sets the MD5OfMessageAttributes field's value.
+func (s *SendMessageOutput) SetMD5OfMessageAttributes(v string) *SendMessageOutput {
+	s.MD5OfMessageAttributes = &v
+	return s
+}
+
+// SetMD5OfMessageBody sets the MD5OfMessageBody field's value.
+func (s *SendMessageOutput) SetMD5OfMessageBody(v string) *SendMessageOutput {
+	s.MD5OfMessageBody = &v
+	return s
+}
+
+// SetMessageId sets the MessageId field's value.
+func (s *SendMessageOutput) SetMessageId(v string) *SendMessageOutput {
+	s.MessageId = &v
+	return s
+}
+
+// SetSequenceNumber sets the SequenceNumber field's value.
+func (s *SendMessageOutput) SetSequenceNumber(v string) *SendMessageOutput {
+	s.SequenceNumber = &v
+	return s
+}
+
 type SetQueueAttributesInput struct {
 	_ struct{} `type:"structure"`
 
 	// A map of attributes to set.
 	//
 	// The following lists the names, descriptions, and values of the special request
-	// parameters the SetQueueAttributes action uses:
+	// parameters that the SetQueueAttributes action uses:
 	//
-	//  DelaySeconds - The time in seconds that the delivery of all messages in
-	// the queue will be delayed. An integer from 0 to 900 (15 minutes). The default
-	// for this attribute is 0 (zero).
+	//    * DelaySeconds - The number of seconds for which the delivery of all messages
+	//    in the queue is delayed. An integer from 0 to 900 (15 minutes). The default
+	//    is 0 (zero).
 	//
-	// MaximumMessageSize - The limit of how many bytes a message can contain before
-	// Amazon SQS rejects it. An integer from 1024 bytes (1 KiB) up to 262144 bytes
-	// (256 KiB). The default for this attribute is 262144 (256 KiB).
+	//    * MaximumMessageSize - The limit of how many bytes a message can contain
+	//    before Amazon SQS rejects it. An integer from 1,024 bytes (1 KiB) up to
+	//    262,144 bytes (256 KiB). The default is 262,144 (256 KiB).
 	//
-	// MessageRetentionPeriod - The number of seconds Amazon SQS retains a message.
-	// Integer representing seconds, from 60 (1 minute) to 1209600 (14 days). The
-	// default for this attribute is 345600 (4 days).
+	//    * MessageRetentionPeriod - The number of seconds for which Amazon SQS
+	//    retains a message. An integer representing seconds, from 60 (1 minute)
+	//    to 120,9600 (14 days). The default is 345,600 (4 days).
 	//
-	// Policy - The queue's policy. A valid AWS policy. For more information about
-	// policy structure, see Overview of AWS IAM Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PoliciesOverview.html)
-	// in the Amazon IAM User Guide.
+	//    * Policy - The queue's policy. A valid AWS policy. For more information
+	//    about policy structure, see Overview of AWS IAM Policies (http://docs.aws.amazon.com/IAM/latest/UserGuide/PoliciesOverview.html)
+	//    in the Amazon IAM User Guide.
 	//
-	// ReceiveMessageWaitTimeSeconds - The time for which a ReceiveMessage call
-	// will wait for a message to arrive. An integer from 0 to 20 (seconds). The
-	// default for this attribute is 0.
+	//    * ReceiveMessageWaitTimeSeconds - The number of seconds for which a ReceiveMessage
+	//    action will wait for a message to arrive. An integer from 0 to 20 (seconds).
+	//    The default is 0.
 	//
-	// VisibilityTimeout - The visibility timeout for the queue. An integer from
-	// 0 to 43200 (12 hours). The default for this attribute is 30. For more information
-	// about visibility timeout, see Visibility Timeout in the Amazon SQS Developer
-	// Guide.
+	//    * RedrivePolicy - The parameters for the dead letter queue functionality
+	//    of the source queue. For more information about the redrive policy and
+	//    dead letter queues, see Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
+	//    in the Amazon SQS Developer Guide.
 	//
-	// RedrivePolicy - The parameters for dead letter queue functionality of the
-	// source queue. For more information about RedrivePolicy and dead letter queues,
-	// see Using Amazon SQS Dead Letter Queues in the Amazon SQS Developer Guide.
+	// The dead letter queue of a FIFO queue must also be a FIFO queue. Similarly,
+	//    the dead letter queue of a standard queue must also be a standard queue.
 	//
-	//  Any other valid special request parameters that are specified (such as
-	// ApproximateNumberOfMessages, ApproximateNumberOfMessagesDelayed, ApproximateNumberOfMessagesNotVisible,
+	//    * VisibilityTimeout - The visibility timeout for the queue. An integer
+	//    from 0 to 43200 (12 hours). The default is 30. For more information about
+	//    the visibility timeout, see Visibility Timeout (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/AboutVT.html)
+	//    in the Amazon SQS Developer Guide.
+	//
+	// The following attribute applies only to FIFO (first-in-first-out) queues
+	// (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html):
+	//
+	//    * ContentBasedDeduplication - Enables content-based deduplication. For
+	//    more information, see Exactly-Once Processing (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html#FIFO-queues-exactly-once-processing)
+	//    in the Amazon SQS Developer Guide.
+	//
+	// Every message must have a unique MessageDeduplicationId,
+	//
+	// You may provide a MessageDeduplicationId explicitly.
+	//
+	// If you aren't able to provide a MessageDeduplicationId and you enable ContentBasedDeduplication
+	//    for your queue, Amazon SQS uses a SHA-256 hash to generate the MessageDeduplicationId
+	//    using the body of the message (but not the attributes of the message).
+	//
+	//
+	// If you don't provide a MessageDeduplicationId and the queue doesn't have
+	//    ContentBasedDeduplication set, the action fails with an error.
+	//
+	// If the queue has ContentBasedDeduplication set, your MessageDeduplicationId
+	//    overrides the generated one.
+	//
+	// When ContentBasedDeduplication is in effect, messages with identical content
+	//    sent within the deduplication interval are treated as duplicates and only
+	//    one copy of the message is delivered.
+	//
+	// You can also use ContentBasedDeduplication for messages with identical content
+	//    to be treated as duplicates.
+	//
+	// If you send one message with ContentBasedDeduplication enabled and then another
+	//    message with a MessageDeduplicationId that is the same as the one generated
+	//    for the first MessageDeduplicationId, the two messages are treated as
+	//    duplicates and only one copy of the message is delivered.
+	//
+	// Any other valid special request parameters that are specified (such as ApproximateNumberOfMessages,
+	// ApproximateNumberOfMessagesDelayed, ApproximateNumberOfMessagesNotVisible,
 	// CreatedTimestamp, LastModifiedTimestamp, and QueueArn) will be ignored.
+	//
+	// Attributes is a required field
 	Attributes map[string]*string `locationName:"Attribute" locationNameKey:"Name" locationNameValue:"Value" type:"map" flattened:"true" required:"true"`
 
 	// The URL of the Amazon SQS queue to take action on.
 	//
 	// Queue URLs are case-sensitive.
+	//
+	// QueueUrl is a required field
 	QueueUrl *string `type:"string" required:"true"`
 }
 
@@ -2583,6 +3959,18 @@ func (s *SetQueueAttributesInput) Validate() error {
 	return nil
 }
 
+// SetAttributes sets the Attributes field's value.
+func (s *SetQueueAttributesInput) SetAttributes(v map[string]*string) *SetQueueAttributesInput {
+	s.Attributes = v
+	return s
+}
+
+// SetQueueUrl sets the QueueUrl field's value.
+func (s *SetQueueAttributesInput) SetQueueUrl(v string) *SetQueueAttributesInput {
+	s.QueueUrl = &v
+	return s
+}
+
 type SetQueueAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2598,30 +3986,74 @@ func (s SetQueueAttributesOutput) GoString() string {
 }
 
 const (
-	// @enum QueueAttributeName
+	// MessageSystemAttributeNameSenderId is a MessageSystemAttributeName enum value
+	MessageSystemAttributeNameSenderId = "SenderId"
+
+	// MessageSystemAttributeNameSentTimestamp is a MessageSystemAttributeName enum value
+	MessageSystemAttributeNameSentTimestamp = "SentTimestamp"
+
+	// MessageSystemAttributeNameApproximateReceiveCount is a MessageSystemAttributeName enum value
+	MessageSystemAttributeNameApproximateReceiveCount = "ApproximateReceiveCount"
+
+	// MessageSystemAttributeNameApproximateFirstReceiveTimestamp is a MessageSystemAttributeName enum value
+	MessageSystemAttributeNameApproximateFirstReceiveTimestamp = "ApproximateFirstReceiveTimestamp"
+
+	// MessageSystemAttributeNameSequenceNumber is a MessageSystemAttributeName enum value
+	MessageSystemAttributeNameSequenceNumber = "SequenceNumber"
+
+	// MessageSystemAttributeNameMessageDeduplicationId is a MessageSystemAttributeName enum value
+	MessageSystemAttributeNameMessageDeduplicationId = "MessageDeduplicationId"
+
+	// MessageSystemAttributeNameMessageGroupId is a MessageSystemAttributeName enum value
+	MessageSystemAttributeNameMessageGroupId = "MessageGroupId"
+)
+
+const (
+	// QueueAttributeNameAll is a QueueAttributeName enum value
+	QueueAttributeNameAll = "All"
+
+	// QueueAttributeNamePolicy is a QueueAttributeName enum value
 	QueueAttributeNamePolicy = "Policy"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameVisibilityTimeout is a QueueAttributeName enum value
 	QueueAttributeNameVisibilityTimeout = "VisibilityTimeout"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameMaximumMessageSize is a QueueAttributeName enum value
 	QueueAttributeNameMaximumMessageSize = "MaximumMessageSize"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameMessageRetentionPeriod is a QueueAttributeName enum value
 	QueueAttributeNameMessageRetentionPeriod = "MessageRetentionPeriod"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameApproximateNumberOfMessages is a QueueAttributeName enum value
 	QueueAttributeNameApproximateNumberOfMessages = "ApproximateNumberOfMessages"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameApproximateNumberOfMessagesNotVisible is a QueueAttributeName enum value
 	QueueAttributeNameApproximateNumberOfMessagesNotVisible = "ApproximateNumberOfMessagesNotVisible"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameCreatedTimestamp is a QueueAttributeName enum value
 	QueueAttributeNameCreatedTimestamp = "CreatedTimestamp"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameLastModifiedTimestamp is a QueueAttributeName enum value
 	QueueAttributeNameLastModifiedTimestamp = "LastModifiedTimestamp"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameQueueArn is a QueueAttributeName enum value
 	QueueAttributeNameQueueArn = "QueueArn"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameApproximateNumberOfMessagesDelayed is a QueueAttributeName enum value
 	QueueAttributeNameApproximateNumberOfMessagesDelayed = "ApproximateNumberOfMessagesDelayed"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameDelaySeconds is a QueueAttributeName enum value
 	QueueAttributeNameDelaySeconds = "DelaySeconds"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameReceiveMessageWaitTimeSeconds is a QueueAttributeName enum value
 	QueueAttributeNameReceiveMessageWaitTimeSeconds = "ReceiveMessageWaitTimeSeconds"
-	// @enum QueueAttributeName
+
+	// QueueAttributeNameRedrivePolicy is a QueueAttributeName enum value
 	QueueAttributeNameRedrivePolicy = "RedrivePolicy"
+
+	// QueueAttributeNameFifoQueue is a QueueAttributeName enum value
+	QueueAttributeNameFifoQueue = "FifoQueue"
+
+	// QueueAttributeNameContentBasedDeduplication is a QueueAttributeName enum value
+	QueueAttributeNameContentBasedDeduplication = "ContentBasedDeduplication"
 )

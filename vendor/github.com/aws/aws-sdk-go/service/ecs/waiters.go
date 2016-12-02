@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilServicesInactive uses the Amazon ECS API operation
+// DescribeServices to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *ECS) WaitUntilServicesInactive(input *DescribeServicesInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeServices",
@@ -35,6 +39,10 @@ func (c *ECS) WaitUntilServicesInactive(input *DescribeServicesInput) error {
 	return w.Wait()
 }
 
+// WaitUntilServicesStable uses the Amazon ECS API operation
+// DescribeServices to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *ECS) WaitUntilServicesStable(input *DescribeServicesInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeServices",
@@ -76,6 +84,10 @@ func (c *ECS) WaitUntilServicesStable(input *DescribeServicesInput) error {
 	return w.Wait()
 }
 
+// WaitUntilTasksRunning uses the Amazon ECS API operation
+// DescribeTasks to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *ECS) WaitUntilTasksRunning(input *DescribeTasksInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeTasks",
@@ -111,6 +123,10 @@ func (c *ECS) WaitUntilTasksRunning(input *DescribeTasksInput) error {
 	return w.Wait()
 }
 
+// WaitUntilTasksStopped uses the Amazon ECS API operation
+// DescribeTasks to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *ECS) WaitUntilTasksStopped(input *DescribeTasksInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeTasks",

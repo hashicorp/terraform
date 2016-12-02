@@ -10,6 +10,10 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+// Default Authorization Rule/Policy created by Azure, used to populate the
+// default connection strings and keys
+var serviceBusNamespaceDefaultAuthorizationRule = "RootManageSharedAccessKey"
+
 func resourceArmServiceBusNamespace() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceArmServiceBusNamespaceCreate,
@@ -27,12 +31,7 @@ func resourceArmServiceBusNamespace() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -53,6 +52,26 @@ func resourceArmServiceBusNamespace() *schema.Resource {
 				ForceNew:     true,
 				Default:      1,
 				ValidateFunc: validateServiceBusNamespaceCapacity,
+			},
+
+			"default_primary_connection_string": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"default_secondary_connection_string": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"default_primary_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"default_secondary_key": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"tags": tagsSchema(),
@@ -121,8 +140,21 @@ func resourceArmServiceBusNamespaceRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.Set("name", resp.Name)
+	d.Set("resource_group_name", resGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("sku", strings.ToLower(string(resp.Sku.Name)))
 	d.Set("capacity", resp.Sku.Capacity)
+
+	keys, err := namespaceClient.ListKeys(resGroup, name, serviceBusNamespaceDefaultAuthorizationRule)
+	if err != nil {
+		log.Printf("[ERROR] Unable to List default keys for Namespace %s: %s", name, err)
+	} else {
+		d.Set("default_primary_connection_string", keys.PrimaryConnectionString)
+		d.Set("default_secondary_connection_string", keys.SecondaryConnectionString)
+		d.Set("default_primary_key", keys.PrimaryKey)
+		d.Set("default_secondary_key", keys.SecondaryKey)
+	}
+
 	flattenAndSetTags(d, resp.Tags)
 
 	return nil

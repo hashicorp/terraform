@@ -18,7 +18,7 @@ func TestAccAWSAPIGatewayRestApi_basic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSAPIGatewayRestAPIDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayRestAPIConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayRestAPIExists("aws_api_gateway_rest_api.test", &conf),
@@ -27,10 +27,12 @@ func TestAccAWSAPIGatewayRestApi_basic(t *testing.T) {
 						"aws_api_gateway_rest_api.test", "name", "bar"),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_rest_api.test", "description", ""),
+					resource.TestCheckResourceAttrSet(
+						"aws_api_gateway_rest_api.test", "created_date"),
 				),
 			},
 
-			resource.TestStep{
+			{
 				Config: testAccAWSAPIGatewayRestAPIUpdateConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAPIGatewayRestAPIExists("aws_api_gateway_rest_api.test", &conf),
@@ -40,6 +42,8 @@ func TestAccAWSAPIGatewayRestApi_basic(t *testing.T) {
 						"aws_api_gateway_rest_api.test", "name", "test"),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_rest_api.test", "description", "test"),
+					resource.TestCheckResourceAttrSet(
+						"aws_api_gateway_rest_api.test", "created_date"),
 				),
 			},
 		},

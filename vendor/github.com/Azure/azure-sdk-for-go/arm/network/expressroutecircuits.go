@@ -26,7 +26,7 @@ import (
 
 // ExpressRouteCircuitsClient is the the Microsoft Azure Network management
 // API provides a RESTful set of web services that interact with Microsoft
-// Azure Networks service to manage your network resrources. The API has
+// Azure Networks service to manage your network resources. The API has
 // entities that capture the relationship between an end user and the
 // Microsoft Azure Networks service.
 type ExpressRouteCircuitsClient struct {
@@ -182,7 +182,7 @@ func (client ExpressRouteCircuitsClient) DeleteResponder(resp *http.Response) (r
 	return
 }
 
-// Get the Get ExpressRouteCircuit operation retreives information about the
+// Get the Get ExpressRouteCircuit operation retrieves information about the
 // specified ExpressRouteCircuit.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
@@ -246,7 +246,7 @@ func (client ExpressRouteCircuitsClient) GetResponder(resp *http.Response) (resu
 	return
 }
 
-// GetPeeringStats the Liststats ExpressRouteCircuit operation retrieves all
+// GetPeeringStats the List stats ExpressRouteCircuit operation retrieves all
 // the stats from a ExpressRouteCircuits in a resource group.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
@@ -311,7 +311,7 @@ func (client ExpressRouteCircuitsClient) GetPeeringStatsResponder(resp *http.Res
 	return
 }
 
-// GetStats the Liststats ExpressRouteCircuit operation retrieves all the
+// GetStats the List stats ExpressRouteCircuit operation retrieves all the
 // stats from a ExpressRouteCircuits in a resource group.
 //
 // resourceGroupName is the name of the resource group. circuitName is the
@@ -441,7 +441,7 @@ func (client ExpressRouteCircuitsClient) ListResponder(resp *http.Response) (res
 func (client ExpressRouteCircuitsClient) ListNextResults(lastResults ExpressRouteCircuitListResult) (result ExpressRouteCircuitListResult, err error) {
 	req, err := lastResults.ExpressRouteCircuitListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -450,12 +450,12 @@ func (client ExpressRouteCircuitsClient) ListNextResults(lastResults ExpressRout
 	resp, err := client.ListSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "List", resp, "Failure responding to next results request")
 	}
 
 	return
@@ -524,7 +524,7 @@ func (client ExpressRouteCircuitsClient) ListAllResponder(resp *http.Response) (
 func (client ExpressRouteCircuitsClient) ListAllNextResults(lastResults ExpressRouteCircuitListResult) (result ExpressRouteCircuitListResult, err error) {
 	req, err := lastResults.ExpressRouteCircuitListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", nil, "Failure preparing next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", nil, "Failure preparing next results request")
 	}
 	if req == nil {
 		return
@@ -533,12 +533,12 @@ func (client ExpressRouteCircuitsClient) ListAllNextResults(lastResults ExpressR
 	resp, err := client.ListAllSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", resp, "Failure sending next results request request")
+		return result, autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", resp, "Failure sending next results request")
 	}
 
 	result, err = client.ListAllResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", resp, "Failure responding to next results request request")
+		err = autorest.NewErrorWithError(err, "network.ExpressRouteCircuitsClient", "ListAll", resp, "Failure responding to next results request")
 	}
 
 	return

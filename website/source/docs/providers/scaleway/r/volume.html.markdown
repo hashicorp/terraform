@@ -6,7 +6,7 @@ description: |-
   Manages Scaleway Volumes.
 ---
 
-# scaleway\volume
+# scaleway\_volume
 
 Provides ARM volumes. This allows volumes to be created, updated and deleted.
 For additional details please refer to [API documentation](https://developer.scaleway.com/#volumes).
@@ -14,7 +14,7 @@ For additional details please refer to [API documentation](https://developer.sca
 ## Example Usage
 
 ```
-resource "scaleway_volume" "test" {
+resource "scaleway_server" "test" {
   name = "test"
   image = "aecaed73-51a5-4439-a127-6d8229847145"
   type = "C2S"
@@ -42,3 +42,11 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - id of the new resource
+
+## Import
+
+Instances can be imported using the `id`, e.g.
+
+```
+$ terraform import scaleway_volume.test 5faef9cd-ea9b-4a63-9171-9e26bec03dbc
+```

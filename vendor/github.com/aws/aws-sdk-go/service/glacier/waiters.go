@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilVaultExists uses the Amazon Glacier API operation
+// DescribeVault to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *Glacier) WaitUntilVaultExists(input *DescribeVaultInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeVault",
@@ -35,6 +39,10 @@ func (c *Glacier) WaitUntilVaultExists(input *DescribeVaultInput) error {
 	return w.Wait()
 }
 
+// WaitUntilVaultNotExists uses the Amazon Glacier API operation
+// DescribeVault to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *Glacier) WaitUntilVaultNotExists(input *DescribeVaultInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeVault",

@@ -27,6 +27,7 @@ func resourceAwsSqsQueuePolicy() *schema.Resource {
 			"policy": &schema.Schema{
 				Type:             schema.TypeString,
 				Required:         true,
+				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 		},

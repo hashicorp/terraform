@@ -73,6 +73,7 @@ func resourceDatadogMonitor() *schema.Resource {
 						},
 					},
 				},
+				DiffSuppressFunc: supressDataDogFloatIntDiff,
 			},
 			"notify_no_data": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -397,4 +398,27 @@ func resourceDatadogImport(d *schema.ResourceData, meta interface{}) ([]*schema.
 		return nil, err
 	}
 	return []*schema.ResourceData{d}, nil
+}
+
+// Ignore any diff that results from the mix of ints or floats returned from the
+// DataDog API.
+func supressDataDogFloatIntDiff(k, old, new string, d *schema.ResourceData) bool {
+	oF, err := strconv.ParseFloat(old, 64)
+	if err != nil {
+		log.Printf("Error parsing float of old value (%s): %s", old, err)
+		return false
+	}
+
+	nF, err := strconv.ParseFloat(new, 64)
+	if err != nil {
+		log.Printf("Error parsing float of new value (%s): %s", new, err)
+		return false
+	}
+
+	// if the float values of these attributes are equivalent, ignore this
+	// diff
+	if oF == nF {
+		return true
+	}
+	return false
 }

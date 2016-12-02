@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 	"github.com/hashicorp/terraform/helper/hilmapstructure"
@@ -27,6 +28,7 @@ type Config struct {
 	// any meaningful directory.
 	Dir string
 
+	Terraform       *Terraform
 	Atlas           *AtlasConfig
 	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
@@ -37,6 +39,12 @@ type Config struct {
 	// The fields below can be filled in by loaders for validation
 	// purposes.
 	unknownKeys []string
+}
+
+// Terraform is the Terraform meta-configuration that can be present
+// in configuration files for configuring Terraform itself.
+type Terraform struct {
+	RequiredVersion string `hcl:"required_version"` // Required Terraform version (constraint)
 }
 
 // AtlasConfig is the configuration for building in HashiCorp's Atlas.
@@ -152,9 +160,11 @@ type Variable struct {
 // output marked Sensitive will be output in a masked form following
 // application, but will still be available in state.
 type Output struct {
-	Name      string
-	Sensitive bool
-	RawConfig *RawConfig
+	Name        string
+	DependsOn   []string
+	Description string
+	Sensitive   bool
+	RawConfig   *RawConfig
 }
 
 // VariableType is the type of value a variable is holding, and returned
@@ -234,6 +244,30 @@ func (c *Config) Validate() error {
 	for _, k := range c.unknownKeys {
 		errs = append(errs, fmt.Errorf(
 			"Unknown root level key: %s", k))
+	}
+
+	// Validate the Terraform config
+	if tf := c.Terraform; tf != nil {
+		if raw := tf.RequiredVersion; raw != "" {
+			// Check that the value has no interpolations
+			rc, err := NewRawConfig(map[string]interface{}{
+				"root": raw,
+			})
+			if err != nil {
+				errs = append(errs, fmt.Errorf(
+					"terraform.required_version: %s", err))
+			} else if len(rc.Interpolations) > 0 {
+				errs = append(errs, fmt.Errorf(
+					"terraform.required_version: cannot contain interpolations"))
+			} else {
+				// Check it is valid
+				_, err := version.NewConstraint(raw)
+				if err != nil {
+					errs = append(errs, fmt.Errorf(
+						"terraform.required_version: invalid syntax: %s", err))
+				}
+			}
+		}
 	}
 
 	vars := c.InterpolatedVariables()
@@ -508,25 +542,8 @@ func (c *Config) Validate() error {
 		}
 		r.RawCount.init()
 
-		// Verify depends on points to resources that all exist
-		for _, d := range r.DependsOn {
-			// Check if we contain interpolations
-			rc, err := NewRawConfig(map[string]interface{}{
-				"value": d,
-			})
-			if err == nil && len(rc.Variables) > 0 {
-				errs = append(errs, fmt.Errorf(
-					"%s: depends on value cannot contain interpolations: %s",
-					n, d))
-				continue
-			}
-
-			if _, ok := resources[d]; !ok {
-				errs = append(errs, fmt.Errorf(
-					"%s: resource depends on non-existent resource '%s'",
-					n, d))
-			}
-		}
+		// Validate DependsOn
+		errs = append(errs, c.validateDependsOn(n, r.DependsOn, resources, modules)...)
 
 		// Verify provider points to a provider that is configured
 		if r.Provider != "" {
@@ -577,6 +594,29 @@ func (c *Config) Validate() error {
 				errs = append(errs, fmt.Errorf(
 					"%s: ignore_changes does not support using a partial string "+
 						"together with a wildcard: %s", n, v))
+			}
+		}
+
+		// Verify ignore_changes has no interpolations
+		rc, err := NewRawConfig(map[string]interface{}{
+			"root": r.Lifecycle.IgnoreChanges,
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"%s: lifecycle ignore_changes error: %s",
+				n, err))
+		} else if len(rc.Interpolations) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s: lifecycle ignore_changes cannot contain interpolations",
+				n))
+		}
+
+		// If it is a data source then it can't have provisioners
+		if r.Mode == DataResourceMode {
+			if _, ok := r.RawConfig.Raw["provisioner"]; ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: data sources cannot have provisioners",
+					n))
 			}
 		}
 	}
@@ -630,6 +670,17 @@ func (c *Config) Validate() error {
 
 					errs = append(errs, fmt.Errorf(
 						"%s: value for 'sensitive' must be boolean",
+						o.Name))
+					continue
+				}
+				if k == "description" {
+					if desc, ok := o.RawConfig.config[k].(string); ok {
+						o.Description = desc
+						continue
+					}
+
+					errs = append(errs, fmt.Errorf(
+						"%s: value for 'description' must be string",
 						o.Name))
 					continue
 				}
@@ -785,6 +836,48 @@ func (c *Config) validateVarContextFn(
 			}
 		}
 	}
+}
+
+func (c *Config) validateDependsOn(
+	n string,
+	v []string,
+	resources map[string]*Resource,
+	modules map[string]*Module) []error {
+	// Verify depends on points to resources that all exist
+	var errs []error
+	for _, d := range v {
+		// Check if we contain interpolations
+		rc, err := NewRawConfig(map[string]interface{}{
+			"value": d,
+		})
+		if err == nil && len(rc.Variables) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s: depends on value cannot contain interpolations: %s",
+				n, d))
+			continue
+		}
+
+		// If it is a module, verify it is a module
+		if strings.HasPrefix(d, "module.") {
+			name := d[len("module."):]
+			if _, ok := modules[name]; !ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: resource depends on non-existent module '%s'",
+					n, name))
+			}
+
+			continue
+		}
+
+		// Check resources
+		if _, ok := resources[d]; !ok {
+			errs = append(errs, fmt.Errorf(
+				"%s: resource depends on non-existent resource '%s'",
+				n, d))
+		}
+	}
+
+	return errs
 }
 
 func (m *Module) mergerName() string {
