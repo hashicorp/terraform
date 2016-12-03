@@ -31,13 +31,16 @@ type PlanGraphBuilder struct {
 
 	// DisableReduce, if true, will not reduce the graph. Great for testing.
 	DisableReduce bool
+
+	// Validate will do structural validation of the graph.
+	Validate bool
 }
 
 // See GraphBuilder
 func (b *PlanGraphBuilder) Build(path []string) (*Graph, error) {
 	return (&BasicGraphBuilder{
 		Steps:    b.Steps(),
-		Validate: true,
+		Validate: b.Validate,
 		Name:     "PlanGraphBuilder",
 	}).Build(path)
 }
