@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // NodeAbstractProvider represents a provider that has no associated operations.
@@ -59,4 +60,15 @@ func (n *NodeAbstractProvider) ProviderConfig() *config.RawConfig {
 // GraphNodeAttachProvider
 func (n *NodeAbstractProvider) AttachProvider(c *config.ProviderConfig) {
 	n.Config = c
+}
+
+// GraphNodeDotter impl.
+func (n *NodeAbstractProvider) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "diamond",
+		},
+	}
 }
