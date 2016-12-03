@@ -131,6 +131,7 @@ func resourceAwsInstance() *schema.Resource {
 			"network_interface_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+				Optional: true,
 			},
 
 			"public_ip": &schema.Schema{
