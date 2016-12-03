@@ -1,6 +1,8 @@
 ## 0.8.0-rc3 (unreleased)
 
+BUG FIXES:
 
+  * core: On Unix machines if `getent` is not available, fall back to shell to find home dir. [GH-10515]
 
 ## 0.8.0-rc2 (December 2, 2016)
 
