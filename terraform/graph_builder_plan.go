@@ -48,10 +48,9 @@ func (b *PlanGraphBuilder) Build(path []string) (*Graph, error) {
 // See GraphBuilder
 func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	// Custom factory for creating providers.
-	providerFactory := func(name string, path []string) GraphNodeProvider {
+	concreteProvider := func(a *NodeAbstractProvider) dag.Vertex {
 		return &NodeApplyableProvider{
-			NameValue: name,
-			PathValue: path,
+			NodeAbstractProvider: a,
 		}
 	}
 
@@ -98,7 +97,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&TargetsTransformer{Targets: b.Targets},
 
 		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},
+		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
 		&ProviderTransformer{},
 		&DisableProviderTransformer{},
 		&ParentProviderTransformer{},
