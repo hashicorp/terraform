@@ -114,15 +114,15 @@ type MissingProviderTransformer struct {
 	// Providers is the list of providers we support.
 	Providers []string
 
-	// Factory, if set, overrides how the providers are made.
-	Factory func(name string, path []string) GraphNodeProvider
+	// Concrete, if set, overrides how the providers are made.
+	Concrete ConcreteProviderNodeFunc
 }
 
 func (t *MissingProviderTransformer) Transform(g *Graph) error {
 	// Initialize factory
-	if t.Factory == nil {
-		t.Factory = func(name string, path []string) GraphNodeProvider {
-			return &graphNodeProvider{ProviderNameValue: name}
+	if t.Concrete == nil {
+		t.Concrete = func(a *NodeAbstractProvider) dag.Vertex {
+			return &graphNodeProvider{ProviderNameValue: a.NameValue}
 		}
 	}
 
@@ -177,7 +177,10 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			}
 
 			// Add the missing provider node to the graph
-			v := t.Factory(p, path).(dag.Vertex)
+			v := t.Concrete(&NodeAbstractProvider{
+				NameValue: p,
+				PathValue: path,
+			}).(dag.Vertex)
 			if len(path) > 0 {
 				if fn, ok := v.(GraphNodeFlattenable); ok {
 					var err error

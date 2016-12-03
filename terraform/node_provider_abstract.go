@@ -7,6 +7,10 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
+// ConcreteProviderNodeFunc is a callback type used to convert an
+// abstract provider to a concrete one of some type.
+type ConcreteProviderNodeFunc func(*NodeAbstractProvider) dag.Vertex
+
 // NodeAbstractProvider represents a provider that has no associated operations.
 // It registers all the common interfaces across operations for providers.
 type NodeAbstractProvider struct {
