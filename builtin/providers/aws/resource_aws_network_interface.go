@@ -60,6 +60,11 @@ func resourceAwsNetworkInterface() *schema.Resource {
 				Optional: true,
 			},
 
+			"network_interface_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"attachment": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -147,6 +152,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddresses(eni.PrivateIpAddresses))
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 	d.Set("source_dest_check", eni.SourceDestCheck)
+	d.Set("network_interface_id", d.Id())
 
 	if eni.Description != nil {
 		d.Set("description", eni.Description)
