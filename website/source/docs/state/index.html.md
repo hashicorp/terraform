@@ -3,27 +3,26 @@ layout: "docs"
 page_title: "State"
 sidebar_current: "docs-state"
 description: |-
-  Terraform stores state which caches the known state of the world the last time Terraform ran.
+  Terraform must store state about your managed infrastructure and configuration. This state is used by Terraform to map real world resources to your configuration, keep track of metadata, and to improve performance for large infrastructures.
 ---
 
 # State
 
-Terraform stores the state of your managed infrastructure from the last
-time Terraform was run. By default this state is stored in a local file
-named "terraform.tfstate", but it can also be stored remotely, which works
-better in a team environment.
+Terraform must store state about your managed infrastructure and
+configuration. This state is used by Terraform to map real world
+resources to your configuration, keep track of metadata, and to improve
+performance for large infrastructures.
+
+This state is stored by default in a local file named "terraform.tfstate",
+but it can also be stored remotely, which works better in a team environment.
 
 Terraform uses this local state to create plans and make changes to your
 infrastructure. Prior to any operation, Terraform does a
 [refresh](/docs/commands/refresh.html) to update the state with the
 real infrastructure.
 
--> **Note:** Terraform currently requires the state to exist after Terraform
-has been run. Technically,
-at some point in the future, Terraform should be able to populate the local
-state file with the real infrastructure if the file didn't exist. But currently,
-Terraform state is a mixture of both a cache and required configuration and
-isn't optional.
+For more information on why Terraform requires state and why Terraform cannot
+function without state, please see the page [state purpose](/docs/state/purpose.html).
 
 ## Inspection and Modification
 
