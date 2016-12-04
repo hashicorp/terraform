@@ -494,6 +494,17 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) (*ec2.IpPermiss
 	protocol := protocolForValue(d.Get("protocol").(string))
 	perm.IpProtocol = aws.String(protocol)
 
+	// When protocol is "-1", AWS won't store any ports for the
+	// rule, but also won't error if the user specifies ports other
+	// than '0'. Force the user to make a deliberate '0' port
+	// choice when specifying a "-1" protocol, and tell them about
+	// AWS's behavior in the error message.
+	if *perm.IpProtocol == "-1" && (*perm.FromPort != 0 || *perm.ToPort != 0) {
+		return nil, fmt.Errorf(
+			"from_port (%d) and to_port (%d) must both be 0 to use the 'ALL' \"-1\" protocol!",
+			*perm.FromPort, *perm.ToPort)
+	}
+
 	// build a group map that behaves like a set
 	groups := make(map[string]bool)
 	if raw, ok := d.GetOk("source_security_group_id"); ok {
