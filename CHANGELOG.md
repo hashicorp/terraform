@@ -1,5 +1,8 @@
 ## 0.8.0-rc3 (unreleased)
 
+IMPROVEMENTS:
+ * provider/openstack: Detect Region for Importing Resources [GH-10509]
+
 BUG FIXES:
 
   * core: On Unix machines if `getent` is not available, fall back to shell to find home dir. [GH-10515]
