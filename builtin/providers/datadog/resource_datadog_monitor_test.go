@@ -51,6 +51,42 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 	})
 }
 
+func TestAccDatadogMonitor_BasicNoTreshold(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatadogMonitorDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDatadogMonitorConfigNoThresholds,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDatadogMonitorExists("datadog_monitor.foo"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "name", "name for monitor foo"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "message", "some message Notify: @hipchat-channel"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "type", "metric alert"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "query", "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "notify_no_data", "false"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "renotify_interval", "60"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "require_full_window", "true"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "locked", "false"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "tags.foo", "bar"),
+					resource.TestCheckResourceAttr(
+						"datadog_monitor.foo", "tags.bar", "baz"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDatadogMonitor_Updated(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -240,6 +276,29 @@ resource "datadog_monitor" "foo" {
 	warning = "1.0"
 	critical = "2.0"
   }
+
+  notify_no_data = false
+  renotify_interval = 60
+
+  notify_audit = false
+  timeout_h = 60
+  include_tags = true
+  require_full_window = true
+  locked = false
+  tags {
+	"foo" = "bar"
+	"bar" = "baz"
+  }
+}
+`
+const testAccCheckDatadogMonitorConfigNoThresholds = `
+resource "datadog_monitor" "foo" {
+  name = "name for monitor foo"
+  type = "metric alert"
+  message = "some message Notify: @hipchat-channel"
+  escalation_message = "the situation has escalated @pagerduty"
+
+  query = "avg(last_1h):avg:aws.ec2.cpu{environment:foo,host:foo} by {host} > 2"
 
   notify_no_data = false
   renotify_interval = 60
