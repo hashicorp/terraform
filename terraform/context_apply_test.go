@@ -2885,6 +2885,107 @@ func TestContext2Apply_multiVarOrderInterp(t *testing.T) {
 	}
 }
 
+// Based on GH-10440 where a graph edge wasn't properly being created
+// between a modified resource and a count instance being destroyed.
+func TestContext2Apply_multiVarCountDec(t *testing.T) {
+	var s *State
+
+	// First create resources. Nothing sneaky here.
+	{
+		m := testModule(t, "apply-multi-var-count-dec")
+		p := testProvider("aws")
+		p.ApplyFn = testApplyFn
+		p.DiffFn = testDiffFn
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Variables: map[string]interface{}{
+				"count": "2",
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		t.Logf("Step 1 state: %s", state)
+
+		s = state
+	}
+
+	// Decrease the count by 1 and verify that everything happens in the
+	// right order.
+	{
+		m := testModule(t, "apply-multi-var-count-dec")
+		p := testProvider("aws")
+		p.ApplyFn = testApplyFn
+		p.DiffFn = testDiffFn
+
+		// Verify that aws_instance.bar is modified first and nothing
+		// else happens at the same time.
+		var checked bool
+		var called int32
+		var lock sync.Mutex
+		p.ApplyFn = func(
+			info *InstanceInfo,
+			is *InstanceState,
+			id *InstanceDiff) (*InstanceState, error) {
+			lock.Lock()
+			defer lock.Unlock()
+
+			if info.HumanId() == "aws_instance.bar" {
+				checked = true
+
+				// Sleep to allow parallel execution
+				time.Sleep(50 * time.Millisecond)
+
+				// Verify that called is 0 (dep not called)
+				if atomic.LoadInt32(&called) != 1 {
+					return nil, fmt.Errorf("nothing else should be called")
+				}
+			}
+
+			atomic.AddInt32(&called, 1)
+			return testApplyFn(info, is, id)
+		}
+
+		ctx := testContext2(t, &ContextOpts{
+			State:  s,
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+			Variables: map[string]interface{}{
+				"count": "1",
+			},
+		})
+
+		if _, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		state, err := ctx.Apply()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !checked {
+			t.Fatal("apply never called")
+		}
+
+		t.Logf("Step 2 state: %s", state)
+
+		s = state
+	}
+}
+
 func TestContext2Apply_nilDiff(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")

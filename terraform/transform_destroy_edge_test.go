@@ -98,6 +98,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 
 type graphNodeCreatorTest struct {
 	AddrString string
+	Refs       []string
 }
 
 func (n *graphNodeCreatorTest) Name() string { return n.CreateAddr().String() }
@@ -109,6 +110,8 @@ func (n *graphNodeCreatorTest) CreateAddr() *ResourceAddress {
 
 	return addr
 }
+
+func (n *graphNodeCreatorTest) References() []string { return n.Refs }
 
 type graphNodeDestroyerTest struct {
 	AddrString string
