@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/opsworks"
@@ -14,8 +15,8 @@ import (
 func resourceAwsOpsworksRdsDbInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsOpsworksRdsDbInstanceRegister,
-		Update: resourceAwsOpsworksRdsDbInstanceRegister,
-		Delete: resourceAwsOpsworksRdsDbInstanceUnregister,
+		Update: resourceAwsOpsworksRdsDbInstanceUpdate,
+		Delete: resourceAwsOpsworksRdsDbInstanceDeregister,
 		Read:   resourceAwsOpsworksRdsDbInstanceRead,
 
 		Schema: map[string]*schema.Schema{
@@ -26,14 +27,17 @@ func resourceAwsOpsworksRdsDbInstance() *schema.Resource {
 			"stack_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"rds_db_instance_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"db_password": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
+				Type:      schema.TypeString,
+				Required:  true,
+				Sensitive: true,
 			},
 			"db_user": &schema.Schema{
 				Type:     schema.TypeString,
@@ -43,7 +47,47 @@ func resourceAwsOpsworksRdsDbInstance() *schema.Resource {
 	}
 }
 
-func resourceAwsOpsworksRdsDbInstanceUnregister(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsOpsworksRdsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*AWSClient).opsworksconn
+
+	d.Partial(true)
+
+	// @TODO if these two params force new resources, is the following necessary?
+	if d.HasChange("rds_db_instance_arn") || d.HasChange("stack_id") {
+		return fmt.Errorf("cannot change 'rds_db_instance_arn' and 'stack_id' for opsworks rds db. changes on these attributes will force a new resource")
+	}
+
+	d.SetPartial("rds_db_instance_arn")
+	req := &opsworks.UpdateRdsDbInstanceInput{
+		RdsDbInstanceArn: aws.String(d.Get("rds_db_instance_arn").(string)),
+	}
+
+	requestUpdate := false
+	if d.HasChange("db_user") {
+		d.SetPartial("db_user")
+		req.DbUser = aws.String(d.Get("db_user").(string))
+		requestUpdate = true
+	}
+	if d.HasChange("db_password") {
+		d.SetPartial("db_password")
+		req.DbPassword = aws.String(d.Get("db_password").(string))
+		requestUpdate = true
+	}
+
+	if true == requestUpdate {
+		log.Printf("[DEBUG] Opsworks RDS DB Instance Modification request: %s", req)
+		_, err := client.UpdateRdsDbInstance(req)
+		if err != nil {
+			return err
+		}
+	}
+
+	d.Partial(false)
+
+	return resourceAwsOpsworksRdsDbInstanceRead(d, meta)
+}
+
+func resourceAwsOpsworksRdsDbInstanceDeregister(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
 
 	req := &opsworks.DeregisterRdsDbInstanceInput{
@@ -79,14 +123,6 @@ func resourceAwsOpsworksRdsDbInstanceRead(d *schema.ResourceData, meta interface
 
 	resp, err := client.DescribeRdsDbInstances(req)
 	if err != nil {
-		if awserr, ok := err.(awserr.Error); ok {
-			if awserr.Code() == "ResourceNotFoundException" {
-				log.Printf("[INFO] No instance found not found")
-				d.SetId("")
-
-				return nil
-			}
-		}
 		return err
 	}
 
@@ -102,7 +138,6 @@ func resourceAwsOpsworksRdsDbInstanceRead(d *schema.ResourceData, meta interface
 			d.Set("stack_id", instance.StackId)
 			d.Set("rds_db_instance_arn", instance.RdsDbInstanceArn)
 			d.Set("db_user", instance.DbUser)
-			d.Set("db_password", instance.DbPassword)
 		}
 
 	}

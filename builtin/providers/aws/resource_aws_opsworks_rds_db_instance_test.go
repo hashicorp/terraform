@@ -15,10 +15,26 @@ func TestAccAWSOpsworksRdsDbInstance(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAwsOpsworksRdsDbInstance(sName),
+				Config: testAccAwsOpsworksRdsDbInstance(sName, "foo", "barbarbarbar"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_rds_db_instance.tf-acc-opsworks-db", "db_user", "foo",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAwsOpsworksRdsDbInstance(sName, "bar", "barbarbarbar"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_rds_db_instance.tf-acc-opsworks-db", "db_user", "bar",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAwsOpsworksRdsDbInstance(sName, "bar", "foofoofoofoofoo"),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_rds_db_instance.tf-acc-opsworks-db", "db_user", "bar",
 					),
 				),
 			},
@@ -26,18 +42,18 @@ func TestAccAWSOpsworksRdsDbInstance(t *testing.T) {
 	})
 }
 
-func testAccAwsOpsworksRdsDbInstance(name string) string {
+func testAccAwsOpsworksRdsDbInstance(name, userName, password string) string {
 	return fmt.Sprintf(`
 resource "aws_opsworks_rds_db_instance" "tf-acc-opsworks-db" {
   stack_id = "${aws_opsworks_stack.tf-acc.id}"
 
   rds_db_instance_arn = "${aws_db_instance.bar.arn}"
-  db_user = "foo"
-  db_password = "barbarbarbar"
+  db_user = "%s"
+  db_password = "%s"
 }
 
 %s
 
 %s
-`, testAccAwsOpsworksStackConfigVpcCreate(name), testAccAWSDBInstanceConfig)
+`, userName, password, testAccAwsOpsworksStackConfigVpcCreate(name), testAccAWSDBInstanceConfig)
 }
