@@ -60,12 +60,17 @@ func resourceIcinga2HostCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Call CreateHost with normalized data
-	_, err := client.CreateHost(hostname, address, checkCommand, vars)
+	hosts, err := client.CreateHost(hostname, address, checkCommand, vars)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(hostname)
+	for _, host := range hosts {
+		if host.Name == hostname {
+			d.SetId(hostname)
+		}
+	}
+
 	return nil
 
 }
@@ -76,12 +81,17 @@ func resourceIcinga2HostRead(d *schema.ResourceData, meta interface{}) error {
 
 	hostname := d.Get("hostname").(string)
 
-	_, err := client.GetHost(hostname)
+	hosts, err := client.GetHost(hostname)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(hostname)
+	for _, host := range hosts {
+		if host.Name == hostname {
+			d.SetId(hostname)
+		}
+	}
+
 	return nil
 }
 
@@ -96,11 +106,6 @@ func resourceIcinga2HostDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*iapi.Server)
 	hostname := d.Get("hostname").(string)
 
-	err := client.DeleteHost(hostname)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return client.DeleteHost(hostname)
 
 }

@@ -41,12 +41,17 @@ func resourceIcinga2HostGroupCreate(d *schema.ResourceData, meta interface{}) er
 	groupName := d.Get("name").(string)
 	displayName := d.Get("display_name").(string)
 
-	_, err := client.CreateHostgroup(groupName, displayName)
+	hostgroups, err := client.CreateHostgroup(groupName, displayName)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(groupName)
+	for _, hostgroup := range hostgroups {
+		if hostgroup.Name == groupName {
+			d.SetId(groupName)
+		}
+	}
+
 	return nil
 
 }

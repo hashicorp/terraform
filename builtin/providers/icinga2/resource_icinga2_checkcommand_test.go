@@ -1,20 +1,21 @@
 package icinga2
 
-/*
 import (
 	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/lrsmith/go-icinga2-api/iapi"
 )
 
-func TestAccCreateBasicCheckcommand(t *testing.T) {
+func TestAccCreateCheckCommand(t *testing.T) {
 
-	var testAccCreateBasicCheckcommand = fmt.Sprintf(`
+	var testAccCreateBasicCheckCommand = fmt.Sprintf(`
 		resource "icinga2_checkcommand" "basic" {
-		name      = "terraform-test-checkcommand"
+		name      = "terraform-test-checkcommand-1"
 		templates = [ "plugin-check-command" ]
-		command = [ "/usr/local/bin/check_command"]
+		command = "/usr/local/bin/check_command"
     arguments = {
 		  "-I" = "$IARG$"
 			"-J" = "$JARG$" }
@@ -25,13 +26,14 @@ func TestAccCreateBasicCheckcommand(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCreateBasicCheckcommand,
+				Config: testAccCreateBasicCheckCommand,
 				Check: resource.ComposeTestCheckFunc(
-					VerifyResourceExists(t, "icinga2_checkcommand.basic"),
-					testAccCheckResourceState("icinga2_checkcommand.basic", "name", "terraform-test-checkcommand"),
-					testAccCheckResourceState("icinga2_checkcommand.basic", "command.#", "1"),
-					testAccCheckResourceState("icinga2_checkcommand.basic", "command.0", "/usr/local/bin/check_command"),
-					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.#", "2"),
+					testAccCheckCheckCommandExists("icinga2_checkcommand.basic"),
+					testAccCheckResourceState("icinga2_checkcommand.basic", "name", "terraform-test-checkcommand-1"),
+					//testAccCheckResourceState("icinga2_checkcommand.basic", "command.#", "1"),
+					//testAccCheckResourceState("icinga2_checkcommand.basic", "command.0", "/usr/local/bin/check_command"),
+					testAccCheckResourceState("icinga2_checkcommand.basic", "command", "/usr/local/bin/check_command"),
+					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.%", "2"),
 					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.-I", "$IARG$"),
 					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.-J", "$JARG$"),
 				),
@@ -40,31 +42,23 @@ func TestAccCreateBasicCheckcommand(t *testing.T) {
 	})
 }
 
-//func TestAccCheckcommandModifyArguments(t *testing.T) {
-//
-//	var testAccCheckcommandModifyArguments = fmt.Sprintf(`
-//		resource "icinga2_checkcommand" "basic" {
-//		name      = "terraform-test-checkcommand"
-//		templates = [ "plugin-check-command" ]
-//		command = [ "/usr/local/bin/check_command"]
-//    arguments = {
-//		  "-I" = "$ARGI$"
-//			"-J" = "$JARG$" }
-//	}`)
-//
-//	resource.Test(t, resource.TestCase{
-//		Providers: testAccProviders,
-//		Steps: []resource.TestStep{
-//			resource.TestStep{
-//				Config: testAccCheckcommandModifyArguments,
-//				Check: resource.ComposeTestCheckFunc(
-//					VerifyResourceExists(t, "icinga2_checkcommand.basic"),
-//					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.#", "2"),
-//					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.-I", "$ARGI$"),
-//					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.-J", "$JARG$"),
-//				),
-//			},
-//		},
-//	})
-//}
-*/
+func testAccCheckCheckCommandExists(rn string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		resource, ok := s.RootModule().Resources[rn]
+		if !ok {
+			return fmt.Errorf("CheckCommand resource not found: %s", rn)
+		}
+
+		if resource.Primary.ID == "" {
+			return fmt.Errorf("CheckCommand resource id not set")
+		}
+
+		client := testAccProvider.Meta().(*iapi.Server)
+		_, err := client.GetCheckCommand(resource.Primary.ID)
+		if err != nil {
+			return fmt.Errorf("Error getting getting CheckCommand: %s", err)
+		}
+
+		return nil
+	}
+}
