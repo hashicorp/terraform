@@ -186,6 +186,7 @@ BUG FIXES:
 
 BUG FIXES:
  * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine ([#10340](https://github.com/hashicorp/terraform/issues/10340))
+ * provider/aws: Fix issue removing Lambda environment variables [GH-10492]
 
 
 
