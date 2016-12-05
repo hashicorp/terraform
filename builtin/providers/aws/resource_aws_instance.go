@@ -634,9 +634,8 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("instance_state") {
-		log.Printf("[INFO] Requested State %s", d.Get("instance_state"))
 		if d.Get("instance_state") == "stopped" {
-			log.Printf("[INFO] Updating instance state to %s for Instance %s", "stopped", d.Id())
+			log.Printf("[INFO] Updating instance state to '%s' for Instance %s", "stopped", d.Id())
 
 			_, err := conn.StopInstances(&ec2.StopInstancesInput{
 				InstanceIds: []*string{aws.String(d.Id())},
@@ -664,7 +663,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 		} else if d.Get("instance_state") == "running" {
-			log.Printf("[INFO] Updating instance state to %s for Instance %s", "running", d.Id())
+			log.Printf("[INFO] Updating instance state to '%s' for Instance %s", "running", d.Id())
 
 			_, err := conn.StartInstances(&ec2.StartInstancesInput{
 				InstanceIds:    []*string{aws.String(d.Id())},
@@ -691,6 +690,8 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 					"Error waiting for instance (%s) to start: %s", d.Id(), err)
 			}
 
+		} else if d.Get("instance_state") != nil {
+			return fmt.Errorf("Invalid instance_state specified. Use 'running' or 'stopped'.")
 		}
 
 	}

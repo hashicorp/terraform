@@ -294,6 +294,47 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_instanceState(t *testing.T) {
+	var v ec2.Instance
+
+	testCheck := func(state string) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.State == nil {
+				return fmt.Errorf("bad instance_state_check: got nil")
+			}
+
+			if *v.State.Name != state {
+				return fmt.Errorf("bad instance_state_check: %#v", *v.State.Name)
+			}
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_instance.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceStateStop,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheck("stopped"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccInstanceStateStart,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheck("running"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_disableApiTermination(t *testing.T) {
 	var v ec2.Instance
 
@@ -879,6 +920,40 @@ resource "aws_instance" "foo" {
 	instance_type = "m1.small"
 	subnet_id = "${aws_subnet.foo.id}"
 	source_dest_check = false
+}
+`
+
+const testAccInstanceStateStop = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-a9d276c9"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	instance_state = "stopped"
+}
+`
+
+const testAccInstanceStateStart = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-a9d276c9"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	instance_state = "running"
 }
 `
 
