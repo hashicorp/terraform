@@ -75,9 +75,10 @@ func resourceArmVirtualMachine() *schema.Resource {
 			},
 
 			"license_type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateLicenseType,
 			},
 
 			"vm_size": {
@@ -429,6 +430,15 @@ func resourceArmVirtualMachine() *schema.Resource {
 			"tags": tagsSchema(),
 		},
 	}
+}
+
+func validateLicenseType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "" && value != "Windows_Server" {
+		errors = append(errors, fmt.Errorf(
+			"[ERROR] license_type must be 'Windows_Server' or empty"))
+	}
+	return
 }
 
 func validateDiskSizeGB(v interface{}, k string) (ws []string, errors []error) {
