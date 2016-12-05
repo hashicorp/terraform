@@ -693,8 +693,8 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		} else if d.Get("instance_state") != nil {
 			return fmt.Errorf("Invalid instance_state specified. Use 'running' or 'stopped'.")
 		}
-
 	}
+
 	if d.HasChange("vpc_security_group_ids") {
 		var groups []*string
 		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
