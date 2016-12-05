@@ -73,7 +73,7 @@ func resourceArmCdnProfileCreate(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	read, err := cdnProfilesClient.Get(name, resGroup)
+	read, err := cdnProfilesClient.Get(resGroup, name)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func resourceArmCdnProfileRead(d *schema.ResourceData, meta interface{}) error {
 	resGroup := id.ResourceGroup
 	name := id.Path["profiles"]
 
-	resp, err := cdnProfilesClient.Get(name, resGroup)
+	resp, err := cdnProfilesClient.Get(resGroup, name)
 	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {
 			d.SetId("")
@@ -151,7 +151,7 @@ func resourceArmCdnProfileDelete(d *schema.ResourceData, meta interface{}) error
 	resGroup := id.ResourceGroup
 	name := id.Path["profiles"]
 
-	_, err = cdnProfilesClient.Delete(name, resGroup, make(chan struct{}))
+	_, err = cdnProfilesClient.Delete(resGroup, name, make(chan struct{}))
 	// TODO: check the status code
 
 	return err
