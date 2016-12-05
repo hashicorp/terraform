@@ -1086,10 +1086,10 @@ func buildAwsInstanceOpts(
 		}
 	}
 
-  if v, ok := d.GetOk("network_interface_id"); ok {
+	if v, ok := d.GetOk("network_interface_id"); ok {
 		ni := &ec2.InstanceNetworkInterfaceSpecification{
-			DeviceIndex:					aws.Int64(int64(0)),
-			NetworkInterfaceId:		aws.String(v.(string)),
+			DeviceIndex:        aws.Int64(int64(0)),
+			NetworkInterfaceId: aws.String(v.(string)),
 		}
 		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
 	} else if hasSubnet && associatePublicIPAddress {
