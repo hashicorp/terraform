@@ -8,6 +8,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/datadog: Make monitor thresholds optional. [GH-10526]
+ * provider/datadog: Improve datadog timeboard support [GH-10027]
  * provider/docker: Upload files into container before first start [GH-9520]
  * provider/openstack: Detect Region for Importing Resources [GH-10509]
 
