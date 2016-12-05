@@ -11,7 +11,9 @@ package datadog
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
+	"strings"
 )
 
 type ThresholdCount struct {
@@ -102,6 +104,36 @@ func (self *Client) GetMonitor(id int) (*Monitor, error) {
 		return nil, err
 	}
 	return &out, nil
+}
+
+// GetMonitor retrieves monitors by name
+func (self *Client) GetMonitorsByName(name string) ([]Monitor, error) {
+	var out reqMonitors
+	query, err := url.ParseQuery(fmt.Sprintf("name=%v", name))
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.doJsonRequest("GET", fmt.Sprintf("/v1/monitor?%v", query.Encode()), nil, &out.Monitors)
+	if err != nil {
+		return nil, err
+	}
+	return out.Monitors, nil
+}
+
+// GetMonitor retrieves monitors by a slice of tags
+func (self *Client) GetMonitorsByTags(tags []string) ([]Monitor, error) {
+	var out reqMonitors
+	query, err := url.ParseQuery(fmt.Sprintf("monitor_tags=%v", strings.Join(tags, ",")))
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.doJsonRequest("GET", fmt.Sprintf("/v1/monitor?%v", query.Encode()), nil, &out.Monitors)
+	if err != nil {
+		return nil, err
+	}
+	return out.Monitors, nil
 }
 
 // DeleteMonitor removes a monitor from the system
