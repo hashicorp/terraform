@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Provider:** `Rancher` [GH-9173]
  * **New Resource:** `aws_vpc_endpoint_route_table_association` [GH-10137]
 
 
