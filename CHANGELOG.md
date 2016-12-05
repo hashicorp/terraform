@@ -1,6 +1,8 @@
 ## 0.8.0-rc3 (unreleased)
 
 IMPROVEMENTS:
+
+ * provider/datadog: Make monitor thresholds optional. [GH-10526]
  * provider/openstack: Detect Region for Importing Resources [GH-10509]
 
 BUG FIXES:
