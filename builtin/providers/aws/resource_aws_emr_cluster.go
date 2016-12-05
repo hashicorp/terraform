@@ -77,6 +77,7 @@ func resourceAwsEMRCluster() *schema.Resource {
 			},
 			"keep_job_flow_alive_when_no_steps": &schema.Schema{
 				Type:     schema.TypeBool,
+				ForceNew: true,
 				Optional: true,
 				Computed: true,
 			},
