@@ -1,10 +1,12 @@
 package openstack
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -97,10 +99,11 @@ func resourceNetworkingPortV2() *schema.Resource {
 				},
 			},
 			"allowed_address_pairs": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: false,
 				Computed: true,
+				Set:      allowedAddressPairsHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ip_address": &schema.Schema{
@@ -320,7 +323,7 @@ func resourcePortFixedIpsV2(d *schema.ResourceData) interface{} {
 
 func resourceAllowedAddressPairsV2(d *schema.ResourceData) []ports.AddressPair {
 	// ports.AddressPair
-	rawPairs := d.Get("allowed_address_pairs").([]interface{})
+	rawPairs := d.Get("allowed_address_pairs").(*schema.Set).List()
 
 	if len(rawPairs) == 0 {
 		return nil
@@ -345,6 +348,14 @@ func resourcePortAdminStateUpV2(d *schema.ResourceData) *bool {
 	}
 
 	return &value
+}
+
+func allowedAddressPairsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s", m["ip_address"].(string)))
+
+	return hashcode.String(buf.String())
 }
 
 func waitForNetworkPortActive(networkingClient *gophercloud.ServiceClient, portId string) resource.StateRefreshFunc {

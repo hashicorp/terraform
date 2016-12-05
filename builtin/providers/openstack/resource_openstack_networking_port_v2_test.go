@@ -59,7 +59,7 @@ func TestAccNetworkingV2Port_noip(t *testing.T) {
 func TestAccNetworkingV2Port_allowedAddressPairs(t *testing.T) {
 	var network networks.Network
 	var subnet subnets.Subnet
-	var vrrp_port, instance_port ports.Port
+	var vrrp_port_1, vrrp_port_2, instance_port ports.Port
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -71,7 +71,8 @@ func TestAccNetworkingV2Port_allowedAddressPairs(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.vrrp_subnet", &subnet),
 					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.vrrp_network", &network),
-					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.vrrp_port", &vrrp_port),
+					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.vrrp_port_1", &vrrp_port_1),
+					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.vrrp_port_2", &vrrp_port_2),
 					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.instance_port", &instance_port),
 				),
 			},
@@ -202,8 +203,18 @@ var testAccNetworkingV2Port_allowedAddressPairs = fmt.Sprintf(`
 			subnet_id = "${openstack_networking_subnet_v2.vrrp_subnet.id}"
 		}
 
-		resource "openstack_networking_port_v2" "vrrp_port" {
-			name = "vrrp_port"
+		resource "openstack_networking_port_v2" "vrrp_port_1" {
+			name = "vrrp_port_1"
+			network_id = "${openstack_networking_network_v2.vrrp_network.id}"
+			admin_state_up = "true"
+			fixed_ip {
+				subnet_id =  "${openstack_networking_subnet_v2.vrrp_subnet.id}"
+				ip_address = "10.0.0.202"
+			}
+		}
+
+		resource "openstack_networking_port_v2" "vrrp_port_2" {
+			name = "vrrp_port_2"
 			network_id = "${openstack_networking_network_v2.vrrp_network.id}"
 			admin_state_up = "true"
 			fixed_ip {
@@ -218,7 +229,12 @@ var testAccNetworkingV2Port_allowedAddressPairs = fmt.Sprintf(`
 			admin_state_up = "true"
 
 			allowed_address_pairs {
-				ip_address = "${openstack_networking_port_v2.vrrp_port.fixed_ip.0.ip_address}"
-				mac_address = "${openstack_networking_port_v2.vrrp_port.mac_address}"
+				ip_address = "${openstack_networking_port_v2.vrrp_port_1.fixed_ip.0.ip_address}"
+				mac_address = "${openstack_networking_port_v2.vrrp_port_1.mac_address}"
+			}
+
+			allowed_address_pairs {
+				ip_address = "${openstack_networking_port_v2.vrrp_port_2.fixed_ip.0.ip_address}"
+				mac_address = "${openstack_networking_port_v2.vrrp_port_2.mac_address}"
 			}
 		}`)
