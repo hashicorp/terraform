@@ -997,12 +997,12 @@
 			"versionExact": "v1.8.13"
 		},
 		{
-			"checksumSHA1": "YLUO0JL3p+yvwkrE58srccxV6eU=",
+			"checksumSHA1": "l5ph014HGDb2IKp+4rrF2K/ELNs=",
 			"path": "github.com/aws/aws-sdk-go/service/iot",
-			"revision": "35c21ff262580265c1d77095d6f712605fd0c3f4",
-			"revisionTime": "2016-08-16T21:54:33Z",
-			"version": "v1.4.2",
-			"versionExact": "v1.4.2"
+			"revision": "918c42e2bcdb277aa821401c906e88254501bdf4",
+			"revisionTime": "2016-12-01T20:26:07Z",
+			"version": "=v1.5.13",
+			"versionExact": "v1.5.13"
 		},
 		{
 			"checksumSHA1": "lUmFKbtBQn9S4qrD5GOd57PIU1c=",
