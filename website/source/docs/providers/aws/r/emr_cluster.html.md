@@ -20,6 +20,9 @@ resource "aws_emr_cluster" "emr-test-cluster" {
   release_label = "emr-4.6.0"
   applications  = ["Spark"]
 
+  termination_protection = false
+  keep_job_flow_alive_when_no_steps = true
+
   ec2_attributes {
     subnet_id                         = "${aws_subnet.main.id}"
     emr_managed_master_security_group = "${aws_security_group.sg.id}"
@@ -68,6 +71,8 @@ The following arguments are supported:
 * `log_uri` - (Optional) S3 bucket to write the log files of the job flow. If a value
 	is not provided, logs are not created
 * `applications` - (Optional) A list of applications for the cluster. Valid values are: `Hadoop`, `Hive`,
+* `termination_protection` - (Optional) Switch on/off termination protection (default is off) 
+* `keep_job_flow_alive_when_no_steps` - (Optional) Switch on/off run cluster with no steps or when all steps are complete (default is on)
 	`Mahout`, `Pig`, and `Spark.` Case insensitive
 * `ec2_attributes` - (Optional) Attributes for the EC2 instances running the job
 flow. Defined below
