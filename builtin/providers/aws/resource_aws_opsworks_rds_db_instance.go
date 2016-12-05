@@ -3,8 +3,8 @@ package aws
 import (
 	"log"
 	"time"
-
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/opsworks"
@@ -51,11 +51,6 @@ func resourceAwsOpsworksRdsDbInstanceUpdate(d *schema.ResourceData, meta interfa
 	client := meta.(*AWSClient).opsworksconn
 
 	d.Partial(true)
-
-	// @TODO if these two params force new resources, is the following necessary?
-	if d.HasChange("rds_db_instance_arn") || d.HasChange("stack_id") {
-		return fmt.Errorf("cannot change 'rds_db_instance_arn' and 'stack_id' for opsworks rds db. changes on these attributes will force a new resource")
-	}
 
 	d.SetPartial("rds_db_instance_arn")
 	req := &opsworks.UpdateRdsDbInstanceInput{
