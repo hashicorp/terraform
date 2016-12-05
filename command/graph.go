@@ -59,7 +59,7 @@ func (c *GraphCommand) Run(args []string) int {
 
 	// Skip validation during graph generation - we want to see the graph even if
 	// it is invalid for some reason.
-	g, err := ctx.Graph(&terraform.ContextGraphOpts{
+	g, err := ctx.PlanGraph(&terraform.ContextGraphOpts{
 		Verbose:  verbose,
 		Validate: false,
 	})
