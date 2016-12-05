@@ -19,7 +19,7 @@ func resourceDatadogMonitor() *schema.Resource {
 		Delete: resourceDatadogMonitorDelete,
 		Exists: resourceDatadogMonitorExists,
 		Importer: &schema.ResourceImporter{
-			State: resourceDatadogImport,
+			State: resourceDatadogMonitorImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -73,7 +73,7 @@ func resourceDatadogMonitor() *schema.Resource {
 						},
 					},
 				},
-				DiffSuppressFunc: supressDataDogFloatIntDiff,
+				DiffSuppressFunc: suppressDataDogFloatIntDiff,
 			},
 			"notify_no_data": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -393,7 +393,7 @@ func resourceDatadogMonitorDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceDatadogImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceDatadogMonitorImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	if err := resourceDatadogMonitorRead(d, meta); err != nil {
 		return nil, err
 	}
@@ -402,7 +402,7 @@ func resourceDatadogImport(d *schema.ResourceData, meta interface{}) ([]*schema.
 
 // Ignore any diff that results from the mix of ints or floats returned from the
 // DataDog API.
-func supressDataDogFloatIntDiff(k, old, new string, d *schema.ResourceData) bool {
+func suppressDataDogFloatIntDiff(k, old, new string, d *schema.ResourceData) bool {
 	oF, err := strconv.ParseFloat(old, 64)
 	if err != nil {
 		log.Printf("Error parsing float of old value (%s): %s", old, err)

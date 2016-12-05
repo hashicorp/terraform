@@ -25,10 +25,11 @@ type Event struct {
 	AlertType   string   `json:"alert_type,omitempty"`
 	Host        string   `json:"host,omitempty"`
 	Aggregation string   `json:"aggregation_key,omitempty"`
-	SourceType  string   `json:"source_type,omitempty"`
+	SourceType  string   `json:"source_type_name,omitempty"`
 	Tags        []string `json:"tags,omitempty"`
 	Url         string   `json:"url,omitempty"`
 	Resource    string   `json:"resource,omitempty"`
+	EventType   string   `json:"event_type,omitempty"`
 }
 
 // reqGetEvent is the container for receiving a single event.
