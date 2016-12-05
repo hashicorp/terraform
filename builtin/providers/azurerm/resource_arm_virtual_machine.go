@@ -197,9 +197,9 @@ func resourceArmVirtualMachine() *schema.Resource {
 						},
 
 						"disk_size_gb": {
-							Type:         schema.TypeInt,
-							Required:     true,
-							ValidateFunc: validateDiskSizeGB,
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
 						},
 
 						"lun": {
@@ -849,7 +849,9 @@ func flattenAzureRmVirtualMachineDataDisk(disks *[]compute.DataDisk) interface{}
 		l["name"] = *disk.Name
 		l["vhd_uri"] = *disk.Vhd.URI
 		l["create_option"] = disk.CreateOption
-		l["disk_size_gb"] = *disk.DiskSizeGB
+		if disk.DiskSizeGB != nil {
+			l["disk_size_gb"] = *disk.DiskSizeGB
+		}
 		l["lun"] = *disk.Lun
 
 		result[i] = l
@@ -1170,7 +1172,6 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 		vhd := config["vhd_uri"].(string)
 		createOption := config["create_option"].(string)
 		lun := int32(config["lun"].(int))
-		disk_size := int32(config["disk_size_gb"].(int))
 
 		data_disk := compute.DataDisk{
 			Name: &name,
@@ -1178,8 +1179,12 @@ func expandAzureRmVirtualMachineDataDisk(d *schema.ResourceData) ([]compute.Data
 				URI: &vhd,
 			},
 			Lun:          &lun,
-			DiskSizeGB:   &disk_size,
 			CreateOption: compute.DiskCreateOptionTypes(createOption),
+		}
+
+		if v := config["disk_size_gb"]; v != nil {
+			diskSize := int32(config["disk_size_gb"].(int))
+			data_disk.DiskSizeGB = &diskSize
 		}
 
 		data_disks = append(data_disks, data_disk)
