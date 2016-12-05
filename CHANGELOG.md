@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Provider:** `external` [GH-8768]
  * **New Provider:** `Rancher` [GH-9173]
  * **New Resource:** `aws_opsworks_rds_db_instance` [GH-10294]
  * **New Resource:** `aws_vpc_endpoint_route_table_association` [GH-10137]
