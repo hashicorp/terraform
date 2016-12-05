@@ -686,17 +686,6 @@
                   </ul>
               </li>
 
-                <li<%= sidebar_current(/^docs-aws-resource-lightsail/) %>>
-                    <a href="#">Lightsail Resources</a>
-                    <ul class="nav nav-visible">
-
-                        <li<%= sidebar_current("docs-aws-resource-lightsail-instance") %>>
-                            <a href="/docs/providers/aws/r/lightsail_instance.html">aws_lightsail_instance</a>
-                        </li>
-
-                    </ul>
-                </li>
-
                 <li<%= sidebar_current(/^docs-aws-resource-opsworks/) %>>
                     <a href="#">OpsWorks Resources</a>
                     <ul class="nav nav-visible">
@@ -747,6 +736,10 @@
 
                         <li<%= sidebar_current("docs-aws-resource-opsworks-rails-app-layer") %>>
                             <a href="/docs/providers/aws/r/opsworks_rails_app_layer.html">aws_opsworks_rails_app_layer</a>
+                        </li>
+
+                        <li<%= sidebar_current("docs-aws-resource-opsworks-rds-db-instance") %>>
+                          <a href="/docs/providers/aws/r/opsworks_rds_db_instance.html">aws_opsworks_rds_db_instance</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-opsworks-stack") %>>
@@ -1085,10 +1078,6 @@
 
                         <li<%= sidebar_current("docs-aws-resource-vpc-endpoint") %>>
                             <a href="/docs/providers/aws/r/vpc_endpoint.html">aws_vpc_endpoint</a>
-                        </li>
-
-                        <li<%= sidebar_current("docs-aws-resource-vpc-endpoint-route-table-association") %>>
-                            <a href="/docs/providers/aws/r/vpc_endpoint_route_table_association.html">aws_vpc_endpoint_route_table_association</a>
                         </li>
 
                         <li<%= sidebar_current("docs-aws-resource-vpc-peering") %>>
