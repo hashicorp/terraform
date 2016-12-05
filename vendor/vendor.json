@@ -857,6 +857,14 @@
 			"versionExact": "v1.5.13"
 		},
 		{
+			"checksumSHA1": "Zc40RDOSS1SZjt/YJebeWamE7+k=",
+			"path": "github.com/aws/aws-sdk-go/service/lightsail",
+			"revision": "e7849863adae563900a3474ee6feed65471ab070",
+			"revisionTime": "2016-11-30T19:57:18Z",
+			"version": "=v1.5.12",
+			"versionExact": "v1.5.12"
+		},
+		{
 			"checksumSHA1": "BZY0NsRwwIbs52ZSjaEGqgWHXyo=",
 			"path": "github.com/aws/aws-sdk-go/service/opsworks",
 			"revision": "918c42e2bcdb277aa821401c906e88254501bdf4",
