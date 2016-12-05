@@ -77,7 +77,7 @@ func testAccAwsOpsworksStackCheckResourceAttrsCreate(zone, stackName string) res
 		resource.TestCheckResourceAttr(
 			"aws_opsworks_stack.tf-acc",
 			"default_os",
-			"Amazon Linux 2014.09",
+			"Amazon Linux 2016.09",
 		),
 		resource.TestCheckResourceAttr(
 			"aws_opsworks_stack.tf-acc",
@@ -117,7 +117,7 @@ func testAccAwsOpsworksStackCheckResourceAttrsUpdate(zone, stackName string) res
 		resource.TestCheckResourceAttr(
 			"aws_opsworks_stack.tf-acc",
 			"default_os",
-			"Amazon Linux 2014.09",
+			"Amazon Linux 2016.09",
 		),
 		resource.TestCheckResourceAttr(
 			"aws_opsworks_stack.tf-acc",
@@ -420,7 +420,7 @@ resource "aws_opsworks_stack" "tf-acc" {
   default_subnet_id = "${aws_subnet.tf-acc.id}"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
-  default_os = "Amazon Linux 2014.09"
+  default_os = "Amazon Linux 2016.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
   configuration_manager_version = "11.10"
@@ -511,7 +511,7 @@ resource "aws_opsworks_stack" "tf-acc" {
   default_subnet_id = "${aws_subnet.tf-acc.id}"
   service_role_arn = "${aws_iam_role.opsworks_service.arn}"
   default_instance_profile_arn = "${aws_iam_instance_profile.opsworks_instance.arn}"
-  default_os = "Amazon Linux 2014.09"
+  default_os = "Amazon Linux 2016.09"
   default_root_device_type = "ebs"
   custom_json = "{\"key\": \"value\"}"
   configuration_manager_version = "11.10"

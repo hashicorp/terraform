@@ -282,7 +282,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.kinesisconn = kinesis.New(kinesisSess)
 	client.kmsconn = kms.New(sess)
 	client.lambdaconn = lambda.New(sess)
-	client.opsworksconn = opsworks.New(usEast1Sess)
+	client.opsworksconn = opsworks.New(sess)
 	client.r53conn = route53.New(usEast1Sess)
 	client.rdsconn = rds.New(sess)
 	client.redshiftconn = redshift.New(sess)
