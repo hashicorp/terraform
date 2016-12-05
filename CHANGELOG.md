@@ -1,9 +1,9 @@
 ## 0.7.14 (unreleased)
 
 BUG FIXES:
-
- * core: Fix diff mismatch 'destroy old: false, new: true' by treating non-CBD resources as CBD when an ancestor is CBD. [GH-10455]
- * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine [GH-10340]
+=======
+ * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine ([#10340](https://github.com/hashicorp/terraform/issues/10340))
+ * provider/aws: Fix issue removing Lambda environment variables [GH-10492]
 
 
 ## 0.7.13 (November 23, 2016)
