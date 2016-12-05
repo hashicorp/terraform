@@ -8,6 +8,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: Add support for termination protection and autotermination to EMR [GH-10252]
+ * provider/azurerm: make DiskSizeGB optional for azurerm_virtual_machine data_disks [GH-10232]
  * provider/datadog: Make monitor thresholds optional. [GH-10526]
  * provider/datadog: Improve datadog timeboard support [GH-10027]
  * provider/docker: Upload files into container before first start [GH-9520]
