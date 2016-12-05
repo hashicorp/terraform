@@ -1,5 +1,10 @@
 ## 0.8.0-rc3 (unreleased)
 
+FEATURES:
+
+ * **New Resource:** `aws_vpc_endpoint_route_table_association` [GH-10137]
+
+
 IMPROVEMENTS:
 
  * provider/datadog: Make monitor thresholds optional. [GH-10526]
