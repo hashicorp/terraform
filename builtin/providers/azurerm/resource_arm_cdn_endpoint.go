@@ -195,7 +195,7 @@ func resourceArmCdnEndpointCreate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	read, err := cdnEndpointsClient.Get(name, profileName, resGroup)
+	read, err := cdnEndpointsClient.Get(resGroup, profileName, name)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func resourceArmCdnEndpointRead(d *schema.ResourceData, meta interface{}) error 
 		profileName = id.Path["Profiles"]
 	}
 	log.Printf("[INFO] Trying to find the AzureRM CDN Endpoint %s (Profile: %s, RG: %s)", name, profileName, resGroup)
-	resp, err := cdnEndpointsClient.Get(name, profileName, resGroup)
+	resp, err := cdnEndpointsClient.Get(resGroup, profileName, name)
 	if err != nil {
 		if resp.StatusCode == http.StatusNotFound {
 			d.SetId("")
@@ -327,7 +327,7 @@ func resourceArmCdnEndpointDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 	name := id.Path["endpoints"]
 
-	accResp, err := client.Delete(name, profileName, resGroup, make(chan struct{}))
+	accResp, err := client.Delete(resGroup, profileName, name, make(chan struct{}))
 	if err != nil {
 		if accResp.StatusCode == http.StatusNotFound {
 			return nil
