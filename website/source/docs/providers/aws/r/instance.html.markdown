@@ -58,6 +58,7 @@ The following arguments are supported:
 instance. Amazon defaults this to `stop` for EBS-backed instances and 
 `terminate` for instance-store instances. Cannot be set on instance-store 
 instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html#Using_ChangingInstanceInitiatedShutdownBehavior) for more information.
+* `instance_state` - (Optional) State of the instance can be specified either as `running` or `stopped`.
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
 * `monitoring` - (Optional) If true, the launched EC2 instance will have detailed monitoring enabled. (Available since v0.6.0)
