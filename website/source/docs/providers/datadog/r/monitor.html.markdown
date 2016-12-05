@@ -60,10 +60,27 @@ The following arguments are supported:
     Email notifications can be sent to specific users by using the same '@username' notation as events.
 * `escalation_message` - (Optional) A message to include with a re-notification. Supports the '@username'
     notification allowed elsewhere.
-* `thresholds` - (Required) Thresholds by threshold type:
-    * `ok`
-    * `warning`
-    * `critical`
+* `thresholds` - (Optional)
+    * Metric alerts:
+    A dictionary of thresholds by threshold type. Currently we have two threshold types for metric alerts: critical and warning. Critical is defined in the query, but can also be specified in this option. Warning threshold can only be specified using the thresholds option.
+    Example usage:
+        ```
+        thresholds {
+            critical = 90
+            warning  = 80
+        }
+        ```
+    * Service checks:
+    A dictionary of thresholds by status. Because service checks can have multiple thresholds, we don't define them directly in the query.
+    Default values:
+        ```
+        thresholds {
+            ok       = 1
+            critical = 1
+            warning  = 1
+        }
+        ```
+
 * `notify_no_data` (Optional) A boolean indicating whether this monitor will notify when data stops reporting. Defaults
     to true.
 * `no_data_timeframe` (Optional) The number of minutes before a monitor will notify when data stops reporting. Must be at

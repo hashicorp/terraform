@@ -56,7 +56,7 @@ func resourceDatadogMonitor() *schema.Resource {
 			// Options
 			"thresholds": &schema.Schema{
 				Type:     schema.TypeMap,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ok": &schema.Schema{
@@ -69,7 +69,7 @@ func resourceDatadogMonitor() *schema.Resource {
 						},
 						"critical": &schema.Schema{
 							Type:     schema.TypeFloat,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},
