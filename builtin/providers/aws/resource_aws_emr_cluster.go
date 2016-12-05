@@ -398,7 +398,7 @@ func resourceAwsEMRClusterUpdate(d *schema.ResourceData, meta interface{}) error
 			InstanceGroups: []*emr.InstanceGroupModifyConfig{
 				{
 					InstanceGroupId: coreGroup.Id,
-					InstanceCount:   aws.Int64(int64(coreInstanceCount)),
+					InstanceCount:   aws.Int64(int64(coreInstanceCount) - 1),
 				},
 			},
 		}
