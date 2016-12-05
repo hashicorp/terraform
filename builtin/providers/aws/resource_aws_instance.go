@@ -1062,10 +1062,6 @@ func buildAwsInstanceOpts(
 
 	opts.UserData64 = aws.String(base64Encode([]byte(user_data)))
 
-	// check for non-default Subnet, and cast it to a String
-	subnet, hasSubnet := d.GetOk("subnet_id")
-	subnetID := subnet.(string)
-
 	// Placement is used for aws_instance; SpotPlacement is used for
 	// aws_spot_instance_request. They represent the same data. :-|
 	opts.Placement = &ec2.Placement{
@@ -1083,6 +1079,10 @@ func buildAwsInstanceOpts(
 	}
 
 	associatePublicIPAddress := d.Get("associate_public_ip_address").(bool)
+
+	// check for non-default Subnet, and cast it to a String
+	subnet, hasSubnet := d.GetOk("subnet_id")
+	subnetID := subnet.(string)
 
 	var groups []*string
 	if v := d.Get("security_groups"); v != nil {
