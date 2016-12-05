@@ -20,6 +20,7 @@ BUG FIXES:
   * core: On Unix machines if `getent` is not available, fall back to shell to find home dir. [GH-10515]
   * providers/aws: cloudfront distribution 404 should mark as gone [GH-10281]
   * provider/aws: Assign correct number of core instances (n-1) to aws-emr-cluster on update [GH-10529]
+  * provider/openstack: Fix Ordering of Port Allowed Address Pairs [GH-10250]
 
 ## 0.8.0-rc2 (December 2, 2016)
 
