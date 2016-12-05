@@ -1,9 +1,9 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"time"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -71,10 +71,24 @@ func resourceAwsOpsworksRdsDbInstanceUpdate(d *schema.ResourceData, meta interfa
 
 	if true == requestUpdate {
 		log.Printf("[DEBUG] Opsworks RDS DB Instance Modification request: %s", req)
-		_, err := client.UpdateRdsDbInstance(req)
+
+		err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+			var cerr error
+			_, cerr = client.UpdateRdsDbInstance(req)
+			if cerr != nil {
+				log.Printf("[INFO] client error")
+				if opserr, ok := cerr.(awserr.Error); ok {
+					log.Printf("[ERROR] OpsWorks error: %s message: %s", opserr.Code(), opserr.Message())
+				}
+				return resource.NonRetryableError(cerr)
+			}
+			return nil
+		})
+
 		if err != nil {
 			return err
 		}
+
 	}
 
 	d.Partial(false)
@@ -91,16 +105,27 @@ func resourceAwsOpsworksRdsDbInstanceDeregister(d *schema.ResourceData, meta int
 
 	log.Printf("[DEBUG] Unregistering rds db instance '%s' from stack: %s", d.Get("rds_db_instance_arn"), d.Get("stack_id"))
 
-	_, err := client.DeregisterRdsDbInstance(req)
-	if err != nil {
-		if awserr, ok := err.(awserr.Error); ok {
-			if awserr.Code() == "ResourceNotFoundException" {
-				log.Printf("[INFO] The db instance could not be found")
-				d.SetId("")
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		var cerr error
+		_, cerr = client.DeregisterRdsDbInstance(req)
+		if cerr != nil {
+			log.Printf("[INFO] client error")
+			if opserr, ok := cerr.(awserr.Error); ok {
+				if opserr.Code() == "ResourceNotFoundException" {
+					log.Printf("[INFO] The db instance could not be found. Remove it from state.")
+					d.SetId("")
 
-				return nil
+					return nil
+				}
+				log.Printf("[ERROR] OpsWorks error: %s message: %s", opserr.Code(), opserr.Message())
 			}
+			return resource.NonRetryableError(cerr)
 		}
+
+		return nil
+	})
+
+	if err != nil {
 		return err
 	}
 
@@ -124,9 +149,9 @@ func resourceAwsOpsworksRdsDbInstanceRead(d *schema.ResourceData, meta interface
 	found := false
 	id := ""
 	for _, instance := range resp.RdsDbInstances {
-		id = *instance.RdsDbInstanceArn + *instance.StackId
+		id = fmt.Sprintf("%s%s", *instance.RdsDbInstanceArn, *instance.StackId)
 
-		if d.Get("rds_db_instance_arn").(string)+d.Get("stack_id").(string) == id {
+		if fmt.Sprintf("%s%s", d.Get("rds_db_instance_arn").(string), d.Get("stack_id").(string)) == id {
 			found = true
 			d.SetId(id)
 			d.Set("id", id)
@@ -161,12 +186,11 @@ func resourceAwsOpsworksRdsDbInstanceRegister(d *schema.ResourceData, meta inter
 		if cerr != nil {
 			log.Printf("[INFO] client error")
 			if opserr, ok := cerr.(awserr.Error); ok {
-				// XXX: handle errors
 				log.Printf("[ERROR] OpsWorks error: %s message: %s", opserr.Code(), opserr.Message())
-				return resource.RetryableError(cerr)
 			}
 			return resource.NonRetryableError(cerr)
 		}
+
 		return nil
 	})
 
