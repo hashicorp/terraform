@@ -55,6 +55,13 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"assign_generated_ipv6_cidr_block": {
+				Type:     schema.TypeBool,
+				ForceNew: true,
+				Optional: true,
+				Default:  false,
+			},
+
 			"main_route_table_id": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -80,6 +87,16 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"ipv6_association_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"ipv6_cidr_block": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -91,11 +108,14 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("instance_tenancy"); ok {
 		instance_tenancy = v.(string)
 	}
+
 	// Create the VPC
 	createOpts := &ec2.CreateVpcInput{
-		CidrBlock:       aws.String(d.Get("cidr_block").(string)),
-		InstanceTenancy: aws.String(instance_tenancy),
+		CidrBlock:                   aws.String(d.Get("cidr_block").(string)),
+		InstanceTenancy:             aws.String(instance_tenancy),
+		AmazonProvidedIpv6CidrBlock: aws.Bool(d.Get("assign_generated_ipv6_cidr_block").(bool)),
 	}
+
 	log.Printf("[DEBUG] VPC create config: %#v", *createOpts)
 	vpcResp, err := conn.CreateVpc(createOpts)
 	if err != nil {
@@ -153,6 +173,14 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Tags
 	d.Set("tags", tagsToMap(vpc.Tags))
+
+	if vpc.Ipv6CidrBlockAssociationSet != nil {
+		d.Set("assign_generated_ipv6_cidr_block", true)
+		d.Set("ipv6_association_id", vpc.Ipv6CidrBlockAssociationSet[0].AssociationId)
+		d.Set("ipv6_cidr_block", vpc.Ipv6CidrBlockAssociationSet[0].Ipv6CidrBlock)
+	} else {
+		d.Set("assign_generated_ipv6_cidr_block", false)
+	}
 
 	// Attributes
 	attribute := "enableDnsSupport"
