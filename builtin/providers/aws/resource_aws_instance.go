@@ -1024,7 +1024,6 @@ func buildAwsInstanceOpts(
 		EBSOptimized:          aws.Bool(d.Get("ebs_optimized").(bool)),
 		ImageID:               aws.String(d.Get("ami").(string)),
 		InstanceType:          aws.String(d.Get("instance_type").(string)),
-		NetworkInterfaceId:    aws.String(d.Get("network_interface_id").(string)),
 	}
 
 	if v := d.Get("instance_initiated_shutdown_behavior").(string); v != "" {
