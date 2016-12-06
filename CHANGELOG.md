@@ -25,6 +25,7 @@ BUG FIXES:
 
   * core: Fix a diff mismatch error that could happen when a resource depends on a count resource being decreased. [GH-10522]
   * core: On Unix machines if `getent` is not available, fall back to shell to find home dir. [GH-10515]
+  * communicator/ssh: Avoid race that could cause parallel remote execs on the same host to overwrite each other [GH-10549]
   * provider/aws: cloudfront distribution 404 should mark as gone [GH-10281]
   * provider/aws: Assign correct number of core instances (n-1) to aws-emr-cluster on update [GH-10529]
   * provider/azurem: azurerm_availability_set not is ForceNew for UpdateDomain and FaultDomain [GH-10545]
