@@ -5,12 +5,12 @@ import (
 	"github.com/lrsmith/go-icinga2-api/iapi"
 )
 
-func resourceIcinga2CheckCommand() *schema.Resource {
+func resourceIcinga2Checkcommand() *schema.Resource {
 
 	return &schema.Resource{
-		Create: resourceIcinga2CheckCommandCreate,
-		Read:   resourceIcinga2CheckCommandRead,
-		Delete: resourceIcinga2CheckCommandDelete,
+		Create: resourceIcinga2CheckcommandCreate,
+		Read:   resourceIcinga2CheckcommandRead,
+		Delete: resourceIcinga2CheckcommandDelete,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:        schema.TypeString,
@@ -40,7 +40,7 @@ func resourceIcinga2CheckCommand() *schema.Resource {
 	}
 }
 
-func resourceIcinga2CheckCommandCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceIcinga2CheckcommandCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*iapi.Server)
 
@@ -53,7 +53,7 @@ func resourceIcinga2CheckCommandCreate(d *schema.ResourceData, meta interface{})
 		arguments[key] = value.(string)
 	}
 
-	checkcommands, err := client.CreateCheckCommand(name, command, arguments)
+	checkcommands, err := client.CreateCheckcommand(name, command, arguments)
 	if err != nil {
 		return err
 	}
@@ -67,13 +67,13 @@ func resourceIcinga2CheckCommandCreate(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceIcinga2CheckCommandRead(d *schema.ResourceData, meta interface{}) error {
+func resourceIcinga2CheckcommandRead(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*iapi.Server)
 
 	name := d.Get("name").(string)
 
-	checkcommands, err := client.GetCheckCommand(name)
+	checkcommands, err := client.GetCheckcommand(name)
 	if err != nil {
 		return err
 	}
@@ -87,17 +87,17 @@ func resourceIcinga2CheckCommandRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceIcinga2CheckCommandUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceIcinga2CheckcommandUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	return nil
 }
 
-func resourceIcinga2CheckCommandDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceIcinga2CheckcommandDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*iapi.Server)
 
 	name := d.Get("name").(string)
 
-	return client.DeleteCheckCommand(name)
+	return client.DeleteCheckcommand(name)
 
 }

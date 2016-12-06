@@ -9,9 +9,9 @@ import (
 	"github.com/lrsmith/go-icinga2-api/iapi"
 )
 
-func TestAccCreateCheckCommand(t *testing.T) {
+func TestAccCreateCheckcommand(t *testing.T) {
 
-	var testAccCreateBasicCheckCommand = fmt.Sprintf(`
+	var testAccCreateBasicCheckcommand = fmt.Sprintf(`
 		resource "icinga2_checkcommand" "basic" {
 		name      = "terraform-test-checkcommand-1"
 		templates = [ "plugin-check-command" ]
@@ -26,12 +26,10 @@ func TestAccCreateCheckCommand(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCreateBasicCheckCommand,
+				Config: testAccCreateBasicCheckcommand,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCheckCommandExists("icinga2_checkcommand.basic"),
+					testAccCheckCheckcommandExists("icinga2_checkcommand.basic"),
 					testAccCheckResourceState("icinga2_checkcommand.basic", "name", "terraform-test-checkcommand-1"),
-					//testAccCheckResourceState("icinga2_checkcommand.basic", "command.#", "1"),
-					//testAccCheckResourceState("icinga2_checkcommand.basic", "command.0", "/usr/local/bin/check_command"),
 					testAccCheckResourceState("icinga2_checkcommand.basic", "command", "/usr/local/bin/check_command"),
 					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.%", "2"),
 					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.-I", "$IARG$"),
@@ -42,21 +40,21 @@ func TestAccCreateCheckCommand(t *testing.T) {
 	})
 }
 
-func testAccCheckCheckCommandExists(rn string) resource.TestCheckFunc {
+func testAccCheckCheckcommandExists(rn string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		resource, ok := s.RootModule().Resources[rn]
 		if !ok {
-			return fmt.Errorf("CheckCommand resource not found: %s", rn)
+			return fmt.Errorf("Checkcommand resource not found: %s", rn)
 		}
 
 		if resource.Primary.ID == "" {
-			return fmt.Errorf("CheckCommand resource id not set")
+			return fmt.Errorf("Checkcommand resource id not set")
 		}
 
 		client := testAccProvider.Meta().(*iapi.Server)
-		_, err := client.GetCheckCommand(resource.Primary.ID)
+		_, err := client.GetCheckcommand(resource.Primary.ID)
 		if err != nil {
-			return fmt.Errorf("Error getting getting CheckCommand: %s", err)
+			return fmt.Errorf("Error getting getting Checkcommand: %s", err)
 		}
 
 		return nil

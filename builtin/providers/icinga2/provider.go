@@ -40,7 +40,8 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"icinga2_host":         resourceIcinga2Host(),
 			"icinga2_hostgroup":    resourceIcinga2HostGroup(),
-			"icinga2_checkcommand": resourceIcinga2CheckCommand(),
+			"icinga2_checkcommand": resourceIcinga2Checkcommand(),
+			"icinga2_service":      resourceIcinga2Service(),
 		},
 		ConfigureFunc: configureProvider,
 	}
