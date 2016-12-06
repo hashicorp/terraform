@@ -19,6 +19,7 @@ IMPROVEMENTS:
  * provider/docker: Upload files into container before first start [GH-9520]
  * provider/fastly: add ssl_hostname option [GH-9629]
  * provider/openstack: Detect Region for Importing Resources [GH-10509]
+ * provider/google: Instances and templates now both support `metadata_startup_script` and `metadata.startup-script`. [GH-10537]
 
 BUG FIXES:
 
