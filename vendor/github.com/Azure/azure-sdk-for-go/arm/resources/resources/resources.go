@@ -25,7 +25,8 @@ import (
 	"net/http"
 )
 
-// Client is the client for the Resources methods of the Resources service.
+// Client is the provides operations for working with resources and resource
+// groups.
 type Client struct {
 	ManagementClient
 }
@@ -40,12 +41,13 @@ func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
 	return Client{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CheckExistence checks whether resource exists.
+// CheckExistence checks whether a resource exists.
 //
-// resourceGroupName is the name of the resource group. The name is case
-// insensitive. resourceProviderNamespace is resource identity.
-// parentResourcePath is resource identity. resourceType is resource
-// identity. resourceName is resource identity.
+// resourceGroupName is the name of the resource group containing the resource
+// to check. The name is case insensitive. resourceProviderNamespace is the
+// resource provider of the resource to check. parentResourcePath is the
+// parent resource identity. resourceType is the resource type. resourceName
+// is the name of the resource to check whether it exists.
 func (client Client) CheckExistence(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -115,11 +117,11 @@ func (client Client) CheckExistenceResponder(resp *http.Response) (result autore
 	return
 }
 
-// CheckExistenceByID checks whether resource exists.
+// CheckExistenceByID checks by ID whether a resource exists.
 //
-// resourceID is the fully qualified Id of the resource, including the
-// resource name and resource type. For example,
-// /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myGroup/Microsoft.Web/sites/mySite
+// resourceID is the fully qualified ID of the resource, including the
+// resource name and resource type. Use the format,
+// /subscriptions/{guid}/resourceGroups/{resource-group-name}/{resource-provider-namespace}/{resource-type}/{resource-name}
 func (client Client) CheckExistenceByID(resourceID string) (result autorest.Response, err error) {
 	req, err := client.CheckExistenceByIDPreparer(resourceID)
 	if err != nil {
@@ -176,15 +178,16 @@ func (client Client) CheckExistenceByIDResponder(resp *http.Response) (result au
 	return
 }
 
-// CreateOrUpdate create a resource. This method may poll for completion.
+// CreateOrUpdate creates a resource. This method may poll for completion.
 // Polling can be canceled by passing the cancel channel argument. The
 // channel will be used to cancel polling and any outstanding HTTP requests.
 //
-// resourceGroupName is the name of the resource group. The name is case
-// insensitive. resourceProviderNamespace is resource identity.
-// parentResourcePath is resource identity. resourceType is resource
-// identity. resourceName is resource identity. parameters is create or
-// update resource parameters.
+// resourceGroupName is the name of the resource group for the resource. The
+// name is case insensitive. resourceProviderNamespace is the namespace of
+// the resource provider. parentResourcePath is the parent resource identity.
+// resourceType is the resource type of the resource to create. resourceName
+// is the name of the resource to create. parameters is parameters for
+// creating or updating the resource.
 func (client Client) CreateOrUpdate(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, parameters GenericResource, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -265,13 +268,14 @@ func (client Client) CreateOrUpdateResponder(resp *http.Response) (result autore
 	return
 }
 
-// CreateOrUpdateByID create a resource. This method may poll for completion.
-// Polling can be canceled by passing the cancel channel argument. The
-// channel will be used to cancel polling and any outstanding HTTP requests.
+// CreateOrUpdateByID create a resource by ID. This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
-// resourceID is the fully qualified Id of the resource, including the
-// resource name and resource type. For example,
-// /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myGroup/Microsoft.Web/sites/mySite
+// resourceID is the fully qualified ID of the resource, including the
+// resource name and resource type. Use the format,
+// /subscriptions/{guid}/resourceGroups/{resource-group-name}/{resource-provider-namespace}/{resource-type}/{resource-name}
 // parameters is create or update resource parameters.
 func (client Client) CreateOrUpdateByID(resourceID string, parameters GenericResource, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
@@ -348,10 +352,11 @@ func (client Client) CreateOrUpdateByIDResponder(resp *http.Response) (result au
 // be canceled by passing the cancel channel argument. The channel will be
 // used to cancel polling and any outstanding HTTP requests.
 //
-// resourceGroupName is the name of the resource group. The name is case
-// insensitive. resourceProviderNamespace is resource identity.
-// parentResourcePath is resource identity. resourceType is resource
-// identity. resourceName is resource identity.
+// resourceGroupName is the name of the resource group that contains the
+// resource to delete. The name is case insensitive.
+// resourceProviderNamespace is the namespace of the resource provider.
+// parentResourcePath is the parent resource identity. resourceType is the
+// resource type. resourceName is the name of the resource to delete.
 func (client Client) Delete(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -423,13 +428,13 @@ func (client Client) DeleteResponder(resp *http.Response) (result autorest.Respo
 	return
 }
 
-// DeleteByID deletes a resource. This method may poll for completion. Polling
-// can be canceled by passing the cancel channel argument. The channel will
-// be used to cancel polling and any outstanding HTTP requests.
+// DeleteByID deletes a resource by ID. This method may poll for completion.
+// Polling can be canceled by passing the cancel channel argument. The
+// channel will be used to cancel polling and any outstanding HTTP requests.
 //
-// resourceID is the fully qualified Id of the resource, including the
-// resource name and resource type. For example,
-// /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myGroup/Microsoft.Web/sites/mySite
+// resourceID is the fully qualified ID of the resource, including the
+// resource name and resource type. Use the format,
+// /subscriptions/{guid}/resourceGroups/{resource-group-name}/{resource-provider-namespace}/{resource-type}/{resource-name}
 func (client Client) DeleteByID(resourceID string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.DeleteByIDPreparer(resourceID, cancel)
 	if err != nil {
@@ -488,12 +493,13 @@ func (client Client) DeleteByIDResponder(resp *http.Response) (result autorest.R
 	return
 }
 
-// Get returns a resource belonging to a resource group.
+// Get gets a resource.
 //
-// resourceGroupName is the name of the resource group. The name is case
-// insensitive. resourceProviderNamespace is resource identity.
-// parentResourcePath is resource identity. resourceType is resource
-// identity. resourceName is resource identity.
+// resourceGroupName is the name of the resource group containing the resource
+// to get. The name is case insensitive. resourceProviderNamespace is the
+// namespace of the resource provider. parentResourcePath is the parent
+// resource identity. resourceType is the resource type of the resource.
+// resourceName is the name of the resource to get.
 func (client Client) Get(resourceGroupName string, resourceProviderNamespace string, parentResourcePath string, resourceType string, resourceName string) (result GenericResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -564,11 +570,11 @@ func (client Client) GetResponder(resp *http.Response) (result GenericResource, 
 	return
 }
 
-// GetByID gets a resource.
+// GetByID gets a resource by ID.
 //
-// resourceID is the fully qualified Id of the resource, including the
-// resource name and resource type. For example,
-// /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/myGroup/Microsoft.Web/sites/mySite
+// resourceID is the fully qualified ID of the resource, including the
+// resource name and resource type. Use the format,
+// /subscriptions/{guid}/resourceGroups/{resource-group-name}/{resource-provider-namespace}/{resource-type}/{resource-name}
 func (client Client) GetByID(resourceID string) (result GenericResource, err error) {
 	req, err := client.GetByIDPreparer(resourceID)
 	if err != nil {
@@ -626,11 +632,11 @@ func (client Client) GetByIDResponder(resp *http.Response) (result GenericResour
 	return
 }
 
-// List get all of the resources under a subscription.
+// List get all the resources in a subscription.
 //
 // filter is the filter to apply on the operation. expand is the $expand query
-// parameter. top is query parameters. If null is passed returns all resource
-// groups.
+// parameter. top is the number of results to return. If null is passed,
+// returns all resource groups.
 func (client Client) List(filter string, expand string, top *int32) (result ResourceListResult, err error) {
 	req, err := client.ListPreparer(filter, expand, top)
 	if err != nil {
@@ -721,14 +727,17 @@ func (client Client) ListNextResults(lastResults ResourceListResult) (result Res
 	return
 }
 
-// MoveResources move resources from one resource group to another. The
-// resources being moved should all be in the same resource group. This
-// method may poll for completion. Polling can be canceled by passing the
-// cancel channel argument. The channel will be used to cancel polling and
-// any outstanding HTTP requests.
+// MoveResources the resources to move must be in the same source resource
+// group. The target resource group may be in a different subscription. When
+// moving resources, both the source group and the target group are locked
+// for the duration of the operation. Write and delete operations are blocked
+// on the groups until the move completes.  This method may poll for
+// completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
-// sourceResourceGroupName is source resource group name. parameters is move
-// resources' parameters.
+// sourceResourceGroupName is the name of the resource group containing the
+// rsources to move. parameters is parameters for moving resources.
 func (client Client) MoveResources(sourceResourceGroupName string, parameters MoveInfo, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: sourceResourceGroupName,
