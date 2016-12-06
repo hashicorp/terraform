@@ -20,6 +20,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * core: Fix a diff mismatch error that could happen when a resource depends on a count resource being decreased. [GH-10522]
   * core: On Unix machines if `getent` is not available, fall back to shell to find home dir. [GH-10515]
   * providers/aws: cloudfront distribution 404 should mark as gone [GH-10281]
   * provider/aws: Assign correct number of core instances (n-1) to aws-emr-cluster on update [GH-10529]
@@ -2668,4 +2669,4 @@ IMPROVEMENTS:
   * providers/google: Add `size` option to disk blocks for instances. ([#1284](https://github.com/hashicorp/terraform/issues/1284))
   * providers/aws: Improve support for tagging resources.
   * providers/aws: Add a short syntax for Route 53 Record names, e.g.
-      `www` 
+      `www`
