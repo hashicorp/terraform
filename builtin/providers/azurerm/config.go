@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 
+	"github.com/Azure/azure-sdk-for-go/arm/applicationinsights"
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
@@ -58,6 +59,8 @@ type ArmClient struct {
 	vnetPeeringsClient           network.VirtualNetworkPeeringsClient
 	routeTablesClient            network.RouteTablesClient
 	routesClient                 network.RoutesClient
+
+	applicationInsightsClient applicationinsights.InsightsClient
 
 	cdnProfilesClient  cdn.ProfilesClient
 	cdnEndpointsClient cdn.EndpointsClient
@@ -216,6 +219,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	agc.Authorizer = spt
 	agc.Sender = autorest.CreateSender(withRequestLogging())
 	client.appGatewayClient = agc
+
+	aic := applicationinsights.NewInsightsClient(c.SubscriptionID)
+	setUserAgent(&aic.Client)
+	aic.Authorizer = spt
+	aic.Sender = autorest.CreateSender(withRequestLogging())
+	client.applicationInsightsClient = aic
 
 	ehc := eventhub.NewEventHubsClient(c.SubscriptionID)
 	setUserAgent(&ehc.Client)

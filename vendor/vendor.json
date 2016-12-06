@@ -3,6 +3,15 @@
 	"ignore": "appengine test",
 	"package": [
 		{
+			"checksumSHA1": "SPkgudG/pEcehXo9ytOLhOl67Pk=",
+			"comment": "v2.1.1-beta-8-gca4d906",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/applicationinsights",
+			"revision": "bd73d950fa4440dae889bd9917bff7cef539f86e",
+			"revisionTime": "2016-10-28T18:31:11Z",
+			"version": "v5.0.0-beta",
+			"versionExact": "v5.0.0-beta"
+		},
+		{
 			"checksumSHA1": "7EtT3l4dwaxhwHlAd7IZ1DcglU0=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/cdn",
