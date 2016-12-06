@@ -488,14 +488,17 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 
 	networkProfile := expandAzureRmVirtualMachineNetworkProfile(d)
 	vmSize := d.Get("vm_size").(string)
-	licenseType := d.Get("license_type").(string)
 	properties := compute.VirtualMachineProperties{
 		NetworkProfile: &networkProfile,
 		HardwareProfile: &compute.HardwareProfile{
 			VMSize: compute.VirtualMachineSizeTypes(vmSize),
 		},
 		StorageProfile: &storageProfile,
-		LicenseType:    &licenseType,
+	}
+
+	if v, ok := d.GetOk(""); ok {
+		license := v.(string)
+		properties.LicenseType = &license
 	}
 
 	if _, ok := d.GetOk("boot_diagnostics"); ok {
