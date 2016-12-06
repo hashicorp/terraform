@@ -112,19 +112,20 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 The following attributes are exported:
 
 * `id` - The ID of the EMR Cluster
-* `name`
-* `release_label`
-* `master_instance_type`
-* `core_instance_type`
-* `core_instance_count`
-* `log_uri`
-* `applications`
-* `ec2_attributes`
-* `bootstrap_action`
-* `configurations`
-* `service_role`
-* `visible_to_all_users`
-* `tags`
+* `name` - The name of the cluster.
+* `release_label` - The release label for the Amazon EMR release.
+* `master_instance_type` - The EC2 instance type of the master node.
+* `master_public_dns` - The public DNS name of the master EC2 instance.
+* `core_instance_type` - The EC2 instance type of the slave nodes.
+* `core_instance_count` The number of slave nodes, i.e. EC2 instance nodes.
+* `log_uri` - The path to the Amazon S3 location where logs for this cluster are stored.
+* `applications` - The applications installed on this cluster.
+* `ec2_attributes` - Provides information about the EC2 instances in a cluster grouped by category: key name, subnet ID, IAM instance profile, and so on.
+* `bootstrap_action` - A list of bootstrap actions that will be run before Hadoop is started on the cluster nodes.
+* `configurations` - The list of Configurations supplied to the EMR cluster.
+* `service_role` - The IAM role that will be assumed by the Amazon EMR service to access AWS resources on your behalf.
+* `visible_to_all_users` - Indicates whether the job flow is visible to all IAM users of the AWS account associated with the job flow.
+* `tags` - The list of tags associated with a cluster.
 
 
 ## Example bootable config
