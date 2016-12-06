@@ -25,8 +25,8 @@ import (
 	"net/http"
 )
 
-// DeploymentOperationsClient is the client for the DeploymentOperations
-// methods of the Resources service.
+// DeploymentOperationsClient is the provides operations for working with
+// resources and resource groups.
 type DeploymentOperationsClient struct {
 	ManagementClient
 }
@@ -43,11 +43,11 @@ func NewDeploymentOperationsClientWithBaseURI(baseURI string, subscriptionID str
 	return DeploymentOperationsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// Get get a list of deployments operations.
+// Get gets a deployments operation.
 //
 // resourceGroupName is the name of the resource group. The name is case
 // insensitive. deploymentName is the name of the deployment. operationID is
-// operation Id.
+// the ID of the operation to get.
 func (client DeploymentOperationsClient) Get(resourceGroupName string, deploymentName string, operationID string) (result DeploymentOperation, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -120,11 +120,11 @@ func (client DeploymentOperationsClient) GetResponder(resp *http.Response) (resu
 	return
 }
 
-// List gets a list of deployments operations.
+// List gets all deployments operations for a deployment.
 //
 // resourceGroupName is the name of the resource group. The name is case
-// insensitive. deploymentName is the name of the deployment. top is query
-// parameters.
+// insensitive. deploymentName is the name of the deployment with the
+// operation to get. top is the number of results to return.
 func (client DeploymentOperationsClient) List(resourceGroupName string, deploymentName string, top *int32) (result DeploymentOperationsListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,

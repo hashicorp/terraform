@@ -44,30 +44,30 @@ func NewSubnetsClientWithBaseURI(baseURI string, subscriptionID string) SubnetsC
 	return SubnetsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate the Put Subnet operation creates/updates a subnet in the
-// specified virtual network This method may poll for completion. Polling can
-// be canceled by passing the cancel channel argument. The channel will be
-// used to cancel polling and any outstanding HTTP requests.
+// CreateOrUpdate creates or updates a subnet in the specified virtual
+// network. This method may poll for completion. Polling can be canceled by
+// passing the cancel channel argument. The channel will be used to cancel
+// polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
 // the name of the virtual network. subnetName is the name of the subnet.
-// subnetParameters is parameters supplied to the create/update Subnet
-// operation
+// subnetParameters is parameters supplied to the create or update subnet
+// operation.
 func (client SubnetsClient) CreateOrUpdate(resourceGroupName string, virtualNetworkName string, subnetName string, subnetParameters Subnet, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: subnetParameters,
-			Constraints: []validation.Constraint{{Target: "subnetParameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "subnetParameters.Properties.NetworkSecurityGroup", Name: validation.Null, Rule: false,
-					Chain: []validation.Constraint{{Target: "subnetParameters.Properties.NetworkSecurityGroup.Properties", Name: validation.Null, Rule: false,
-						Chain: []validation.Constraint{{Target: "subnetParameters.Properties.NetworkSecurityGroup.Properties.NetworkInterfaces", Name: validation.ReadOnly, Rule: true, Chain: nil},
-							{Target: "subnetParameters.Properties.NetworkSecurityGroup.Properties.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil},
+			Constraints: []validation.Constraint{{Target: "subnetParameters.SubnetPropertiesFormat", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "subnetParameters.SubnetPropertiesFormat.NetworkSecurityGroup", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "subnetParameters.SubnetPropertiesFormat.NetworkSecurityGroup.SecurityGroupPropertiesFormat", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "subnetParameters.SubnetPropertiesFormat.NetworkSecurityGroup.SecurityGroupPropertiesFormat.NetworkInterfaces", Name: validation.ReadOnly, Rule: true, Chain: nil},
+							{Target: "subnetParameters.SubnetPropertiesFormat.NetworkSecurityGroup.SecurityGroupPropertiesFormat.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil},
 						}},
 					}},
-					{Target: "subnetParameters.Properties.RouteTable", Name: validation.Null, Rule: false,
-						Chain: []validation.Constraint{{Target: "subnetParameters.Properties.RouteTable.Properties", Name: validation.Null, Rule: false,
-							Chain: []validation.Constraint{{Target: "subnetParameters.Properties.RouteTable.Properties.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
+					{Target: "subnetParameters.SubnetPropertiesFormat.RouteTable", Name: validation.Null, Rule: false,
+						Chain: []validation.Constraint{{Target: "subnetParameters.SubnetPropertiesFormat.RouteTable.RouteTablePropertiesFormat", Name: validation.Null, Rule: false,
+							Chain: []validation.Constraint{{Target: "subnetParameters.SubnetPropertiesFormat.RouteTable.RouteTablePropertiesFormat.Subnets", Name: validation.ReadOnly, Rule: true, Chain: nil}}},
 						}},
-					{Target: "subnetParameters.Properties.IPConfigurations", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					{Target: "subnetParameters.SubnetPropertiesFormat.IPConfigurations", Name: validation.ReadOnly, Rule: true, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "network.SubnetsClient", "CreateOrUpdate")
 	}
@@ -134,10 +134,9 @@ func (client SubnetsClient) CreateOrUpdateResponder(resp *http.Response) (result
 	return
 }
 
-// Delete the delete subnet operation deletes the specified subnet. This
-// method may poll for completion. Polling can be canceled by passing the
-// cancel channel argument. The channel will be used to cancel polling and
-// any outstanding HTTP requests.
+// Delete deletes the specified subnet. This method may poll for completion.
+// Polling can be canceled by passing the cancel channel argument. The
+// channel will be used to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
 // the name of the virtual network. subnetName is the name of the subnet.
@@ -202,12 +201,11 @@ func (client SubnetsClient) DeleteResponder(resp *http.Response) (result autores
 	return
 }
 
-// Get the Get subnet operation retrieves information about the specified
-// subnet.
+// Get gets the specified subnet by virtual network and resource group.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
 // the name of the virtual network. subnetName is the name of the subnet.
-// expand is expand references resources.
+// expand is expands referenced resources.
 func (client SubnetsClient) Get(resourceGroupName string, virtualNetworkName string, subnetName string, expand string) (result Subnet, err error) {
 	req, err := client.GetPreparer(resourceGroupName, virtualNetworkName, subnetName, expand)
 	if err != nil {
@@ -271,8 +269,7 @@ func (client SubnetsClient) GetResponder(resp *http.Response) (result Subnet, er
 	return
 }
 
-// List the List subnets operation retrieves all the subnets in a virtual
-// network.
+// List gets all subnets in a virtual network.
 //
 // resourceGroupName is the name of the resource group. virtualNetworkName is
 // the name of the virtual network.
