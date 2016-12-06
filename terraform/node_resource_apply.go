@@ -17,6 +17,36 @@ func (n *NodeApplyableResource) CreateAddr() *ResourceAddress {
 	return n.NodeAbstractResource.Addr
 }
 
+// GraphNodeReferencer, overriding NodeAbstractResource
+func (n *NodeApplyableResource) References() []string {
+	result := n.NodeAbstractResource.References()
+
+	// The "apply" side of a resource generally also depends on the
+	// destruction of its dependencies as well. For example, if a LB
+	// references a set of VMs with ${vm.foo.*.id}, then we must wait for
+	// the destruction so we get the newly updated list of VMs.
+	//
+	// The exception here is CBD. When CBD is set, we don't do this since
+	// it would create a cycle. By not creating a cycle, we require two
+	// applies since the first apply the creation step will use the OLD
+	// values (pre-destroy) and the second step will update.
+	//
+	// This is how Terraform behaved with "legacy" graphs (TF <= 0.7.x).
+	// We mimic that behavior here now and can improve upon it in the future.
+	//
+	// This behavior is tested in graph_build_apply_test.go to test ordering.
+	cbd := n.Config != nil && n.Config.Lifecycle.CreateBeforeDestroy
+	if !cbd {
+		// The "apply" side of a resource always depends on the destruction
+		// of all its dependencies in addition to the creation.
+		for _, v := range result {
+			result = append(result, v+".destroy")
+		}
+	}
+
+	return result
+}
+
 // GraphNodeEvalable
 func (n *NodeApplyableResource) EvalTree() EvalNode {
 	addr := n.NodeAbstractResource.Addr
