@@ -75,9 +75,10 @@ func resourceArmVirtualMachine() *schema.Resource {
 			},
 
 			"license_type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateLicenseType,
 			},
 
 			"vm_size": {
@@ -431,6 +432,15 @@ func resourceArmVirtualMachine() *schema.Resource {
 	}
 }
 
+func validateLicenseType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "" && value != "Windows_Server" {
+		errors = append(errors, fmt.Errorf(
+			"[ERROR] license_type must be 'Windows_Server' or empty"))
+	}
+	return
+}
+
 func validateDiskSizeGB(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(int)
 	if value < 1 || value > 1023 {
@@ -478,12 +488,14 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 
 	networkProfile := expandAzureRmVirtualMachineNetworkProfile(d)
 	vmSize := d.Get("vm_size").(string)
+	licenseType := d.Get("license_type").(string)
 	properties := compute.VirtualMachineProperties{
 		NetworkProfile: &networkProfile,
 		HardwareProfile: &compute.HardwareProfile{
 			VMSize: compute.VirtualMachineSizeTypes(vmSize),
 		},
 		StorageProfile: &storageProfile,
+		LicenseType:    &licenseType,
 	}
 
 	if _, ok := d.GetOk("boot_diagnostics"); ok {
