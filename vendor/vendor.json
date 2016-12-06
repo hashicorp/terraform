@@ -1607,6 +1607,12 @@
 			"revisionTime": "2016-07-04T14:48:39Z"
 		},
 		{
+			"checksumSHA1": "C4lIoFjUYR2l2/Ql77qHtoQe4fI=",
+			"path": "github.com/lrsmith/go-icinga2-api/iapi",
+			"revision": "4e40b54ad0c255b73baf673779a5c2f990f04eea",
+			"revisionTime": "2016-12-06T00:02:12Z"
+		},
+		{
 			"path": "github.com/lusis/go-artifactory/src/artifactory.v401",
 			"revision": "7e4ce345df825841661d1b3ffbb1327083d4a22f"
 		},
@@ -2366,5 +2372,5 @@
 			"revision": "77178f22699a4ecafce485fb8d86b7afeb7e3e28"
 		}
 	],
-	"rootPath": "github.com/hashicorp/terraform"
+	"rootPath": "github.com/lrsmith/terraform"
 }
