@@ -31,13 +31,16 @@ type PlanGraphBuilder struct {
 
 	// DisableReduce, if true, will not reduce the graph. Great for testing.
 	DisableReduce bool
+
+	// Validate will do structural validation of the graph.
+	Validate bool
 }
 
 // See GraphBuilder
 func (b *PlanGraphBuilder) Build(path []string) (*Graph, error) {
 	return (&BasicGraphBuilder{
 		Steps:    b.Steps(),
-		Validate: true,
+		Validate: b.Validate,
 		Name:     "PlanGraphBuilder",
 	}).Build(path)
 }
@@ -45,10 +48,9 @@ func (b *PlanGraphBuilder) Build(path []string) (*Graph, error) {
 // See GraphBuilder
 func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	// Custom factory for creating providers.
-	providerFactory := func(name string, path []string) GraphNodeProvider {
+	concreteProvider := func(a *NodeAbstractProvider) dag.Vertex {
 		return &NodeApplyableProvider{
-			NameValue: name,
-			PathValue: path,
+			NodeAbstractProvider: a,
 		}
 	}
 
@@ -95,7 +97,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&TargetsTransformer{Targets: b.Targets},
 
 		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},
+		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
 		&ProviderTransformer{},
 		&DisableProviderTransformer{},
 		&ParentProviderTransformer{},
