@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"regexp"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -15,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/vault/helper/pgpkeys"
-	"regexp"
 )
 
 func TestAccAWSUserLoginProfile_basic(t *testing.T) {
