@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -27,6 +28,13 @@ const (
 	DefaultShebang = "#!/bin/sh\n"
 )
 
+// randShared is a global random generator object that is shared.
+// This must be shared since it is seeded by the current time and
+// creating multiple can result in the same values. By using a shared
+// RNG we assure different numbers per call.
+var randLock sync.Mutex
+var randShared *rand.Rand
+
 // Communicator represents the SSH communicator
 type Communicator struct {
 	connInfo *connectionInfo
@@ -34,7 +42,6 @@ type Communicator struct {
 	config   *sshConfig
 	conn     net.Conn
 	address  string
-	rand     *rand.Rand
 }
 
 type sshConfig struct {
@@ -66,11 +73,22 @@ func New(s *terraform.InstanceState) (*Communicator, error) {
 		return nil, err
 	}
 
+	// Setup the random number generator once. The seed value is the
+	// time multiplied by the PID. This can overflow the int64 but that
+	// is okay. We multiply by the PID in case we have multiple processes
+	// grabbing this at the same time. This is possible with Terraform and
+	// if we communicate to the same host at the same instance, we could
+	// overwrite the same files. Multiplying by the PID prevents this.
+	randLock.Lock()
+	defer randLock.Unlock()
+	if randShared == nil {
+		randShared = rand.New(rand.NewSource(
+			time.Now().UnixNano() * int64(os.Getpid())))
+	}
+
 	comm := &Communicator{
 		connInfo: connInfo,
 		config:   config,
-		// Seed our own rand source so that script paths are not deterministic
-		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	return comm, nil
@@ -186,9 +204,12 @@ func (c *Communicator) Timeout() time.Duration {
 
 // ScriptPath implementation of communicator.Communicator interface
 func (c *Communicator) ScriptPath() string {
+	randLock.Lock()
+	defer randLock.Unlock()
+
 	return strings.Replace(
 		c.connInfo.ScriptPath, "%RAND%",
-		strconv.FormatInt(int64(c.rand.Int31()), 10), -1)
+		strconv.FormatInt(int64(randShared.Int31()), 10), -1)
 }
 
 // Start implementation of communicator.Communicator interface
