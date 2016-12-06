@@ -39,6 +39,7 @@ func resourceArmAvailabilitySet() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  5,
+				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(int)
 					if value > 20 {
@@ -53,6 +54,7 @@ func resourceArmAvailabilitySet() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  3,
+				ForceNew: true,
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(int)
 					if value > 3 {
