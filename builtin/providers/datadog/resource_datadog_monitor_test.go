@@ -42,9 +42,9 @@ func TestAccDatadogMonitor_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "locked", "false"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "tags.foo", "bar"),
+						"datadog_monitor.foo", "tags.0", "foo:bar"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "tags.bar", "baz"),
+						"datadog_monitor.foo", "tags.1", "baz"),
 				),
 			},
 		},
@@ -90,9 +90,9 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "locked", "false"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "tags.foo", "bar"),
+						"datadog_monitor.foo", "tags.0", "foo:bar"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "tags.bar", "baz"),
+						"datadog_monitor.foo", "tags.1", "baz"),
 				),
 			},
 			resource.TestStep{
@@ -134,9 +134,9 @@ func TestAccDatadogMonitor_Updated(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "locked", "true"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "tags.baz", "qux"),
+						"datadog_monitor.foo", "tags.0", "baz:qux"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "tags.quux", "corge"),
+						"datadog_monitor.foo", "tags.1", "quux"),
 				),
 			},
 		},
@@ -249,10 +249,7 @@ resource "datadog_monitor" "foo" {
   include_tags = true
   require_full_window = true
   locked = false
-  tags {
-	"foo" = "bar"
-	"bar" = "baz"
-  }
+  tags = ["foo:bar", "baz"]
 }
 `
 
@@ -279,10 +276,7 @@ resource "datadog_monitor" "foo" {
   require_full_window = true
   locked              = false
 
-  tags {
-    "foo" = "bar"
-    "bar" = "baz"
-  }
+  tags = ["foo:bar", "baz"]
 }
 `
 
@@ -309,10 +303,7 @@ resource "datadog_monitor" "foo" {
   require_full_window = true
   locked              = false
 
-  tags {
-    "foo" = "bar"
-    "bar" = "baz"
-  }
+  tags = ["foo:bar", "baz"]
 }
 `
 
@@ -343,10 +334,7 @@ resource "datadog_monitor" "foo" {
   silenced {
 	"*" = 0
   }
-  tags {
-	"baz"  = "qux"
-	"quux" = "corge"
-  }
+  tags = ["baz:qux", "quux"]
 }
 `
 

@@ -119,13 +119,9 @@ func resourceDatadogMonitor() *schema.Resource {
 				Optional: true,
 			},
 			"tags": &schema.Schema{
-				Type:     schema.TypeMap,
+				Type:     schema.TypeList,
 				Optional: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-					Elem: &schema.Schema{
-						Type: schema.TypeString},
-				},
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
@@ -193,11 +189,11 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 	}
 
 	if attr, ok := d.GetOk("tags"); ok {
-		s := make([]string, 0)
-		for k, v := range attr.(map[string]interface{}) {
-			s = append(s, fmt.Sprintf("%s:%s", k, v.(string)))
+		tags := []string{}
+		for _, s := range attr.([]interface{}) {
+			tags = append(tags, s.(string))
 		}
-		m.Tags = s
+		m.Tags = tags
 	}
 
 	return &m
@@ -263,10 +259,9 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 		}
 	}
 
-	tags := make(map[string]string)
+	tags := []string{}
 	for _, s := range m.Tags {
-		tag := strings.Split(s, ":")
-		tags[tag[0]] = tag[1]
+		tags = append(tags, s)
 	}
 
 	log.Printf("[DEBUG] monitor: %v", m)
@@ -313,8 +308,8 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	if attr, ok := d.GetOk("tags"); ok {
 		s := make([]string, 0)
-		for k, v := range attr.(map[string]interface{}) {
-			s = append(s, fmt.Sprintf("%s:%s", k, v.(string)))
+		for _, v := range attr.([]interface{}) {
+			s = append(s, v.(string))
 		}
 		m.Tags = s
 	}
