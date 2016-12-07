@@ -29,6 +29,7 @@ BUG FIXES:
   * communicator/ssh: Avoid race that could cause parallel remote execs on the same host to overwrite each other [GH-10549]
   * provider/aws: cloudfront distribution 404 should mark as gone [GH-10281]
   * provider/aws: Assign correct number of core instances (n-1) to aws-emr-cluster on update [GH-10529]
+  * provider/aws: Allow update of Service role on a CodeDeploy deployment group [GH-9866]
   * provider/azurem: azurerm_availability_set not is ForceNew for UpdateDomain and FaultDomain [GH-10545]
   * provider/datadog: Refactor monitor tags to a list instead of a map. [GH-10570]
   * provider/openstack: Fix Ordering of Port Allowed Address Pairs [GH-10250]
