@@ -336,6 +336,7 @@ func resourceAwsCodeDeployDeploymentGroupUpdate(d *schema.ResourceData, meta int
 	input := codedeploy.UpdateDeploymentGroupInput{
 		ApplicationName:            aws.String(d.Get("app_name").(string)),
 		CurrentDeploymentGroupName: aws.String(d.Get("deployment_group_name").(string)),
+		ServiceRoleArn:             aws.String(d.Get("service_role_arn").(string)),
 	}
 
 	if d.HasChange("autoscaling_groups") {
