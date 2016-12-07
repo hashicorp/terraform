@@ -31,6 +31,7 @@ The following arguments are supported:
 * `subnet_id` - (Required) Subnet ID to create the ENI in.
 * `description` - (Optional) A description for the network interface.
 * `private_ips` - (Optional) List of private IPs to assign to the ENI.
+* `private_ips_count` - (Optional) Number of private IPs to assign to the ENI.
 * `security_groups` - (Optional) List of security group IDs to assign to the ENI.
 * `attachment` - (Optional) Block to define the attachment of the ENI. Documented below.
 * `source_dest_check` - (Optional) Whether to enable source destination checking for the ENI. Default true.
@@ -57,7 +58,7 @@ The following attributes are exported:
 
 ## Import
 
-Network Interfaces can be imported using the `id`, e.g. 
+Network Interfaces can be imported using the `id`, e.g.
 
 ```
 $ terraform import aws_network_interface.test eni-e5aa89a3
