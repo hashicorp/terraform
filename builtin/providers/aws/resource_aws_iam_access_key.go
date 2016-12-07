@@ -29,19 +29,19 @@ func resourceAwsIamAccessKey() *schema.Resource {
                                 Type:     schema.TypeString,
 				Computed: true,
 			},
-			"secret": &schema.Schema{
+                        "secret": &schema.Schema{
                                 Type:       schema.TypeString,
                                 Computed:   true,
-                                Deprecated: "Secrets are no longer stored. Please use a PGP key to encrypt",
+                                Deprecated: "Please use a PGP key to encrypt",
                         },
                         "ses_smtp_password": &schema.Schema{
-				Type:     schema.TypeString,
+                                Type:     schema.TypeString,
 				Computed: true,
 			},
                         "pgp_key": {
                                 Type:     schema.TypeString,
                                 ForceNew: true,
-                                Required: true,
+                                Optional: true,
                         },
                         "key_fingerprint": {
                                 Type:     schema.TypeString,

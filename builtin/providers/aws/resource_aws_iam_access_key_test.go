@@ -22,17 +22,16 @@ func TestAccAWSAccessKey_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSAccessKeyDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-                                Config: testAccAWSAccessKeyConfig(rName, testPubAccessKey1),
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSAccessKeyExists("aws_iam_access_key.a_key", &conf),
-					testAccCheckAWSAccessKeyAttributes(&conf),
-                                        testDecryptSecretKeyAndTest("aws_iam_access_key.a_key", testPrivKey1),
-				),
-			},
-		},
+                CheckDestroy: testAccCheckAWSAccessKeyDestroy,
+                Steps: []resource.TestStep{
+                        resource.TestStep{
+                                Config: testAccAWSAccessKeyConfig(rName),
+                                Check: resource.ComposeTestCheckFunc(
+                                        testAccCheckAWSAccessKeyExists("aws_iam_access_key.a_key", &conf),
+                                        testAccCheckAWSAccessKeyAttributes(&conf),
+                                ),
+                        },
+                },
 	})
 }
 
@@ -137,7 +136,7 @@ func testDecryptSecretKeyAndTest(nAccessKey, key string) resource.TestCheckFunc 
         }
 }
 
-func testAccAWSAccessKeyConfig(rName, key string) string {
+func testAccAWSAccessKeyConfig(rName string) string {
         return fmt.Sprintf(`
 resource "aws_iam_user" "a_user" {
         name = "%s"
@@ -145,11 +144,8 @@ resource "aws_iam_user" "a_user" {
 
 resource "aws_iam_access_key" "a_key" {
         user    = "${aws_iam_user.a_user.name}"
-        pgp_key = <<EOF
-%s
-EOF
 }
-`, rName, key)
+`, rName)
 }
 
 func TestSesSmtpPasswordFromSecretKey(t *testing.T) {
