@@ -23,11 +23,13 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 
 			"certificate_body": {
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Required: true,
 			},
 
 			"certificate_chain": {
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Required: true,
 			},
 
@@ -38,6 +40,7 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 
 			"certificate_private_key": {
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Required: true,
 			},
 
@@ -117,35 +120,11 @@ func resourceAwsApiGatewayDomainNameRead(d *schema.ResourceData, meta interface{
 func resourceAwsApiGatewayDomainNameUpdateOperations(d *schema.ResourceData) []*apigateway.PatchOperation {
 	operations := make([]*apigateway.PatchOperation, 0)
 
-	if d.HasChange("certificate_body") {
-		operations = append(operations, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
-			Path:  aws.String("/certificateBody"),
-			Value: aws.String(d.Get("certificate_body").(string)),
-		})
-	}
-
-	if d.HasChange("certificate_chain") {
-		operations = append(operations, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
-			Path:  aws.String("/certificateChain"),
-			Value: aws.String(d.Get("certificate_chain").(string)),
-		})
-	}
-
 	if d.HasChange("certificate_name") {
 		operations = append(operations, &apigateway.PatchOperation{
 			Op:    aws.String("replace"),
 			Path:  aws.String("/certificateName"),
 			Value: aws.String(d.Get("certificate_name").(string)),
-		})
-	}
-
-	if d.HasChange("certificate_private_key") {
-		operations = append(operations, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
-			Path:  aws.String("/certificatePrivateKey"),
-			Value: aws.String(d.Get("certificate_private_key").(string)),
 		})
 	}
 
