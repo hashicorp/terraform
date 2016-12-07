@@ -16,7 +16,7 @@ ARCH="$(uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|')"
 export DEBIAN_PRIORITY=critical
 export DEBIAN_FRONTEND=noninteractive
 export DEBCONF_NONINTERACTIVE_SEEN=true
-APT_OPTS="--yes --force-yes --no-install-suggests --no-install-recommends"
+APT_OPTS="--assume-yes --no-install-suggests --no-install-recommends -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\""
 echo "Upgrading packages ..."
 apt-get update ${APT_OPTS} >/dev/null
 apt-get upgrade ${APT_OPTS} >/dev/null
