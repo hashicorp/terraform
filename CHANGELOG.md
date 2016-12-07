@@ -4,6 +4,7 @@ FEATURES:
 
  * **New Provider:** `external` [GH-8768]
  * **New Provider:** `Rancher` [GH-9173]
+ * **New Data Source:** `aws_iam_server_certificate` [GH-10558]
  * **New Data Source:** `pagerduty_user` [GH-10541]
  * **New Resource:** `aws_opsworks_rds_db_instance` [GH-10294]
  * **New Resource:** `aws_vpc_endpoint_route_table_association` [GH-10137]
