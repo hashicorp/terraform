@@ -496,7 +496,7 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		StorageProfile: &storageProfile,
 	}
 
-	if v, ok := d.GetOk(""); ok {
+	if v, ok := d.GetOk("license_type"); ok {
 		license := v.(string)
 		properties.LicenseType = &license
 	}
