@@ -8,7 +8,6 @@ import (
 	"github.com/lrsmith/go-icinga2-api/iapi"
 )
 
-// Provider comment
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -16,30 +15,30 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ICINGA2_API_URL", nil),
-				Description: "Full URL for the Icinga2 Server API",
+				Description: descriptions["api_url"],
 			},
 			"api_user": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ICINGA2_API_USER", nil),
-				Description: "API User to connect to the Icinga2 API Endpoint as",
+				Description: descriptions["api_user"],
 			},
 			"api_password": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ICINGA2_API_PASSWORD", nil),
-				Description: "API User's Password",
+				Description: descriptions["api_password"],
 			},
-			"insecure": &schema.Schema{
+			"insecure_skip_tls_verify": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
 				DefaultFunc: EnvBoolDefaultFunc("ICINGA2_INSECURE_SKIP_TLS_VERIFY", false),
-				Description: descriptions["insecure"],
+				Description: descriptions["insecure_skip_tls_verify"],
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"icinga2_host":         resourceIcinga2Host(),
-			"icinga2_hostgroup":    resourceIcinga2HostGroup(),
+			"icinga2_hostgroup":    resourceIcinga2Hostgroup(),
 			"icinga2_checkcommand": resourceIcinga2Checkcommand(),
 			"icinga2_service":      resourceIcinga2Service(),
 		},
@@ -53,7 +52,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		d.Get("api_user").(string),
 		d.Get("api_password").(string),
 		d.Get("api_url").(string),
-		d.Get("insecure").(bool),
+		d.Get("insecure_skip_tls_verify").(bool),
 	)
 
 	return config, nil
@@ -63,9 +62,10 @@ var descriptions map[string]string
 
 func init() {
 	descriptions = map[string]string{
-		"api_url":      "The address of the Icinga2 server.\n",
-		"api_user":     "The user to authenticate to the Iccinga2 Server as.\n",
-		"api_password": "The password.\n",
+		"api_url":                  "The address of the Icinga2 server.\n",
+		"api_user":                 "The user to authenticate to the Icinga2 Server as.\n",
+		"api_password":             "The password for authenticating to the Icinga2 server.\n",
+		"insecure_skip_tls_verify": "Disable TLS verify when connecting to Icinga2 Server\n",
 	}
 }
 

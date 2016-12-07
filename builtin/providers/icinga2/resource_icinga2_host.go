@@ -1,6 +1,8 @@
 package icinga2
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lrsmith/go-icinga2-api/iapi"
 )
@@ -27,12 +29,6 @@ func resourceIcinga2Host() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-			},
-			"templates": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"vars": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -71,8 +67,11 @@ func resourceIcinga2HostCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return nil
-
+	if d.Id() == "" {
+		return fmt.Errorf("Failed to Create Host %s : %s", hostname, err)
+	} else {
+		return nil
+	}
 }
 
 func resourceIcinga2HostRead(d *schema.ResourceData, meta interface{}) error {
@@ -89,15 +88,18 @@ func resourceIcinga2HostRead(d *schema.ResourceData, meta interface{}) error {
 	for _, host := range hosts {
 		if host.Name == hostname {
 			d.SetId(hostname)
+			d.Set("hostname", host.Name)
+			d.Set("address", host.Attrs.Address)
+			d.Set("check_command", host.Attrs.CheckCommand)
+			d.Set("vars", host.Attrs.Vars)
 		}
 	}
 
-	return nil
-}
-
-func resourceIcinga2HostUpdate(d *schema.ResourceData, meta interface{}) error {
-
-	return nil
+	if d.Id() == "" {
+		return fmt.Errorf("Failed to Read Host %s : %s", hostname, err)
+	} else {
+		return nil
+	}
 
 }
 
@@ -106,6 +108,11 @@ func resourceIcinga2HostDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*iapi.Server)
 	hostname := d.Get("hostname").(string)
 
-	return client.DeleteHost(hostname)
+	err := client.DeleteHost(hostname)
+	if err != nil {
+		return fmt.Errorf("Failed to Delete Host %s : %s", hostname, err)
+	}
+
+	return nil
 
 }

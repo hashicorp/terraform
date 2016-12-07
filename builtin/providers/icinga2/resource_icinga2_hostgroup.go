@@ -1,16 +1,18 @@
 package icinga2
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lrsmith/go-icinga2-api/iapi"
 )
 
-func resourceIcinga2HostGroup() *schema.Resource {
+func resourceIcinga2Hostgroup() *schema.Resource {
 
 	return &schema.Resource{
-		Create: resourceIcinga2HostGroupCreate,
-		Read:   resourceIcinga2HostGroupRead,
-		Delete: resourceIcinga2HostGroupDelete,
+		Create: resourceIcinga2HostgroupCreate,
+		Read:   resourceIcinga2HostgroupRead,
+		Delete: resourceIcinga2HostgroupDelete,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:        schema.TypeString,
@@ -24,65 +26,68 @@ func resourceIcinga2HostGroup() *schema.Resource {
 				Description: "Display name of Host Group",
 				ForceNew:    true,
 			},
-			"groups": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
 		},
 	}
 }
 
-func resourceIcinga2HostGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceIcinga2HostgroupCreate(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*iapi.Server)
 
-	groupName := d.Get("name").(string)
+	name := d.Get("name").(string)
 	displayName := d.Get("display_name").(string)
 
-	hostgroups, err := client.CreateHostgroup(groupName, displayName)
+	hostgroups, err := client.CreateHostgroup(name, displayName)
 	if err != nil {
 		return err
 	}
 
 	for _, hostgroup := range hostgroups {
-		if hostgroup.Name == groupName {
-			d.SetId(groupName)
+		if hostgroup.Name == name {
+			d.SetId(name)
 		}
 	}
 
-	return nil
+	if d.Id() == "" {
+		return fmt.Errorf("Failed to Create Hostgroup %s : %s", name, err)
+	} else {
+		return nil
+	}
 
 }
 
-func resourceIcinga2HostGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceIcinga2HostgroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*iapi.Server)
-	groupName := d.Get("name").(string)
+	name := d.Get("name").(string)
 
-	_, err := client.GetHostgroup(groupName)
+	hostgroups, err := client.GetHostgroup(name)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(groupName)
-	return nil
+	for _, hostgroup := range hostgroups {
+		if hostgroup.Name == name {
+			d.SetId(name)
+			d.Set("display_name", hostgroup.Attrs.DisplayName)
+		}
+	}
 
+	if d.Id() == "" {
+		return fmt.Errorf("Failed to Read Hostgroup %s : %s", name, err)
+	} else {
+		return nil
+	}
 }
 
-func resourceIcinga2HostGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
-
-func resourceIcinga2HostGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceIcinga2HostgroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*iapi.Server)
-	groupName := d.Get("name").(string)
+	name := d.Get("name").(string)
 
-	err := client.DeleteHostgroup(groupName)
+	err := client.DeleteHostgroup(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to Delete Hostgroup %s : %s", name, err)
 	}
 
 	return nil

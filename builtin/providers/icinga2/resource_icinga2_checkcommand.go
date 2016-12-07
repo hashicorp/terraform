@@ -1,6 +1,8 @@
 package icinga2
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lrsmith/go-icinga2-api/iapi"
 )
@@ -19,11 +21,9 @@ func resourceIcinga2Checkcommand() *schema.Resource {
 				ForceNew:    true,
 			},
 			"command": &schema.Schema{
-				//Type:     schema.TypeList,
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
-				//Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"templates": &schema.Schema{
 				Type:     schema.TypeList,
@@ -64,7 +64,12 @@ func resourceIcinga2CheckcommandCreate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	return nil
+	if d.Id() == "" {
+		return fmt.Errorf("Failed to create Checkcommand %s : %s", name, err)
+	} else {
+		return nil
+	}
+
 }
 
 func resourceIcinga2CheckcommandRead(d *schema.ResourceData, meta interface{}) error {
@@ -81,15 +86,18 @@ func resourceIcinga2CheckcommandRead(d *schema.ResourceData, meta interface{}) e
 	for _, checkcommand := range checkcommands {
 		if checkcommand.Name == name {
 			d.SetId(name)
+			d.Set("command", checkcommand.Attrs.Command[0])
+			d.Set("Templates", checkcommand.Attrs.Templates)
+			d.Set("arguments", checkcommand.Attrs.Arguments)
 		}
 	}
 
-	return nil
-}
+	if d.Id() == "" {
+		return fmt.Errorf("Failed to Read Checkcommand %s : %s", name, err)
+	} else {
+		return nil
+	}
 
-func resourceIcinga2CheckcommandUpdate(d *schema.ResourceData, meta interface{}) error {
-
-	return nil
 }
 
 func resourceIcinga2CheckcommandDelete(d *schema.ResourceData, meta interface{}) error {
@@ -98,6 +106,10 @@ func resourceIcinga2CheckcommandDelete(d *schema.ResourceData, meta interface{})
 
 	name := d.Get("name").(string)
 
-	return client.DeleteCheckcommand(name)
+	err := client.DeleteCheckcommand(name)
+	if err != nil {
+		return fmt.Errorf("Failed to Delete Checkcommand %s : %s", name, err)
+	}
 
+	return nil
 }

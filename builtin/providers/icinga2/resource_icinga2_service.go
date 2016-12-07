@@ -1,6 +1,8 @@
 package icinga2
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/lrsmith/go-icinga2-api/iapi"
 )
@@ -12,7 +14,7 @@ func resourceIcinga2Service() *schema.Resource {
 		Read:   resourceIcinga2ServiceRead,
 		Delete: resourceIcinga2ServiceDelete,
 		Schema: map[string]*schema.Schema{
-			"servicename": &schema.Schema{
+			"name": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "ServiceName",
@@ -24,7 +26,7 @@ func resourceIcinga2Service() *schema.Resource {
 				Description: "Hostname",
 				ForceNew:    true,
 			},
-			"checkcommand": &schema.Schema{
+			"check_command": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "CheckCommand",
@@ -39,23 +41,25 @@ func resourceIcinga2ServiceCreate(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*iapi.Server)
 
 	hostname := d.Get("hostname").(string)
-	servicename := d.Get("servicename").(string)
-	checkcommand := d.Get("checkcommand").(string)
+	name := d.Get("name").(string)
+	checkcommand := d.Get("check_command").(string)
 
-	// Call CreateService with normalized data
-	services, err := client.CreateService(servicename, hostname, checkcommand)
+	services, err := client.CreateService(name, hostname, checkcommand)
 	if err != nil {
 		return err
 	}
 
 	for _, service := range services {
-		if service.Name == hostname+"!"+servicename {
-			d.SetId(hostname + "!" + servicename)
+		if service.Name == hostname+"!"+name {
+			d.SetId(hostname + "!" + name)
 		}
 	}
 
-	return nil
-
+	if d.Id() == "" {
+		return fmt.Errorf("Failed to Create Service %s!%s : %s", hostname, name, err)
+	} else {
+		return nil
+	}
 }
 
 func resourceIcinga2ServiceRead(d *schema.ResourceData, meta interface{}) error {
@@ -63,26 +67,25 @@ func resourceIcinga2ServiceRead(d *schema.ResourceData, meta interface{}) error 
 	client := meta.(*iapi.Server)
 
 	hostname := d.Get("hostname").(string)
-	servicename := d.Get("servicename").(string)
+	name := d.Get("name").(string)
 
-	services, err := client.GetService(servicename, hostname)
+	services, err := client.GetService(name, hostname)
 	if err != nil {
 		return err
 	}
 
 	for _, service := range services {
-		if service.Name == hostname+"!"+servicename {
-			d.SetId(hostname + "!" + servicename)
+		if service.Name == hostname+"!"+name {
+			d.SetId(hostname + "!" + name)
+			d.Set("hostname", hostname)
+			d.Set("check_command", service.Attrs.CheckCommand)
 		}
 	}
-
-	return nil
-}
-
-func resourceIcinga2ServiceUpdate(d *schema.ResourceData, meta interface{}) error {
-
-	return nil
-
+	if d.Id() == "" {
+		return fmt.Errorf("Failed to Read Service %s!%s : %s", hostname, name, err)
+	} else {
+		return nil
+	}
 }
 
 func resourceIcinga2ServiceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -90,8 +93,12 @@ func resourceIcinga2ServiceDelete(d *schema.ResourceData, meta interface{}) erro
 	client := meta.(*iapi.Server)
 
 	hostname := d.Get("hostname").(string)
-	servicename := d.Get("servicename").(string)
+	name := d.Get("name").(string)
 
-	return client.DeleteService(servicename, hostname)
+	err := client.DeleteService(name, hostname)
+	if err != nil {
+		return fmt.Errorf("Failed to Delete Service %s!%s : %s", hostname, name, err)
+	}
 
+	return nil
 }
