@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"time"
 
@@ -33,12 +34,24 @@ func resourceAwsNetworkInterface() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"private_ip": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"private_ips": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
+			},
+
+			"private_ips_count": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
 			},
 
 			"security_groups": &schema.Schema{
@@ -110,6 +123,10 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		request.Description = aws.String(v.(string))
 	}
 
+	if v, ok := d.GetOk("private_ips_count"); ok {
+		request.SecondaryPrivateIpAddressCount = aws.Int64(int64(v.(int)))
+	}
+
 	log.Printf("[DEBUG] Creating network interface")
 	resp, err := conn.CreateNetworkInterface(request)
 	if err != nil {
@@ -144,6 +161,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 
 	eni := describeResp.NetworkInterfaces[0]
 	d.Set("subnet_id", eni.SubnetId)
+	d.Set("private_ip", eni.PrivateIpAddress)
 	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddresses(eni.PrivateIpAddresses))
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 	d.Set("source_dest_check", eni.SourceDestCheck)
@@ -299,6 +317,49 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	d.SetPartial("source_dest_check")
+
+	if d.HasChange("private_ips_count") {
+		o, n := d.GetChange("private_ips_count")
+		private_ips := d.Get("private_ips").(*schema.Set).List()
+		private_ips_filtered := private_ips[:0]
+		primary_ip := d.Get("private_ip")
+
+		for _, ip := range private_ips {
+			if ip != primary_ip {
+				private_ips_filtered = append(private_ips_filtered, ip)
+			}
+		}
+
+		if o != nil && o != 0 && n != nil && n != len(private_ips_filtered) {
+
+			diff := n.(int) - o.(int)
+
+			// Surplus of IPs, add the diff
+			if diff > 0 {
+				input := &ec2.AssignPrivateIpAddressesInput{
+					NetworkInterfaceId:             aws.String(d.Id()),
+					SecondaryPrivateIpAddressCount: aws.Int64(int64(diff)),
+				}
+				_, err := conn.AssignPrivateIpAddresses(input)
+				if err != nil {
+					return fmt.Errorf("Failure to assign Private IPs: %s", err)
+				}
+			}
+
+			if diff < 0 {
+				input := &ec2.UnassignPrivateIpAddressesInput{
+					NetworkInterfaceId: aws.String(d.Id()),
+					PrivateIpAddresses: expandStringList(private_ips_filtered[0:int(math.Abs(float64(diff)))]),
+				}
+				_, err := conn.UnassignPrivateIpAddresses(input)
+				if err != nil {
+					return fmt.Errorf("Failure to unassign Private IPs: %s", err)
+				}
+			}
+
+			d.SetPartial("private_ips_count")
+		}
+	}
 
 	if d.HasChange("security_groups") {
 		request := &ec2.ModifyNetworkInterfaceAttributeInput{
