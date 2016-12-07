@@ -66,6 +66,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the job flow
 * `release_label` - (Required) The release label for the Amazon EMR release
 * `master_instance_type` - (Required) The EC2 instance type of the master node
+* `service_role` - (Required) IAM role that will be assumed by the Amazon EMR service to access AWS resources
 * `core_instance_type` - (Optional) The EC2 instance type of the slave nodes
 * `core_instance_count` - (Optional) Number of Amazon EC2 instances used to execute the job flow. EMR will use one node as the cluster's master node and use the remainder of the nodes (`core_instance_count`-1) as core nodes. Default `1`
 * `log_uri` - (Optional) S3 bucket to write the log files of the job flow. If a value
@@ -79,7 +80,6 @@ flow. Defined below
 * `bootstrap_action` - (Optional) List of bootstrap actions that will be run before Hadoop is started on
 	the cluster nodes. Defined below
 * `configurations` - (Optional) List of configurations supplied for the EMR cluster you are creating
-* `service_role` - (Optional) IAM role that will be assumed by the Amazon EMR service to access AWS resources
 * `visible_to_all_users` - (Optional) Whether the job flow is visible to all IAM users of the AWS account associated with the job flow. Default `true`
 * `tags` - (Optional) list of tags to apply to the EMR Cluster
 
@@ -98,7 +98,7 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 * `emr_managed_master_security_group` - (Optional) Identifier of the Amazon EC2 security group for the master node
 * `emr_managed_slave_security_group` - (Optional) Identifier of the Amazon EC2 security group for the slave nodes
 * `service_access_security_group` - (Optional) Identifier of the Amazon EC2 service-access security group - required when the cluster runs on a private subnet
-* `instance_profile` - (Optional) Instance Profile for EC2 instances of the cluster assume this role
+* `instance_profile` - (Required) Instance Profile for EC2 instances of the cluster assume this role
 
 
 ## bootstrap\_action
