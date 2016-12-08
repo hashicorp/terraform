@@ -36,6 +36,7 @@ BUG FIXES:
   * provider/aws: Forces the API GW domain name certificates to recreate the resource [GH-10588]
   * provider/azurem: azurerm_availability_set not is ForceNew for UpdateDomain and FaultDomain [GH-10545]
   * provider/datadog: Refactor monitor tags to a list instead of a map. [GH-10570]
+  * provider/datadog 9869: Validate credentials when initialising client. [GH-10567]
   * provider/openstack: Fix Ordering of Port Allowed Address Pairs [GH-10250]
 
 ## 0.8.0-rc2 (December 2, 2016)
