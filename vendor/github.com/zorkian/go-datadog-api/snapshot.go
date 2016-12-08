@@ -15,7 +15,7 @@ import (
 )
 
 // Snapshot creates an image from a graph and returns the URL of the image.
-func (self *Client) Snapshot(query string, start, end time.Time, eventQuery string) (string, error) {
+func (client *Client) Snapshot(query string, start, end time.Time, eventQuery string) (string, error) {
 	v := url.Values{}
 	v.Add("start", fmt.Sprintf("%d", start.Unix()))
 	v.Add("end", fmt.Sprintf("%d", end.Unix()))
@@ -25,8 +25,7 @@ func (self *Client) Snapshot(query string, start, end time.Time, eventQuery stri
 	out := struct {
 		SnapshotURL string `json:"snapshot_url"`
 	}{}
-	err := self.doJsonRequest("GET", "/v1/graph/snapshot?"+v.Encode(), nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", "/v1/graph/snapshot?"+v.Encode(), nil, &out); err != nil {
 		return "", err
 	}
 	return out.SnapshotURL, nil

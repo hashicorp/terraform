@@ -28,11 +28,10 @@ type reqComment struct {
 }
 
 // CreateComment adds a new comment to the system.
-func (self *Client) CreateComment(handle, message string) (*Comment, error) {
+func (client *Client) CreateComment(handle, message string) (*Comment, error) {
 	var out reqComment
 	comment := Comment{Handle: handle, Message: message}
-	err := self.doJsonRequest("POST", "/v1/comments", &comment, &out)
-	if err != nil {
+	if err := client.doJsonRequest("POST", "/v1/comments", &comment, &out); err != nil {
 		return nil, err
 	}
 	return &out.Comment, nil
@@ -40,26 +39,25 @@ func (self *Client) CreateComment(handle, message string) (*Comment, error) {
 
 // CreateRelatedComment adds a new comment, but lets you specify the related
 // identifier for the comment.
-func (self *Client) CreateRelatedComment(handle, message string,
+func (client *Client) CreateRelatedComment(handle, message string,
 	relid int) (*Comment, error) {
 	var out reqComment
 	comment := Comment{Handle: handle, Message: message, RelatedId: relid}
-	err := self.doJsonRequest("POST", "/v1/comments", &comment, &out)
-	if err != nil {
+	if err := client.doJsonRequest("POST", "/v1/comments", &comment, &out); err != nil {
 		return nil, err
 	}
 	return &out.Comment, nil
 }
 
 // EditComment changes the message and possibly handle of a particular comment.
-func (self *Client) EditComment(id int, handle, message string) error {
+func (client *Client) EditComment(id int, handle, message string) error {
 	comment := Comment{Handle: handle, Message: message}
-	return self.doJsonRequest("PUT", fmt.Sprintf("/v1/comments/%d", id),
+	return client.doJsonRequest("PUT", fmt.Sprintf("/v1/comments/%d", id),
 		&comment, nil)
 }
 
 // DeleteComment does exactly what you expect.
-func (self *Client) DeleteComment(id int) error {
-	return self.doJsonRequest("DELETE", fmt.Sprintf("/v1/comments/%d", id),
+func (client *Client) DeleteComment(id int) error {
+	return client.doJsonRequest("DELETE", fmt.Sprintf("/v1/comments/%d", id),
 		nil, nil)
 }
