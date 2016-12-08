@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -10,68 +9,70 @@ import (
 )
 
 func TestAccAWSSnapshotCreateVolumePermission_Basic(t *testing.T) {
-	snapshot_id := ""
-	account_id := os.Getenv("AWS_ACCOUNT_ID")
+	var snapshotId, accountId string
 
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-			if os.Getenv("AWS_ACCOUNT_ID") == "" {
-				t.Fatal("AWS_ACCOUNT_ID must be set")
-			}
-		},
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			// Scaffold everything
 			resource.TestStep{
-				Config: testAccAWSSnapshotCreateVolumePermissionConfig(account_id, true),
+				Config: testAccAWSSnapshotCreateVolumePermissionConfig(true),
 				Check: resource.ComposeTestCheckFunc(
-					testCheckResourceGetAttr("aws_ami_copy.test", "block_device_mappings.0.ebs.snapshot_id", &snapshot_id),
-					testAccAWSSnapshotCreateVolumePermissionExists(account_id, &snapshot_id),
+					testCheckResourceGetAttr("aws_ebs_snapshot.example_snapshot", "id", &snapshotId),
+					testCheckResourceGetAttr("data.aws_caller_identity.current", "account_id", &accountId),
+					testAccAWSSnapshotCreateVolumePermissionExists(&accountId, &snapshotId),
 				),
 			},
 			// Drop just create volume permission to test destruction
 			resource.TestStep{
-				Config: testAccAWSSnapshotCreateVolumePermissionConfig(account_id, false),
+				Config: testAccAWSSnapshotCreateVolumePermissionConfig(false),
 				Check: resource.ComposeTestCheckFunc(
-					testAccAWSSnapshotCreateVolumePermissionDestroyed(account_id, &snapshot_id),
+					testAccAWSSnapshotCreateVolumePermissionDestroyed(&accountId, &snapshotId),
 				),
 			},
 		},
 	})
 }
 
-func testAccAWSSnapshotCreateVolumePermissionExists(account_id string, snapshot_id *string) resource.TestCheckFunc {
+func testAccAWSSnapshotCreateVolumePermissionExists(accountId, snapshotId *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		if has, err := hasCreateVolumePermission(conn, *snapshot_id, account_id); err != nil {
+		if has, err := hasCreateVolumePermission(conn, *snapshotId, *accountId); err != nil {
 			return err
 		} else if !has {
-			return fmt.Errorf("create volume permission does not exist for '%s' on '%s'", account_id, *snapshot_id)
+			return fmt.Errorf("create volume permission does not exist for '%s' on '%s'", *accountId, *snapshotId)
 		}
 		return nil
 	}
 }
 
-func testAccAWSSnapshotCreateVolumePermissionDestroyed(account_id string, snapshot_id *string) resource.TestCheckFunc {
+func testAccAWSSnapshotCreateVolumePermissionDestroyed(accountId, snapshotId *string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		if has, err := hasCreateVolumePermission(conn, *snapshot_id, account_id); err != nil {
+		if has, err := hasCreateVolumePermission(conn, *snapshotId, *accountId); err != nil {
 			return err
 		} else if has {
-			return fmt.Errorf("create volume permission still exists for '%s' on '%s'", account_id, *snapshot_id)
+			return fmt.Errorf("create volume permission still exists for '%s' on '%s'", *accountId, *snapshotId)
 		}
 		return nil
 	}
 }
 
-func testAccAWSSnapshotCreateVolumePermissionConfig(account_id string, includeCreateVolumePermission bool) string {
+func testAccAWSSnapshotCreateVolumePermissionConfig(includeCreateVolumePermission bool) string {
 	base := `
-resource "aws_ami_copy" "test" {
-  name = "create-volume-permission-test"
-  description = "Create Volume Permission Test Copy"
-  source_ami_id = "ami-7172b611"
-  source_ami_region = "us-west-2"
+data "aws_caller_identity" "current" {}
+
+resource "aws_ebs_volume" "example" {
+  availability_zone = "us-west-2a"
+  size              = 40
+
+  tags {
+    Name = "ebs_snap_perm"
+  }
+}
+
+resource "aws_ebs_snapshot" "example_snapshot" {
+  volume_id = "${aws_ebs_volume.example.id}"
 }
 `
 
@@ -81,8 +82,8 @@ resource "aws_ami_copy" "test" {
 
 	return base + fmt.Sprintf(`
 resource "aws_snapshot_create_volume_permission" "self-test" {
-  snapshot_id   = "${lookup(lookup(element(aws_ami_copy.test.block_device_mappings, 0), "ebs"), "snapshot_id")}"
-  account_id = "%s"
+  snapshot_id = "${aws_ebs_snapshot.example_snapshot.id}"
+  account_id  = "${data.aws_caller_identity.current.account_id}"
 }
-`, account_id)
+`)
 }
