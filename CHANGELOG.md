@@ -35,6 +35,7 @@ BUG FIXES:
   * provider/aws: Allow update of Service role on a CodeDeploy deployment group [GH-9866]
   * provider/aws: fixed the api_gw_domain_name replace operation [GH-10179]
   * provider/aws: Forces the API GW domain name certificates to recreate the resource [GH-10588]
+  * provider/aws: Validate `effect` in aws_iam_policy_document data source [GH-10021]
   * provider/azurem: azurerm_availability_set not is ForceNew for UpdateDomain and FaultDomain [GH-10545]
   * provider/datadog: Refactor monitor tags to a list instead of a map. [GH-10570]
   * provider/datadog 9869: Validate credentials when initialising client. [GH-10567]
