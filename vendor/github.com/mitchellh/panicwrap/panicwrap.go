@@ -68,6 +68,10 @@ type WrapConfig struct {
 	// Catch and igore these signals in the parent process, let the child
 	// handle them gracefully.
 	IgnoreSignals []os.Signal
+
+	// Catch and ignore these signals in the parent process as though the child
+	// had received them directly.
+	ForwardSignals []os.Signal
 }
 
 // BasicWrap calls Wrap with the given handler function, using defaults
@@ -165,18 +169,26 @@ func Wrap(c *WrapConfig) (int, error) {
 
 	// Listen to signals and capture them forever. We allow the child
 	// process to handle them in some way.
-	sigCh := make(chan os.Signal)
+	ignSigCh := make(chan os.Signal)
+	fwdSigCh := make(chan os.Signal)
 	if len(c.IgnoreSignals) == 0 {
 		c.IgnoreSignals = []os.Signal{os.Interrupt}
 	}
-	signal.Notify(sigCh, c.IgnoreSignals...)
+	if c.ForwardSignals == nil {
+		c.ForwardSignals = forwardSignals
+	}
+	signal.Notify(ignSigCh, c.IgnoreSignals...)
+	signal.Notify(fwdSigCh, c.ForwardSignals...)
 	go func() {
-		defer signal.Stop(sigCh)
+		defer signal.Stop(ignSigCh)
+		defer signal.Stop(fwdSigCh)
 		for {
 			select {
 			case <-doneCh:
 				return
-			case <-sigCh:
+			case s := <-fwdSigCh:
+				cmd.Process.Signal(s)
+			case <-ignSigCh:
 			}
 		}
 	}()
