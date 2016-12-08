@@ -6902,3 +6902,115 @@ module.middle.bottom:
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
 }
+
+// Test that replacing resources using using the splat operator aren't replaced
+// unnecessarily.
+// FIXME: this test currently fails when the correct expected ID for
+//        aws_instance.bar.0 is set.
+func TestContext2Apply_multiVarMinimumReplacement(t *testing.T) {
+	m := testModule(t, "apply-multi-var-replacement")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = func(info *InstanceInfo, s *InstanceState, c *ResourceConfig) (*InstanceDiff, error) {
+		d, err := testDiffFn(info, s, c)
+		// make all "foo" diff's here RequiresNew
+		for k, attr := range d.Attributes {
+			if k == "foo" {
+				attr.RequiresNew = true
+			}
+		}
+		return d, err
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo-0",
+							Attributes: map[string]string{
+								"id":  "foo-0",
+								"foo": "ok", // use this drift to trigger replacement
+							},
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo-1",
+							Attributes: map[string]string{
+								"id":  "foo-1",
+								"foo": "diff",
+							},
+						},
+					},
+					"aws_instance.bar.0": &ResourceState{
+						Dependencies: []string{"aws_instance.foo"},
+						Type:         "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar-0",
+							Attributes: map[string]string{
+								"id":  "bar-0",
+								"foo": "bar-foo-0",
+							},
+						},
+					},
+					"aws_instance.bar.1": &ResourceState{
+						Dependencies: []string{"aws_instance.foo"},
+						Type:         "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar-1",
+							Attributes: map[string]string{
+								"id":  "bar-1",
+								"foo": "bar-foo-1",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	state.init()
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// replacing the tainted aws_instance.foo.1 should not cause the
+	// replacement of aws_instance.bar.0.
+	actual := state.RootModule().Resources["aws_instance.bar.0"].Primary.ID
+
+	// expected should be "bar-0", because we don't want this replaced.
+	// This is here to document this current behavior and we can change the
+	// value when the issue is resolved.
+	expected := "foo" //"bar-0"
+	if actual != expected {
+		t.Log("aws_instance.bar.0 should not have been replaced")
+		t.Fatal("State: \n", state.String())
+	}
+
+	actual = state.RootModule().Resources["aws_instance.bar.1"].Primary.ID
+	expected = "foo"
+	if actual != expected {
+		t.Log("aws_instance.bar.1 should have been replaced")
+		t.Fatal("State: \n", state.String())
+	}
+}
