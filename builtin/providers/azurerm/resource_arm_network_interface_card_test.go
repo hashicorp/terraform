@@ -170,7 +170,7 @@ func testCheckAzureRMNetworkInterfaceDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Network Interface still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Network Interface still exists:\n%#v", resp.InterfacePropertiesFormat)
 		}
 	}
 

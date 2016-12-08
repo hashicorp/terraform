@@ -4,7 +4,12 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/dag"
 )
+
+// ConcreteProviderNodeFunc is a callback type used to convert an
+// abstract provider to a concrete one of some type.
+type ConcreteProviderNodeFunc func(*NodeAbstractProvider) dag.Vertex
 
 // NodeAbstractProvider represents a provider that has no associated operations.
 // It registers all the common interfaces across operations for providers.
@@ -59,4 +64,15 @@ func (n *NodeAbstractProvider) ProviderConfig() *config.RawConfig {
 // GraphNodeAttachProvider
 func (n *NodeAbstractProvider) AttachProvider(c *config.ProviderConfig) {
 	n.Config = c
+}
+
+// GraphNodeDotter impl.
+func (n *NodeAbstractProvider) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "diamond",
+		},
+	}
 }

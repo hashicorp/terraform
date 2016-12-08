@@ -175,13 +175,13 @@ type MessageCountDetails struct {
 	TransferMessageCount           *int64 `json:"transferMessageCount,omitempty"`
 }
 
-// NamespaceCreateOrUpdateParameters is parameters supplied to the
-// CreateOrUpdate Namespace operation.
+// NamespaceCreateOrUpdateParameters is parameters supplied to the Create Or
+// Update Namespace operation.
 type NamespaceCreateOrUpdateParameters struct {
-	Location   *string              `json:"location,omitempty"`
-	Sku        *Sku                 `json:"sku,omitempty"`
-	Tags       *map[string]*string  `json:"tags,omitempty"`
-	Properties *NamespaceProperties `json:"properties,omitempty"`
+	Location             *string             `json:"location,omitempty"`
+	Sku                  *Sku                `json:"sku,omitempty"`
+	Tags                 *map[string]*string `json:"tags,omitempty"`
+	*NamespaceProperties `json:"properties,omitempty"`
 }
 
 // NamespaceListResult is the response of the List Namespace operation.
@@ -203,7 +203,7 @@ func (client NamespaceListResult) NamespaceListResultPreparer() (*http.Request, 
 		autorest.WithBaseURL(to.String(client.NextLink)))
 }
 
-// NamespaceProperties is properties of the Namespace.
+// NamespaceProperties is properties of the namespace.
 type NamespaceProperties struct {
 	ProvisioningState  *string        `json:"provisioningState,omitempty"`
 	Status             NamespaceState `json:"status,omitempty"`
@@ -214,27 +214,27 @@ type NamespaceProperties struct {
 	Enabled            *bool          `json:"enabled,omitempty"`
 }
 
-// NamespaceResource is description of a Namespace resource.
+// NamespaceResource is description of a namespace resource.
 type NamespaceResource struct {
-	autorest.Response `json:"-"`
-	ID                *string              `json:"id,omitempty"`
-	Name              *string              `json:"name,omitempty"`
-	Type              *string              `json:"type,omitempty"`
-	Location          *string              `json:"location,omitempty"`
-	Tags              *map[string]*string  `json:"tags,omitempty"`
-	Sku               *Sku                 `json:"sku,omitempty"`
-	Properties        *NamespaceProperties `json:"properties,omitempty"`
+	autorest.Response    `json:"-"`
+	ID                   *string             `json:"id,omitempty"`
+	Name                 *string             `json:"name,omitempty"`
+	Type                 *string             `json:"type,omitempty"`
+	Location             *string             `json:"location,omitempty"`
+	Tags                 *map[string]*string `json:"tags,omitempty"`
+	Sku                  *Sku                `json:"sku,omitempty"`
+	*NamespaceProperties `json:"properties,omitempty"`
 }
 
-// QueueCreateOrUpdateParameters is parameters supplied to the CreateOrUpdate
-// Queue operation.
+// QueueCreateOrUpdateParameters is parameters supplied to the Create Or
+// Update Queue operation.
 type QueueCreateOrUpdateParameters struct {
-	Name       *string          `json:"name,omitempty"`
-	Location   *string          `json:"location,omitempty"`
-	Properties *QueueProperties `json:"properties,omitempty"`
+	Name             *string `json:"name,omitempty"`
+	Location         *string `json:"location,omitempty"`
+	*QueueProperties `json:"properties,omitempty"`
 }
 
-// QueueListResult is the response of the List Queues operation.
+// QueueListResult is the response to the List Queues operation.
 type QueueListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]QueueResource `json:"value,omitempty"`
@@ -287,10 +287,11 @@ type QueueResource struct {
 	Type              *string             `json:"type,omitempty"`
 	Location          *string             `json:"location,omitempty"`
 	Tags              *map[string]*string `json:"tags,omitempty"`
-	Properties        *QueueProperties    `json:"properties,omitempty"`
+	*QueueProperties  `json:"properties,omitempty"`
 }
 
-// RegenerateKeysParameters is parameters supplied to the Regenerate Auth Rule.
+// RegenerateKeysParameters is parameters supplied to the Regenerate
+// Authorization Rule operation.
 type RegenerateKeysParameters struct {
 	Policykey Policykey `json:"Policykey,omitempty"`
 }
@@ -315,14 +316,14 @@ type ResourceListKeys struct {
 }
 
 // SharedAccessAuthorizationRuleCreateOrUpdateParameters is parameters
-// supplied to the CreateOrUpdate  AuthorizationRules.
+// supplied to the Create Or Update Authorization Rules operation.
 type SharedAccessAuthorizationRuleCreateOrUpdateParameters struct {
-	Location   *string                                  `json:"location,omitempty"`
-	Name       *string                                  `json:"name,omitempty"`
-	Properties *SharedAccessAuthorizationRuleProperties `json:"properties,omitempty"`
+	Location                                 *string `json:"location,omitempty"`
+	Name                                     *string `json:"name,omitempty"`
+	*SharedAccessAuthorizationRuleProperties `json:"properties,omitempty"`
 }
 
-// SharedAccessAuthorizationRuleListResult is the response of the List
+// SharedAccessAuthorizationRuleListResult is the response to the List
 // Namespace operation.
 type SharedAccessAuthorizationRuleListResult struct {
 	autorest.Response `json:"-"`
@@ -348,34 +349,34 @@ type SharedAccessAuthorizationRuleProperties struct {
 	Rights *[]AccessRights `json:"rights,omitempty"`
 }
 
-// SharedAccessAuthorizationRuleResource is description of a Namespace
-// AuthorizationRules.
+// SharedAccessAuthorizationRuleResource is description of a namespace
+// authorization rule.
 type SharedAccessAuthorizationRuleResource struct {
-	autorest.Response `json:"-"`
-	ID                *string                                  `json:"id,omitempty"`
-	Name              *string                                  `json:"name,omitempty"`
-	Type              *string                                  `json:"type,omitempty"`
-	Location          *string                                  `json:"location,omitempty"`
-	Tags              *map[string]*string                      `json:"tags,omitempty"`
-	Properties        *SharedAccessAuthorizationRuleProperties `json:"properties,omitempty"`
+	autorest.Response                        `json:"-"`
+	ID                                       *string             `json:"id,omitempty"`
+	Name                                     *string             `json:"name,omitempty"`
+	Type                                     *string             `json:"type,omitempty"`
+	Location                                 *string             `json:"location,omitempty"`
+	Tags                                     *map[string]*string `json:"tags,omitempty"`
+	*SharedAccessAuthorizationRuleProperties `json:"properties,omitempty"`
 }
 
-// Sku is sku of the Namespace.
+// Sku is sKU of the namespace.
 type Sku struct {
 	Name     SkuName `json:"name,omitempty"`
 	Tier     SkuTier `json:"tier,omitempty"`
 	Capacity *int32  `json:"capacity,omitempty"`
 }
 
-// SubscriptionCreateOrUpdateParameters is parameters supplied to the
-// CreateOrUpdate Subscription operation.
+// SubscriptionCreateOrUpdateParameters is parameters supplied to the Create
+// Or Update Subscription operation.
 type SubscriptionCreateOrUpdateParameters struct {
-	Location   *string                 `json:"location,omitempty"`
-	Type       *string                 `json:"type,omitempty"`
-	Properties *SubscriptionProperties `json:"properties,omitempty"`
+	Location                *string `json:"location,omitempty"`
+	Type                    *string `json:"type,omitempty"`
+	*SubscriptionProperties `json:"properties,omitempty"`
 }
 
-// SubscriptionListResult is the response of the List Subscriptions operation.
+// SubscriptionListResult is the response to the List Subscriptions operation.
 type SubscriptionListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]SubscriptionResource `json:"value,omitempty"`
@@ -414,26 +415,26 @@ type SubscriptionProperties struct {
 	UpdatedAt                                 *date.Time               `json:"updatedAt,omitempty"`
 }
 
-// SubscriptionResource is description of Subscription Resource.
+// SubscriptionResource is description of subscription resource.
 type SubscriptionResource struct {
-	autorest.Response `json:"-"`
-	ID                *string                 `json:"id,omitempty"`
-	Name              *string                 `json:"name,omitempty"`
-	Type              *string                 `json:"type,omitempty"`
-	Location          *string                 `json:"location,omitempty"`
-	Tags              *map[string]*string     `json:"tags,omitempty"`
-	Properties        *SubscriptionProperties `json:"properties,omitempty"`
+	autorest.Response       `json:"-"`
+	ID                      *string             `json:"id,omitempty"`
+	Name                    *string             `json:"name,omitempty"`
+	Type                    *string             `json:"type,omitempty"`
+	Location                *string             `json:"location,omitempty"`
+	Tags                    *map[string]*string `json:"tags,omitempty"`
+	*SubscriptionProperties `json:"properties,omitempty"`
 }
 
-// TopicCreateOrUpdateParameters is parameters supplied to the CreateOrUpdate
-// Topic operation.
+// TopicCreateOrUpdateParameters is parameters supplied to the Create Or
+// Update Topic operation.
 type TopicCreateOrUpdateParameters struct {
-	Name       *string          `json:"name,omitempty"`
-	Location   *string          `json:"location,omitempty"`
-	Properties *TopicProperties `json:"properties,omitempty"`
+	Name             *string `json:"name,omitempty"`
+	Location         *string `json:"location,omitempty"`
+	*TopicProperties `json:"properties,omitempty"`
 }
 
-// TopicListResult is the response of the List Topics operation.
+// TopicListResult is the response to the List Topics operation.
 type TopicListResult struct {
 	autorest.Response `json:"-"`
 	Value             *[]TopicResource `json:"value,omitempty"`
@@ -477,7 +478,7 @@ type TopicProperties struct {
 	UpdatedAt                           *date.Time               `json:"updatedAt,omitempty"`
 }
 
-// TopicResource is description of topic Resource.
+// TopicResource is description of topic resource.
 type TopicResource struct {
 	autorest.Response `json:"-"`
 	ID                *string             `json:"id,omitempty"`
@@ -485,5 +486,5 @@ type TopicResource struct {
 	Type              *string             `json:"type,omitempty"`
 	Location          *string             `json:"location,omitempty"`
 	Tags              *map[string]*string `json:"tags,omitempty"`
-	Properties        *TopicProperties    `json:"properties,omitempty"`
+	*TopicProperties  `json:"properties,omitempty"`
 }

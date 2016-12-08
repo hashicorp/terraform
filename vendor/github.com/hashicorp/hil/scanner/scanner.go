@@ -168,7 +168,7 @@ func scanInterpolationToken(s string, startPos ast.Pos) (*Token, int, ast.Pos) {
 	var token *Token
 
 	switch next {
-	case '(', ')', '[', ']', ',', '.', '+', '-', '*', '/', '%':
+	case '(', ')', '[', ']', ',', '.', '+', '-', '*', '/', '%', '?', ':':
 		// Easy punctuation symbols that don't have any special meaning
 		// during scanning, and that stand for themselves in the
 		// TokenType enumeration.
@@ -188,6 +188,91 @@ func scanInterpolationToken(s string, startPos ast.Pos) (*Token, int, ast.Pos) {
 			Type:    OQUOTE,
 			Content: s[:1],
 			Pos:     pos,
+		}
+	case '!':
+		if len(s) >= 2 && s[:2] == "!=" {
+			token = &Token{
+				Type:    NOTEQUAL,
+				Content: s[:2],
+				Pos:     pos,
+			}
+		} else {
+			token = &Token{
+				Type:    BANG,
+				Content: s[:1],
+				Pos:     pos,
+			}
+		}
+	case '<':
+		if len(s) >= 2 && s[:2] == "<=" {
+			token = &Token{
+				Type:    LTE,
+				Content: s[:2],
+				Pos:     pos,
+			}
+		} else {
+			token = &Token{
+				Type:    LT,
+				Content: s[:1],
+				Pos:     pos,
+			}
+		}
+	case '>':
+		if len(s) >= 2 && s[:2] == ">=" {
+			token = &Token{
+				Type:    GTE,
+				Content: s[:2],
+				Pos:     pos,
+			}
+		} else {
+			token = &Token{
+				Type:    GT,
+				Content: s[:1],
+				Pos:     pos,
+			}
+		}
+	case '=':
+		if len(s) >= 2 && s[:2] == "==" {
+			token = &Token{
+				Type:    EQUAL,
+				Content: s[:2],
+				Pos:     pos,
+			}
+		} else {
+			// A single equals is not a valid operator
+			token = &Token{
+				Type:    INVALID,
+				Content: s[:1],
+				Pos:     pos,
+			}
+		}
+	case '&':
+		if len(s) >= 2 && s[:2] == "&&" {
+			token = &Token{
+				Type:    AND,
+				Content: s[:2],
+				Pos:     pos,
+			}
+		} else {
+			token = &Token{
+				Type:    INVALID,
+				Content: s[:1],
+				Pos:     pos,
+			}
+		}
+	case '|':
+		if len(s) >= 2 && s[:2] == "||" {
+			token = &Token{
+				Type:    OR,
+				Content: s[:2],
+				Pos:     pos,
+			}
+		} else {
+			token = &Token{
+				Type:    INVALID,
+				Content: s[:1],
+				Pos:     pos,
+			}
 		}
 	default:
 		if next >= '0' && next <= '9' {

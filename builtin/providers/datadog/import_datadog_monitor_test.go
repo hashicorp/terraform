@@ -48,9 +48,6 @@ resource "datadog_monitor" "foo" {
   include_tags = true
   require_full_window = true
   locked = false
-  tags {
-    "foo" = "bar"
-    "bar" = "baz"
-  }
+  tags = ["foo:bar", "bar:baz"]
 }
 `

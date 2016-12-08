@@ -191,7 +191,56 @@ func (p *parser) ParseInterpolation() (ast.Node, error) {
 }
 
 func (p *parser) ParseExpression() (ast.Node, error) {
-	return p.parseBinaryOps(binaryOps)
+	return p.parseTernaryCond()
+}
+
+func (p *parser) parseTernaryCond() (ast.Node, error) {
+	// The ternary condition operator (.. ? .. : ..) behaves somewhat
+	// like a binary operator except that the "operator" is itself
+	// an expression enclosed in two punctuation characters.
+	// The middle expression is parsed as if the ? and : symbols
+	// were parentheses. The "rhs" (the "false expression") is then
+	// treated right-associatively so it behaves similarly to the
+	// middle in terms of precedence.
+
+	startPos := p.peeker.Peek().Pos
+
+	var cond, trueExpr, falseExpr ast.Node
+	var err error
+
+	cond, err = p.parseBinaryOps(binaryOps)
+	if err != nil {
+		return nil, err
+	}
+
+	next := p.peeker.Peek()
+	if next.Type != scanner.QUESTION {
+		return cond, nil
+	}
+
+	p.peeker.Read() // eat question mark
+
+	trueExpr, err = p.ParseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	colon := p.peeker.Read()
+	if colon.Type != scanner.COLON {
+		return nil, ExpectationError(":", colon)
+	}
+
+	falseExpr, err = p.ParseExpression()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ast.Conditional{
+		CondExpr:  cond,
+		TrueExpr:  trueExpr,
+		FalseExpr: falseExpr,
+		Posx:      startPos,
+	}, nil
 }
 
 // parseBinaryOps calls itself recursively to work through all of the
@@ -341,6 +390,30 @@ func (p *parser) ParseExpressionTerm() (ast.Node, error) {
 				&ast.LiteralNode{
 					Value: 0,
 					Typex: ast.TypeInt,
+					Posx:  opTok.Pos,
+				},
+				operand,
+			},
+			Posx: opTok.Pos,
+		}, nil
+
+	case scanner.BANG:
+		opTok := p.peeker.Read()
+		// important to use ParseExpressionTerm rather than ParseExpression
+		// here, otherwise we can capture a following binary expression into
+		// our negation.
+		operand, err := p.ParseExpressionTerm()
+		if err != nil {
+			return nil, err
+		}
+		// The AST currently represents binary negation as an equality
+		// test with "false".
+		return &ast.Arithmetic{
+			Op: ast.ArithmeticOpEqual,
+			Exprs: []ast.Node{
+				&ast.LiteralNode{
+					Value: false,
+					Typex: ast.TypeBool,
 					Posx:  opTok.Pos,
 				},
 				operand,
