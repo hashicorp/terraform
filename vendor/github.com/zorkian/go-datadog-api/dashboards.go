@@ -129,36 +129,33 @@ type DashboardConditionalFormat struct {
 }
 
 // GetDashboard returns a single dashboard created on this account.
-func (self *Client) GetDashboard(id int) (*Dashboard, error) {
+func (client *Client) GetDashboard(id int) (*Dashboard, error) {
 	var out reqGetDashboard
-	err := self.doJsonRequest("GET", fmt.Sprintf("/v1/dash/%d", id), nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", fmt.Sprintf("/v1/dash/%d", id), nil, &out); err != nil {
 		return nil, err
 	}
 	return &out.Dashboard, nil
 }
 
 // GetDashboards returns a list of all dashboards created on this account.
-func (self *Client) GetDashboards() ([]DashboardLite, error) {
+func (client *Client) GetDashboards() ([]DashboardLite, error) {
 	var out reqGetDashboards
-	err := self.doJsonRequest("GET", "/v1/dash", nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", "/v1/dash", nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Dashboards, nil
 }
 
 // DeleteDashboard deletes a dashboard by the identifier.
-func (self *Client) DeleteDashboard(id int) error {
-	return self.doJsonRequest("DELETE", fmt.Sprintf("/v1/dash/%d", id), nil, nil)
+func (client *Client) DeleteDashboard(id int) error {
+	return client.doJsonRequest("DELETE", fmt.Sprintf("/v1/dash/%d", id), nil, nil)
 }
 
 // CreateDashboard creates a new dashboard when given a Dashboard struct. Note
 // that the Id, Resource, Url and similar elements are not used in creation.
-func (self *Client) CreateDashboard(dash *Dashboard) (*Dashboard, error) {
+func (client *Client) CreateDashboard(dash *Dashboard) (*Dashboard, error) {
 	var out reqGetDashboard
-	err := self.doJsonRequest("POST", "/v1/dash", dash, &out)
-	if err != nil {
+	if err := client.doJsonRequest("POST", "/v1/dash", dash, &out); err != nil {
 		return nil, err
 	}
 	return &out.Dashboard, nil
@@ -166,7 +163,7 @@ func (self *Client) CreateDashboard(dash *Dashboard) (*Dashboard, error) {
 
 // UpdateDashboard in essence takes a Dashboard struct and persists it back to
 // the server. Use this if you've updated your local and need to push it back.
-func (self *Client) UpdateDashboard(dash *Dashboard) error {
-	return self.doJsonRequest("PUT", fmt.Sprintf("/v1/dash/%d", dash.Id),
+func (client *Client) UpdateDashboard(dash *Dashboard) error {
+	return client.doJsonRequest("PUT", fmt.Sprintf("/v1/dash/%d", dash.Id),
 		dash, nil)
 }
