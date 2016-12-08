@@ -1,37 +1,64 @@
 package aws
 
 import (
-        "errors"
+	"errors"
 	"fmt"
-        "strings"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
-        "github.com/hashicorp/terraform/helper/acctest"
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-        "github.com/hashicorp/vault/helper/pgpkeys"
+	"github.com/hashicorp/vault/helper/pgpkeys"
 )
 
 func TestAccAWSAccessKey_basic(t *testing.T) {
 	var conf iam.AccessKeyMetadata
-        rName := fmt.Sprintf("test-user-%d", acctest.RandInt())
+	rName := fmt.Sprintf("test-user-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-                CheckDestroy: testAccCheckAWSAccessKeyDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: testAccAWSAccessKeyConfig(rName),
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckAWSAccessKeyExists("aws_iam_access_key.a_key", &conf),
-                                        testAccCheckAWSAccessKeyAttributes(&conf),
-                                ),
-                        },
-                },
+		CheckDestroy: testAccCheckAWSAccessKeyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAccessKeyConfig(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAccessKeyExists("aws_iam_access_key.a_key", &conf),
+					testAccCheckAWSAccessKeyAttributes(&conf),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSAccessKey_encrypted(t *testing.T) {
+	var conf iam.AccessKeyMetadata
+	rName := fmt.Sprintf("test-user-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAccessKeyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAccessKeyConfig_encrypted(rName, testPubAccessKey1),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAccessKeyExists("aws_iam_access_key.a_key", &conf),
+					testAccCheckAWSAccessKeyAttributes(&conf),
+					testDecryptSecretKeyAndTest("aws_iam_access_key.a_key", testPrivKey1),
+					resource.TestCheckResourceAttr(
+						"aws_iam_access_key.a_key", "secret", ""),
+					resource.TestCheckResourceAttrSet(
+						"aws_iam_access_key.a_key", "encrypted_secret"),
+					resource.TestCheckResourceAttrSet(
+						"aws_iam_access_key.a_key", "key_fingerprint"),
+				),
+			},
+		},
 	})
 }
 
@@ -79,17 +106,17 @@ func testAccCheckAWSAccessKeyExists(n string, res *iam.AccessKeyMetadata) resour
 		}
 
 		iamconn := testAccProvider.Meta().(*AWSClient).iamconn
-                name := rs.Primary.Attributes["user"]
+		name := rs.Primary.Attributes["user"]
 
 		resp, err := iamconn.ListAccessKeys(&iam.ListAccessKeysInput{
-                        UserName: aws.String(name),
+			UserName: aws.String(name),
 		})
 		if err != nil {
 			return err
 		}
 
 		if len(resp.AccessKeyMetadata) != 1 ||
-                        *resp.AccessKeyMetadata[0].UserName != name {
+			*resp.AccessKeyMetadata[0].UserName != name {
 			return fmt.Errorf("User not found not found")
 		}
 
@@ -101,7 +128,7 @@ func testAccCheckAWSAccessKeyExists(n string, res *iam.AccessKeyMetadata) resour
 
 func testAccCheckAWSAccessKeyAttributes(accessKeyMetadata *iam.AccessKeyMetadata) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-                if !strings.Contains(*accessKeyMetadata.UserName, "test-user") {
+		if !strings.Contains(*accessKeyMetadata.UserName, "test-user") {
 			return fmt.Errorf("Bad username: %s", *accessKeyMetadata.UserName)
 		}
 
@@ -114,30 +141,30 @@ func testAccCheckAWSAccessKeyAttributes(accessKeyMetadata *iam.AccessKeyMetadata
 }
 
 func testDecryptSecretKeyAndTest(nAccessKey, key string) resource.TestCheckFunc {
-        return func(s *terraform.State) error {
-                keyResource, ok := s.RootModule().Resources[nAccessKey]
-                if !ok {
-                        return fmt.Errorf("Not found: %s", nAccessKey)
-                }
+	return func(s *terraform.State) error {
+		keyResource, ok := s.RootModule().Resources[nAccessKey]
+		if !ok {
+			return fmt.Errorf("Not found: %s", nAccessKey)
+		}
 
-                password, ok := keyResource.Primary.Attributes["encrypted_secret"]
-                if !ok {
-                        return errors.New("No password in state")
-                }
+		password, ok := keyResource.Primary.Attributes["encrypted_secret"]
+		if !ok {
+			return errors.New("No password in state")
+		}
 
-                // We can't verify that the decrypted password is correct, because we don't
-                // have it. We can verify that decrypting it does not error
-                _, err := pgpkeys.DecryptBytes(password, key)
-                if err != nil {
-                        return fmt.Errorf("Error decrypting password: %s", err)
-                }
+		// We can't verify that the decrypted password is correct, because we don't
+		// have it. We can verify that decrypting it does not error
+		_, err := pgpkeys.DecryptBytes(password, key)
+		if err != nil {
+			return fmt.Errorf("Error decrypting password: %s", err)
+		}
 
-                return nil
-        }
+		return nil
+	}
 }
 
 func testAccAWSAccessKeyConfig(rName string) string {
-        return fmt.Sprintf(`
+	return fmt.Sprintf(`
 resource "aws_iam_user" "a_user" {
         name = "%s"
 }
@@ -146,6 +173,21 @@ resource "aws_iam_access_key" "a_key" {
         user    = "${aws_iam_user.a_user.name}"
 }
 `, rName)
+}
+
+func testAccAWSAccessKeyConfig_encrypted(rName, key string) string {
+	return fmt.Sprintf(`
+resource "aws_iam_user" "a_user" {
+        name = "%s"
+}
+
+resource "aws_iam_access_key" "a_key" {
+        user    = "${aws_iam_user.a_user.name}"
+        pgp_key = <<EOF
+%s
+EOF
+}
+`, rName, key)
 }
 
 func TestSesSmtpPasswordFromSecretKey(t *testing.T) {
