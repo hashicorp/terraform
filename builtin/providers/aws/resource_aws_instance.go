@@ -129,8 +129,10 @@ func resourceAwsInstance() *schema.Resource {
 			},
 
 			"network_interface_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"vpc_security_group_ids", "subnet_id", "associate_public_ip_address"},
 			},
 
 			"public_ip": &schema.Schema{
@@ -1108,6 +1110,13 @@ func buildAwsInstanceOpts(
 			for _, v := range v.List() {
 				ni.Groups = append(ni.Groups, aws.String(v.(string)))
 			}
+		}
+
+		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
+	} else if v, ok := d.GetOk("network_interface_id"); ok {
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
+			DeviceIndex:        aws.Int64(int64(0)),
+			NetworkInterfaceId: aws.String(v.(string)),
 		}
 
 		opts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
