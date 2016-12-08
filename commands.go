@@ -223,7 +223,8 @@ func makeShutdownCh() <-chan struct{} {
 	resultCh := make(chan struct{})
 
 	signalCh := make(chan os.Signal, 4)
-	signal.Notify(signalCh, interruptSignals...)
+	signal.Notify(signalCh, ignoreSignals...)
+	signal.Notify(signalCh, forwardSignals...)
 	go func() {
 		for {
 			<-signalCh
