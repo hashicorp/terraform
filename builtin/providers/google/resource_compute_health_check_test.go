@@ -2,6 +2,7 @@ package google
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/acctest"
@@ -127,6 +128,20 @@ func TestAccComputeHealthCheck_https(t *testing.T) {
 	})
 }
 
+func TestAccComputeHealthCheck_tcpAndSsl_shouldFail(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeHealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config:      testAccComputeHealthCheck_tcpAndSsl_shouldFail,
+				ExpectError: regexp.MustCompile("conflicts with tcp_health_check"),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeHealthCheckDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -170,6 +185,16 @@ func testAccCheckComputeHealthCheckExists(n string, healthCheck *compute.HealthC
 
 		*healthCheck = *found
 
+		return nil
+	}
+}
+
+func testAccCheckErrorCreating(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		_, ok := s.RootModule().Resources[n]
+		if ok {
+			return fmt.Errorf("HealthCheck %s created successfully with bad config", n)
+		}
 		return nil
 	}
 }
@@ -232,7 +257,6 @@ resource "google_compute_health_check" "foobar" {
 	name = "health-test-%s"
 	timeout_sec = 2
 	unhealthy_threshold = 3
-	type = "SSL"
 	ssl_health_check {
 		port = "443"
 	}
@@ -247,7 +271,6 @@ resource "google_compute_health_check" "foobar" {
 	name = "health-test-%s"
 	timeout_sec = 2
 	unhealthy_threshold = 3
-	type = "HTTP"
 	http_health_check {
 		port = "80"
 	}
@@ -262,9 +285,24 @@ resource "google_compute_health_check" "foobar" {
 	name = "health-test-%s"
 	timeout_sec = 2
 	unhealthy_threshold = 3
-	type = "HTTPS"
 	https_health_check {
 		port = "443"
+	}
+}
+`, acctest.RandString(10))
+
+var testAccComputeHealthCheck_tcpAndSsl_shouldFail = fmt.Sprintf(`
+resource "google_compute_health_check" "foobar" {
+	check_interval_sec = 3
+	description = "Resource created for Terraform acceptance testing"
+	healthy_threshold = 3
+	name = "health-test-%s"
+	timeout_sec = 2
+	unhealthy_threshold = 3
+
+	tcp_health_check {
+	}
+	ssl_health_check {
 	}
 }
 `, acctest.RandString(10))
