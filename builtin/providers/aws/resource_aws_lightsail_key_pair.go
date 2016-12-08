@@ -21,9 +21,11 @@ func resourceAwsLightsailKeyPair() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"name_prefix"},
 			},
 			"name_prefix": {
 				Type:     schema.TypeString,
@@ -76,7 +78,15 @@ func resourceAwsLightsailKeyPair() *schema.Resource {
 func resourceAwsLightsailKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).lightsailconn
 
-	kName := d.Get("name").(string)
+	var kName string
+	if v, ok := d.GetOk("name"); ok {
+		kName = v.(string)
+	} else if v, ok := d.GetOk("name_prefix"); ok {
+		kName = resource.PrefixedUniqueId(v.(string))
+	} else {
+		kName = resource.UniqueId()
+	}
+
 	var pubKey string
 	var op *lightsail.Operation
 	if pubKeyInterface, ok := d.GetOk("public_key"); ok {
@@ -160,7 +170,7 @@ func resourceAwsLightsailKeyPairRead(d *schema.ResourceData, meta interface{}) e
 	conn := meta.(*AWSClient).lightsailconn
 
 	resp, err := conn.GetKeyPair(&lightsail.GetKeyPairInput{
-		KeyPairName: aws.String(d.Get("name").(string)),
+		KeyPairName: aws.String(d.Id()),
 	})
 
 	if err != nil {
@@ -177,6 +187,7 @@ func resourceAwsLightsailKeyPairRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.Set("arn", resp.KeyPair.Arn)
+	d.Set("name", resp.KeyPair.Name)
 	d.Set("fingerprint", resp.KeyPair.Fingerprint)
 
 	return nil
