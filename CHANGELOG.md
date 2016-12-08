@@ -12,6 +12,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+ * core: SIGTERM also triggers graceful shutdown in addition to SIGINT [GH-10534]
  * provider/aws: Add support for termination protection and autotermination to EMR [GH-10252]
  * provider/azurerm: make DiskSizeGB optional for azurerm_virtual_machine data_disks [GH-10232]
  * provider/azurerm support `license_type` virtual_machine property [GH-10539]
