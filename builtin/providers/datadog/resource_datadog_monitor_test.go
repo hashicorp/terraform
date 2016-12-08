@@ -78,9 +78,9 @@ func TestAccDatadogMonitor_BasicNoTreshold(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_monitor.foo", "locked", "false"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "tags.foo", "bar"),
+						"datadog_monitor.foo", "tags.0", "foo:bar"),
 					resource.TestCheckResourceAttr(
-						"datadog_monitor.foo", "tags.bar", "baz"),
+						"datadog_monitor.foo", "tags.1", "bar:baz"),
 				),
 			},
 		},
@@ -305,10 +305,7 @@ resource "datadog_monitor" "foo" {
   include_tags = true
   require_full_window = true
   locked = false
-  tags {
-	"foo" = "bar"
-	"bar" = "baz"
-  }
+  tags = ["foo:bar", "bar:baz"]
 }
 `
 
