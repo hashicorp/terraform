@@ -86,6 +86,27 @@ func TestAccAWSLightsailKeyPair_encrypted(t *testing.T) {
 	})
 }
 
+func TestAccAWSLightsailKeyPair_nameprefix(t *testing.T) {
+	var conf1, conf2 lightsail.KeyPair
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSLightsailKeyPairDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLightsailKeyPairConfig_prefixed(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSLightsailKeyPairExists("aws_lightsail_key_pair.lightsail_key_pair_test_omit", &conf1),
+					testAccCheckAWSLightsailKeyPairExists("aws_lightsail_key_pair.lightsail_key_pair_test_prefixed", &conf2),
+					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test_omit", "name"),
+					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test_prefixed", "name"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSLightsailKeyPairExists(n string, res *lightsail.KeyPair) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -183,6 +204,18 @@ resource "aws_lightsail_key_pair" "lightsail_key_pair_test" {
 EOF
 }
 `, lightsailName, key)
+}
+
+func testAccAWSLightsailKeyPairConfig_prefixed() string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+resource "aws_lightsail_key_pair" "lightsail_key_pair_test_omit" {}
+resource "aws_lightsail_key_pair" "lightsail_key_pair_test_prefixed" {
+	name_prefix = "cts"
+}
+`)
 }
 
 const lightsailPubKey = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD3F6tyPEFEzV0LX3X8BsXdMsQz1x2cEikKDEY0aIj41qgxMCP/iteneqXSIFZBp5vizPvaoIR3Um9xK7PGoW8giupGn+EPuxIA4cDM4vzOqOkiMPhz5XK0whEjkVzTo4+S0puvDZuwIsdiW9mxhJc7tgBNL0cYlWSYVkz4G/fslNfRPW5mYAM49f4fhtxPb5ok4Q2Lg9dPKVHO/Bgeu5woMc7RY0p1ej6D4CKFE6lymSDJpW0YHX/wqE9+cfEauh7xZcG0q9t2ta6F6fmX0agvpFyZo8aFbXeUBr7osSCJNgvavWbM/06niWrOvYX2xwWdhXmXSrbX8ZbabVohBK41 phodgson@thoughtworks.com`
