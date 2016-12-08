@@ -138,7 +138,7 @@ func testAccCheckComputeHealthCheckDestroy(s *terraform.State) error {
 		_, err := config.clientCompute.HealthChecks.Get(
 			config.Project, rs.Primary.ID).Do()
 		if err == nil {
-			return fmt.Errorf("HealthCheck still exists")
+			return fmt.Errorf("HealthCheck %s still exists", rs.Primary.ID)
 		}
 	}
 
