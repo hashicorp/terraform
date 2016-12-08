@@ -298,6 +298,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_default_route_table":                      resourceAwsDefaultRouteTable(),
 			"aws_network_acl_rule":                         resourceAwsNetworkAclRule(),
 			"aws_network_interface":                        resourceAwsNetworkInterface(),
+			"aws_network_interface_attachment":             resourceAwsNetworkInterfaceAttachment(),
 			"aws_opsworks_application":                     resourceAwsOpsworksApplication(),
 			"aws_opsworks_stack":                           resourceAwsOpsworksStack(),
 			"aws_opsworks_java_app_layer":                  resourceAwsOpsworksJavaAppLayer(),
