@@ -15,6 +15,7 @@ IMPROVEMENTS:
  * core: SIGTERM also triggers graceful shutdown in addition to SIGINT [GH-10534]
  * provider/aws: Add support for termination protection and autotermination to EMR [GH-10252]
  * provider/aws: Add "no_device" support to ephemeral block devices [GH-10547]
+ * provider/aws: Added S3 Bucket replication [GH-10552]
  * provider/azurerm: make DiskSizeGB optional for azurerm_virtual_machine data_disks [GH-10232]
  * provider/azurerm support `license_type` virtual_machine property [GH-10539]
  * provider/datadog: Make monitor thresholds optional. [GH-10526]
