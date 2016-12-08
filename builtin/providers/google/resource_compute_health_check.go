@@ -43,17 +43,11 @@ func resourceComputeHealthCheck() *schema.Resource {
 				Default:  2,
 			},
 
-			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "TCP",
-				ForceNew: true,
-			},
-
 			"tcp_health_check": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				MaxItems: 1,
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				ConflictsWith: []string{"ssl_health_check", "http_health_check", "https_health_check"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"port": &schema.Schema{
@@ -79,9 +73,10 @@ func resourceComputeHealthCheck() *schema.Resource {
 			},
 
 			"ssl_health_check": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				MaxItems: 1,
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				ConflictsWith: []string{"tcp_health_check", "http_health_check", "https_health_check"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"port": &schema.Schema{
@@ -107,9 +102,10 @@ func resourceComputeHealthCheck() *schema.Resource {
 			},
 
 			"http_health_check": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				MaxItems: 1,
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				ConflictsWith: []string{"tcp_health_check", "ssl_health_check", "https_health_check"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"host": &schema.Schema{
@@ -136,9 +132,10 @@ func resourceComputeHealthCheck() *schema.Resource {
 			},
 
 			"https_health_check": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				MaxItems: 1,
+				Type:          schema.TypeList,
+				Optional:      true,
+				MaxItems:      1,
+				ConflictsWith: []string{"tcp_health_check", "ssl_health_check", "http_health_check"},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"host": &schema.Schema{
@@ -219,13 +216,9 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 	if v, ok := d.GetOk("unhealthy_threshold"); ok {
 		hchk.UnhealthyThreshold = int64(v.(int))
 	}
-	if v, ok := d.GetOk("type"); ok {
-		hchk.Type = v.(string)
-	}
+
 	if v, ok := d.GetOk("tcp_health_check"); ok {
-		if hchk.Type != "TCP" {
-			return fmt.Errorf("TCP health check declared but type is listed as %s", hchk.Type)
-		}
+		hchk.Type = "TCP"
 		tcpcheck := v.([]interface{})[0].(map[string]interface{})
 		tcpHealthCheck := &compute.TCPHealthCheck{}
 		if val, ok := tcpcheck["port"]; ok {
@@ -244,9 +237,7 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if v, ok := d.GetOk("ssl_health_check"); ok {
-		if hchk.Type != "SSL" {
-			return fmt.Errorf("SSL health check declared but type is listed as %s", hchk.Type)
-		}
+		hchk.Type = "SSL"
 		sslcheck := v.([]interface{})[0].(map[string]interface{})
 		sslHealthCheck := &compute.SSLHealthCheck{}
 		if val, ok := sslcheck["port"]; ok {
@@ -265,9 +256,7 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if v, ok := d.GetOk("http_health_check"); ok {
-		if hchk.Type != "HTTP" {
-			return fmt.Errorf("HTTP health check declared but type is listed as %s", hchk.Type)
-		}
+		hchk.Type = "HTTP"
 		httpcheck := v.([]interface{})[0].(map[string]interface{})
 		httpHealthCheck := &compute.HTTPHealthCheck{}
 		if val, ok := httpcheck["host"]; ok {
@@ -286,9 +275,7 @@ func resourceComputeHealthCheckCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if v, ok := d.GetOk("https_health_check"); ok {
-		if hchk.Type != "HTTPS" {
-			return fmt.Errorf("HTTPS health check declared but type is listed as %s", hchk.Type)
-		}
+		hchk.Type = "HTTPS"
 		httpscheck := v.([]interface{})[0].(map[string]interface{})
 		httpsHealthCheck := &compute.HTTPSHealthCheck{}
 		if val, ok := httpscheck["host"]; ok {
@@ -352,13 +339,8 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 	if v, ok := d.GetOk("unhealthy_threshold"); ok {
 		hchk.UnhealthyThreshold = int64(v.(int))
 	}
-	if v, ok := d.GetOk("type"); ok {
-		hchk.Type = v.(string)
-	}
 	if v, ok := d.GetOk("tcp_health_check"); ok {
-		if hchk.Type != "TCP" {
-			return fmt.Errorf("TCP health check declared but type is listed as %s", hchk.Type)
-		}
+		hchk.Type = "TCP"
 		tcpcheck := v.([]interface{})[0].(map[string]interface{})
 		tcpHealthCheck := &compute.TCPHealthCheck{}
 		if val, ok := tcpcheck["port"]; ok {
@@ -376,9 +358,7 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 		hchk.TcpHealthCheck = tcpHealthCheck
 	}
 	if v, ok := d.GetOk("ssl_health_check"); ok {
-		if hchk.Type != "SSL" {
-			return fmt.Errorf("SSL health check declared but type is listed as %s", hchk.Type)
-		}
+		hchk.Type = "SSL"
 		sslcheck := v.([]interface{})[0].(map[string]interface{})
 		sslHealthCheck := &compute.SSLHealthCheck{}
 		if val, ok := sslcheck["port"]; ok {
@@ -396,9 +376,7 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 		hchk.SslHealthCheck = sslHealthCheck
 	}
 	if v, ok := d.GetOk("http_health_check"); ok {
-		if hchk.Type != "HTTP" {
-			return fmt.Errorf("HTTP health check declared but type is listed as %s", hchk.Type)
-		}
+		hchk.Type = "HTTP"
 		httpcheck := v.([]interface{})[0].(map[string]interface{})
 		httpHealthCheck := &compute.HTTPHealthCheck{}
 		if val, ok := httpcheck["host"]; ok {
@@ -417,9 +395,7 @@ func resourceComputeHealthCheckUpdate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	if v, ok := d.GetOk("https_health_check"); ok {
-		if hchk.Type != "HTTPS" {
-			return fmt.Errorf("HTTPS health check declared but type is listed as %s", hchk.Type)
-		}
+		hchk.Type = "HTTPS"
 		httpscheck := v.([]interface{})[0].(map[string]interface{})
 		httpsHealthCheck := &compute.HTTPSHealthCheck{}
 		if val, ok := httpscheck["host"]; ok {
@@ -481,7 +457,6 @@ func resourceComputeHealthCheckRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("healthy_threshold", hchk.HealthyThreshold)
 	d.Set("timeout_sec", hchk.TimeoutSec)
 	d.Set("unhealthy_threshold", hchk.UnhealthyThreshold)
-	d.Set("type", hchk.Type)
 	d.Set("tcp_health_check", hchk.TcpHealthCheck)
 	d.Set("ssl_health_check", hchk.SslHealthCheck)
 	d.Set("http_health_check", hchk.HttpHealthCheck)
