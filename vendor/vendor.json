@@ -2079,10 +2079,10 @@
 			"revision": "314aad379a39f6ad5bcca278e6757d9abbb3a52e"
 		},
 		{
-			"checksumSHA1": "kTntIB9SdU1NsCqKwDkUr99qaj0=",
+			"checksumSHA1": "AykrbOR+O+Yp6DQHfwe31+iyFi0=",
 			"path": "github.com/mitchellh/panicwrap",
-			"revision": "fde185d0dfb5ecac6e6b201e8855da798ebcd76f",
-			"revisionTime": "2016-11-21T18:34:54Z"
+			"revision": "ba9e1a65e0f7975f055d50a2c0201c50d941c24c",
+			"revisionTime": "2016-12-08T17:03:02Z"
 		},
 		{
 			"path": "github.com/mitchellh/prefixedio",
