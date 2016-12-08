@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 
+	"github.com/hashicorp/terraform/helper/encryption"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -77,7 +78,7 @@ func resourceAwsIamAccessKeyCreate(d *schema.ResourceData, meta interface{}) err
 
 	if v, ok := d.GetOk("pgp_key"); ok {
 		pgpKey := v.(string)
-		fingerprint, encrypted, err := encryptPassword(*createResp.AccessKey.SecretAccessKey, pgpKey)
+		fingerprint, encrypted, err := encryption.EncryptValue(pgpKey, *createResp.AccessKey.SecretAccessKey, "IAM Access Key Secret")
 		if err != nil {
 			return err
 		}
