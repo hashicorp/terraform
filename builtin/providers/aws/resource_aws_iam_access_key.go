@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -72,14 +73,21 @@ func resourceAwsIamAccessKeyCreate(d *schema.ResourceData, meta interface{}) err
 		)
 	}
 
+	d.SetId(*createResp.AccessKey.AccessKeyId)
+
 	if createResp.AccessKey == nil || createResp.AccessKey.SecretAccessKey == nil {
 		return fmt.Errorf("[ERR] CreateAccessKey response did not contain a Secret Access Key as expected")
 	}
 
 	if v, ok := d.GetOk("pgp_key"); ok {
 		pgpKey := v.(string)
-		fingerprint, encrypted, err := encryption.EncryptValue(pgpKey, *createResp.AccessKey.SecretAccessKey, "IAM Access Key Secret")
+		encryptionKey, err := encryption.RetrieveGPGKey(pgpKey)
 		if err != nil {
+			return err
+		}
+		fingerprint, encrypted, err := encryption.EncryptValue(encryptionKey, *createResp.AccessKey.SecretAccessKey, "IAM Access Key Secret")
+		if err != nil {
+			log.Printf("[ERR] Error encrypting SecretAccessKey, storing Secret in state!")
 			return err
 		}
 
