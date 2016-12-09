@@ -14,7 +14,7 @@ See [backendServices](https://cloud.google.com/compute/docs/reference/latest/bac
 
 ## Example Usage
 
-```js
+```tf
 resource "google_compute_region_backend_service" "foobar" {
   name                  = "blablah"
   description           = "Hello World 1234"
