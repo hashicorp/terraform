@@ -57,46 +57,6 @@ EOF
 
 **Action:** Use heredocs or escape sequences when you have a string with newlines.
 
-## Names Cannot Start with Integers or Hyphens
-
-Names of variables, resources, modules, etc. may no longer start with
-numbers or hyphens. These will now fail at the validation step.
-
-This change was necessary to remove ambiguities from parsing the
-interpolations. Most languages do not allow identifiers starting with
-these characters with good reason. We now follow that as well.
-
-An example of a configuration that no longer works:
-
-```
-variable "1x1" {}
-```
-
-This must now be changed to start with a letter or underscore:
-
-```
-variable "foo-1x1" {}
-variable "_1x1" {}
-```
-
-And so on...
-
-If you're changing resource names, this can cause Terraform to consider it
-a new resource and plan to destroy it. To work around these scenarios,
-please use the `terraform state mv` command:
-
-```
-terraform state mv aws_instance.1x1 aws_instance.foo-1x1
-```
-
-The `terraform state mv` command creates a backup for each operation,
-but to be safe you can still back up your state prior to doing these
-changes.
-
-**Action:** Rename variable, resources, modules, providers, outputs that
-start with a number or hyphen. If you rename a resource or module, use
-`terraform state mv` to fix the state.
-
 ## Math Order of Operations
 
 Math operations now follow standard mathematical order of operations.
