@@ -18,7 +18,7 @@ import (
 
 // NameRegexp is the regular expression that all names (modules, providers,
 // resources, etc.) must follow.
-var NameRegexp = regexp.MustCompile(`(?i)\A[A-Z_][A-Z0-9\-\_]+\z`)
+var NameRegexp = regexp.MustCompile(`(?i)\A[A-Z_][A-Z0-9\-\_]*\z`)
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
