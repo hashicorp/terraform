@@ -54,3 +54,22 @@ func TestAccAWSSecurityGroup_importSelf(t *testing.T) {
 		},
 	})
 }
+
+func TestAccAWSSecurityGroup_importSourceSecurityGroup(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfig_importSourceSecurityGroup,
+			},
+
+			resource.TestStep{
+				ResourceName:      "aws_security_group.test_group_1",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
