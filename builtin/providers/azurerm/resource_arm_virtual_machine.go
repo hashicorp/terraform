@@ -582,7 +582,7 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("location", resp.Location)
 
 	if resp.Plan != nil {
-		if err := d.Set("plan", flattenAzureRmVirtualMachinePlan(resp.Plan)); err != nil {
+		if err := d.Set("plan", schema.NewSet(resourceArmVirtualMachinePlanHash, flattenAzureRmVirtualMachinePlan(resp.Plan))); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Plan error: %#v", err)
 		}
 	}
@@ -788,13 +788,13 @@ func resourceArmVirtualMachineStorageOsProfileWindowsConfigHash(v interface{}) i
 	return hashcode.String(buf.String())
 }
 
-func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) map[string]interface{} {
+func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) []interface{} {
 	result := make(map[string]interface{})
 	result["name"] = *plan.Name
 	result["publisher"] = *plan.Publisher
 	result["product"] = *plan.Product
 
-	return result
+	return []interface{}{result}
 }
 
 func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) []interface{} {
