@@ -61,7 +61,7 @@ func (c *PlanCommand) Run(args []string) int {
 	// This is going to keep track of shadow errors
 	var shadowErr error
 
-	ctx, _, err := c.Context(contextOpts{
+	ctx, planned, err := c.Context(contextOpts{
 		Destroy:     destroy,
 		Path:        path,
 		StatePath:   c.Meta.statePath,
@@ -69,6 +69,13 @@ func (c *PlanCommand) Run(args []string) int {
 	})
 	if err != nil {
 		c.Ui.Error(err.Error())
+		return 1
+	}
+	if planned {
+		c.Ui.Error(
+			"The plan command cannot be called with a saved plan file.\n\n" +
+				"The plan command expects a configuration directory as an argument.",
+		)
 		return 1
 	}
 
