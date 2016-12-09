@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New Resource:**  `aws_lightsail_key_pair` [GH-10583]
+ * **New Resource:**  `aws_snapshot_create_volume_permission` [GH-9891]
 
 IMPROVEMENTS:
 
