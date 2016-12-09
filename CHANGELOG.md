@@ -1,8 +1,12 @@
 ## 0.8.0 (unreleased)
 
 IMPROVEMENTS:
+
  * provider/aws: Add support for AWS CA Central 1 Region [GH-10618]
 
+BUG FIXES:
+
+ * provider/azurerm: fix virtual_machine reading plan as the wrong type [GH-10626]
 
 
 ## 0.8.0-rc3 (December 8, 2016)
