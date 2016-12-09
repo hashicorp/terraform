@@ -352,6 +352,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_spot_fleet_request":                       resourceAwsSpotFleetRequest(),
 			"aws_sqs_queue":                                resourceAwsSqsQueue(),
 			"aws_sqs_queue_policy":                         resourceAwsSqsQueuePolicy(),
+			"aws_snapshot_create_volume_permission":        resourceAwsSnapshotCreateVolumePermission(),
 			"aws_sns_topic":                                resourceAwsSnsTopic(),
 			"aws_sns_topic_policy":                         resourceAwsSnsTopicPolicy(),
 			"aws_sns_topic_subscription":                   resourceAwsSnsTopicSubscription(),
