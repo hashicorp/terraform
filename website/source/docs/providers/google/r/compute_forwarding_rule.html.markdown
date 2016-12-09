@@ -15,7 +15,7 @@ documentation](https://cloud.google.com/compute/docs/load-balancing/network/forw
 
 ## Example Usage
 
-```js
+```tf
 resource "google_compute_forwarding_rule" "default" {
   name       = "test"
   target     = "${google_compute_target_pool.default.self_link}"

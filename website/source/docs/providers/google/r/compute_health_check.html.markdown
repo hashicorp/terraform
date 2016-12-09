@@ -17,13 +17,12 @@ and
 
 ## Example Usage
 
-```js
+```tf
 resource "google_compute_health_check" "default" {
-  name         = "test"
+  name = "test"
 
   timeout_sec        = 1
   check_interval_sec = 1
-  type               = "TCP"
   tcp_health_check {
     port = "80"
   }
@@ -63,9 +62,6 @@ The following arguments are supported:
 
 * `timeout_sec` - (Optional) The number of seconds to wait before declaring
     failure (default 5).
-
-* `type` - (Optional) The type of HealthCheck, either TCP, SSL, HTTP or HTTPS
-    (default TCP).
 
 * `unhealthy_threshold` - (Optional) Consecutive failures required (default 2).
 
