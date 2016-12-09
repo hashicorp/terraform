@@ -285,6 +285,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_lambda_alias":                             resourceAwsLambdaAlias(),
 			"aws_lambda_permission":                        resourceAwsLambdaPermission(),
 			"aws_launch_configuration":                     resourceAwsLaunchConfiguration(),
+			"aws_lightsail_domain":                         resourceAwsLightsailDomain(),
 			"aws_lightsail_instance":                       resourceAwsLightsailInstance(),
 			"aws_lightsail_key_pair":                       resourceAwsLightsailKeyPair(),
 			"aws_lb_cookie_stickiness_policy":              resourceAwsLBCookieStickinessPolicy(),
