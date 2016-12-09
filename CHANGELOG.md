@@ -1,5 +1,10 @@
 ## 0.8.0-rc3 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * Variable, resource, provider, and module names may no longer start with
+   a number or hyphen. Please see the upgrade guide for more information.
+
 FEATURES:
 
  * **New Provider:** `external` [GH-8768]
