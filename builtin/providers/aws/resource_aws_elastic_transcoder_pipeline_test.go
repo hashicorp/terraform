@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"regexp"
 )
 
 func TestAccAWSElasticTranscoderPipeline_basic(t *testing.T) {
@@ -23,10 +24,33 @@ func TestAccAWSElasticTranscoderPipeline_basic(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPipelineConfigBasic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", pipeline),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSElasticTranscoderPipeline_kmsKey(t *testing.T) {
+	pipeline := &elastictranscoder.Pipeline{}
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(awsElasticTranscoderPipelineConfigKmsKey, ri)
+	keyRegex := regexp.MustCompile("^arn:aws:([a-zA-Z0-9\\-])+:([a-z]{2}-[a-z]+-\\d{1})?:(\\d{12})?:(.*)$")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elastictranscoder_pipeline.bar",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", pipeline),
+					resource.TestMatchResourceAttr("aws_elastictranscoder_pipeline.bar", "aws_kms_key_arn", keyRegex),
 				),
 			},
 		},
@@ -44,7 +68,7 @@ func TestAccAWSElasticTranscoderPipeline_notifications(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderNotifications(rInt),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", &pipeline),
@@ -107,13 +131,13 @@ func TestAccAWSElasticTranscoderPipeline_withContentConfig(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPipelineWithContentConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", pipeline),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPipelineWithContentConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.bar", pipeline),
@@ -132,7 +156,7 @@ func TestAccAWSElasticTranscoderPipeline_withPermissions(t *testing.T) {
 		Providers:     testAccProviders,
 		CheckDestroy:  testAccCheckElasticTranscoderPipelineDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: awsElasticTranscoderPipelineWithPerms,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticTranscoderPipelineExists("aws_elastictranscoder_pipeline.baz", pipeline),
@@ -206,6 +230,62 @@ resource "aws_elastictranscoder_pipeline" "bar" {
   output_bucket = "${aws_s3_bucket.test_bucket.bucket}"
   name          = "aws_elastictranscoder_pipeline_tf_test_"
   role          = "${aws_iam_role.test_role.arn}"
+}
+
+resource "aws_iam_role" "test_role" {
+  name = "aws_elastictranscoder_pipeline_tf_test_role_"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_s3_bucket" "test_bucket" {
+  bucket = "aws-elasticencoder-pipeline-tf-test-bucket"
+  acl    = "private"
+}
+`
+
+const awsElasticTranscoderPipelineConfigKmsKey = `
+resource "aws_kms_key" "foo" {
+  description = "Terraform acc test %d"
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "kms-tf-1",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_elastictranscoder_pipeline" "bar" {
+  input_bucket    = "${aws_s3_bucket.test_bucket.bucket}"
+  output_bucket   = "${aws_s3_bucket.test_bucket.bucket}"
+  name            = "aws_elastictranscoder_pipeline_tf_test_"
+  role            = "${aws_iam_role.test_role.arn}"
+  aws_kms_key_arn = "${aws_kms_key.foo.arn}"
 }
 
 resource "aws_iam_role" "test_role" {

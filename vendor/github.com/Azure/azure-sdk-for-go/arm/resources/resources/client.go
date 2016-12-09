@@ -1,6 +1,7 @@
 // Package resources implements the Azure ARM Resources service API version
-// 2016-07-01.
+// 2016-09-01.
 //
+// Provides operations for working with resources and resource groups.
 package resources
 
 // Copyright (c) Microsoft and contributors.  All rights reserved.
@@ -27,7 +28,7 @@ import (
 
 const (
 	// APIVersion is the version of the Resources
-	APIVersion = "2016-07-01"
+	APIVersion = "2016-09-01"
 
 	// DefaultBaseURI is the default URI used for the service Resources
 	DefaultBaseURI = "https://management.azure.com"

@@ -295,7 +295,7 @@ resource "aws_elasticache_cluster" "bar" {
     node_type = "cache.m1.small"
     num_cache_nodes = 1
     port = 6379
-  	parameter_group_name = "default.redis2.8"
+  	parameter_group_name = "default.redis3.2"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     snapshot_window = "05:00-09:00"
     snapshot_retention_limit = 3
@@ -329,7 +329,7 @@ resource "aws_elasticache_cluster" "bar" {
     node_type = "cache.m1.small"
     num_cache_nodes = 1
     port = 6379
-  	parameter_group_name = "default.redis2.8"
+  	parameter_group_name = "default.redis3.2"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
     snapshot_window = "07:00-09:00"
     snapshot_retention_limit = 7

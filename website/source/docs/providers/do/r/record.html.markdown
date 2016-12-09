@@ -3,17 +3,17 @@ layout: "digitalocean"
 page_title: "DigitalOcean: digitalocean_record"
 sidebar_current: "docs-do-resource-record"
 description: |-
-  Provides a DigitalOcean domain resource.
+  Provides a DigitalOcean DNS record resource.
 ---
 
 # digitalocean\_record
 
-Provides a DigitalOcean domain resource.
+Provides a DigitalOcean DNS record resource.
 
 ## Example Usage
 
 ```
-# Create a new domain record
+# Create a new domain 
 resource "digitalocean_domain" "default" {
     name = "www.example.com"
     ip_address = "${digitalocean_droplet.foo.ipv4_address}"
@@ -36,9 +36,10 @@ The following arguments are supported:
 * `domain` - (Required) The domain to add the record to
 * `value` - (Optional) The value of the record
 * `name` - (Optional) The name of the record
-* `weight` - (Optional) The weight of the record
-* `port` - (Optional) The port of the record
-* `priority` - (Optional) The priority of the record
+* `weight` - (Optional) The weight of the record, for SRV records.
+* `port` - (Optional) The port of the record, for SRV records.
+* `priority` - (Optional) The priority of the record, for MX and SRV
+   records.
 
 ## Attributes Reference
 

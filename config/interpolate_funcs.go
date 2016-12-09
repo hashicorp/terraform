@@ -7,14 +7,15 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/go-uuid"
@@ -54,6 +55,7 @@ func Funcs() map[string]ast.Function {
 		"base64decode": interpolationFuncBase64Decode(),
 		"base64encode": interpolationFuncBase64Encode(),
 		"base64sha256": interpolationFuncBase64Sha256(),
+		"ceil":         interpolationFuncCeil(),
 		"cidrhost":     interpolationFuncCidrHost(),
 		"cidrnetmask":  interpolationFuncCidrNetmask(),
 		"cidrsubnet":   interpolationFuncCidrSubnet(),
@@ -63,6 +65,7 @@ func Funcs() map[string]ast.Function {
 		"distinct":     interpolationFuncDistinct(),
 		"element":      interpolationFuncElement(),
 		"file":         interpolationFuncFile(),
+		"floor":        interpolationFuncFloor(),
 		"format":       interpolationFuncFormat(),
 		"formatlist":   interpolationFuncFormatList(),
 		"index":        interpolationFuncIndex(),
@@ -72,8 +75,10 @@ func Funcs() map[string]ast.Function {
 		"list":         interpolationFuncList(),
 		"lower":        interpolationFuncLower(),
 		"map":          interpolationFuncMap(),
+		"max":          interpolationFuncMax(),
 		"md5":          interpolationFuncMd5(),
 		"merge":        interpolationFuncMerge(),
+		"min":          interpolationFuncMin(),
 		"uuid":         interpolationFuncUUID(),
 		"replace":      interpolationFuncReplace(),
 		"sha1":         interpolationFuncSha1(),
@@ -81,8 +86,11 @@ func Funcs() map[string]ast.Function {
 		"signum":       interpolationFuncSignum(),
 		"sort":         interpolationFuncSort(),
 		"split":        interpolationFuncSplit(),
+		"timestamp":    interpolationFuncTimestamp(),
+		"title":        interpolationFuncTitle(),
 		"trimspace":    interpolationFuncTrimSpace(),
 		"upper":        interpolationFuncUpper(),
+		"zipmap":       interpolationFuncZipMap(),
 	}
 }
 
@@ -385,6 +393,99 @@ func interpolationFuncFormat() ast.Function {
 	}
 }
 
+// interpolationFuncMax returns the maximum of the numeric arguments
+func interpolationFuncMax() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeFloat},
+		ReturnType:   ast.TypeFloat,
+		Variadic:     true,
+		VariadicType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			max := args[0].(float64)
+
+			for i := 1; i < len(args); i++ {
+				max = math.Max(max, args[i].(float64))
+			}
+
+			return max, nil
+		},
+	}
+}
+
+// interpolationFuncMin returns the minimum of the numeric arguments
+func interpolationFuncMin() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeFloat},
+		ReturnType:   ast.TypeFloat,
+		Variadic:     true,
+		VariadicType: ast.TypeFloat,
+		Callback: func(args []interface{}) (interface{}, error) {
+			min := args[0].(float64)
+
+			for i := 1; i < len(args); i++ {
+				min = math.Min(min, args[i].(float64))
+			}
+
+			return min, nil
+		},
+	}
+}
+
+// interpolationFuncCeil returns the the least integer value greater than or equal to the argument
+func interpolationFuncCeil() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat},
+		ReturnType: ast.TypeInt,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return int(math.Ceil(args[0].(float64))), nil
+		},
+	}
+}
+
+// interpolationFuncFloorreturns returns the greatest integer value less than or equal to the argument
+func interpolationFuncFloor() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeFloat},
+		ReturnType: ast.TypeInt,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return int(math.Floor(args[0].(float64))), nil
+		},
+	}
+}
+
+func interpolationFuncZipMap() ast.Function {
+	return ast.Function{
+		ArgTypes: []ast.Type{
+			ast.TypeList, // Keys
+			ast.TypeList, // Values
+		},
+		ReturnType: ast.TypeMap,
+		Callback: func(args []interface{}) (interface{}, error) {
+			keys := args[0].([]ast.Variable)
+			values := args[1].([]ast.Variable)
+
+			if len(keys) != len(values) {
+				return nil, fmt.Errorf("count of keys (%d) does not match count of values (%d)",
+					len(keys), len(values))
+			}
+
+			for i, val := range keys {
+				if val.Type != ast.TypeString {
+					return nil, fmt.Errorf("keys must be strings. value at position %d is %s",
+						i, val.Type.Printable())
+				}
+			}
+
+			result := map[string]ast.Variable{}
+			for i := 0; i < len(keys); i++ {
+				result[keys[i].Value.(string)] = values[i]
+			}
+
+			return result, nil
+		},
+	}
+}
+
 // interpolationFuncFormatList implements the "formatlist" function that does
 // string formatting on lists.
 func interpolationFuncFormatList() ast.Function {
@@ -399,15 +500,25 @@ func interpolationFuncFormatList() ast.Function {
 			varargs := make([]interface{}, len(args)-1)
 			copy(varargs, args[1:])
 
+			// Verify we have some arguments
+			if len(varargs) == 0 {
+				return nil, fmt.Errorf("no arguments to formatlist")
+			}
+
 			// Convert arguments that are lists into slices.
 			// Confirm along the way that all lists have the same length (n).
 			var n int
+			listSeen := false
 			for i := 1; i < len(args); i++ {
 				s, ok := args[i].([]ast.Variable)
 				if !ok {
 					continue
 				}
 
+				// Mark that we've seen at least one list
+				listSeen = true
+
+				// Convert the ast.Variable to a slice of strings
 				parts, err := listVariableValueToStringSlice(s)
 				if err != nil {
 					return nil, err
@@ -427,8 +538,11 @@ func interpolationFuncFormatList() ast.Function {
 				}
 			}
 
-			if n == 0 {
-				return nil, errors.New("no lists in arguments to formatlist")
+			// If we didn't see a list this is an error because we
+			// can't determine the return value length.
+			if !listSeen {
+				return nil, fmt.Errorf(
+					"formatlist requires at least one list argument")
 			}
 
 			// Do the formatting.
@@ -993,6 +1107,30 @@ func interpolationFuncUUID() ast.Function {
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
 			return uuid.GenerateUUID()
+		},
+	}
+}
+
+// interpolationFuncTimestamp
+func interpolationFuncTimestamp() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return time.Now().UTC().Format(time.RFC3339), nil
+		},
+	}
+}
+
+// interpolationFuncTitle implements the "title" function that returns a copy of the
+// string in which first characters of all the words are capitalized.
+func interpolationFuncTitle() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			toTitle := args[0].(string)
+			return strings.Title(toTitle), nil
 		},
 	}
 }

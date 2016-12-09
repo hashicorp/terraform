@@ -107,7 +107,7 @@ func TestAccDataSourceAWSS3BucketObject_kmsEncrypted(t *testing.T) {
 					resource.TestMatchResourceAttr("data.aws_s3_bucket_object.obj", "etag", regexp.MustCompile("^[a-f0-9]{32}$")),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "server_side_encryption", "aws:kms"),
 					resource.TestMatchResourceAttr("data.aws_s3_bucket_object.obj", "sse_kms_key_id",
-						regexp.MustCompile("^arn:aws:kms:us-west-2:[0-9]{12}:key/[a-z0-9-]{36}$")),
+						regexp.MustCompile("^arn:aws:kms:[a-z]{2}-[a-z]+-\\d{1}:[0-9]{12}:key/[a-z0-9-]{36}$")),
 					resource.TestMatchResourceAttr("data.aws_s3_bucket_object.obj", "last_modified",
 						regexp.MustCompile("^[a-zA-Z]{3}, [0-9]+ [a-zA-Z]+ [0-9]{4} [0-9:]+ [A-Z]+$")),
 					resource.TestCheckResourceAttr("data.aws_s3_bucket_object.obj", "body", "Keep Calm and Carry On"),

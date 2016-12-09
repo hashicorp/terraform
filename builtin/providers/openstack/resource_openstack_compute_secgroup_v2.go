@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 )
 
 func resourceComputeSecGroupV2() *schema.Resource {
@@ -95,7 +95,7 @@ func resourceComputeSecGroupV2() *schema.Resource {
 
 func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -133,7 +133,7 @@ func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) e
 
 func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -153,12 +153,14 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 	log.Printf("[DEBUG] rulesToMap(sg.Rules): %+v", rtm)
 	d.Set("rule", rtm)
 
+	d.Set("region", GetRegion(d))
+
 	return nil
 }
 
 func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -197,15 +199,11 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 			rule := resourceSecGroupRuleV2(d, r)
 			err := secgroups.DeleteRule(computeClient, rule.ID).ExtractErr()
 			if err != nil {
-				errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-				if !ok {
-					return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
-				}
-				if errCode.Actual == 404 {
+				if _, ok := err.(gophercloud.ErrDefault404); ok {
 					continue
-				} else {
-					return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s)", rule.ID, d.Id())
 				}
+
+				return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s)", rule.ID, d.Id())
 			} else {
 				log.Printf("[DEBUG] Removed rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
 			}
@@ -217,7 +215,7 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 
 func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}

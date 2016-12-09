@@ -26,12 +26,7 @@ func resourceArmNetworkInterface() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -210,10 +205,10 @@ func resourceArmNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	iface := network.Interface{
-		Name:       &name,
-		Location:   &location,
-		Properties: &properties,
-		Tags:       expandTags(tags),
+		Name:                      &name,
+		Location:                  &location,
+		InterfacePropertiesFormat: &properties,
+		Tags: expandTags(tags),
 	}
 
 	_, err := ifaceClient.CreateOrUpdate(resGroup, name, iface, make(chan struct{}))
@@ -253,7 +248,7 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error making Read request on Azure Network Interface %s: %s", name, err)
 	}
 
-	iface := *resp.Properties
+	iface := *resp.InterfacePropertiesFormat
 
 	if iface.MacAddress != nil {
 		if *iface.MacAddress != "" {
@@ -264,8 +259,8 @@ func resourceArmNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	if iface.IPConfigurations != nil && len(*iface.IPConfigurations) > 0 {
 		var privateIPAddress *string
 		///TODO: Change this to a loop when https://github.com/Azure/azure-sdk-for-go/issues/259 is fixed
-		if (*iface.IPConfigurations)[0].Properties != nil {
-			privateIPAddress = (*iface.IPConfigurations)[0].Properties.PrivateIPAddress
+		if (*iface.IPConfigurations)[0].InterfaceIPConfigurationPropertiesFormat != nil {
+			privateIPAddress = (*iface.IPConfigurations)[0].InterfaceIPConfigurationPropertiesFormat.PrivateIPAddress
 		}
 
 		if *privateIPAddress != "" {
@@ -327,6 +322,12 @@ func resourceArmNetworkInterfaceIpConfigurationHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["private_ip_address_allocation"].(string)))
 	if m["public_ip_address_id"] != nil {
 		buf.WriteString(fmt.Sprintf("%s-", m["public_ip_address_id"].(string)))
+	}
+	if m["load_balancer_backend_address_pools_ids"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["load_balancer_backend_address_pools_ids"].(*schema.Set).GoString()))
+	}
+	if m["load_balancer_inbound_nat_rules_ids"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["load_balancer_inbound_nat_rules_ids"].(*schema.Set).GoString()))
 	}
 
 	return hashcode.String(buf.String())
@@ -416,8 +417,8 @@ func expandAzureRmNetworkInterfaceIpConfigurations(d *schema.ResourceData) ([]ne
 
 		name := data["name"].(string)
 		ipConfig := network.InterfaceIPConfiguration{
-			Name:       &name,
-			Properties: &properties,
+			Name: &name,
+			InterfaceIPConfigurationPropertiesFormat: &properties,
 		}
 
 		ipConfigs = append(ipConfigs, ipConfig)

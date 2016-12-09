@@ -8,32 +8,16 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 )
 
 func TestAccNetworkingV2Network_basic(t *testing.T) {
-	region := os.Getenv(OS_REGION_NAME)
-
 	var network networks.Network
-
-	var testAccNetworkingV2Network_basic = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
-			name = "network_1"
-			admin_state_up = "true"
-		}`, region)
-
-	var testAccNetworkingV2Network_update = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
-			name = "network_2"
-			admin_state_up = "true"
-		}`, region)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -238,17 +222,13 @@ func testAccCheckNetworkingV2NetworkExists(t *testing.T, n string, network *netw
 }
 
 var testAccNetworkingV2Network_basic = fmt.Sprintf(`
-	resource "openstack_networking_network_v2" "foo" {
-		region = "%s"
-		name = "network_1"
-		admin_state_up = "true"
-	}`,
-	OS_REGION_NAME)
+  resource "openstack_networking_network_v2" "foo" {
+    name = "network_1"
+    admin_state_up = "true"
+  }`)
 
 var testAccNetworkingV2Network_update = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
-			name = "network_2"
-			admin_state_up = "true"
-			}`,
-	OS_REGION_NAME)
+  resource "openstack_networking_network_v2" "foo" {
+    name = "network_2"
+    admin_state_up = "true"
+  }`)

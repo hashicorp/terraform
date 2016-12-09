@@ -14,11 +14,10 @@ func TestAccAWSVpnConnection_importBasic(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccAwsVpnConnectionDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccAwsVpnConnectionConfig,
 			},
-
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,

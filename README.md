@@ -2,7 +2,7 @@ Terraform
 =========
 
 - Website: http://www.terraform.io
-- IRC: `#terraform-tool` on Freenode
+- [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
 - Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
 ![Terraform](https://raw.githubusercontent.com/hashicorp/terraform/master/website/source/assets/images/readme.png)
@@ -119,7 +119,7 @@ built-in providers. Our [Contributing Guide](https://github.com/hashicorp/terraf
 
 If you wish to cross-compile Terraform for another architecture, you can set the `XC_OS` and `XC_ARCH` environment variables to values representing the target operating system and architecture before calling `make`. The output is placed in the `pkg` subdirectory tree both expanded in a directory representing the OS/architecture combination and as a ZIP archive.
 
-For example, to compile 64-bit Linux binaries on Mac OS X Linux, you can run:
+For example, to compile 64-bit Linux binaries on Mac OS X, you can run:
 
 ```sh
 $ XC_OS=linux XC_ARCH=amd64 make bin

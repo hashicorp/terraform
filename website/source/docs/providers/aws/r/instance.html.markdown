@@ -15,27 +15,27 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 
 ```
 # Create a new instance of the latest Ubuntu 14.04 on an
-# t1.micro node with an AWS Tag naming it "HelloWorld"
+# t2.micro node with an AWS Tag naming it "HelloWorld"
 provider "aws" {
-    region = "us-east-1"
+    region = "us-west-2"
 }
 
 data "aws_ami" "ubuntu" {
   most_recent = true
   filter {
     name = "name"
-    values = ["ubuntu/images/ebs/ubuntu-trusty-14.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
   }
   filter {
     name = "virtualization-type"
-    values = ["paravirtual"]
+    values = ["hvm"]
   }
   owners = ["099720109477"] # Canonical
 }
 
 resource "aws_instance" "web" {
     ami = "${data.aws_ami.ubuntu.id}"
-    instance_type = "t1.micro"
+    instance_type = "t2.micro"
     tags {
         Name = "HelloWorld"
     }
@@ -126,9 +126,10 @@ Modifying any `ebs_block_device` currently requires resource replacement.
 Each `ephemeral_block_device` supports the following:
 
 * `device_name` - The name of the block device to mount on the instance.
-* `virtual_name` - The [Instance Store Device
+* `virtual_name` - (Optional) The [Instance Store Device
   Name](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html#InstanceStoreDeviceNames)
-  (e.g. `"ephemeral0"`)
+  (e.g. `"ephemeral0"`).
+* `no_device` - (Optional) Suppresses the specified device included in the AMI's block device mapping.
 
 Each AWS Instance type has a different set of Instance Store block devices
 available for attachment. AWS [publishes a

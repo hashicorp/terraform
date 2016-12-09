@@ -11,6 +11,9 @@ func resourceGithubTeamRepository() *schema.Resource {
 		Read:   resourceGithubTeamRepositoryRead,
 		Update: resourceGithubTeamRepositoryUpdate,
 		Delete: resourceGithubTeamRepositoryDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"team_id": &schema.Schema{
@@ -53,8 +56,7 @@ func resourceGithubTeamRepositoryCreate(d *schema.ResourceData, meta interface{}
 
 func resourceGithubTeamRepositoryRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*Organization).client
-	t := d.Get("team_id").(string)
-	r := d.Get("repository").(string)
+	t, r := parseTwoPartID(d.Id())
 
 	repo, _, repoErr := client.Organizations.IsTeamRepo(toGithubID(t), meta.(*Organization).name, r)
 
@@ -92,6 +94,8 @@ func resourceGithubTeamRepositoryUpdate(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
+	d.SetId(buildTwoPartID(&t, &r))
+
 	return resourceGithubTeamRepositoryRead(d, meta)
 }
 

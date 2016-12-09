@@ -393,6 +393,40 @@ resource "test_resource" "foo" {
 	})
 }
 
+// Reproduces plan-time panic when the wrong type is interpolated in a list of
+// maps.
+// TODO: this should return a type error, rather than silently setting an empty
+//       list
+func TestResource_dataSourceListMapPanic(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required = "val"
+  required_map = {x = "y"}
+  list_of_map = "${var.maplist}"
+}
+
+variable "maplist" {
+  type = "list"
+
+  default = [
+    {a = "b"}
+  ]
+}
+				`),
+				ExpectError: nil,
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func testAccCheckResourceDestroy(s *terraform.State) error {
 	return nil
 }

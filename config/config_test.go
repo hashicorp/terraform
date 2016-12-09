@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -130,10 +131,82 @@ func TestConfig_emptyCollections(t *testing.T) {
 	}
 }
 
-func TestConfigValidate(t *testing.T) {
-	c := testConfig(t, "validate-good")
+// This table test is the preferred way to test validation of configuration.
+// There are dozens of functions below which do not follow this that are
+// there mostly historically. They should be converted at some point.
+func TestConfigValidate_table(t *testing.T) {
+	cases := []struct {
+		Name      string
+		Fixture   string
+		Err       bool
+		ErrString string
+	}{
+		{
+			"basic good",
+			"validate-good",
+			false,
+			"",
+		},
+
+		{
+			"depends on module",
+			"validate-depends-on-module",
+			false,
+			"",
+		},
+
+		{
+			"depends on non-existent module",
+			"validate-depends-on-bad-module",
+			true,
+			"non-existent module 'foo'",
+		},
+
+		{
+			"data source with provisioners",
+			"validate-data-provisioner",
+			true,
+			"data sources cannot have",
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			c := testConfig(t, tc.Fixture)
+			err := c.Validate()
+			if (err != nil) != tc.Err {
+				t.Fatalf("err: %s", err)
+			}
+			if err != nil {
+				if tc.ErrString != "" && !strings.Contains(err.Error(), tc.ErrString) {
+					t.Fatalf("expected err to contain: %s\n\ngot: %s", tc.ErrString, err)
+				}
+
+				return
+			}
+		})
+	}
+
+}
+
+func TestConfigValidate_tfVersion(t *testing.T) {
+	c := testConfig(t, "validate-tf-version")
 	if err := c.Validate(); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestConfigValidate_tfVersionBad(t *testing.T) {
+	c := testConfig(t, "validate-bad-tf-version")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_tfVersionInterpolations(t *testing.T) {
+	c := testConfig(t, "validate-tf-version-interp")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
 	}
 }
 
@@ -265,6 +338,13 @@ func TestConfigValidate_ignoreChangesBad(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_ignoreChangesInterpolate(t *testing.T) {
+	c := testConfig(t, "validate-ignore-changes-interpolate")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_moduleNameBad(t *testing.T) {
 	c := testConfig(t, "validate-module-name-bad")
 	if err := c.Validate(); err == nil {
@@ -318,6 +398,19 @@ func TestConfigValidate_outputBadField(t *testing.T) {
 	c := testConfig(t, "validate-output-bad-field")
 	if err := c.Validate(); err == nil {
 		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_outputDescription(t *testing.T) {
+	c := testConfig(t, "validate-output-description")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(c.Outputs) != 1 {
+		t.Fatalf("got %d outputs; want 1", len(c.Outputs))
+	}
+	if got, want := "Number 5", c.Outputs[0].Description; got != want {
+		t.Fatalf("got description %q; want %q", got, want)
 	}
 }
 

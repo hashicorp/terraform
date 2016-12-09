@@ -165,7 +165,7 @@ type DeploymentProperties struct {
 	Parameters     *map[string]interface{} `json:"parameters,omitempty"`
 	ParametersLink *ParametersLink         `json:"parametersLink,omitempty"`
 	Mode           DeploymentMode          `json:"mode,omitempty"`
-	DebugSetting   *DebugSetting           `json:"debugSetting,omitempty"`
+	*DebugSetting  `json:"debugSetting,omitempty"`
 }
 
 // DeploymentPropertiesExtended is deployment properties with additional
@@ -182,7 +182,7 @@ type DeploymentPropertiesExtended struct {
 	Parameters        *map[string]interface{} `json:"parameters,omitempty"`
 	ParametersLink    *ParametersLink         `json:"parametersLink,omitempty"`
 	Mode              DeploymentMode          `json:"mode,omitempty"`
-	DebugSetting      *DebugSetting           `json:"debugSetting,omitempty"`
+	*DebugSetting     `json:"debugSetting,omitempty"`
 }
 
 // DeploymentValidateResult is information from validate template deployment
@@ -289,7 +289,6 @@ type ProviderResourceType struct {
 	Locations    *[]string           `json:"locations,omitempty"`
 	Aliases      *[]AliasType        `json:"aliases,omitempty"`
 	APIVersions  *[]string           `json:"apiVersions,omitempty"`
-	ZoneMappings *[]ZoneMappingType  `json:"zoneMappings,omitempty"`
 	Properties   *map[string]*string `json:"properties,omitempty"`
 }
 
@@ -309,6 +308,7 @@ type ResourceGroup struct {
 	Name              *string                  `json:"name,omitempty"`
 	Properties        *ResourceGroupProperties `json:"properties,omitempty"`
 	Location          *string                  `json:"location,omitempty"`
+	ManagedBy         *string                  `json:"managedBy,omitempty"`
 	Tags              *map[string]*string      `json:"tags,omitempty"`
 }
 
@@ -386,7 +386,7 @@ type ResourceProviderOperationDisplayProperties struct {
 	Description *string `json:"description,omitempty"`
 }
 
-// Sku is sku for the resource.
+// Sku is sKU for the resource.
 type Sku struct {
 	Name     *string `json:"name,omitempty"`
 	Tier     *string `json:"tier,omitempty"`
@@ -454,10 +454,4 @@ type TargetResource struct {
 type TemplateLink struct {
 	URI            *string `json:"uri,omitempty"`
 	ContentVersion *string `json:"contentVersion,omitempty"`
-}
-
-// ZoneMappingType is zone mapping type.
-type ZoneMappingType struct {
-	Location *string   `json:"location,omitempty"`
-	Zones    *[]string `json:"zones,omitempty"`
 }

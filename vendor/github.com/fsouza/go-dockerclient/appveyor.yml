@@ -1,0 +1,16 @@
+version: '{build}'
+platform: x64
+clone_depth: 2
+clone_folder: c:\gopath\src\github.com\fsouza\go-dockerclient
+environment:
+  GOPATH: c:\gopath
+  GOVERSION: 1.7.3
+install:
+  - set PATH=%GOPATH%\bin;c:\go\bin;%PATH%
+  - rmdir c:\go /s /q
+  - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.zip
+  - 7z x go%GOVERSION%.windows-amd64.zip -y -oC:\ > NUL
+build_script:
+  - go get -d -t ./...
+test_script:
+  - go test ./...

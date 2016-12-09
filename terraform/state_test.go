@@ -1674,3 +1674,55 @@ func TestParseResourceStateKey(t *testing.T) {
 		}
 	}
 }
+
+func TestStateModuleOrphans_empty(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "foo", "bar"},
+			},
+			&ModuleState{
+				Path: []string{},
+			},
+			nil,
+		},
+	}
+
+	state.init()
+
+	// just calling this to check for panic
+	state.ModuleOrphans(RootModulePath, nil)
+}
+
+func TestReadState_prune(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{Path: rootModulePath},
+			nil,
+		},
+	}
+	state.init()
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := &State{
+		Version: state.Version,
+		Lineage: state.Lineage,
+	}
+	expected.init()
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("got:\n%#v", actual)
+	}
+}

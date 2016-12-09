@@ -26,12 +26,7 @@ func resourceArmLoadBalancerNatRule() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -82,7 +77,11 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancerID := d.Get("loadbalancer_id").(string)
+	armMutexKV.Lock(loadBalancerID)
+	defer armMutexKV.Unlock(loadBalancerID)
+
+	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -92,18 +91,24 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 		return nil
 	}
 
-	_, _, exists = findLoadBalancerNatRuleByName(loadBalancer, d.Get("name").(string))
-	if exists {
-		return fmt.Errorf("A NAT Rule with name %q already exists.", d.Get("name").(string))
-	}
-
 	newNatRule, err := expandAzureRmLoadBalancerNatRule(d, loadBalancer)
 	if err != nil {
 		return errwrap.Wrapf("Error Expanding NAT Rule {{err}}", err)
 	}
 
-	natRules := append(*loadBalancer.Properties.InboundNatRules, *newNatRule)
-	loadBalancer.Properties.InboundNatRules = &natRules
+	natRules := append(*loadBalancer.LoadBalancerPropertiesFormat.InboundNatRules, *newNatRule)
+
+	existingNatRule, existingNatRuleIndex, exists := findLoadBalancerNatRuleByName(loadBalancer, d.Get("name").(string))
+	if exists {
+		if d.Id() == *existingNatRule.ID {
+			// this probe is being updated remove old copy from the slice
+			natRules = append(natRules[:existingNatRuleIndex], natRules[existingNatRuleIndex+1:]...)
+		} else {
+			return fmt.Errorf("A NAT Rule with name %q already exists.", d.Get("name").(string))
+		}
+	}
+
+	loadBalancer.LoadBalancerPropertiesFormat.InboundNatRules = &natRules
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer Name and Group: {{err}}", err)
@@ -123,7 +128,7 @@ func resourceArmLoadBalancerNatRuleCreate(d *schema.ResourceData, meta interface
 	}
 
 	var natRule_id string
-	for _, InboundNatRule := range *(*read.Properties).InboundNatRules {
+	for _, InboundNatRule := range *(*read.LoadBalancerPropertiesFormat).InboundNatRules {
 		if *InboundNatRule.Name == d.Get("name").(string) {
 			natRule_id = *InboundNatRule.ID
 		}
@@ -160,21 +165,21 @@ func resourceArmLoadBalancerNatRuleRead(d *schema.ResourceData, meta interface{}
 		return nil
 	}
 
-	configs := *loadBalancer.Properties.InboundNatRules
+	configs := *loadBalancer.LoadBalancerPropertiesFormat.InboundNatRules
 	for _, config := range configs {
 		if *config.Name == d.Get("name").(string) {
 			d.Set("name", config.Name)
 
-			d.Set("protocol", config.Properties.Protocol)
-			d.Set("frontend_port", config.Properties.FrontendPort)
-			d.Set("backend_port", config.Properties.BackendPort)
+			d.Set("protocol", config.InboundNatRulePropertiesFormat.Protocol)
+			d.Set("frontend_port", config.InboundNatRulePropertiesFormat.FrontendPort)
+			d.Set("backend_port", config.InboundNatRulePropertiesFormat.BackendPort)
 
-			if config.Properties.FrontendIPConfiguration != nil {
-				d.Set("frontend_ip_configuration_id", config.Properties.FrontendIPConfiguration.ID)
+			if config.InboundNatRulePropertiesFormat.FrontendIPConfiguration != nil {
+				d.Set("frontend_ip_configuration_id", config.InboundNatRulePropertiesFormat.FrontendIPConfiguration.ID)
 			}
 
-			if config.Properties.BackendIPConfiguration != nil {
-				d.Set("backend_ip_configuration_id", config.Properties.BackendIPConfiguration.ID)
+			if config.InboundNatRulePropertiesFormat.BackendIPConfiguration != nil {
+				d.Set("backend_ip_configuration_id", config.InboundNatRulePropertiesFormat.BackendIPConfiguration.ID)
 			}
 
 			break
@@ -188,7 +193,11 @@ func resourceArmLoadBalancerNatRuleDelete(d *schema.ResourceData, meta interface
 	client := meta.(*ArmClient)
 	lbClient := client.loadBalancerClient
 
-	loadBalancer, exists, err := retrieveLoadBalancerById(d.Get("loadbalancer_id").(string), meta)
+	loadBalancerID := d.Get("loadbalancer_id").(string)
+	armMutexKV.Lock(loadBalancerID)
+	defer armMutexKV.Unlock(loadBalancerID)
+
+	loadBalancer, exists, err := retrieveLoadBalancerById(loadBalancerID, meta)
 	if err != nil {
 		return errwrap.Wrapf("Error Getting LoadBalancer By ID {{err}}", err)
 	}
@@ -202,9 +211,9 @@ func resourceArmLoadBalancerNatRuleDelete(d *schema.ResourceData, meta interface
 		return nil
 	}
 
-	oldNatRules := *loadBalancer.Properties.InboundNatRules
+	oldNatRules := *loadBalancer.LoadBalancerPropertiesFormat.InboundNatRules
 	newNatRules := append(oldNatRules[:index], oldNatRules[index+1:]...)
-	loadBalancer.Properties.InboundNatRules = &newNatRules
+	loadBalancer.LoadBalancerPropertiesFormat.InboundNatRules = &newNatRules
 
 	resGroup, loadBalancerName, err := resourceGroupAndLBNameFromId(d.Get("loadbalancer_id").(string))
 	if err != nil {
@@ -249,8 +258,8 @@ func expandAzureRmLoadBalancerNatRule(d *schema.ResourceData, lb *network.LoadBa
 	}
 
 	natRule := network.InboundNatRule{
-		Name:       azure.String(d.Get("name").(string)),
-		Properties: &properties,
+		Name: azure.String(d.Get("name").(string)),
+		InboundNatRulePropertiesFormat: &properties,
 	}
 
 	return &natRule, nil

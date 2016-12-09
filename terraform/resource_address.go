@@ -29,6 +29,10 @@ type ResourceAddress struct {
 
 // Copy returns a copy of this ResourceAddress
 func (r *ResourceAddress) Copy() *ResourceAddress {
+	if r == nil {
+		return nil
+	}
+
 	n := &ResourceAddress{
 		Path:         make([]string, 0, len(r.Path)),
 		Index:        r.Index,
@@ -83,6 +87,81 @@ func (r *ResourceAddress) String() string {
 	}
 
 	return strings.Join(result, ".")
+}
+
+// stateId returns the ID that this resource should be entered with
+// in the state. This is also used for diffs. In the future, we'd like to
+// move away from this string field so I don't export this.
+func (r *ResourceAddress) stateId() string {
+	result := fmt.Sprintf("%s.%s", r.Type, r.Name)
+	switch r.Mode {
+	case config.ManagedResourceMode:
+		// Done
+	case config.DataResourceMode:
+		result = fmt.Sprintf("data.%s", result)
+	default:
+		panic(fmt.Errorf("unknown resource mode: %s", r.Mode))
+	}
+	if r.Index >= 0 {
+		result += fmt.Sprintf(".%d", r.Index)
+	}
+
+	return result
+}
+
+// parseResourceAddressConfig creates a resource address from a config.Resource
+func parseResourceAddressConfig(r *config.Resource) (*ResourceAddress, error) {
+	return &ResourceAddress{
+		Type:         r.Type,
+		Name:         r.Name,
+		Index:        -1,
+		InstanceType: TypePrimary,
+		Mode:         r.Mode,
+	}, nil
+}
+
+// parseResourceAddressInternal parses the somewhat bespoke resource
+// identifier used in states and diffs, such as "instance.name.0".
+func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
+	// Split based on ".". Every resource address should have at least two
+	// elements (type and name).
+	parts := strings.Split(s, ".")
+	if len(parts) < 2 || len(parts) > 4 {
+		return nil, fmt.Errorf("Invalid internal resource address format: %s", s)
+	}
+
+	// Data resource if we have at least 3 parts and the first one is data
+	mode := config.ManagedResourceMode
+	if len(parts) > 2 && parts[0] == "data" {
+		mode = config.DataResourceMode
+		parts = parts[1:]
+	}
+
+	// If we're not a data resource and we have more than 3, then it is an error
+	if len(parts) > 3 && mode != config.DataResourceMode {
+		return nil, fmt.Errorf("Invalid internal resource address format: %s", s)
+	}
+
+	// Build the parts of the resource address that are guaranteed to exist
+	addr := &ResourceAddress{
+		Type:         parts[0],
+		Name:         parts[1],
+		Index:        -1,
+		InstanceType: TypePrimary,
+		Mode:         mode,
+	}
+
+	// If we have more parts, then we have an index. Parse that.
+	if len(parts) > 2 {
+		idx, err := strconv.ParseInt(parts[2], 0, 0)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing resource address %q: %s", s, err)
+		}
+
+		addr.Index = int(idx)
+	}
+
+	return addr, nil
 }
 
 func ParseResourceAddress(s string) (*ResourceAddress, error) {

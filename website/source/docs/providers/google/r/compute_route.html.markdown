@@ -43,8 +43,9 @@ The following arguments are supported:
 
 - - -
 
-* `next_hop_gateway` - (Optional) The name of the internet gateway to route
-    to if this route is matched.
+* `next_hop_gateway` - (Optional) The URL of the internet gateway to route
+    to if this route is matched. The alias "default-internet-gateway" can also
+    be used.
 
 * `next_hop_instance` - (Optional) The name of the VM instance to route to
     if this route is matched.

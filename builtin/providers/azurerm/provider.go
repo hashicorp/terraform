@@ -17,7 +17,8 @@ import (
 
 // Provider returns a terraform.ResourceProvider.
 func Provider() terraform.ResourceProvider {
-	return &schema.Provider{
+	var p *schema.Provider
+	p = &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"subscription_id": {
 				Type:        schema.TypeString,
@@ -44,11 +45,18 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"azurerm_client_config": dataSourceArmClientConfig(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
 			"azurerm_availability_set": resourceArmAvailabilitySet(),
 			"azurerm_cdn_endpoint":     resourceArmCdnEndpoint(),
 			"azurerm_cdn_profile":      resourceArmCdnProfile(),
+
+			"azurerm_eventhub":           resourceArmEventHub(),
+			"azurerm_eventhub_namespace": resourceArmEventHubNamespace(),
 
 			"azurerm_lb":                      resourceArmLoadBalancer(),
 			"azurerm_lb_backend_address_pool": resourceArmLoadBalancerBackendAddressPool(),
@@ -57,6 +65,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_lb_probe":                resourceArmLoadBalancerProbe(),
 			"azurerm_lb_rule":                 resourceArmLoadBalancerRule(),
 
+			"azurerm_key_vault":                 resourceArmKeyVault(),
 			"azurerm_local_network_gateway":     resourceArmLocalNetworkGateway(),
 			"azurerm_network_interface":         resourceArmNetworkInterface(),
 			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
@@ -70,12 +79,14 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_storage_account":           resourceArmStorageAccount(),
 			"azurerm_storage_blob":              resourceArmStorageBlob(),
 			"azurerm_storage_container":         resourceArmStorageContainer(),
+			"azurerm_storage_share":             resourceArmStorageShare(),
 			"azurerm_storage_queue":             resourceArmStorageQueue(),
 			"azurerm_storage_table":             resourceArmStorageTable(),
 			"azurerm_subnet":                    resourceArmSubnet(),
 			"azurerm_template_deployment":       resourceArmTemplateDeployment(),
 			"azurerm_traffic_manager_endpoint":  resourceArmTrafficManagerEndpoint(),
 			"azurerm_traffic_manager_profile":   resourceArmTrafficManagerProfile(),
+			"azurerm_virtual_machine_extension": resourceArmVirtualMachineExtensions(),
 			"azurerm_virtual_machine":           resourceArmVirtualMachine(),
 			"azurerm_virtual_machine_scale_set": resourceArmVirtualMachineScaleSet(),
 			"azurerm_virtual_network":           resourceArmVirtualNetwork(),
@@ -96,8 +107,11 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_sql_firewall_rule": resourceArmSqlFirewallRule(),
 			"azurerm_sql_server":        resourceArmSqlServer(),
 		},
-		ConfigureFunc: providerConfigure,
 	}
+
+	p.ConfigureFunc = providerConfigure(p)
+
+	return p
 }
 
 // Config is the configuration structure used to instantiate a
@@ -132,29 +146,33 @@ func (c *Config) validate() error {
 	return err.ErrorOrNil()
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	config := &Config{
-		SubscriptionID: d.Get("subscription_id").(string),
-		ClientID:       d.Get("client_id").(string),
-		ClientSecret:   d.Get("client_secret").(string),
-		TenantID:       d.Get("tenant_id").(string),
-	}
+func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
+	return func(d *schema.ResourceData) (interface{}, error) {
+		config := &Config{
+			SubscriptionID: d.Get("subscription_id").(string),
+			ClientID:       d.Get("client_id").(string),
+			ClientSecret:   d.Get("client_secret").(string),
+			TenantID:       d.Get("tenant_id").(string),
+		}
 
-	if err := config.validate(); err != nil {
-		return nil, err
-	}
+		if err := config.validate(); err != nil {
+			return nil, err
+		}
 
-	client, err := config.getArmClient()
-	if err != nil {
-		return nil, err
-	}
+		client, err := config.getArmClient()
+		if err != nil {
+			return nil, err
+		}
 
-	err = registerAzureResourceProvidersWithSubscription(client.rivieraClient)
-	if err != nil {
-		return nil, err
-	}
+		client.StopContext = p.StopContext()
 
-	return client, nil
+		err = registerAzureResourceProvidersWithSubscription(client.rivieraClient)
+		if err != nil {
+			return nil, err
+		}
+
+		return client, nil
+	}
 }
 
 func registerProviderWithSubscription(providerName string, client *riviera.Client) error {
@@ -187,7 +205,7 @@ func registerAzureResourceProvidersWithSubscription(client *riviera.Client) erro
 	var err error
 	providerRegistrationOnce.Do(func() {
 		// We register Microsoft.Compute during client initialization
-		providers := []string{"Microsoft.Network", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources", "Microsoft.ServiceBus"}
+		providers := []string{"Microsoft.Network", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources", "Microsoft.ServiceBus", "Microsoft.KeyVault", "Microsoft.EventHub"}
 
 		var wg sync.WaitGroup
 		wg.Add(len(providers))
@@ -203,15 +221,6 @@ func registerAzureResourceProvidersWithSubscription(client *riviera.Client) erro
 	})
 
 	return err
-}
-
-// azureRMNormalizeLocation is a function which normalises human-readable region/location
-// names (e.g. "West US") to the values used and returned by the Azure API (e.g. "westus").
-// In state we track the API internal version as it is easier to go from the human form
-// to the canonical form than the other way around.
-func azureRMNormalizeLocation(location interface{}) string {
-	input := location.(string)
-	return strings.Replace(strings.ToLower(input), " ", "", -1)
 }
 
 // armMutexKV is the instance of MutexKV for ARM resources

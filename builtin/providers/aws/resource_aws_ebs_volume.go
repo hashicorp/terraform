@@ -25,42 +25,43 @@ func resourceAwsEbsVolume() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"availability_zone": &schema.Schema{
+			"availability_zone": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"encrypted": &schema.Schema{
+			"encrypted": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"iops": &schema.Schema{
+			"iops": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"kms_key_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
+			"kms_key_id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ForceNew:     true,
+				ValidateFunc: validateArn,
 			},
-			"size": &schema.Schema{
+			"size": {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"snapshot_id": &schema.Schema{
+			"snapshot_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
 			},
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -203,15 +204,27 @@ func resourceAwsEbsVolumeRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsEbsVolumeDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	request := &ec2.DeleteVolumeInput{
-		VolumeId: aws.String(d.Id()),
-	}
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		request := &ec2.DeleteVolumeInput{
+			VolumeId: aws.String(d.Id()),
+		}
+		_, err := conn.DeleteVolume(request)
+		if err == nil {
+			return nil
+		}
 
-	_, err := conn.DeleteVolume(request)
-	if err != nil {
-		return fmt.Errorf("Error deleting EC2 volume %s: %s", d.Id(), err)
-	}
-	return nil
+		ebsErr, ok := err.(awserr.Error)
+		if ebsErr.Code() == "VolumeInUse" {
+			return resource.RetryableError(fmt.Errorf("EBS VolumeInUse - trying again while it detaches"))
+		}
+
+		if !ok {
+			return resource.NonRetryableError(err)
+		}
+
+		return resource.NonRetryableError(err)
+	})
+
 }
 
 func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {

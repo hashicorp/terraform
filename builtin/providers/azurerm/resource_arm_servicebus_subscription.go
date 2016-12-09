@@ -38,12 +38,7 @@ func resourceArmServiceBusSubscription() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -110,16 +105,16 @@ func resourceArmServiceBusSubscriptionCreate(d *schema.ResourceData, meta interf
 	resGroup := d.Get("resource_group_name").(string)
 
 	parameters := servicebus.SubscriptionCreateOrUpdateParameters{
-		Location:   &location,
-		Properties: &servicebus.SubscriptionProperties{},
+		Location:               &location,
+		SubscriptionProperties: &servicebus.SubscriptionProperties{},
 	}
 
 	if autoDeleteOnIdle := d.Get("auto_delete_on_idle").(string); autoDeleteOnIdle != "" {
-		parameters.Properties.AutoDeleteOnIdle = &autoDeleteOnIdle
+		parameters.SubscriptionProperties.AutoDeleteOnIdle = &autoDeleteOnIdle
 	}
 
 	if lockDuration := d.Get("lock_duration").(string); lockDuration != "" {
-		parameters.Properties.LockDuration = &lockDuration
+		parameters.SubscriptionProperties.LockDuration = &lockDuration
 	}
 
 	deadLetteringFilterExceptions := d.Get("dead_lettering_on_filter_evaluation_exceptions").(bool)
@@ -128,11 +123,11 @@ func resourceArmServiceBusSubscriptionCreate(d *schema.ResourceData, meta interf
 	maxDeliveryCount := int32(d.Get("max_delivery_count").(int))
 	requiresSession := d.Get("requires_session").(bool)
 
-	parameters.Properties.DeadLetteringOnFilterEvaluationExceptions = &deadLetteringFilterExceptions
-	parameters.Properties.DeadLetteringOnMessageExpiration = &deadLetteringExpiration
-	parameters.Properties.EnableBatchedOperations = &enableBatchedOps
-	parameters.Properties.MaxDeliveryCount = &maxDeliveryCount
-	parameters.Properties.RequiresSession = &requiresSession
+	parameters.SubscriptionProperties.DeadLetteringOnFilterEvaluationExceptions = &deadLetteringFilterExceptions
+	parameters.SubscriptionProperties.DeadLetteringOnMessageExpiration = &deadLetteringExpiration
+	parameters.SubscriptionProperties.EnableBatchedOperations = &enableBatchedOps
+	parameters.SubscriptionProperties.MaxDeliveryCount = &maxDeliveryCount
+	parameters.SubscriptionProperties.RequiresSession = &requiresSession
 
 	_, err := client.CreateOrUpdate(resGroup, namespaceName, topicName, name, parameters)
 	if err != nil {
@@ -181,7 +176,7 @@ func resourceArmServiceBusSubscriptionRead(d *schema.ResourceData, meta interfac
 	d.Set("topic_name", topicName)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
-	props := resp.Properties
+	props := resp.SubscriptionProperties
 	d.Set("auto_delete_on_idle", props.AutoDeleteOnIdle)
 	d.Set("default_message_ttl", props.DefaultMessageTimeToLive)
 	d.Set("lock_duration", props.LockDuration)

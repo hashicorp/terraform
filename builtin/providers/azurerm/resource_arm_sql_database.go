@@ -23,12 +23,7 @@ func resourceArmSqlDatabase() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -221,6 +216,8 @@ func resourceArmSqlDatabaseRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("name", resp.Name)
 	d.Set("creation_date", resp.CreationDate)
 	d.Set("default_secondary_location", resp.DefaultSecondaryLocation)
+
+	flattenAndSetTags(d, resp.Tags)
 
 	return nil
 }

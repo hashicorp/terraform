@@ -84,8 +84,8 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 	// Wait for the vpc peering connection to become available
 	log.Printf("[DEBUG] Waiting for VPC Peering Connection (%s) to become available.", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"pending"},
-		Target:  []string{"pending-acceptance"},
+		Pending: []string{"initiating-request", "provisioning", "pending"},
+		Target:  []string{"pending-acceptance", "active"},
 		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}

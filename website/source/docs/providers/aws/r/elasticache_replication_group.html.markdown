@@ -37,9 +37,11 @@ The following arguments are supported:
  If Multi-AZ is enabled , the value of this parameter must be at least 2. Changing this number will force a new resource
 * `node_type` - (Required) The compute and memory capacity of the nodes in the node group.
 * `automatic_failover_enabled` - (Optional) Specifies whether a read-only replica will be automatically promoted to read/write primary if the existing primary fails. Defaults to `false`.
+* `auto_minor_version_upgrade` - (Optional) Specifies whether a minor engine upgrades will be applied automatically to the underlying Cache Cluster instances during the maintenance window. Defaults to `true`.
 * `availability_zones` - (Optional) A list of EC2 availability zones in which the replication group's cache clusters will be created. The order of the availability zones in the list is not important.
 * `engine_version` - (Optional) The version number of the cache engine to be used for the cache clusters in this replication group.
 * `parameter_group_name` - (Optional) The name of the parameter group to associate with this replication group. If this argument is omitted, the default cache parameter group for the specified engine is used.
+* `port` – (Required) The port number on which each of the cache nodes will accept connections. For Memcache the default is 11211, and for Redis the default port is 6379.
 * `subnet_group_name` - (Optional) The name of the cache subnet group to be used for the replication group.
 * `security_group_names` - (Optional) A list of cache security group names to associate with this replication group.
 * `security_group_ids` - (Optional) One or more Amazon VPC security groups associated with this replication group. Use this parameter only when you are creating a replication group in an Amazon Virtual Private Cloud 
@@ -67,8 +69,9 @@ Please note that setting a `snapshot_retention_limit` is not supported on cache.
 
 The following attributes are exported:
 
-* `id` - The ID of the ElastiCache Replication Group
-* `primary_endpoint_address` - The address of the endpoint for the primary node in the replication group
+* `id` - The ID of the ElastiCache Replication Group.
+* `primary_endpoint_address` - The address of the endpoint for the primary node in the replication group. If Redis, only present when cluster mode is disabled.
+* `configuration_endpoint_address` - (Redis only) The address of the replication group configuration endpoint when cluster mode is enabled.
 
 ## Import
 

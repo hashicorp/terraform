@@ -154,7 +154,7 @@ func resourceSqlDatabaseInstance() *schema.Resource {
 			"database_version": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "MYSQL_5_5",
+				Default:  "MYSQL_5_6",
 				ForceNew: true,
 			},
 

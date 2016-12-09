@@ -45,12 +45,18 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 			"route_table_ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
 			"prefix_list_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+			"cidr_blocks": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
@@ -59,9 +65,15 @@ func resourceAwsVpcEndpoint() *schema.Resource {
 func resourceAwsVPCEndpointCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 	input := &ec2.CreateVpcEndpointInput{
-		VpcId:         aws.String(d.Get("vpc_id").(string)),
-		RouteTableIds: expandStringList(d.Get("route_table_ids").(*schema.Set).List()),
-		ServiceName:   aws.String(d.Get("service_name").(string)),
+		VpcId:       aws.String(d.Get("vpc_id").(string)),
+		ServiceName: aws.String(d.Get("service_name").(string)),
+	}
+
+	if v, ok := d.GetOk("route_table_ids"); ok {
+		list := v.(*schema.Set).List()
+		if len(list) > 0 {
+			input.RouteTableIds = expandStringList(list)
+		}
 	}
 
 	if v, ok := d.GetOk("policy"); ok {
@@ -100,6 +112,8 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 		}
 
 		if ec2err.Code() == "InvalidVpcEndpointId.NotFound" {
+			log.Printf("[WARN] VPC Endpoint (%s) not found, removing from state", d.Id())
+			d.SetId("")
 			return nil
 		}
 
@@ -147,7 +161,9 @@ func resourceAwsVPCEndpointRead(d *schema.ResourceData, meta interface{}) error 
 	if err := d.Set("route_table_ids", aws.StringValueSlice(vpce.RouteTableIds)); err != nil {
 		return err
 	}
-	d.Set("prefix_list_id", prefixListsOutput.PrefixLists[0].PrefixListId)
+	pl := prefixListsOutput.PrefixLists[0]
+	d.Set("prefix_list_id", pl.PrefixListId)
+	d.Set("cidr_blocks", aws.StringValueSlice(pl.Cidrs))
 
 	return nil
 }

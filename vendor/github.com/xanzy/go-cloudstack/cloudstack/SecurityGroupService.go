@@ -24,6 +24,38 @@ import (
 	"strings"
 )
 
+// Helper function for maintaining backwards compatibility
+func convertAuthorizeSecurityGroupIngressResponse(b []byte) ([]byte, error) {
+	var raw struct {
+		Ingressrule []interface{} `json:"ingressrule"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, err
+	}
+
+	if len(raw.Ingressrule) != 1 {
+		return b, nil
+	}
+
+	return json.Marshal(raw.Ingressrule[0])
+}
+
+// Helper function for maintaining backwards compatibility
+func convertAuthorizeSecurityGroupEgressResponse(b []byte) ([]byte, error) {
+	var raw struct {
+		Egressrule []interface{} `json:"egressrule"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, err
+	}
+
+	if len(raw.Egressrule) != 1 {
+		return b, nil
+	}
+
+	return json.Marshal(raw.Egressrule[0])
+}
+
 type CreateSecurityGroupParams struct {
 	p map[string]interface{}
 }
@@ -104,6 +136,10 @@ func (s *SecurityGroupService) NewCreateSecurityGroupParams(name string) *Create
 func (s *SecurityGroupService) CreateSecurityGroup(p *CreateSecurityGroupParams) (*CreateSecurityGroupResponse, error) {
 	resp, err := s.cs.newRequest("createSecurityGroup", p.toURLValues())
 	if err != nil {
+		return nil, err
+	}
+
+	if resp, err = getRawValue(resp); err != nil {
 		return nil, err
 	}
 
@@ -329,8 +365,8 @@ func (p *AuthorizeSecurityGroupIngressParams) toURLValues() url.Values {
 	if v, found := p.p["usersecuritygrouplist"]; found {
 		i := 0
 		for k, vv := range v.(map[string]string) {
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].key", i), k)
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].value", i), vv)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].account", i), k)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].group", i), vv)
 			i++
 		}
 	}
@@ -464,6 +500,11 @@ func (s *SecurityGroupService) AuthorizeSecurityGroupIngress(p *AuthorizeSecurit
 		}
 
 		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err = convertAuthorizeSecurityGroupIngressResponse(b)
 		if err != nil {
 			return nil, err
 		}
@@ -617,8 +658,8 @@ func (p *AuthorizeSecurityGroupEgressParams) toURLValues() url.Values {
 	if v, found := p.p["usersecuritygrouplist"]; found {
 		i := 0
 		for k, vv := range v.(map[string]string) {
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].key", i), k)
-			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].value", i), vv)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].account", i), k)
+			u.Set(fmt.Sprintf("usersecuritygrouplist[%d].group", i), vv)
 			i++
 		}
 	}
@@ -752,6 +793,11 @@ func (s *SecurityGroupService) AuthorizeSecurityGroupEgress(p *AuthorizeSecurity
 		}
 
 		b, err = getRawValue(b)
+		if err != nil {
+			return nil, err
+		}
+
+		b, err = convertAuthorizeSecurityGroupEgressResponse(b)
 		if err != nil {
 			return nil, err
 		}

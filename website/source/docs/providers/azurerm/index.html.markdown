@@ -99,7 +99,7 @@ To create the App Registration using the New ARM portal:
 - Click on **Keys**. Enter a name for your key in **Key description** and choose an expiration duration.  When you click **Save** at the top of the blade, the key value will be displayed.  Once it is displayed, you then use this as the value for `client_secret`. This will disappear once you move off the page
 - Click **Required Permissions**.  Click **Add**.  This will allow us to add permission to use the Windows Azure Service Management API to the App Registration.  On Step 1, choose Windows Azure Service Management API.  Click **Select**.  On Step 2, check the box next to "Access Azure Service Management as organization users".  Click **Select**.  Click **Done** to finish adding the permission.
 
-To create the App Reigstration using the 'Classic' portal:
+To create the App Registration using the 'Classic' portal:
 
 - Select **Active Directory** from the left pane and select the directory you wish to use
 - Select **Applications** from the options at the top of the page
@@ -115,7 +115,25 @@ To grant permissions to the App Registration to your subscription, you now must 
 - Select **Subscriptions** from the left panel. Select the subscription that you want to use. In the Subscription details pane, click **Access Control (IAM)**
 - Click **Add**.  For Step 1 select an appropriate role for the tasks you want to complete with Terraform. You can find details on the built in roles [here](https://azure.microsoft.com/en-gb/documentation/articles/role-based-access-built-in-roles/)
 - Type in the name of the application added in the search box. You need to type this as it won't be shown in the user list. Click on the appropriate user in the list and then click **Select**
-- Click **OK** in the **Add Access** panel. The changes will now be saved   
+- Click **OK** in the **Add Access** panel. The changes will now be saved
+
+To create using azure cli:
+`az` is using the new azure 2.0 cli using python rather than the old nodejs version. You might be able to replace `az` with `azure`.
+```
+az login
+az account set --name="${SUBSCRIPTION_ID}"
+az ad sp create-for-rbac --role="Contributor" --scopes="/subscriptions/${SUBSCRIPTION_ID}"
+```
+
+This will output your `client_id`, `client_secret` (password), `sp_name`, and `tenant`. The sp_name or client_id may be used for the `servicePrincipalProfile.servicePrincipalClientId` and the `client_secret` is used for `servicePrincipalProfile.servicePrincipalClientSecret`.
+
+Confirm your service principal by opening a new shell and run the following commands substituting in `sp_name`, `client_secret`, and `tenant`:
+```
+az login --service-principal -u SPNAME -p CLIENTSECRET --tenant TENANT
+az vm list-sizes --location westus
+```
+
+This may be out of date and was based on: [https://github.com/Azure/acs-engine](https://github.com/Azure/acs-engine/blob/417d0d3655aeab0fee784ef6c623ac8333ebb936/docs/serviceprincipal.md#creating-a-service-principal)
 
 Microsoft have a more complete guide in the Azure documentation: [Create Active Directory application and service principle](https://azure.microsoft.com/en-us/documentation/articles/resource-group-create-service-principal-portal/)
 

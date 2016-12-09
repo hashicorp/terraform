@@ -20,7 +20,7 @@ Let's first extract our access key, secret key, and region
 into a few variables. Create another file `variables.tf` with
 the following contents.
 
-**Note**: that the file can be named anything, since Terraform loads all
+-> **Note**: that the file can be named anything, since Terraform loads all
 files ending in `.tf` in a directory.
 
 ```
@@ -56,8 +56,8 @@ the AWS provider with the given variables.
 ## Assigning Variables
 
 There are multiple ways to assign variables. Below is also the order
-in which variable values are chosen. If they're found in an option first
-below, then the options below are ignored.
+in which variable values are chosen. The following is the descending order
+of precedence in which variables are considered.
 
 #### Command-line flags
 
@@ -110,6 +110,8 @@ $ terraform plan \
   -var-file="secret.tfvars" \
   -var-file="production.tfvars"
 ```
+-> **Note**: Environment variables can only populate string-type variables. 
+List and map type variables must be populated via one of the other mechanisms.
 
 #### UI Input
 
@@ -118,7 +120,7 @@ Terraform will ask you to input the variables interactively.  These
 variables are not saved, but provides a nice user experience for getting
 started with Terraform.
 
-**Note**: UI Input is only supported for string variables. List and map
+-> **Note**: UI Input is only supported for string variables. List and map
 variables must be populated via one of the other mechanisms.
 
 #### Variable Defaults
@@ -126,6 +128,23 @@ variables must be populated via one of the other mechanisms.
 If no value is assigned to a variable via any of these methods and the
 variable has a `default` key in its declaration, that value will be used
 for the variable.
+
+<a id="lists"></a>
+## Lists
+
+Lists are defined either explicitly or implicity
+```
+# implicitly by using brackets [...]
+variable "cidrs" { default = [] }
+
+# explicitly
+variable "cidrs" { type = "list" }
+```
+
+You can specify lists in a `terraform.tfvars` file:
+```
+cidrs = [ "10.0.0.0/16", "10.1.0.0/16" ]
+```
 
 <a id="mappings"></a>
 <a id="maps"></a>
@@ -155,7 +174,7 @@ A variable can have a `map` type assigned explicitly, or it can be implicitly
 declared as a map by specifying a default value that is a map. The above
 demonstrates both.
 
-Then, replace the `aws\_instance` with the following:
+Then, replace the `aws_instance` with the following:
 
 ```
 resource "aws_instance" "example" {
@@ -184,7 +203,7 @@ $ terraform plan -var 'amis={ us-east-1 = "foo", us-west-2 = "bar" }'
 ...
 ```
 
-**Note**: Even if every key will be assigned as input, the variable must be
+-> **Note**: Even if every key will be assigned as input, the variable must be
 established as a map by setting its default to `{}`.
 
 Here is an example of setting a map's keys from a file. Starting with these

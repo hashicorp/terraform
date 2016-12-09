@@ -108,6 +108,10 @@ func (s *State) Children(path []string) []*ModuleState {
 func (s *State) children(path []string) []*ModuleState {
 	result := make([]*ModuleState, 0)
 	for _, m := range s.Modules {
+		if m == nil {
+			continue
+		}
+
 		if len(m.Path) != len(path)+1 {
 			continue
 		}
@@ -161,6 +165,9 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 
 func (s *State) moduleByPath(path []string) *ModuleState {
 	for _, mod := range s.Modules {
+		if mod == nil {
+			continue
+		}
 		if mod.Path == nil {
 			panic("missing module path")
 		}
@@ -213,6 +220,10 @@ func (s *State) moduleOrphans(path []string, c *config.Config) [][]string {
 
 	// Find the orphans that are nested...
 	for _, m := range s.Modules {
+		if m == nil {
+			continue
+		}
+
 		// We only want modules that are at least grandchildren
 		if len(m.Path) < len(path)+2 {
 			continue
@@ -328,6 +339,10 @@ func (s *State) Validate() error {
 	{
 		found := make(map[string]struct{})
 		for _, ms := range s.Modules {
+			if ms == nil {
+				continue
+			}
+
 			key := strings.Join(ms.Path, ".")
 			if _, ok := found[key]; ok {
 				result = multierror.Append(result, fmt.Errorf(
@@ -645,12 +660,15 @@ func (s *State) init() {
 	s.ensureHasLineage()
 
 	for _, mod := range s.Modules {
-		mod.init()
+		if mod != nil {
+			mod.init()
+		}
 	}
 
 	if s.Remote != nil {
 		s.Remote.init()
 	}
+
 }
 
 func (s *State) EnsureHasLineage() {
@@ -695,6 +713,18 @@ func (s *State) prune() {
 	if s == nil {
 		return
 	}
+
+	// Filter out empty modules.
+	// A module is always assumed to have a path, and it's length isn't always
+	// bounds checked later on. Modules may be "emptied" during destroy, but we
+	// never want to store those in the state.
+	for i := 0; i < len(s.Modules); i++ {
+		if s.Modules[i] == nil || len(s.Modules[i].Path) == 0 {
+			s.Modules = append(s.Modules[:i], s.Modules[i+1:]...)
+			i--
+		}
+	}
+
 	for _, mod := range s.Modules {
 		mod.prune()
 	}
@@ -709,7 +739,9 @@ func (s *State) sort() {
 
 	// Allow modules to be sorted
 	for _, m := range s.Modules {
-		m.sort()
+		if m != nil {
+			m.sort()
+		}
 	}
 }
 
@@ -1074,11 +1106,12 @@ func (m *ModuleState) prune() {
 	defer m.Unlock()
 
 	for k, v := range m.Resources {
-		v.prune()
-
-		if (v.Primary == nil || v.Primary.ID == "") && len(v.Deposed) == 0 {
+		if v == nil || (v.Primary == nil || v.Primary.ID == "") && len(v.Deposed) == 0 {
 			delete(m.Resources, k)
+			continue
 		}
+
+		v.prune()
 	}
 
 	for k, v := range m.Outputs {
@@ -1420,19 +1453,6 @@ func (s *ResourceState) init() {
 	if s.Deposed == nil {
 		s.Deposed = make([]*InstanceState, 0)
 	}
-
-	// clean out any possible nil values read in from the state file
-	end := len(s.Deposed) - 1
-	for i := 0; i <= end; i++ {
-		if s.Deposed[i] == nil {
-			s.Deposed[i], s.Deposed[end] = s.Deposed[end], s.Deposed[i]
-			end--
-			i--
-		} else {
-			s.Deposed[i].init()
-		}
-	}
-	s.Deposed = s.Deposed[:end+1]
 }
 
 func (s *ResourceState) deepcopy() *ResourceState {
@@ -1805,6 +1825,10 @@ func ReadState(src io.Reader) (*State, error) {
 		panic("resulting state in load not set, assertion failed")
 	}
 
+	// Prune the state when read it. Its possible to write unpruned states or
+	// for a user to make a state unpruned (nil-ing a module state for example).
+	result.prune()
+
 	// Validate the state file is valid
 	if err := result.Validate(); err != nil {
 		return nil, err
@@ -1962,6 +1986,11 @@ func (s moduleStateSort) Len() int {
 func (s moduleStateSort) Less(i, j int) bool {
 	a := s[i]
 	b := s[j]
+
+	// If either is nil, then the nil one is "less" than
+	if a == nil || b == nil {
+		return a == nil
+	}
 
 	// If the lengths are different, then the shorter one always wins
 	if len(a.Path) != len(b.Path) {

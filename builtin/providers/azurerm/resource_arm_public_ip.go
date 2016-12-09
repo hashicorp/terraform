@@ -28,12 +28,7 @@ func resourceArmPublicIp() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -130,10 +125,10 @@ func resourceArmPublicIpCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	publicIp := network.PublicIPAddress{
-		Name:       &name,
-		Location:   &location,
-		Properties: &properties,
-		Tags:       expandTags(tags),
+		Name:                            &name,
+		Location:                        &location,
+		PublicIPAddressPropertiesFormat: &properties,
+		Tags: expandTags(tags),
 	}
 
 	_, err := publicIPClient.CreateOrUpdate(resGroup, name, publicIp, make(chan struct{}))
@@ -176,14 +171,14 @@ func resourceArmPublicIpRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", resp.Location)
 	d.Set("name", resp.Name)
-	d.Set("public_ip_address_allocation", strings.ToLower(string(resp.Properties.PublicIPAllocationMethod)))
+	d.Set("public_ip_address_allocation", strings.ToLower(string(resp.PublicIPAddressPropertiesFormat.PublicIPAllocationMethod)))
 
-	if resp.Properties.DNSSettings != nil && resp.Properties.DNSSettings.Fqdn != nil && *resp.Properties.DNSSettings.Fqdn != "" {
-		d.Set("fqdn", resp.Properties.DNSSettings.Fqdn)
+	if resp.PublicIPAddressPropertiesFormat.DNSSettings != nil && resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != nil && *resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn != "" {
+		d.Set("fqdn", resp.PublicIPAddressPropertiesFormat.DNSSettings.Fqdn)
 	}
 
-	if resp.Properties.IPAddress != nil && *resp.Properties.IPAddress != "" {
-		d.Set("ip_address", resp.Properties.IPAddress)
+	if resp.PublicIPAddressPropertiesFormat.IPAddress != nil && *resp.PublicIPAddressPropertiesFormat.IPAddress != "" {
+		d.Set("ip_address", resp.PublicIPAddressPropertiesFormat.IPAddress)
 	}
 
 	flattenAndSetTags(d, resp.Tags)

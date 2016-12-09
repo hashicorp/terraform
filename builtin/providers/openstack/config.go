@@ -7,50 +7,60 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
+	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/swauth"
 )
 
 type Config struct {
-	Username         string
-	UserID           string
-	Password         string
-	Token            string
-	APIKey           string
-	IdentityEndpoint string
-	TenantID         string
-	TenantName       string
-	DomainID         string
-	DomainName       string
-	Insecure         bool
-	EndpointType     string
 	CACertFile       string
 	ClientCertFile   string
 	ClientKeyFile    string
+	DomainID         string
+	DomainName       string
+	EndpointType     string
+	IdentityEndpoint string
+	Insecure         bool
+	Password         string
+	Swauth           bool
+	TenantID         string
+	TenantName       string
+	Token            string
+	Username         string
+	UserID           string
 
 	osClient *gophercloud.ProviderClient
 }
 
 func (c *Config) loadAndValidate() error {
+	validEndpoint := false
+	validEndpoints := []string{
+		"internal", "internalURL",
+		"admin", "adminURL",
+		"public", "publicURL",
+		"",
+	}
 
-	if c.EndpointType != "internal" && c.EndpointType != "internalURL" &&
-		c.EndpointType != "admin" && c.EndpointType != "adminURL" &&
-		c.EndpointType != "public" && c.EndpointType != "publicURL" &&
-		c.EndpointType != "" {
+	for _, endpoint := range validEndpoints {
+		if c.EndpointType == endpoint {
+			validEndpoint = true
+		}
+	}
+
+	if !validEndpoint {
 		return fmt.Errorf("Invalid endpoint type provided")
 	}
 
 	ao := gophercloud.AuthOptions{
-		Username:         c.Username,
-		UserID:           c.UserID,
-		Password:         c.Password,
-		TokenID:          c.Token,
-		APIKey:           c.APIKey,
-		IdentityEndpoint: c.IdentityEndpoint,
-		TenantID:         c.TenantID,
-		TenantName:       c.TenantName,
 		DomainID:         c.DomainID,
 		DomainName:       c.DomainName,
+		IdentityEndpoint: c.IdentityEndpoint,
+		Password:         c.Password,
+		TenantID:         c.TenantID,
+		TenantName:       c.TenantName,
+		TokenID:          c.Token,
+		Username:         c.Username,
+		UserID:           c.UserID,
 	}
 
 	client, err := openstack.NewClient(ao.IdentityEndpoint)
@@ -60,7 +70,6 @@ func (c *Config) loadAndValidate() error {
 
 	config := &tls.Config{}
 	if c.CACertFile != "" {
-
 		caCert, err := ioutil.ReadFile(c.CACertFile)
 		if err != nil {
 			return err
@@ -70,6 +79,7 @@ func (c *Config) loadAndValidate() error {
 		caCertPool.AppendCertsFromPEM(caCert)
 		config.RootCAs = caCertPool
 	}
+
 	if c.Insecure {
 		config.InsecureSkipVerify = true
 	}
@@ -83,12 +93,16 @@ func (c *Config) loadAndValidate() error {
 		config.Certificates = []tls.Certificate{cert}
 		config.BuildNameToCertificate()
 	}
+
 	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, TLSClientConfig: config}
 	client.HTTPClient.Transport = transport
 
-	err = openstack.Authenticate(client, ao)
-	if err != nil {
-		return err
+	// If using Swift Authentication, there's no need to validate authentication normally.
+	if !c.Swauth {
+		err = openstack.Authenticate(client, ao)
+		if err != nil {
+			return err
+		}
 	}
 
 	c.osClient = client
@@ -125,6 +139,14 @@ func (c *Config) networkingV2Client(region string) (*gophercloud.ServiceClient, 
 }
 
 func (c *Config) objectStorageV1Client(region string) (*gophercloud.ServiceClient, error) {
+	// If Swift Authentication is being used, return a swauth client.
+	if c.Swauth {
+		return swauth.NewObjectStorageV1(c.osClient, swauth.AuthOpts{
+			User: c.Username,
+			Key:  c.Password,
+		})
+	}
+
 	return openstack.NewObjectStorageV1(c.osClient, gophercloud.EndpointOpts{
 		Region:       region,
 		Availability: c.getEndpointType(),

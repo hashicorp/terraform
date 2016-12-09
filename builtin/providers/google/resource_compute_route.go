@@ -118,7 +118,11 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 		nextHopIp = v.(string)
 	}
 	if v, ok := d.GetOk("next_hop_gateway"); ok {
-		nextHopGateway = v.(string)
+		if v == "default-internet-gateway" {
+			nextHopGateway = fmt.Sprintf("projects/%s/global/gateways/default-internet-gateway", project)
+		} else {
+			nextHopGateway = v.(string)
+		}
 	}
 	if v, ok := d.GetOk("next_hop_vpn_tunnel"); ok {
 		nextHopVpnTunnel = v.(string)

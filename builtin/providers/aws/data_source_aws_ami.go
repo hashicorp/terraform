@@ -8,7 +8,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -19,189 +18,156 @@ func dataSourceAwsAmi() *schema.Resource {
 		Read: dataSourceAwsAmiRead,
 
 		Schema: map[string]*schema.Schema{
-			"executable_users": &schema.Schema{
+			"filter": dataSourceFiltersSchema(),
+			"executable_users": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
-			"filter": &schema.Schema{
-				Type:     schema.TypeSet,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"name": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"values": &schema.Schema{
-							Type:     schema.TypeList,
-							Required: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-					},
-				},
+			"name_regex": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ForceNew:     true,
+				ValidateFunc: validateNameRegex,
 			},
-			"name_regex": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			"most_recent": &schema.Schema{
+			"most_recent": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 				ForceNew: true,
 			},
-			"owners": &schema.Schema{
+			"owners": {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			// Computed values.
-			"architecture": &schema.Schema{
+			"architecture": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"creation_date": &schema.Schema{
+			"creation_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"hypervisor": &schema.Schema{
+			"hypervisor": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"image_id": &schema.Schema{
+			"image_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"image_location": &schema.Schema{
+			"image_location": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"image_owner_alias": &schema.Schema{
+			"image_owner_alias": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"image_type": &schema.Schema{
+			"image_type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"kernel_id": &schema.Schema{
+			"kernel_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"owner_id": &schema.Schema{
+			"owner_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"platform": &schema.Schema{
+			"platform": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"public": &schema.Schema{
+			"public": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"ramdisk_id": &schema.Schema{
+			"ramdisk_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"root_device_name": &schema.Schema{
+			"root_device_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"root_device_type": &schema.Schema{
+			"root_device_type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"sriov_net_support": &schema.Schema{
+			"sriov_net_support": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"state": &schema.Schema{
+			"state": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"virtualization_type": &schema.Schema{
+			"virtualization_type": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			// Complex computed values
-			"block_device_mappings": &schema.Schema{
+			"block_device_mappings": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Set:      amiBlockDeviceMappingHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"device_name": &schema.Schema{
+						"device_name": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"no_device": &schema.Schema{
+						"no_device": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"virtual_name": &schema.Schema{
+						"virtual_name": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"ebs": &schema.Schema{
+						"ebs": {
 							Type:     schema.TypeMap,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"product_codes": &schema.Schema{
+			"product_codes": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Set:      amiProductCodesHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"product_code_id": &schema.Schema{
+						"product_code_id": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"product_code_type": &schema.Schema{
+						"product_code_type": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
 			},
-			"state_reason": &schema.Schema{
+			"state_reason": {
 				Type:     schema.TypeMap,
 				Computed: true,
 			},
-			"tags": &schema.Schema{
-				Type:     schema.TypeSet,
-				Computed: true,
-				Set:      amiTagsHash,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"key": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"value": &schema.Schema{
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
+			"tags": dataSourceTagsSchema(),
 		},
 	}
 }
@@ -224,7 +190,7 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 		params.ExecutableUsers = expandStringList(executableUsers.([]interface{}))
 	}
 	if filtersOk {
-		params.Filters = buildAmiFilters(filters.(*schema.Set))
+		params.Filters = buildAwsDataSourceFilters(filters.(*schema.Set))
 	}
 	if ownersOk {
 		params.Owners = expandStringList(owners.([]interface{}))
@@ -277,23 +243,6 @@ func dataSourceAwsAmiRead(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] aws_ami - Single AMI found: %s", *image.ImageId)
 	return amiDescriptionAttributes(d, image)
-}
-
-// Build a slice of AMI filter options from the filters provided.
-func buildAmiFilters(set *schema.Set) []*ec2.Filter {
-	var filters []*ec2.Filter
-	for _, v := range set.List() {
-		m := v.(map[string]interface{})
-		var filterValues []*string
-		for _, e := range m["values"].([]interface{}) {
-			filterValues = append(filterValues, aws.String(e.(string)))
-		}
-		filters = append(filters, &ec2.Filter{
-			Name:   aws.String(m["name"].(string)),
-			Values: filterValues,
-		})
-	}
-	return filters
 }
 
 type imageSort []*ec2.Image
@@ -360,7 +309,7 @@ func amiDescriptionAttributes(d *schema.ResourceData, image *ec2.Image) error {
 	if err := d.Set("state_reason", amiStateReason(image.StateReason)); err != nil {
 		return err
 	}
-	if err := d.Set("tags", amiTags(image.Tags)); err != nil {
+	if err := d.Set("tags", dataSourceTags(image.Tags)); err != nil {
 		return err
 	}
 	return nil
@@ -432,21 +381,6 @@ func amiStateReason(m *ec2.StateReason) map[string]interface{} {
 	return s
 }
 
-// Returns a set of tags.
-func amiTags(m []*ec2.Tag) *schema.Set {
-	s := &schema.Set{
-		F: amiTagsHash,
-	}
-	for _, v := range m {
-		tag := map[string]interface{}{
-			"key":   *v.Key,
-			"value": *v.Value,
-		}
-		s.Add(tag)
-	}
-	return s
-}
-
 // Generates a hash for the set hash function used by the block_device_mappings
 // attribute.
 func amiBlockDeviceMappingHash(v interface{}) int {
@@ -487,13 +421,13 @@ func amiProductCodesHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-// Generates a hash for the set hash function used by the tags
-// attribute.
-func amiTagsHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	// All keys added in alphabetical order.
-	buf.WriteString(fmt.Sprintf("%s-", m["key"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
-	return hashcode.String(buf.String())
+func validateNameRegex(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if _, err := regexp.Compile(value); err != nil {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid regular expression: %s",
+			k, err))
+	}
+	return
 }

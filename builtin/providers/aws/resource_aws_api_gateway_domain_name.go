@@ -21,38 +21,46 @@ func resourceAwsApiGatewayDomainName() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 
-			"certificate_body": &schema.Schema{
+			"certificate_body": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Required: true,
+			},
+
+			"certificate_chain": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Required: true,
+			},
+
+			"certificate_name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"certificate_chain": &schema.Schema{
+			"certificate_private_key": {
 				Type:     schema.TypeString,
+				ForceNew: true,
 				Required: true,
 			},
 
-			"certificate_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"certificate_private_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"domain_name": &schema.Schema{
+			"domain_name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"cloudfront_domain_name": &schema.Schema{
+			"cloudfront_domain_name": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"cloudfront_zone_id": &schema.Schema{
+			"certificate_upload_date": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"cloudfront_zone_id": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -100,7 +108,9 @@ func resourceAwsApiGatewayDomainNameRead(d *schema.ResourceData, meta interface{
 	}
 
 	d.Set("certificate_name", domainName.CertificateName)
-	d.Set("certificate_upload_date", domainName.CertificateUploadDate)
+	if err := d.Set("certificate_upload_date", domainName.CertificateUploadDate.Format(time.RFC3339)); err != nil {
+		log.Printf("[DEBUG] Error setting certificate_upload_date: %s", err)
+	}
 	d.Set("cloudfront_domain_name", domainName.DistributionDomainName)
 	d.Set("domain_name", domainName.DomainName)
 
@@ -110,35 +120,11 @@ func resourceAwsApiGatewayDomainNameRead(d *schema.ResourceData, meta interface{
 func resourceAwsApiGatewayDomainNameUpdateOperations(d *schema.ResourceData) []*apigateway.PatchOperation {
 	operations := make([]*apigateway.PatchOperation, 0)
 
-	if d.HasChange("certificate_body") {
-		operations = append(operations, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
-			Path:  aws.String("/certificate_body"),
-			Value: aws.String(d.Get("certificate_body").(string)),
-		})
-	}
-
-	if d.HasChange("certificate_chain") {
-		operations = append(operations, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
-			Path:  aws.String("/certificate_chain"),
-			Value: aws.String(d.Get("certificate_chain").(string)),
-		})
-	}
-
 	if d.HasChange("certificate_name") {
 		operations = append(operations, &apigateway.PatchOperation{
 			Op:    aws.String("replace"),
-			Path:  aws.String("/certificate_name"),
+			Path:  aws.String("/certificateName"),
 			Value: aws.String(d.Get("certificate_name").(string)),
-		})
-	}
-
-	if d.HasChange("certificate_private_key") {
-		operations = append(operations, &apigateway.PatchOperation{
-			Op:    aws.String("replace"),
-			Path:  aws.String("/certificate_private_key"),
-			Value: aws.String(d.Get("certificate_private_key").(string)),
 		})
 	}
 

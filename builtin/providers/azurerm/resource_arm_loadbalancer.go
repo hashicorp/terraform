@@ -26,12 +26,7 @@ func resourceArmLoadBalancer() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -116,10 +111,10 @@ func resourceArmLoadBalancerCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	loadbalancer := network.LoadBalancer{
-		Name:       azure.String(name),
-		Location:   azure.String(location),
-		Tags:       expandedTags,
-		Properties: &properties,
+		Name:     azure.String(name),
+		Location: azure.String(location),
+		Tags:     expandedTags,
+		LoadBalancerPropertiesFormat: &properties,
 	}
 
 	_, err := loadBalancerClient.CreateOrUpdate(resGroup, name, loadbalancer, make(chan struct{}))
@@ -162,8 +157,8 @@ func resourecArmLoadBalancerRead(d *schema.ResourceData, meta interface{}) error
 		return nil
 	}
 
-	if loadBalancer.Properties != nil && loadBalancer.Properties.FrontendIPConfigurations != nil {
-		d.Set("frontend_ip_configuration", flattenLoadBalancerFrontendIpConfiguration(loadBalancer.Properties.FrontendIPConfigurations))
+	if loadBalancer.LoadBalancerPropertiesFormat != nil && loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations != nil {
+		d.Set("frontend_ip_configuration", flattenLoadBalancerFrontendIpConfiguration(loadBalancer.LoadBalancerPropertiesFormat.FrontendIPConfigurations))
 	}
 
 	flattenAndSetTags(d, loadBalancer.Tags)
@@ -220,8 +215,8 @@ func expandAzureRmLoadBalancerFrontendIpConfigurations(d *schema.ResourceData) *
 
 		name := data["name"].(string)
 		frontEndConfig := network.FrontendIPConfiguration{
-			Name:       &name,
-			Properties: &properties,
+			Name: &name,
+			FrontendIPConfigurationPropertiesFormat: &properties,
 		}
 
 		frontEndConfigs = append(frontEndConfigs, frontEndConfig)
@@ -235,23 +230,23 @@ func flattenLoadBalancerFrontendIpConfiguration(ipConfigs *[]network.FrontendIPC
 	for _, config := range *ipConfigs {
 		ipConfig := make(map[string]interface{})
 		ipConfig["name"] = *config.Name
-		ipConfig["private_ip_address_allocation"] = config.Properties.PrivateIPAllocationMethod
+		ipConfig["private_ip_address_allocation"] = config.FrontendIPConfigurationPropertiesFormat.PrivateIPAllocationMethod
 
-		if config.Properties.Subnet != nil {
-			ipConfig["subnet_id"] = *config.Properties.Subnet.ID
+		if config.FrontendIPConfigurationPropertiesFormat.Subnet != nil {
+			ipConfig["subnet_id"] = *config.FrontendIPConfigurationPropertiesFormat.Subnet.ID
 		}
 
-		if config.Properties.PrivateIPAddress != nil {
-			ipConfig["private_ip_address"] = *config.Properties.PrivateIPAddress
+		if config.FrontendIPConfigurationPropertiesFormat.PrivateIPAddress != nil {
+			ipConfig["private_ip_address"] = *config.FrontendIPConfigurationPropertiesFormat.PrivateIPAddress
 		}
 
-		if config.Properties.PublicIPAddress != nil {
-			ipConfig["public_ip_address_id"] = *config.Properties.PublicIPAddress.ID
+		if config.FrontendIPConfigurationPropertiesFormat.PublicIPAddress != nil {
+			ipConfig["public_ip_address_id"] = *config.FrontendIPConfigurationPropertiesFormat.PublicIPAddress.ID
 		}
 
-		if config.Properties.LoadBalancingRules != nil {
-			load_balancing_rules := make([]string, 0, len(*config.Properties.LoadBalancingRules))
-			for _, rule := range *config.Properties.LoadBalancingRules {
+		if config.FrontendIPConfigurationPropertiesFormat.LoadBalancingRules != nil {
+			load_balancing_rules := make([]string, 0, len(*config.FrontendIPConfigurationPropertiesFormat.LoadBalancingRules))
+			for _, rule := range *config.FrontendIPConfigurationPropertiesFormat.LoadBalancingRules {
 				load_balancing_rules = append(load_balancing_rules, *rule.ID)
 			}
 
@@ -259,9 +254,9 @@ func flattenLoadBalancerFrontendIpConfiguration(ipConfigs *[]network.FrontendIPC
 
 		}
 
-		if config.Properties.InboundNatRules != nil {
-			inbound_nat_rules := make([]string, 0, len(*config.Properties.InboundNatRules))
-			for _, rule := range *config.Properties.InboundNatRules {
+		if config.FrontendIPConfigurationPropertiesFormat.InboundNatRules != nil {
+			inbound_nat_rules := make([]string, 0, len(*config.FrontendIPConfigurationPropertiesFormat.InboundNatRules))
+			for _, rule := range *config.FrontendIPConfigurationPropertiesFormat.InboundNatRules {
 				inbound_nat_rules = append(inbound_nat_rules, *rule.ID)
 			}
 

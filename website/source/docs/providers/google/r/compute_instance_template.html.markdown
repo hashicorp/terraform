@@ -27,8 +27,11 @@ resource "google_compute_instance_template" "foobar" {
   instance_description = "description assigned to instances"
   machine_type         = "n1-standard-1"
   can_ip_forward       = false
-  automatic_restart    = true
-  on_host_maintenance  = "MIGRATE"
+
+  scheduling {
+    automatic_restart   = true
+    on_host_maintenance = "MIGRATE"
+  }
 
   // Create a new boot disk from an image
   disk {
@@ -132,6 +135,11 @@ The following arguments are supported:
 
 * `metadata` - (Optional) Metadata key/value pairs to make available from
     within instances created from this template.
+
+* `metadata_startup_script` - (Optional) An alternative to using the
+    startup-script metadata key, mostly to match the compute_instance resource.
+    This replaces the startup-script metadata key on the created instance and 
+    thus the two mechanisms are not allowed to be used simultaneously.
 
 * `network_interface` - (Required) Networks to attach to instances created from
     this template. This can be specified multiple times for multiple networks.

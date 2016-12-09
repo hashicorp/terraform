@@ -13,15 +13,15 @@ currently limited to adding or modifying the IAM Policy for the project.
 
 When adding a policy to a project, the policy will be merged with the
 project's existing policy. The policy is always specified in a
-`google_iam_policy` data source and referencd from the project's
+`google_iam_policy` data source and referenced from the project's
 `policy_data` attribute.
 
 ## Example Usage
 
 ```js
-resource "google_project" "my-project" {
+resource "google_project" "my_project" {
     id = "your-project-id"
-    policy_data = "${data.google_iam_policy.admin.policy}"
+    policy_data = "${data.google_iam_policy.admin.policy_data}"
 }
 
 data "google_iam_policy" "admin" {

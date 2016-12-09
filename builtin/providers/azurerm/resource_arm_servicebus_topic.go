@@ -32,12 +32,7 @@ func resourceArmServiceBusTopic() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -80,6 +75,7 @@ func resourceArmServiceBusTopic() *schema.Resource {
 			"enable_partitioning": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"max_size_in_megabytes": {
@@ -91,6 +87,7 @@ func resourceArmServiceBusTopic() *schema.Resource {
 			"requires_duplicate_detection": {
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 			},
 
 			"support_ordering": {
@@ -111,21 +108,21 @@ func resourceArmServiceBusTopicCreate(d *schema.ResourceData, meta interface{}) 
 	resGroup := d.Get("resource_group_name").(string)
 
 	parameters := servicebus.TopicCreateOrUpdateParameters{
-		Name:       &name,
-		Location:   &location,
-		Properties: &servicebus.TopicProperties{},
+		Name:            &name,
+		Location:        &location,
+		TopicProperties: &servicebus.TopicProperties{},
 	}
 
 	if autoDeleteOnIdle := d.Get("auto_delete_on_idle").(string); autoDeleteOnIdle != "" {
-		parameters.Properties.AutoDeleteOnIdle = &autoDeleteOnIdle
+		parameters.TopicProperties.AutoDeleteOnIdle = &autoDeleteOnIdle
 	}
 
 	if defaultTTL := d.Get("default_message_ttl").(string); defaultTTL != "" {
-		parameters.Properties.DefaultMessageTimeToLive = &defaultTTL
+		parameters.TopicProperties.DefaultMessageTimeToLive = &defaultTTL
 	}
 
 	if duplicateWindow := d.Get("duplicate_detection_history_time_window").(string); duplicateWindow != "" {
-		parameters.Properties.DuplicateDetectionHistoryTimeWindow = &duplicateWindow
+		parameters.TopicProperties.DuplicateDetectionHistoryTimeWindow = &duplicateWindow
 	}
 
 	enableBatchedOps := d.Get("enable_batched_operations").(bool)
@@ -136,13 +133,13 @@ func resourceArmServiceBusTopicCreate(d *schema.ResourceData, meta interface{}) 
 	requiresDuplicateDetection := d.Get("requires_duplicate_detection").(bool)
 	supportOrdering := d.Get("support_ordering").(bool)
 
-	parameters.Properties.EnableBatchedOperations = &enableBatchedOps
-	parameters.Properties.EnableExpress = &enableExpress
-	parameters.Properties.FilteringMessagesBeforePublishing = &enableFiltering
-	parameters.Properties.EnablePartitioning = &enablePartitioning
-	parameters.Properties.MaxSizeInMegabytes = &maxSize
-	parameters.Properties.RequiresDuplicateDetection = &requiresDuplicateDetection
-	parameters.Properties.SupportOrdering = &supportOrdering
+	parameters.TopicProperties.EnableBatchedOperations = &enableBatchedOps
+	parameters.TopicProperties.EnableExpress = &enableExpress
+	parameters.TopicProperties.FilteringMessagesBeforePublishing = &enableFiltering
+	parameters.TopicProperties.EnablePartitioning = &enablePartitioning
+	parameters.TopicProperties.MaxSizeInMegabytes = &maxSize
+	parameters.TopicProperties.RequiresDuplicateDetection = &requiresDuplicateDetection
+	parameters.TopicProperties.SupportOrdering = &supportOrdering
 
 	_, err := client.CreateOrUpdate(resGroup, namespaceName, name, parameters)
 	if err != nil {
@@ -187,7 +184,7 @@ func resourceArmServiceBusTopicRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("namespace_name", namespaceName)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
-	props := resp.Properties
+	props := resp.TopicProperties
 	d.Set("auto_delete_on_idle", props.AutoDeleteOnIdle)
 	d.Set("default_message_ttl", props.DefaultMessageTimeToLive)
 
@@ -199,9 +196,26 @@ func resourceArmServiceBusTopicRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("enable_express", props.EnableExpress)
 	d.Set("enable_filtering_messages_before_publishing", props.FilteringMessagesBeforePublishing)
 	d.Set("enable_partitioning", props.EnablePartitioning)
-	d.Set("max_size_in_megabytes", int(*props.MaxSizeInMegabytes))
 	d.Set("requires_duplicate_detection", props.RequiresDuplicateDetection)
 	d.Set("support_ordering", props.SupportOrdering)
+
+	maxSize := int(*props.MaxSizeInMegabytes)
+
+	// if the topic is in a premium namespace and partitioning is enabled then the
+	// max size returned by the API will be 16 times greater than the value set
+	if *props.EnablePartitioning {
+		namespace, err := meta.(*ArmClient).serviceBusNamespacesClient.Get(resGroup, namespaceName)
+		if err != nil {
+			return err
+		}
+
+		if namespace.Sku.Name != servicebus.Premium {
+			const partitionCount = 16
+			maxSize = int(*props.MaxSizeInMegabytes / partitionCount)
+		}
+	}
+
+	d.Set("max_size_in_megabytes", maxSize)
 
 	return nil
 }

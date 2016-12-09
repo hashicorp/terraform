@@ -99,6 +99,12 @@ func TestFlagTypedKV(t *testing.T) {
 		},
 
 		{
+			"key=false",
+			map[string]interface{}{"key": "false"},
+			false,
+		},
+
+		{
 			"map.key=foo",
 			map[string]interface{}{"map.key": "foo"},
 			false,

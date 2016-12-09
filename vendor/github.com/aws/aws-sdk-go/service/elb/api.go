@@ -367,8 +367,8 @@ func (c *ELB) CreateAppCookieStickinessPolicyRequest(input *CreateAppCookieStick
 // policy configuration. The load balancer only inserts a new stickiness cookie
 // when the application response includes a new application cookie.
 //
-// If the application cookie is explicitly removed or expires, the session
-// stops being sticky until a new application cookie is issued.
+// If the application cookie is explicitly removed or expires, the session stops
+// being sticky until a new application cookie is issued.
 //
 // For more information, see Application-Controlled Session Stickiness (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/elb-sticky-sessions.html#enable-sticky-sessions-application)
 // in the Classic Load Balancers Guide.
@@ -812,11 +812,11 @@ func (c *ELB) DeleteLoadBalancerRequest(input *DeleteLoadBalancerInput) (req *re
 //
 // Deletes the specified load balancer.
 //
-// If you are attempting to recreate a load balancer, you must reconfigure
-// all settings. The DNS name associated with a deleted load balancer are no
-// longer usable. The name and associated DNS record of the deleted load balancer
-// no longer exist and traffic sent to any of its IP addresses is no longer
-// delivered to your instances.
+// If you are attempting to recreate a load balancer, you must reconfigure all
+// settings. The DNS name associated with a deleted load balancer are no longer
+// usable. The name and associated DNS record of the deleted load balancer no
+// longer exist and traffic sent to any of its IP addresses is no longer delivered
+// to your instances.
 //
 // If the load balancer does not exist or has already been deleted, the call
 // to DeleteLoadBalancer still succeeds.
@@ -1301,10 +1301,10 @@ func (c *ELB) DescribeLoadBalancerPolicyTypesRequest(input *DescribeLoadBalancer
 // Describes the specified load balancer policy types or all load balancer policy
 // types.
 //
-// The description of each type indicates how it can be used. For example,
-// some policies can be used only with layer 7 listeners, some policies can
-// be used only with layer 4 listeners, and some policies can be used only with
-// your EC2 instances.
+// The description of each type indicates how it can be used. For example, some
+// policies can be used only with layer 7 listeners, some policies can be used
+// only with layer 4 listeners, and some policies can be used only with your
+// EC2 instances.
 //
 // You can use CreateLoadBalancerPolicy to create a policy configuration for
 // any of these policy types. Then, depending on the policy type, use either
@@ -1688,8 +1688,8 @@ func (c *ELB) EnableAvailabilityZonesForLoadBalancerRequest(input *EnableAvailab
 // Adds the specified Availability Zones to the set of Availability Zones for
 // the specified load balancer.
 //
-// The load balancer evenly distributes requests across all its registered
-// Availability Zones that contain instances.
+// The load balancer evenly distributes requests across all its registered Availability
+// Zones that contain instances.
 //
 // For more information, see Add or Remove Availability Zones (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-az.html)
 // in the Classic Load Balancers Guide.
@@ -1765,13 +1765,13 @@ func (c *ELB) ModifyLoadBalancerAttributesRequest(input *ModifyLoadBalancerAttri
 //
 // For more information, see the following in the Classic Load Balancers Guide:
 //
-//    Cross-Zone Load Balancing (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-crosszone-lb.html)
+//    * Cross-Zone Load Balancing (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-disable-crosszone-lb.html)
 //
-//    Connection Draining (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-conn-drain.html)
+//    * Connection Draining (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-conn-drain.html)
 //
-//    Access Logs (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/access-log-collection.html)
+//    * Access Logs (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/access-log-collection.html)
 //
-//    Idle Connection Timeout (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-idle-timeout.html)
+//    * Idle Connection Timeout (http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/config-idle-timeout.html)
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1843,9 +1843,9 @@ func (c *ELB) RegisterInstancesWithLoadBalancerRequest(input *RegisterInstancesW
 //
 // Adds the specified instances to the specified load balancer.
 //
-// The instance must be a running instance in the same network as the load
-// balancer (EC2-Classic or the same VPC). If you have EC2-Classic instances
-// and a load balancer in a VPC with ClassicLink enabled, you can link the EC2-Classic
+// The instance must be a running instance in the same network as the load balancer
+// (EC2-Classic or the same VPC). If you have EC2-Classic instances and a load
+// balancer in a VPC with ClassicLink enabled, you can link the EC2-Classic
 // instances to that VPC and then register the linked EC2-Classic instances
 // with the load balancer in the VPC.
 //
@@ -2084,9 +2084,8 @@ func (c *ELB) SetLoadBalancerPoliciesForBackendServerRequest(input *SetLoadBalan
 // the back-end server authentication policy type can be applied to the instance
 // ports; this policy type is composed of multiple public key policies.
 //
-// Each time you use SetLoadBalancerPoliciesForBackendServer to enable the
-// policies, use the PolicyNames parameter to list the policies that you want
-// to enable.
+// Each time you use SetLoadBalancerPoliciesForBackendServer to enable the policies,
+// use the PolicyNames parameter to list the policies that you want to enable.
 //
 // You can use DescribeLoadBalancers or DescribeLoadBalancerPolicies to verify
 // that the policy is associated with the EC2 instance.
@@ -2249,6 +2248,30 @@ func (s *AccessLog) Validate() error {
 	return nil
 }
 
+// SetEmitInterval sets the EmitInterval field's value.
+func (s *AccessLog) SetEmitInterval(v int64) *AccessLog {
+	s.EmitInterval = &v
+	return s
+}
+
+// SetEnabled sets the Enabled field's value.
+func (s *AccessLog) SetEnabled(v bool) *AccessLog {
+	s.Enabled = &v
+	return s
+}
+
+// SetS3BucketName sets the S3BucketName field's value.
+func (s *AccessLog) SetS3BucketName(v string) *AccessLog {
+	s.S3BucketName = &v
+	return s
+}
+
+// SetS3BucketPrefix sets the S3BucketPrefix field's value.
+func (s *AccessLog) SetS3BucketPrefix(v string) *AccessLog {
+	s.S3BucketPrefix = &v
+	return s
+}
+
 // Contains the parameters for AddTags.
 type AddTagsInput struct {
 	_ struct{} `type:"structure"`
@@ -2303,6 +2326,18 @@ func (s *AddTagsInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerNames sets the LoadBalancerNames field's value.
+func (s *AddTagsInput) SetLoadBalancerNames(v []*string) *AddTagsInput {
+	s.LoadBalancerNames = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *AddTagsInput) SetTags(v []*Tag) *AddTagsInput {
+	s.Tags = v
+	return s
+}
+
 // Contains the output of AddTags.
 type AddTagsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2339,6 +2374,18 @@ func (s AdditionalAttribute) GoString() string {
 	return s.String()
 }
 
+// SetKey sets the Key field's value.
+func (s *AdditionalAttribute) SetKey(v string) *AdditionalAttribute {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *AdditionalAttribute) SetValue(v string) *AdditionalAttribute {
+	s.Value = &v
+	return s
+}
+
 // Information about a policy for application-controlled session stickiness.
 type AppCookieStickinessPolicy struct {
 	_ struct{} `type:"structure"`
@@ -2359,6 +2406,18 @@ func (s AppCookieStickinessPolicy) String() string {
 // GoString returns the string representation
 func (s AppCookieStickinessPolicy) GoString() string {
 	return s.String()
+}
+
+// SetCookieName sets the CookieName field's value.
+func (s *AppCookieStickinessPolicy) SetCookieName(v string) *AppCookieStickinessPolicy {
+	s.CookieName = &v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *AppCookieStickinessPolicy) SetPolicyName(v string) *AppCookieStickinessPolicy {
+	s.PolicyName = &v
+	return s
 }
 
 // Contains the parameters for ApplySecurityGroupsToLoadBalancer.
@@ -2403,6 +2462,18 @@ func (s *ApplySecurityGroupsToLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *ApplySecurityGroupsToLoadBalancerInput) SetLoadBalancerName(v string) *ApplySecurityGroupsToLoadBalancerInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *ApplySecurityGroupsToLoadBalancerInput) SetSecurityGroups(v []*string) *ApplySecurityGroupsToLoadBalancerInput {
+	s.SecurityGroups = v
+	return s
+}
+
 // Contains the output of ApplySecurityGroupsToLoadBalancer.
 type ApplySecurityGroupsToLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
@@ -2419,6 +2490,12 @@ func (s ApplySecurityGroupsToLoadBalancerOutput) String() string {
 // GoString returns the string representation
 func (s ApplySecurityGroupsToLoadBalancerOutput) GoString() string {
 	return s.String()
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *ApplySecurityGroupsToLoadBalancerOutput) SetSecurityGroups(v []*string) *ApplySecurityGroupsToLoadBalancerOutput {
+	s.SecurityGroups = v
+	return s
 }
 
 // Contains the parameters for AttachLoaBalancerToSubnets.
@@ -2463,6 +2540,18 @@ func (s *AttachLoadBalancerToSubnetsInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *AttachLoadBalancerToSubnetsInput) SetLoadBalancerName(v string) *AttachLoadBalancerToSubnetsInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *AttachLoadBalancerToSubnetsInput) SetSubnets(v []*string) *AttachLoadBalancerToSubnetsInput {
+	s.Subnets = v
+	return s
+}
+
 // Contains the output of AttachLoadBalancerToSubnets.
 type AttachLoadBalancerToSubnetsOutput struct {
 	_ struct{} `type:"structure"`
@@ -2479,6 +2568,12 @@ func (s AttachLoadBalancerToSubnetsOutput) String() string {
 // GoString returns the string representation
 func (s AttachLoadBalancerToSubnetsOutput) GoString() string {
 	return s.String()
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *AttachLoadBalancerToSubnetsOutput) SetSubnets(v []*string) *AttachLoadBalancerToSubnetsOutput {
+	s.Subnets = v
+	return s
 }
 
 // Information about the configuration of an EC2 instance.
@@ -2500,6 +2595,18 @@ func (s BackendServerDescription) String() string {
 // GoString returns the string representation
 func (s BackendServerDescription) GoString() string {
 	return s.String()
+}
+
+// SetInstancePort sets the InstancePort field's value.
+func (s *BackendServerDescription) SetInstancePort(v int64) *BackendServerDescription {
+	s.InstancePort = &v
+	return s
+}
+
+// SetPolicyNames sets the PolicyNames field's value.
+func (s *BackendServerDescription) SetPolicyNames(v []*string) *BackendServerDescription {
+	s.PolicyNames = v
+	return s
 }
 
 // Contains the parameters for ConfigureHealthCheck.
@@ -2548,6 +2655,18 @@ func (s *ConfigureHealthCheckInput) Validate() error {
 	return nil
 }
 
+// SetHealthCheck sets the HealthCheck field's value.
+func (s *ConfigureHealthCheckInput) SetHealthCheck(v *HealthCheck) *ConfigureHealthCheckInput {
+	s.HealthCheck = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *ConfigureHealthCheckInput) SetLoadBalancerName(v string) *ConfigureHealthCheckInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
 // Contains the output of ConfigureHealthCheck.
 type ConfigureHealthCheckOutput struct {
 	_ struct{} `type:"structure"`
@@ -2564,6 +2683,12 @@ func (s ConfigureHealthCheckOutput) String() string {
 // GoString returns the string representation
 func (s ConfigureHealthCheckOutput) GoString() string {
 	return s.String()
+}
+
+// SetHealthCheck sets the HealthCheck field's value.
+func (s *ConfigureHealthCheckOutput) SetHealthCheck(v *HealthCheck) *ConfigureHealthCheckOutput {
+	s.HealthCheck = v
+	return s
 }
 
 // Information about the ConnectionDraining attribute.
@@ -2603,6 +2728,18 @@ func (s *ConnectionDraining) Validate() error {
 	return nil
 }
 
+// SetEnabled sets the Enabled field's value.
+func (s *ConnectionDraining) SetEnabled(v bool) *ConnectionDraining {
+	s.Enabled = &v
+	return s
+}
+
+// SetTimeout sets the Timeout field's value.
+func (s *ConnectionDraining) SetTimeout(v int64) *ConnectionDraining {
+	s.Timeout = &v
+	return s
+}
+
 // Information about the ConnectionSettings attribute.
 type ConnectionSettings struct {
 	_ struct{} `type:"structure"`
@@ -2638,6 +2775,12 @@ func (s *ConnectionSettings) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetIdleTimeout sets the IdleTimeout field's value.
+func (s *ConnectionSettings) SetIdleTimeout(v int64) *ConnectionSettings {
+	s.IdleTimeout = &v
+	return s
 }
 
 // Contains the parameters for CreateAppCookieStickinessPolicy.
@@ -2689,6 +2832,24 @@ func (s *CreateAppCookieStickinessPolicyInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCookieName sets the CookieName field's value.
+func (s *CreateAppCookieStickinessPolicyInput) SetCookieName(v string) *CreateAppCookieStickinessPolicyInput {
+	s.CookieName = &v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *CreateAppCookieStickinessPolicyInput) SetLoadBalancerName(v string) *CreateAppCookieStickinessPolicyInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *CreateAppCookieStickinessPolicyInput) SetPolicyName(v string) *CreateAppCookieStickinessPolicyInput {
+	s.PolicyName = &v
+	return s
 }
 
 // Contains the output for CreateAppCookieStickinessPolicy.
@@ -2753,6 +2914,24 @@ func (s *CreateLBCookieStickinessPolicyInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetCookieExpirationPeriod sets the CookieExpirationPeriod field's value.
+func (s *CreateLBCookieStickinessPolicyInput) SetCookieExpirationPeriod(v int64) *CreateLBCookieStickinessPolicyInput {
+	s.CookieExpirationPeriod = &v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *CreateLBCookieStickinessPolicyInput) SetLoadBalancerName(v string) *CreateLBCookieStickinessPolicyInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *CreateLBCookieStickinessPolicyInput) SetPolicyName(v string) *CreateLBCookieStickinessPolicyInput {
+	s.PolicyName = &v
+	return s
 }
 
 // Contains the output for CreateLBCookieStickinessPolicy.
@@ -2875,6 +3054,48 @@ func (s *CreateLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *CreateLoadBalancerInput) SetAvailabilityZones(v []*string) *CreateLoadBalancerInput {
+	s.AvailabilityZones = v
+	return s
+}
+
+// SetListeners sets the Listeners field's value.
+func (s *CreateLoadBalancerInput) SetListeners(v []*Listener) *CreateLoadBalancerInput {
+	s.Listeners = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *CreateLoadBalancerInput) SetLoadBalancerName(v string) *CreateLoadBalancerInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetScheme sets the Scheme field's value.
+func (s *CreateLoadBalancerInput) SetScheme(v string) *CreateLoadBalancerInput {
+	s.Scheme = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *CreateLoadBalancerInput) SetSecurityGroups(v []*string) *CreateLoadBalancerInput {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *CreateLoadBalancerInput) SetSubnets(v []*string) *CreateLoadBalancerInput {
+	s.Subnets = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateLoadBalancerInput) SetTags(v []*Tag) *CreateLoadBalancerInput {
+	s.Tags = v
+	return s
+}
+
 // Contains the parameters for CreateLoadBalancerListeners.
 type CreateLoadBalancerListenersInput struct {
 	_ struct{} `type:"structure"`
@@ -2926,6 +3147,18 @@ func (s *CreateLoadBalancerListenersInput) Validate() error {
 	return nil
 }
 
+// SetListeners sets the Listeners field's value.
+func (s *CreateLoadBalancerListenersInput) SetListeners(v []*Listener) *CreateLoadBalancerListenersInput {
+	s.Listeners = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *CreateLoadBalancerListenersInput) SetLoadBalancerName(v string) *CreateLoadBalancerListenersInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
 // Contains the parameters for CreateLoadBalancerListener.
 type CreateLoadBalancerListenersOutput struct {
 	_ struct{} `type:"structure"`
@@ -2957,6 +3190,12 @@ func (s CreateLoadBalancerOutput) String() string {
 // GoString returns the string representation
 func (s CreateLoadBalancerOutput) GoString() string {
 	return s.String()
+}
+
+// SetDNSName sets the DNSName field's value.
+func (s *CreateLoadBalancerOutput) SetDNSName(v string) *CreateLoadBalancerOutput {
+	s.DNSName = &v
+	return s
 }
 
 // Contains the parameters for CreateLoadBalancerPolicy.
@@ -3012,6 +3251,30 @@ func (s *CreateLoadBalancerPolicyInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *CreateLoadBalancerPolicyInput) SetLoadBalancerName(v string) *CreateLoadBalancerPolicyInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetPolicyAttributes sets the PolicyAttributes field's value.
+func (s *CreateLoadBalancerPolicyInput) SetPolicyAttributes(v []*PolicyAttribute) *CreateLoadBalancerPolicyInput {
+	s.PolicyAttributes = v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *CreateLoadBalancerPolicyInput) SetPolicyName(v string) *CreateLoadBalancerPolicyInput {
+	s.PolicyName = &v
+	return s
+}
+
+// SetPolicyTypeName sets the PolicyTypeName field's value.
+func (s *CreateLoadBalancerPolicyInput) SetPolicyTypeName(v string) *CreateLoadBalancerPolicyInput {
+	s.PolicyTypeName = &v
+	return s
+}
+
 // Contains the output of CreateLoadBalancerPolicy.
 type CreateLoadBalancerPolicyOutput struct {
 	_ struct{} `type:"structure"`
@@ -3060,6 +3323,12 @@ func (s *CrossZoneLoadBalancing) Validate() error {
 	return nil
 }
 
+// SetEnabled sets the Enabled field's value.
+func (s *CrossZoneLoadBalancing) SetEnabled(v bool) *CrossZoneLoadBalancing {
+	s.Enabled = &v
+	return s
+}
+
 // Contains the parameters for DeleteLoadBalancer.
 type DeleteLoadBalancerInput struct {
 	_ struct{} `type:"structure"`
@@ -3091,6 +3360,12 @@ func (s *DeleteLoadBalancerInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *DeleteLoadBalancerInput) SetLoadBalancerName(v string) *DeleteLoadBalancerInput {
+	s.LoadBalancerName = &v
+	return s
 }
 
 // Contains the parameters for DeleteLoadBalancerListeners.
@@ -3132,6 +3407,18 @@ func (s *DeleteLoadBalancerListenersInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *DeleteLoadBalancerListenersInput) SetLoadBalancerName(v string) *DeleteLoadBalancerListenersInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetLoadBalancerPorts sets the LoadBalancerPorts field's value.
+func (s *DeleteLoadBalancerListenersInput) SetLoadBalancerPorts(v []*int64) *DeleteLoadBalancerListenersInput {
+	s.LoadBalancerPorts = v
+	return s
 }
 
 // Contains the output of DeleteLoadBalancerListeners.
@@ -3205,6 +3492,18 @@ func (s *DeleteLoadBalancerPolicyInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *DeleteLoadBalancerPolicyInput) SetLoadBalancerName(v string) *DeleteLoadBalancerPolicyInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *DeleteLoadBalancerPolicyInput) SetPolicyName(v string) *DeleteLoadBalancerPolicyInput {
+	s.PolicyName = &v
+	return s
+}
+
 // Contains the output of DeleteLoadBalancerPolicy.
 type DeleteLoadBalancerPolicyOutput struct {
 	_ struct{} `type:"structure"`
@@ -3261,6 +3560,18 @@ func (s *DeregisterInstancesFromLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// SetInstances sets the Instances field's value.
+func (s *DeregisterInstancesFromLoadBalancerInput) SetInstances(v []*Instance) *DeregisterInstancesFromLoadBalancerInput {
+	s.Instances = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *DeregisterInstancesFromLoadBalancerInput) SetLoadBalancerName(v string) *DeregisterInstancesFromLoadBalancerInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
 // Contains the output of DeregisterInstancesFromLoadBalancer.
 type DeregisterInstancesFromLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
@@ -3277,6 +3588,12 @@ func (s DeregisterInstancesFromLoadBalancerOutput) String() string {
 // GoString returns the string representation
 func (s DeregisterInstancesFromLoadBalancerOutput) GoString() string {
 	return s.String()
+}
+
+// SetInstances sets the Instances field's value.
+func (s *DeregisterInstancesFromLoadBalancerOutput) SetInstances(v []*Instance) *DeregisterInstancesFromLoadBalancerOutput {
+	s.Instances = v
+	return s
 }
 
 // Contains the parameters for DescribeInstanceHealth.
@@ -3315,6 +3632,18 @@ func (s *DescribeInstanceHealthInput) Validate() error {
 	return nil
 }
 
+// SetInstances sets the Instances field's value.
+func (s *DescribeInstanceHealthInput) SetInstances(v []*Instance) *DescribeInstanceHealthInput {
+	s.Instances = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *DescribeInstanceHealthInput) SetLoadBalancerName(v string) *DescribeInstanceHealthInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
 // Contains the output for DescribeInstanceHealth.
 type DescribeInstanceHealthOutput struct {
 	_ struct{} `type:"structure"`
@@ -3331,6 +3660,12 @@ func (s DescribeInstanceHealthOutput) String() string {
 // GoString returns the string representation
 func (s DescribeInstanceHealthOutput) GoString() string {
 	return s.String()
+}
+
+// SetInstanceStates sets the InstanceStates field's value.
+func (s *DescribeInstanceHealthOutput) SetInstanceStates(v []*InstanceState) *DescribeInstanceHealthOutput {
+	s.InstanceStates = v
+	return s
 }
 
 // Contains the parameters for DescribeLoadBalancerAttributes.
@@ -3366,6 +3701,12 @@ func (s *DescribeLoadBalancerAttributesInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *DescribeLoadBalancerAttributesInput) SetLoadBalancerName(v string) *DescribeLoadBalancerAttributesInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
 // Contains the output of DescribeLoadBalancerAttributes.
 type DescribeLoadBalancerAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3382,6 +3723,12 @@ func (s DescribeLoadBalancerAttributesOutput) String() string {
 // GoString returns the string representation
 func (s DescribeLoadBalancerAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetLoadBalancerAttributes sets the LoadBalancerAttributes field's value.
+func (s *DescribeLoadBalancerAttributesOutput) SetLoadBalancerAttributes(v *LoadBalancerAttributes) *DescribeLoadBalancerAttributesOutput {
+	s.LoadBalancerAttributes = v
+	return s
 }
 
 // Contains the parameters for DescribeLoadBalancerPolicies.
@@ -3405,6 +3752,18 @@ func (s DescribeLoadBalancerPoliciesInput) GoString() string {
 	return s.String()
 }
 
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *DescribeLoadBalancerPoliciesInput) SetLoadBalancerName(v string) *DescribeLoadBalancerPoliciesInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetPolicyNames sets the PolicyNames field's value.
+func (s *DescribeLoadBalancerPoliciesInput) SetPolicyNames(v []*string) *DescribeLoadBalancerPoliciesInput {
+	s.PolicyNames = v
+	return s
+}
+
 // Contains the output of DescribeLoadBalancerPolicies.
 type DescribeLoadBalancerPoliciesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3421,6 +3780,12 @@ func (s DescribeLoadBalancerPoliciesOutput) String() string {
 // GoString returns the string representation
 func (s DescribeLoadBalancerPoliciesOutput) GoString() string {
 	return s.String()
+}
+
+// SetPolicyDescriptions sets the PolicyDescriptions field's value.
+func (s *DescribeLoadBalancerPoliciesOutput) SetPolicyDescriptions(v []*PolicyDescription) *DescribeLoadBalancerPoliciesOutput {
+	s.PolicyDescriptions = v
+	return s
 }
 
 // Contains the parameters for DescribeLoadBalancerPolicyTypes.
@@ -3442,6 +3807,12 @@ func (s DescribeLoadBalancerPolicyTypesInput) GoString() string {
 	return s.String()
 }
 
+// SetPolicyTypeNames sets the PolicyTypeNames field's value.
+func (s *DescribeLoadBalancerPolicyTypesInput) SetPolicyTypeNames(v []*string) *DescribeLoadBalancerPolicyTypesInput {
+	s.PolicyTypeNames = v
+	return s
+}
+
 // Contains the output of DescribeLoadBalancerPolicyTypes.
 type DescribeLoadBalancerPolicyTypesOutput struct {
 	_ struct{} `type:"structure"`
@@ -3458,6 +3829,12 @@ func (s DescribeLoadBalancerPolicyTypesOutput) String() string {
 // GoString returns the string representation
 func (s DescribeLoadBalancerPolicyTypesOutput) GoString() string {
 	return s.String()
+}
+
+// SetPolicyTypeDescriptions sets the PolicyTypeDescriptions field's value.
+func (s *DescribeLoadBalancerPolicyTypesOutput) SetPolicyTypeDescriptions(v []*PolicyTypeDescription) *DescribeLoadBalancerPolicyTypesOutput {
+	s.PolicyTypeDescriptions = v
+	return s
 }
 
 // Contains the parameters for DescribeLoadBalancers.
@@ -3499,6 +3876,24 @@ func (s *DescribeLoadBalancersInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerNames sets the LoadBalancerNames field's value.
+func (s *DescribeLoadBalancersInput) SetLoadBalancerNames(v []*string) *DescribeLoadBalancersInput {
+	s.LoadBalancerNames = v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *DescribeLoadBalancersInput) SetMarker(v string) *DescribeLoadBalancersInput {
+	s.Marker = &v
+	return s
+}
+
+// SetPageSize sets the PageSize field's value.
+func (s *DescribeLoadBalancersInput) SetPageSize(v int64) *DescribeLoadBalancersInput {
+	s.PageSize = &v
+	return s
+}
+
 // Contains the parameters for DescribeLoadBalancers.
 type DescribeLoadBalancersOutput struct {
 	_ struct{} `type:"structure"`
@@ -3519,6 +3914,18 @@ func (s DescribeLoadBalancersOutput) String() string {
 // GoString returns the string representation
 func (s DescribeLoadBalancersOutput) GoString() string {
 	return s.String()
+}
+
+// SetLoadBalancerDescriptions sets the LoadBalancerDescriptions field's value.
+func (s *DescribeLoadBalancersOutput) SetLoadBalancerDescriptions(v []*LoadBalancerDescription) *DescribeLoadBalancersOutput {
+	s.LoadBalancerDescriptions = v
+	return s
+}
+
+// SetNextMarker sets the NextMarker field's value.
+func (s *DescribeLoadBalancersOutput) SetNextMarker(v string) *DescribeLoadBalancersOutput {
+	s.NextMarker = &v
+	return s
 }
 
 // Contains the parameters for DescribeTags.
@@ -3557,6 +3964,12 @@ func (s *DescribeTagsInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerNames sets the LoadBalancerNames field's value.
+func (s *DescribeTagsInput) SetLoadBalancerNames(v []*string) *DescribeTagsInput {
+	s.LoadBalancerNames = v
+	return s
+}
+
 // Contains the output for DescribeTags.
 type DescribeTagsOutput struct {
 	_ struct{} `type:"structure"`
@@ -3573,6 +3986,12 @@ func (s DescribeTagsOutput) String() string {
 // GoString returns the string representation
 func (s DescribeTagsOutput) GoString() string {
 	return s.String()
+}
+
+// SetTagDescriptions sets the TagDescriptions field's value.
+func (s *DescribeTagsOutput) SetTagDescriptions(v []*TagDescription) *DescribeTagsOutput {
+	s.TagDescriptions = v
+	return s
 }
 
 // Contains the parameters for DetachLoadBalancerFromSubnets.
@@ -3616,6 +4035,18 @@ func (s *DetachLoadBalancerFromSubnetsInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *DetachLoadBalancerFromSubnetsInput) SetLoadBalancerName(v string) *DetachLoadBalancerFromSubnetsInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *DetachLoadBalancerFromSubnetsInput) SetSubnets(v []*string) *DetachLoadBalancerFromSubnetsInput {
+	s.Subnets = v
+	return s
+}
+
 // Contains the output of DetachLoadBalancerFromSubnets.
 type DetachLoadBalancerFromSubnetsOutput struct {
 	_ struct{} `type:"structure"`
@@ -3632,6 +4063,12 @@ func (s DetachLoadBalancerFromSubnetsOutput) String() string {
 // GoString returns the string representation
 func (s DetachLoadBalancerFromSubnetsOutput) GoString() string {
 	return s.String()
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *DetachLoadBalancerFromSubnetsOutput) SetSubnets(v []*string) *DetachLoadBalancerFromSubnetsOutput {
+	s.Subnets = v
+	return s
 }
 
 // Contains the parameters for DisableAvailabilityZonesForLoadBalancer.
@@ -3675,6 +4112,18 @@ func (s *DisableAvailabilityZonesForLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *DisableAvailabilityZonesForLoadBalancerInput) SetAvailabilityZones(v []*string) *DisableAvailabilityZonesForLoadBalancerInput {
+	s.AvailabilityZones = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *DisableAvailabilityZonesForLoadBalancerInput) SetLoadBalancerName(v string) *DisableAvailabilityZonesForLoadBalancerInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
 // Contains the output for DisableAvailabilityZonesForLoadBalancer.
 type DisableAvailabilityZonesForLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
@@ -3691,6 +4140,12 @@ func (s DisableAvailabilityZonesForLoadBalancerOutput) String() string {
 // GoString returns the string representation
 func (s DisableAvailabilityZonesForLoadBalancerOutput) GoString() string {
 	return s.String()
+}
+
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *DisableAvailabilityZonesForLoadBalancerOutput) SetAvailabilityZones(v []*string) *DisableAvailabilityZonesForLoadBalancerOutput {
+	s.AvailabilityZones = v
+	return s
 }
 
 // Contains the parameters for EnableAvailabilityZonesForLoadBalancer.
@@ -3734,6 +4189,18 @@ func (s *EnableAvailabilityZonesForLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *EnableAvailabilityZonesForLoadBalancerInput) SetAvailabilityZones(v []*string) *EnableAvailabilityZonesForLoadBalancerInput {
+	s.AvailabilityZones = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *EnableAvailabilityZonesForLoadBalancerInput) SetLoadBalancerName(v string) *EnableAvailabilityZonesForLoadBalancerInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
 // Contains the output of EnableAvailabilityZonesForLoadBalancer.
 type EnableAvailabilityZonesForLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
@@ -3750,6 +4217,12 @@ func (s EnableAvailabilityZonesForLoadBalancerOutput) String() string {
 // GoString returns the string representation
 func (s EnableAvailabilityZonesForLoadBalancerOutput) GoString() string {
 	return s.String()
+}
+
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *EnableAvailabilityZonesForLoadBalancerOutput) SetAvailabilityZones(v []*string) *EnableAvailabilityZonesForLoadBalancerOutput {
+	s.AvailabilityZones = v
+	return s
 }
 
 // Information about a health check.
@@ -3852,6 +4325,36 @@ func (s *HealthCheck) Validate() error {
 	return nil
 }
 
+// SetHealthyThreshold sets the HealthyThreshold field's value.
+func (s *HealthCheck) SetHealthyThreshold(v int64) *HealthCheck {
+	s.HealthyThreshold = &v
+	return s
+}
+
+// SetInterval sets the Interval field's value.
+func (s *HealthCheck) SetInterval(v int64) *HealthCheck {
+	s.Interval = &v
+	return s
+}
+
+// SetTarget sets the Target field's value.
+func (s *HealthCheck) SetTarget(v string) *HealthCheck {
+	s.Target = &v
+	return s
+}
+
+// SetTimeout sets the Timeout field's value.
+func (s *HealthCheck) SetTimeout(v int64) *HealthCheck {
+	s.Timeout = &v
+	return s
+}
+
+// SetUnhealthyThreshold sets the UnhealthyThreshold field's value.
+func (s *HealthCheck) SetUnhealthyThreshold(v int64) *HealthCheck {
+	s.UnhealthyThreshold = &v
+	return s
+}
+
 // The ID of an EC2 instance.
 type Instance struct {
 	_ struct{} `type:"structure"`
@@ -3870,6 +4373,12 @@ func (s Instance) GoString() string {
 	return s.String()
 }
 
+// SetInstanceId sets the InstanceId field's value.
+func (s *Instance) SetInstanceId(v string) *Instance {
+	s.InstanceId = &v
+	return s
+}
+
 // Information about the state of an EC2 instance.
 type InstanceState struct {
 	_ struct{} `type:"structure"`
@@ -3877,32 +4386,32 @@ type InstanceState struct {
 	// A description of the instance state. This string can contain one or more
 	// of the following messages.
 	//
-	//    N/A
+	//    * N/A
 	//
-	//    A transient error occurred. Please try again later.
+	//    * A transient error occurred. Please try again later.
 	//
-	//    Instance has failed at least the UnhealthyThreshold number of health
-	// checks consecutively.
+	//    * Instance has failed at least the UnhealthyThreshold number of health
+	//    checks consecutively.
 	//
-	//    Instance has not passed the configured HealthyThreshold number of health
-	// checks consecutively.
+	//    * Instance has not passed the configured HealthyThreshold number of health
+	//    checks consecutively.
 	//
-	//    Instance registration is still in progress.
+	//    * Instance registration is still in progress.
 	//
-	//    Instance is in the EC2 Availability Zone for which LoadBalancer is not
-	// configured to route traffic to.
+	//    * Instance is in the EC2 Availability Zone for which LoadBalancer is not
+	//    configured to route traffic to.
 	//
-	//    Instance is not currently registered with the LoadBalancer.
+	//    * Instance is not currently registered with the LoadBalancer.
 	//
-	//    Instance deregistration currently in progress.
+	//    * Instance deregistration currently in progress.
 	//
-	//    Disable Availability Zone is currently in progress.
+	//    * Disable Availability Zone is currently in progress.
 	//
-	//    Instance is in pending state.
+	//    * Instance is in pending state.
 	//
-	//    Instance is in stopped state.
+	//    * Instance is in stopped state.
 	//
-	//    Instance is in terminated state.
+	//    * Instance is in terminated state.
 	Description *string `type:"string"`
 
 	// The ID of the instance.
@@ -3930,6 +4439,30 @@ func (s InstanceState) GoString() string {
 	return s.String()
 }
 
+// SetDescription sets the Description field's value.
+func (s *InstanceState) SetDescription(v string) *InstanceState {
+	s.Description = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *InstanceState) SetInstanceId(v string) *InstanceState {
+	s.InstanceId = &v
+	return s
+}
+
+// SetReasonCode sets the ReasonCode field's value.
+func (s *InstanceState) SetReasonCode(v string) *InstanceState {
+	s.ReasonCode = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *InstanceState) SetState(v string) *InstanceState {
+	s.State = &v
+	return s
+}
+
 // Information about a policy for duration-based session stickiness.
 type LBCookieStickinessPolicy struct {
 	_ struct{} `type:"structure"`
@@ -3954,6 +4487,18 @@ func (s LBCookieStickinessPolicy) GoString() string {
 	return s.String()
 }
 
+// SetCookieExpirationPeriod sets the CookieExpirationPeriod field's value.
+func (s *LBCookieStickinessPolicy) SetCookieExpirationPeriod(v int64) *LBCookieStickinessPolicy {
+	s.CookieExpirationPeriod = &v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *LBCookieStickinessPolicy) SetPolicyName(v string) *LBCookieStickinessPolicy {
+	s.PolicyName = &v
+	return s
+}
+
 // Information about a listener.
 //
 // For information about the protocols and the ports supported by Elastic Load
@@ -3970,8 +4515,8 @@ type Listener struct {
 	// The protocol to use for routing traffic to instances: HTTP, HTTPS, TCP, or
 	// SSL.
 	//
-	// If the front-end protocol is HTTP, HTTPS, TCP, or SSL, InstanceProtocol
-	// must be at the same protocol.
+	// If the front-end protocol is HTTP, HTTPS, TCP, or SSL, InstanceProtocol must
+	// be at the same protocol.
 	//
 	// If there is another listener with the same InstancePort whose InstanceProtocol
 	// is secure, (HTTPS or SSL), the listener's InstanceProtocol must also be secure.
@@ -4029,6 +4574,36 @@ func (s *Listener) Validate() error {
 	return nil
 }
 
+// SetInstancePort sets the InstancePort field's value.
+func (s *Listener) SetInstancePort(v int64) *Listener {
+	s.InstancePort = &v
+	return s
+}
+
+// SetInstanceProtocol sets the InstanceProtocol field's value.
+func (s *Listener) SetInstanceProtocol(v string) *Listener {
+	s.InstanceProtocol = &v
+	return s
+}
+
+// SetLoadBalancerPort sets the LoadBalancerPort field's value.
+func (s *Listener) SetLoadBalancerPort(v int64) *Listener {
+	s.LoadBalancerPort = &v
+	return s
+}
+
+// SetProtocol sets the Protocol field's value.
+func (s *Listener) SetProtocol(v string) *Listener {
+	s.Protocol = &v
+	return s
+}
+
+// SetSSLCertificateId sets the SSLCertificateId field's value.
+func (s *Listener) SetSSLCertificateId(v string) *Listener {
+	s.SSLCertificateId = &v
+	return s
+}
+
 // The policies enabled for a listener.
 type ListenerDescription struct {
 	_ struct{} `type:"structure"`
@@ -4052,6 +4627,18 @@ func (s ListenerDescription) String() string {
 // GoString returns the string representation
 func (s ListenerDescription) GoString() string {
 	return s.String()
+}
+
+// SetListener sets the Listener field's value.
+func (s *ListenerDescription) SetListener(v *Listener) *ListenerDescription {
+	s.Listener = v
+	return s
+}
+
+// SetPolicyNames sets the PolicyNames field's value.
+func (s *ListenerDescription) SetPolicyNames(v []*string) *ListenerDescription {
+	s.PolicyNames = v
+	return s
 }
 
 // The attributes for a load balancer.
@@ -4132,6 +4719,36 @@ func (s *LoadBalancerAttributes) Validate() error {
 	return nil
 }
 
+// SetAccessLog sets the AccessLog field's value.
+func (s *LoadBalancerAttributes) SetAccessLog(v *AccessLog) *LoadBalancerAttributes {
+	s.AccessLog = v
+	return s
+}
+
+// SetAdditionalAttributes sets the AdditionalAttributes field's value.
+func (s *LoadBalancerAttributes) SetAdditionalAttributes(v []*AdditionalAttribute) *LoadBalancerAttributes {
+	s.AdditionalAttributes = v
+	return s
+}
+
+// SetConnectionDraining sets the ConnectionDraining field's value.
+func (s *LoadBalancerAttributes) SetConnectionDraining(v *ConnectionDraining) *LoadBalancerAttributes {
+	s.ConnectionDraining = v
+	return s
+}
+
+// SetConnectionSettings sets the ConnectionSettings field's value.
+func (s *LoadBalancerAttributes) SetConnectionSettings(v *ConnectionSettings) *LoadBalancerAttributes {
+	s.ConnectionSettings = v
+	return s
+}
+
+// SetCrossZoneLoadBalancing sets the CrossZoneLoadBalancing field's value.
+func (s *LoadBalancerAttributes) SetCrossZoneLoadBalancing(v *CrossZoneLoadBalancing) *LoadBalancerAttributes {
+	s.CrossZoneLoadBalancing = v
+	return s
+}
+
 // Information about a load balancer.
 type LoadBalancerDescription struct {
 	_ struct{} `type:"structure"`
@@ -4208,6 +4825,102 @@ func (s LoadBalancerDescription) GoString() string {
 	return s.String()
 }
 
+// SetAvailabilityZones sets the AvailabilityZones field's value.
+func (s *LoadBalancerDescription) SetAvailabilityZones(v []*string) *LoadBalancerDescription {
+	s.AvailabilityZones = v
+	return s
+}
+
+// SetBackendServerDescriptions sets the BackendServerDescriptions field's value.
+func (s *LoadBalancerDescription) SetBackendServerDescriptions(v []*BackendServerDescription) *LoadBalancerDescription {
+	s.BackendServerDescriptions = v
+	return s
+}
+
+// SetCanonicalHostedZoneName sets the CanonicalHostedZoneName field's value.
+func (s *LoadBalancerDescription) SetCanonicalHostedZoneName(v string) *LoadBalancerDescription {
+	s.CanonicalHostedZoneName = &v
+	return s
+}
+
+// SetCanonicalHostedZoneNameID sets the CanonicalHostedZoneNameID field's value.
+func (s *LoadBalancerDescription) SetCanonicalHostedZoneNameID(v string) *LoadBalancerDescription {
+	s.CanonicalHostedZoneNameID = &v
+	return s
+}
+
+// SetCreatedTime sets the CreatedTime field's value.
+func (s *LoadBalancerDescription) SetCreatedTime(v time.Time) *LoadBalancerDescription {
+	s.CreatedTime = &v
+	return s
+}
+
+// SetDNSName sets the DNSName field's value.
+func (s *LoadBalancerDescription) SetDNSName(v string) *LoadBalancerDescription {
+	s.DNSName = &v
+	return s
+}
+
+// SetHealthCheck sets the HealthCheck field's value.
+func (s *LoadBalancerDescription) SetHealthCheck(v *HealthCheck) *LoadBalancerDescription {
+	s.HealthCheck = v
+	return s
+}
+
+// SetInstances sets the Instances field's value.
+func (s *LoadBalancerDescription) SetInstances(v []*Instance) *LoadBalancerDescription {
+	s.Instances = v
+	return s
+}
+
+// SetListenerDescriptions sets the ListenerDescriptions field's value.
+func (s *LoadBalancerDescription) SetListenerDescriptions(v []*ListenerDescription) *LoadBalancerDescription {
+	s.ListenerDescriptions = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *LoadBalancerDescription) SetLoadBalancerName(v string) *LoadBalancerDescription {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetPolicies sets the Policies field's value.
+func (s *LoadBalancerDescription) SetPolicies(v *Policies) *LoadBalancerDescription {
+	s.Policies = v
+	return s
+}
+
+// SetScheme sets the Scheme field's value.
+func (s *LoadBalancerDescription) SetScheme(v string) *LoadBalancerDescription {
+	s.Scheme = &v
+	return s
+}
+
+// SetSecurityGroups sets the SecurityGroups field's value.
+func (s *LoadBalancerDescription) SetSecurityGroups(v []*string) *LoadBalancerDescription {
+	s.SecurityGroups = v
+	return s
+}
+
+// SetSourceSecurityGroup sets the SourceSecurityGroup field's value.
+func (s *LoadBalancerDescription) SetSourceSecurityGroup(v *SourceSecurityGroup) *LoadBalancerDescription {
+	s.SourceSecurityGroup = v
+	return s
+}
+
+// SetSubnets sets the Subnets field's value.
+func (s *LoadBalancerDescription) SetSubnets(v []*string) *LoadBalancerDescription {
+	s.Subnets = v
+	return s
+}
+
+// SetVPCId sets the VPCId field's value.
+func (s *LoadBalancerDescription) SetVPCId(v string) *LoadBalancerDescription {
+	s.VPCId = &v
+	return s
+}
+
 // Contains the parameters for ModifyLoadBalancerAttributes.
 type ModifyLoadBalancerAttributesInput struct {
 	_ struct{} `type:"structure"`
@@ -4254,6 +4967,18 @@ func (s *ModifyLoadBalancerAttributesInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerAttributes sets the LoadBalancerAttributes field's value.
+func (s *ModifyLoadBalancerAttributesInput) SetLoadBalancerAttributes(v *LoadBalancerAttributes) *ModifyLoadBalancerAttributesInput {
+	s.LoadBalancerAttributes = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *ModifyLoadBalancerAttributesInput) SetLoadBalancerName(v string) *ModifyLoadBalancerAttributesInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
 // Contains the output of ModifyLoadBalancerAttributes.
 type ModifyLoadBalancerAttributesOutput struct {
 	_ struct{} `type:"structure"`
@@ -4273,6 +4998,18 @@ func (s ModifyLoadBalancerAttributesOutput) String() string {
 // GoString returns the string representation
 func (s ModifyLoadBalancerAttributesOutput) GoString() string {
 	return s.String()
+}
+
+// SetLoadBalancerAttributes sets the LoadBalancerAttributes field's value.
+func (s *ModifyLoadBalancerAttributesOutput) SetLoadBalancerAttributes(v *LoadBalancerAttributes) *ModifyLoadBalancerAttributesOutput {
+	s.LoadBalancerAttributes = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *ModifyLoadBalancerAttributesOutput) SetLoadBalancerName(v string) *ModifyLoadBalancerAttributesOutput {
+	s.LoadBalancerName = &v
+	return s
 }
 
 // The policies for a load balancer.
@@ -4299,6 +5036,24 @@ func (s Policies) GoString() string {
 	return s.String()
 }
 
+// SetAppCookieStickinessPolicies sets the AppCookieStickinessPolicies field's value.
+func (s *Policies) SetAppCookieStickinessPolicies(v []*AppCookieStickinessPolicy) *Policies {
+	s.AppCookieStickinessPolicies = v
+	return s
+}
+
+// SetLBCookieStickinessPolicies sets the LBCookieStickinessPolicies field's value.
+func (s *Policies) SetLBCookieStickinessPolicies(v []*LBCookieStickinessPolicy) *Policies {
+	s.LBCookieStickinessPolicies = v
+	return s
+}
+
+// SetOtherPolicies sets the OtherPolicies field's value.
+func (s *Policies) SetOtherPolicies(v []*string) *Policies {
+	s.OtherPolicies = v
+	return s
+}
+
 // Information about a policy attribute.
 type PolicyAttribute struct {
 	_ struct{} `type:"structure"`
@@ -4318,6 +5073,18 @@ func (s PolicyAttribute) String() string {
 // GoString returns the string representation
 func (s PolicyAttribute) GoString() string {
 	return s.String()
+}
+
+// SetAttributeName sets the AttributeName field's value.
+func (s *PolicyAttribute) SetAttributeName(v string) *PolicyAttribute {
+	s.AttributeName = &v
+	return s
+}
+
+// SetAttributeValue sets the AttributeValue field's value.
+func (s *PolicyAttribute) SetAttributeValue(v string) *PolicyAttribute {
+	s.AttributeValue = &v
+	return s
 }
 
 // Information about a policy attribute.
@@ -4341,6 +5108,18 @@ func (s PolicyAttributeDescription) GoString() string {
 	return s.String()
 }
 
+// SetAttributeName sets the AttributeName field's value.
+func (s *PolicyAttributeDescription) SetAttributeName(v string) *PolicyAttributeDescription {
+	s.AttributeName = &v
+	return s
+}
+
+// SetAttributeValue sets the AttributeValue field's value.
+func (s *PolicyAttributeDescription) SetAttributeValue(v string) *PolicyAttributeDescription {
+	s.AttributeValue = &v
+	return s
+}
+
 // Information about a policy attribute type.
 type PolicyAttributeTypeDescription struct {
 	_ struct{} `type:"structure"`
@@ -4355,13 +5134,13 @@ type PolicyAttributeTypeDescription struct {
 	//
 	// Valid values:
 	//
-	//   ONE(1) : Single value required
+	//    * ONE(1) : Single value required
 	//
-	//   ZERO_OR_ONE(0..1) : Up to one value is allowed
+	//    * ZERO_OR_ONE(0..1) : Up to one value is allowed
 	//
-	//   ZERO_OR_MORE(0..*) : Optional. Multiple values are allowed
+	//    * ZERO_OR_MORE(0..*) : Optional. Multiple values are allowed
 	//
-	//   ONE_OR_MORE(1..*0) : Required. Multiple values are allowed
+	//    * ONE_OR_MORE(1..*0) : Required. Multiple values are allowed
 	Cardinality *string `type:"string"`
 
 	// The default value of the attribute, if applicable.
@@ -4379,6 +5158,36 @@ func (s PolicyAttributeTypeDescription) String() string {
 // GoString returns the string representation
 func (s PolicyAttributeTypeDescription) GoString() string {
 	return s.String()
+}
+
+// SetAttributeName sets the AttributeName field's value.
+func (s *PolicyAttributeTypeDescription) SetAttributeName(v string) *PolicyAttributeTypeDescription {
+	s.AttributeName = &v
+	return s
+}
+
+// SetAttributeType sets the AttributeType field's value.
+func (s *PolicyAttributeTypeDescription) SetAttributeType(v string) *PolicyAttributeTypeDescription {
+	s.AttributeType = &v
+	return s
+}
+
+// SetCardinality sets the Cardinality field's value.
+func (s *PolicyAttributeTypeDescription) SetCardinality(v string) *PolicyAttributeTypeDescription {
+	s.Cardinality = &v
+	return s
+}
+
+// SetDefaultValue sets the DefaultValue field's value.
+func (s *PolicyAttributeTypeDescription) SetDefaultValue(v string) *PolicyAttributeTypeDescription {
+	s.DefaultValue = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *PolicyAttributeTypeDescription) SetDescription(v string) *PolicyAttributeTypeDescription {
+	s.Description = &v
+	return s
 }
 
 // Information about a policy.
@@ -4405,6 +5214,24 @@ func (s PolicyDescription) GoString() string {
 	return s.String()
 }
 
+// SetPolicyAttributeDescriptions sets the PolicyAttributeDescriptions field's value.
+func (s *PolicyDescription) SetPolicyAttributeDescriptions(v []*PolicyAttributeDescription) *PolicyDescription {
+	s.PolicyAttributeDescriptions = v
+	return s
+}
+
+// SetPolicyName sets the PolicyName field's value.
+func (s *PolicyDescription) SetPolicyName(v string) *PolicyDescription {
+	s.PolicyName = &v
+	return s
+}
+
+// SetPolicyTypeName sets the PolicyTypeName field's value.
+func (s *PolicyDescription) SetPolicyTypeName(v string) *PolicyDescription {
+	s.PolicyTypeName = &v
+	return s
+}
+
 // Information about a policy type.
 type PolicyTypeDescription struct {
 	_ struct{} `type:"structure"`
@@ -4428,6 +5255,24 @@ func (s PolicyTypeDescription) String() string {
 // GoString returns the string representation
 func (s PolicyTypeDescription) GoString() string {
 	return s.String()
+}
+
+// SetDescription sets the Description field's value.
+func (s *PolicyTypeDescription) SetDescription(v string) *PolicyTypeDescription {
+	s.Description = &v
+	return s
+}
+
+// SetPolicyAttributeTypeDescriptions sets the PolicyAttributeTypeDescriptions field's value.
+func (s *PolicyTypeDescription) SetPolicyAttributeTypeDescriptions(v []*PolicyAttributeTypeDescription) *PolicyTypeDescription {
+	s.PolicyAttributeTypeDescriptions = v
+	return s
+}
+
+// SetPolicyTypeName sets the PolicyTypeName field's value.
+func (s *PolicyTypeDescription) SetPolicyTypeName(v string) *PolicyTypeDescription {
+	s.PolicyTypeName = &v
+	return s
 }
 
 // Contains the parameters for RegisterInstancesWithLoadBalancer.
@@ -4471,6 +5316,18 @@ func (s *RegisterInstancesWithLoadBalancerInput) Validate() error {
 	return nil
 }
 
+// SetInstances sets the Instances field's value.
+func (s *RegisterInstancesWithLoadBalancerInput) SetInstances(v []*Instance) *RegisterInstancesWithLoadBalancerInput {
+	s.Instances = v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *RegisterInstancesWithLoadBalancerInput) SetLoadBalancerName(v string) *RegisterInstancesWithLoadBalancerInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
 // Contains the output of RegisterInstancesWithLoadBalancer.
 type RegisterInstancesWithLoadBalancerOutput struct {
 	_ struct{} `type:"structure"`
@@ -4487,6 +5344,12 @@ func (s RegisterInstancesWithLoadBalancerOutput) String() string {
 // GoString returns the string representation
 func (s RegisterInstancesWithLoadBalancerOutput) GoString() string {
 	return s.String()
+}
+
+// SetInstances sets the Instances field's value.
+func (s *RegisterInstancesWithLoadBalancerOutput) SetInstances(v []*Instance) *RegisterInstancesWithLoadBalancerOutput {
+	s.Instances = v
+	return s
 }
 
 // Contains the parameters for RemoveTags.
@@ -4542,6 +5405,18 @@ func (s *RemoveTagsInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetLoadBalancerNames sets the LoadBalancerNames field's value.
+func (s *RemoveTagsInput) SetLoadBalancerNames(v []*string) *RemoveTagsInput {
+	s.LoadBalancerNames = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *RemoveTagsInput) SetTags(v []*TagKeyOnly) *RemoveTagsInput {
+	s.Tags = v
+	return s
 }
 
 // Contains the output of RemoveTags.
@@ -4608,6 +5483,24 @@ func (s *SetLoadBalancerListenerSSLCertificateInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *SetLoadBalancerListenerSSLCertificateInput) SetLoadBalancerName(v string) *SetLoadBalancerListenerSSLCertificateInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetLoadBalancerPort sets the LoadBalancerPort field's value.
+func (s *SetLoadBalancerListenerSSLCertificateInput) SetLoadBalancerPort(v int64) *SetLoadBalancerListenerSSLCertificateInput {
+	s.LoadBalancerPort = &v
+	return s
+}
+
+// SetSSLCertificateId sets the SSLCertificateId field's value.
+func (s *SetLoadBalancerListenerSSLCertificateInput) SetSSLCertificateId(v string) *SetLoadBalancerListenerSSLCertificateInput {
+	s.SSLCertificateId = &v
+	return s
+}
+
 // Contains the output of SetLoadBalancerListenerSSLCertificate.
 type SetLoadBalancerListenerSSLCertificateOutput struct {
 	_ struct{} `type:"structure"`
@@ -4671,6 +5564,24 @@ func (s *SetLoadBalancerPoliciesForBackendServerInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetInstancePort sets the InstancePort field's value.
+func (s *SetLoadBalancerPoliciesForBackendServerInput) SetInstancePort(v int64) *SetLoadBalancerPoliciesForBackendServerInput {
+	s.InstancePort = &v
+	return s
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *SetLoadBalancerPoliciesForBackendServerInput) SetLoadBalancerName(v string) *SetLoadBalancerPoliciesForBackendServerInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetPolicyNames sets the PolicyNames field's value.
+func (s *SetLoadBalancerPoliciesForBackendServerInput) SetPolicyNames(v []*string) *SetLoadBalancerPoliciesForBackendServerInput {
+	s.PolicyNames = v
+	return s
 }
 
 // Contains the output of SetLoadBalancerPoliciesForBackendServer.
@@ -4739,6 +5650,24 @@ func (s *SetLoadBalancerPoliciesOfListenerInput) Validate() error {
 	return nil
 }
 
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *SetLoadBalancerPoliciesOfListenerInput) SetLoadBalancerName(v string) *SetLoadBalancerPoliciesOfListenerInput {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetLoadBalancerPort sets the LoadBalancerPort field's value.
+func (s *SetLoadBalancerPoliciesOfListenerInput) SetLoadBalancerPort(v int64) *SetLoadBalancerPoliciesOfListenerInput {
+	s.LoadBalancerPort = &v
+	return s
+}
+
+// SetPolicyNames sets the PolicyNames field's value.
+func (s *SetLoadBalancerPoliciesOfListenerInput) SetPolicyNames(v []*string) *SetLoadBalancerPoliciesOfListenerInput {
+	s.PolicyNames = v
+	return s
+}
+
 // Contains the output of SetLoadBalancePoliciesOfListener.
 type SetLoadBalancerPoliciesOfListenerOutput struct {
 	_ struct{} `type:"structure"`
@@ -4773,6 +5702,18 @@ func (s SourceSecurityGroup) String() string {
 // GoString returns the string representation
 func (s SourceSecurityGroup) GoString() string {
 	return s.String()
+}
+
+// SetGroupName sets the GroupName field's value.
+func (s *SourceSecurityGroup) SetGroupName(v string) *SourceSecurityGroup {
+	s.GroupName = &v
+	return s
+}
+
+// SetOwnerAlias sets the OwnerAlias field's value.
+func (s *SourceSecurityGroup) SetOwnerAlias(v string) *SourceSecurityGroup {
+	s.OwnerAlias = &v
+	return s
 }
 
 // Information about a tag.
@@ -4814,6 +5755,18 @@ func (s *Tag) Validate() error {
 	return nil
 }
 
+// SetKey sets the Key field's value.
+func (s *Tag) SetKey(v string) *Tag {
+	s.Key = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Tag) SetValue(v string) *Tag {
+	s.Value = &v
+	return s
+}
+
 // The tags associated with a load balancer.
 type TagDescription struct {
 	_ struct{} `type:"structure"`
@@ -4833,6 +5786,18 @@ func (s TagDescription) String() string {
 // GoString returns the string representation
 func (s TagDescription) GoString() string {
 	return s.String()
+}
+
+// SetLoadBalancerName sets the LoadBalancerName field's value.
+func (s *TagDescription) SetLoadBalancerName(v string) *TagDescription {
+	s.LoadBalancerName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagDescription) SetTags(v []*Tag) *TagDescription {
+	s.Tags = v
+	return s
 }
 
 // The key of a tag.
@@ -4864,4 +5829,10 @@ func (s *TagKeyOnly) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *TagKeyOnly) SetKey(v string) *TagKeyOnly {
+	s.Key = &v
+	return s
 }

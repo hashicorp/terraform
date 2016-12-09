@@ -2,12 +2,12 @@ package openstack
 
 import (
 	"fmt"
-	"log"
+	"regexp"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers"
 )
 
 func TestAccLBV2LoadBalancer_basic(t *testing.T) {
@@ -28,6 +28,7 @@ func TestAccLBV2LoadBalancer_basic(t *testing.T) {
 				Config: TestAccLBV2LoadBalancerConfig_update,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("openstack_lb_loadbalancer_v2.loadbalancer_1", "name", "tf_test_loadbalancer_v2_updated"),
+					resource.TestMatchResourceAttr("openstack_lb_loadbalancer_v2.loadbalancer_1", "vip_port_id", regexp.MustCompile("^[a-f0-9-]+")),
 				),
 			},
 		},
@@ -42,8 +43,6 @@ func testAccCheckLBV2LoadBalancerDestroy(s *terraform.State) error {
 	}
 
 	for _, rs := range s.RootModule().Resources {
-		log.Printf("[FINDME] rs TYPE is: %#v", rs.Type)
-
 		if rs.Type != "openstack_lb_loadbalancer_v2" {
 			continue
 		}

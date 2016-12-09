@@ -48,7 +48,7 @@ func resourceAwsEMRCluster() *schema.Resource {
 			"core_instance_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  0,
+				Default:  1,
 			},
 			"cluster_state": &schema.Schema{
 				Type:     schema.TypeString,
@@ -69,6 +69,18 @@ func resourceAwsEMRCluster() *schema.Resource {
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
+			},
+			"termination_protection": &schema.Schema{
+				Type:     schema.TypeBool,
+				ForceNew: true,
+				Optional: true,
+				Computed: true,
+			},
+			"keep_job_flow_alive_when_no_steps": &schema.Schema{
+				Type:     schema.TypeBool,
+				ForceNew: true,
+				Optional: true,
+				Computed: true,
 			},
 			"ec2_attributes": &schema.Schema{
 				Type:     schema.TypeList,
@@ -108,6 +120,10 @@ func resourceAwsEMRCluster() *schema.Resource {
 						"instance_profile": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
+						},
+						"service_access_security_group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -169,13 +185,22 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	applications := d.Get("applications").(*schema.Set).List()
 
+	keepJobFlowAliveWhenNoSteps := true
+	if v, ok := d.GetOk("keep_job_flow_alive_when_no_steps"); ok {
+		keepJobFlowAliveWhenNoSteps = v.(bool)
+	}
+
+	terminationProtection := false
+	if v, ok := d.GetOk("termination_protection"); ok {
+		terminationProtection = v.(bool)
+	}
 	instanceConfig := &emr.JobFlowInstancesConfig{
 		MasterInstanceType: aws.String(masterInstanceType),
 		SlaveInstanceType:  aws.String(coreInstanceType),
 		InstanceCount:      aws.Int64(int64(coreInstanceCount)),
-		// Default values that we can open up in the future
-		KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
-		TerminationProtected:        aws.Bool(false),
+
+		KeepJobFlowAliveWhenNoSteps: aws.Bool(keepJobFlowAliveWhenNoSteps),
+		TerminationProtected:        aws.Bool(terminationProtection),
 	}
 
 	var instanceProfile string
@@ -221,6 +246,10 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 		if len(strings.TrimSpace(attributes["instance_profile"].(string))) != 0 {
 			instanceProfile = strings.TrimSpace(attributes["instance_profile"].(string))
+		}
+
+		if v, ok := attributes["service_access_security_group"]; ok {
+			instanceConfig.ServiceAccessSecurityGroup = aws.String(v.(string))
 		}
 	}
 
@@ -376,7 +405,7 @@ func resourceAwsEMRClusterUpdate(d *schema.ResourceData, meta interface{}) error
 			InstanceGroups: []*emr.InstanceGroupModifyConfig{
 				{
 					InstanceGroupId: coreGroup.Id,
-					InstanceCount:   aws.Int64(int64(coreInstanceCount)),
+					InstanceCount:   aws.Int64(int64(coreInstanceCount) - 1),
 				},
 			},
 		}
@@ -518,6 +547,10 @@ func flattenEc2Attributes(ia *emr.Ec2InstanceAttributes) []map[string]interface{
 	if len(ia.AdditionalSlaveSecurityGroups) > 0 {
 		strs := aws.StringValueSlice(ia.AdditionalSlaveSecurityGroups)
 		attrs["additional_slave_security_groups"] = strings.Join(strs, ",")
+	}
+
+	if ia.ServiceAccessSecurityGroup != nil {
+		attrs["service_access_security_group"] = *ia.ServiceAccessSecurityGroup
 	}
 
 	result = append(result, attrs)

@@ -40,10 +40,9 @@ type reqDowntimes struct {
 // CreateDowntime adds a new downtme to the system. This returns a pointer
 // to a Downtime so you can pass that to UpdateDowntime or CancelDowntime
 // later if needed.
-func (self *Client) CreateDowntime(downtime *Downtime) (*Downtime, error) {
+func (client *Client) CreateDowntime(downtime *Downtime) (*Downtime, error) {
 	var out Downtime
-	err := self.doJsonRequest("POST", "/v1/downtime", downtime, &out)
-	if err != nil {
+	if err := client.doJsonRequest("POST", "/v1/downtime", downtime, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -51,32 +50,30 @@ func (self *Client) CreateDowntime(downtime *Downtime) (*Downtime, error) {
 
 // UpdateDowntime takes a downtime that was previously retrieved through some method
 // and sends it back to the server.
-func (self *Client) UpdateDowntime(downtime *Downtime) error {
-	return self.doJsonRequest("PUT", fmt.Sprintf("/v1/downtime/%d", downtime.Id),
+func (client *Client) UpdateDowntime(downtime *Downtime) error {
+	return client.doJsonRequest("PUT", fmt.Sprintf("/v1/downtime/%d", downtime.Id),
 		downtime, nil)
 }
 
 // Getdowntime retrieves an downtime by identifier.
-func (self *Client) GetDowntime(id int) (*Downtime, error) {
+func (client *Client) GetDowntime(id int) (*Downtime, error) {
 	var out Downtime
-	err := self.doJsonRequest("GET", fmt.Sprintf("/v1/downtime/%d", id), nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", fmt.Sprintf("/v1/downtime/%d", id), nil, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
 // DeleteDowntime removes an downtime from the system.
-func (self *Client) DeleteDowntime(id int) error {
-	return self.doJsonRequest("DELETE", fmt.Sprintf("/v1/downtime/%d", id),
+func (client *Client) DeleteDowntime(id int) error {
+	return client.doJsonRequest("DELETE", fmt.Sprintf("/v1/downtime/%d", id),
 		nil, nil)
 }
 
 // GetDowntimes returns a slice of all downtimes.
-func (self *Client) GetDowntimes() ([]Downtime, error) {
+func (client *Client) GetDowntimes() ([]Downtime, error) {
 	var out reqDowntimes
-	err := self.doJsonRequest("GET", "/v1/downtime", nil, &out.Downtimes)
-	if err != nil {
+	if err := client.doJsonRequest("GET", "/v1/downtime", nil, &out.Downtimes); err != nil {
 		return nil, err
 	}
 	return out.Downtimes, nil

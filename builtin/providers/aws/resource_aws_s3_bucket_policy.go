@@ -100,6 +100,9 @@ func resourceAwsS3BucketPolicyDelete(d *schema.ResourceData, meta interface{}) e
 	})
 
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "NoSuchBucket" {
+			return nil
+		}
 		return fmt.Errorf("Error deleting S3 policy: %s", err)
 	}
 
