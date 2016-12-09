@@ -160,7 +160,6 @@ resource "google_compute_region_backend_service" "foobar-bs" {
   name                  = "%s"
   description           = "Resource created for Terraform acceptance testing"
   health_checks         = ["${google_compute_health_check.zero.self_link}"]
-  load_balancing_scheme = "INTERNAL"
   region                = "us-central1"
 }
 resource "google_compute_health_check" "zero" {

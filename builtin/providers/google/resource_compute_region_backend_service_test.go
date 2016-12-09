@@ -253,7 +253,7 @@ resource "google_compute_health_check" "default" {
   name               = "%s"
   check_interval_sec = 1
   timeout_sec        = 1
-  type = "TCP"
+ 
   tcp_health_check {
 
   }
