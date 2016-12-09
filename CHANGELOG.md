@@ -1,5 +1,8 @@
 ## 0.8.0 (unreleased)
 
+IMPROVEMENTS:
+ * provider/aws: Add support for AWS CA Central 1 Region [GH-10618]
+
 
 
 ## 0.8.0-rc3 (December 8, 2016)
