@@ -152,7 +152,7 @@ func formatPlanModuleExpand(
 			attrDiff := rdiff.Attributes[attrK]
 
 			v := attrDiff.New
-			if attrDiff.NewComputed {
+			if v == "" && attrDiff.NewComputed {
 				v = "<computed>"
 			}
 
