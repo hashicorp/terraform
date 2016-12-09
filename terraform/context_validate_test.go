@@ -44,6 +44,28 @@ func TestContext2Validate_badVar(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_varMapOverrideOld(t *testing.T) {
+	m := testModule(t, "validate-module-pc-vars")
+	p := testProvider("aws")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]interface{}{
+			"foo.foo": "bar",
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 	m := testModule(t, "validate-var-no-default-explicit-type")
 	c := testContext2(t, &ContextOpts{
