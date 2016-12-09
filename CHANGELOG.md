@@ -1,4 +1,4 @@
-## 0.8.0-rc3 (unreleased)
+## 0.8.0-rc3 (December 8, 2016)
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
@@ -7,45 +7,45 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 FEATURES:
 
- * **New Provider:** `external` [GH-8768]
- * **New Provider:** `Rancher` [GH-9173]
- * **New Data Source:** `aws_iam_server_certificate` [GH-10558]
- * **New Data Source:** `pagerduty_user` [GH-10541]
- * **New Resource:** `aws_opsworks_rds_db_instance` [GH-10294]
- * **New Resource:** `aws_vpc_endpoint_route_table_association` [GH-10137]
+ * **New Provider:** `external` ([#8768](https://github.com/hashicorp/terraform/issues/8768))
+ * **New Provider:** `Rancher` ([#9173](https://github.com/hashicorp/terraform/issues/9173))
+ * **New Data Source:** `aws_iam_server_certificate` ([#10558](https://github.com/hashicorp/terraform/issues/10558))
+ * **New Data Source:** `pagerduty_user` ([#10541](https://github.com/hashicorp/terraform/issues/10541))
+ * **New Resource:** `aws_opsworks_rds_db_instance` ([#10294](https://github.com/hashicorp/terraform/issues/10294))
+ * **New Resource:** `aws_vpc_endpoint_route_table_association` ([#10137](https://github.com/hashicorp/terraform/issues/10137))
 
 IMPROVEMENTS:
 
- * core: SIGTERM also triggers graceful shutdown in addition to SIGINT [GH-10534]
- * provider/aws: Add support for termination protection and autotermination to EMR [GH-10252]
- * provider/aws: Add "no_device" support to ephemeral block devices [GH-10547]
- * provider/aws: Added S3 Bucket replication [GH-10552]
- * provider/aws: Add `pgp_key` to `aws_iam_access_key` to protect key. [GH-10615]
- * provider/azurerm: make DiskSizeGB optional for azurerm_virtual_machine data_disks [GH-10232]
- * provider/azurerm support `license_type` virtual_machine property [GH-10539]
- * provider/datadog: Make monitor thresholds optional. [GH-10526]
- * provider/datadog: Improve datadog timeboard support [GH-10027]
- * provider/docker: Upload files into container before first start [GH-9520]
- * provider/fastly: add ssl_hostname option [GH-9629]
- * provider/openstack: Detect Region for Importing Resources [GH-10509]
- * provider/google: Instances and templates now both support `metadata_startup_script` and `metadata.startup-script`. [GH-10537]
+ * core: SIGTERM also triggers graceful shutdown in addition to SIGINT ([#10534](https://github.com/hashicorp/terraform/issues/10534))
+ * provider/aws: Add support for termination protection and autotermination to EMR ([#10252](https://github.com/hashicorp/terraform/issues/10252))
+ * provider/aws: Add "no_device" support to ephemeral block devices ([#10547](https://github.com/hashicorp/terraform/issues/10547))
+ * provider/aws: Added S3 Bucket replication ([#10552](https://github.com/hashicorp/terraform/issues/10552))
+ * provider/aws: Add `pgp_key` to `aws_iam_access_key` to protect key. ([#10615](https://github.com/hashicorp/terraform/issues/10615))
+ * provider/azurerm: make DiskSizeGB optional for azurerm_virtual_machine data_disks ([#10232](https://github.com/hashicorp/terraform/issues/10232))
+ * provider/azurerm support `license_type` virtual_machine property ([#10539](https://github.com/hashicorp/terraform/issues/10539))
+ * provider/datadog: Make monitor thresholds optional. ([#10526](https://github.com/hashicorp/terraform/issues/10526))
+ * provider/datadog: Improve datadog timeboard support ([#10027](https://github.com/hashicorp/terraform/issues/10027))
+ * provider/docker: Upload files into container before first start ([#9520](https://github.com/hashicorp/terraform/issues/9520))
+ * provider/fastly: add ssl_hostname option ([#9629](https://github.com/hashicorp/terraform/issues/9629))
+ * provider/openstack: Detect Region for Importing Resources ([#10509](https://github.com/hashicorp/terraform/issues/10509))
+ * provider/google: Instances and templates now both support `metadata_startup_script` and `metadata.startup-script`. ([#10537](https://github.com/hashicorp/terraform/issues/10537))
 
 BUG FIXES:
 
-  * core: Fix a diff mismatch error that could happen when a resource depends on a count resource being decreased. [GH-10522]
-  * core: On Unix machines if `getent` is not available, fall back to shell to find home dir. [GH-10515]
-  * communicator/ssh: Avoid race that could cause parallel remote execs on the same host to overwrite each other [GH-10549]
-  * provider/aws: cloudfront distribution 404 should mark as gone [GH-10281]
-  * provider/aws: Assign correct number of core instances (n-1) to aws-emr-cluster on update [GH-10529]
-  * provider/aws: Allow update of Service role on a CodeDeploy deployment group [GH-9866]
-  * provider/aws: fixed the api_gw_domain_name replace operation [GH-10179]
-  * provider/aws: Forces the API GW domain name certificates to recreate the resource [GH-10588]
-  * provider/aws: Validate `effect` in aws_iam_policy_document data source [GH-10021]
-  * provider/azurem: azurerm_availability_set not is ForceNew for UpdateDomain and FaultDomain [GH-10545]
-  * provider/azurerm: fix servicebus_topic max_size_in_megabytes for premium namespaces [GH-10611]
-  * provider/datadog: Refactor monitor tags to a list instead of a map. [GH-10570]
-  * provider/datadog 9869: Validate credentials when initialising client. [GH-10567]
-  * provider/openstack: Fix Ordering of Port Allowed Address Pairs [GH-10250]
+  * core: Fix a diff mismatch error that could happen when a resource depends on a count resource being decreased. ([#10522](https://github.com/hashicorp/terraform/issues/10522))
+  * core: On Unix machines if `getent` is not available, fall back to shell to find home dir. ([#10515](https://github.com/hashicorp/terraform/issues/10515))
+  * communicator/ssh: Avoid race that could cause parallel remote execs on the same host to overwrite each other ([#10549](https://github.com/hashicorp/terraform/issues/10549))
+  * provider/aws: cloudfront distribution 404 should mark as gone ([#10281](https://github.com/hashicorp/terraform/issues/10281))
+  * provider/aws: Assign correct number of core instances (n-1) to aws-emr-cluster on update ([#10529](https://github.com/hashicorp/terraform/issues/10529))
+  * provider/aws: Allow update of Service role on a CodeDeploy deployment group ([#9866](https://github.com/hashicorp/terraform/issues/9866))
+  * provider/aws: fixed the api_gw_domain_name replace operation ([#10179](https://github.com/hashicorp/terraform/issues/10179))
+  * provider/aws: Forces the API GW domain name certificates to recreate the resource ([#10588](https://github.com/hashicorp/terraform/issues/10588))
+  * provider/aws: Validate `effect` in aws_iam_policy_document data source ([#10021](https://github.com/hashicorp/terraform/issues/10021))
+  * provider/azurem: azurerm_availability_set not is ForceNew for UpdateDomain and FaultDomain ([#10545](https://github.com/hashicorp/terraform/issues/10545))
+  * provider/azurerm: fix servicebus_topic max_size_in_megabytes for premium namespaces ([#10611](https://github.com/hashicorp/terraform/issues/10611))
+  * provider/datadog: Refactor monitor tags to a list instead of a map. ([#10570](https://github.com/hashicorp/terraform/issues/10570))
+  * provider/datadog 9869: Validate credentials when initialising client. ([#10567](https://github.com/hashicorp/terraform/issues/10567))
+  * provider/openstack: Fix Ordering of Port Allowed Address Pairs ([#10250](https://github.com/hashicorp/terraform/issues/10250))
 
 ## 0.8.0-rc2 (December 2, 2016)
 
@@ -209,7 +209,7 @@ BUG FIXES:
 
 BUG FIXES:
  * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine ([#10340](https://github.com/hashicorp/terraform/issues/10340))
- * provider/aws: Fix issue removing Lambda environment variables [GH-10492]
+ * provider/aws: Fix issue removing Lambda environment variables ([#10492](https://github.com/hashicorp/terraform/issues/10492))
 
 
 
