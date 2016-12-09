@@ -447,6 +447,20 @@ func TestLoadFile_variables(t *testing.T) {
 	}
 }
 
+func TestLoadFile_varInt(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "var_int.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+}
+
+func TestLoadFile_varIntBare(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "var_int_bare.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+}
+
 func TestLoadDir_basic(t *testing.T) {
 	dir := filepath.Join(fixtureDir, "dir-basic")
 	c, err := LoadDir(dir)
