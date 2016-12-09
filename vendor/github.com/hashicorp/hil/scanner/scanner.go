@@ -479,9 +479,28 @@ func scanIdentifier(s string) (string, int) {
 		nextRune, size := utf8.DecodeRuneInString(s[byteLen:])
 		if !(nextRune == '_' ||
 			nextRune == '-' ||
+			nextRune == '.' ||
+			nextRune == '*' ||
 			unicode.IsNumber(nextRune) ||
 			unicode.IsLetter(nextRune) ||
 			unicode.IsMark(nextRune)) {
+			break
+		}
+
+		// If we reach a star, it must be between periods to be part
+		// of the same identifier.
+		if nextRune == '*' && s[byteLen-1] != '.' {
+			break
+		}
+
+		// If our previous character was a star, then the current must
+		// be period. Otherwise, undo that and exit.
+		if byteLen > 0 && s[byteLen-1] == '*' && nextRune != '.' {
+			byteLen--
+			if s[byteLen-1] == '.' {
+				byteLen--
+			}
+
 			break
 		}
 
