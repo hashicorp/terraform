@@ -50,6 +50,10 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-refresh=true` - Update the state prior to checking for differences.
 
+* `-short` - If set, only output the resource names being changed along
+             with the final summary line. The output will not show the
+             specific attributes of each resource being altered.
+
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
   Ignored when [remote state](/docs/state/remote/index.html) is used.
 

@@ -20,6 +20,7 @@ const periodicUiTimer = 10 * time.Second
 type UiHook struct {
 	terraform.NilHook
 
+	Short    bool
 	Colorize *colorstring.Colorize
 	Ui       cli.Ui
 
@@ -251,6 +252,10 @@ func (h *UiHook) PreRefresh(
 	n *terraform.InstanceInfo,
 	s *terraform.InstanceState) (terraform.HookAction, error) {
 	h.once.Do(h.init)
+
+	if h.Short {
+		return terraform.HookActionContinue, nil
+	}
 
 	id := n.HumanId()
 

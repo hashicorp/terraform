@@ -17,7 +17,7 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var destroy, refresh, detailed bool
+	var destroy, refresh, detailed, short bool
 	var outPath string
 	var moduleDepth int
 
@@ -32,6 +32,7 @@ func (c *PlanCommand) Run(args []string) int {
 		&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
+	cmdFlags.BoolVar(&short, "short", false, "short")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -39,6 +40,7 @@ func (c *PlanCommand) Run(args []string) int {
 
 	var path string
 	args = cmdFlags.Args()
+
 	if len(args) > 1 {
 		c.Ui.Error(
 			"The plan command expects at most one argument with the path\n" +
@@ -94,15 +96,20 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if refresh {
-		c.Ui.Output("Refreshing Terraform state in-memory prior to plan...")
-		c.Ui.Output("The refreshed state will be used to calculate this plan, but")
-		c.Ui.Output("will not be persisted to local or remote state storage.\n")
+		if !short {
+			c.Ui.Output("Refreshing Terraform state in-memory prior to plan...")
+			c.Ui.Output("The refreshed state will be used to calculate this plan, but")
+			c.Ui.Output("will not be persisted to local or remote state storage.\n")
+		}
 		_, err := ctx.Refresh()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
-		c.Ui.Output("")
+
+		if !short {
+			c.Ui.Output("")
+		}
 	}
 
 	plan, err := ctx.Plan()
@@ -125,26 +132,33 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if plan.Diff.Empty() {
-		c.Ui.Output(
-			"No changes. Infrastructure is up-to-date. This means that Terraform\n" +
+
+		if short {
+			c.Ui.Output("No changes.")
+		} else {
+			c.Ui.Output("No changes. Infrastructure is up-to-date. This means that Terraform\n" +
 				"could not detect any differences between your configuration and\n" +
 				"the real physical resources that exist. As a result, Terraform\n" +
 				"doesn't need to do anything.")
+		}
 		return 0
 	}
 
-	if outPath == "" {
-		c.Ui.Output(strings.TrimSpace(planHeaderNoOutput) + "\n")
-	} else {
-		c.Ui.Output(fmt.Sprintf(
-			strings.TrimSpace(planHeaderYesOutput)+"\n",
-			outPath))
+	if !short {
+		if outPath == "" {
+			c.Ui.Output(strings.TrimSpace(planHeaderNoOutput) + "\n")
+		} else {
+			c.Ui.Output(fmt.Sprintf(
+				strings.TrimSpace(planHeaderYesOutput)+"\n",
+				outPath))
+		}
 	}
 
 	c.Ui.Output(FormatPlan(&FormatPlanOpts{
 		Plan:        plan,
 		Color:       c.Colorize(),
 		ModuleDepth: moduleDepth,
+		Short:       short,
 	}))
 
 	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
@@ -205,6 +219,10 @@ Options:
   -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
 
   -refresh=true       Update state prior to checking for differences.
+
+  -short              If set, only output the resource names being changed along
+                      with the final summary line. The output will not show the
+                      specific attributes of each resource being altered.
 
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will

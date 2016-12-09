@@ -96,6 +96,7 @@ func (c *ShowCommand) Run(args []string) int {
 			Plan:        plan,
 			Color:       c.Colorize(),
 			ModuleDepth: moduleDepth,
+			Short:       false,
 		}))
 		return 0
 	}
