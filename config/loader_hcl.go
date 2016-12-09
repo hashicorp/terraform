@@ -404,6 +404,11 @@ func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
 		}
 
 		n := item.Keys[0].Token.Value().(string)
+		if !NameRegexp.MatchString(n) {
+			return nil, fmt.Errorf(
+				"position %s: 'variable' name must match regular expression: %s",
+				item.Pos(), NameRegexp)
+		}
 
 		/*
 			// TODO: catch extra fields
