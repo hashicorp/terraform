@@ -1,5 +1,9 @@
 ## 0.8.0 (unreleased)
 
+FEATURES:
+
+ * **New Resource:**  `aws_lightsail_key_pair` [GH-10583]
+
 IMPROVEMENTS:
 
  * provider/aws: Add support for AWS CA Central 1 Region [GH-10618]
@@ -24,7 +28,7 @@ FEATURES:
  * **New Data Source:** `pagerduty_user` ([#10541](https://github.com/hashicorp/terraform/issues/10541))
  * **New Resource:** `aws_opsworks_rds_db_instance` ([#10294](https://github.com/hashicorp/terraform/issues/10294))
  * **New Resource:** `aws_vpc_endpoint_route_table_association` ([#10137](https://github.com/hashicorp/terraform/issues/10137))
-
+  * **New Resource:**  `aws_lightsail_instance` ([#10473](https://github.com/hashicorp/terraform/issues/10473))
 IMPROVEMENTS:
 
  * core: SIGTERM also triggers graceful shutdown in addition to SIGINT ([#10534](https://github.com/hashicorp/terraform/issues/10534))
