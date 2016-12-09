@@ -18,7 +18,7 @@ import (
 
 // NameRegexp is the regular expression that all names (modules, providers,
 // resources, etc.) must follow.
-var NameRegexp = regexp.MustCompile(`\A[A-Za-z0-9\-\_]+\z`)
+var NameRegexp = regexp.MustCompile(`(?i)\A[A-Z_][A-Z0-9\-\_]+\z`)
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
@@ -280,6 +280,14 @@ func (c *Config) Validate() error {
 		}
 
 		varMap[v.Name] = v
+	}
+
+	for k, _ := range varMap {
+		if !NameRegexp.MatchString(k) {
+			errs = append(errs, fmt.Errorf(
+				"variable %q: variable name must match regular expresion %s",
+				k, NameRegexp))
+		}
 	}
 
 	for _, v := range c.Variables {
