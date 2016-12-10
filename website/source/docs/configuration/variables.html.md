@@ -294,7 +294,39 @@ terraform apply -var-file=foo.tfvars -var-file=bar.tfvars
 on the command line. If a variable is defined in more than one variable file,
 the last value specified is effective.
 
-### Precedence example
+### Variable Merging
+
+When variables are conflicting, map values are merged and all are values are
+overridden. Map values are always merged.
+
+For example, if you set a variable twice on the command line:
+
+```
+terraform apply -var foo=bar -var foo=baz
+```
+
+Then the value of `foo` will be `baz` since it was the last value seen.
+
+However, for maps, the values are merged:
+
+```
+terraform apply -var 'foo={foo="bar"}' -var 'foo={bar="baz"}'
+```
+
+The resulting value of `foo` will be:
+
+```
+{
+  foo = "bar"
+  bar = "baz"
+}
+```
+
+There is no way currently to unset map values in Terraform. Whenever a map
+is modified either via variable input or being passed into a module, the
+values are always merged.
+
+### Variable Precedence
 
 Both these files have the variable `baz` defined:
 
