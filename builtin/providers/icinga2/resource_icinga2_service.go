@@ -49,17 +49,20 @@ func resourceIcinga2ServiceCreate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	found := false
 	for _, service := range services {
 		if service.Name == hostname+"!"+name {
 			d.SetId(hostname + "!" + name)
+			found = true
 		}
 	}
 
-	if d.Id() == "" {
+	if !found {
 		return fmt.Errorf("Failed to Create Service %s!%s : %s", hostname, name, err)
-	} else {
-		return nil
 	}
+
+	return nil
+
 }
 
 func resourceIcinga2ServiceRead(d *schema.ResourceData, meta interface{}) error {
@@ -74,18 +77,22 @@ func resourceIcinga2ServiceRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	found := false
 	for _, service := range services {
 		if service.Name == hostname+"!"+name {
 			d.SetId(hostname + "!" + name)
 			d.Set("hostname", hostname)
 			d.Set("check_command", service.Attrs.CheckCommand)
+			found = true
 		}
 	}
-	if d.Id() == "" {
+
+	if !found {
 		return fmt.Errorf("Failed to Read Service %s!%s : %s", hostname, name, err)
-	} else {
-		return nil
 	}
+
+	return nil
+
 }
 
 func resourceIcinga2ServiceDelete(d *schema.ResourceData, meta interface{}) error {

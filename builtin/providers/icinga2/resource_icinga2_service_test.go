@@ -14,8 +14,8 @@ func TestAccCreateService(t *testing.T) {
 
 	var testAccCreateService = fmt.Sprintf(`
 		resource "icinga2_service" "tf-service-1" {
-		hostname      = "c1-mysql-1"
-		name          = "ssh2"
+		hostname      = "docker-icinga2"
+		name          = "ssh3"
 		check_command = "ssh"
 	}`)
 
@@ -27,8 +27,8 @@ func TestAccCreateService(t *testing.T) {
 				Config: testAccCreateService,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckServiceExists("icinga2_service.tf-service-1"),
-					testAccCheckResourceState("icinga2_service.tf-service-1", "hostname", "c1-mysql-1"),
-					testAccCheckResourceState("icinga2_service.tf-service-1", "name", "ssh2"),
+					testAccCheckResourceState("icinga2_service.tf-service-1", "hostname", "docker-icinga2"),
+					testAccCheckResourceState("icinga2_service.tf-service-1", "name", "ssh3"),
 					testAccCheckResourceState("icinga2_service.tf-service-1", "check_command", "ssh"),
 				),
 			},

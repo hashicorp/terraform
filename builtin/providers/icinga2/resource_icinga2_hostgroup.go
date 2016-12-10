@@ -42,18 +42,19 @@ func resourceIcinga2HostgroupCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
+	found := false
 	for _, hostgroup := range hostgroups {
 		if hostgroup.Name == name {
 			d.SetId(name)
+			found = true
 		}
 	}
 
-	if d.Id() == "" {
+	if !found {
 		return fmt.Errorf("Failed to Create Hostgroup %s : %s", name, err)
-	} else {
-		return nil
 	}
 
+	return nil
 }
 
 func resourceIcinga2HostgroupRead(d *schema.ResourceData, meta interface{}) error {
@@ -66,18 +67,20 @@ func resourceIcinga2HostgroupRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
+	found := false
 	for _, hostgroup := range hostgroups {
 		if hostgroup.Name == name {
 			d.SetId(name)
 			d.Set("display_name", hostgroup.Attrs.DisplayName)
+			found = true
 		}
 	}
 
-	if d.Id() == "" {
+	if !found {
 		return fmt.Errorf("Failed to Read Hostgroup %s : %s", name, err)
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 func resourceIcinga2HostgroupDelete(d *schema.ResourceData, meta interface{}) error {

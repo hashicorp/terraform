@@ -1607,10 +1607,10 @@
 			"revisionTime": "2016-07-04T14:48:39Z"
 		},
 		{
-			"checksumSHA1": "C4lIoFjUYR2l2/Ql77qHtoQe4fI=",
+			"checksumSHA1": "8fIVetxvijD+9nPT5TEl2OeDHxg=",
 			"path": "github.com/lrsmith/go-icinga2-api/iapi",
-			"revision": "4e40b54ad0c255b73baf673779a5c2f990f04eea",
-			"revisionTime": "2016-12-06T00:02:12Z"
+			"revision": "ba9eccb088d652b05154765828ad78345bc36f14",
+			"revisionTime": "2016-12-10T04:55:21Z"
 		},
 		{
 			"path": "github.com/lusis/go-artifactory/src/artifactory.v401",

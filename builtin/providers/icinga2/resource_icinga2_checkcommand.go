@@ -49,6 +49,7 @@ func resourceIcinga2CheckcommandCreate(d *schema.ResourceData, meta interface{})
 
 	arguments := make(map[string]string)
 	iterator := d.Get("arguments").(map[string]interface{})
+
 	for key, value := range iterator {
 		arguments[key] = value.(string)
 	}
@@ -58,18 +59,19 @@ func resourceIcinga2CheckcommandCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	found := false
 	for _, checkcommand := range checkcommands {
 		if checkcommand.Name == name {
 			d.SetId(name)
+			found = true
 		}
 	}
 
-	if d.Id() == "" {
+	if !found {
 		return fmt.Errorf("Failed to create Checkcommand %s : %s", name, err)
-	} else {
-		return nil
 	}
 
+	return nil
 }
 
 func resourceIcinga2CheckcommandRead(d *schema.ResourceData, meta interface{}) error {
@@ -83,21 +85,22 @@ func resourceIcinga2CheckcommandRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	found := false
 	for _, checkcommand := range checkcommands {
 		if checkcommand.Name == name {
 			d.SetId(name)
 			d.Set("command", checkcommand.Attrs.Command[0])
 			d.Set("Templates", checkcommand.Attrs.Templates)
 			d.Set("arguments", checkcommand.Attrs.Arguments)
+			found = true
 		}
 	}
 
-	if d.Id() == "" {
+	if !found {
 		return fmt.Errorf("Failed to Read Checkcommand %s : %s", name, err)
-	} else {
-		return nil
 	}
 
+	return nil
 }
 
 func resourceIcinga2CheckcommandDelete(d *schema.ResourceData, meta interface{}) error {

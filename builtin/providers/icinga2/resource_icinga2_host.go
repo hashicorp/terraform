@@ -61,17 +61,19 @@ func resourceIcinga2HostCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	found := false
 	for _, host := range hosts {
 		if host.Name == hostname {
 			d.SetId(hostname)
+			found = true
 		}
 	}
 
-	if d.Id() == "" {
+	if !found {
 		return fmt.Errorf("Failed to Create Host %s : %s", hostname, err)
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 func resourceIcinga2HostRead(d *schema.ResourceData, meta interface{}) error {
@@ -85,6 +87,7 @@ func resourceIcinga2HostRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	found := false
 	for _, host := range hosts {
 		if host.Name == hostname {
 			d.SetId(hostname)
@@ -92,15 +95,15 @@ func resourceIcinga2HostRead(d *schema.ResourceData, meta interface{}) error {
 			d.Set("address", host.Attrs.Address)
 			d.Set("check_command", host.Attrs.CheckCommand)
 			d.Set("vars", host.Attrs.Vars)
+			found = true
 		}
 	}
 
-	if d.Id() == "" {
+	if !found {
 		return fmt.Errorf("Failed to Read Host %s : %s", hostname, err)
-	} else {
-		return nil
 	}
 
+	return nil
 }
 
 func resourceIcinga2HostDelete(d *schema.ResourceData, meta interface{}) error {

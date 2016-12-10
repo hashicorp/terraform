@@ -5,9 +5,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // Server ... Use to be ClientConfig
@@ -42,6 +42,7 @@ func (server *Server) Connect() error {
 
 	server.httpClient = &http.Client{
 		Transport: t,
+		Timeout:   time.Second * 60,
 	}
 
 	request, err := http.NewRequest("GET", server.BaseURL, nil)
@@ -54,13 +55,13 @@ func (server *Server) Connect() error {
 	request.Header.Set("Content-Type", "application/json")
 
 	response, err := server.httpClient.Do(request)
-	defer response.Body.Close()
 
-	if (err != nil) || (response.StatusCode != 200) {
+	if (err != nil) || (response == nil) {
 		server.httpClient = nil
-		fmt.Printf("Failed to connect to %s : %s\n", server.BaseURL, response.Status)
 		return err
 	}
+
+	defer response.Body.Close()
 
 	return nil
 
@@ -68,6 +69,8 @@ func (server *Server) Connect() error {
 
 // NewAPIRequest ...
 func (server *Server) NewAPIRequest(method, APICall string, jsonString []byte) (*APIResult, error) {
+
+	var results APIResult
 
 	fullURL := server.BaseURL + APICall
 
@@ -79,6 +82,7 @@ func (server *Server) NewAPIRequest(method, APICall string, jsonString []byte) (
 
 	server.httpClient = &http.Client{
 		Transport: t,
+		Timeout:   time.Second * 60,
 	}
 
 	request, requestErr := http.NewRequest(method, fullURL, bytes.NewBuffer(jsonString))
@@ -90,34 +94,27 @@ func (server *Server) NewAPIRequest(method, APICall string, jsonString []byte) (
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("Content-Type", "application/json")
 
-	//if Debug {
-	//dump, _ := httputil.DumpRequestOut(request, true)
-	//fmt.Printf("HTTP Request\n%s\n", dump)
-	//}
-
 	response, doErr := server.httpClient.Do(request)
-	defer response.Body.Close()
-
 	if doErr != nil {
-		return nil, doErr
+		results.Code = 0
+		results.Status = "Error : Request to server failed : " + doErr.Error()
+		results.ErrorString = doErr.Error()
+		return &results, doErr
 	}
 
-	var results APIResult
+	defer response.Body.Close()
+
 	if decodeErr := json.NewDecoder(response.Body).Decode(&results); decodeErr != nil {
 		return nil, decodeErr
 	}
 
 	if results.Code == 0 { // results.Code has default value so set it.
-		//fmt.Println("Setting Result Code")
 		results.Code = response.StatusCode
 	}
 
 	if results.Status == "" { // results.Status has default value, so set it.
-		//fmt.Println("Setting Result Status")
 		results.Status = response.Status
 	}
-
-	//fmt.Printf("<<%v>>", results.Results)
 
 	switch results.Code {
 	case 0:

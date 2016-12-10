@@ -11,8 +11,8 @@ import (
 
 func TestAccCreateCheckcommand(t *testing.T) {
 
-	var testAccCreateBasicCheckcommand = fmt.Sprintf(`
-		resource "icinga2_checkcommand" "basic" {
+	var testAccCreateCheckcommand = fmt.Sprintf(`
+		resource "icinga2_checkcommand" "checkcommand" {
 		name      = "terraform-test-checkcommand-1"
 		templates = [ "plugin-check-command" ]
 		command = "/usr/local/bin/check_command"
@@ -26,14 +26,14 @@ func TestAccCreateCheckcommand(t *testing.T) {
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCreateBasicCheckcommand,
+				Config: testAccCreateCheckcommand,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCheckcommandExists("icinga2_checkcommand.basic"),
-					testAccCheckResourceState("icinga2_checkcommand.basic", "name", "terraform-test-checkcommand-1"),
-					testAccCheckResourceState("icinga2_checkcommand.basic", "command", "/usr/local/bin/check_command"),
-					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.%", "2"),
-					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.-I", "$IARG$"),
-					testAccCheckResourceState("icinga2_checkcommand.basic", "arguments.-J", "$JARG$"),
+					testAccCheckCheckcommandExists("icinga2_checkcommand.checkcommand"),
+					testAccCheckResourceState("icinga2_checkcommand.checkcommand", "name", "terraform-test-checkcommand-1"),
+					testAccCheckResourceState("icinga2_checkcommand.checkcommand", "command", "/usr/local/bin/check_command"),
+					testAccCheckResourceState("icinga2_checkcommand.checkcommand", "arguments.%", "2"),
+					testAccCheckResourceState("icinga2_checkcommand.checkcommand", "arguments.-I", "$IARG$"),
+					testAccCheckResourceState("icinga2_checkcommand.checkcommand", "arguments.-J", "$JARG$"),
 				),
 			},
 		},
