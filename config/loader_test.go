@@ -78,6 +78,13 @@ func TestLoadFile_resourceArityMistake(t *testing.T) {
 	}
 }
 
+func TestLoadFile_resourceMultiLifecycle(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "resource-multi-lifecycle.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+}
+
 func TestLoadFile_dataSourceArityMistake(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "data-source-arity-mistake.tf"))
 	if err == nil {
