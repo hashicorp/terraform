@@ -1935,8 +1935,16 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	return state, nil
 }
 
-// WriteState writes a state somewhere in a binary format.
-func WriteState(d *State, dst io.Writer) error {
+// PrepareForWrite makes changes to the receiving state to prepare it for
+// being serialized to disk or elsewhere. These steps are executed
+// automatically when a top-level state is written directly with WriteState,
+// but this separate method is useful for writing out data structures that
+// *contain* states, such as plans.
+func (d *State) PrepareForWrite() error {
+	if d == nil {
+		return nil
+	}
+
 	// Make sure it is sorted
 	d.sort()
 
@@ -1957,6 +1965,16 @@ func WriteState(d *State, dst io.Writer) error {
 					"version.",
 				d.TFVersion)
 		}
+	}
+
+	return nil
+}
+
+// WriteState writes a state somewhere in a binary format.
+func WriteState(d *State, dst io.Writer) error {
+	err := d.PrepareForWrite()
+	if err != nil {
+		return err
 	}
 
 	// Encode the data in a human-friendly way
