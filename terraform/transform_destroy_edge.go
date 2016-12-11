@@ -127,6 +127,8 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		// Add providers since they can affect destroy order as well
 		&MissingProviderTransformer{AllowAny: true, Concrete: providerFn},
 		&ProviderTransformer{},
+		&DisableProviderTransformer{},
+		&ParentProviderTransformer{},
 		&AttachProviderConfigTransformer{Module: t.Module},
 
 		&ReferenceTransformer{},
