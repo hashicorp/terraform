@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -228,4 +229,22 @@ func formatPlanModuleSingle(
 		"    %d resource(s)",
 		len(m.Resources)))
 	buf.WriteString(opts.Color.Color("[reset]\n"))
+}
+
+func FormatPlanJSON(plan *terraform.Plan) string {
+	err := plan.State.PrepareForWrite()
+	if err != nil {
+		// should never happen
+		panic(err)
+	}
+
+	dst := bytes.NewBuffer(make([]byte, 0, 64))
+	enc := json.NewEncoder(dst)
+	enc.SetIndent("", "  ")
+	err = enc.Encode(plan)
+	if err != nil {
+		// should never happen
+		panic(err)
+	}
+	return dst.String()
 }
