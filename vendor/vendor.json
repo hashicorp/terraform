@@ -306,8 +306,10 @@
 			"revision": "edd0930276e7f1a5f2cf3e7835b5dc42a3217669"
 		},
 		{
+			"checksumSHA1": "jZHdtVQsg/9NeRqbxwy63OSbLl8=",
 			"path": "github.com/DreamItGetIT/statuscake",
-			"revision": "8cbe86575f00210a6df2c19cb2f59b00cd181de3"
+			"revision": "9bfac395790f4d221cb5088c5c411f0ba8ba5f23",
+			"revisionTime": "2016-12-01T15:35:21Z"
 		},
 		{
 			"path": "github.com/Ensighten/udnssdk",
