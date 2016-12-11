@@ -59,14 +59,14 @@ func ParseInput(value string) (interface{}, error) {
 		}
 
 		return nil, fmt.Errorf(
-			"Cannot parse value for variable %s (%q) as valid HCL: %s",
+			"Cannot parse value for variable (%q) as valid HCL: %s",
 			value, err)
 	}
 
 	var decoded map[string]interface{}
 	if hcl.DecodeObject(&decoded, parsed); err != nil {
 		return nil, fmt.Errorf(
-			"Cannot parse value for variable %s (%q) as valid HCL: %s",
+			"Cannot parse value for variable (%q) as valid HCL: %s",
 			value, err)
 	}
 
@@ -77,7 +77,7 @@ func ParseInput(value string) (interface{}, error) {
 
 	if len(decoded) > 1 {
 		return nil, fmt.Errorf(
-			"Cannot parse value for variable %s (%q) as valid HCL. "+
+			"Cannot parse value for variable (%q) as valid HCL. "+
 				"Only one value may be specified.",
 			value)
 	}
