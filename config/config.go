@@ -26,15 +26,15 @@ type Config struct {
 	// Dir is the path to the directory where this configuration was
 	// loaded from. If it is blank, this configuration wasn't loaded from
 	// any meaningful directory.
-	Dir string
+	Dir string `json:"source_dir"`
 
-	Terraform       *Terraform
-	Atlas           *AtlasConfig
-	Modules         []*Module
-	ProviderConfigs []*ProviderConfig
-	Resources       []*Resource
-	Variables       []*Variable
-	Outputs         []*Output
+	Terraform       *Terraform        `json:"terraform"`
+	Atlas           *AtlasConfig      `json:"atlas"`
+	Modules         []*Module         `json:"modules"`
+	ProviderConfigs []*ProviderConfig `json:"provider_configs"`
+	Resources       []*Resource       `json:"resources"`
+	Variables       []*Variable       `json:"variables"`
+	Outputs         []*Output         `json:"outputs"`
 
 	// The fields below can be filled in by loaders for validation
 	// purposes.
@@ -44,14 +44,15 @@ type Config struct {
 // Terraform is the Terraform meta-configuration that can be present
 // in configuration files for configuring Terraform itself.
 type Terraform struct {
-	RequiredVersion string `hcl:"required_version"` // Required Terraform version (constraint)
+	// Required Terraform version (constraint)
+	RequiredVersion string `hcl:"required_version" json:"required_version"`
 }
 
 // AtlasConfig is the configuration for building in HashiCorp's Atlas.
 type AtlasConfig struct {
-	Name    string
-	Include []string
-	Exclude []string
+	Name    string   `json:"name"`
+	Include []string `json:"include"`
+	Exclude []string `json:"exclude"`
 }
 
 // Module is a module used within a configuration.
@@ -59,9 +60,9 @@ type AtlasConfig struct {
 // This does not represent a module itself, this represents a module
 // call-site within an existing configuration.
 type Module struct {
-	Name      string
-	Source    string
-	RawConfig *RawConfig
+	Name      string     `json:"name"`
+	Source    string     `json:"source"`
+	RawConfig *RawConfig `json:"config"`
 }
 
 // ProviderConfig is the configuration for a resource provider.
@@ -69,9 +70,9 @@ type Module struct {
 // For example, Terraform needs to set the AWS access keys for the AWS
 // resource provider.
 type ProviderConfig struct {
-	Name      string
-	Alias     string
-	RawConfig *RawConfig
+	Name      string     `json:"name"`
+	Alias     string     `json:"alias,omitempty"`
+	RawConfig *RawConfig `json:"config"`
 }
 
 // A resource represents a single Terraform resource in the configuration.
@@ -79,15 +80,18 @@ type ProviderConfig struct {
 // usual "create, read, update, delete" operations, depending on
 // the given Mode.
 type Resource struct {
-	Mode         ResourceMode // which operations the resource supports
-	Name         string
-	Type         string
-	RawCount     *RawConfig
-	RawConfig    *RawConfig
-	Provisioners []*Provisioner
-	Provider     string
-	DependsOn    []string
-	Lifecycle    ResourceLifecycle
+
+	// which operations the resource supports
+	Mode ResourceMode `json:"mode"`
+
+	Name         string            `json:"name"`
+	Type         string            `json:"type"`
+	RawCount     *RawConfig        `json:"meta_config"`
+	RawConfig    *RawConfig        `json:"config"`
+	Provisioners []*Provisioner    `json:"provisioners,omitempty"`
+	Provider     string            `json:"provider_name,omitempty"`
+	DependsOn    []string          `json:"depends_on,omitempty"`
+	Lifecycle    ResourceLifecycle `json:"lifecycle"`
 }
 
 // Copy returns a copy of this Resource. Helpful for avoiding shared
@@ -115,9 +119,9 @@ func (r *Resource) Copy() *Resource {
 // ResourceLifecycle is used to store the lifecycle tuning parameters
 // to allow customized behavior
 type ResourceLifecycle struct {
-	CreateBeforeDestroy bool     `mapstructure:"create_before_destroy"`
-	PreventDestroy      bool     `mapstructure:"prevent_destroy"`
-	IgnoreChanges       []string `mapstructure:"ignore_changes"`
+	CreateBeforeDestroy bool     `mapstructure:"create_before_destroy" json:"create_before_destroy"`
+	PreventDestroy      bool     `mapstructure:"prevent_destroy" json:"prevent_destroy"`
+	IgnoreChanges       []string `mapstructure:"ignore_changes" json:"ignore_changes"`
 }
 
 // Copy returns a copy of this ResourceLifecycle
@@ -133,9 +137,9 @@ func (r *ResourceLifecycle) Copy() *ResourceLifecycle {
 
 // Provisioner is a configured provisioner step on a resource.
 type Provisioner struct {
-	Type      string
-	RawConfig *RawConfig
-	ConnInfo  *RawConfig
+	Type      string     `json:"type"`
+	RawConfig *RawConfig `json:"config"`
+	ConnInfo  *RawConfig `json:"conn_info,omitempty"`
 }
 
 // Copy returns a copy of this Provisioner
@@ -149,10 +153,10 @@ func (p *Provisioner) Copy() *Provisioner {
 
 // Variable is a variable defined within the configuration.
 type Variable struct {
-	Name         string
-	DeclaredType string `mapstructure:"type"`
-	Default      interface{}
-	Description  string
+	Name         string      `json:"name"`
+	DeclaredType string      `json:"type" mapstructure:"type"`
+	Default      interface{} `json:"default,omitempty"`
+	Description  string      `json:"description,omitempty"`
 }
 
 // Output is an output defined within the configuration. An output is
@@ -160,11 +164,11 @@ type Variable struct {
 // output marked Sensitive will be output in a masked form following
 // application, but will still be available in state.
 type Output struct {
-	Name        string
-	DependsOn   []string
-	Description string
-	Sensitive   bool
-	RawConfig   *RawConfig
+	Name        string     `json:"name"`
+	DependsOn   []string   `json:"depends_on,omitempty"`
+	Description string     `json:"description,omitempty"`
+	Sensitive   bool       `json:"sensitive"`
+	RawConfig   *RawConfig `json:"config"`
 }
 
 // VariableType is the type of value a variable is holding, and returned

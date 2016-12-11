@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/json"
 	"sync"
 
 	"github.com/hashicorp/hil"
@@ -27,10 +28,10 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 // RawConfig supports a query-like interface to request
 // information from deep within the structure.
 type RawConfig struct {
-	Key            string
-	Raw            map[string]interface{}
-	Interpolations []ast.Node
-	Variables      map[string]InterpolatedVariable
+	Key            string                          `json:"key"`
+	Raw            map[string]interface{}          `json:"raw"`
+	Interpolations []ast.Node                      `json:"interpolations,omitempty"`
+	Variables      map[string]InterpolatedVariable `json:"variables,omitempty"`
 
 	lock        sync.Mutex
 	config      map[string]interface{}
@@ -322,4 +323,14 @@ func langEvalConfig(vs map[string]ast.Variable) *hil.EvalConfig {
 			FuncMap: funcMap,
 		},
 	}
+}
+
+// MarshalJSON produces a JSON serialization of just the raw configuration
+// values, under the assumption that the remainder can be derived from it.
+//
+// The output here is intended by consumption of tools outside of Terraform
+// rather than by Terraform itself, so there is no corresponding
+// UnmarshalJSON method.
+func (r *RawConfig) MarshalJSON() ([]byte, error) {
+	return json.Marshal(r.Raw)
 }
