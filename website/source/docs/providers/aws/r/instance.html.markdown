@@ -44,6 +44,8 @@ resource "aws_instance" "web" {
 
 ## Argument Reference
 
+-> **Note:** `user_data` and `user_data_not_updatable` are mutually exclusive options.
+
 The following arguments are supported:
 
 * `ami` - (Required) The AMI to use for the instance.
@@ -70,7 +72,8 @@ instances. See [Shutdown Behavior](https://docs.aws.amazon.com/AWSEC2/latest/Use
      instance in a VPC.
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
   the destination address does not match the instance. Used for NAT or VPNs. Defaults true.
-* `user_data` - (Optional) The user data to provide when launching the instance.
+* `user_data` - (Optional) The user data to provide when launching the instance. Subsequent changes to this will result in the instance being destroyed and recreated.
+* `user_data_not_updatable` - (Optional) The user to provide when launching the instance. Subsequent changes to this **will not** result in the instance being destroyed and recreated.
 * `iam_instance_profile` - (Optional) The IAM Instance Profile to
   launch the instance with.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
