@@ -38,8 +38,8 @@ type GraphNodeCreator interface {
 // example: VPC with subnets, the VPC can't be deleted while there are
 // still subnets.
 type DestroyEdgeTransformer struct {
-	// Module and State are only needed to look up dependencies in
-	// any way possible. Either can be nil if not availabile.
+	// These are needed to properly build the graph of dependencies
+	// to determine what a destroy node depends on. Any of these can be nil.
 	Module *module.Tree
 	State  *State
 }
@@ -115,10 +115,20 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Example: resource A is force new, then destroy A AND create A are
 	// in the graph. BUT if resource A is just pure destroy, then only
 	// destroy A is in the graph, and create A is not.
+	providerFn := func(a *NodeAbstractProvider) dag.Vertex {
+		return &NodeApplyableProvider{NodeAbstractProvider: a}
+	}
 	steps := []GraphTransformer{
+		// Add outputs and metadata
 		&OutputTransformer{Module: t.Module},
 		&AttachResourceConfigTransformer{Module: t.Module},
 		&AttachStateTransformer{State: t.State},
+
+		// Add providers since they can affect destroy order as well
+		&MissingProviderTransformer{AllowAny: true, Concrete: providerFn},
+		&ProviderTransformer{},
+		&AttachProviderConfigTransformer{Module: t.Module},
+
 		&ReferenceTransformer{},
 	}
 
@@ -170,9 +180,13 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			refs = append(refs, raw.(dag.Vertex))
 		}
 
+		refNames := make([]string, len(refs))
+		for i, ref := range refs {
+			refNames[i] = dag.VertexName(ref)
+		}
 		log.Printf(
-			"[TRACE] DestroyEdgeTransformer: creation node %q references %v",
-			dag.VertexName(v), refs)
+			"[TRACE] DestroyEdgeTransformer: creation node %q references %s",
+			dag.VertexName(v), refNames)
 
 		// If we have no references, then we won't need to do anything
 		if len(refs) == 0 {
