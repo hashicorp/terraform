@@ -23,7 +23,7 @@ const (
 	roleNameAttr          = "name"
 	rolePasswordAttr      = "password"
 	roleReplicationAttr   = "replication"
-	roleSuperUserAttr     = "superuser"
+	roleSuperuserAttr     = "superuser"
 	roleValidUntilAttr    = "valid_until"
 
 	// Deprecated options
@@ -78,7 +78,7 @@ func resourcePostgreSQLRole() *schema.Resource {
 				Description:  "How many concurrent connections can be made with this role",
 				ValidateFunc: validateConnLimit,
 			},
-			roleSuperUserAttr: {
+			roleSuperuserAttr: {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Default:     false,
@@ -150,7 +150,7 @@ func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) erro
 		sqlKeyEnable  string
 		sqlKeyDisable string
 	}{
-		{roleSuperUserAttr, "CREATEDB", "NOCREATEDB"},
+		{roleSuperuserAttr, "CREATEDB", "NOCREATEDB"},
 		{roleCreateRoleAttr, "CREATEROLE", "NOCREATEROLE"},
 		{roleInheritAttr, "INHERIT", "NOINHERIT"},
 		{roleLoginAttr, "LOGIN", "NOLOGIN"},
