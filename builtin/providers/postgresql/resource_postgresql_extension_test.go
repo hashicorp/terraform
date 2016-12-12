@@ -10,7 +10,6 @@ import (
 )
 
 func TestAccPostgresqlExtension_Basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
