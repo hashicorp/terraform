@@ -1,37 +1,43 @@
 ## 0.8.0 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * provider/postgres: `ssl_mode` has been renamed `sslmode` to match common usage [GH-10682]
+
 FEATURES:
 
- * **New Provider:**  `Icinga2` [GH-8306]
- * **New Resource:**  `aws_lightsail_domain` [GH-10637]
- * **New Resource:**  `aws_lightsail_key_pair` [GH-10583]
- * **New Resource:**  `aws_snapshot_create_volume_permission` [GH-9891]
+ * **New Provider:** `Icinga2` [GH-8306]
+ * **New Resource:** `aws_lightsail_domain` [GH-10637]
+ * **New Resource:** `aws_lightsail_key_pair` [GH-10583]
+ * **New Resource:** `aws_snapshot_create_volume_permission` [GH-9891]
  * **New Resource:** `google_compute_health_check` [GH-10453]
  * **New Resource:** `google_compute_region_backend_service` [GH-10453]
  
 IMPROVEMENTS:
 
- * core: Maps across multiple input sources (files, CLI, env vars) are merged. [GH-10654]
  * command/plan: Show warning when a plan file is given as input to make behavior clear. [GH-10639]
+ * core: Maps across multiple input sources (files, CLI, env vars) are merged. [GH-10654]
  * provider/aws: Add support for AWS CA Central 1 Region [GH-10618]
  * provider/aws: Added SQS FIFO queues [GH-10614]
  * provider/aws: Support MFA delete for s3 bucket versioning [GH-10020]
- * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_port_forward` resource [GH-10638]
  * provider/cloudstack: Add option to set a custom `network_domain` for `cloudstack_network` [GH-10638]
+ * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_port_forward` resource [GH-10638]
  * provider/fastly add origin shielding [GH-10677]
  * provider/google: Add support for Internal Load Balancing [GH-10453]
+ * provider/postgresql: Improved support for many PostgreSQL resources [GH-10682]
 
 BUG FIXES:
 
- * core: Validate that only a single `lifecycle` block exists per rource. [GH-10656]
- * core: Validate fails on invalid keys in `variable` blocks. [GH-10658]
- * core: When destroying, the resources of a provider that depends on another resource are destroyed first. [GH-10659]
  * core: Direct indexing into a computed list no longer errors. [GH-10657]
- * provider/aws: Allow import of aws_security_groups with more than one source_security_group_id rule [GH-9477]
- * provider/aws: Fix issue importing `aws_vpc_peering_connection` [GH-#10635]
- * provider/aws: Allow setting the DB Instance name when restoring from a snapshot [GH-10664]
+ * core: Validate fails on invalid keys in `variable` blocks. [GH-10658]
+ * core: Validate that only a single `lifecycle` block exists per rource. [GH-10656]
+ * core: When destroying, the resources of a provider that depends on another resource are destroyed first. [GH-10659]
  * provider/aws: Added Lambda function guard when needed attributes are not set [GH-10663]
+ * provider/aws: Allow import of aws_security_groups with more than one source_security_group_id rule [GH-9477]
+ * provider/aws: Allow setting the DB Instance name when restoring from a snapshot [GH-10664]
+ * provider/aws: Fix issue importing `aws_vpc_peering_connection` [GH-10635]
  * provider/aws: Fixed deletion of aws_api_gateway_base_path_mapping with empty path [GH-10177]
+ * provider/azurerm: fix virtual_machine reading plan as the wrong type [GH-10626]
  * provider/azurerm: fix virtual_machine reading plan as the wrong type [GH-10626]
  * provider/openstack: More Import and Region Fixes [GH-10662]
 
