@@ -2,9 +2,9 @@ package postgresql
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/errwrap"
@@ -99,7 +99,7 @@ func resourcePostgreSQLRole() *schema.Resource {
 			roleInheritAttr: {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				Default:     true,
 				Description: `Determine whether a role "inherits" the privileges of roles it is a member of`,
 			},
 			roleLoginAttr: {
