@@ -316,6 +316,7 @@ The `CORS` object supports the following:
 The `versioning` object supports the following:
 
 * `enabled` - (Optional) Enable versioning. Once you version-enable a bucket, it can never return to an unversioned state. You can, however, suspend versioning on that bucket.
+* `mfa_delete` - (Optional) Enable MFA delete for either `Change the versioning state of your bucket` or `Permanently delete an object version`. Default is `false`.
 
 The `logging` object supports the following:
 
