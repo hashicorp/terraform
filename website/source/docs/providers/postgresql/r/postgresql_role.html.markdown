@@ -3,7 +3,7 @@ layout: "postgresql"
 page_title: "PostgreSQL: postgresql_role"
 sidebar_current: "docs-postgresql-resource-postgresql_role"
 description: |-
-  Creates and manages a database on a PostgreSQL server.
+  Creates and manages a role on a PostgreSQL server.
 ---
 
 # postgresql\_role
