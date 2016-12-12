@@ -6,14 +6,16 @@ FEATURES:
  * **New Resource:**  `aws_lightsail_domain` [GH-10637]
  * **New Resource:**  `aws_lightsail_key_pair` [GH-10583]
  * **New Resource:**  `aws_snapshot_create_volume_permission` [GH-9891]
-
+ * **New Resource:** `google_compute_health_check` [GH-10453]
+ * **New Resource:** `google_compute_region_backend_service` [GH-10453]
+ 
 IMPROVEMENTS:
 
  * provider/aws: Add support for AWS CA Central 1 Region [GH-10618]
  * provider/aws: Added SQS FIFO queues [GH-10614]
  * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_port_forward` resource [GH-10638]
  * provider/cloudstack: Add option to set a custom `network_domain` for `cloudstack_network` [GH-10638]
- * provider/google: Add support for Internal Load Balancing, Health Checks, and Regional Backend Services [GH-10453]
+ * provider/google: Add support for Internal Load Balancing [GH-10453]
 
 BUG FIXES:
 
