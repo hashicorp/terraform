@@ -13,6 +13,7 @@ IMPROVEMENTS:
  * provider/aws: Added SQS FIFO queues [GH-10614]
  * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_port_forward` resource [GH-10638]
  * provider/cloudstack: Add option to set a custom `network_domain` for `cloudstack_network` [GH-10638]
+ * provider/google: Add support for Internal Load Balancing, Health Checks, and Regional Backend Services [GH-10453]
 
 BUG FIXES:
 
