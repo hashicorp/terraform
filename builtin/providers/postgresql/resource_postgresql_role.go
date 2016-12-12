@@ -181,10 +181,7 @@ func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) erro
 					} else {
 						createOpts = append(createOpts, "UNENCRYPTED")
 					}
-					escapedPassword := strconv.Quote(val)
-					escapedPassword = strings.TrimLeft(escapedPassword, `"`)
-					escapedPassword = strings.TrimRight(escapedPassword, `"`)
-					createOpts = append(createOpts, fmt.Sprintf("%s '%s'", opt.sqlKey, escapedPassword))
+					createOpts = append(createOpts, fmt.Sprintf("%s '%s'", opt.sqlKey, pqQuoteLiteral(val)))
 				}
 			case opt.hclKey == roleValidUntilAttr:
 				switch {
@@ -211,7 +208,6 @@ func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) erro
 			continue
 		}
 		val := d.Get(opt.hclKey).(bool)
-
 		valStr := opt.sqlKeyDisable
 		if val {
 			valStr = opt.sqlKeyEnable
@@ -245,7 +241,6 @@ func resourcePostgreSQLRoleDelete(d *schema.ResourceData, meta interface{}) erro
 	defer conn.Close()
 
 	roleName := d.Get(roleNameAttr).(string)
-
 	query := fmt.Sprintf("DROP ROLE %s", pq.QuoteIdentifier(roleName))
 	_, err = conn.Query(query)
 	if err != nil {
@@ -265,91 +260,289 @@ func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error 
 	}
 	defer conn.Close()
 
-	roleName := d.Get(roleNameAttr).(string)
-	if roleName == "" {
-		roleName = d.Id()
-	}
-
-	var roleCanLogin bool
-	err = conn.QueryRow("SELECT rolcanlogin FROM pg_roles WHERE rolname=$1", roleName).Scan(&roleCanLogin)
+	roleId := d.Id()
+	var roleSuperuser, roleInherit, roleCreateRole, roleCreateDB, roleCanLogin, roleReplication, roleBypassRLS bool
+	var roleConnLimit int
+	var roleName, roleValidUntil string
+	err = conn.QueryRow("SELECT rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolreplication, rolconnlimit, COALESCE(rolvaliduntil::TEXT, 'infinity'), rolbypassrls FROM pg_catalog.pg_roles WHERE rolname=$1", roleId).Scan(&roleName, &roleSuperuser, &roleInherit, &roleCreateRole, &roleCreateDB, &roleCanLogin, &roleReplication, &roleConnLimit, &roleValidUntil, &roleBypassRLS)
 	switch {
 	case err == sql.ErrNoRows:
-		log.Printf("[WARN] PostgreSQL database (%s) not found", d.Id())
+		log.Printf("[WARN] PostgreSQL role (%s) not found", roleId)
 		d.SetId("")
 		return nil
 	case err != nil:
 		return errwrap.Wrapf("Error reading role: {{err}}", err)
 	default:
 		d.Set(roleNameAttr, roleName)
+		d.Set(roleBypassRLSAttr, roleBypassRLS)
+		d.Set(roleConnLimitAttr, roleConnLimit)
+		d.Set(roleCreateDBAttr, roleCreateDB)
+		d.Set(roleCreateRoleAttr, roleCreateRole)
+		d.Set(roleEncryptedPassAttr, true)
+		d.Set(roleInheritAttr, roleInherit)
 		d.Set(roleLoginAttr, roleCanLogin)
-		d.Set("encrypted", true)
+		d.Set(roleReplicationAttr, roleReplication)
+		d.Set(roleSuperuserAttr, roleSuperuser)
+		d.Set(roleValidUntilAttr, roleValidUntil)
 		d.SetId(roleName)
+	}
+
+	if !roleSuperuser {
+		// Return early if not superuser user
+		return nil
+	}
+
+	var rolePassword string
+	err = conn.QueryRow("SELECT COALESCE(passwd, '') FROM pg_catalog.pg_shadow AS s WHERE s.usename = $1", roleId).Scan(&rolePassword)
+	switch {
+	case err == sql.ErrNoRows:
+		return fmt.Errorf("PostgreSQL role (%s) not found in shadow database: {{err}}", roleId)
+	case err != nil:
+		return errwrap.Wrapf("Error reading role: {{err}}", err)
+	default:
+		d.Set(rolePasswordAttr, rolePassword)
 		return nil
 	}
 }
 
 func resourcePostgreSQLRoleUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Client)
-	conn, err := client.Connect()
+	c := meta.(*Client)
+	conn, err := c.Connect()
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	d.Partial(true)
-
-	roleName := d.Get(roleNameAttr).(string)
-
-	if d.HasChange(roleLoginAttr) {
-		loginAttr := getLoginStr(d.Get(roleLoginAttr).(bool))
-		query := fmt.Sprintf("ALTER ROLE %s %s", pq.QuoteIdentifier(roleName), pq.QuoteIdentifier(loginAttr))
-		_, err := conn.Query(query)
-		if err != nil {
-			return errwrap.Wrapf("Error updating login attribute for role: {{err}}", err)
-		}
-
-		d.SetPartial(roleLoginAttr)
+	if err := setRoleName(conn, d); err != nil {
+		return err
 	}
 
-	password := d.Get(rolePasswordAttr).(string)
-	if d.HasChange(rolePasswordAttr) {
-		encryptedCfg := getEncryptedStr(d.Get("encrypted").(bool))
-
-		query := fmt.Sprintf("ALTER ROLE %s %s PASSWORD '%s'", pq.QuoteIdentifier(roleName), encryptedCfg, password)
-		_, err := conn.Query(query)
-		if err != nil {
-			return errwrap.Wrapf("Error updating password attribute for role: {{err}}", err)
-		}
-
-		d.SetPartial(rolePasswordAttr)
+	if err := setRoleBypassRLS(conn, d); err != nil {
+		return err
 	}
 
-	if d.HasChange("encrypted") {
-		encryptedCfg := getEncryptedStr(d.Get("encrypted").(bool))
-
-		query := fmt.Sprintf("ALTER ROLE %s %s PASSWORD '%s'", pq.QuoteIdentifier(roleName), encryptedCfg, password)
-		_, err := conn.Query(query)
-		if err != nil {
-			return errwrap.Wrapf("Error updating encrypted attribute for role: {{err}}", err)
-		}
-
-		d.SetPartial("encrypted")
+	if err := setRoleConnLimit(conn, d); err != nil {
+		return err
 	}
 
-	d.Partial(false)
+	if err := setRoleCreateDB(conn, d); err != nil {
+		return err
+	}
+
+	if err := setRoleCreateRole(conn, d); err != nil {
+		return err
+	}
+
+	if err := setRoleInherit(conn, d); err != nil {
+		return err
+	}
+
+	if err := setRoleLogin(conn, d); err != nil {
+		return err
+	}
+
+	if err := setRoleReplication(conn, d); err != nil {
+		return err
+	}
+
+	if err := setRoleSuperuser(conn, d); err != nil {
+		return err
+	}
+
+	if err := setRoleValidUntil(conn, d); err != nil {
+		return err
+	}
+
 	return resourcePostgreSQLRoleRead(d, meta)
 }
 
-func getLoginStr(canLogin bool) string {
-	if canLogin {
-		return "login"
+func setRoleName(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleNameAttr) {
+		return nil
 	}
-	return "nologin"
+
+	oraw, nraw := d.GetChange(roleNameAttr)
+	o := oraw.(string)
+	n := nraw.(string)
+	if n == "" {
+		return errors.New("Error setting role name to an empty string")
+	}
+
+	query := fmt.Sprintf("ALTER ROLE %s RENAME TO %s", pq.QuoteIdentifier(o), pq.QuoteIdentifier(n))
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role NAME: {{err}}", err)
+	}
+	d.SetId(n)
+
+	return nil
 }
 
-func getEncryptedStr(isEncrypted bool) string {
-	if isEncrypted {
-		return "encrypted"
+func setRoleBypassRLS(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleBypassRLSAttr) {
+		return nil
 	}
-	return "unencrypted"
+
+	bypassRLS := d.Get(roleBypassRLSAttr).(bool)
+	tok := "NOBYPASSRLS"
+	if bypassRLS {
+		tok = "BYPASSRLS"
+	}
+	roleName := d.Get(roleNameAttr).(string)
+	query := fmt.Sprintf("ALTER ROLE %s WITH %s", pq.QuoteIdentifier(roleName), tok)
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role BYPASSRLS: {{err}}", err)
+	}
+
+	return nil
+}
+
+func setRoleConnLimit(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleConnLimitAttr) {
+		return nil
+	}
+
+	connLimit := d.Get(roleConnLimitAttr).(int)
+	roleName := d.Get(roleNameAttr).(string)
+	query := fmt.Sprintf("ALTER ROLE %s CONNECTION LIMIT = %d", pq.QuoteIdentifier(roleName), connLimit)
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role CONNECTION LIMIT: {{err}}", err)
+	}
+
+	return nil
+}
+
+func setRoleCreateDB(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleCreateDBAttr) {
+		return nil
+	}
+
+	createDB := d.Get(roleCreateDBAttr).(bool)
+	tok := "NOCREATEDB"
+	if createDB {
+		tok = "CREATEDB"
+	}
+	roleName := d.Get(roleNameAttr).(string)
+	query := fmt.Sprintf("ALTER ROLE %s WITH %s", pq.QuoteIdentifier(roleName), tok)
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role CREATEDB: {{err}}", err)
+	}
+
+	return nil
+}
+
+func setRoleCreateRole(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleCreateRoleAttr) {
+		return nil
+	}
+
+	createRole := d.Get(roleCreateRoleAttr).(bool)
+	tok := "NOCREATEROLE"
+	if createRole {
+		tok = "CREATEROLE"
+	}
+	roleName := d.Get(roleNameAttr).(string)
+	query := fmt.Sprintf("ALTER ROLE %s WITH %s", pq.QuoteIdentifier(roleName), tok)
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role CREATEROLE: {{err}}", err)
+	}
+
+	return nil
+}
+
+func setRoleInherit(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleInheritAttr) {
+		return nil
+	}
+
+	inherit := d.Get(roleInheritAttr).(bool)
+	tok := "NOINHERIT"
+	if inherit {
+		tok = "INHERIT"
+	}
+	roleName := d.Get(roleNameAttr).(string)
+	query := fmt.Sprintf("ALTER ROLE %s WITH %s", pq.QuoteIdentifier(roleName), tok)
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role INHERIT: {{err}}", err)
+	}
+
+	return nil
+}
+
+func setRoleLogin(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleLoginAttr) {
+		return nil
+	}
+
+	login := d.Get(roleLoginAttr).(bool)
+	tok := "NOLOGIN"
+	if login {
+		tok = "LOGIN"
+	}
+	roleName := d.Get(roleNameAttr).(string)
+	query := fmt.Sprintf("ALTER ROLE %s WITH %s", pq.QuoteIdentifier(roleName), tok)
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role LOGIN: {{err}}", err)
+	}
+
+	return nil
+}
+
+func setRoleReplication(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleReplicationAttr) {
+		return nil
+	}
+
+	replication := d.Get(roleReplicationAttr).(bool)
+	tok := "NOREPLICATION"
+	if replication {
+		tok = "REPLICATION"
+	}
+	roleName := d.Get(roleNameAttr).(string)
+	query := fmt.Sprintf("ALTER ROLE %s WITH %s", pq.QuoteIdentifier(roleName), tok)
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role REPLICATION: {{err}}", err)
+	}
+
+	return nil
+}
+
+func setRoleSuperuser(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleSuperuserAttr) {
+		return nil
+	}
+
+	superuser := d.Get(roleSuperuserAttr).(bool)
+	tok := "NOSUPERUSER"
+	if superuser {
+		tok = "SUPERUSER"
+	}
+	roleName := d.Get(roleNameAttr).(string)
+	query := fmt.Sprintf("ALTER ROLE %s WITH %s", pq.QuoteIdentifier(roleName), tok)
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role SUPERUSER: {{err}}", err)
+	}
+
+	return nil
+}
+
+func setRoleValidUntil(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(roleValidUntilAttr) {
+		return nil
+	}
+
+	validUntil := d.Get(roleValidUntilAttr).(string)
+	if validUntil == "" {
+		return nil
+	} else if strings.ToLower(validUntil) == "infinity" {
+		validUntil = "infinity"
+	}
+
+	roleName := d.Get(roleNameAttr).(string)
+	query := fmt.Sprintf("ALTER ROLE %s VALID UNTIL '%s'", pq.QuoteIdentifier(roleName), pqQuoteLiteral(validUntil))
+
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating role VALID UNTIL: {{err}}", err)
+	}
+
+	return nil
 }
