@@ -217,7 +217,7 @@ func TestAccComputeBackendService_withSessionAffinity(t *testing.T) {
 	})
 
 	if svc.SessionAffinity != "GENERATED_COOKIE" {
-		t.Errorf("Expected SessionAffinity == \"GENERATED_COOKIE\", got %t", svc.SessionAffinity)
+		t.Errorf("Expected SessionAffinity == \"GENERATED_COOKIE\", got %s", svc.SessionAffinity)
 	}
 }
 
