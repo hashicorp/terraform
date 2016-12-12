@@ -79,7 +79,7 @@ Volume block supports the following arguments:
 
 * `name` - (Required) The name of the volume. This name is referenced in the `sourceVolume`
 parameter of container definition in the `mountPoints` section.
-* `host_path` - (Required) The path on the host container instance that is presented to the container.
+* `host_path` - (Optional) The path on the host container instance that is presented to the container. If not set, ECS will create a nonpersistent data volume that starts empty and is deleted after the task has finished.
 
 ## Attributes Reference
 
