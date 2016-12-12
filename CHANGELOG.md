@@ -23,6 +23,7 @@ BUG FIXES:
 
  * core: Validate that only a single `lifecycle` block exists per rource. [GH-10656]
  * core: Validate fails on invalid keys in `variable` blocks. [GH-10658]
+ * core: When destroying, the resources of a provider that depends on another resource are destroyed first. [GH-10659]
  * core: Direct indexing into a computed list no longer errors. [GH-10657]
  * provider/aws: Allow import of aws_security_groups with more than one source_security_group_id rule [GH-9477]
  * provider/aws: Fix issue importing `aws_vpc_peering_connection` [GH-#10635]
