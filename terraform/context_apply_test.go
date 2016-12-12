@@ -6902,3 +6902,65 @@ module.middle.bottom:
 		t.Fatalf("expected: \n%s\n\nbad: \n%s", expected, actual)
 	}
 }
+
+// If a data source explicitly depends on another resource, it's because we need
+// that resource to be applied first.
+func TestContext2Apply_dataDependsOn(t *testing.T) {
+	p := testProvider("null")
+	m := testModule(t, "apply-data-depends-on")
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"null": testProviderFuncFixed(p),
+		},
+	})
+
+	// the "provisioner" here writes to this variable, because the intent is to
+	// create a dependency which can't be viewed through the graph, and depends
+	// solely on the configuration providing "depends_on"
+	provisionerOutput := ""
+
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		// the side effect of the resource being applied
+		provisionerOutput = "APPLIED"
+		return testApplyFn(info, s, d)
+	}
+
+	p.DiffFn = testDiffFn
+	p.ReadDataDiffFn = testDataDiffFn
+
+	p.ReadDataApplyFn = func(*InstanceInfo, *InstanceDiff) (*InstanceState, error) {
+		// Read the artifact created by our dependency being applied.
+		// Without any "depends_on", this would be skipped as it's assumed the
+		// initial diff during refresh was all that's needed.
+		return &InstanceState{
+			ID: "read",
+			Attributes: map[string]string{
+				"foo": provisionerOutput,
+			},
+		}, nil
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	root := state.ModuleByPath(RootModulePath)
+	actual := root.Resources["data.null_data_source.read"].Primary.Attributes["foo"]
+
+	expected := "APPLIED"
+	if actual != expected {
+		t.Fatalf("bad:\n%s", strings.TrimSpace(state.String()))
+	}
+}
