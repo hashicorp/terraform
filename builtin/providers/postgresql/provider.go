@@ -14,10 +14,9 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"host": {
-				Type:     schema.TypeString,
-				Optional: true,
-				// TODO(sean@): Remove POSTGRESQL_HOST in 0.8
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGHOST", "POSTGRESQL_HOST"}, nil),
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("PGHOST", nil),
 				Description: "Name of PostgreSQL server address to connect to",
 			},
 			"port": {
@@ -33,17 +32,15 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("PGDATABASE", "postgres"),
 			},
 			"username": {
-				Type:     schema.TypeString,
-				Optional: true,
-				// TODO(sean@): Remove POSTGRESQL_USER in 0.8
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGUSER", "POSTGRESQL_USER"}, "postgres"),
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("PGUSER", "postgres"),
 				Description: "PostgreSQL user name to connect as",
 			},
 			"password": {
-				Type:     schema.TypeString,
-				Optional: true,
-				// TODO(sean@): Remove POSTGRESQL_PASSWORD in 0.8
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"PGPASSWORD", "POSTGRESQL_PASSWORD"}, nil),
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("PGPASSWORD", nil),
 				Description: "Password to be used if the PostgreSQL server demands password authentication",
 			},
 			"sslmode": {
