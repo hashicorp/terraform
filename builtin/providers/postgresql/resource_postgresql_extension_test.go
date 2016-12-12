@@ -75,6 +75,42 @@ func testAccCheckPostgresqlExtensionExists(n string) resource.TestCheckFunc {
 	}
 }
 
+func TestAccPostgresqlExtension_SchemaRename(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckPostgresqlExtensionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccPostgresqlExtensionSchemaChange1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPostgresqlExtensionExists("postgresql_extension.ext1trgm"),
+					resource.TestCheckResourceAttr(
+						"postgresql_schema.ext1foo", "name", "foo"),
+					resource.TestCheckResourceAttr(
+						"postgresql_extension.ext1trgm", "name", "pg_trgm"),
+					resource.TestCheckResourceAttr(
+						"postgresql_extension.ext1trgm", "name", "pg_trgm"),
+					resource.TestCheckResourceAttr(
+						"postgresql_extension.ext1trgm", "schema", "foo"),
+				),
+			},
+			{
+				Config: testAccPostgresqlExtensionSchemaChange2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckPostgresqlExtensionExists("postgresql_extension.ext1trgm"),
+					resource.TestCheckResourceAttr(
+						"postgresql_schema.ext1foo", "name", "bar"),
+					resource.TestCheckResourceAttr(
+						"postgresql_extension.ext1trgm", "name", "pg_trgm"),
+					resource.TestCheckResourceAttr(
+						"postgresql_extension.ext1trgm", "schema", "bar"),
+				),
+			},
+		},
+	})
+}
+
 func checkExtensionExists(client *Client, extensionName string) (bool, error) {
 	conn, err := client.Connect()
 	if err != nil {
@@ -97,5 +133,27 @@ func checkExtensionExists(client *Client, extensionName string) (bool, error) {
 var testAccPostgresqlExtensionConfig = `
 resource "postgresql_extension" "myextension" {
   name = "pg_trgm"
+}
+`
+
+var testAccPostgresqlExtensionSchemaChange1 = `
+resource "postgresql_schema" "ext1foo" {
+  name = "foo"
+}
+
+resource "postgresql_extension" "ext1trgm" {
+  name = "pg_trgm"
+  schema = "${postgresql_schema.ext1foo.name}"
+}
+`
+
+var testAccPostgresqlExtensionSchemaChange2 = `
+resource "postgresql_schema" "ext1foo" {
+  name = "bar"
+}
+
+resource "postgresql_extension" "ext1trgm" {
+  name = "pg_trgm"
+  schema = "${postgresql_schema.ext1foo.name}"
 }
 `
