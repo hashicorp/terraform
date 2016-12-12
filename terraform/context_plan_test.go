@@ -1319,6 +1319,31 @@ func TestContext2Plan_computedList(t *testing.T) {
 	}
 }
 
+// GH-8695. This tests that you can index into a computed list on a
+// splatted resource.
+func TestContext2Plan_computedMultiIndex(t *testing.T) {
+	m := testModule(t, "plan-computed-multi-index")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanComputedMultiIndexStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_count(t *testing.T) {
 	m := testModule(t, "plan-count")
 	p := testProvider("aws")

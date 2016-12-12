@@ -943,6 +943,24 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanComputedMultiIndexStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.0
+  ip.#: "" => "<computed>"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.1
+  ip.#: "" => "<computed>"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanCountStr = `
 DIFF:
 
