@@ -4,8 +4,16 @@
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
+# Software version variables
+GOVERSION = "1.7.4"
+UBUNTUVERSION = "16.04"
+
+# CPU and RAM can be adjusted depending on your system
+CPUCOUNT = "2"
+RAM = "4096"
+
 $script = <<SCRIPT
-GOVERSION="1.7.4"
+GOVERSION="#{GOVERSION}"
 SRCROOT="/opt/go"
 SRCPATH="/opt/gopath"
 
@@ -53,7 +61,7 @@ EOF
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "bento/ubuntu-14.04"
+  config.vm.box = "bento/ubuntu-#{UBUNTUVERSION}"
   config.vm.hostname = "terraform"
 
   config.vm.provision "prepare-shell", type: "shell", inline: "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile", privileged: false
@@ -61,23 +69,23 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.synced_folder '.', '/opt/gopath/src/github.com/hashicorp/terraform'
 
   config.vm.provider "docker" do |v, override|
-    override.vm.box = "tknerr/baseimage-ubuntu-14.04"
+    override.vm.box = "tknerr/baseimage-ubuntu-#{UBUNTUVERSION}"
   end
 
   ["vmware_fusion", "vmware_workstation"].each do |p|
     config.vm.provider p do |v|
-      v.vmx["memsize"] = "4096"
-      v.vmx["numvcpus"] = "2"
+      v.vmx["memsize"] = "#{RAM}"
+      v.vmx["numvcpus"] = "#{CPUCOUNT}"
     end
   end
 
   config.vm.provider "virtualbox" do |v|
-    v.memory = 4096
-    v.cpus = 2
+    v.memory = "#{RAM}"
+    v.cpus = "#{CPUCOUNT}"
   end
 
   config.vm.provider "parallels" do |prl|
-    prl.memory = 4096
-    prl.cpus = 2
+    prl.memory = "#{RAM}"
+    prl.cpus = "#{CPUCOUNT}"
   end
 end
