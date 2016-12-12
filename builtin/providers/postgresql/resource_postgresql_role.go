@@ -65,10 +65,10 @@ func resourcePostgreSQLRole() *schema.Resource {
 				Default:     true,
 				Description: "Control whether the password is stored encrypted in the system catalogs",
 			},
-
 			roleValidUntilAttr: {
 				Type:        schema.TypeString,
 				Optional:    true,
+				Default:     "infinity",
 				Description: "Sets a date and time after which the role's password is no longer valid",
 			},
 			roleConnLimitAttr: {
@@ -188,8 +188,8 @@ func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) erro
 				}
 			case opt.hclKey == roleValidUntilAttr:
 				switch {
-				case v.(string) == "", strings.ToUpper(v.(string)) == "NULL":
-					createOpts = append(createOpts, fmt.Sprintf("%s %s", opt.sqlKey, "'infinity'"))
+				case v.(string) == "", strings.ToLower(v.(string)) == "infinity":
+					createOpts = append(createOpts, fmt.Sprintf("%s '%s'", opt.sqlKey, "infinity"))
 				default:
 					createOpts = append(createOpts, fmt.Sprintf("%s %s", opt.sqlKey, pq.QuoteIdentifier(val)))
 				}
