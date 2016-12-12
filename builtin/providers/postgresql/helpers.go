@@ -18,7 +18,7 @@ func pqQuoteLiteral(in string) string {
 func validateConnLimit(v interface{}, key string) (warnings []string, errors []error) {
 	value := v.(int)
 	if value < -1 {
-		errors = append(errors, fmt.Errorf("%d can not be less than -1", key))
+		errors = append(errors, fmt.Errorf("%s can not be less than -1", key))
 	}
 	return
 }
