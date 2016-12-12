@@ -37,6 +37,33 @@ func TestPlan(t *testing.T) {
 	}
 }
 
+func TestPlan_plan(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	planPath := testPlanFile(t, &terraform.Plan{
+		Module: testModule(t, "apply"),
+	})
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{planPath}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if p.RefreshCalled {
+		t.Fatal("refresh should not be called")
+	}
+}
+
 func TestPlan_destroy(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
