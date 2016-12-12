@@ -72,11 +72,15 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 	if planned {
-		c.Ui.Error(
-			"The plan command cannot be called with a saved plan file.\n\n" +
-				"The plan command expects a configuration directory as an argument.",
-		)
-		return 1
+		c.Ui.Output(c.Colorize().Color(
+			"[reset][bold][yellow]" +
+				"The plan command received a saved plan file as input. This command\n" +
+				"will output the saved plan. This will not modify the already-existing\n" +
+				"plan. If you wish to generate a new plan, please pass in a configuration\n" +
+				"directory as an argument.\n\n"))
+
+		// Disable refreshing no matter what since we only want to show the plan
+		refresh = false
 	}
 
 	err = terraform.SetDebugInfo(DefaultDataDir)
@@ -178,7 +182,7 @@ func (c *PlanCommand) Run(args []string) int {
 
 func (c *PlanCommand) Help() string {
 	helpText := `
-Usage: terraform plan [options] [dir]
+Usage: terraform plan [options] [DIR-OR-PLAN]
 
   Generates an execution plan for Terraform.
 
@@ -186,6 +190,9 @@ Usage: terraform plan [options] [dir]
   sense for what Terraform will do. Optionally, the plan can be saved to
   a Terraform plan file, and apply can take this plan file to execute
   this plan exactly.
+
+  If a saved plan is passed as an argument, this command will output
+  the saved plan contents. It will not modify the given plan.
 
 Options:
 
