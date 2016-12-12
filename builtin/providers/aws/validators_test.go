@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -791,6 +792,76 @@ func TestValidateApiGatewayIntegrationType(t *testing.T) {
 		_, errors := validateApiGatewayIntegrationType(tc.Value, "types")
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
+func TestValidateSQSQueueName(t *testing.T) {
+	validNames := []string{
+		"valid-name",
+		"valid02-name",
+		"Valid-Name1",
+		"_",
+		"-",
+		strings.Repeat("W", 80),
+	}
+	for _, v := range validNames {
+		if errors := validateSQSQueueName(v, "name"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SQS queue Name", v)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		"*",
+		"",
+		" ",
+		".",
+		strings.Repeat("W", 81), // length > 80
+	}
+	for _, v := range invalidNames {
+		if errors := validateSQSQueueName(v, "name"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SQS queue Name", v)
+		}
+	}
+}
+
+func TestValidateSQSFifoQueueName(t *testing.T) {
+	validNames := []string{
+		"valid-name.fifo",
+		"valid02-name.fifo",
+		"Valid-Name1.fifo",
+		"_.fifo",
+		"a.fifo",
+		"A.fifo",
+		"9.fifo",
+		"-.fifo",
+		fmt.Sprintf("%s.fifo", strings.Repeat("W", 75)),
+	}
+	for _, v := range validNames {
+		if errors := validateSQSFifoQueueName(v, "name"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SQS FIFO queue Name: %v", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		".fifo",
+		"*",
+		"",
+		" ",
+		".",
+		strings.Repeat("W", 81), // length > 80
+	}
+	for _, v := range invalidNames {
+		if errors := validateSQSFifoQueueName(v, "name"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SQS FIFO queue Name: %v", v, errors)
 		}
 	}
 }
