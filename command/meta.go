@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/experiment"
+	"github.com/hashicorp/terraform/helper/variables"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
@@ -358,12 +359,12 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagTypedKV)(&m.variables), "var", "variables")
-	f.Var((*FlagKVFile)(&m.variables), "var-file", "variable file")
+	f.Var((*variables.Flag)(&m.variables), "var", "variables")
+	f.Var((*variables.FlagFile)(&m.variables), "var-file", "variable file")
 	f.Var((*FlagStringSlice)(&m.targets), "target", "resource to target")
 
 	if m.autoKey != "" {
-		f.Var((*FlagKVFile)(&m.autoVariables), m.autoKey, "variable file")
+		f.Var((*variables.FlagFile)(&m.autoVariables), m.autoKey, "variable file")
 	}
 
 	// Advanced (don't need documentation, or unlikely to be set)
