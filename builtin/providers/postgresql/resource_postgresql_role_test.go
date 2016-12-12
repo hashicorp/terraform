@@ -46,7 +46,7 @@ func TestAccPostgresqlRole_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"postgresql_role.role_with_defaults", "password", ""),
 					resource.TestCheckResourceAttr(
-						"postgresql_role.role_with_defaults", "valid_until", "NULL"),
+						"postgresql_role.role_with_defaults", "valid_until", "infinity"),
 				),
 			},
 		},
@@ -165,6 +165,6 @@ resource "postgresql_role" "role_with_defaults" {
   connection_limit = -1
   encrypted_password = true
   password = ""
-  valid_until = "NULL"
+  valid_until = "infinity"
 }
 `
