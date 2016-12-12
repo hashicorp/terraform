@@ -67,6 +67,13 @@ func TestLoadFile_lifecycleKeyCheck(t *testing.T) {
 	t.Logf("err: %s", err)
 }
 
+func TestLoadFile_varInvalidKey(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "var-invalid-key.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+}
+
 func TestLoadFile_resourceArityMistake(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "resource-arity-mistake.tf"))
 	if err == nil {
