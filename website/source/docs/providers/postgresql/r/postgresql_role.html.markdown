@@ -47,7 +47,7 @@ resource "postgresql_role" "my_replication_role" {
   is `false`.
 
 * `inherit` - (Optional) Defines whether a role "inherits" the privileges of
-  roles it is a member of.  Default value is `false`.
+  roles it is a member of.  Default value is `true`.
 
 * `login` - (Optional) Defines whether role is allowed to log in.  Roles without
   this attribute are useful for managing database privileges, but are not users
