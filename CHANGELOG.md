@@ -17,6 +17,7 @@ BUG FIXES:
  * provider/aws: Allow import of aws_security_groups with more than one source_security_group_id rule [GH-9477]
  * provider/aws: Fix issue importing `aws_vpc_peering_connection` [GH-#10635]
  * provider/aws: Allow setting the DB Instance name when restoring from a snapshot [GH-10664]
+ * provider/aws: Added Lambda function guard when needed attributes are not set [GH-10663]
  * provider/azurerm: fix virtual_machine reading plan as the wrong type [GH-10626]
  * provider/openstack: More Import and Region Fixes [GH-10662]
 
