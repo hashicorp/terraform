@@ -22,6 +22,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Validate that only a single `lifecycle` block exists per rource. [GH-10656]
+ * core: Direct indexing into a computed list no longer errors. [GH-10657]
  * provider/aws: Allow import of aws_security_groups with more than one source_security_group_id rule [GH-9477]
  * provider/aws: Fix issue importing `aws_vpc_peering_connection` [GH-#10635]
  * provider/aws: Allow setting the DB Instance name when restoring from a snapshot [GH-10664]
