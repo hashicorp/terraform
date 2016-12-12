@@ -410,14 +410,12 @@ func loadVariablesHcl(list *ast.ObjectList) ([]*Variable, error) {
 				item.Pos(), NameRegexp)
 		}
 
-		/*
-			// TODO: catch extra fields
-			// Decode into raw map[string]interface{} so we know ALL fields
-			var config map[string]interface{}
-			if err := hcl.DecodeObject(&config, item.Val); err != nil {
-				return nil, err
-			}
-		*/
+		// Check for invalid keys
+		valid := []string{"type", "default", "description"}
+		if err := checkHCLKeys(item.Val, valid); err != nil {
+			return nil, multierror.Prefix(err, fmt.Sprintf(
+				"variable[%s]:", n))
+		}
 
 		// Decode into hclVariable to get typed values
 		var hclVar hclVariable
