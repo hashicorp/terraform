@@ -79,8 +79,7 @@ func resourcePostgreSQLExtensionRead(d *schema.ResourceData, meta interface{}) e
 	}
 	defer conn.Close()
 
-	extID := d.Get(extNameAttr).(string)
-
+	extID := d.Id()
 	var extName, extSchema string
 	err = conn.QueryRow("SELECT e.extname, n.nspname FROM pg_catalog.pg_extension e, pg_catalog.pg_namespace n WHERE n.oid = e.extnamespace AND e.extname = $1", extID).Scan(&extName, &extSchema)
 	switch {
@@ -106,9 +105,9 @@ func resourcePostgreSQLExtensionDelete(d *schema.ResourceData, meta interface{})
 	}
 	defer conn.Close()
 
-	extName := d.Get(extNameAttr).(string)
+	extID := d.Id()
 
-	query := fmt.Sprintf("DROP EXTENSION %s", pq.QuoteIdentifier(extName))
+	query := fmt.Sprintf("DROP EXTENSION %s", pq.QuoteIdentifier(extID))
 	_, err = conn.Query(query)
 	if err != nil {
 		return errwrap.Wrapf("Error deleting extension: {{err}}", err)
@@ -141,14 +140,14 @@ func setExtSchema(conn *sql.DB, d *schema.ResourceData) error {
 		return nil
 	}
 
-	oraw, nraw := d.GetChange(extSchemaAttr)
-	o := oraw.(string)
+	extID := d.Id()
+	_, nraw := d.GetChange(extSchemaAttr)
 	n := nraw.(string)
 	if n == "" {
 		return errors.New("Error setting extension name to an empty string")
 	}
 
-	query := fmt.Sprintf("ALTER EXTENSION %s SET SCHEMA %s", pq.QuoteIdentifier(o), pq.QuoteIdentifier(n))
+	query := fmt.Sprintf("ALTER EXTENSION %s SET SCHEMA %s", pq.QuoteIdentifier(extID), pq.QuoteIdentifier(n))
 	if _, err := conn.Query(query); err != nil {
 		return errwrap.Wrapf("Error updating extension SCHEMA: {{err}}", err)
 	}
