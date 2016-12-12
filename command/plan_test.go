@@ -55,8 +55,12 @@ func TestPlan_plan(t *testing.T) {
 	}
 
 	args := []string{planPath}
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if p.RefreshCalled {
+		t.Fatal("refresh should not be called")
 	}
 }
 
