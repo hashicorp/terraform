@@ -1,12 +1,13 @@
 {
  "kind": "discovery#restDescription",
- "etag": "\"bRFOOrZKfO9LweMbPqu0kcu6De8/KGIJuBPLol6TqL9arf5YOmp-wQ0\"",
+ "etag": "\"C5oy1hgQsABtYOYIOXWcR3BgYqU/bQX0iw41CX8vYvVm7WSKLdyxMvI\"",
  "discoveryVersion": "v1",
  "id": "iam:v1",
  "name": "iam",
+ "canonicalName": "iam",
  "version": "v1",
- "revision": "20160129",
- "title": "Google Identity and Access Management API",
+ "revision": "20160915",
+ "title": "Google Identity and Access Management (IAM) API",
  "description": "Manages identity and access control for Google Cloud Platform resources, including the creation of service accounts, which you can use to authenticate to Google and make API calls.",
  "ownerDomain": "google.com",
  "ownerName": "Google",
@@ -125,18 +126,18 @@
     },
     "nextPageToken": {
      "type": "string",
-     "description": "To retrieve the next page of results, set [ListServiceAccountsRequest.page_token] to this value."
+     "description": "To retrieve the next page of results, set ListServiceAccountsRequest.page_token to this value."
     }
    }
   },
   "ServiceAccount": {
    "id": "ServiceAccount",
    "type": "object",
-   "description": "A service account in the Identity and Access Management API. To create a service account, you specify the project_id and account_id for the account. The account_id is unique within the project, and used to generate the service account email address and a stable unique id. All other methods can identify accounts using the format \"projects/{project}/serviceAccounts/{account}\". Using '-' as a wildcard for the project, will infer the project from the account. The account value can be the email address or the unique_id of the service account.",
+   "description": "A service account in the Identity and Access Management API. To create a service account, specify the `project_id` and the `account_id` for the account. The `account_id` is unique within the project, and is used to generate the service account email address and a stable `unique_id`. If the account already exists, the account's resource name is returned in util::Status's ResourceInfo.resource_name in the format of projects/{project}/serviceAccounts/{email}. The caller can use the name in other methods to access the account. All other methods can identify the service account using the format `projects/{project}/serviceAccounts/{account}`. Using `-` as a wildcard for the project will infer the project from the account. The `account` value can be the `email` address or the `unique_id` of the service account.",
    "properties": {
     "name": {
      "type": "string",
-     "description": "The resource name of the service account in the format \"projects/{project}/serviceAccounts/{account}\". In requests using '-' as a wildcard for the project, will infer the project from the account and the account value can be the email address or the unique_id of the service account. In responses the resource name will always be in the format \"projects/{project}/serviceAccounts/{email}\"."
+     "description": "The resource name of the service account in the following format: `projects/{project}/serviceAccounts/{account}`. Requests using `-` as a wildcard for the project will infer the project from the `account` and the `account` value can be the `email` address or the `unique_id` of the service account. In responses the resource name will always be in the format `projects/{project}/serviceAccounts/{email}`."
     },
     "projectId": {
      "type": "string",
@@ -144,11 +145,11 @@
     },
     "uniqueId": {
      "type": "string",
-     "description": "@OutputOnly unique and stable id of the service account."
+     "description": "@OutputOnly The unique and stable id of the service account."
     },
     "email": {
      "type": "string",
-     "description": "@OutputOnly Email address of the service account."
+     "description": "@OutputOnly The email address of the service account."
     },
     "displayName": {
      "type": "string",
@@ -172,11 +173,11 @@
    "properties": {
     "accountId": {
      "type": "string",
-     "description": "Required. The account id that is used to generate the service account email address and a stable unique id. It is unique within a project, must be 1-63 characters long, and match the regular expression [a-z]([-a-z0-9]*[a-z0-9]) to comply with RFC1035."
+     "description": "Required. The account id that is used to generate the service account email address and a stable unique id. It is unique within a project, must be 6-30 characters long, and match the regular expression `[a-z]([-a-z0-9]*[a-z0-9])` to comply with RFC1035."
     },
     "serviceAccount": {
      "$ref": "ServiceAccount",
-     "description": "The ServiceAccount resource to create. Currently, only the following values are user assignable: display_name ."
+     "description": "The ServiceAccount resource to create. Currently, only the following values are user assignable: `display_name` ."
     }
    }
   },
@@ -202,24 +203,38 @@
   "ServiceAccountKey": {
    "id": "ServiceAccountKey",
    "type": "object",
-   "description": "Represents a service account key. A service account can have 0 or more key pairs. The private keys for these are not stored by Google. ServiceAccountKeys are immutable.",
+   "description": "Represents a service account key. A service account has two sets of key-pairs: user-managed, and system-managed. User-managed key-pairs can be created and deleted by users. Users are responsible for rotating these keys periodically to ensure security of their service accounts. Users retain the private key of these key-pairs, and Google retains ONLY the public key. System-managed key-pairs are managed automatically by Google, and rotated daily without user intervention. The private key never leaves Google's servers to maximize security. Public keys for all service accounts are also published at the OAuth2 Service Account API.",
    "properties": {
     "name": {
      "type": "string",
-     "description": "The resource name of the service account key in the format \"projects/{project}/serviceAccounts/{email}/keys/{key}\"."
+     "description": "The resource name of the service account key in the following format `projects/{project}/serviceAccounts/{account}/keys/{key}`."
     },
     "privateKeyType": {
      "type": "string",
-     "description": "The type of the private key.",
+     "description": "The output format for the private key. Only provided in `CreateServiceAccountKey` responses, not in `GetServiceAccountKey` or `ListServiceAccountKey` responses. Google never exposes system-managed private keys, and never retains user-managed private keys.",
      "enum": [
       "TYPE_UNSPECIFIED",
       "TYPE_PKCS12_FILE",
       "TYPE_GOOGLE_CREDENTIALS_FILE"
      ]
     },
+    "keyAlgorithm": {
+     "type": "string",
+     "description": "Specifies the algorithm (and possibly key size) for the key.",
+     "enum": [
+      "KEY_ALG_UNSPECIFIED",
+      "KEY_ALG_RSA_1024",
+      "KEY_ALG_RSA_2048"
+     ]
+    },
     "privateKeyData": {
      "type": "string",
-     "description": "The key data.",
+     "description": "The private key data. Only provided in `CreateServiceAccountKey` responses.",
+     "format": "byte"
+    },
+    "publicKeyData": {
+     "type": "string",
+     "description": "The public key data. Only provided in `GetServiceAccountKey` responses.",
      "format": "byte"
     },
     "validAfterTime": {
@@ -239,11 +254,20 @@
    "properties": {
     "privateKeyType": {
      "type": "string",
-     "description": "The type of the key requested. GOOGLE_CREDENTIALS is the default key type.",
+     "description": "The output format of the private key. `GOOGLE_CREDENTIALS_FILE` is the default output format.",
      "enum": [
       "TYPE_UNSPECIFIED",
       "TYPE_PKCS12_FILE",
       "TYPE_GOOGLE_CREDENTIALS_FILE"
+     ]
+    },
+    "keyAlgorithm": {
+     "type": "string",
+     "description": "Which type of key and algorithm to use for the key. The default is currently a 4K RSA key. However this may change in the future.",
+     "enum": [
+      "KEY_ALG_UNSPECIFIED",
+      "KEY_ALG_RSA_1024",
+      "KEY_ALG_RSA_2048"
      ]
     }
    }
@@ -255,7 +279,7 @@
    "properties": {
     "bytesToSign": {
      "type": "string",
-     "description": "The bytes to sign",
+     "description": "The bytes to sign.",
      "format": "byte"
     }
    }
@@ -279,7 +303,7 @@
   "Policy": {
    "id": "Policy",
    "type": "object",
-   "description": "Defines an Identity and Access Management (IAM) policy. It is used to specify access control policies for Cloud Platform resources. A `Policy` consists of a list of `bindings`. A `Binding` binds a list of `members` to a `role`, where the members can be user accounts, Google groups, Google domains, and service accounts. A `role` is a named list of permissions defined by IAM. **Example** { \"bindings\": [ { \"role\": \"roles/owner\", \"members\": [ \"user:mike@example.com\", \"group:admins@example.com\", \"domain:google.com\", \"serviceAccount:my-other-app@appspot.gserviceaccount.com\"] }, { \"role\": \"roles/viewer\", \"members\": [\"user:sean@example.com\"] } ] } For a description of IAM and its features, see the [IAM developer's guide](https://cloud.google.com/iam).",
+   "description": "Defines an Identity and Access Management (IAM) policy. It is used to specify access control policies for Cloud Platform resources. A `Policy` consists of a list of `bindings`. A `Binding` binds a list of `members` to a `role`, where the members can be user accounts, Google groups, Google domains, and service accounts. A `role` is a named list of permissions defined by IAM. **Example** { \"bindings\": [ { \"role\": \"roles/owner\", \"members\": [ \"user:mike@example.com\", \"group:admins@example.com\", \"domain:google.com\", \"serviceAccount:my-other-app@appspot.gserviceaccount.com\", ] }, { \"role\": \"roles/viewer\", \"members\": [\"user:sean@example.com\"] } ] } For a description of IAM and its features, see the [IAM developer's guide](https://cloud.google.com/iam).",
    "properties": {
     "version": {
      "type": "integer",
@@ -291,12 +315,6 @@
      "description": "Associates a list of `members` to a `role`. Multiple `bindings` must not be specified for the same `role`. `bindings` with no members will result in an error.",
      "items": {
       "$ref": "Binding"
-     }
-    },
-    "rules": {
-     "type": "array",
-     "items": {
-      "$ref": "Rule"
      }
     },
     "etag": {
@@ -324,162 +342,6 @@
     }
    }
   },
-  "Rule": {
-   "id": "Rule",
-   "type": "object",
-   "description": "A rule to be applied in a Policy.",
-   "properties": {
-    "description": {
-     "type": "string",
-     "description": "Human-readable description of the rule."
-    },
-    "permissions": {
-     "type": "array",
-     "description": "A permission is a string of form '..' (e.g., 'storage.buckets.list'). A value of '*' matches all permissions, and a verb part of '*' (e.g., 'storage.buckets.*') matches all verbs.",
-     "items": {
-      "type": "string"
-     }
-    },
-    "action": {
-     "type": "string",
-     "description": "Required",
-     "enum": [
-      "NO_ACTION",
-      "ALLOW",
-      "ALLOW_WITH_LOG",
-      "DENY",
-      "DENY_WITH_LOG",
-      "LOG"
-     ]
-    },
-    "in": {
-     "type": "array",
-     "description": "The rule matches if the PRINCIPAL/AUTHORITY_SELECTOR is in this set of entries.",
-     "items": {
-      "type": "string"
-     }
-    },
-    "notIn": {
-     "type": "array",
-     "description": "The rule matches if the PRINCIPAL/AUTHORITY_SELECTOR is not in this set of entries. The format for in and not_in entries is the same as for members in a Binding (see google/iam/v1/policy.proto).",
-     "items": {
-      "type": "string"
-     }
-    },
-    "conditions": {
-     "type": "array",
-     "description": "Additional restrictions that must be met",
-     "items": {
-      "$ref": "Condition"
-     }
-    },
-    "logConfig": {
-     "type": "array",
-     "description": "The config returned to callers of tech.iam.IAM.CheckPolicy for any entries that match the LOG action.",
-     "items": {
-      "$ref": "LogConfig"
-     }
-    }
-   }
-  },
-  "Condition": {
-   "id": "Condition",
-   "type": "object",
-   "description": "A condition to be met.",
-   "properties": {
-    "iam": {
-     "type": "string",
-     "description": "Trusted attributes supplied by the IAM system.",
-     "enum": [
-      "NO_ATTR",
-      "AUTHORITY",
-      "ATTRIBUTION"
-     ]
-    },
-    "sys": {
-     "type": "string",
-     "description": "Trusted attributes supplied by any service that owns resources and uses the IAM system for access control.",
-     "enum": [
-      "NO_ATTR",
-      "REGION",
-      "SERVICE",
-      "NAME",
-      "IP"
-     ]
-    },
-    "svc": {
-     "type": "string",
-     "description": "Trusted attributes discharged by the service."
-    },
-    "op": {
-     "type": "string",
-     "description": "An operator to apply the subject with.",
-     "enum": [
-      "NO_OP",
-      "EQUALS",
-      "NOT_EQUALS",
-      "IN",
-      "NOT_IN",
-      "DISCHARGED"
-     ]
-    },
-    "value": {
-     "type": "string",
-     "description": "The object of the condition. Exactly one of these must be set."
-    },
-    "values": {
-     "type": "array",
-     "description": "The objects of the condition. This is mutually exclusive with 'value'.",
-     "items": {
-      "type": "string"
-     }
-    }
-   }
-  },
-  "LogConfig": {
-   "id": "LogConfig",
-   "type": "object",
-   "description": "Specifies what kind of log the caller must write Increment a streamz counter with the specified metric and field names. Metric names should start with a '/', generally be lowercase-only, and end in \"_count\". Field names should not contain an initial slash. The actual exported metric names will have \"/iam/policy\" prepended. Field names correspond to IAM request parameters and field values are their respective values. At present only \"iam_principal\", corresponding to IAMContext.principal, is supported. Examples: counter { metric: \"/debug_access_count\" field: \"iam_principal\" } ==\u003e increment counter /iam/policy/backend_debug_access_count {iam_principal=[value of IAMContext.principal]} At this time we do not support: * multiple field names (though this may be supported in the future) * decrementing the counter * incrementing it by anything other than 1",
-   "properties": {
-    "counter": {
-     "$ref": "CounterOptions",
-     "description": "Counter options."
-    },
-    "dataAccess": {
-     "$ref": "DataAccessOptions",
-     "description": "Data access options."
-    },
-    "cloudAudit": {
-     "$ref": "CloudAuditOptions",
-     "description": "Cloud audit options."
-    }
-   }
-  },
-  "CounterOptions": {
-   "id": "CounterOptions",
-   "type": "object",
-   "description": "Options for counters",
-   "properties": {
-    "metric": {
-     "type": "string",
-     "description": "The metric to update."
-    },
-    "field": {
-     "type": "string",
-     "description": "The field value to attribute."
-    }
-   }
-  },
-  "DataAccessOptions": {
-   "id": "DataAccessOptions",
-   "type": "object",
-   "description": "Write a Data Access (Gin) log"
-  },
-  "CloudAuditOptions": {
-   "id": "CloudAuditOptions",
-   "type": "object",
-   "description": "Write a Cloud Audit log"
-  },
   "SetIamPolicyRequest": {
    "id": "SetIamPolicyRequest",
    "type": "object",
@@ -498,7 +360,7 @@
    "properties": {
     "permissions": {
      "type": "array",
-     "description": "The set of permissions to check for the `resource`. Permissions with wildcards (such as '*' or 'storage.*') are not allowed. For more information see IAM Overview.",
+     "description": "The set of permissions to check for the `resource`. Permissions with wildcards (such as '*' or 'storage.*') are not allowed. For more information see [IAM Overview](https://cloud.google.com/iam/docs/overview#permissions).",
      "items": {
       "type": "string"
      }
@@ -518,6 +380,99 @@
      }
     }
    }
+  },
+  "QueryGrantableRolesRequest": {
+   "id": "QueryGrantableRolesRequest",
+   "type": "object",
+   "description": "The grantable role query request.",
+   "properties": {
+    "fullResourceName": {
+     "type": "string",
+     "description": "Required. The full resource name to query from the list of grantable roles. The name follows the Google Cloud Platform resource format. For example, a Cloud Platform project with id `my-project` will be named `//cloudresourcemanager.googleapis.com/projects/my-project`."
+    }
+   }
+  },
+  "QueryGrantableRolesResponse": {
+   "id": "QueryGrantableRolesResponse",
+   "type": "object",
+   "description": "The grantable role query response.",
+   "properties": {
+    "roles": {
+     "type": "array",
+     "description": "The list of matching roles.",
+     "items": {
+      "$ref": "Role"
+     }
+    }
+   }
+  },
+  "Role": {
+   "id": "Role",
+   "type": "object",
+   "description": "A role in the Identity and Access Management API.",
+   "properties": {
+    "name": {
+     "type": "string",
+     "description": "The name of the role. When Role is used in CreateRole, the role name must not be set. When Role is used in output and other input such as UpdateRole, the role name is the complete path, e.g., roles/logging.viewer for curated roles and organizations/{organization-id}/roles/logging.viewer for custom roles."
+    },
+    "title": {
+     "type": "string",
+     "description": "Optional. A human-readable title for the role. Typically this is limited to 100 UTF-8 bytes."
+    },
+    "description": {
+     "type": "string",
+     "description": "Optional. A human-readable description for the role."
+    }
+   }
+  },
+  "AuditData": {
+   "id": "AuditData",
+   "type": "object",
+   "description": "Audit log information specific to Cloud IAM. This message is serialized as an `Any` type in the `ServiceData` message of an `AuditLog` message.",
+   "properties": {
+    "policyDelta": {
+     "$ref": "PolicyDelta",
+     "description": "Policy delta between the original policy and the newly set policy."
+    }
+   }
+  },
+  "PolicyDelta": {
+   "id": "PolicyDelta",
+   "type": "object",
+   "description": "The difference delta between two policies.",
+   "properties": {
+    "bindingDeltas": {
+     "type": "array",
+     "description": "The delta for Bindings between two policies.",
+     "items": {
+      "$ref": "BindingDelta"
+     }
+    }
+   }
+  },
+  "BindingDelta": {
+   "id": "BindingDelta",
+   "type": "object",
+   "description": "One delta entry for Binding. Each individual change (only one member in each entry) to a binding will be a separate entry.",
+   "properties": {
+    "action": {
+     "type": "string",
+     "description": "The action that was performed on a Binding. Required",
+     "enum": [
+      "ACTION_UNSPECIFIED",
+      "ADD",
+      "REMOVE"
+     ]
+    },
+    "role": {
+     "type": "string",
+     "description": "Role that is assigned to `members`. For example, `roles/viewer`, `roles/editor`, or `roles/owner`. Required"
+    },
+    "member": {
+     "type": "string",
+     "description": "A single identity requesting access for a Cloud Platform resource. Follows the same format of Binding.members. Required"
+    }
+   }
   }
  },
  "resources": {
@@ -529,24 +484,24 @@
        "id": "iam.projects.serviceAccounts.list",
        "path": "v1/{+name}/serviceAccounts",
        "httpMethod": "GET",
-       "description": "Lists service accounts for a project.",
+       "description": "Lists ServiceAccounts for a project.",
        "parameters": {
         "name": {
          "type": "string",
-         "description": "Required. The resource name of the project associated with the service accounts, such as \"projects/123\"",
+         "description": "Required. The resource name of the project associated with the service accounts, such as `projects/my-project-123`.",
          "required": true,
          "pattern": "^projects/[^/]*$",
          "location": "path"
         },
         "pageSize": {
          "type": "integer",
-         "description": "Optional limit on the number of service accounts to include in the response. Further accounts can subsequently be obtained by including the [ListServiceAccountsResponse.next_page_token] in a subsequent request.",
+         "description": "Optional limit on the number of service accounts to include in the response. Further accounts can subsequently be obtained by including the ListServiceAccountsResponse.next_page_token in a subsequent request.",
          "format": "int32",
          "location": "query"
         },
         "pageToken": {
          "type": "string",
-         "description": "Optional pagination token returned in an earlier [ListServiceAccountsResponse.next_page_token].",
+         "description": "Optional pagination token returned in an earlier ListServiceAccountsResponse.next_page_token.",
          "location": "query"
         }
        },
@@ -564,11 +519,11 @@
        "id": "iam.projects.serviceAccounts.get",
        "path": "v1/{+name}",
        "httpMethod": "GET",
-       "description": "Gets a ServiceAccount",
+       "description": "Gets a ServiceAccount.",
        "parameters": {
         "name": {
          "type": "string",
-         "description": "The resource name of the service account in the format \"projects/{project}/serviceAccounts/{account}\". Using '-' as a wildcard for the project, will infer the project from the account. The account value can be the email address or the unique_id of the service account.",
+         "description": "The resource name of the service account in the following format: `projects/{project}/serviceAccounts/{account}`. Using `-` as a wildcard for the project will infer the project from the account. The `account` value can be the `email` address or the `unique_id` of the service account.",
          "required": true,
          "pattern": "^projects/[^/]*/serviceAccounts/[^/]*$",
          "location": "path"
@@ -588,11 +543,11 @@
        "id": "iam.projects.serviceAccounts.create",
        "path": "v1/{+name}/serviceAccounts",
        "httpMethod": "POST",
-       "description": "Creates a service account and returns it.",
+       "description": "Creates a ServiceAccount and returns it.",
        "parameters": {
         "name": {
          "type": "string",
-         "description": "Required. The resource name of the project associated with the service accounts, such as \"projects/123\"",
+         "description": "Required. The resource name of the project associated with the service accounts, such as `projects/my-project-123`.",
          "required": true,
          "pattern": "^projects/[^/]*$",
          "location": "path"
@@ -615,11 +570,11 @@
        "id": "iam.projects.serviceAccounts.update",
        "path": "v1/{+name}",
        "httpMethod": "PUT",
-       "description": "Updates a service account. Currently, only the following fields are updatable: 'display_name' . The 'etag' is mandatory.",
+       "description": "Updates a ServiceAccount. Currently, only the following fields are updatable: `display_name` . The `etag` is mandatory.",
        "parameters": {
         "name": {
          "type": "string",
-         "description": "The resource name of the service account in the format \"projects/{project}/serviceAccounts/{account}\". In requests using '-' as a wildcard for the project, will infer the project from the account and the account value can be the email address or the unique_id of the service account. In responses the resource name will always be in the format \"projects/{project}/serviceAccounts/{email}\".",
+         "description": "The resource name of the service account in the following format: `projects/{project}/serviceAccounts/{account}`. Requests using `-` as a wildcard for the project will infer the project from the `account` and the `account` value can be the `email` address or the `unique_id` of the service account. In responses the resource name will always be in the format `projects/{project}/serviceAccounts/{email}`.",
          "required": true,
          "pattern": "^projects/[^/]*/serviceAccounts/[^/]*$",
          "location": "path"
@@ -642,11 +597,11 @@
        "id": "iam.projects.serviceAccounts.delete",
        "path": "v1/{+name}",
        "httpMethod": "DELETE",
-       "description": "Deletes a service acount.",
+       "description": "Deletes a ServiceAccount.",
        "parameters": {
         "name": {
          "type": "string",
-         "description": "The resource name of the service account in the format \"projects/{project}/serviceAccounts/{account}\". Using '-' as a wildcard for the project, will infer the project from the account. The account value can be the email address or the unique_id of the service account.",
+         "description": "The resource name of the service account in the following format: `projects/{project}/serviceAccounts/{account}`. Using `-` as a wildcard for the project will infer the project from the account. The `account` value can be the `email` address or the `unique_id` of the service account.",
          "required": true,
          "pattern": "^projects/[^/]*/serviceAccounts/[^/]*$",
          "location": "path"
@@ -666,11 +621,11 @@
        "id": "iam.projects.serviceAccounts.signBlob",
        "path": "v1/{+name}:signBlob",
        "httpMethod": "POST",
-       "description": "Signs a blob using a service account.",
+       "description": "Signs a blob using a service account's system-managed private key.",
        "parameters": {
         "name": {
          "type": "string",
-         "description": "The resource name of the service account in the format \"projects/{project}/serviceAccounts/{account}\". Using '-' as a wildcard for the project, will infer the project from the account. The account value can be the email address or the unique_id of the service account.",
+         "description": "The resource name of the service account in the following format: `projects/{project}/serviceAccounts/{account}`. Using `-` as a wildcard for the project will infer the project from the account. The `account` value can be the `email` address or the `unique_id` of the service account.",
          "required": true,
          "pattern": "^projects/[^/]*/serviceAccounts/[^/]*$",
          "location": "path"
@@ -693,11 +648,11 @@
        "id": "iam.projects.serviceAccounts.getIamPolicy",
        "path": "v1/{+resource}:getIamPolicy",
        "httpMethod": "POST",
-       "description": "Returns the IAM access control policy for specified IAM resource.",
+       "description": "Returns the IAM access control policy for a ServiceAccount.",
        "parameters": {
         "resource": {
          "type": "string",
-         "description": "REQUIRED: The resource for which the policy is being requested. `resource` is usually specified as a path, such as `projects/*project*/zones/*zone*/disks/*disk*`. The format for the path specified in this value is resource specific and is specified in the `getIamPolicy` documentation.",
+         "description": "REQUIRED: The resource for which the policy is being requested. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
          "required": true,
          "pattern": "^projects/[^/]*/serviceAccounts/[^/]*$",
          "location": "path"
@@ -717,11 +672,11 @@
        "id": "iam.projects.serviceAccounts.setIamPolicy",
        "path": "v1/{+resource}:setIamPolicy",
        "httpMethod": "POST",
-       "description": "Sets the IAM access control policy for the specified IAM resource.",
+       "description": "Sets the IAM access control policy for a ServiceAccount.",
        "parameters": {
         "resource": {
          "type": "string",
-         "description": "REQUIRED: The resource for which the policy is being specified. `resource` is usually specified as a path, such as `projects/*project*/zones/*zone*/disks/*disk*`. The format for the path specified in this value is resource specific and is specified in the `setIamPolicy` documentation.",
+         "description": "REQUIRED: The resource for which the policy is being specified. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
          "required": true,
          "pattern": "^projects/[^/]*/serviceAccounts/[^/]*$",
          "location": "path"
@@ -744,11 +699,11 @@
        "id": "iam.projects.serviceAccounts.testIamPermissions",
        "path": "v1/{+resource}:testIamPermissions",
        "httpMethod": "POST",
-       "description": "Tests the specified permissions against the IAM access control policy for the specified IAM resource.",
+       "description": "Tests the specified permissions against the IAM access control policy for a ServiceAccount.",
        "parameters": {
         "resource": {
          "type": "string",
-         "description": "REQUIRED: The resource for which the policy detail is being requested. `resource` is usually specified as a path, such as `projects/*project*/zones/*zone*/disks/*disk*`. The format for the path specified in this value is resource specific and is specified in the `testIamPermissions` documentation.",
+         "description": "REQUIRED: The resource for which the policy detail is being requested. `resource` is usually specified as a path. For example, a Project resource is specified as `projects/{project}`.",
          "required": true,
          "pattern": "^projects/[^/]*/serviceAccounts/[^/]*$",
          "location": "path"
@@ -775,18 +730,18 @@
          "id": "iam.projects.serviceAccounts.keys.list",
          "path": "v1/{+name}/keys",
          "httpMethod": "GET",
-         "description": "Lists service account keys",
+         "description": "Lists ServiceAccountKeys.",
          "parameters": {
           "name": {
            "type": "string",
-           "description": "The resource name of the service account in the format \"projects/{project}/serviceAccounts/{account}\". Using '-' as a wildcard for the project, will infer the project from the account. The account value can be the email address or the unique_id of the service account.",
+           "description": "The resource name of the service account in the following format: `projects/{project}/serviceAccounts/{account}`. Using `-` as a wildcard for the project, will infer the project from the account. The `account` value can be the `email` address or the `unique_id` of the service account.",
            "required": true,
            "pattern": "^projects/[^/]*/serviceAccounts/[^/]*$",
            "location": "path"
           },
           "keyTypes": {
            "type": "string",
-           "description": "The type of keys the user wants to list. If empty, all key types are included in the response. Duplicate key types are not allowed.",
+           "description": "Filters the types of keys the user wants to include in the list response. Duplicate key types are not allowed. If no key type is provided, all keys are returned.",
            "enum": [
             "KEY_TYPE_UNSPECIFIED",
             "USER_MANAGED",
@@ -814,10 +769,20 @@
          "parameters": {
           "name": {
            "type": "string",
-           "description": "The resource name of the service account key in the format \"projects/{project}/serviceAccounts/{account}/keys/{key}\". Using '-' as a wildcard for the project will infer the project from the account. The account value can be the email address or the unique_id of the service account.",
+           "description": "The resource name of the service account key in the following format: `projects/{project}/serviceAccounts/{account}/keys/{key}`. Using `-` as a wildcard for the project will infer the project from the account. The `account` value can be the `email` address or the `unique_id` of the service account.",
            "required": true,
            "pattern": "^projects/[^/]*/serviceAccounts/[^/]*/keys/[^/]*$",
            "location": "path"
+          },
+          "publicKeyType": {
+           "type": "string",
+           "description": "The output format of the public key requested. X509_PEM is the default output format.",
+           "enum": [
+            "TYPE_NONE",
+            "TYPE_X509_PEM_FILE",
+            "TYPE_RAW_PUBLIC_KEY"
+           ],
+           "location": "query"
           }
          },
          "parameterOrder": [
@@ -834,11 +799,11 @@
          "id": "iam.projects.serviceAccounts.keys.create",
          "path": "v1/{+name}/keys",
          "httpMethod": "POST",
-         "description": "Creates a service account key and returns it.",
+         "description": "Creates a ServiceAccountKey and returns it.",
          "parameters": {
           "name": {
            "type": "string",
-           "description": "The resource name of the service account in the format \"projects/{project}/serviceAccounts/{account}\". Using '-' as a wildcard for the project, will infer the project from the account. The account value can be the email address or the unique_id of the service account.",
+           "description": "The resource name of the service account in the following format: `projects/{project}/serviceAccounts/{account}`. Using `-` as a wildcard for the project will infer the project from the account. The `account` value can be the `email` address or the `unique_id` of the service account.",
            "required": true,
            "pattern": "^projects/[^/]*/serviceAccounts/[^/]*$",
            "location": "path"
@@ -861,11 +826,11 @@
          "id": "iam.projects.serviceAccounts.keys.delete",
          "path": "v1/{+name}",
          "httpMethod": "DELETE",
-         "description": "Deletes a service account key.",
+         "description": "Deletes a ServiceAccountKey.",
          "parameters": {
           "name": {
            "type": "string",
-           "description": "The resource name of the service account key in the format \"projects/{project}/serviceAccounts/{account}/keys/{key}\". Using '-' as a wildcard for the project will infer the project from the account. The account value can be the email address or the unique_id of the service account.",
+           "description": "The resource name of the service account key in the following format: `projects/{project}/serviceAccounts/{account}/keys/{key}`. Using `-` as a wildcard for the project will infer the project from the account. The `account` value can be the `email` address or the `unique_id` of the service account.",
            "required": true,
            "pattern": "^projects/[^/]*/serviceAccounts/[^/]*/keys/[^/]*$",
            "location": "path"
@@ -884,6 +849,25 @@
        }
       }
      }
+    }
+   }
+  },
+  "roles": {
+   "methods": {
+    "queryGrantableRoles": {
+     "id": "iam.roles.queryGrantableRoles",
+     "path": "v1/roles:queryGrantableRoles",
+     "httpMethod": "POST",
+     "description": "Queries roles that can be granted on a particular resource. A role is grantable if it can be used as the role in a binding for a policy for that resource.",
+     "request": {
+      "$ref": "QueryGrantableRolesRequest"
+     },
+     "response": {
+      "$ref": "QueryGrantableRolesResponse"
+     },
+     "scopes": [
+      "https://www.googleapis.com/auth/cloud-platform"
+     ]
     }
    }
   }
