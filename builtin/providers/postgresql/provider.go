@@ -80,7 +80,7 @@ func Provider() terraform.ResourceProvider {
 func validateConnTimeout(v interface{}, key string) (warnings []string, errors []error) {
 	value := v.(int)
 	if value < 0 {
-		errors = append(errors, fmt.Errorf("%d can not be less than 0", key))
+		errors = append(errors, fmt.Errorf("%s can not be less than 0", key))
 	}
 	return
 }
