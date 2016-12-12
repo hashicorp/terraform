@@ -366,6 +366,12 @@
 			"revision": "d49f95c81c580a4e7a15244b9b12dce8f60750f4"
 		},
 		{
+			"checksumSHA1": "+2yCNqbcf7VcavAptooQReTGiHY=",
+			"path": "github.com/apparentlymart/go-rundeck-api",
+			"revision": "f6af74d34d1ef69a511c59173876fc1174c11f0d",
+			"revisionTime": "2016-08-26T14:30:32Z"
+		},
+		{
 			"comment": "v0.0.1-1-g43fcd8f",
 			"path": "github.com/apparentlymart/go-rundeck-api/rundeck",
 			"revision": "43fcd8fbcf18fd5929258c044b4e3dd0643f875e"
