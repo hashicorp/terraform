@@ -11,6 +11,7 @@ FEATURES:
  
 IMPROVEMENTS:
 
+ * core: Maps across multiple input sources (files, CLI, env vars) are merged. [GH-10654]
  * command/plan: Show warning when a plan file is given as input to make behavior clear. [GH-10639]
  * provider/aws: Add support for AWS CA Central 1 Region [GH-10618]
  * provider/aws: Added SQS FIFO queues [GH-10614]
