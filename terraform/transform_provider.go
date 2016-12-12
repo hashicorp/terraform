@@ -114,6 +114,10 @@ type MissingProviderTransformer struct {
 	// Providers is the list of providers we support.
 	Providers []string
 
+	// AllowAny will not check that a provider is supported before adding
+	// it to the graph.
+	AllowAny bool
+
 	// Concrete, if set, overrides how the providers are made.
 	Concrete ConcreteProviderNodeFunc
 }
@@ -170,10 +174,12 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 				ptype = p[:idx]
 			}
 
-			if _, ok := supported[ptype]; !ok {
-				// If we don't support the provider type, skip it.
-				// Validation later will catch this as an error.
-				continue
+			if !t.AllowAny {
+				if _, ok := supported[ptype]; !ok {
+					// If we don't support the provider type, skip it.
+					// Validation later will catch this as an error.
+					continue
+				}
 			}
 
 			// Add the missing provider node to the graph
