@@ -52,13 +52,6 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("PGSSLMODE", nil),
 				Description: "This option determines whether or with what priority a secure SSL TCP/IP connection will be negotiated with the PostgreSQL server",
 			},
-			"connect_timeout": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Default:     15,
-				DefaultFunc: schema.EnvDefaultFunc("PGCONNECT_TIMEOUT", nil),
-				Description: "Maximum wait for connection, in seconds. Zero or not specified means wait indefinitely.",
-			},
 			"ssl_mode": {
 				Type:       schema.TypeString,
 				Optional:   true,
