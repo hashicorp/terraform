@@ -118,8 +118,8 @@ func checkExtensionExists(client *Client, extensionName string) (bool, error) {
 	}
 	defer conn.Close()
 
-	var _rez int
-	err = conn.QueryRow("SELECT 1 from pg_extension d WHERE extname=$1", extensionName).Scan(&_rez)
+	var _rez bool
+	err = conn.QueryRow("SELECT TRUE from pg_catalog.pg_extension d WHERE extname=$1", extensionName).Scan(&_rez)
 	switch {
 	case err == sql.ErrNoRows:
 		return false, nil
