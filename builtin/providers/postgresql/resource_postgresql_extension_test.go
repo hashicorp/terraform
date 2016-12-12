@@ -21,6 +21,15 @@ func TestAccPostgresqlExtension_Basic(t *testing.T) {
 					testAccCheckPostgresqlExtensionExists("postgresql_extension.myextension"),
 					resource.TestCheckResourceAttr(
 						"postgresql_extension.myextension", "name", "pg_trgm"),
+					resource.TestCheckResourceAttr(
+						"postgresql_extension.myextension", "schema", "public"),
+
+					// NOTE(sean): Version 1.3 is what's
+					// shipped with PostgreSQL 9.6.1.  This
+					// version number may drift in the
+					// future.
+					resource.TestCheckResourceAttr(
+						"postgresql_extension.myextension", "version", "1.3"),
 				),
 			},
 		},
