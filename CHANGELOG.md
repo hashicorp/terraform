@@ -9,7 +9,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: Add support for AWS CA Central 1 Region [GH-10618]
- * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_port_forward` resource[GH-10638]
+ * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_port_forward` resource [GH-10638]
  * provider/cloudstack: Add option to set a custom `network_domain` for `cloudstack_network` [GH-10638]
 
 BUG FIXES:
