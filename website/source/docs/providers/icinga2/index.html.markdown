@@ -3,12 +3,7 @@ layout: "icinga2"
 page_title: "Provider: Icinga2"
 sidebar_current: "docs-icinga2-index"
 description: |-
-  The Icinga2 provider is used to configure hosts to be monitored by
-Icinga2 servers. The provider needs to be configured with the API
-URL of the Icinga2 server and credentials for an API user with the
-appropriate permissions.
----
-
+  The Icinga2 provider is used to configure hosts to be monitored by Icinga2 servers. The provider needs to be configured with the API URL of the Icinga2 server and credentials for an API user with the appropriate permissions.
 ---
 
 
