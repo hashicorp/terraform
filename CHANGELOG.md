@@ -29,6 +29,7 @@ BUG FIXES:
  * provider/aws: Fix issue importing `aws_vpc_peering_connection` [GH-#10635]
  * provider/aws: Allow setting the DB Instance name when restoring from a snapshot [GH-10664]
  * provider/aws: Added Lambda function guard when needed attributes are not set [GH-10663]
+ * provider/aws: Fixed deletion of aws_api_gateway_base_path_mapping with empty path [GH-10177]
  * provider/azurerm: fix virtual_machine reading plan as the wrong type [GH-10626]
  * provider/openstack: More Import and Region Fixes [GH-10662]
 
