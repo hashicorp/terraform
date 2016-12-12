@@ -781,6 +781,12 @@ func loadManagedResourcesHcl(list *ast.ObjectList) ([]*Resource, error) {
 		// destroying the existing instance
 		var lifecycle ResourceLifecycle
 		if o := listVal.Filter("lifecycle"); len(o.Items) > 0 {
+			if len(o.Items) > 1 {
+				return nil, fmt.Errorf(
+					"%s[%s]: Multiple lifecycle blocks found, expected one",
+					t, k)
+			}
+
 			// Check for invalid keys
 			valid := []string{"create_before_destroy", "ignore_changes", "prevent_destroy"}
 			if err := checkHCLKeys(o.Items[0].Val, valid); err != nil {
