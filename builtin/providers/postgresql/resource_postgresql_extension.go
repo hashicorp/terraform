@@ -3,6 +3,7 @@ package postgresql
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -14,6 +15,9 @@ func resourcePostgreSQLExtension() *schema.Resource {
 		Create: resourcePostgreSQLExtensionCreate,
 		Read:   resourcePostgreSQLExtensionRead,
 		Delete: resourcePostgreSQLExtensionDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
@@ -26,8 +30,8 @@ func resourcePostgreSQLExtension() *schema.Resource {
 }
 
 func resourcePostgreSQLExtensionCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Client)
-	conn, err := client.Connect()
+	c := meta.(*Client)
+	conn, err := c.Connect()
 	if err != nil {
 		return err
 	}
@@ -47,32 +51,35 @@ func resourcePostgreSQLExtensionCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourcePostgreSQLExtensionRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Client)
-	conn, err := client.Connect()
+	c := meta.(*Client)
+	conn, err := c.Connect()
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
+	dbId := d.Id()
 	extensionName := d.Get("name").(string)
 
 	var hasExtension bool
-	err = conn.QueryRow("SELECT 1 from pg_extension d WHERE extname=$1", extensionName).Scan(&hasExtension)
+	err = conn.QueryRow("SELECT TRUE from pg_catalog.pg_extension d WHERE extname=$1", dbId).Scan(&hasExtension)
 	switch {
 	case err == sql.ErrNoRows:
+		log.Printf("[WARN] PostgreSQL extension (%s) not found", d.Id())
 		d.SetId("")
 		return nil
 	case err != nil:
 		return errwrap.Wrapf("Error reading extension: {{err}}", err)
 	default:
 		d.Set("extension", hasExtension)
+		d.SetId(extensionName)
 		return nil
 	}
 }
 
 func resourcePostgreSQLExtensionDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Client)
-	conn, err := client.Connect()
+	c := meta.(*Client)
+	conn, err := c.Connect()
 	if err != nil {
 		return err
 	}
