@@ -2497,5 +2497,5 @@
 			"revision": "77178f22699a4ecafce485fb8d86b7afeb7e3e28"
 		}
 	],
-	"rootPath": "github.com/lrsmith/terraform"
+	"rootPath": "github.com/hashicorp/terraform"
 }
