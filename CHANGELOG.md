@@ -39,6 +39,8 @@ FEATURES:
    with and using interpolations. ([#10093](https://github.com/hashicorp/terraform/issues/10093))
  * **Terraform version requirement in configuration.** You can now specify
    a Terraform version requirement in configuration and modules. ([#10080](https://github.com/hashicorp/terraform/issues/10080))
+ * **Conditional Values:** You can now use conditionals to determine the values
+   of attributes. For example: `count = "${var.env == "prod" ? 1 : 0}"`.
  * **`depends_on` can reference modules.** This allows a resource or output
    to depend on everything within a module. ([#10076](https://github.com/hashicorp/terraform/issues/10076))
  * **`output` supports `depends_on`.** This is useful when the output depends
@@ -46,7 +48,8 @@ FEATURES:
    ([#10072](https://github.com/hashicorp/terraform/issues/10072))
  * The `import` command can now specify a provider alias to use. ([#10310](https://github.com/hashicorp/terraform/issues/10310))
  * The `import` command will now read provider configuration from Terraform
-   configuration files (including loading tfvars files and so on). ([#9809](https://github.com/hashicorp/terraform/issues/9809))
+   configuration files (including loading tfvars files and so on).
+   ([#9809](https://github.com/hashicorp/terraform/issues/9809))
  * Providers and resources are now notified by Terraform core to "stop" when
    an interrupt is received, allowing resources to gracefully exit much, much
    faster. ([#9607](https://github.com/hashicorp/terraform/issues/9607))
