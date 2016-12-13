@@ -43,8 +43,9 @@ BUG FIXES:
  * provider/aws: Allow setting the DB Instance name when restoring from a snapshot [GH-10664]
  * provider/aws: Fix issue importing `aws_vpc_peering_connection` [GH-10635]
  * provider/aws: Fixed deletion of aws_api_gateway_base_path_mapping with empty path [GH-10177]
+ * provider/aws: Fix issue removing Lambda environment variables [GH-10492]
  * provider/azurerm: fix virtual_machine reading plan as the wrong type [GH-10626]
- * provider/azurerm: fix virtual_machine reading plan as the wrong type [GH-10626]
+ * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine [GH-10340]
  * provider/openstack: More Import and Region Fixes [GH-10662]
 
 ## 0.8.0-rc3 (December 8, 2016)
@@ -253,14 +254,6 @@ BUG FIXES:
   * core: Escape sequences in interpolations work in every case. ([#8709](https://github.com/hashicorp/terraform/issues/8709))
   * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
   * command/fmt: Multiline comments aren't indented every fmt. ([#6524](https://github.com/hashicorp/terraform/issues/6524))
-
-## 0.7.14 (unreleased)
-
-BUG FIXES:
- * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine ([#10340](https://github.com/hashicorp/terraform/issues/10340))
- * provider/aws: Fix issue removing Lambda environment variables ([#10492](https://github.com/hashicorp/terraform/issues/10492))
-
-
 
 ## 0.7.13 (November 23, 2016)
 
