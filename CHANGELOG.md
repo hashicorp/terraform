@@ -25,7 +25,8 @@ IMPROVEMENTS:
  * provider/fastly add origin shielding [GH-10677]
  * provider/google: Add support for Internal Load Balancing [GH-10453]
  * provider/postgresql: Improved support for many PostgreSQL resources [GH-10682]
-
+ * provider/google: SSL certificates can now specify prefix instead of a full name [GH-10684]
+ 
 BUG FIXES:
 
  * core: Direct indexing into a computed list no longer errors. [GH-10657]
