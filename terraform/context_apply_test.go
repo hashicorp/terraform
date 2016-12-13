@@ -2708,6 +2708,49 @@ func TestContext2Apply_moduleBool(t *testing.T) {
 	}
 }
 
+// Tests that a module can be targeted and everything is properly created.
+// This adds to the plan test to also just verify that apply works.
+func TestContext2Apply_moduleTarget(t *testing.T) {
+	m := testModule(t, "plan-targeted-cross-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.B"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.A:
+  aws_instance.foo:
+    ID = foo
+    foo = bar
+    type = aws_instance
+
+  Outputs:
+
+  value = foo
+module.B:
+  aws_instance.bar:
+    ID = foo
+    foo = foo
+    type = aws_instance
+	`)
+}
+
 func TestContext2Apply_multiProvider(t *testing.T) {
 	m := testModule(t, "apply-multi-provider")
 	p := testProvider("aws")
