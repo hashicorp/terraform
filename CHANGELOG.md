@@ -1,5 +1,9 @@
 ## 0.8.1 (unreleased)
 
+IMPROVEMENTS:
+ 
+ * providers/google: Add subnetwork_project field to enable cross-project networking [GH-9662]
+
 
 
 ## 0.8.0 (December 13, 2016)
