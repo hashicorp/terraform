@@ -20,12 +20,13 @@ IMPROVEMENTS:
  * provider/aws: Add support for AWS CA Central 1 Region [GH-10618]
  * provider/aws: Added SQS FIFO queues [GH-10614]
  * provider/aws: Support MFA delete for s3 bucket versioning [GH-10020]
+ * provider/aws: Enable DeleteOnTermination in ENI when created by spot fleet [GH-9922]
  * provider/cloudstack: Add option to set a custom `network_domain` for `cloudstack_network` [GH-10638]
  * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_port_forward` resource [GH-10638]
  * provider/fastly add origin shielding [GH-10677]
  * provider/google: Add support for Internal Load Balancing [GH-10453]
- * provider/postgresql: Improved support for many PostgreSQL resources [GH-10682]
  * provider/google: SSL certificates can now specify prefix instead of a full name [GH-10684]
+ * provider/postgresql: Improved support for many PostgreSQL resources [GH-10682]
  
 BUG FIXES:
 
