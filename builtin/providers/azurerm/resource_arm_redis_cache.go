@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/redis"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/jen20/riviera/azure"
 )
 
 func resourceArmRedisCache() *schema.Resource {
@@ -72,8 +73,38 @@ func resourceArmRedisCache() *schema.Resource {
 			},
 
 			"redis_configuration": {
-				Type:     schema.TypeMap,
+				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"maxclients": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+						},
+
+						"maxmemory_delta": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+						},
+
+						"maxmemory_reserved": {
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+						},
+
+						"maxmemory_policy": {
+							Type:         schema.TypeString,
+							Optional:     true,
+							Default:      "volatile-lru",
+							ValidateFunc: validateRedisMaxMemoryPolicy,
+						},
+					},
+				},
 			},
 
 			"hostname": {
@@ -126,25 +157,21 @@ func resourceArmRedisCacheCreate(d *schema.ResourceData, meta interface{}) error
 	parameters := redis.CreateParameters{
 		Name:     &name,
 		Location: &location,
-		Properties: &redis.CreateProperties{
+		CreateProperties: &redis.CreateProperties{
 			EnableNonSslPort: &enableNonSSLPort,
 			Sku: &redis.Sku{
 				Capacity: &capacity,
 				Family:   family,
 				Name:     sku,
 			},
+			RedisConfiguration: expandRedisConfiguration(d),
 		},
 		Tags: expandedTags,
 	}
 
 	if v, ok := d.GetOk("shard_count"); ok {
 		shardCount := int32(v.(int))
-		parameters.Properties.ShardCount = &shardCount
-	}
-
-	redisConfiguration := parseRedisConfiguration(d)
-	if redisConfiguration != nil {
-		parameters.Properties.RedisConfiguration = &redisConfiguration
+		parameters.ShardCount = &shardCount
 	}
 
 	_, err := client.Create(resGroup, name, parameters, make(chan struct{}))
@@ -194,7 +221,7 @@ func resourceArmRedisCacheUpdate(d *schema.ResourceData, meta interface{}) error
 	expandedTags := expandTags(tags)
 
 	parameters := redis.UpdateParameters{
-		Properties: &redis.UpdateProperties{
+		UpdateProperties: &redis.UpdateProperties{
 			EnableNonSslPort: &enableNonSSLPort,
 			Sku: &redis.Sku{
 				Capacity: &capacity,
@@ -208,15 +235,13 @@ func resourceArmRedisCacheUpdate(d *schema.ResourceData, meta interface{}) error
 	if v, ok := d.GetOk("shard_count"); ok {
 		if d.HasChange("shard_count") {
 			shardCount := int32(v.(int))
-			parameters.Properties.ShardCount = &shardCount
+			parameters.ShardCount = &shardCount
 		}
 	}
 
 	if d.HasChange("redis_configuration") {
-		redisConfiguration := parseRedisConfiguration(d)
-		if redisConfiguration != nil {
-			parameters.Properties.RedisConfiguration = &redisConfiguration
-		}
+		redisConfiguration := expandRedisConfiguration(d)
+		parameters.RedisConfiguration = redisConfiguration
 	}
 
 	_, err := client.Update(resGroup, name, parameters, make(chan struct{}))
@@ -277,31 +302,25 @@ func resourceArmRedisCacheRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
-	properties := resp.Properties
-	if properties != nil {
-		d.Set("ssl_port", properties.SslPort)
+	//log.Printf("API Response %s", spew.Sdump(resp))
 
-		d.Set("host_name", properties.HostName)
+	d.Set("ssl_port", resp.SslPort)
 
-		if properties.Port != nil {
-			d.Set("port", properties.Port)
-		}
+	d.Set("host_name", resp.HostName)
+	d.Set("port", resp.Port)
 
-		d.Set("enable_non_ssl_port", properties.Properties.EnableNonSslPort)
+	d.Set("enable_non_ssl_port", resp.EnableNonSslPort)
 
-		//log.Printf("[INFO] %s", spew.Sdump(properties.Properties.Sku))
+	d.Set("capacity", resp.Sku.Capacity)
+	d.Set("family", resp.Sku.Family)
+	d.Set("sku_name", resp.Sku.Name)
 
-		d.Set("capacity", properties.Properties.Sku.Capacity)
-		d.Set("family", properties.Properties.Sku.Family)
-		d.Set("sku_name", properties.Properties.Sku.Name)
-
-		if properties.Properties.ShardCount != nil {
-			d.Set("shard_count", properties.Properties.ShardCount)
-		}
-
-		// TODO: ensure this parses out the Redis Configuration correctly
-		d.Set("redis_configuration", properties.Properties.RedisConfiguration)
+	if resp.ShardCount != nil {
+		d.Set("shard_count", resp.ShardCount)
 	}
+
+	redisConfiguration := flattenRedisConfiguration(resp.RedisConfiguration)
+	d.Set("redis_configuration", &redisConfiguration)
 
 	d.Set("primary_access_key", keysResp.PrimaryKey)
 	d.Set("secondary_access_key", keysResp.SecondaryKey)
@@ -342,24 +361,48 @@ func redisStateRefreshFunc(client redis.Client, resourceGroupName string, sgName
 			return nil, "", fmt.Errorf("Error issuing read request in redisStateRefreshFunc to Azure ARM for Redis Instance '%s' (RG: '%s'): %s", sgName, resourceGroupName, err)
 		}
 
-		return res, *res.Properties.ProvisioningState, nil
+		return res, *res.ProvisioningState, nil
 	}
 }
 
-func parseRedisConfiguration(d *schema.ResourceData) map[string]*string {
-	if v, ok := d.GetOk("redis_configuration"); ok {
-		params := v.(map[string]interface{})
+func expandRedisConfiguration(d *schema.ResourceData) *map[string]*string {
+	configuration := d.Get("redis_configuration").([]interface{})
 
-		redisConfiguration := make(map[string]*string, len(params))
-		for key, val := range params {
-			str := val.(string)
-			redisConfiguration[key] = &str
-		}
+	output := make(map[string]*string)
 
-		return redisConfiguration
+	if configuration == nil {
+		return &output
 	}
 
-	return nil
+	for i, v := range configuration {
+		key := v.(string)
+		value := azure.String(configuration[i].(string))
+		switch key {
+		case "maxclients":
+			output["maxclients"] = value
+		case "maxmemory-delta":
+			output["maxmemory_delta"] = value
+		case "maxmemory-reserved":
+			output["maxmemory_reserved"] = value
+		case "maxmemory-policy":
+			output["maxmemory_policy"] = value
+		default:
+			log.Printf("[WARNING] Unknown Redis Configuration Value %s.", key)
+		}
+	}
+
+	return &output
+}
+
+func flattenRedisConfiguration(configuration *map[string]*string) *map[string]*string {
+	redisConfiguration := make(map[string]*string, len(*configuration))
+	config := *configuration
+	redisConfiguration["maxclients"] = config["maxclients"]
+	redisConfiguration["maxmemory-delta"] = config["maxmemory_delta"]
+	redisConfiguration["maxmemory-reserved"] = config["maxmemory_reserved"]
+	redisConfiguration["maxmemory-policy"] = config["maxmemory_policy"]
+
+	return &redisConfiguration
 }
 
 func validateRedisFamily(v interface{}, k string) (ws []string, errors []error) {
@@ -372,6 +415,24 @@ func validateRedisFamily(v interface{}, k string) (ws []string, errors []error) 
 	if !families[value] {
 		errors = append(errors, fmt.Errorf("Redis Family can only be C or P"))
 	}
+	return
+}
+
+func validateRedisMaxMemoryPolicy(v interface{}, k string) (ws []string, errors []error) {
+	value := strings.ToLower(v.(string))
+	families := map[string]bool{
+		"noeviction":      true,
+		"allkeys-lru":     true,
+		"volatile-lru":    true,
+		"allkeys-random":  true,
+		"volatile-random": true,
+		"volatile-ttl":    true,
+	}
+
+	if !families[value] {
+		errors = append(errors, fmt.Errorf("Redis Max Memory Policy can only be 'noeviction' / 'allkeys-lru' / 'volatile-lru' / 'allkeys-random' / 'volatile-random' / 'volatile-ttl'"))
+	}
+
 	return
 }
 

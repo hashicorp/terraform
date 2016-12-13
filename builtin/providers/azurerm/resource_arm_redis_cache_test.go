@@ -49,7 +49,29 @@ func TestAccAzureRMRedisCacheFamily_validation(t *testing.T) {
 		_, errors := validateRedisFamily(tc.Value, "azurerm_redis_cache")
 
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Azure RM Redis Family to trigger a validation error")
+			t.Fatalf("Expected the Azure RM Redis Cache Family to trigger a validation error")
+		}
+	}
+}
+
+func TestAccAzureRMRedisCacheMaxMemoryPolicy_validation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{Value: "noeviction", ErrCount: 0},
+		{Value: "allkeys-lru", ErrCount: 0},
+		{Value: "volatile-lru", ErrCount: 0},
+		{Value: "allkeys-random", ErrCount: 0},
+		{Value: "volatile-random", ErrCount: 0},
+		{Value: "volatile-ttl", ErrCount: 0},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateRedisSku(tc.Value, "azurerm_redis_cache")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the Azure RM Redis Cache Max Memory Policy to trigger a validation error")
 		}
 	}
 }
@@ -81,7 +103,7 @@ func TestAccAzureRMRedisCacheSku_validation(t *testing.T) {
 		_, errors := validateRedisSku(tc.Value, "azurerm_redis_cache")
 
 		if len(errors) != tc.ErrCount {
-			t.Fatalf("Expected the Azure RM Redis Sku to trigger a validation error")
+			t.Fatalf("Expected the Azure RM Redis Cache Sku to trigger a validation error")
 		}
 	}
 }
@@ -235,7 +257,7 @@ func testCheckAzureRMRedisCacheDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Redis Instance still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Redis Instance still exists:\n%#v", resp)
 		}
 	}
 
@@ -291,10 +313,10 @@ resource "azurerm_redis_cache" "test" {
     sku_name            = "Premium"
     enable_non_ssl_port = false
     redis_configuration {
-      "maxclients"         = "256",
-      "maxmemory-reserved" = "2",
-      "maxmemory-delta"    = "2"
-      "maxmemory-policy"   = "allkeys-lru"
+      maxclients         = "256",
+      maxmemory_reserved = "2",
+      maxmemory_delta    = "2"
+      maxmemory_policy   = "allkeys-lru"
     }
 }
 `
@@ -315,10 +337,10 @@ resource "azurerm_redis_cache" "test" {
     enable_non_ssl_port = true
     shard_count         = 3
     redis_configuration {
-      "maxclients"         = "256",
-      "maxmemory-reserved" = "2",
-      "maxmemory-delta"    = "2"
-      "maxmemory-policy"   = "allkeys-lru"
+      maxclients         = "256",
+      maxmemory_reserved = "2",
+      maxmemory_delta    = "2"
+      maxmemory_policy   = "allkeys-lru"
     }
 }
 `

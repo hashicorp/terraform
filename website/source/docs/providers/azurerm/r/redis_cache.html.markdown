@@ -67,10 +67,10 @@ resource "azurerm_redis_cache" "test" {
   enable_non_ssl_port = false
   shard_count         = 3
   redis_configuration {
-    "maxclients"         = "256",
-    "maxmemory-reserved" = "2",
-    "maxmemory-delta"    = "2"
-    "maxmemory-policy"   = "allkeys-lru"
+    maxclients         = "256",
+    maxmemory_reserved = "2",
+    maxmemory_delta    = "2"
+    maxmemory_policy   = "allkeys-lru"
   }
 }
 ```
@@ -95,25 +95,27 @@ The following arguments are supported:
 
 * `enable_non_ssl_port` - (Optional) Enable the non-SSL port (6789) - disabled by default.
 
-* `redis_configuration` - (Optional) Any Redis configuration variables you might want to set - defined as a map - with some limitations by SKU - defaults/details are shown below.
-```
-"maxclients"         = "512"
-"maxmemory-reserved" = "10"
-"maxmemory-delta"    = "2"
-"maxmemory-policy"   = "allkeys-lru"
-```
-
 * `shard_count` - (Optional) *Only available when using the Premium SKU* The number of Shards to create on the Redis Cluster.
+
+* `redis_configuration` - (Optional) Potential Redis configuration values - with some limitations by SKU - defaults/details are shown below.
+```
+redis_configuration {
+  maxclients         = "512"
+  maxmemory_reserve" = "10"
+  maxmemory_delta    = "2"
+  maxmemory_policy   = "allkeys-lru"
+}
+```
 
 ## Default Redis Configuration Values
 | Redis Value        | Basic        | Standard     | Premium      |
 | ------------------ | ------------ | ------------ | ------------ |
 | maxclients         | 256          | 1000         | 7500         |
-| maxmemory-reserved | 2            | 50           | 200          |
-| maxmemory-delta    | 2            | 50           | 200          |
-| maxmemory-policy   | volatile-lru | volatile-lru | volatile-lru |
+| maxmemory_reserved | 2            | 50           | 200          |
+| maxmemory_delta    | 2            | 50           | 200          |
+| maxmemory_policy   | volatile-lru | volatile-lru | volatile-lru |
 
-_*Important*: The maxmemory-reserved setting is only available for Standard and Premium caches. More details are available in the Relevant Links section below._
+_*Important*: The maxmemory_reserved setting is only available for Standard and Premium caches. More details are available in the Relevant Links section below._
 
 ## Attributes Reference
 
