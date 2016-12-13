@@ -12,6 +12,7 @@ FEATURES:
  * **New Resource:** `aws_snapshot_create_volume_permission` [GH-9891]
  * **New Resource:** `google_compute_health_check` [GH-10453]
  * **New Resource:** `google_compute_region_backend_service` [GH-10453]
+ * **New Data Source:**  `aws_vpc_endpoint_services` [GH-10261]
  
 IMPROVEMENTS:
 
