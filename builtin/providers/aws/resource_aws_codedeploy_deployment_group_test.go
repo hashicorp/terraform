@@ -37,6 +37,9 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 						"aws_codedeploy_deployment_group.foo", "deployment_group_name", "foo_"+rName),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
+					resource.TestMatchResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "service_role_arn",
+						regexp.MustCompile("arn:aws:iam::[0-9]{12}:role/foo_role_.*")),
 
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.#", "1"),
@@ -65,6 +68,9 @@ func TestAccAWSCodeDeployDeploymentGroup_basic(t *testing.T) {
 						"aws_codedeploy_deployment_group.foo", "deployment_group_name", "bar_"+rName),
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "deployment_config_name", "CodeDeployDefault.OneAtATime"),
+					resource.TestMatchResourceAttr(
+						"aws_codedeploy_deployment_group.foo", "service_role_arn",
+						regexp.MustCompile("arn:aws:iam::[0-9]{12}:role/bar_role_.*")),
 
 					resource.TestCheckResourceAttr(
 						"aws_codedeploy_deployment_group.foo", "ec2_tag_filter.#", "1"),
@@ -1042,7 +1048,7 @@ resource "aws_codedeploy_app" "foo_app" {
 
 resource "aws_iam_role_policy" "foo_policy" {
 	name = "foo_policy_%s"
-	role = "${aws_iam_role.foo_role.id}"
+	role = "${aws_iam_role.bar_role.id}"
 	policy = <<EOF
 {
 	"Version": "2012-10-17",
@@ -1068,8 +1074,8 @@ resource "aws_iam_role_policy" "foo_policy" {
 EOF
 }
 
-resource "aws_iam_role" "foo_role" {
-	name = "foo_role_%s"
+resource "aws_iam_role" "bar_role" {
+	name = "bar_role_%s"
 	assume_role_policy = <<EOF
 {
 	"Version": "2012-10-17",
@@ -1092,7 +1098,7 @@ EOF
 resource "aws_codedeploy_deployment_group" "foo" {
 	app_name = "${aws_codedeploy_app.foo_app.name}"
 	deployment_group_name = "bar_%s"
-	service_role_arn = "${aws_iam_role.foo_role.arn}"
+	service_role_arn = "${aws_iam_role.bar_role.arn}"
 	ec2_tag_filter {
 		key = "filterkey"
 		type = "KEY_AND_VALUE"

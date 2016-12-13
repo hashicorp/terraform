@@ -40,11 +40,11 @@ func NewTopicsClientWithBaseURI(baseURI string, subscriptionID string) TopicsCli
 	return TopicsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate creates a topic in the specified namespace
+// CreateOrUpdate creates a topic in the specified namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. topicName is the topic name. parameters is parameters
-// supplied to create a Topic Resource.
+// supplied to create a topic resource.
 func (client TopicsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, topicName string, parameters TopicCreateOrUpdateParameters) (result TopicResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -113,18 +113,18 @@ func (client TopicsClient) CreateOrUpdateResponder(resp *http.Response) (result 
 	return
 }
 
-// CreateOrUpdateAuthorizationRule creates an authorizatioRule for the
+// CreateOrUpdateAuthorizationRule creates an authorizatio rule for the
 // specified topic.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. topicName is the topic name. authorizationRuleName is
-// aauthorization Rule Name. parameters is the shared access authorization
+// authorization rule name. parameters is the shared access authorization
 // rule.
 func (client TopicsClient) CreateOrUpdateAuthorizationRule(resourceGroupName string, namespaceName string, topicName string, authorizationRuleName string, parameters SharedAccessAuthorizationRuleCreateOrUpdateParameters) (result SharedAccessAuthorizationRuleResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "parameters.SharedAccessAuthorizationRuleProperties", Name: validation.Null, Rule: false,
+				Chain: []validation.Constraint{{Target: "parameters.SharedAccessAuthorizationRuleProperties.Rights", Name: validation.Null, Rule: true, Chain: nil}}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "servicebus.TopicsClient", "CreateOrUpdateAuthorizationRule")
 	}
 
@@ -193,7 +193,7 @@ func (client TopicsClient) CreateOrUpdateAuthorizationRuleResponder(resp *http.R
 // Delete deletes a topic from the specified namespace and resource group.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// topics name. topicName is the topics name.
+// namespace name. topicName is the name of the topic to delete.
 func (client TopicsClient) Delete(resourceGroupName string, namespaceName string, topicName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, namespaceName, topicName)
 	if err != nil {
@@ -253,11 +253,11 @@ func (client TopicsClient) DeleteResponder(resp *http.Response) (result autorest
 	return
 }
 
-// DeleteAuthorizationRule deletes a topic authorizationRule
+// DeleteAuthorizationRule deletes a topic authorization rule.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. topicName is the topic name. authorizationRuleName is
-// authorizationRule Name.
+// authorization rule name.
 func (client TopicsClient) DeleteAuthorizationRule(resourceGroupName string, namespaceName string, topicName string, authorizationRuleName string) (result autorest.Response, err error) {
 	req, err := client.DeleteAuthorizationRulePreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName)
 	if err != nil {
@@ -318,7 +318,7 @@ func (client TopicsClient) DeleteAuthorizationRuleResponder(resp *http.Response)
 	return
 }
 
-// Get returns the description for the specified topic
+// Get returns a description for the specified topic.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. topicName is the topic name.
@@ -382,10 +382,10 @@ func (client TopicsClient) GetResponder(resp *http.Response) (result TopicResour
 	return
 }
 
-// GetAuthorizationRule returns the specified authorizationRule.
+// GetAuthorizationRule returns the specified authorization rule.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name topicName is the topic name. authorizationRuleName is
+// namespace name. topicName is the topic name. authorizationRuleName is
 // authorization rule name.
 func (client TopicsClient) GetAuthorizationRule(resourceGroupName string, namespaceName string, topicName string, authorizationRuleName string) (result SharedAccessAuthorizationRuleResource, err error) {
 	req, err := client.GetAuthorizationRulePreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName)
@@ -448,7 +448,7 @@ func (client TopicsClient) GetAuthorizationRuleResponder(resp *http.Response) (r
 	return
 }
 
-// ListAll lists all the topics in a namespace.
+// ListAll gets all the topics in a namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name.
@@ -535,10 +535,10 @@ func (client TopicsClient) ListAllNextResults(lastResults TopicListResult) (resu
 	return
 }
 
-// ListAuthorizationRules authorization rules for a topic.
+// ListAuthorizationRules gets authorization rules for a topic.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// topic name topicName is the topic name.
+// namespace name. topicName is the topic name.
 func (client TopicsClient) ListAuthorizationRules(resourceGroupName string, namespaceName string, topicName string) (result SharedAccessAuthorizationRuleListResult, err error) {
 	req, err := client.ListAuthorizationRulesPreparer(resourceGroupName, namespaceName, topicName)
 	if err != nil {
@@ -623,11 +623,11 @@ func (client TopicsClient) ListAuthorizationRulesNextResults(lastResults SharedA
 	return
 }
 
-// ListKeys primary and Secondary ConnectionStrings to the topic
+// ListKeys gets the primary and secondary connection strings for the topic.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. topicName is the topic name. authorizationRuleName is the
-// authorizationRule name.
+// authorization rule name.
 func (client TopicsClient) ListKeys(resourceGroupName string, namespaceName string, topicName string, authorizationRuleName string) (result ResourceListKeys, err error) {
 	req, err := client.ListKeysPreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName)
 	if err != nil {
@@ -689,13 +689,13 @@ func (client TopicsClient) ListKeysResponder(resp *http.Response) (result Resour
 	return
 }
 
-// RegenerateKeys regenerates Primary or Secondary ConnectionStrings to the
-// topic
+// RegenerateKeys regenerates primary or secondary connection strings for the
+// topic.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
 // namespace name. topicName is the topic name. authorizationRuleName is the
-// authorizationRule name. parameters is parameters supplied to regenerate
-// Auth Rule.
+// authorization rule name. parameters is parameters supplied to regenerate
+// the authorization rule.
 func (client TopicsClient) RegenerateKeys(resourceGroupName string, namespaceName string, topicName string, authorizationRuleName string, parameters RegenerateKeysParameters) (result ResourceListKeys, err error) {
 	req, err := client.RegenerateKeysPreparer(resourceGroupName, namespaceName, topicName, authorizationRuleName, parameters)
 	if err != nil {

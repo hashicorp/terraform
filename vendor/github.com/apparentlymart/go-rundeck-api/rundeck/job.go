@@ -30,12 +30,57 @@ type JobDetail struct {
 	GroupName                 string              `xml:"group,omitempty"`
 	ProjectName               string              `xml:"context>project,omitempty"`
 	OptionsConfig             *JobOptions         `xml:"context>options,omitempty"`
-	Description               string              `xml:"description,omitempty"`
+	Description               string              `xml:"description"`
 	LogLevel                  string              `xml:"loglevel,omitempty"`
-	AllowConcurrentExecutions bool                `xml:"multipleExecutions"`
-	Dispatch                  *JobDispatch        `xml:"dispatch"`
+	AllowConcurrentExecutions bool                `xml:"multipleExecutions,omitempty"`
+	Dispatch                  *JobDispatch        `xml:"dispatch,omitempty"`
 	CommandSequence           *JobCommandSequence `xml:"sequence,omitempty"`
+	Timeout                   string              `xml:"timeout,omitempty"`
+	Retry                     string              `xml:"retry,omitempty"`
 	NodeFilter                *JobNodeFilter      `xml:"nodefilters,omitempty"`
+
+	/* If Dispatch is enabled, nodesSelectedByDefault is always present with true/false.
+	 * by this reason omitempty cannot be present.
+	 * This has to be handle by the user.
+	 */
+	NodesSelectedByDefault    bool                `xml:"nodesSelectedByDefault"`
+	Schedule                  *JobSchedule        `xml:"schedule,omitempty"`
+}
+
+type JobSchedule struct {
+	XMLName         xml.Name               `xml:"schedule"`
+	DayOfMonth      *JobScheduleDayOfMonth `xml:"dayofmonth,omitempty"`
+	Time            JobScheduleTime        `xml:"time"`
+	Month           JobScheduleMonth       `xml:"month"`
+	WeekDay         *JobScheduleWeekDay    `xml:"weekday,omitempty"`
+	Year            JobScheduleYear        `xml:"year"`
+}
+
+type JobScheduleDayOfMonth struct {
+	XMLName      xml.Name `xml:"dayofmonth"`
+}
+
+type JobScheduleMonth struct {
+	XMLName xml.Name `xml:"month"`
+	Day     string   `xml:"day,attr,omitempty"`
+	Month   string   `xml:"month,attr"`
+}
+
+type JobScheduleYear struct {
+	XMLName xml.Name `xml:"year"`
+	Year    string   `xml:"year,attr"`
+}
+
+type JobScheduleWeekDay struct {
+	XMLName xml.Name `xml:"weekday"`
+	Day string   	 `xml:"day,attr"`
+}
+
+type JobScheduleTime struct {
+	XMLName  xml.Name `xml:"time"`
+	Hour     string   `xml:"hour,attr"`
+	Minute   string   `xml:"minute,attr"`
+	Seconds  string   `xml:"seconds,attr"`
 }
 
 type jobDetailList struct {
@@ -53,12 +98,39 @@ type JobOptions struct {
 type JobOption struct {
 	XMLName xml.Name `xml:"option"`
 
+	// If AllowsMultipleChoices is set, the string that will be used to delimit the multiple
+	// chosen options.
+	MultiValueDelimiter string `xml:"delimiter,attr,omitempty"`
+
+	// If set, Rundeck will reject values that are not in the set of predefined choices.
+	RequirePredefinedChoice bool `xml:"enforcedvalues,attr,omitempty"`
+
+	// When either ValueChoices or ValueChoicesURL is set, controls whether more than one
+	// choice may be selected as the value.
+	AllowsMultipleValues bool `xml:"multivalued,attr,omitempty"`
+
 	// The name of the option, which can be used to interpolate its value
 	// into job commands.
 	Name string `xml:"name,attr,omitempty"`
 
+	// Regular expression to be used to validate the option value.
+	ValidationRegex string `xml:"regex,attr,omitempty"`
+
+	// If set, Rundeck requires a value to be set for this option.
+	IsRequired bool `xml:"required,attr,omitempty"`
+
+	// If set, the input for this field will be obscured in the UI. Useful for passwords
+	// and other secrets.
+	ObscureInput bool `xml:"secure,attr,omitempty"`
+
+	// If ObscureInput is set, StoragePath can be used to point out credentials.
+	StoragePath string `xml:"storagePath,attr,omitempty"`
+
 	// The default value of the option.
 	DefaultValue string `xml:"value,attr,omitempty"`
+
+	// If set, the value can be accessed from scripts.
+	ValueIsExposedToScripts bool `xml:"valueExposed,attr,omitempty"`
 
 	// A sequence of predefined choices for this option. Mutually exclusive with ValueChoicesURL.
 	ValueChoices JobValueChoices `xml:"values,attr"`
@@ -67,33 +139,10 @@ type JobOption struct {
 	// Mutually exclusive with ValueChoices
 	ValueChoicesURL string `xml:"valuesUrl,attr,omitempty"`
 
-	// If set, Rundeck will reject values that are not in the set of predefined choices.
-	RequirePredefinedChoice bool `xml:"enforcedvalues,attr,omitempty"`
-
-	// Regular expression to be used to validate the option value.
-	ValidationRegex string `xml:"regex,attr,omitempty"`
-
 	// Description of the value to be shown in the Rundeck UI.
 	Description string `xml:"description,omitempty"`
-
-	// If set, Rundeck requires a value to be set for this option.
-	IsRequired bool `xml:"required,attr,omitempty"`
-
-	// When either ValueChoices or ValueChoicesURL is set, controls whether more than one
-	// choice may be selected as the value.
-	AllowsMultipleValues bool `xml:"multivalued,attr,omitempty"`
-
-	// If AllowsMultipleChoices is set, the string that will be used to delimit the multiple
-	// chosen options.
-	MultiValueDelimiter string `xml:"delimeter,attr,omitempty"`
-
-	// If set, the input for this field will be obscured in the UI. Useful for passwords
-	// and other secrets.
-	ObscureInput bool `xml:"secure,attr,omitempty"`
-
-	// If set, the value can be accessed from scripts.
-	ValueIsExposedToScripts bool `xml:"valueExposed,attr,omitempty"`
 }
+
 
 // JobValueChoices is a specialization of []string representing a sequence of predefined values
 // for a job option.
@@ -112,6 +161,9 @@ type JobCommandSequence struct {
 
 	// Sequence of commands to run in the sequence.
 	Commands []JobCommand `xml:"command"`
+
+	// Description
+	Description string `xml:"description,omitempty"`
 }
 
 // JobCommand describes a particular command to run within the sequence of commands on a job.
@@ -120,8 +172,20 @@ type JobCommandSequence struct {
 type JobCommand struct {
 	XMLName xml.Name
 
+	// If the Workflow keepgoing is false, this allows the Workflow to continue when the Error Handler is successful.
+	ContinueOnError bool     `xml:"keepgoingOnSuccess,attr,omitempty"`
+
+	// Description
+	Description string `xml:"description,omitempty"`
+
+	// On error:
+	ErrorHandler *JobCommand `xml:"errorhandler,omitempty"`
+
 	// A literal shell command to run.
 	ShellCommand string `xml:"exec,omitempty"`
+
+	// Add extension to the temporary filename.
+	FileExtension string `xml:"fileExtension,omitempty"`
 
 	// An inline program to run. This will be written to disk and executed, so if it is
 	// a shell script it should have an appropriate #! line.
@@ -133,6 +197,9 @@ type JobCommand struct {
 	// When ScriptFile is set, the arguments to provide to the script when executing it.
 	ScriptFileArgs string `xml:"scriptargs,omitempty"`
 
+	// ScriptInterpreter is used to execute (Script)File with.
+	ScriptInterpreter *JobCommandScriptInterpreter `xml:"scriptinterpreter,omitempty"`
+
 	// A reference to another job to run as this command.
 	Job *JobCommandJobRef `xml:"jobref"`
 
@@ -143,12 +210,20 @@ type JobCommand struct {
 	NodeStepPlugin *JobPlugin `xml:"node-step-plugin"`
 }
 
+// (Inline) Script interpreter
+type JobCommandScriptInterpreter struct {
+	XMLName          xml.Name `xml:"scriptinterpreter"`
+	InvocationString string   `xml:",chardata"`
+	ArgsQuoted       bool     `xml:"argsquoted,attr,omitempty"`
+}
+
 // JobCommandJobRef is a reference to another job that will run as one of the commands of a job.
 type JobCommandJobRef struct {
 	XMLName        xml.Name                  `xml:"jobref"`
 	Name           string                    `xml:"name,attr"`
 	GroupName      string                    `xml:"group,attr"`
 	RunForEachNode bool                      `xml:"nodeStep,attr"`
+	NodeFilter     *JobNodeFilter            `xml:"nodefilters,omitempty"`
 	Arguments      JobCommandJobRefArguments `xml:"arg"`
 }
 

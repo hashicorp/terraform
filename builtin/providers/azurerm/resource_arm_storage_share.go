@@ -63,9 +63,10 @@ func resourceArmStorageShareCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	name := d.Get("name").(string)
+	metaData := make(map[string]string) // TODO: support MetaData
 
 	log.Printf("[INFO] Creating share %q in storage account %q", name, storageAccountName)
-	err = fileClient.CreateShare(name)
+	err = fileClient.CreateShare(name, metaData)
 
 	log.Printf("[INFO] Setting share %q properties in storage account %q", name, storageAccountName)
 	fileClient.SetShareProperties(name, storage.ShareHeaders{Quota: strconv.Itoa(d.Get("quota").(int))})

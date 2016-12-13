@@ -443,6 +443,46 @@ func validateS3BucketLifecycleStorageClass(v interface{}, k string) (ws []string
 	return
 }
 
+func validateS3BucketReplicationRuleId(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 255 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 255 characters: %q", k, value))
+	}
+
+	return
+}
+
+func validateS3BucketReplicationRulePrefix(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) > 1024 {
+		errors = append(errors, fmt.Errorf(
+			"%q cannot be longer than 1024 characters: %q", k, value))
+	}
+
+	return
+}
+
+func validateS3BucketReplicationDestinationStorageClass(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != s3.StorageClassStandard && value != s3.StorageClassStandardIa && value != s3.StorageClassReducedRedundancy {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of '%q', '%q' or '%q'", k, s3.StorageClassStandard, s3.StorageClassStandardIa, s3.StorageClassReducedRedundancy))
+	}
+
+	return
+}
+
+func validateS3BucketReplicationRuleStatus(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != s3.ReplicationRuleStatusEnabled && value != s3.ReplicationRuleStatusDisabled {
+		errors = append(errors, fmt.Errorf(
+			"%q must be one of '%q' or '%q'", k, s3.ReplicationRuleStatusEnabled, s3.ReplicationRuleStatusDisabled))
+	}
+
+	return
+}
+
 func validateS3BucketLifecycleRuleId(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	if len(value) > 255 {
@@ -497,5 +537,39 @@ func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, er
 			"%q contains an invalid integration type %q. Valid types are either %q, %q, %q, %q, or %q.",
 			k, value, "AWS", "AWS_PROXY", "HTTP", "HTTP_PROXY", "MOCK"))
 	}
+	return
+}
+
+func validateSQSQueueName(v interface{}, k string) (errors []error) {
+	value := v.(string)
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[0-9A-Za-z-_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("only alphanumeric characters and hyphens allowed in %q", k))
+	}
+	return
+}
+
+func validateSQSFifoQueueName(v interface{}, k string) (errors []error) {
+	value := v.(string)
+
+	if len(value) > 80 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[0-9A-Za-z-_.]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("only alphanumeric characters and hyphens allowed in %q", k))
+	}
+
+	if regexp.MustCompile(`^[^a-zA-Z0-9-_]`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("FIFO queue name must start with one of these characters [a-zA-Z0-9-_]: %v", value))
+	}
+
+	if !regexp.MustCompile(`\.fifo$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("FIFO queue name should ends with \".fifo\": %v", value))
+	}
+
 	return
 }

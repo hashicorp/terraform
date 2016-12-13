@@ -25,7 +25,7 @@ import (
 	"net/http"
 )
 
-// ConsumerGroupsClient is the azure EventHub client
+// ConsumerGroupsClient is the azure Event Hubs client
 type ConsumerGroupsClient struct {
 	ManagementClient
 }
@@ -42,13 +42,13 @@ func NewConsumerGroupsClientWithBaseURI(baseURI string, subscriptionID string) C
 	return ConsumerGroupsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate creates/Updates a consumer group as a nested resource within
-// a namespace.
+// CreateOrUpdate creates or updates an Event Hubs consumer group as a nested
+// resource within a namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the EventHub name. consumerGroupName is
-// the Consumer Group name. parameters is parameters supplied to create a
-// Consumer Group Resource.
+// namespace name. eventHubName is the Event Hub name. consumerGroupName is
+// the consumer group name. parameters is parameters supplied to create a
+// consumer group resource.
 func (client ConsumerGroupsClient) CreateOrUpdate(resourceGroupName string, namespaceName string, eventHubName string, consumerGroupName string, parameters ConsumerGroupCreateOrUpdateParameters) (result ConsumerGroupResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -118,12 +118,12 @@ func (client ConsumerGroupsClient) CreateOrUpdateResponder(resp *http.Response) 
 	return
 }
 
-// Delete deletes an ConsumerGroup from the specified EventHub and resource
+// Delete deletes a consumer group from the specified Event Hub and resource
 // group.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the EventHub name. consumerGroupName is
-// the Consumer Group name.
+// namespace name. eventHubName is the Event Hub name. consumerGroupName is
+// the Cconsumer group name.
 func (client ConsumerGroupsClient) Delete(resourceGroupName string, namespaceName string, eventHubName string, consumerGroupName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, namespaceName, eventHubName, consumerGroupName)
 	if err != nil {
@@ -184,11 +184,11 @@ func (client ConsumerGroupsClient) DeleteResponder(resp *http.Response) (result 
 	return
 }
 
-// Get returns an Consumer Group description for the specified Consumer Group.
+// Get gets a description for the specified consumer group.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the EventHub name. consumerGroupName is
-// the Consumer Group name.
+// namespace name. eventHubName is the Event Hub name. consumerGroupName is
+// the consumer group name.
 func (client ConsumerGroupsClient) Get(resourceGroupName string, namespaceName string, eventHubName string, consumerGroupName string) (result ConsumerGroupResource, err error) {
 	req, err := client.GetPreparer(resourceGroupName, namespaceName, eventHubName, consumerGroupName)
 	if err != nil {
@@ -250,11 +250,11 @@ func (client ConsumerGroupsClient) GetResponder(resp *http.Response) (result Con
 	return
 }
 
-// ListAll enumerates the consumer groups in a namespace. An empty feed is
+// ListAll gets all the consumer groups in a namespace. An empty feed is
 // returned if no consumer group exists in the namespace.
 //
 // resourceGroupName is the name of the resource group. namespaceName is the
-// namespace name. eventHubName is the EventHub name.
+// namespace name. eventHubName is the Event Hub name.
 func (client ConsumerGroupsClient) ListAll(resourceGroupName string, namespaceName string, eventHubName string) (result ConsumerGroupListResult, err error) {
 	req, err := client.ListAllPreparer(resourceGroupName, namespaceName, eventHubName)
 	if err != nil {

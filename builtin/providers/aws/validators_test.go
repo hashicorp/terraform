@@ -1,8 +1,11 @@
 package aws
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func TestValidateEcrRepositoryName(t *testing.T) {
@@ -470,6 +473,111 @@ func TestValidateS3BucketLifecycleStorageClass(t *testing.T) {
 	}
 }
 
+func TestValidateS3BucketReplicationRuleId(t *testing.T) {
+	validId := []string{
+		"YadaHereAndThere",
+		"Valid-5Rule_ID",
+		"This . is also %% valid@!)+*(:ID",
+		"1234",
+		strings.Repeat("W", 255),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketReplicationRuleId(v, "id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid lifecycle rule id: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		// length > 255
+		strings.Repeat("W", 256),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketReplicationRuleId(v, "id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid replication configuration rule id", v)
+		}
+	}
+}
+
+func TestValidateS3BucketReplicationRulePrefix(t *testing.T) {
+	validId := []string{
+		"YadaHereAndThere",
+		"Valid-5Rule_ID",
+		"This . is also %% valid@!)+*(:ID",
+		"1234",
+		strings.Repeat("W", 1024),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketReplicationRulePrefix(v, "id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid lifecycle rule id: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		// length > 1024
+		strings.Repeat("W", 1025),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketReplicationRulePrefix(v, "id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid replication configuration rule id", v)
+		}
+	}
+}
+
+func TestValidateS3BucketReplicationDestinationStorageClass(t *testing.T) {
+	validStorageClass := []string{
+		s3.StorageClassStandard,
+		s3.StorageClassStandardIa,
+		s3.StorageClassReducedRedundancy,
+	}
+
+	for _, v := range validStorageClass {
+		_, errors := validateS3BucketReplicationDestinationStorageClass(v, "storage_class")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid storage class: %q", v, errors)
+		}
+	}
+
+	invalidStorageClass := []string{
+		"FOO",
+		"1234",
+	}
+	for _, v := range invalidStorageClass {
+		_, errors := validateS3BucketReplicationDestinationStorageClass(v, "storage_class")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid storage class", v)
+		}
+	}
+}
+
+func TestValidateS3BucketReplicationRuleStatus(t *testing.T) {
+	validRuleStatuses := []string{
+		s3.ReplicationRuleStatusEnabled,
+		s3.ReplicationRuleStatusDisabled,
+	}
+
+	for _, v := range validRuleStatuses {
+		_, errors := validateS3BucketReplicationRuleStatus(v, "status")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid rule status: %q", v, errors)
+		}
+	}
+
+	invalidRuleStatuses := []string{
+		"FOO",
+		"1234",
+	}
+	for _, v := range invalidRuleStatuses {
+		_, errors := validateS3BucketReplicationRuleStatus(v, "status")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid rule status", v)
+		}
+	}
+}
+
 func TestValidateS3BucketLifecycleRuleId(t *testing.T) {
 	validId := []string{
 		"YadaHereAndThere",
@@ -684,6 +792,76 @@ func TestValidateApiGatewayIntegrationType(t *testing.T) {
 		_, errors := validateApiGatewayIntegrationType(tc.Value, "types")
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
+func TestValidateSQSQueueName(t *testing.T) {
+	validNames := []string{
+		"valid-name",
+		"valid02-name",
+		"Valid-Name1",
+		"_",
+		"-",
+		strings.Repeat("W", 80),
+	}
+	for _, v := range validNames {
+		if errors := validateSQSQueueName(v, "name"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SQS queue Name", v)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		"*",
+		"",
+		" ",
+		".",
+		strings.Repeat("W", 81), // length > 80
+	}
+	for _, v := range invalidNames {
+		if errors := validateSQSQueueName(v, "name"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SQS queue Name", v)
+		}
+	}
+}
+
+func TestValidateSQSFifoQueueName(t *testing.T) {
+	validNames := []string{
+		"valid-name.fifo",
+		"valid02-name.fifo",
+		"Valid-Name1.fifo",
+		"_.fifo",
+		"a.fifo",
+		"A.fifo",
+		"9.fifo",
+		"-.fifo",
+		fmt.Sprintf("%s.fifo", strings.Repeat("W", 75)),
+	}
+	for _, v := range validNames {
+		if errors := validateSQSFifoQueueName(v, "name"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SQS FIFO queue Name: %v", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		".fifo",
+		"*",
+		"",
+		" ",
+		".",
+		strings.Repeat("W", 81), // length > 80
+	}
+	for _, v := range invalidNames {
+		if errors := validateSQSFifoQueueName(v, "name"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SQS FIFO queue Name: %v", v, errors)
 		}
 	}
 }

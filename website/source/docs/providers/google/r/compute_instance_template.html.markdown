@@ -136,6 +136,11 @@ The following arguments are supported:
 * `metadata` - (Optional) Metadata key/value pairs to make available from
     within instances created from this template.
 
+* `metadata_startup_script` - (Optional) An alternative to using the
+    startup-script metadata key, mostly to match the compute_instance resource.
+    This replaces the startup-script metadata key on the created instance and 
+    thus the two mechanisms are not allowed to be used simultaneously.
+
 * `network_interface` - (Required) Networks to attach to instances created from
     this template. This can be specified multiple times for multiple networks.
     Structure is documented below.

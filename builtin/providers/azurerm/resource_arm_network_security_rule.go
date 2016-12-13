@@ -140,8 +140,8 @@ func resourceArmNetworkSecurityRuleCreate(d *schema.ResourceData, meta interface
 	}
 
 	sgr := network.SecurityRule{
-		Name:       &name,
-		Properties: &properties,
+		Name: &name,
+		SecurityRulePropertiesFormat: &properties,
 	}
 
 	_, err := secClient.CreateOrUpdate(resGroup, nsgName, name, sgr, make(chan struct{}))
@@ -184,16 +184,16 @@ func resourceArmNetworkSecurityRuleRead(d *schema.ResourceData, meta interface{}
 	}
 
 	d.Set("resource_group_name", resGroup)
-	d.Set("access", resp.Properties.Access)
-	d.Set("destination_address_prefix", resp.Properties.DestinationAddressPrefix)
-	d.Set("destination_port_range", resp.Properties.DestinationPortRange)
-	d.Set("direction", resp.Properties.Direction)
-	d.Set("description", resp.Properties.Description)
+	d.Set("access", resp.SecurityRulePropertiesFormat.Access)
+	d.Set("destination_address_prefix", resp.SecurityRulePropertiesFormat.DestinationAddressPrefix)
+	d.Set("destination_port_range", resp.SecurityRulePropertiesFormat.DestinationPortRange)
+	d.Set("direction", resp.SecurityRulePropertiesFormat.Direction)
+	d.Set("description", resp.SecurityRulePropertiesFormat.Description)
 	d.Set("name", resp.Name)
-	d.Set("priority", resp.Properties.Priority)
-	d.Set("protocol", resp.Properties.Protocol)
-	d.Set("source_address_prefix", resp.Properties.SourceAddressPrefix)
-	d.Set("source_port_range", resp.Properties.SourcePortRange)
+	d.Set("priority", resp.SecurityRulePropertiesFormat.Priority)
+	d.Set("protocol", resp.SecurityRulePropertiesFormat.Protocol)
+	d.Set("source_address_prefix", resp.SecurityRulePropertiesFormat.SourceAddressPrefix)
+	d.Set("source_port_range", resp.SecurityRulePropertiesFormat.SourcePortRange)
 
 	return nil
 }

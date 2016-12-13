@@ -75,9 +75,10 @@ func resourceArmVirtualMachine() *schema.Resource {
 			},
 
 			"license_type": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validateLicenseType,
 			},
 
 			"vm_size": {
@@ -431,6 +432,15 @@ func resourceArmVirtualMachine() *schema.Resource {
 	}
 }
 
+func validateLicenseType(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if value != "" && value != "Windows_Server" {
+		errors = append(errors, fmt.Errorf(
+			"[ERROR] license_type must be 'Windows_Server' or empty"))
+	}
+	return
+}
+
 func validateDiskSizeGB(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(int)
 	if value < 1 || value > 1023 {
@@ -486,6 +496,11 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 		StorageProfile: &storageProfile,
 	}
 
+	if v, ok := d.GetOk("license_type"); ok {
+		license := v.(string)
+		properties.LicenseType = &license
+	}
+
 	if _, ok := d.GetOk("boot_diagnostics"); ok {
 		diagnosticsProfile := expandAzureRmVirtualMachineDiagnosticsProfile(d)
 		if diagnosticsProfile != nil {
@@ -509,10 +524,10 @@ func resourceArmVirtualMachineCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	vm := compute.VirtualMachine{
-		Name:       &name,
-		Location:   &location,
-		Properties: &properties,
-		Tags:       expandedTags,
+		Name:                     &name,
+		Location:                 &location,
+		VirtualMachineProperties: &properties,
+		Tags: expandedTags,
 	}
 
 	if _, ok := d.GetOk("plan"); ok {
@@ -567,63 +582,63 @@ func resourceArmVirtualMachineRead(d *schema.ResourceData, meta interface{}) err
 	d.Set("location", resp.Location)
 
 	if resp.Plan != nil {
-		if err := d.Set("plan", flattenAzureRmVirtualMachinePlan(resp.Plan)); err != nil {
+		if err := d.Set("plan", schema.NewSet(resourceArmVirtualMachinePlanHash, flattenAzureRmVirtualMachinePlan(resp.Plan))); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Plan error: %#v", err)
 		}
 	}
 
-	if resp.Properties.AvailabilitySet != nil {
-		d.Set("availability_set_id", strings.ToLower(*resp.Properties.AvailabilitySet.ID))
+	if resp.VirtualMachineProperties.AvailabilitySet != nil {
+		d.Set("availability_set_id", strings.ToLower(*resp.VirtualMachineProperties.AvailabilitySet.ID))
 	}
 
-	d.Set("vm_size", resp.Properties.HardwareProfile.VMSize)
+	d.Set("vm_size", resp.VirtualMachineProperties.HardwareProfile.VMSize)
 
-	if resp.Properties.StorageProfile.ImageReference != nil {
-		if err := d.Set("storage_image_reference", schema.NewSet(resourceArmVirtualMachineStorageImageReferenceHash, flattenAzureRmVirtualMachineImageReference(resp.Properties.StorageProfile.ImageReference))); err != nil {
+	if resp.VirtualMachineProperties.StorageProfile.ImageReference != nil {
+		if err := d.Set("storage_image_reference", schema.NewSet(resourceArmVirtualMachineStorageImageReferenceHash, flattenAzureRmVirtualMachineImageReference(resp.VirtualMachineProperties.StorageProfile.ImageReference))); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Image Reference error: %#v", err)
 		}
 	}
 
-	if err := d.Set("storage_os_disk", schema.NewSet(resourceArmVirtualMachineStorageOsDiskHash, flattenAzureRmVirtualMachineOsDisk(resp.Properties.StorageProfile.OsDisk))); err != nil {
+	if err := d.Set("storage_os_disk", schema.NewSet(resourceArmVirtualMachineStorageOsDiskHash, flattenAzureRmVirtualMachineOsDisk(resp.VirtualMachineProperties.StorageProfile.OsDisk))); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Disk error: %#v", err)
 	}
 
-	if resp.Properties.StorageProfile.DataDisks != nil {
-		if err := d.Set("storage_data_disk", flattenAzureRmVirtualMachineDataDisk(resp.Properties.StorageProfile.DataDisks)); err != nil {
+	if resp.VirtualMachineProperties.StorageProfile.DataDisks != nil {
+		if err := d.Set("storage_data_disk", flattenAzureRmVirtualMachineDataDisk(resp.VirtualMachineProperties.StorageProfile.DataDisks)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Data Disks error: %#v", err)
 		}
 	}
 
-	if err := d.Set("os_profile", schema.NewSet(resourceArmVirtualMachineStorageOsProfileHash, flattenAzureRmVirtualMachineOsProfile(resp.Properties.OsProfile))); err != nil {
+	if err := d.Set("os_profile", schema.NewSet(resourceArmVirtualMachineStorageOsProfileHash, flattenAzureRmVirtualMachineOsProfile(resp.VirtualMachineProperties.OsProfile))); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile: %#v", err)
 	}
 
-	if resp.Properties.OsProfile.WindowsConfiguration != nil {
-		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.Properties.OsProfile.WindowsConfiguration)); err != nil {
+	if resp.VirtualMachineProperties.OsProfile.WindowsConfiguration != nil {
+		if err := d.Set("os_profile_windows_config", flattenAzureRmVirtualMachineOsProfileWindowsConfiguration(resp.VirtualMachineProperties.OsProfile.WindowsConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Windows Configuration: %#v", err)
 		}
 	}
 
-	if resp.Properties.OsProfile.LinuxConfiguration != nil {
-		if err := d.Set("os_profile_linux_config", flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(resp.Properties.OsProfile.LinuxConfiguration)); err != nil {
+	if resp.VirtualMachineProperties.OsProfile.LinuxConfiguration != nil {
+		if err := d.Set("os_profile_linux_config", flattenAzureRmVirtualMachineOsProfileLinuxConfiguration(resp.VirtualMachineProperties.OsProfile.LinuxConfiguration)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Linux Configuration: %#v", err)
 		}
 	}
 
-	if resp.Properties.OsProfile.Secrets != nil {
-		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineOsProfileSecrets(resp.Properties.OsProfile.Secrets)); err != nil {
+	if resp.VirtualMachineProperties.OsProfile.Secrets != nil {
+		if err := d.Set("os_profile_secrets", flattenAzureRmVirtualMachineOsProfileSecrets(resp.VirtualMachineProperties.OsProfile.Secrets)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage OS Profile Secrets: %#v", err)
 		}
 	}
 
-	if resp.Properties.DiagnosticsProfile != nil && resp.Properties.DiagnosticsProfile.BootDiagnostics != nil {
-		if err := d.Set("boot_diagnostics", flattenAzureRmVirtualMachineDiagnosticsProfile(resp.Properties.DiagnosticsProfile.BootDiagnostics)); err != nil {
+	if resp.VirtualMachineProperties.DiagnosticsProfile != nil && resp.VirtualMachineProperties.DiagnosticsProfile.BootDiagnostics != nil {
+		if err := d.Set("boot_diagnostics", flattenAzureRmVirtualMachineDiagnosticsProfile(resp.VirtualMachineProperties.DiagnosticsProfile.BootDiagnostics)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Diagnostics Profile: %#v", err)
 		}
 	}
 
-	if resp.Properties.NetworkProfile != nil {
-		if err := d.Set("network_interface_ids", flattenAzureRmVirtualMachineNetworkInterfaces(resp.Properties.NetworkProfile)); err != nil {
+	if resp.VirtualMachineProperties.NetworkProfile != nil {
+		if err := d.Set("network_interface_ids", flattenAzureRmVirtualMachineNetworkInterfaces(resp.VirtualMachineProperties.NetworkProfile)); err != nil {
 			return fmt.Errorf("[DEBUG] Error setting Virtual Machine Storage Network Interfaces: %#v", err)
 		}
 	}
@@ -773,13 +788,13 @@ func resourceArmVirtualMachineStorageOsProfileWindowsConfigHash(v interface{}) i
 	return hashcode.String(buf.String())
 }
 
-func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) map[string]interface{} {
+func flattenAzureRmVirtualMachinePlan(plan *compute.Plan) []interface{} {
 	result := make(map[string]interface{})
 	result["name"] = *plan.Name
 	result["publisher"] = *plan.Publisher
 	result["product"] = *plan.Product
 
-	return result
+	return []interface{}{result}
 }
 
 func flattenAzureRmVirtualMachineImageReference(image *compute.ImageReference) []interface{} {

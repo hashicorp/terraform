@@ -18,7 +18,7 @@ For more information see
 
 ```js
 resource "google_compute_ssl_certificate" "default" {
-  name        = "my-certificate"
+  name_prefix = "my-certificate-"
   description = "a description"
   private_key = "${file("path/to/private.key")}"
   certificate = "${file("path/to/certificate.crt")}"
@@ -33,13 +33,16 @@ The following arguments are supported:
     may be at most 5 certs long, and must include at least one intermediate
     cert. Changing this forces a new resource to be created.
 
-* `name` - (Required) A unique name for the resource, required by GCE.
-    Changing this forces a new resource to be created.
-
 * `private_key` - (Required) Write only private key in PEM format.
     Changing this forces a new resource to be created.
 
 - - -
+
+* `name` - (Optional) A unique name for the SSL certificate. If you leave
+  this blank, Terraform will auto-generate a unique name.
+
+* `name_prefix` - (Optional) Creates a unique name beginning with the specified
+  prefix. Conflicts with `name`.
 
 * `description` - (Optional) An optional description of this resource.
     Changing this forces a new resource to be created.

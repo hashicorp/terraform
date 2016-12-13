@@ -166,3 +166,14 @@ func (n *NodeAbstractResource) AttachResourceState(s *ResourceState) {
 func (n *NodeAbstractResource) AttachResourceConfig(c *config.Resource) {
 	n.Config = c
 }
+
+// GraphNodeDotter impl.
+func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "box",
+		},
+	}
+}
