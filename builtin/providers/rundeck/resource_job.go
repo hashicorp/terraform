@@ -80,6 +80,7 @@ func resourceRundeckJob() *schema.Resource {
 			"preserve_options_order": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Computed: true,
 			},
 
 			"command_ordering_strategy": &schema.Schema{
