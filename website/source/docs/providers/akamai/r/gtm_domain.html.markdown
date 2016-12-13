@@ -26,13 +26,3 @@ The following arguments are supported:
 * `name` - (Required) Name of the GTM domain.
 
 * `type` - (Required) The type of GTM domain.
-
-## Attributes Reference
-
-The following attributes are exported:
-
-* `id` - The ID of the GTM domain.
-
-* `name` - The name of the GTM domain.
-
-* `type` - The GTM domain's type.
