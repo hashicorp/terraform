@@ -72,6 +72,10 @@ func resourceAwsIamAccessKeyCreate(d *schema.ResourceData, meta interface{}) err
 		)
 	}
 
+	if err := d.Set("secret", createResp.AccessKey.SecretAccessKey); err != nil {
+		return err
+	}
+
 	d.SetId(*createResp.AccessKey.AccessKeyId)
 
 	if createResp.AccessKey == nil || createResp.AccessKey.SecretAccessKey == nil {
