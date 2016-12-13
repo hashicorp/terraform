@@ -65,10 +65,11 @@ func TestAccAzureRMRedisCacheMaxMemoryPolicy_validation(t *testing.T) {
 		{Value: "allkeys-random", ErrCount: 0},
 		{Value: "volatile-random", ErrCount: 0},
 		{Value: "volatile-ttl", ErrCount: 0},
+		{Value: "something-else", ErrCount: 1},
 	}
 
 	for _, tc := range cases {
-		_, errors := validateRedisSku(tc.Value, "azurerm_redis_cache")
+		_, errors := validateRedisMaxMemoryPolicy(tc.Value, "azurerm_redis_cache")
 
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected the Azure RM Redis Cache Max Memory Policy to trigger a validation error")
