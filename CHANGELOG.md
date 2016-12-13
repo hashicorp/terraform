@@ -1,5 +1,192 @@
 ## 0.8.0 (unreleased)
 
+**This is the complete 0.7.13 to 0.8 CHANGELOG. Below this section we
+also have a 0.8.0-rc3 to 0.8.0 final CHANGELOG.**
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * `template_file` _inline_ templates must escape their variable usage. What
+   was previously `${foo}` must now be `$${foo}`. Note that this is only
+   for _inline_ templates. Templates read from files are unchanged. ([#9698](https://github.com/hashicorp/terraform/issues/9698))
+ * Escape sequences used to require double-escaping when used within interpolations.
+   You now must only escape once (which is the expected/typical behavior).
+   For example: `${replace(var.foo, "\\", "\\\\")}` is correct. Before,
+   that would cause very strange behavior. However, this may break existing
+   configurations which found a level of escape sequences to work. Check
+   `terraform plan` for incorrect output.
+ * Math operators now follow the standard order of operations: *, /, % followed
+   by +, -. See the updated interpolation docs for more information. You can
+   continue to force ordering with parentheses.
+ * Strings in configuration can no longer contain unescaped newlines. For
+   unescaped newlines, heredocs must be used
+
+ * provider/aws: Anywhere where we can specify kms_key_id must now be a valid KMS Key ID ARN to stop continual diffs
+ * provider/chef: The chef provider now accepts `key_material` as an alternative to
+   `private_key_pem`. The `private_key_pem` attribute will be deprecated in a
+    future release
+ * provider/postgres: `ssl_mode` has been renamed `sslmode` to match common usage [GH-10682]
+
+DEPRECATION REMOVALS:
+
+ * The `template_file` resource no longer accepts a direct file path for the
+   `template` attribute. You may either specify a path wrapped in a `file`
+   function or specify a file path with the `filepath` attribute. This was
+   deprecated during 0.7.x.
+
+FEATURES:
+
+ * **New command:** `terraform console`, an interactive console for experimenting
+   with and using interpolations. ([#10093](https://github.com/hashicorp/terraform/issues/10093))
+ * **Terraform version requirement in configuration.** You can now specify
+   a Terraform version requirement in configuration and modules. ([#10080](https://github.com/hashicorp/terraform/issues/10080))
+ * **`depends_on` can reference modules.** This allows a resource or output
+   to depend on everything within a module. ([#10076](https://github.com/hashicorp/terraform/issues/10076))
+ * **`output` supports `depends_on`.** This is useful when the output depends
+   on a certain ordering to happen that can't be represented with interpolations.
+   ([#10072](https://github.com/hashicorp/terraform/issues/10072))
+ * The `import` command can now specify a provider alias to use. ([#10310](https://github.com/hashicorp/terraform/issues/10310))
+ * The `import` command will now read provider configuration from Terraform
+   configuration files (including loading tfvars files and so on). ([#9809](https://github.com/hashicorp/terraform/issues/9809))
+ * Providers and resources are now notified by Terraform core to "stop" when
+   an interrupt is received, allowing resources to gracefully exit much, much
+   faster. ([#9607](https://github.com/hashicorp/terraform/issues/9607))
+
+ * **New Provider:** `external` ([#8768](https://github.com/hashicorp/terraform/issues/8768))
+ * **New Provider:** `nomad` ([#9538](https://github.com/hashicorp/terraform/issues/9538))
+ * **New Provider:** `rancher` ([#9173](https://github.com/hashicorp/terraform/issues/9173))
+ * **New Provider:** `vault` ([#9158](https://github.com/hashicorp/terraform/issues/9158))
+ * **New Provider:** `Icinga2` [GH-8306]
+ * **New Resource:** `aws_ebs_snapshot` ([#10017](https://github.com/hashicorp/terraform/issues/10017))
+ * **New Resource:** `aws_lightsail_domain` [GH-10637]
+ * **New Resource:** `aws_lightsail_key_pair` [GH-10583]
+ * **New Resource:** `aws_lightsail_instance` ([#10473](https://github.com/hashicorp/terraform/issues/10473))
+ * **New Resource:** `aws_opsworks_rds_db_instance` ([#10294](https://github.com/hashicorp/terraform/issues/10294))
+ * **New Resource:** `aws_snapshot_create_volume_permission` [GH-9891]
+ * **New Resource:** `aws_vpc_endpoint_route_table_association` ([#10137](https://github.com/hashicorp/terraform/issues/10137))
+ * **New Resource:** `google_compute_health_check` [GH-10453]
+ * **New Resource:** `google_compute_region_backend_service` [GH-10453]
+ * **New Resource:** `openstack_blockstorage_volume_attach_v2` ([#10259](https://github.com/hashicorp/terraform/issues/10259))
+ * **New Resource:** `openstack_compute_volume_attach_v2` ([#10260](https://github.com/hashicorp/terraform/issues/10260))
+ * **New Data Source:** `aws_ebs_snapshot` ([#10017](https://github.com/hashicorp/terraform/issues/10017))
+ * **New Data Source:** `aws_eip` [GH-9833]
+ * **New Data Source:** `aws_iam_server_certificate` ([#10558](https://github.com/hashicorp/terraform/issues/10558))
+ * **New Data Source:** `aws_route_table` ([#10301](https://github.com/hashicorp/terraform/issues/10301))
+ * **New Data Source:** `aws_route53_zone` [GH-9766]
+ * **New Data Source:** `aws_vpc_endpoint_services` [GH-10261]
+ * **New Data Source:** `pagerduty_user` ([#10541](https://github.com/hashicorp/terraform/issues/10541))
+ * **New Interpolation Function:** `timestamp` ([#10475](https://github.com/hashicorp/terraform/issues/10475))
+ * core: allow outputs to have descriptions ([#9722](https://github.com/hashicorp/terraform/issues/9722))
+ * state/azure: support passing of lease ID when writing storage blob ([#10115](https://github.com/hashicorp/terraform/issues/10115))
+
+IMPROVEMENTS:
+
+ * core: Human-friendly error when a computed count is used. ([#10060](https://github.com/hashicorp/terraform/issues/10060))
+ * core: Maps across multiple input sources (files, CLI, env vars) are merged. [GH-10654]
+ * core: SIGTERM also triggers graceful shutdown in addition to SIGINT ([#10534](https://github.com/hashicorp/terraform/issues/10534))
+ * core: Plan will show deposed-only destroys for create-before-destroy resources. ([#10404](https://github.com/hashicorp/terraform/issues/10404))
+ * command/plan: Show warning when a plan file is given as input to make behavior clear. [GH-10639]
+ * helper/schema: only map, list, and set elements that are actually causing
+     a resource to destroy/create are marked as "requires new". ([#9613](https://github.com/hashicorp/terraform/issues/9613))
+ * provider/aws: Add support for AWS CA Central 1 Region [GH-10618]
+ * provider/aws: Allow importing of aws_iam_role, aws_iam_role_policy and aws_iam_policy ([#9398](https://github.com/hashicorp/terraform/issues/9398))
+ * provider/aws: Added s3 bucket region attribute management ([#10482](https://github.com/hashicorp/terraform/issues/10482))
+ * provider/aws: Added SQS FIFO queues [GH-10614]
+ * provider/aws: Addition of suspended_processes to aws_autoscaling_group ([#10096](https://github.com/hashicorp/terraform/issues/10096))
+ * provider/aws: added auto_minor_version_upgrade on aws_rds_cluster_insstance ([#10284](https://github.com/hashicorp/terraform/issues/10284))
+ * provider/aws: Add JSON validation to the aws_iam_policy resource ([#10239](https://github.com/hashicorp/terraform/issues/10239))
+ * provider/aws: Support MFA delete for s3 bucket versioning [GH-10020]
+ * provider/aws: Enable DeleteOnTermination in ENI when created by spot fleet [GH-9922]
+ * provider/aws: Enforced kms_key_* attributes to be ARNs ([#10356](https://github.com/hashicorp/terraform/issues/10356))
+ * provider/aws: IPv6 Support To Cloudfront ([#10332](https://github.com/hashicorp/terraform/issues/10332))
+ * provider/aws: Support import of aws_iam_instance_profile ([#10436](https://github.com/hashicorp/terraform/issues/10436))
+ * provider/aws: Increase `aws_emr_cluster` timeout ([#10444](https://github.com/hashicorp/terraform/issues/10444))
+ * provider/aws: Support Automatic Rollback of CodeDeploy deployments and CloudWatch Alarms for a Deployment Group ([#9039](https://github.com/hashicorp/terraform/issues/9039))
+ * provider/aws: Add support for termination protection and autotermination to EMR ([#10252](https://github.com/hashicorp/terraform/issues/10252))
+ * provider/aws: Add "no_device" support to ephemeral block devices ([#10547](https://github.com/hashicorp/terraform/issues/10547))
+ * provider/aws: Added S3 Bucket replication ([#10552](https://github.com/hashicorp/terraform/issues/10552))
+ * provider/aws: Add `pgp_key` to `aws_iam_access_key` to protect key. ([#10615](https://github.com/hashicorp/terraform/issues/10615))
+ * provider/azurerm: make DiskSizeGB optional for azurerm_virtual_machine data_disks ([#10232](https://github.com/hashicorp/terraform/issues/10232))
+ * provider/azurerm support `license_type` virtual_machine property ([#10539](https://github.com/hashicorp/terraform/issues/10539))
+ * provider/azurerm: support import of routes, fix route_table ([#10389](https://github.com/hashicorp/terraform/issues/10389))
+ * provider/azurerm: enable import of more resources ([#10195](https://github.com/hashicorp/terraform/issues/10195))
+ * provider/azurerm: create common schema for location field, add diff suppress ([#10409](https://github.com/hashicorp/terraform/issues/10409))
+ * provider/chef: Migrate Chef to use KEY_MATERIAL rather than using a Pem file ([#10105](https://github.com/hashicorp/terraform/issues/10105))
+ * provider/cloudstack: Add option to set a custom `network_domain` for `cloudstack_network` [GH-10638]
+ * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_static_nat` resource ([#10420](https://github.com/hashicorp/terraform/issues/10420))
+ * provider/cloudstack: Support using secondary IP addresses with the `cloudstack_port_forward` resource [GH-10638]
+ * provider/datadog: Make monitor thresholds optional. ([#10526](https://github.com/hashicorp/terraform/issues/10526))
+ * provider/datadog: Improve datadog timeboard support ([#10027](https://github.com/hashicorp/terraform/issues/10027))
+ * provider/docker: Upload files into container before first start ([#9520](https://github.com/hashicorp/terraform/issues/9520))
+ * provider/docker: authentication via values instead of files ([#10151](https://github.com/hashicorp/terraform/issues/10151))
+ * provider/fastly add origin shielding [GH-10677]
+ * provider/fastly: add ssl_hostname option ([#9629](https://github.com/hashicorp/terraform/issues/9629))
+ * provider/github: supports importing resources ([#10382](https://github.com/hashicorp/terraform/issues/10382))
+ * provider/google: Add support for Internal Load Balancing [GH-10453]
+ * provider/google: Add Service Accounts resource ([#9946](https://github.com/hashicorp/terraform/issues/9946))
+ * provider/google: Instances and templates now both support `metadata_startup_script` and `metadata.startup-script`. ([#10537](https://github.com/hashicorp/terraform/issues/10537))
+ * provider/google: Added support for session affinity to compute_backend_service ([#10387](https://github.com/hashicorp/terraform/issues/10387))
+ * provider/google: Projects are now importable ([#10469](https://github.com/hashicorp/terraform/issues/10469))
+ * provider/google: SSL certificates can now specify prefix instead of a full name [GH-10684]
+ * provider/openstack: Add Swauth/Swift Authentication ([#9943](https://github.com/hashicorp/terraform/issues/9943))
+ * provider/openstack: Detect Region for Importing Resources ([#10509](https://github.com/hashicorp/terraform/issues/10509))
+ * provider/postgresql: Improved support for many PostgreSQL resources [GH-10682]
+ * provider/postgresql: Added 'connect_timeout' argument to provider 'postgresql' ([#10380](https://github.com/hashicorp/terraform/issues/10380))
+ * provider/rundeck: enable validation for multiple values in an array [GH-8913]
+ * provider/rundeck: Add support for scheduler to rundeck_job [GH-9449]
+ * state/remote/swift: Add support for versioning state file in swift and expiring versioned state ([#10055](https://github.com/hashicorp/terraform/issues/10055))
+
+BUG FIXES:
+
+ * core: Escape sequences in interpolations work in every case. ([#8709](https://github.com/hashicorp/terraform/issues/8709))
+ * core: Maps in outputs with computed values are no longer removed. ([#9549](https://github.com/hashicorp/terraform/issues/9549))
+ * core: Direct indexing into a computed list no longer errors. [GH-10657]
+ * core: Validate fails on invalid keys in `variable` blocks. [GH-10658]
+ * core: Validate that only a single `lifecycle` block exists per rource. [GH-10656]
+ * core: When destroying, the resources of a provider that depends on another resource are destroyed first. [GH-10659]
+ * core: Catch parse errors for null characters mid-file ([#9134](https://github.com/hashicorp/terraform/issues/9134))
+ * core: Remove extra dot from state command backup files ([#10300](https://github.com/hashicorp/terraform/issues/10300))
+ * core: Validate data sources do not have provisioners ([#10318](https://github.com/hashicorp/terraform/issues/10318))
+ * core: Disable checkpoint settings take effect ([#10206](https://github.com/hashicorp/terraform/issues/10206))
+ * core: Changed attribute console output shows up on Windows. ([#10417](https://github.com/hashicorp/terraform/issues/10417))
+ * core: Destroying deposed resources in create before destroy waits until the creation step of its specific index. (0.8 regression) ([#10416](https://github.com/hashicorp/terraform/issues/10416))
+ * core: Certain invalid configurations will no longer print "illegal". ([#10448](https://github.com/hashicorp/terraform/issues/10448))
+ * core: Fix a crash that could occur when multiple deposed instances exist. ([#10504](https://github.com/hashicorp/terraform/issues/10504))
+ * core: Fix a diff mismatch error that could happen when a resource depends on a count resource being decreased. ([#10522](https://github.com/hashicorp/terraform/issues/10522))
+ * core: On Unix machines if `getent` is not available, fall back to shell to find home dir. ([#10515](https://github.com/hashicorp/terraform/issues/10515))
+ * command/fmt: Multiline comments aren't indented every fmt. ([#6524](https://github.com/hashicorp/terraform/issues/6524))
+ * communicator/ssh: Avoid race that could cause parallel remote execs on the same host to overwrite each other ([#10549](https://github.com/hashicorp/terraform/issues/10549))
+ * provider/aws: Added Lambda function guard when needed attributes are not set [GH-10663]
+ * provider/aws: Allow import of aws_security_groups with more than one source_security_group_id rule [GH-9477]
+ * provider/aws: Allow setting the DB Instance name when restoring from a snapshot [GH-10664]
+ * provider/aws: Fix issue importing `aws_vpc_peering_connection` [GH-10635]
+ * provider/aws: Fixed deletion of aws_api_gateway_base_path_mapping with empty path [GH-10177]
+ * provider/aws: Fix issue removing Lambda environment variables [GH-10492]
+ * provider/aws: Skip VPC endpoint routes when removing default route table's routes ([#10303](https://github.com/hashicorp/terraform/issues/10303))
+ * provider/aws: Do not return a root device for instance store backed AMIs. ([#9483](https://github.com/hashicorp/terraform/issues/9483))
+ * provider/aws: resource_aws_opsworks_application does not accept document_root parameter ([#10477](https://github.com/hashicorp/terraform/issues/10477))
+ * provider/aws: bug fix when specifying level on aws_opsworks_permission ([#10394](https://github.com/hashicorp/terraform/issues/10394))
+ * provider/aws: cloudfront distribution 404 should mark as gone ([#10281](https://github.com/hashicorp/terraform/issues/10281))
+ * provider/aws: Assign correct number of core instances (n-1) to aws-emr-cluster on update ([#10529](https://github.com/hashicorp/terraform/issues/10529))
+ * provider/aws: Allow update of Service role on a CodeDeploy deployment group ([#9866](https://github.com/hashicorp/terraform/issues/9866))
+ * provider/aws: fixed the api_gw_domain_name replace operation ([#10179](https://github.com/hashicorp/terraform/issues/10179))
+ * provider/aws: Forces the API GW domain name certificates to recreate the resource ([#10588](https://github.com/hashicorp/terraform/issues/10588))
+ * provider/aws: Validate `effect` in aws_iam_policy_document data source ([#10021](https://github.com/hashicorp/terraform/issues/10021))
+ * provider/azurerm: fix virtual_machine reading plan as the wrong type [GH-10626]
+ * provider/azurerm: Prevent null reference when reading boot_diagnostics settings in azurerm_virtual_machine ([#10283](https://github.com/hashicorp/terraform/issues/10283))
+ * provider/azurerm: azurerm_availability_set not is ForceNew for UpdateDomain and FaultDomain ([#10545](https://github.com/hashicorp/terraform/issues/10545))
+ * provider/azurerm: fix servicebus_topic max_size_in_megabytes for premium namespaces ([#10611](https://github.com/hashicorp/terraform/issues/10611))
+ * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine [GH-10340]
+ * provider/datadog: Refactor monitor tags to a list instead of a map. ([#10570](https://github.com/hashicorp/terraform/issues/10570))
+ * provider/datadog 9869: Validate credentials when initialising client. ([#10567](https://github.com/hashicorp/terraform/issues/10567))
+ * provider/openstack: More Import and Region Fixes [GH-10662]
+ * provider/openstack: Fix Ordering of Port Allowed Address Pairs ([#10250](https://github.com/hashicorp/terraform/issues/10250))
+ * provider/template: No file path error when setting template to `/` ([#10297](https://github.com/hashicorp/terraform/issues/10297))
+
+## 0.8.0 from 0.8.0-rc3 (unreleased)
+
+**This only includes changes from 0.8.0-rc3 to 0.8.0 final. The section above
+has the complete 0.7.x to 0.8.0 CHANGELOG.**
+
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
  * provider/postgres: `ssl_mode` has been renamed `sslmode` to match common usage [GH-10682]
@@ -15,7 +202,7 @@ FEATURES:
  * **New Data Source:**  `aws_eip` [GH-9833]
  * **New Data Source:**  `aws_route53_zone` [GH-9766]
  * **New Data Source:**  `aws_vpc_endpoint_services` [GH-10261]
- 
+
 IMPROVEMENTS:
 
  * command/plan: Show warning when a plan file is given as input to make behavior clear. [GH-10639]
@@ -32,7 +219,7 @@ IMPROVEMENTS:
  * provider/postgresql: Improved support for many PostgreSQL resources [GH-10682]
  * provider/rundeck: enable validation for multiple values in an array [GH-8913]
  * provider/rundeck: Add support for scheduler to rundeck_job [GH-9449]
- 
+
 BUG FIXES:
 
  * core: Direct indexing into a computed list no longer errors. [GH-10657]
