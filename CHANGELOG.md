@@ -29,6 +29,7 @@ IMPROVEMENTS:
  * provider/google: SSL certificates can now specify prefix instead of a full name [GH-10684]
  * provider/postgresql: Improved support for many PostgreSQL resources [GH-10682]
  * provider/rundeck: enable validation for multiple values in an array [GH-8913]
+ * provider/rundeck: Add support for scheduler to rundeck_job [GH-9449]
  
 BUG FIXES:
 
