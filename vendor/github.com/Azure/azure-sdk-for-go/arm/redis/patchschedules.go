@@ -25,7 +25,7 @@ import (
 	"net/http"
 )
 
-// PatchSchedulesClient is the rEST API for Azure Redis Cache Service
+// PatchSchedulesClient is the rEST API for Azure Redis Cache Service.
 type PatchSchedulesClient struct {
 	ManagementClient
 }
@@ -42,16 +42,16 @@ func NewPatchSchedulesClientWithBaseURI(baseURI string, subscriptionID string) P
 	return PatchSchedulesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// CreateOrUpdate create or replace the patching schedule for redis cache.
+// CreateOrUpdate create or replace the patching schedule for Redis cache.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache. parameters is parameters to set patch schedules for redis
+// the Redis cache. parameters is parameters to set patch schedules for Redis
 // cache.
 func (client PatchSchedulesClient) CreateOrUpdate(resourceGroupName string, name string, parameters PatchSchedule) (result PatchSchedule, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: true,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.ScheduleEntriesProperty", Name: validation.Null, Rule: true, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "parameters.ScheduleEntries", Name: validation.Null, Rule: true,
+				Chain: []validation.Constraint{{Target: "parameters.ScheduleEntries.ScheduleEntriesProperty", Name: validation.Null, Rule: true, Chain: nil}}},
 				{Target: "parameters.ID", Name: validation.ReadOnly, Rule: true, Chain: nil},
 				{Target: "parameters.Name", Name: validation.ReadOnly, Rule: true, Chain: nil},
 				{Target: "parameters.Type", Name: validation.ReadOnly, Rule: true, Chain: nil},
@@ -119,10 +119,10 @@ func (client PatchSchedulesClient) CreateOrUpdateResponder(resp *http.Response) 
 	return
 }
 
-// Delete deletes the patching schedule for redis cache.
+// Delete deletes the patching schedule for Redis cache.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache.
+// the Redis cache.
 func (client PatchSchedulesClient) Delete(resourceGroupName string, name string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, name)
 	if err != nil {
@@ -181,10 +181,10 @@ func (client PatchSchedulesClient) DeleteResponder(resp *http.Response) (result 
 	return
 }
 
-// Get gets the patching schedule for redis cache.
+// Get gets the patching schedule for Redis cache.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache.
+// the Redis cache.
 func (client PatchSchedulesClient) Get(resourceGroupName string, name string) (result PatchSchedule, err error) {
 	req, err := client.GetPreparer(resourceGroupName, name)
 	if err != nil {

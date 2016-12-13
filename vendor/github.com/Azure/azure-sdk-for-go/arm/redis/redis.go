@@ -25,7 +25,7 @@ import (
 	"net/http"
 )
 
-// Client is the rEST API for Azure Redis Cache Service
+// Client is the rEST API for Azure Redis Cache Service.
 type Client struct {
 	ManagementClient
 }
@@ -41,19 +41,19 @@ func NewClientWithBaseURI(baseURI string, subscriptionID string) Client {
 }
 
 // Create create or replace (overwrite/recreate, with potential downtime) an
-// existing redis cache This method may poll for completion. Polling can be
+// existing Redis cache. This method may poll for completion. Polling can be
 // canceled by passing the cancel channel argument. The channel will be used
 // to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache. parameters is parameters supplied to the Create redis
+// the Redis cache. parameters is parameters supplied to the Create Redis
 // operation.
 func (client Client) Create(resourceGroupName string, name string, parameters CreateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: true,
-				Chain: []validation.Constraint{{Target: "parameters.Properties.Sku", Name: validation.Null, Rule: true,
-					Chain: []validation.Constraint{{Target: "parameters.Properties.Sku.Capacity", Name: validation.Null, Rule: true, Chain: nil}}},
+			Constraints: []validation.Constraint{{Target: "parameters.CreateProperties", Name: validation.Null, Rule: true,
+				Chain: []validation.Constraint{{Target: "parameters.CreateProperties.Sku", Name: validation.Null, Rule: true,
+					Chain: []validation.Constraint{{Target: "parameters.CreateProperties.Sku.Capacity", Name: validation.Null, Rule: true, Chain: nil}}},
 				}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "redis.Client", "Create")
 	}
@@ -119,13 +119,12 @@ func (client Client) CreateResponder(resp *http.Response) (result autorest.Respo
 	return
 }
 
-// Delete deletes a redis cache. This operation takes a while to complete.
-// This method may poll for completion. Polling can be canceled by passing
-// the cancel channel argument. The channel will be used to cancel polling
-// and any outstanding HTTP requests.
+// Delete deletes a Redis cache. This method may poll for completion. Polling
+// can be canceled by passing the cancel channel argument. The channel will
+// be used to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache.
+// the Redis cache.
 func (client Client) Delete(resourceGroupName string, name string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(resourceGroupName, name, cancel)
 	if err != nil {
@@ -186,13 +185,13 @@ func (client Client) DeleteResponder(resp *http.Response) (result autorest.Respo
 	return
 }
 
-// ExportData import data into redis cache. This method may poll for
+// ExportData import data into Redis cache. This method may poll for
 // completion. Polling can be canceled by passing the cancel channel
 // argument. The channel will be used to cancel polling and any outstanding
 // HTTP requests.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache. parameters is parameters for redis export operation.
+// the Redis cache. parameters is parameters for Redis export operation.
 func (client Client) ExportData(resourceGroupName string, name string, parameters ExportRDBParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -262,11 +261,11 @@ func (client Client) ExportDataResponder(resp *http.Response) (result autorest.R
 	return
 }
 
-// ForceReboot reboot specified redis node(s). This operation requires write
+// ForceReboot reboot specified Redis node(s). This operation requires write
 // permission to the cache resource. There can be potential data loss.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache. parameters is specifies which redis node(s) to reboot.
+// the Redis cache. parameters is specifies which Redis node(s) to reboot.
 func (client Client) ForceReboot(resourceGroupName string, name string, parameters RebootParameters) (result autorest.Response, err error) {
 	req, err := client.ForceRebootPreparer(resourceGroupName, name, parameters)
 	if err != nil {
@@ -327,10 +326,10 @@ func (client Client) ForceRebootResponder(resp *http.Response) (result autorest.
 	return
 }
 
-// Get gets a redis cache (resource description).
+// Get gets a Redis cache (resource description).
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache.
+// the Redis cache.
 func (client Client) Get(resourceGroupName string, name string) (result ResourceType, err error) {
 	req, err := client.GetPreparer(resourceGroupName, name)
 	if err != nil {
@@ -390,13 +389,13 @@ func (client Client) GetResponder(resp *http.Response) (result ResourceType, err
 	return
 }
 
-// ImportData import data into redis cache. This method may poll for
+// ImportData import data into Redis cache. This method may poll for
 // completion. Polling can be canceled by passing the cancel channel
 // argument. The channel will be used to cancel polling and any outstanding
 // HTTP requests.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache. parameters is parameters for redis import operation.
+// the Redis cache. parameters is parameters for Redis import operation.
 func (client Client) ImportData(resourceGroupName string, name string, parameters ImportRDBParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -465,7 +464,7 @@ func (client Client) ImportDataResponder(resp *http.Response) (result autorest.R
 	return
 }
 
-// List gets all redis caches in the specified subscription.
+// List gets all Redis caches in the specified subscription.
 func (client Client) List() (result ListResult, err error) {
 	req, err := client.ListPreparer()
 	if err != nil {
@@ -547,7 +546,7 @@ func (client Client) ListNextResults(lastResults ListResult) (result ListResult,
 	return
 }
 
-// ListByResourceGroup gets all redis caches in a resource group.
+// ListByResourceGroup lists all Redis caches in a resource group.
 //
 // resourceGroupName is the name of the resource group.
 func (client Client) ListByResourceGroup(resourceGroupName string) (result ListResult, err error) {
@@ -632,11 +631,11 @@ func (client Client) ListByResourceGroupNextResults(lastResults ListResult) (res
 	return
 }
 
-// ListKeys retrieve a redis cache's access keys. This operation requires
+// ListKeys retrieve a Redis cache's access keys. This operation requires
 // write permission to the cache resource.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache.
+// the Redis cache.
 func (client Client) ListKeys(resourceGroupName string, name string) (result AccessKeys, err error) {
 	req, err := client.ListKeysPreparer(resourceGroupName, name)
 	if err != nil {
@@ -696,11 +695,11 @@ func (client Client) ListKeysResponder(resp *http.Response) (result AccessKeys, 
 	return
 }
 
-// RegenerateKey regenerate redis cache's access keys. This operation requires
+// RegenerateKey regenerate Redis cache's access keys. This operation requires
 // write permission to the cache resource.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache. parameters is specifies which key to reset.
+// the Redis cache. parameters is specifies which key to regenerate.
 func (client Client) RegenerateKey(resourceGroupName string, name string, parameters RegenerateKeyParameters) (result AccessKeys, err error) {
 	req, err := client.RegenerateKeyPreparer(resourceGroupName, name, parameters)
 	if err != nil {
@@ -762,12 +761,12 @@ func (client Client) RegenerateKeyResponder(resp *http.Response) (result AccessK
 	return
 }
 
-// Update update an existing Redis cache This method may poll for completion.
+// Update update an existing Redis cache. This method may poll for completion.
 // Polling can be canceled by passing the cancel channel argument. The
 // channel will be used to cancel polling and any outstanding HTTP requests.
 //
 // resourceGroupName is the name of the resource group. name is the name of
-// the redis cache. parameters is parameters supplied to the Update redis
+// the Redis cache. parameters is parameters supplied to the Update Redis
 // operation.
 func (client Client) Update(resourceGroupName string, name string, parameters UpdateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
 	req, err := client.UpdatePreparer(resourceGroupName, name, parameters, cancel)
