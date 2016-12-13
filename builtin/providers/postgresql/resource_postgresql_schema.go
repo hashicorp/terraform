@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	schemaNameAttr          = "name"
-	schemaAuthorizationAttr = "authorization"
+	schemaNameAttr = "name"
 )
 
 func resourcePostgreSQLSchema() *schema.Resource {
@@ -33,12 +32,6 @@ func resourcePostgreSQLSchema() *schema.Resource {
 				Required:    true,
 				Description: "The name of the schema",
 			},
-			schemaAuthorizationAttr: {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
-				Description: "The role name of the owner of the schema",
-			},
 		},
 	}
 }
@@ -54,10 +47,6 @@ func resourcePostgreSQLSchemaCreate(d *schema.ResourceData, meta interface{}) er
 	schemaName := d.Get(schemaNameAttr).(string)
 	b := bytes.NewBufferString("CREATE SCHEMA ")
 	fmt.Fprintf(b, pq.QuoteIdentifier(schemaName))
-
-	if v, ok := d.GetOk(schemaAuthorizationAttr); ok {
-		fmt.Fprint(b, " AUTHORIZATION ", pq.QuoteIdentifier(v.(string)))
-	}
 
 	query := b.String()
 	_, err = conn.Query(query)
@@ -99,8 +88,8 @@ func resourcePostgreSQLSchemaRead(d *schema.ResourceData, meta interface{}) erro
 	defer conn.Close()
 
 	schemaId := d.Id()
-	var schemaName, schemaAuthorization string
-	err = conn.QueryRow("SELECT nspname, pg_catalog.pg_get_userbyid(nspowner) FROM pg_catalog.pg_namespace WHERE nspname=$1", schemaId).Scan(&schemaName, &schemaAuthorization)
+	var schemaName string
+	err = conn.QueryRow("SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname=$1", schemaId).Scan(&schemaName)
 	switch {
 	case err == sql.ErrNoRows:
 		log.Printf("[WARN] PostgreSQL schema (%s) not found", schemaId)
@@ -110,7 +99,6 @@ func resourcePostgreSQLSchemaRead(d *schema.ResourceData, meta interface{}) erro
 		return errwrap.Wrapf("Error reading schema: {{err}}", err)
 	default:
 		d.Set(schemaNameAttr, schemaName)
-		d.Set(schemaAuthorizationAttr, schemaAuthorization)
 		d.SetId(schemaName)
 		return nil
 	}
@@ -125,10 +113,6 @@ func resourcePostgreSQLSchemaUpdate(d *schema.ResourceData, meta interface{}) er
 	defer conn.Close()
 
 	if err := setSchemaName(conn, d); err != nil {
-		return err
-	}
-
-	if err := setSchemaAuthorization(conn, d); err != nil {
 		return err
 	}
 
@@ -152,26 +136,6 @@ func setSchemaName(conn *sql.DB, d *schema.ResourceData) error {
 		return errwrap.Wrapf("Error updating schema NAME: {{err}}", err)
 	}
 	d.SetId(n)
-
-	return nil
-}
-
-func setSchemaAuthorization(conn *sql.DB, d *schema.ResourceData) error {
-	if !d.HasChange(schemaAuthorizationAttr) {
-		return nil
-	}
-
-	schemaAuthorization := d.Get(schemaAuthorizationAttr).(string)
-	if schemaAuthorization == "" {
-		return nil
-	}
-
-	schemaName := d.Get(schemaNameAttr).(string)
-	query := fmt.Sprintf("ALTER SCHEMA %s OWNER TO %s", pq.QuoteIdentifier(schemaName), pq.QuoteIdentifier(schemaAuthorization))
-
-	if _, err := conn.Query(query); err != nil {
-		return errwrap.Wrapf("Error updating schema AUTHORIZATION: {{err}}", err)
-	}
 
 	return nil
 }
