@@ -145,6 +145,12 @@ func resourceComputeInstance() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"subnetwork_project": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
@@ -485,6 +491,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			// Load up the name of this network_interface
 			networkName := d.Get(prefix + ".network").(string)
 			subnetworkName := d.Get(prefix + ".subnetwork").(string)
+			subnetworkProject := d.Get(prefix + ".subnetwork_project").(string)
 			address := d.Get(prefix + ".address").(string)
 			var networkLink, subnetworkLink string
 
@@ -500,8 +507,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 
 			} else {
 				region := getRegionFromZone(d.Get("zone").(string))
+				if subnetworkProject == "" {
+					subnetworkProject = project
+				}
 				subnetwork, err := config.clientCompute.Subnetworks.Get(
-					project, region, subnetworkName).Do()
+					subnetworkProject, region, subnetworkName).Do()
 				if err != nil {
 					return fmt.Errorf(
 						"Error referencing subnetwork '%s' in region '%s': %s",
@@ -726,11 +736,12 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			}
 
 			networkInterfaces = append(networkInterfaces, map[string]interface{}{
-				"name":          iface.Name,
-				"address":       iface.NetworkIP,
-				"network":       d.Get(fmt.Sprintf("network_interface.%d.network", i)),
-				"subnetwork":    d.Get(fmt.Sprintf("network_interface.%d.subnetwork", i)),
-				"access_config": accessConfigs,
+				"name":               iface.Name,
+				"address":            iface.NetworkIP,
+				"network":            d.Get(fmt.Sprintf("network_interface.%d.network", i)),
+				"subnetwork":         d.Get(fmt.Sprintf("network_interface.%d.subnetwork", i)),
+				"subnetwork_project": d.Get(fmt.Sprintf("network_interface.%d.subnetwork_project", i)),
+				"access_config":      accessConfigs,
 			})
 		}
 	}
