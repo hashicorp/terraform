@@ -28,6 +28,7 @@ IMPROVEMENTS:
  * provider/google: Add support for Internal Load Balancing [GH-10453]
  * provider/google: SSL certificates can now specify prefix instead of a full name [GH-10684]
  * provider/postgresql: Improved support for many PostgreSQL resources [GH-10682]
+ * provider/rundeck: enable validation for multiple values in an array [GH-8913]
  
 BUG FIXES:
 
