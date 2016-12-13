@@ -306,6 +306,12 @@
 			"revision": "edd0930276e7f1a5f2cf3e7835b5dc42a3217669"
 		},
 		{
+			"checksumSHA1": "0JgIa0ijMOz7SyIb1jnhuOfHpYE=",
+			"path": "github.com/Comcast/go-edgegrid/edgegrid",
+			"revision": "e03bc9d8e9ed7b1ba67735ac32464c9f77005d58",
+			"revisionTime": "2016-11-15T02:41:37Z"
+		},
+		{
 			"checksumSHA1": "jZHdtVQsg/9NeRqbxwy63OSbLl8=",
 			"path": "github.com/DreamItGetIT/statuscake",
 			"revision": "9bfac395790f4d221cb5088c5c411f0ba8ba5f23",
