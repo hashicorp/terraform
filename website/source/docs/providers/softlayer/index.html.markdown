@@ -13,9 +13,7 @@ The SoftLayer provider is used to manage SoftLayer resources.
 Use the navigation to the left to read about the available resources.
 
 <div class="alert alert-block alert-info">
-<strong>Note:</strong> The SoftLayer provider is new as of Terraform 0.X.
-It is ready to be used but many features are still being added. If there
-is a SoftLayer feature missing, please report it in the GitHub repo.
+<strong>Note:</strong> To get the latest SoftLayer provider plugin for Terraform, go to our [project page](https://github.com/softlayer/terraform-provider-softlayer).
 </div>
 
 ## Example Usage
