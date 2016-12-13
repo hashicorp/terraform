@@ -301,16 +301,10 @@ func resourceArmRedisCacheRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", name)
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
-
-	//log.Printf("API Response %s", spew.Sdump(resp))
-
 	d.Set("ssl_port", resp.SslPort)
-
 	d.Set("host_name", resp.HostName)
 	d.Set("port", resp.Port)
-
 	d.Set("enable_non_ssl_port", resp.EnableNonSslPort)
-
 	d.Set("capacity", resp.Sku.Capacity)
 	d.Set("family", resp.Sku.Family)
 	d.Set("sku_name", resp.Sku.Name)
