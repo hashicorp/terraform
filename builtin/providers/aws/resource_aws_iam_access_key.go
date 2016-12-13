@@ -91,6 +91,10 @@ func resourceAwsIamAccessKeyCreate(d *schema.ResourceData, meta interface{}) err
 
 		d.Set("key_fingerprint", fingerprint)
 		d.Set("encrypted_secret", encrypted)
+	} else {
+		if err := d.Set("secret", createResp.AccessKey.SecretAccessKey); err != nil {
+			return err
+		}
 	}
 
 	d.Set("ses_smtp_password",

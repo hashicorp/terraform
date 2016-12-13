@@ -29,6 +29,7 @@ func TestAccAWSAccessKey_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAccessKeyExists("aws_iam_access_key.a_key", &conf),
 					testAccCheckAWSAccessKeyAttributes(&conf),
+					resource.TestCheckResourceAttrSet("aws_iam_access_key.a_key", "secret"),
 				),
 			},
 		},
