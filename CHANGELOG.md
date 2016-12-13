@@ -13,6 +13,7 @@ FEATURES:
  * **New Resource:** `google_compute_health_check` [GH-10453]
  * **New Resource:** `google_compute_region_backend_service` [GH-10453]
  * **New Data Source:**  `aws_eip` [GH-9833]
+ * **New Data Source:**  `aws_route53_zone` [GH-9766]
  * **New Data Source:**  `aws_vpc_endpoint_services` [GH-10261]
  
 IMPROVEMENTS:
