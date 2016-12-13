@@ -30,22 +30,10 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"protocol": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: false,
-				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
-					value := v.(string)
-					forbidden := []string{"email", "sms"}
-					for _, f := range forbidden {
-						if strings.Contains(value, f) {
-							errors = append(
-								errors,
-								fmt.Errorf("Unsupported protocol (%s) for SNS Topic", value),
-							)
-						}
-					}
-					return
-				},
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     false,
+				ValidateFunc: validateSNSSubscriptionProtocol,
 			},
 			"endpoint": &schema.Schema{
 				Type:     schema.TypeString,
