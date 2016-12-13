@@ -17,7 +17,6 @@ PostgreSQL database.
 ```
 resource "postgresql_schema" "my_schema" {
   name = "my_schema"
-  authorization = "my_role"
 }
 ```
 
@@ -25,9 +24,6 @@ resource "postgresql_schema" "my_schema" {
 
 * `name` - (Required) The name of the schema. Must be unique in the PostgreSQL
   database instance where it is configured.
-
-* `authorization` - (Optional) The owner of the schema.  Defaults to the
-  username configured in the schema's provider.
 
 ## Import Example
 

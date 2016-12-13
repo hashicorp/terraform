@@ -26,34 +26,6 @@ func TestAccPostgresqlSchema_Basic(t *testing.T) {
 
 					resource.TestCheckResourceAttr(
 						"postgresql_schema.test1", "name", "foo"),
-					// `postgres` is a calculated value
-					// based on the username used in the
-					// provider
-					resource.TestCheckResourceAttr(
-						"postgresql_schema.test1", "authorization", "postgres"),
-				),
-			},
-		},
-	})
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckPostgresqlSchemaDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccPostgresqlSchemaAuthConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckPostgresqlSchemaExists("postgresql_schema.test2", "foo2"),
-					resource.TestCheckResourceAttr(
-						"postgresql_role.myrole4", "name", "myrole4"),
-					resource.TestCheckResourceAttr(
-						"postgresql_role.myrole4", "login", "true"),
-
-					resource.TestCheckResourceAttr(
-						"postgresql_schema.test2", "name", "foo2"),
-					resource.TestCheckResourceAttr(
-						"postgresql_schema.test2", "authorization", "myrole4"),
 				),
 			},
 		},
@@ -139,17 +111,5 @@ resource "postgresql_role" "myrole3" {
 
 resource "postgresql_schema" "test1" {
   name = "foo"
-}
-`
-
-var testAccPostgresqlSchemaAuthConfig = `
-resource "postgresql_role" "myrole4" {
-  name = "myrole4"
-  login = true
-}
-
-resource "postgresql_schema" "test2" {
-  name = "foo2"
-  authorization = "${postgresql_role.myrole4.name}"
 }
 `
