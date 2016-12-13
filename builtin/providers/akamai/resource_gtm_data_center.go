@@ -38,7 +38,7 @@ func resourceAkamaiGTMDataCenter() *schema.Resource {
 			},
 			"country": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 			"continent": &schema.Schema{
 				Type:     schema.TypeString,
@@ -46,11 +46,11 @@ func resourceAkamaiGTMDataCenter() *schema.Resource {
 			},
 			"latitude": &schema.Schema{
 				Type:     schema.TypeFloat,
-				Required: true,
+				Optional: true,
 			},
 			"longitude": &schema.Schema{
 				Type:     schema.TypeFloat,
-				Required: true,
+				Optional: true,
 			},
 			"virtual": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -65,28 +65,28 @@ func resourceAkamaiGTMDataCenter() *schema.Resource {
 }
 
 func resourceGTMDataCenterCreate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] Creating GTM Datacenter d: %+v", d)
+	log.Printf("[INFO] Creating GTM Data Center: %+v", d)
 
 	created, err := meta.(*Clients).GTM.DataCenterCreate(d.Get("domain").(string), dc(d))
 	if err != nil {
-		log.Printf("resourceDatacenterCreate: %v", err)
+		log.Printf("resourceDataCenterCreate: %v", err)
 		return err
 	}
 
-	log.Printf("[INFO] Created GTM Datacenter named: %s, with ID of: %d", created.DataCenter.Nickname, created.DataCenter.DataCenterID)
+	log.Printf("[INFO] Created GTM Data Center named: %s, with ID of: %d", created.DataCenter.Nickname, created.DataCenter.DataCenterID)
 
 	d.SetId(strconv.Itoa(created.DataCenter.DataCenterID))
 
-	return resourceGTMDatacenterRead(d, meta)
+	return resourceGTMDataCenterRead(d, meta)
 }
 
 func resourceGTMDataCenterRead(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] Reading GTM Datacenter: %s", d.Id())
-	dcId, err := strconv.Atoi(d.Id())
+	log.Printf("[INFO] Reading GTM Data Center: %s", d.Id())
+	dcID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return err
 	}
-	read, err := meta.(*Clients).GTM.DataCenter(d.Get("domain").(string), dcId)
+	read, err := meta.(*Clients).GTM.DataCenter(d.Get("domain").(string), dcID)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func resourceGTMDataCenterRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceGTMDataCenterUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] Updating GTM Datacenter: %s", d.Id())
+	log.Printf("[INFO] Updating GTM Data Center: %s", d.Id())
 
 	updateBody := dc(d)
 	dcID, err := strconv.Atoi(d.Id())
@@ -115,7 +115,7 @@ func resourceGTMDataCenterUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceGTMDataCenterDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] Deleting Datacenter: %s", d.Id())
+	log.Printf("[INFO] Deleting Data Center: %s", d.Id())
 	dcID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return err
