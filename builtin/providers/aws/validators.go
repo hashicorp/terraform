@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -571,5 +572,19 @@ func validateSQSFifoQueueName(v interface{}, k string) (errors []error) {
 		errors = append(errors, fmt.Errorf("FIFO queue name should ends with \".fifo\": %v", value))
 	}
 
+	return
+}
+
+func validateSNSSubscriptionProtocol(v interface{}, k string) (ws []string, errors []error) {
+	value := strings.ToLower(v.(string))
+	forbidden := []string{"email", "sms"}
+	for _, f := range forbidden {
+		if strings.Contains(value, f) {
+			errors = append(
+				errors,
+				fmt.Errorf("Unsupported protocol (%s) for SNS Topic", value),
+			)
+		}
+	}
 	return
 }
