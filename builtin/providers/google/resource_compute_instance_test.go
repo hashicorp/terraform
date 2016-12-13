@@ -423,9 +423,6 @@ func TestAccComputeInstance_subnet_xpn(t *testing.T) {
 	var instance compute.Instance
 	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
 	var xpn_host = os.Getenv("GOOGLE_XPN_HOST_PROJECT")
-	if xpn_host == "" {
-		t.Fatal("GOOGLE_XPN_HOST_PROJECT must be set for TestAccComputeInstance_subnet_xpn test")
-	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
