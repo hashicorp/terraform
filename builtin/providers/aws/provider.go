@@ -157,6 +157,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_ecs_container_definition": dataSourceAwsEcsContainerDefinition(),
 			"aws_eip":                      dataSourceAwsEip(),
 			"aws_elb_service_account":      dataSourceAwsElbServiceAccount(),
+			"aws_route53_zone":             dataSourceAwsRoute53Zone(),
 			"aws_iam_policy_document":      dataSourceAwsIamPolicyDocument(),
 			"aws_iam_server_certificate":   dataSourceAwsIAMServerCertificate(),
 			"aws_ip_ranges":                dataSourceAwsIPRanges(),
