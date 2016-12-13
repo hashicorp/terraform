@@ -3,6 +3,7 @@
 IMPROVEMENTS:
  
  * providers/google: Add subnetwork_project field to enable cross-project networking [GH-9662]
+ * provider/aws: Improved the SNS topic subscription protocols validation [GH-10704]
 
 
 
