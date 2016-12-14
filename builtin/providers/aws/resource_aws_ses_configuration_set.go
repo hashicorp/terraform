@@ -19,7 +19,7 @@ func resourceAwsSesConfigurationSet() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"configuration_set_name": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -31,7 +31,7 @@ func resourceAwsSesConfigurationSet() *schema.Resource {
 func resourceAwsSesConfigurationSetCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).sesConn
 
-	configurationSetName := d.Get("configuration_set_name").(string)
+	configurationSetName := d.Get("name").(string)
 
 	createOpts := &ses.CreateConfigurationSetInput{
 		ConfigurationSet: &ses.ConfigurationSet{
@@ -62,7 +62,7 @@ func resourceAwsSesConfigurationSetRead(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	d.Set("configuration_set_name", d.Id())
+	d.Set("name", d.Id())
 
 	return nil
 }

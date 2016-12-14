@@ -158,7 +158,7 @@ func resourceAwsSesEventDestinationDelete(d *schema.ResourceData, meta interface
 	log.Printf("[DEBUG] SES Delete Configuration Set Destination: %s", d.Id())
 	_, err := conn.DeleteConfigurationSetEventDestination(&ses.DeleteConfigurationSetEventDestinationInput{
 		ConfigurationSetName: aws.String(d.Get("configuration_set_name").(string)),
-		EventDestinationName: aws.String(d.Get("name").(string)),
+		EventDestinationName: aws.String(d.Id()),
 	})
 
 	if err != nil {
