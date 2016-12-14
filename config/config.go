@@ -915,7 +915,10 @@ func (o *Output) mergerMerge(m merger) merger {
 
 	result := *o
 	result.Name = o2.Name
+	result.Description = o2.Description
 	result.RawConfig = result.RawConfig.merge(o2.RawConfig)
+	result.Sensitive = o2.Sensitive
+	result.DependsOn = o2.DependsOn
 
 	return &result
 }
@@ -942,6 +945,10 @@ func (c *ProviderConfig) mergerMerge(m merger) merger {
 	result := *c
 	result.Name = c2.Name
 	result.RawConfig = result.RawConfig.merge(c2.RawConfig)
+
+	if c2.Alias != "" {
+		result.Alias = c2.Alias
+	}
 
 	return &result
 }
@@ -978,6 +985,9 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 	// The names should be the same, but the second name always wins.
 	result.Name = v2.Name
 
+	if v2.DeclaredType != "" {
+		result.DeclaredType = v2.DeclaredType
+	}
 	if v2.Default != nil {
 		result.Default = v2.Default
 	}
