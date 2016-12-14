@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	schemaNameAttr = "name"
+	schemaNameAttr  = "name"
+	schemaOwnerAttr = "owner"
 )
 
 func resourcePostgreSQLSchema() *schema.Resource {
@@ -32,6 +33,12 @@ func resourcePostgreSQLSchema() *schema.Resource {
 				Required:    true,
 				Description: "The name of the schema",
 			},
+			schemaOwnerAttr: {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Computed:    true,
+				Description: "The ROLE name who owns the schema",
+			},
 		},
 	}
 }
@@ -47,6 +54,11 @@ func resourcePostgreSQLSchemaCreate(d *schema.ResourceData, meta interface{}) er
 	schemaName := d.Get(schemaNameAttr).(string)
 	b := bytes.NewBufferString("CREATE SCHEMA ")
 	fmt.Fprintf(b, pq.QuoteIdentifier(schemaName))
+
+	switch v, ok := d.GetOk(schemaOwnerAttr); {
+	case ok:
+		fmt.Fprint(b, " AUTHORIZATION ", pq.QuoteIdentifier(v.(string)))
+	}
 
 	query := b.String()
 	_, err = conn.Query(query)
@@ -88,8 +100,8 @@ func resourcePostgreSQLSchemaRead(d *schema.ResourceData, meta interface{}) erro
 	defer conn.Close()
 
 	schemaId := d.Id()
-	var schemaName string
-	err = conn.QueryRow("SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname=$1", schemaId).Scan(&schemaName)
+	var schemaName, schemaOwner string
+	err = conn.QueryRow("SELECT nspname, pg_catalog.pg_get_userbyid(nspowner) FROM pg_catalog.pg_namespace WHERE nspname=$1", schemaId).Scan(&schemaName, &schemaOwner)
 	switch {
 	case err == sql.ErrNoRows:
 		log.Printf("[WARN] PostgreSQL schema (%s) not found", schemaId)
@@ -99,6 +111,7 @@ func resourcePostgreSQLSchemaRead(d *schema.ResourceData, meta interface{}) erro
 		return errwrap.Wrapf("Error reading schema: {{err}}", err)
 	default:
 		d.Set(schemaNameAttr, schemaName)
+		d.Set(schemaOwnerAttr, schemaOwner)
 		d.SetId(schemaName)
 		return nil
 	}
@@ -113,6 +126,10 @@ func resourcePostgreSQLSchemaUpdate(d *schema.ResourceData, meta interface{}) er
 	defer conn.Close()
 
 	if err := setSchemaName(conn, d); err != nil {
+		return err
+	}
+
+	if err := setSchemaOwner(conn, d); err != nil {
 		return err
 	}
 
@@ -136,6 +153,26 @@ func setSchemaName(conn *sql.DB, d *schema.ResourceData) error {
 		return errwrap.Wrapf("Error updating schema NAME: {{err}}", err)
 	}
 	d.SetId(n)
+
+	return nil
+}
+
+func setSchemaOwner(conn *sql.DB, d *schema.ResourceData) error {
+	if !d.HasChange(schemaOwnerAttr) {
+		return nil
+	}
+
+	oraw, nraw := d.GetChange(schemaOwnerAttr)
+	o := oraw.(string)
+	n := nraw.(string)
+	if n == "" {
+		return errors.New("Error setting schema owner to an empty string")
+	}
+
+	query := fmt.Sprintf("ALTER SCHEMA %s OWNER TO %s", pq.QuoteIdentifier(o), pq.QuoteIdentifier(n))
+	if _, err := conn.Query(query); err != nil {
+		return errwrap.Wrapf("Error updating schema OWNER: {{err}}", err)
+	}
 
 	return nil
 }
