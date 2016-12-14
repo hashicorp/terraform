@@ -1317,6 +1317,12 @@
 			"revisionTime": "2017-02-21T19:08:14Z"
 		},
 		{
+			"checksumSHA1": "PmgDj/xdOCRdD07WBFlIT3k1ZGw=",
+			"path": "github.com/dnsimple/dnsimple-go/dnsimple",
+			"revision": "4e6e43c563b1b01d5b711855a82c687ab5cd315d",
+			"revisionTime": "2016-12-13T14:58:42Z"
+		},
+		{
 			"checksumSHA1": "zkENTbOfU8YoxPfFwVAhTz516Dg=",
 			"path": "github.com/dustin/go-humanize",
 			"revision": "7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d",
@@ -2575,12 +2581,6 @@
 			"checksumSHA1": "mUb0GqsJK4UDh3Kx8TobjzvDUG4=",
 			"path": "github.com/pborman/uuid",
 			"revision": "dee7705ef7b324f27ceb85a121c61f2c2e8ce988"
-		},
-		{
-			"checksumSHA1": "l4Vk0AvaT/bjIzqUDn/mNlx6lmo=",
-			"path": "github.com/pearkes/dnsimple",
-			"revision": "0adf7d0dae07ba10af74af1a047c98d3d02b3382",
-			"revisionTime": "2016-10-03T16:26:59Z"
 		},
 		{
 			"checksumSHA1": "/MD+L6YZ45L3llJvG/LVUxi/BdA=",
