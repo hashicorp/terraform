@@ -1381,6 +1381,19 @@ module.child:
     ID = baz
 `
 
+const testTerraformPlanModuleProviderVarStr = `
+DIFF:
+
+module.child:
+  CREATE: aws_instance.test
+    type:  "" => "aws_instance"
+    value: "" => "hello"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanModuleVarStr = `
 DIFF:
 
