@@ -169,7 +169,7 @@ func testDecryptPasswordAndTest(nProfile, nAccessKey, key string) resource.TestC
 				NewPassword: aws.String(generatePassword(20)),
 			})
 			if err != nil {
-				if awserr, ok := err.(awserr.Error); ok && awserr.Code() == "InvalidClientTokenId" {
+				if awserr, ok := err.(awserr.Error); ok && (awserr.Code() == "InvalidClientTokenId" || awserr.Code() == "EntityTemporarilyUnmodifiable") {
 					return resource.RetryableError(err)
 				}
 
