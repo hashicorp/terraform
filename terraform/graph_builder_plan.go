@@ -92,6 +92,13 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Add root variables
 		&RootVariableTransformer{Module: b.Module},
 
+		// Create all the providers
+		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
+		&ProviderTransformer{},
+		&DisableProviderTransformer{},
+		&ParentProviderTransformer{},
+		&AttachProviderConfigTransformer{Module: b.Module},
+
 		// Add module variables
 		&ModuleVariableTransformer{Module: b.Module},
 
@@ -101,17 +108,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
-
-		// Create all the providers
-		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
-		&ProviderTransformer{},
-		&DisableProviderTransformer{},
-		&ParentProviderTransformer{},
-		&AttachProviderConfigTransformer{Module: b.Module},
-
-		// Connect references again to connect the providers, module variables,
-		// etc. This is idempotent.
-		&ReferenceTransformer{},
 
 		// Single root
 		&RootTransformer{},
