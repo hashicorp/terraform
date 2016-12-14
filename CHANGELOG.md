@@ -6,7 +6,9 @@ IMPROVEMENTS:
  * provider/aws: Improved the SNS topic subscription protocols validation [GH-10704]
  * providers/google: Add subnetwork_project field to enable cross-project networking [GH-9662]
 
+BUG FIXES:
 
+  * core: `terraform` block works in the presence of `_override` files [GH-10715]
 
 ## 0.8.0 (December 13, 2016)
 
