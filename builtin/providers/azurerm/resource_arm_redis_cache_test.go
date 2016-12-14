@@ -147,6 +147,25 @@ func TestAccAzureRMRedisCache_standard(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMRedisCache_standardWithTags(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccAzureRMRedisCache_standardWithTags, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMRedisCacheDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMRedisCacheExists("azurerm_redis_cache.test"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAzureRMRedisCache_premium(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMRedisCache_premium, ri, ri)
@@ -296,6 +315,27 @@ resource "azurerm_redis_cache" "test" {
     family              = "C"
     sku_name            = "Standard"
     enable_non_ssl_port = false
+}
+`
+
+var testAccAzureRMRedisCache_standardWithTags = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_redis_cache" "test" {
+    name                = "acctestRedis-%d"
+    location            = "${azurerm_resource_group.test.location}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    capacity            = 1
+    family              = "C"
+    sku_name            = "Standard"
+    enable_non_ssl_port = false
+
+    tags {
+    	environment = "production"
+    }
 }
 `
 
