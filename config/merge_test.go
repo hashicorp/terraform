@@ -153,6 +153,287 @@ func TestMerge(t *testing.T) {
 
 			false,
 		},
+
+		// Terraform block
+		{
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			&Config{},
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{},
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			&Config{
+				Terraform: &Terraform{
+					RequiredVersion: "A",
+				},
+			},
+			false,
+		},
+
+		// Provider alias
+		{
+			&Config{
+				ProviderConfigs: []*ProviderConfig{
+					&ProviderConfig{Alias: "foo"},
+				},
+			},
+			&Config{},
+			&Config{
+				ProviderConfigs: []*ProviderConfig{
+					&ProviderConfig{Alias: "foo"},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{},
+			&Config{
+				ProviderConfigs: []*ProviderConfig{
+					&ProviderConfig{Alias: "foo"},
+				},
+			},
+			&Config{
+				ProviderConfigs: []*ProviderConfig{
+					&ProviderConfig{Alias: "foo"},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{
+				ProviderConfigs: []*ProviderConfig{
+					&ProviderConfig{Alias: "bar"},
+				},
+			},
+			&Config{
+				ProviderConfigs: []*ProviderConfig{
+					&ProviderConfig{Alias: "foo"},
+				},
+			},
+			&Config{
+				ProviderConfigs: []*ProviderConfig{
+					&ProviderConfig{Alias: "foo"},
+				},
+			},
+			false,
+		},
+
+		// Variable type
+		{
+			&Config{
+				Variables: []*Variable{
+					&Variable{DeclaredType: "foo"},
+				},
+			},
+			&Config{},
+			&Config{
+				Variables: []*Variable{
+					&Variable{DeclaredType: "foo"},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{},
+			&Config{
+				Variables: []*Variable{
+					&Variable{DeclaredType: "foo"},
+				},
+			},
+			&Config{
+				Variables: []*Variable{
+					&Variable{DeclaredType: "foo"},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{
+				Variables: []*Variable{
+					&Variable{DeclaredType: "bar"},
+				},
+			},
+			&Config{
+				Variables: []*Variable{
+					&Variable{DeclaredType: "foo"},
+				},
+			},
+			&Config{
+				Variables: []*Variable{
+					&Variable{DeclaredType: "foo"},
+				},
+			},
+			false,
+		},
+
+		// Output description
+		{
+			&Config{
+				Outputs: []*Output{
+					&Output{Description: "foo"},
+				},
+			},
+			&Config{},
+			&Config{
+				Outputs: []*Output{
+					&Output{Description: "foo"},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{},
+			&Config{
+				Outputs: []*Output{
+					&Output{Description: "foo"},
+				},
+			},
+			&Config{
+				Outputs: []*Output{
+					&Output{Description: "foo"},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{
+				Outputs: []*Output{
+					&Output{Description: "bar"},
+				},
+			},
+			&Config{
+				Outputs: []*Output{
+					&Output{Description: "foo"},
+				},
+			},
+			&Config{
+				Outputs: []*Output{
+					&Output{Description: "foo"},
+				},
+			},
+			false,
+		},
+
+		// Output depends_on
+		{
+			&Config{
+				Outputs: []*Output{
+					&Output{DependsOn: []string{"foo"}},
+				},
+			},
+			&Config{},
+			&Config{
+				Outputs: []*Output{
+					&Output{DependsOn: []string{"foo"}},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{},
+			&Config{
+				Outputs: []*Output{
+					&Output{DependsOn: []string{"foo"}},
+				},
+			},
+			&Config{
+				Outputs: []*Output{
+					&Output{DependsOn: []string{"foo"}},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{
+				Outputs: []*Output{
+					&Output{DependsOn: []string{"bar"}},
+				},
+			},
+			&Config{
+				Outputs: []*Output{
+					&Output{DependsOn: []string{"foo"}},
+				},
+			},
+			&Config{
+				Outputs: []*Output{
+					&Output{DependsOn: []string{"foo"}},
+				},
+			},
+			false,
+		},
+
+		// Output sensitive
+		{
+			&Config{
+				Outputs: []*Output{
+					&Output{Sensitive: true},
+				},
+			},
+			&Config{},
+			&Config{
+				Outputs: []*Output{
+					&Output{Sensitive: true},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{},
+			&Config{
+				Outputs: []*Output{
+					&Output{Sensitive: true},
+				},
+			},
+			&Config{
+				Outputs: []*Output{
+					&Output{Sensitive: true},
+				},
+			},
+			false,
+		},
+
+		{
+			&Config{
+				Outputs: []*Output{
+					&Output{Sensitive: false},
+				},
+			},
+			&Config{
+				Outputs: []*Output{
+					&Output{Sensitive: true},
+				},
+			},
+			&Config{
+				Outputs: []*Output{
+					&Output{Sensitive: true},
+				},
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
