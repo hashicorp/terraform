@@ -26,6 +26,11 @@ func TestAccPostgresqlSchema_Basic(t *testing.T) {
 
 					resource.TestCheckResourceAttr(
 						"postgresql_schema.test1", "name", "foo"),
+
+					resource.TestCheckResourceAttr(
+						"postgresql_schema.test2", "name", "bar"),
+					resource.TestCheckResourceAttr(
+						"postgresql_schema.test2", "owner", "myrole3"),
 				),
 			},
 		},
@@ -111,5 +116,10 @@ resource "postgresql_role" "myrole3" {
 
 resource "postgresql_schema" "test1" {
   name = "foo"
+}
+
+resource "postgresql_schema" "test2" {
+  name = "bar"
+  owner = "${postgresql_role.myrole3.name}"
 }
 `

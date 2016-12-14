@@ -16,7 +16,8 @@ PostgreSQL database.
 
 ```
 resource "postgresql_schema" "my_schema" {
-  name = "my_schema"
+  name  = "my_schema"
+  owner = "postgres"
 }
 ```
 
@@ -25,20 +26,21 @@ resource "postgresql_schema" "my_schema" {
 * `name` - (Required) The name of the schema. Must be unique in the PostgreSQL
   database instance where it is configured.
 
+* `owner` - (Optional) The ROLE who owns the schema.
+
 ## Import Example
 
 `postgresql_schema` supports importing resources.  Supposing the following
 Terraform:
 
 ```
-provider "postgresql" {
-  alias = "admindb"
+resource "postgresql_schema" "public" {
+  name  = "public"
 }
 
 resource "postgresql_schema" "schema_foo" {
-  provider = "postgresql.admindb"
-
-  name = "my_schema"
+  name  = "my_schema"
+  owner = "postgres"
 }
 ```
 
