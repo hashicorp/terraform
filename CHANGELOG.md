@@ -5,6 +5,7 @@ IMPROVEMENTS:
  * provider/aws: Support eu-west-2 [GH-10470]
  * provider/aws: Improved the SNS topic subscription protocols validation [GH-10704]
  * providers/google: Add subnetwork_project field to enable cross-project networking [GH-9662]
+ * provider/pagerduty: Allow 'team_responder' role for pagerduty_user resource [GH-10728]
 
 BUG FIXES:
 
