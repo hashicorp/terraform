@@ -26,6 +26,12 @@ func TestFlag(t *testing.T) {
 		},
 
 		{
+			" =value",
+			nil,
+			true,
+		},
+
+		{
 			"key=value",
 			map[string]interface{}{"key": "value"},
 			false,
