@@ -587,7 +587,7 @@ func (i *Interpolater) computeResourceMultiVariable(
 		}
 
 		if multiAttr == unknownVariable {
-			return &ast.Variable{Type: ast.TypeString, Value: ""}, nil
+			return &unknownVariable, nil
 		}
 
 		values = append(values, multiAttr)

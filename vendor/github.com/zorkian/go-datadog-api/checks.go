@@ -3,16 +3,16 @@ package datadog
 type Check struct {
 	Check     string   `json:"check"`
 	HostName  string   `json:"host_name"`
-	Status    status   `json:"status"`
+	Status    Status   `json:"status"`
 	Timestamp string   `json:"timestamp,omitempty"`
 	Message   string   `json:"message,omitempty"`
 	Tags      []string `json:"tags,omitempty"`
 }
 
-type status int
+type Status int
 
 const (
-	OK status = iota
+	OK Status = iota
 	WARNING
 	CRITICAL
 	UNKNOWN

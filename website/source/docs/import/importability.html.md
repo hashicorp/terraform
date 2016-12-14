@@ -135,6 +135,7 @@ To make a resource importable, please see the
 * google_compute_instance_group_manager
 * google_compute_instance_template
 * google_compute_target_pool
+* google_project
 
 ### OpenStack
 
@@ -158,6 +159,9 @@ To make a resource importable, please see the
 * openstack_networking_secgroup_v2
 * openstack_networking_subnet_v2
 
+### PostgreSQL
+
+* postgresql_database
 
 ### Triton
 

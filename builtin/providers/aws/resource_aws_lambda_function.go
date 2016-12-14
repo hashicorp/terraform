@@ -174,24 +174,30 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Creating Lambda Function %s with role %s", functionName, iamRole)
 
+	filename, hasFilename := d.GetOk("filename")
+	s3Bucket, bucketOk := d.GetOk("s3_bucket")
+	s3Key, keyOk := d.GetOk("s3_key")
+	s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
+
+	if !hasFilename && !bucketOk && !keyOk && !versionOk {
+		return errors.New("filename or s3_* attributes must be set")
+	}
+
 	var functionCode *lambda.FunctionCode
-	if v, ok := d.GetOk("filename"); ok {
+	if hasFilename {
 		// Grab an exclusive lock so that we're only reading one function into
 		// memory at a time.
 		// See https://github.com/hashicorp/terraform/issues/9364
 		awsMutexKV.Lock(awsMutexLambdaKey)
 		defer awsMutexKV.Unlock(awsMutexLambdaKey)
-		file, err := loadFileContent(v.(string))
+		file, err := loadFileContent(filename.(string))
 		if err != nil {
-			return fmt.Errorf("Unable to load %q: %s", v.(string), err)
+			return fmt.Errorf("Unable to load %q: %s", filename.(string), err)
 		}
 		functionCode = &lambda.FunctionCode{
 			ZipFile: file,
 		}
 	} else {
-		s3Bucket, bucketOk := d.GetOk("s3_bucket")
-		s3Key, keyOk := d.GetOk("s3_key")
-		s3ObjectVersion, versionOk := d.GetOk("s3_object_version")
 		if !bucketOk || !keyOk {
 			return errors.New("s3_bucket and s3_key must all be set while using S3 code source")
 		}
@@ -495,6 +501,11 @@ func resourceAwsLambdaFunctionUpdate(d *schema.ResourceData, meta interface{}) e
 				}
 				configUpdate = true
 			}
+		} else {
+			configReq.Environment = &lambda.Environment{
+				Variables: aws.StringMap(map[string]string{}),
+			}
+			configUpdate = true
 		}
 	}
 

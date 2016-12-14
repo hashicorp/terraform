@@ -86,8 +86,8 @@ func resourceArmRouteCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	route := network.Route{
-		Name:       &name,
-		Properties: &properties,
+		Name: &name,
+		RoutePropertiesFormat: &properties,
 	}
 
 	_, err := routesClient.CreateOrUpdate(resGroup, rtName, name, route, make(chan struct{}))
@@ -130,11 +130,11 @@ func resourceArmRouteRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", routeName)
 	d.Set("resource_group_name", resGroup)
 	d.Set("route_table_name", rtName)
-	d.Set("address_prefix", resp.Properties.AddressPrefix)
-	d.Set("next_hop_type", string(resp.Properties.NextHopType))
+	d.Set("address_prefix", resp.RoutePropertiesFormat.AddressPrefix)
+	d.Set("next_hop_type", string(resp.RoutePropertiesFormat.NextHopType))
 
-	if resp.Properties.NextHopIPAddress != nil {
-		d.Set("next_hop_in_ip_address", resp.Properties.NextHopIPAddress)
+	if resp.RoutePropertiesFormat.NextHopIPAddress != nil {
+		d.Set("next_hop_in_ip_address", resp.RoutePropertiesFormat.NextHopIPAddress)
 	}
 
 	return nil

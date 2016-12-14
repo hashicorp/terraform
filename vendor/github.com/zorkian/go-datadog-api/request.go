@@ -25,23 +25,23 @@ import (
 
 // uriForAPI is to be called with something like "/v1/events" and it will give
 // the proper request URI to be posted to.
-func (self *Client) uriForAPI(api string) string {
+func (client *Client) uriForAPI(api string) string {
 	url := os.Getenv("DATADOG_HOST")
 	if url == "" {
 		url = "https://app.datadoghq.com"
 	}
 	if strings.Index(api, "?") > -1 {
 		return url + "/api" + api + "&api_key=" +
-			self.apiKey + "&application_key=" + self.appKey
+			client.apiKey + "&application_key=" + client.appKey
 	} else {
 		return url + "/api" + api + "?api_key=" +
-			self.apiKey + "&application_key=" + self.appKey
+			client.apiKey + "&application_key=" + client.appKey
 	}
 }
 
 // doJsonRequest is the simplest type of request: a method on a URI that returns
 // some JSON result which we unmarshal into the passed interface.
-func (self *Client) doJsonRequest(method, api string,
+func (client *Client) doJsonRequest(method, api string,
 	reqbody, out interface{}) error {
 	// Handle the body if they gave us one.
 	var bodyreader io.Reader
@@ -53,7 +53,7 @@ func (self *Client) doJsonRequest(method, api string,
 		bodyreader = bytes.NewReader(bjson)
 	}
 
-	req, err := http.NewRequest(method, self.uriForAPI(api), bodyreader)
+	req, err := http.NewRequest(method, client.uriForAPI(api), bodyreader)
 	if err != nil {
 		return err
 	}
@@ -64,9 +64,9 @@ func (self *Client) doJsonRequest(method, api string,
 	// Perform the request and retry it if it's not a POST request
 	var resp *http.Response
 	if method == "POST" {
-		resp, err = self.HttpClient.Do(req)
+		resp, err = client.HttpClient.Do(req)
 	} else {
-		resp, err = self.doRequestWithRetries(req, 60*time.Second)
+		resp, err = client.doRequestWithRetries(req, 60*time.Second)
 	}
 	if err != nil {
 		return err
@@ -98,8 +98,7 @@ func (self *Client) doJsonRequest(method, api string,
 		body = []byte{'{', '}'}
 	}
 
-	err = json.Unmarshal(body, &out)
-	if err != nil {
+	if err := json.Unmarshal(body, &out); err != nil {
 		return err
 	}
 	return nil
@@ -107,7 +106,7 @@ func (self *Client) doJsonRequest(method, api string,
 
 // doRequestWithRetries performs an HTTP request repeatedly for maxTime or until
 // no error and no HTTP response code higher than 299 is returned.
-func (self *Client) doRequestWithRetries(req *http.Request, maxTime time.Duration) (*http.Response, error) {
+func (client *Client) doRequestWithRetries(req *http.Request, maxTime time.Duration) (*http.Response, error) {
 	var (
 		err  error
 		resp *http.Response
@@ -116,7 +115,7 @@ func (self *Client) doRequestWithRetries(req *http.Request, maxTime time.Duratio
 	bo.MaxElapsedTime = maxTime
 
 	err = backoff.Retry(func() error {
-		resp, err = self.HttpClient.Do(req)
+		resp, err = client.HttpClient.Do(req)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,9 @@
 package terraform
 
-import "github.com/hashicorp/terraform/dag"
+import (
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/dag"
+)
 
 // GraphNodeDestroyable is the interface that nodes that can be destroyed
 // must implement. This is used to automatically handle the creation of
@@ -151,8 +154,28 @@ func (t *CreateBeforeDestroyTransformer) Transform(g *Graph) error {
 		}
 
 		// If the node doesn't need to create before destroy, then continue
-		if !dn.CreateBeforeDestroy() && noCreateBeforeDestroyAncestors(g, dn) {
-			continue
+		if !dn.CreateBeforeDestroy() {
+			if noCreateBeforeDestroyAncestors(g, dn) {
+				continue
+			}
+
+			// PURPOSELY HACKY FIX SINCE THIS TRANSFORM IS DEPRECATED.
+			// This is a hacky way to fix GH-10439. For a detailed description
+			// of the fix, see CBDEdgeTransformer, which is the equivalent
+			// transform used by the new graphs.
+			//
+			// This transform is deprecated because it is only used by the
+			// old graphs which are going to be removed.
+			var update *config.Resource
+			if dn, ok := v.(*graphNodeResourceDestroy); ok {
+				update = dn.Original.Resource
+			}
+			if dn, ok := v.(*graphNodeResourceDestroyFlat); ok {
+				update = dn.Original.Resource
+			}
+			if update != nil {
+				update.Lifecycle.CreateBeforeDestroy = true
+			}
 		}
 
 		// Get the creation side of this node

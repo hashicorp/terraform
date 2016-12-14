@@ -2,6 +2,7 @@ package google
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -408,6 +409,28 @@ func TestAccComputeInstance_subnet_custom(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccComputeInstance_subnet_custom(instanceName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceHasSubnet(&instance),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_subnet_xpn(t *testing.T) {
+	var instance compute.Instance
+	var instanceName = fmt.Sprintf("instance-test-%s", acctest.RandString(10))
+	var xpn_host = os.Getenv("GOOGLE_XPN_HOST_PROJECT")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_subnet_xpn(instanceName, xpn_host),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
@@ -1081,6 +1104,40 @@ func testAccComputeInstance_subnet_custom(instance string) string {
 		}
 
 	}`, acctest.RandString(10), acctest.RandString(10), instance)
+}
+
+func testAccComputeInstance_subnet_xpn(instance, xpn_host string) string {
+	return fmt.Sprintf(`
+	resource "google_compute_network" "inst-test-network" {
+		name = "inst-test-network-%s"
+		auto_create_subnetworks = false
+		project = "%s"
+	}
+
+	resource "google_compute_subnetwork" "inst-test-subnetwork" {
+		name = "inst-test-subnetwork-%s"
+		ip_cidr_range = "10.0.0.0/16"
+		region = "us-central1"
+		network = "${google_compute_network.inst-test-network.self_link}"
+		project = "%s"
+	}
+
+	resource "google_compute_instance" "foobar" {
+		name = "%s"
+		machine_type = "n1-standard-1"
+		zone = "us-central1-a"
+
+		disk {
+			image = "debian-8-jessie-v20160803"
+		}
+
+		network_interface {
+			subnetwork = "${google_compute_subnetwork.inst-test-subnetwork.name}"
+			subnetwork_project = "${google_compute_subnetwork.inst-test-subnetwork.project}"
+			access_config {	}
+		}
+
+	}`, acctest.RandString(10), xpn_host, acctest.RandString(10), xpn_host, instance)
 }
 
 func testAccComputeInstance_address_auto(instance string) string {

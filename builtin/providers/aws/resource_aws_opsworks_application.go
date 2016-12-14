@@ -38,6 +38,23 @@ func resourceAwsOpsworksApplication() *schema.Resource {
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+
+					expected := [7]string{"aws-flow-ruby", "java", "rails", "php", "nodejs", "static", "other"}
+
+					found := false
+					for _, b := range expected {
+						if b == value {
+							found = true
+						}
+					}
+					if !found {
+						errors = append(errors, fmt.Errorf(
+							"%q has to be one of [aws-flow-ruby, java, rails, php, nodejs, static, other]", k))
+					}
+					return
+				},
 			},
 			"stack_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -211,29 +228,32 @@ func resourceAwsOpsworksApplicationValidate(d *schema.ResourceData) error {
 		return fmt.Errorf("Only one ssl_configuration is permitted.")
 	}
 
-	if d.Get("type").(string) == opsworks.AppTypeRails {
+	if d.Get("type") == opsworks.AppTypeNodejs || d.Get("type") == opsworks.AppTypeJava {
+		// allowed attributes: none
+		if d.Get("document_root").(string) != "" || d.Get("rails_env").(string) != "" || d.Get("auto_bundle_on_deploy").(string) != "" || d.Get("aws_flow_ruby_settings").(string) != "" {
+			return fmt.Errorf("No additional attributes are allowed for app type '%s'.", d.Get("type").(string))
+		}
+	} else if d.Get("type") == opsworks.AppTypeRails {
+		// allowed attributes: document_root, rails_env, auto_bundle_on_deploy
+		if d.Get("aws_flow_ruby_settings").(string) != "" {
+			return fmt.Errorf("Only 'document_root, rails_env, auto_bundle_on_deploy' are allowed for app type '%s'.", opsworks.AppTypeRails)
+		}
+		// rails_env is required
 		if _, ok := d.GetOk("rails_env"); !ok {
 			return fmt.Errorf("Set rails_env must be set if type is set to rails.")
 		}
-	}
-	switch d.Get("type").(string) {
-	case opsworks.AppTypeStatic:
-	case opsworks.AppTypeRails:
-	case opsworks.AppTypePhp:
-	case opsworks.AppTypeOther:
-	case opsworks.AppTypeNodejs:
-	case opsworks.AppTypeJava:
-	case opsworks.AppTypeAwsFlowRuby:
-		log.Printf("[DEBUG] type supported")
-	default:
-		return fmt.Errorf("opsworks_application.type must be one of %s, %s, %s, %s, %s, %s, %s",
-			opsworks.AppTypeStatic,
-			opsworks.AppTypeRails,
-			opsworks.AppTypePhp,
-			opsworks.AppTypeOther,
-			opsworks.AppTypeNodejs,
-			opsworks.AppTypeJava,
-			opsworks.AppTypeAwsFlowRuby)
+	} else if d.Get("type") == opsworks.AppTypePhp || d.Get("type") == opsworks.AppTypeStatic || d.Get("type") == opsworks.AppTypeOther {
+		log.Printf("[DEBUG] the app type is : %s", d.Get("type").(string))
+		log.Printf("[DEBUG] the attributes are: document_root '%s', rails_env '%s', auto_bundle_on_deploy '%s', aws_flow_ruby_settings '%s'", d.Get("document_root").(string), d.Get("rails_env").(string), d.Get("auto_bundle_on_deploy").(string), d.Get("aws_flow_ruby_settings").(string))
+		// allowed attributes: document_root
+		if d.Get("rails_env").(string) != "" || d.Get("auto_bundle_on_deploy").(string) != "" || d.Get("aws_flow_ruby_settings").(string) != "" {
+			return fmt.Errorf("Only 'document_root' is allowed for app type '%s'.", d.Get("type").(string))
+		}
+	} else if d.Get("type") == opsworks.AppTypeAwsFlowRuby {
+		// allowed attributes: aws_flow_ruby_settings
+		if d.Get("document_root").(string) != "" || d.Get("rails_env").(string) != "" || d.Get("auto_bundle_on_deploy").(string) != "" {
+			return fmt.Errorf("Only 'aws_flow_ruby_settings' is allowed for app type '%s'.", d.Get("type").(string))
+		}
 	}
 
 	return nil
@@ -331,6 +351,11 @@ func resourceAwsOpsworksApplicationCreate(d *schema.ResourceData, meta interface
 func resourceAwsOpsworksApplicationUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*AWSClient).opsworksconn
 
+	err := resourceAwsOpsworksApplicationValidate(d)
+	if err != nil {
+		return err
+	}
+
 	req := &opsworks.UpdateAppInput{
 		AppId:            aws.String(d.Id()),
 		Name:             aws.String(d.Get("name").(string)),
@@ -347,7 +372,7 @@ func resourceAwsOpsworksApplicationUpdate(d *schema.ResourceData, meta interface
 
 	log.Printf("[DEBUG] Updating OpsWorks layer: %s", d.Id())
 
-	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(2*time.Minute, func() *resource.RetryError {
 		_, cerr := client.UpdateApp(req)
 		if cerr != nil {
 			log.Printf("[INFO] client error")
@@ -548,9 +573,6 @@ func resourceAwsOpsworksSetApplicationSsl(d *schema.ResourceData, v *opsworks.Ss
 }
 
 func resourceAwsOpsworksApplicationAttributes(d *schema.ResourceData) map[string]*string {
-	if d.Get("type") != opsworks.AppTypeRails {
-		return nil
-	}
 	attributes := make(map[string]*string)
 
 	if val := d.Get("document_root").(string); len(val) > 0 {
@@ -580,19 +602,30 @@ func resourceAwsOpsworksSetApplicationAttributes(d *schema.ResourceData, v map[s
 	d.Set("aws_flow_ruby_settings", nil)
 	d.Set("auto_bundle_on_deploy", nil)
 
-	if d.Get("type") != opsworks.AppTypeRails {
+	if d.Get("type") == opsworks.AppTypeNodejs || d.Get("type") == opsworks.AppTypeJava {
+		return
+	} else if d.Get("type") == opsworks.AppTypeRails {
+		if val, ok := v[opsworks.AppAttributesKeysDocumentRoot]; ok {
+			d.Set("document_root", val)
+		}
+		if val, ok := v[opsworks.AppAttributesKeysRailsEnv]; ok {
+			d.Set("rails_env", val)
+		}
+		if val, ok := v[opsworks.AppAttributesKeysAutoBundleOnDeploy]; ok {
+			d.Set("auto_bundle_on_deploy", val)
+		}
+		return
+	} else if d.Get("type") == opsworks.AppTypePhp || d.Get("type") == opsworks.AppTypeStatic || d.Get("type") == opsworks.AppTypeOther {
+		if val, ok := v[opsworks.AppAttributesKeysDocumentRoot]; ok {
+			d.Set("document_root", val)
+		}
+		return
+	} else if d.Get("type") == opsworks.AppTypeAwsFlowRuby {
+		if val, ok := v[opsworks.AppAttributesKeysAwsFlowRubySettings]; ok {
+			d.Set("aws_flow_ruby_settings", val)
+		}
 		return
 	}
-	if val, ok := v[opsworks.AppAttributesKeysDocumentRoot]; ok {
-		d.Set("document_root", val)
-	}
-	if val, ok := v[opsworks.AppAttributesKeysAwsFlowRubySettings]; ok {
-		d.Set("aws_flow_ruby_settings", val)
-	}
-	if val, ok := v[opsworks.AppAttributesKeysRailsEnv]; ok {
-		d.Set("rails_env", val)
-	}
-	if val, ok := v[opsworks.AppAttributesKeysAutoBundleOnDeploy]; ok {
-		d.Set("auto_bundle_on_deploy", val)
-	}
+
+	return
 }

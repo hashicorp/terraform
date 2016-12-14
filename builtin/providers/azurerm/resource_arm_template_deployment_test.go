@@ -156,7 +156,7 @@ func testCheckAzureRMTemplateDeploymentDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("Template Deployment still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("Template Deployment still exists:\n%#v", resp.VirtualMachineProperties)
 		}
 	}
 

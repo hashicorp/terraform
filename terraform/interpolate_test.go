@@ -364,6 +364,55 @@ func TestInterpolater_resourceVariableMulti(t *testing.T) {
 	})
 }
 
+// When a splat reference is made to an attribute that is a computed list,
+// the result should be unknown.
+func TestInterpolater_resourceVariableMultiList(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"ip.#": config.UnknownVariableValue,
+							},
+						},
+					},
+
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"ip.#": "0",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-resource-variable"),
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "aws_instance.web.*.ip", ast.Variable{
+		Value: config.UnknownVariableValue,
+		Type:  ast.TypeUnknown,
+	})
+}
+
 func TestInterpolater_resourceVariableMulti_interpolated(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{

@@ -45,6 +45,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
@@ -135,6 +136,7 @@ type AWSClient struct {
 	elasticbeanstalkconn  *elasticbeanstalk.ElasticBeanstalk
 	elastictranscoderconn *elastictranscoder.ElasticTranscoder
 	lambdaconn            *lambda.Lambda
+	lightsailconn         *lightsail.Lightsail
 	opsworksconn          *opsworks.OpsWorks
 	glacierconn           *glacier.Glacier
 	codedeployconn        *codedeploy.CodeDeploy
@@ -282,6 +284,7 @@ func (c *Config) Client() (interface{}, error) {
 	client.kinesisconn = kinesis.New(kinesisSess)
 	client.kmsconn = kms.New(sess)
 	client.lambdaconn = lambda.New(sess)
+	client.lightsailconn = lightsail.New(usEast1Sess)
 	client.opsworksconn = opsworks.New(usEast1Sess)
 	client.r53conn = route53.New(usEast1Sess)
 	client.rdsconn = rds.New(sess)
@@ -306,6 +309,7 @@ func (c *Config) ValidateRegion() error {
 		"ap-south-1",
 		"ap-southeast-1",
 		"ap-southeast-2",
+		"ca-central-1",
 		"cn-north-1",
 		"eu-central-1",
 		"eu-west-1",

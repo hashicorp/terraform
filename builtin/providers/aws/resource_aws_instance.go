@@ -268,7 +268,12 @@ func resourceAwsInstance() *schema.Resource {
 
 						"virtual_name": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+						},
+
+						"no_device": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
 						},
 					},
 				},
@@ -277,6 +282,9 @@ func resourceAwsInstance() *schema.Resource {
 					m := v.(map[string]interface{})
 					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
 					buf.WriteString(fmt.Sprintf("%s-", m["virtual_name"].(string)))
+					if v, ok := m["no_device"].(bool); ok && v {
+						buf.WriteString(fmt.Sprintf("%t-", v))
+					}
 					return hashcode.String(buf.String())
 				},
 			},
@@ -936,10 +944,21 @@ func readBlockDeviceMappingsFromConfig(
 		vL := v.(*schema.Set).List()
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
-			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
+			bdm := &ec2.BlockDeviceMapping{
 				DeviceName:  aws.String(bd["device_name"].(string)),
 				VirtualName: aws.String(bd["virtual_name"].(string)),
-			})
+			}
+			if v, ok := bd["no_device"].(bool); ok && v {
+				bdm.NoDevice = aws.String("")
+				// When NoDevice is true, just ignore VirtualName since it's not needed
+				bdm.VirtualName = nil
+			}
+
+			if bdm.NoDevice == nil && aws.StringValue(bdm.VirtualName) == "" {
+				return nil, fmt.Errorf("virtual_name cannot be empty when no_device is false or undefined.")
+			}
+
+			blockDevices = append(blockDevices, bdm)
 		}
 	}
 

@@ -391,6 +391,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			CopyTagsToSnapshot:      aws.Bool(d.Get("copy_tags_to_snapshot").(bool)),
 		}
 
+		if attr, ok := d.GetOk("name"); ok {
+			opts.DBName = aws.String(attr.(string))
+		}
+
 		if attr, ok := d.GetOk("availability_zone"); ok {
 			opts.AvailabilityZone = aws.String(attr.(string))
 		}

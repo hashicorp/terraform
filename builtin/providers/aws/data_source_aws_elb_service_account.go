@@ -13,6 +13,7 @@ var elbAccountIdPerRegionMap = map[string]string{
 	"ap-south-1":     "718504428378",
 	"ap-southeast-1": "114774131450",
 	"ap-southeast-2": "783225319266",
+	"ca-central-1":   "985666609251",
 	"cn-north-1":     "638102146993",
 	"eu-central-1":   "054676820928",
 	"eu-west-1":      "156460612806",

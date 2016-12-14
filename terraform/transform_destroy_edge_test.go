@@ -98,6 +98,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 
 type graphNodeCreatorTest struct {
 	AddrString string
+	Refs       []string
 }
 
 func (n *graphNodeCreatorTest) Name() string { return n.CreateAddr().String() }
@@ -110,13 +111,30 @@ func (n *graphNodeCreatorTest) CreateAddr() *ResourceAddress {
 	return addr
 }
 
+func (n *graphNodeCreatorTest) References() []string { return n.Refs }
+
 type graphNodeDestroyerTest struct {
 	AddrString string
 	CBD        bool
+	Modified   bool
 }
 
-func (n *graphNodeDestroyerTest) Name() string              { return n.DestroyAddr().String() + " (destroy)" }
+func (n *graphNodeDestroyerTest) Name() string {
+	result := n.DestroyAddr().String() + " (destroy)"
+	if n.Modified {
+		result += " (modified)"
+	}
+
+	return result
+}
+
 func (n *graphNodeDestroyerTest) CreateBeforeDestroy() bool { return n.CBD }
+
+func (n *graphNodeDestroyerTest) ModifyCreateBeforeDestroy(v bool) error {
+	n.Modified = true
+	return nil
+}
+
 func (n *graphNodeDestroyerTest) DestroyAddr() *ResourceAddress {
 	addr, err := ParseResourceAddress(n.AddrString)
 	if err != nil {

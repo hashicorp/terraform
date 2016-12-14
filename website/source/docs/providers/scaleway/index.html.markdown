@@ -23,8 +23,8 @@ Here is an example that will setup the following:
 
 ```hcl
 provider "scaleway" {
-  access_key = ""
   organization = ""
+  access_key = ""
   region = "par1"
 }
 

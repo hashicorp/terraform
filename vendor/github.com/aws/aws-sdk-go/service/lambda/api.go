@@ -636,6 +636,79 @@ func (c *Lambda) DeleteFunction(input *DeleteFunctionInput) (*DeleteFunctionOutp
 	return out, err
 }
 
+const opGetAccountSettings = "GetAccountSettings"
+
+// GetAccountSettingsRequest generates a "aws/request.Request" representing the
+// client's request for the GetAccountSettings operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetAccountSettings for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetAccountSettings method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetAccountSettingsRequest method.
+//    req, resp := client.GetAccountSettingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *Lambda) GetAccountSettingsRequest(input *GetAccountSettingsInput) (req *request.Request, output *GetAccountSettingsOutput) {
+	op := &request.Operation{
+		Name:       opGetAccountSettings,
+		HTTPMethod: "GET",
+		HTTPPath:   "/2016-08-19/account-settings/",
+	}
+
+	if input == nil {
+		input = &GetAccountSettingsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetAccountSettingsOutput{}
+	req.Data = output
+	return
+}
+
+// GetAccountSettings API operation for AWS Lambda.
+//
+// Returns a customer's account settings.
+//
+// You can use this operation to retrieve Lambda limit information such as code
+// size and concurrency limits. For more information on limits, see AWS Lambda
+// Limits (http://docs.aws.amazon.com/lambda/latest/dg/limits.html). You can
+// also retrieve resource usage statistics such as code storage usage and function
+// count.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Lambda's
+// API operation GetAccountSettings for usage and error information.
+//
+// Returned Error Codes:
+//   * TooManyRequestsException
+
+//
+//   * ServiceException
+//   The AWS Lambda service encountered an internal error.
+//
+func (c *Lambda) GetAccountSettings(input *GetAccountSettingsInput) (*GetAccountSettingsOutput, error) {
+	req, out := c.GetAccountSettingsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opGetAlias = "GetAlias"
 
 // GetAliasRequest generates a "aws/request.Request" representing the
@@ -1187,7 +1260,7 @@ func (c *Lambda) InvokeRequest(input *InvokeInput) (req *request.Request, output
 //   key settings.
 //
 //   * KMSAccessDeniedException
-//   Lambda was unable to decrypt the environment variables becauses KMS access
+//   Lambda was unable to decrypt the environment variables because KMS access
 //   was denied. Please check the Lambda function's KMS permissions.
 //
 //   * KMSNotFoundException
@@ -2184,6 +2257,99 @@ func (c *Lambda) UpdateFunctionConfiguration(input *UpdateFunctionConfigurationI
 	return out, err
 }
 
+// Provides limits of code size and concurrency associated with the current
+// account and region.
+type AccountLimit struct {
+	_ struct{} `type:"structure"`
+
+	// Size, in bytes, of code/dependencies that you can zip into a deployment package
+	// (uncompressed zip/jar size) for uploading. The default limit is 250 MB.
+	CodeSizeUnzipped *int64 `type:"long"`
+
+	// Size, in bytes, of a single zipped code/dependencies package you can upload
+	// for your Lambda function(.zip/.jar file). Try using AWS S3 for uploading
+	// larger files. Default limit is 50 MB.
+	CodeSizeZipped *int64 `type:"long"`
+
+	// Number of simultaneous executions of your function per region. For more information
+	// or to request a limit increase for concurrent executions, see Lambda Function
+	// Concurrent Executions (http://docs.aws.amazon.com/lambda/latest/dg/concurrent-executions.html).
+	// The default limit is 100.
+	ConcurrentExecutions *int64 `type:"integer"`
+
+	// Maximum size, in megabytes, of a code package you can upload per region.
+	// The default size is 75 GB.
+	TotalCodeSize *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s AccountLimit) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AccountLimit) GoString() string {
+	return s.String()
+}
+
+// SetCodeSizeUnzipped sets the CodeSizeUnzipped field's value.
+func (s *AccountLimit) SetCodeSizeUnzipped(v int64) *AccountLimit {
+	s.CodeSizeUnzipped = &v
+	return s
+}
+
+// SetCodeSizeZipped sets the CodeSizeZipped field's value.
+func (s *AccountLimit) SetCodeSizeZipped(v int64) *AccountLimit {
+	s.CodeSizeZipped = &v
+	return s
+}
+
+// SetConcurrentExecutions sets the ConcurrentExecutions field's value.
+func (s *AccountLimit) SetConcurrentExecutions(v int64) *AccountLimit {
+	s.ConcurrentExecutions = &v
+	return s
+}
+
+// SetTotalCodeSize sets the TotalCodeSize field's value.
+func (s *AccountLimit) SetTotalCodeSize(v int64) *AccountLimit {
+	s.TotalCodeSize = &v
+	return s
+}
+
+// Provides code size usage and function count associated with the current account
+// and region.
+type AccountUsage struct {
+	_ struct{} `type:"structure"`
+
+	// The number of your account's existing functions per region.
+	FunctionCount *int64 `type:"long"`
+
+	// Total size, in megabytes, of the account's deployment packages per region.
+	TotalCodeSize *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s AccountUsage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AccountUsage) GoString() string {
+	return s.String()
+}
+
+// SetFunctionCount sets the FunctionCount field's value.
+func (s *AccountUsage) SetFunctionCount(v int64) *AccountUsage {
+	s.FunctionCount = &v
+	return s
+}
+
+// SetTotalCodeSize sets the TotalCodeSize field's value.
+func (s *AccountUsage) SetTotalCodeSize(v int64) *AccountUsage {
+	s.TotalCodeSize = &v
+	return s
+}
+
 type AddPermissionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2557,12 +2723,20 @@ type CreateEventSourceMappingInput struct {
 	// FunctionName is a required field
 	FunctionName *string `min:"1" type:"string" required:"true"`
 
-	// The position in the stream where AWS Lambda should start reading. For more
-	// information, go to ShardIteratorType (http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html#Kinesis-GetShardIterator-request-ShardIteratorType)
+	// The position in the stream where AWS Lambda should start reading. Valid only
+	// for Kinesis streams. For more information, go to ShardIteratorType (http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html#Kinesis-GetShardIterator-request-ShardIteratorType)
 	// in the Amazon Kinesis API Reference.
 	//
 	// StartingPosition is a required field
 	StartingPosition *string `type:"string" required:"true" enum:"EventSourcePosition"`
+
+	// The timestamp of the data record from which to start reading. Used with shard
+	// iterator type (http://docs.aws.amazon.com/kinesis/latest/APIReference/API_GetShardIterator.html#Kinesis-GetShardIterator-request-ShardIteratorType)
+	// AT_TIMESTAMP. If a record with this exact timestamp does not exist, the iterator
+	// returned is for the next (later) record. If the timestamp is older than the
+	// current trim horizon, the iterator returned is for the oldest untrimmed data
+	// record (TRIM_HORIZON). Valid only for Kinesis streams.
+	StartingPositionTimestamp *time.Time `type:"timestamp" timestampFormat:"unix"`
 }
 
 // String returns the string representation
@@ -2630,6 +2804,12 @@ func (s *CreateEventSourceMappingInput) SetStartingPosition(v string) *CreateEve
 	return s
 }
 
+// SetStartingPositionTimestamp sets the StartingPositionTimestamp field's value.
+func (s *CreateEventSourceMappingInput) SetStartingPositionTimestamp(v time.Time) *CreateEventSourceMappingInput {
+	s.StartingPositionTimestamp = &v
+	return s
+}
+
 type CreateFunctionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2637,6 +2817,10 @@ type CreateFunctionInput struct {
 	//
 	// Code is a required field
 	Code *FunctionCode `type:"structure" required:"true"`
+
+	// The parent object that contains the target ARN (Amazon Resource Name) of
+	// an Amazon SQS queue or Amazon SNS topic.
+	DeadLetterConfig *DeadLetterConfig `type:"structure"`
 
 	// A short, user-defined function description. Lambda does not use this value.
 	// Assign a meaningful description as you see fit.
@@ -2688,6 +2872,11 @@ type CreateFunctionInput struct {
 	//
 	// To use the Node.js runtime v4.3, set the value to "nodejs4.3". To use earlier
 	// runtime (v0.10.42), set the value to "nodejs".
+	//
+	// You can no longer create functions using the v0.10.42 runtime version as
+	// of November, 2016. Existing functions will be supported until early 2017
+	// but we recommend you migrate them to nodejs4.3 runtime version as soon as
+	// possible.
 	//
 	// Runtime is a required field
 	Runtime *string `type:"string" required:"true" enum:"Runtime"`
@@ -2759,6 +2948,12 @@ func (s *CreateFunctionInput) SetCode(v *FunctionCode) *CreateFunctionInput {
 	return s
 }
 
+// SetDeadLetterConfig sets the DeadLetterConfig field's value.
+func (s *CreateFunctionInput) SetDeadLetterConfig(v *DeadLetterConfig) *CreateFunctionInput {
+	s.DeadLetterConfig = v
+	return s
+}
+
 // SetDescription sets the Description field's value.
 func (s *CreateFunctionInput) SetDescription(v string) *CreateFunctionInput {
 	s.Description = &v
@@ -2822,6 +3017,32 @@ func (s *CreateFunctionInput) SetTimeout(v int64) *CreateFunctionInput {
 // SetVpcConfig sets the VpcConfig field's value.
 func (s *CreateFunctionInput) SetVpcConfig(v *VpcConfig) *CreateFunctionInput {
 	s.VpcConfig = v
+	return s
+}
+
+// The parent object that contains the target ARN (Amazon Resource Name) of
+// an Amazon SQS queue or Amazon SNS topic.
+type DeadLetterConfig struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN (Amazon Resource Value) of an Amazon SQS queue or Amazon SNS topic
+	// you specify as your Dead Letter Queue (DLQ).
+	TargetArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DeadLetterConfig) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeadLetterConfig) GoString() string {
+	return s.String()
+}
+
+// SetTargetArn sets the TargetArn field's value.
+func (s *DeadLetterConfig) SetTargetArn(v string) *DeadLetterConfig {
+	s.TargetArn = &v
 	return s
 }
 
@@ -3334,6 +3555,10 @@ type FunctionConfiguration struct {
 	// The size, in bytes, of the function .zip file you uploaded.
 	CodeSize *int64 `type:"long"`
 
+	// The parent object that contains the target ARN (Amazon Resource Name) of
+	// an Amazon SQS queue or Amazon SNS topic.
+	DeadLetterConfig *DeadLetterConfig `type:"structure"`
+
 	// The user-provided description.
 	Description *string `type:"string"`
 
@@ -3402,6 +3627,12 @@ func (s *FunctionConfiguration) SetCodeSha256(v string) *FunctionConfiguration {
 // SetCodeSize sets the CodeSize field's value.
 func (s *FunctionConfiguration) SetCodeSize(v int64) *FunctionConfiguration {
 	s.CodeSize = &v
+	return s
+}
+
+// SetDeadLetterConfig sets the DeadLetterConfig field's value.
+func (s *FunctionConfiguration) SetDeadLetterConfig(v *DeadLetterConfig) *FunctionConfiguration {
+	s.DeadLetterConfig = v
 	return s
 }
 
@@ -3480,6 +3711,54 @@ func (s *FunctionConfiguration) SetVersion(v string) *FunctionConfiguration {
 // SetVpcConfig sets the VpcConfig field's value.
 func (s *FunctionConfiguration) SetVpcConfig(v *VpcConfigResponse) *FunctionConfiguration {
 	s.VpcConfig = v
+	return s
+}
+
+type GetAccountSettingsInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetAccountSettingsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAccountSettingsInput) GoString() string {
+	return s.String()
+}
+
+type GetAccountSettingsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Provides limits of code size and concurrency associated with the current
+	// account and region.
+	AccountLimit *AccountLimit `type:"structure"`
+
+	// Provides code size usage and function count associated with the current account
+	// and region.
+	AccountUsage *AccountUsage `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetAccountSettingsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetAccountSettingsOutput) GoString() string {
+	return s.String()
+}
+
+// SetAccountLimit sets the AccountLimit field's value.
+func (s *GetAccountSettingsOutput) SetAccountLimit(v *AccountLimit) *GetAccountSettingsOutput {
+	s.AccountLimit = v
+	return s
+}
+
+// SetAccountUsage sets the AccountUsage field's value.
+func (s *GetAccountSettingsOutput) SetAccountUsage(v *AccountUsage) *GetAccountSettingsOutput {
+	s.AccountUsage = v
 	return s
 }
 
@@ -4941,6 +5220,10 @@ func (s *UpdateFunctionCodeInput) SetZipFile(v []byte) *UpdateFunctionCodeInput 
 type UpdateFunctionConfigurationInput struct {
 	_ struct{} `type:"structure"`
 
+	// The parent object that contains the target ARN (Amazon Resource Name) of
+	// an Amazon SQS queue or Amazon SNS topic.
+	DeadLetterConfig *DeadLetterConfig `type:"structure"`
+
 	// A short user-defined function description. AWS Lambda does not use this value.
 	// Assign a meaningful description as you see fit.
 	Description *string `type:"string"`
@@ -4984,6 +5267,9 @@ type UpdateFunctionConfigurationInput struct {
 	//
 	// To use the Node.js runtime v4.3, set the value to "nodejs4.3". To use earlier
 	// runtime (v0.10.42), set the value to "nodejs".
+	//
+	// You can no longer downgrade to the v0.10.42 runtime version. This version
+	// will no longer be supported as of early 2017.
 	Runtime *string `type:"string" enum:"Runtime"`
 
 	// The function execution time at which AWS Lambda should terminate the function.
@@ -5028,6 +5314,12 @@ func (s *UpdateFunctionConfigurationInput) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetDeadLetterConfig sets the DeadLetterConfig field's value.
+func (s *UpdateFunctionConfigurationInput) SetDeadLetterConfig(v *DeadLetterConfig) *UpdateFunctionConfigurationInput {
+	s.DeadLetterConfig = v
+	return s
 }
 
 // SetDescription sets the Description field's value.
@@ -5174,6 +5466,9 @@ const (
 
 	// EventSourcePositionLatest is a EventSourcePosition enum value
 	EventSourcePositionLatest = "LATEST"
+
+	// EventSourcePositionAtTimestamp is a EventSourcePosition enum value
+	EventSourcePositionAtTimestamp = "AT_TIMESTAMP"
 )
 
 const (
@@ -5207,6 +5502,12 @@ const (
 
 	// RuntimePython27 is a Runtime enum value
 	RuntimePython27 = "python2.7"
+
+	// RuntimeDotnetcore10 is a Runtime enum value
+	RuntimeDotnetcore10 = "dotnetcore1.0"
+
+	// RuntimeNodejs43Edge is a Runtime enum value
+	RuntimeNodejs43Edge = "nodejs4.3-edge"
 )
 
 const (

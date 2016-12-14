@@ -105,7 +105,7 @@ func resourceArmRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if len(routes) > 0 {
-			routeSet.Properties = &network.RouteTablePropertiesFormat{
+			routeSet.RouteTablePropertiesFormat = &network.RouteTablePropertiesFormat{
 				Routes: &routes,
 			}
 		}
@@ -152,13 +152,13 @@ func resourceArmRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", resp.Location)
 
-	if resp.Properties.Routes != nil {
-		d.Set("route", schema.NewSet(resourceArmRouteTableRouteHash, flattenAzureRmRouteTableRoutes(resp.Properties.Routes)))
+	if resp.RouteTablePropertiesFormat.Routes != nil {
+		d.Set("route", schema.NewSet(resourceArmRouteTableRouteHash, flattenAzureRmRouteTableRoutes(resp.RouteTablePropertiesFormat.Routes)))
 	}
 
 	subnets := []string{}
-	if resp.Properties.Subnets != nil {
-		for _, subnet := range *resp.Properties.Subnets {
+	if resp.RouteTablePropertiesFormat.Subnets != nil {
+		for _, subnet := range *resp.RouteTablePropertiesFormat.Subnets {
 			id := subnet.ID
 			subnets = append(subnets, *id)
 		}
@@ -206,8 +206,8 @@ func expandAzureRmRouteTableRoutes(d *schema.ResourceData) ([]network.Route, err
 
 		name := data["name"].(string)
 		route := network.Route{
-			Name:       &name,
-			Properties: &properties,
+			Name: &name,
+			RoutePropertiesFormat: &properties,
 		}
 
 		routes = append(routes, route)
@@ -222,10 +222,10 @@ func flattenAzureRmRouteTableRoutes(routes *[]network.Route) []interface{} {
 	for _, route := range *routes {
 		r := make(map[string]interface{})
 		r["name"] = *route.Name
-		r["address_prefix"] = *route.Properties.AddressPrefix
-		r["next_hop_type"] = string(route.Properties.NextHopType)
-		if route.Properties.NextHopIPAddress != nil {
-			r["next_hop_in_ip_address"] = *route.Properties.NextHopIPAddress
+		r["address_prefix"] = *route.RoutePropertiesFormat.AddressPrefix
+		r["next_hop_type"] = string(route.RoutePropertiesFormat.NextHopType)
+		if route.RoutePropertiesFormat.NextHopIPAddress != nil {
+			r["next_hop_in_ip_address"] = *route.RoutePropertiesFormat.NextHopIPAddress
 		}
 		results = append(results, r)
 	}

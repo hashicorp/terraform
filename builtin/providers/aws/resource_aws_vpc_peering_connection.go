@@ -99,7 +99,9 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2conn
+	client := meta.(*AWSClient)
+	conn := client.ec2conn
+
 	pcRaw, status, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id())()
 	// Allow a failed VPC Peering Connection to fallthrough,
 	// to allow rest of the logic below to do its work.
@@ -134,10 +136,22 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[DEBUG] VPC Peering Connection response: %#v", pc)
 
+	log.Printf("[DEBUG] Account ID %s, VPC PeerConn Requester %s, Accepter %s",
+		client.accountid, *pc.RequesterVpcInfo.OwnerId, *pc.AccepterVpcInfo.OwnerId)
+
+	if (client.accountid == *pc.AccepterVpcInfo.OwnerId) && (client.accountid != *pc.RequesterVpcInfo.OwnerId) {
+		// We're the accepter
+		d.Set("peer_owner_id", pc.RequesterVpcInfo.OwnerId)
+		d.Set("peer_vpc_id", pc.RequesterVpcInfo.VpcId)
+		d.Set("vpc_id", pc.AccepterVpcInfo.VpcId)
+	} else {
+		// We're the requester
+		d.Set("peer_owner_id", pc.AccepterVpcInfo.OwnerId)
+		d.Set("peer_vpc_id", pc.AccepterVpcInfo.VpcId)
+		d.Set("vpc_id", pc.RequesterVpcInfo.VpcId)
+	}
+
 	d.Set("accept_status", pc.Status.Code)
-	d.Set("peer_owner_id", pc.AccepterVpcInfo.OwnerId)
-	d.Set("peer_vpc_id", pc.AccepterVpcInfo.VpcId)
-	d.Set("vpc_id", pc.RequesterVpcInfo.VpcId)
 
 	// When the VPC Peering Connection is pending acceptance,
 	// the details about accepter and/or requester peering

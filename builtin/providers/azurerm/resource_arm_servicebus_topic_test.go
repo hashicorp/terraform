@@ -58,10 +58,10 @@ func TestAccAzureRMServiceBusTopic_update(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMServiceBusTopic_enablePartitioning(t *testing.T) {
+func TestAccAzureRMServiceBusTopic_enablePartitioningStandard(t *testing.T) {
 	ri := acctest.RandInt()
 	preConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_basic, ri, ri, ri)
-	postConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_enablePartitioning, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_enablePartitioningStandard, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -82,6 +82,35 @@ func TestAccAzureRMServiceBusTopic_enablePartitioning(t *testing.T) {
 					// Ensure size is read back in it's original value and not the x16 value returned by Azure
 					resource.TestCheckResourceAttr(
 						"azurerm_servicebus_topic.test", "max_size_in_megabytes", "5120"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMServiceBusTopic_enablePartitioningPremium(t *testing.T) {
+	ri := acctest.RandInt()
+	preConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_basic, ri, ri, ri)
+	postConfig := fmt.Sprintf(testAccAzureRMServiceBusTopic_enablePartitioningPremium, ri, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMServiceBusTopicDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: preConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMServiceBusTopicExists("azurerm_servicebus_topic.test"),
+				),
+			},
+			resource.TestStep{
+				Config: postConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_topic.test", "enable_partitioning", "true"),
+					resource.TestCheckResourceAttr(
+						"azurerm_servicebus_topic.test", "max_size_in_megabytes", "81920"),
 				),
 			},
 		},
@@ -136,7 +165,7 @@ func testCheckAzureRMServiceBusTopicDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("ServiceBus Topic still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("ServiceBus Topic still exists:\n%#v", resp.TopicProperties)
 		}
 	}
 
@@ -194,6 +223,27 @@ resource "azurerm_servicebus_topic" "test" {
 }
 `
 
+var testAccAzureRMServiceBusTopic_basicPremium = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_servicebus_namespace" "test" {
+    name = "acctestservicebusnamespace-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    sku = "premium"
+}
+
+resource "azurerm_servicebus_topic" "test" {
+    name = "acctestservicebustopic-%d"
+    location = "West US"
+    namespace_name = "${azurerm_servicebus_namespace.test.name}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+}
+`
+
 var testAccAzureRMServiceBusTopic_update = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
@@ -217,7 +267,7 @@ resource "azurerm_servicebus_topic" "test" {
 }
 `
 
-var testAccAzureRMServiceBusTopic_enablePartitioning = `
+var testAccAzureRMServiceBusTopic_enablePartitioningStandard = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
@@ -237,6 +287,29 @@ resource "azurerm_servicebus_topic" "test" {
     resource_group_name = "${azurerm_resource_group.test.name}"
     enable_partitioning = true
 	max_size_in_megabytes = 5120
+}
+`
+
+var testAccAzureRMServiceBusTopic_enablePartitioningPremium = `
+resource "azurerm_resource_group" "test" {
+    name = "acctestRG-%d"
+    location = "West US"
+}
+
+resource "azurerm_servicebus_namespace" "test" {
+    name = "acctestservicebusnamespace-%d"
+    location = "West US"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    sku = "premium"
+}
+
+resource "azurerm_servicebus_topic" "test" {
+    name = "acctestservicebustopic-%d"
+    location = "West US"
+    namespace_name = "${azurerm_servicebus_namespace.test.name}"
+    resource_group_name = "${azurerm_resource_group.test.name}"
+    enable_partitioning = true
+	max_size_in_megabytes = 81920
 }
 `
 

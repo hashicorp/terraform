@@ -53,7 +53,7 @@ func resourceComputeVolumeAttachV2() *schema.Resource {
 
 func resourceComputeVolumeAttachV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -91,7 +91,7 @@ func resourceComputeVolumeAttachV2Create(d *schema.ResourceData, meta interface{
 
 func resourceComputeVolumeAttachV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -111,13 +111,14 @@ func resourceComputeVolumeAttachV2Read(d *schema.ResourceData, meta interface{})
 	d.Set("instance_id", attachment.ServerID)
 	d.Set("volume_id", attachment.VolumeID)
 	d.Set("device", attachment.Device)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceComputeVolumeAttachV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := config.computeV2Client(d.Get("region").(string))
+	computeClient, err := config.computeV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}

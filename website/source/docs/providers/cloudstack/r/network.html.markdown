@@ -37,17 +37,19 @@ The following arguments are supported:
 * `gateway` - (Optional) Gateway that will be provided to the instances in this
     network. Defaults to the first usable IP in the range.
 
-* `startip` - (Optional) Start of the IP block that will be available on the 
+* `startip` - (Optional) Start of the IP block that will be available on the
     network. Defaults to the second available IP in the range.
 
-* `endip` - (Optional) End of the IP block that will be available on the 
+* `endip` - (Optional) End of the IP block that will be available on the
     network. Defaults to the last available IP in the range.
+
+* `network_domain` - (Optional) DNS domain for the network.
 
 * `network_offering` - (Required) The name or ID of the network offering to use
     for this network.
 
 * `vlan` - (Optional) The VLAN number (1-4095) the network will use. This might be
-    required by the Network Offering if specifyVlan=true is set. Only the ROOT 
+    required by the Network Offering if specifyVlan=true is set. Only the ROOT
     admin can set this value.
 
 * `vpc_id` - (Optional) The VPC ID in which to create this network. Changing
@@ -64,7 +66,7 @@ The following arguments are supported:
 * `zone` - (Required) The name or ID of the zone where this network will be
     available. Changing this forces a new resource to be created.
 
-* `tags` - (Optional) A mapping of tags to assign to the resource. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
@@ -72,3 +74,4 @@ The following attributes are exported:
 
 * `id` - The ID of the network.
 * `display_text` - The display text of the network.
+* `network_domain` - DNS domain for the network.
