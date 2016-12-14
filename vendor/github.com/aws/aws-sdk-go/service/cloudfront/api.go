@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/restxml"
 )
 
-const opCreateCloudFrontOriginAccessIdentity = "CreateCloudFrontOriginAccessIdentity2016_09_29"
+const opCreateCloudFrontOriginAccessIdentity = "CreateCloudFrontOriginAccessIdentity2016_11_25"
 
 // CreateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCloudFrontOriginAccessIdentity operation. The "output" return
@@ -43,7 +43,7 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentityRequest(input *CreateCl
 	op := &request.Operation{
 		Name:       opCreateCloudFrontOriginAccessIdentity,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2016-09-29/origin-access-identity/cloudfront",
+		HTTPPath:   "/2016-11-25/origin-access-identity/cloudfront",
 	}
 
 	if input == nil {
@@ -99,7 +99,7 @@ func (c *CloudFront) CreateCloudFrontOriginAccessIdentity(input *CreateCloudFron
 	return out, err
 }
 
-const opCreateDistribution = "CreateDistribution2016_09_29"
+const opCreateDistribution = "CreateDistribution2016_11_25"
 
 // CreateDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDistribution operation. The "output" return
@@ -129,7 +129,7 @@ func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (
 	op := &request.Operation{
 		Name:       opCreateDistribution,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2016-09-29/distribution",
+		HTTPPath:   "/2016-11-25/distribution",
 	}
 
 	if input == nil {
@@ -272,13 +272,24 @@ func (c *CloudFront) CreateDistributionRequest(input *CreateDistributionInput) (
 //   * InvalidQueryStringParameters
 
 //
+//   * TooManyDistributionsWithLambdaAssociations
+//   Processing your request would cause the maximum number of distributions with
+//   Lambda function associations per owner to be exceeded.
+//
+//   * TooManyLambdaFunctionAssociations
+//   Your request contains more Lambda function associations than are allowed
+//   per distribution.
+//
+//   * InvalidLambdaFunctionAssociation
+//   The specified Lambda function association is invalid.
+//
 func (c *CloudFront) CreateDistribution(input *CreateDistributionInput) (*CreateDistributionOutput, error) {
 	req, out := c.CreateDistributionRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-const opCreateDistributionWithTags = "CreateDistributionWithTags2016_09_29"
+const opCreateDistributionWithTags = "CreateDistributionWithTags2016_11_25"
 
 // CreateDistributionWithTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateDistributionWithTags operation. The "output" return
@@ -308,7 +319,7 @@ func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistribution
 	op := &request.Operation{
 		Name:       opCreateDistributionWithTags,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2016-09-29/distribution?WithTags",
+		HTTPPath:   "/2016-11-25/distribution?WithTags",
 	}
 
 	if input == nil {
@@ -453,13 +464,24 @@ func (c *CloudFront) CreateDistributionWithTagsRequest(input *CreateDistribution
 //   * InvalidQueryStringParameters
 
 //
+//   * TooManyDistributionsWithLambdaAssociations
+//   Processing your request would cause the maximum number of distributions with
+//   Lambda function associations per owner to be exceeded.
+//
+//   * TooManyLambdaFunctionAssociations
+//   Your request contains more Lambda function associations than are allowed
+//   per distribution.
+//
+//   * InvalidLambdaFunctionAssociation
+//   The specified Lambda function association is invalid.
+//
 func (c *CloudFront) CreateDistributionWithTags(input *CreateDistributionWithTagsInput) (*CreateDistributionWithTagsOutput, error) {
 	req, out := c.CreateDistributionWithTagsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-const opCreateInvalidation = "CreateInvalidation2016_09_29"
+const opCreateInvalidation = "CreateInvalidation2016_11_25"
 
 // CreateInvalidationRequest generates a "aws/request.Request" representing the
 // client's request for the CreateInvalidation operation. The "output" return
@@ -489,7 +511,7 @@ func (c *CloudFront) CreateInvalidationRequest(input *CreateInvalidationInput) (
 	op := &request.Operation{
 		Name:       opCreateInvalidation,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2016-09-29/distribution/{DistributionId}/invalidation",
+		HTTPPath:   "/2016-11-25/distribution/{DistributionId}/invalidation",
 	}
 
 	if input == nil {
@@ -543,7 +565,7 @@ func (c *CloudFront) CreateInvalidation(input *CreateInvalidationInput) (*Create
 	return out, err
 }
 
-const opCreateStreamingDistribution = "CreateStreamingDistribution2016_09_29"
+const opCreateStreamingDistribution = "CreateStreamingDistribution2016_11_25"
 
 // CreateStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStreamingDistribution operation. The "output" return
@@ -573,7 +595,7 @@ func (c *CloudFront) CreateStreamingDistributionRequest(input *CreateStreamingDi
 	op := &request.Operation{
 		Name:       opCreateStreamingDistribution,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2016-09-29/streaming-distribution",
+		HTTPPath:   "/2016-11-25/streaming-distribution",
 	}
 
 	if input == nil {
@@ -670,7 +692,7 @@ func (c *CloudFront) CreateStreamingDistribution(input *CreateStreamingDistribut
 	return out, err
 }
 
-const opCreateStreamingDistributionWithTags = "CreateStreamingDistributionWithTags2016_09_29"
+const opCreateStreamingDistributionWithTags = "CreateStreamingDistributionWithTags2016_11_25"
 
 // CreateStreamingDistributionWithTagsRequest generates a "aws/request.Request" representing the
 // client's request for the CreateStreamingDistributionWithTags operation. The "output" return
@@ -700,7 +722,7 @@ func (c *CloudFront) CreateStreamingDistributionWithTagsRequest(input *CreateStr
 	op := &request.Operation{
 		Name:       opCreateStreamingDistributionWithTags,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2016-09-29/streaming-distribution?WithTags",
+		HTTPPath:   "/2016-11-25/streaming-distribution?WithTags",
 	}
 
 	if input == nil {
@@ -773,7 +795,7 @@ func (c *CloudFront) CreateStreamingDistributionWithTags(input *CreateStreamingD
 	return out, err
 }
 
-const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIdentity2016_09_29"
+const opDeleteCloudFrontOriginAccessIdentity = "DeleteCloudFrontOriginAccessIdentity2016_11_25"
 
 // DeleteCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteCloudFrontOriginAccessIdentity operation. The "output" return
@@ -803,7 +825,7 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentityRequest(input *DeleteCl
 	op := &request.Operation{
 		Name:       opDeleteCloudFrontOriginAccessIdentity,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/2016-09-29/origin-access-identity/cloudfront/{Id}",
+		HTTPPath:   "/2016-11-25/origin-access-identity/cloudfront/{Id}",
 	}
 
 	if input == nil {
@@ -852,7 +874,7 @@ func (c *CloudFront) DeleteCloudFrontOriginAccessIdentity(input *DeleteCloudFron
 	return out, err
 }
 
-const opDeleteDistribution = "DeleteDistribution2016_09_29"
+const opDeleteDistribution = "DeleteDistribution2016_11_25"
 
 // DeleteDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteDistribution operation. The "output" return
@@ -882,7 +904,7 @@ func (c *CloudFront) DeleteDistributionRequest(input *DeleteDistributionInput) (
 	op := &request.Operation{
 		Name:       opDeleteDistribution,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/2016-09-29/distribution/{Id}",
+		HTTPPath:   "/2016-11-25/distribution/{Id}",
 	}
 
 	if input == nil {
@@ -931,7 +953,7 @@ func (c *CloudFront) DeleteDistribution(input *DeleteDistributionInput) (*Delete
 	return out, err
 }
 
-const opDeleteStreamingDistribution = "DeleteStreamingDistribution2016_09_29"
+const opDeleteStreamingDistribution = "DeleteStreamingDistribution2016_11_25"
 
 // DeleteStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteStreamingDistribution operation. The "output" return
@@ -961,7 +983,7 @@ func (c *CloudFront) DeleteStreamingDistributionRequest(input *DeleteStreamingDi
 	op := &request.Operation{
 		Name:       opDeleteStreamingDistribution,
 		HTTPMethod: "DELETE",
-		HTTPPath:   "/2016-09-29/streaming-distribution/{Id}",
+		HTTPPath:   "/2016-11-25/streaming-distribution/{Id}",
 	}
 
 	if input == nil {
@@ -1045,7 +1067,7 @@ func (c *CloudFront) DeleteStreamingDistribution(input *DeleteStreamingDistribut
 	return out, err
 }
 
-const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity2016_09_29"
+const opGetCloudFrontOriginAccessIdentity = "GetCloudFrontOriginAccessIdentity2016_11_25"
 
 // GetCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the GetCloudFrontOriginAccessIdentity operation. The "output" return
@@ -1075,7 +1097,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityRequest(input *GetCloudFro
 	op := &request.Operation{
 		Name:       opGetCloudFrontOriginAccessIdentity,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/origin-access-identity/cloudfront/{Id}",
+		HTTPPath:   "/2016-11-25/origin-access-identity/cloudfront/{Id}",
 	}
 
 	if input == nil {
@@ -1112,7 +1134,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentity(input *GetCloudFrontOrigi
 	return out, err
 }
 
-const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIdentityConfig2016_09_29"
+const opGetCloudFrontOriginAccessIdentityConfig = "GetCloudFrontOriginAccessIdentityConfig2016_11_25"
 
 // GetCloudFrontOriginAccessIdentityConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetCloudFrontOriginAccessIdentityConfig operation. The "output" return
@@ -1142,7 +1164,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfigRequest(input *GetCl
 	op := &request.Operation{
 		Name:       opGetCloudFrontOriginAccessIdentityConfig,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/origin-access-identity/cloudfront/{Id}/config",
+		HTTPPath:   "/2016-11-25/origin-access-identity/cloudfront/{Id}/config",
 	}
 
 	if input == nil {
@@ -1179,7 +1201,7 @@ func (c *CloudFront) GetCloudFrontOriginAccessIdentityConfig(input *GetCloudFron
 	return out, err
 }
 
-const opGetDistribution = "GetDistribution2016_09_29"
+const opGetDistribution = "GetDistribution2016_11_25"
 
 // GetDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the GetDistribution operation. The "output" return
@@ -1209,7 +1231,7 @@ func (c *CloudFront) GetDistributionRequest(input *GetDistributionInput) (req *r
 	op := &request.Operation{
 		Name:       opGetDistribution,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/distribution/{Id}",
+		HTTPPath:   "/2016-11-25/distribution/{Id}",
 	}
 
 	if input == nil {
@@ -1246,7 +1268,7 @@ func (c *CloudFront) GetDistribution(input *GetDistributionInput) (*GetDistribut
 	return out, err
 }
 
-const opGetDistributionConfig = "GetDistributionConfig2016_09_29"
+const opGetDistributionConfig = "GetDistributionConfig2016_11_25"
 
 // GetDistributionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetDistributionConfig operation. The "output" return
@@ -1276,7 +1298,7 @@ func (c *CloudFront) GetDistributionConfigRequest(input *GetDistributionConfigIn
 	op := &request.Operation{
 		Name:       opGetDistributionConfig,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/distribution/{Id}/config",
+		HTTPPath:   "/2016-11-25/distribution/{Id}/config",
 	}
 
 	if input == nil {
@@ -1313,7 +1335,7 @@ func (c *CloudFront) GetDistributionConfig(input *GetDistributionConfigInput) (*
 	return out, err
 }
 
-const opGetInvalidation = "GetInvalidation2016_09_29"
+const opGetInvalidation = "GetInvalidation2016_11_25"
 
 // GetInvalidationRequest generates a "aws/request.Request" representing the
 // client's request for the GetInvalidation operation. The "output" return
@@ -1343,7 +1365,7 @@ func (c *CloudFront) GetInvalidationRequest(input *GetInvalidationInput) (req *r
 	op := &request.Operation{
 		Name:       opGetInvalidation,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/distribution/{DistributionId}/invalidation/{Id}",
+		HTTPPath:   "/2016-11-25/distribution/{DistributionId}/invalidation/{Id}",
 	}
 
 	if input == nil {
@@ -1383,7 +1405,7 @@ func (c *CloudFront) GetInvalidation(input *GetInvalidationInput) (*GetInvalidat
 	return out, err
 }
 
-const opGetStreamingDistribution = "GetStreamingDistribution2016_09_29"
+const opGetStreamingDistribution = "GetStreamingDistribution2016_11_25"
 
 // GetStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the GetStreamingDistribution operation. The "output" return
@@ -1413,7 +1435,7 @@ func (c *CloudFront) GetStreamingDistributionRequest(input *GetStreamingDistribu
 	op := &request.Operation{
 		Name:       opGetStreamingDistribution,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/streaming-distribution/{Id}",
+		HTTPPath:   "/2016-11-25/streaming-distribution/{Id}",
 	}
 
 	if input == nil {
@@ -1451,7 +1473,7 @@ func (c *CloudFront) GetStreamingDistribution(input *GetStreamingDistributionInp
 	return out, err
 }
 
-const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2016_09_29"
+const opGetStreamingDistributionConfig = "GetStreamingDistributionConfig2016_11_25"
 
 // GetStreamingDistributionConfigRequest generates a "aws/request.Request" representing the
 // client's request for the GetStreamingDistributionConfig operation. The "output" return
@@ -1481,7 +1503,7 @@ func (c *CloudFront) GetStreamingDistributionConfigRequest(input *GetStreamingDi
 	op := &request.Operation{
 		Name:       opGetStreamingDistributionConfig,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/streaming-distribution/{Id}/config",
+		HTTPPath:   "/2016-11-25/streaming-distribution/{Id}/config",
 	}
 
 	if input == nil {
@@ -1518,7 +1540,7 @@ func (c *CloudFront) GetStreamingDistributionConfig(input *GetStreamingDistribut
 	return out, err
 }
 
-const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdentities2016_09_29"
+const opListCloudFrontOriginAccessIdentities = "ListCloudFrontOriginAccessIdentities2016_11_25"
 
 // ListCloudFrontOriginAccessIdentitiesRequest generates a "aws/request.Request" representing the
 // client's request for the ListCloudFrontOriginAccessIdentities operation. The "output" return
@@ -1548,7 +1570,7 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesRequest(input *ListClou
 	op := &request.Operation{
 		Name:       opListCloudFrontOriginAccessIdentities,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/origin-access-identity/cloudfront",
+		HTTPPath:   "/2016-11-25/origin-access-identity/cloudfront",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"Marker"},
 			OutputTokens:    []string{"CloudFrontOriginAccessIdentityList.NextMarker"},
@@ -1613,7 +1635,7 @@ func (c *CloudFront) ListCloudFrontOriginAccessIdentitiesPages(input *ListCloudF
 	})
 }
 
-const opListDistributions = "ListDistributions2016_09_29"
+const opListDistributions = "ListDistributions2016_11_25"
 
 // ListDistributionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListDistributions operation. The "output" return
@@ -1643,7 +1665,7 @@ func (c *CloudFront) ListDistributionsRequest(input *ListDistributionsInput) (re
 	op := &request.Operation{
 		Name:       opListDistributions,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/distribution",
+		HTTPPath:   "/2016-11-25/distribution",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"Marker"},
 			OutputTokens:    []string{"DistributionList.NextMarker"},
@@ -1708,7 +1730,7 @@ func (c *CloudFront) ListDistributionsPages(input *ListDistributionsInput, fn fu
 	})
 }
 
-const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2016_09_29"
+const opListDistributionsByWebACLId = "ListDistributionsByWebACLId2016_11_25"
 
 // ListDistributionsByWebACLIdRequest generates a "aws/request.Request" representing the
 // client's request for the ListDistributionsByWebACLId operation. The "output" return
@@ -1738,7 +1760,7 @@ func (c *CloudFront) ListDistributionsByWebACLIdRequest(input *ListDistributions
 	op := &request.Operation{
 		Name:       opListDistributionsByWebACLId,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/distributionsByWebACLId/{WebACLId}",
+		HTTPPath:   "/2016-11-25/distributionsByWebACLId/{WebACLId}",
 	}
 
 	if input == nil {
@@ -1775,7 +1797,7 @@ func (c *CloudFront) ListDistributionsByWebACLId(input *ListDistributionsByWebAC
 	return out, err
 }
 
-const opListInvalidations = "ListInvalidations2016_09_29"
+const opListInvalidations = "ListInvalidations2016_11_25"
 
 // ListInvalidationsRequest generates a "aws/request.Request" representing the
 // client's request for the ListInvalidations operation. The "output" return
@@ -1805,7 +1827,7 @@ func (c *CloudFront) ListInvalidationsRequest(input *ListInvalidationsInput) (re
 	op := &request.Operation{
 		Name:       opListInvalidations,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/distribution/{DistributionId}/invalidation",
+		HTTPPath:   "/2016-11-25/distribution/{DistributionId}/invalidation",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"Marker"},
 			OutputTokens:    []string{"InvalidationList.NextMarker"},
@@ -1876,7 +1898,7 @@ func (c *CloudFront) ListInvalidationsPages(input *ListInvalidationsInput, fn fu
 	})
 }
 
-const opListStreamingDistributions = "ListStreamingDistributions2016_09_29"
+const opListStreamingDistributions = "ListStreamingDistributions2016_11_25"
 
 // ListStreamingDistributionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListStreamingDistributions operation. The "output" return
@@ -1906,7 +1928,7 @@ func (c *CloudFront) ListStreamingDistributionsRequest(input *ListStreamingDistr
 	op := &request.Operation{
 		Name:       opListStreamingDistributions,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/streaming-distribution",
+		HTTPPath:   "/2016-11-25/streaming-distribution",
 		Paginator: &request.Paginator{
 			InputTokens:     []string{"Marker"},
 			OutputTokens:    []string{"StreamingDistributionList.NextMarker"},
@@ -1971,7 +1993,7 @@ func (c *CloudFront) ListStreamingDistributionsPages(input *ListStreamingDistrib
 	})
 }
 
-const opListTagsForResource = "ListTagsForResource2016_09_29"
+const opListTagsForResource = "ListTagsForResource2016_11_25"
 
 // ListTagsForResourceRequest generates a "aws/request.Request" representing the
 // client's request for the ListTagsForResource operation. The "output" return
@@ -2001,7 +2023,7 @@ func (c *CloudFront) ListTagsForResourceRequest(input *ListTagsForResourceInput)
 	op := &request.Operation{
 		Name:       opListTagsForResource,
 		HTTPMethod: "GET",
-		HTTPPath:   "/2016-09-29/tagging",
+		HTTPPath:   "/2016-11-25/tagging",
 	}
 
 	if input == nil {
@@ -2044,7 +2066,7 @@ func (c *CloudFront) ListTagsForResource(input *ListTagsForResourceInput) (*List
 	return out, err
 }
 
-const opTagResource = "TagResource2016_09_29"
+const opTagResource = "TagResource2016_11_25"
 
 // TagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the TagResource operation. The "output" return
@@ -2074,7 +2096,7 @@ func (c *CloudFront) TagResourceRequest(input *TagResourceInput) (req *request.R
 	op := &request.Operation{
 		Name:       opTagResource,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2016-09-29/tagging?Operation=Tag",
+		HTTPPath:   "/2016-11-25/tagging?Operation=Tag",
 	}
 
 	if input == nil {
@@ -2119,7 +2141,7 @@ func (c *CloudFront) TagResource(input *TagResourceInput) (*TagResourceOutput, e
 	return out, err
 }
 
-const opUntagResource = "UntagResource2016_09_29"
+const opUntagResource = "UntagResource2016_11_25"
 
 // UntagResourceRequest generates a "aws/request.Request" representing the
 // client's request for the UntagResource operation. The "output" return
@@ -2149,7 +2171,7 @@ func (c *CloudFront) UntagResourceRequest(input *UntagResourceInput) (req *reque
 	op := &request.Operation{
 		Name:       opUntagResource,
 		HTTPMethod: "POST",
-		HTTPPath:   "/2016-09-29/tagging?Operation=Untag",
+		HTTPPath:   "/2016-11-25/tagging?Operation=Untag",
 	}
 
 	if input == nil {
@@ -2194,7 +2216,7 @@ func (c *CloudFront) UntagResource(input *UntagResourceInput) (*UntagResourceOut
 	return out, err
 }
 
-const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIdentity2016_09_29"
+const opUpdateCloudFrontOriginAccessIdentity = "UpdateCloudFrontOriginAccessIdentity2016_11_25"
 
 // UpdateCloudFrontOriginAccessIdentityRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCloudFrontOriginAccessIdentity operation. The "output" return
@@ -2224,7 +2246,7 @@ func (c *CloudFront) UpdateCloudFrontOriginAccessIdentityRequest(input *UpdateCl
 	op := &request.Operation{
 		Name:       opUpdateCloudFrontOriginAccessIdentity,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/2016-09-29/origin-access-identity/cloudfront/{Id}/config",
+		HTTPPath:   "/2016-11-25/origin-access-identity/cloudfront/{Id}/config",
 	}
 
 	if input == nil {
@@ -2281,7 +2303,7 @@ func (c *CloudFront) UpdateCloudFrontOriginAccessIdentity(input *UpdateCloudFron
 	return out, err
 }
 
-const opUpdateDistribution = "UpdateDistribution2016_09_29"
+const opUpdateDistribution = "UpdateDistribution2016_11_25"
 
 // UpdateDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateDistribution operation. The "output" return
@@ -2311,7 +2333,7 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 	op := &request.Operation{
 		Name:       opUpdateDistribution,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/2016-09-29/distribution/{Id}/config",
+		HTTPPath:   "/2016-11-25/distribution/{Id}/config",
 	}
 
 	if input == nil {
@@ -2450,13 +2472,24 @@ func (c *CloudFront) UpdateDistributionRequest(input *UpdateDistributionInput) (
 //   * InvalidQueryStringParameters
 
 //
+//   * TooManyDistributionsWithLambdaAssociations
+//   Processing your request would cause the maximum number of distributions with
+//   Lambda function associations per owner to be exceeded.
+//
+//   * TooManyLambdaFunctionAssociations
+//   Your request contains more Lambda function associations than are allowed
+//   per distribution.
+//
+//   * InvalidLambdaFunctionAssociation
+//   The specified Lambda function association is invalid.
+//
 func (c *CloudFront) UpdateDistribution(input *UpdateDistributionInput) (*UpdateDistributionOutput, error) {
 	req, out := c.UpdateDistributionRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-const opUpdateStreamingDistribution = "UpdateStreamingDistribution2016_09_29"
+const opUpdateStreamingDistribution = "UpdateStreamingDistribution2016_11_25"
 
 // UpdateStreamingDistributionRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateStreamingDistribution operation. The "output" return
@@ -2486,7 +2519,7 @@ func (c *CloudFront) UpdateStreamingDistributionRequest(input *UpdateStreamingDi
 	op := &request.Operation{
 		Name:       opUpdateStreamingDistribution,
 		HTTPMethod: "PUT",
-		HTTPPath:   "/2016-09-29/streaming-distribution/{Id}/config",
+		HTTPPath:   "/2016-11-25/streaming-distribution/{Id}/config",
 	}
 
 	if input == nil {
@@ -2835,6 +2868,10 @@ type CacheBehavior struct {
 	// ForwardedValues is a required field
 	ForwardedValues *ForwardedValues `type:"structure" required:"true"`
 
+	// A complex type that contains zero or more Lambda function associations for
+	// a cache behavior.
+	LambdaFunctionAssociations *LambdaFunctionAssociations `type:"structure"`
+
 	// The maximum amount of time that you want objects to stay in CloudFront caches
 	// before CloudFront forwards another request to your origin to determine whether
 	// the object has been updated. The value that you specify applies only when
@@ -2982,6 +3019,11 @@ func (s *CacheBehavior) Validate() error {
 			invalidParams.AddNested("ForwardedValues", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.LambdaFunctionAssociations != nil {
+		if err := s.LambdaFunctionAssociations.Validate(); err != nil {
+			invalidParams.AddNested("LambdaFunctionAssociations", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.TrustedSigners != nil {
 		if err := s.TrustedSigners.Validate(); err != nil {
 			invalidParams.AddNested("TrustedSigners", err.(request.ErrInvalidParams))
@@ -3015,6 +3057,12 @@ func (s *CacheBehavior) SetDefaultTTL(v int64) *CacheBehavior {
 // SetForwardedValues sets the ForwardedValues field's value.
 func (s *CacheBehavior) SetForwardedValues(v *ForwardedValues) *CacheBehavior {
 	s.ForwardedValues = v
+	return s
+}
+
+// SetLambdaFunctionAssociations sets the LambdaFunctionAssociations field's value.
+func (s *CacheBehavior) SetLambdaFunctionAssociations(v *LambdaFunctionAssociations) *CacheBehavior {
+	s.LambdaFunctionAssociations = v
 	return s
 }
 
@@ -4221,6 +4269,10 @@ type DefaultCacheBehavior struct {
 	// ForwardedValues is a required field
 	ForwardedValues *ForwardedValues `type:"structure" required:"true"`
 
+	// A complex type that contains zero or more Lambda function associations for
+	// a cache behavior.
+	LambdaFunctionAssociations *LambdaFunctionAssociations `type:"structure"`
+
 	MaxTTL *int64 `type:"long"`
 
 	// The minimum amount of time that you want objects to stay in CloudFront caches
@@ -4338,6 +4390,11 @@ func (s *DefaultCacheBehavior) Validate() error {
 			invalidParams.AddNested("ForwardedValues", err.(request.ErrInvalidParams))
 		}
 	}
+	if s.LambdaFunctionAssociations != nil {
+		if err := s.LambdaFunctionAssociations.Validate(); err != nil {
+			invalidParams.AddNested("LambdaFunctionAssociations", err.(request.ErrInvalidParams))
+		}
+	}
 	if s.TrustedSigners != nil {
 		if err := s.TrustedSigners.Validate(); err != nil {
 			invalidParams.AddNested("TrustedSigners", err.(request.ErrInvalidParams))
@@ -4371,6 +4428,12 @@ func (s *DefaultCacheBehavior) SetDefaultTTL(v int64) *DefaultCacheBehavior {
 // SetForwardedValues sets the ForwardedValues field's value.
 func (s *DefaultCacheBehavior) SetForwardedValues(v *ForwardedValues) *DefaultCacheBehavior {
 	s.ForwardedValues = v
+	return s
+}
+
+// SetLambdaFunctionAssociations sets the LambdaFunctionAssociations field's value.
+func (s *DefaultCacheBehavior) SetLambdaFunctionAssociations(v *LambdaFunctionAssociations) *DefaultCacheBehavior {
+	s.LambdaFunctionAssociations = v
 	return s
 }
 
@@ -6599,6 +6662,107 @@ func (s *KeyPairIds) SetItems(v []*string) *KeyPairIds {
 
 // SetQuantity sets the Quantity field's value.
 func (s *KeyPairIds) SetQuantity(v int64) *KeyPairIds {
+	s.Quantity = &v
+	return s
+}
+
+// A complex type that contains a Lambda function association.
+type LambdaFunctionAssociation struct {
+	_ struct{} `type:"structure"`
+
+	// Specifies the event type that triggers a Lambda function invocation. Valid
+	// values are:
+	//
+	//    * viewer-request
+	//
+	//    * origin-request
+	//
+	//    * viewer-response
+	//
+	//    * origin-response
+	EventType *string `type:"string" enum:"EventType"`
+
+	// The ARN of the Lambda function.
+	LambdaFunctionARN *string `type:"string"`
+}
+
+// String returns the string representation
+func (s LambdaFunctionAssociation) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LambdaFunctionAssociation) GoString() string {
+	return s.String()
+}
+
+// SetEventType sets the EventType field's value.
+func (s *LambdaFunctionAssociation) SetEventType(v string) *LambdaFunctionAssociation {
+	s.EventType = &v
+	return s
+}
+
+// SetLambdaFunctionARN sets the LambdaFunctionARN field's value.
+func (s *LambdaFunctionAssociation) SetLambdaFunctionARN(v string) *LambdaFunctionAssociation {
+	s.LambdaFunctionARN = &v
+	return s
+}
+
+// A complex type that specifies a list of Lambda functions associations for
+// a cache behavior.
+//
+// If you want to invoke one or more Lambda functions triggered by requests
+// that match the PathPattern of the cache behavior, specify the applicable
+// values for Quantity and Items. Note that there can be up to 4 LambdaFunctionAssociation
+// items in this list (one for each possible value of EventType) and each EventType
+// can be associated with the Lambda function only once.
+//
+// If you don't want to invoke any Lambda functions for the requests that match
+// PathPattern, specify 0 for Quantity and omit Items.
+type LambdaFunctionAssociations struct {
+	_ struct{} `type:"structure"`
+
+	// Optional: A complex type that contains LambdaFunctionAssociation items for
+	// this cache behavior. If Quantity is 0, you can omit Items.
+	Items []*LambdaFunctionAssociation `locationNameList:"LambdaFunctionAssociation" type:"list"`
+
+	// The number of Lambda function associations for this cache behavior.
+	//
+	// Quantity is a required field
+	Quantity *int64 `type:"integer" required:"true"`
+}
+
+// String returns the string representation
+func (s LambdaFunctionAssociations) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s LambdaFunctionAssociations) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *LambdaFunctionAssociations) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "LambdaFunctionAssociations"}
+	if s.Quantity == nil {
+		invalidParams.Add(request.NewErrParamRequired("Quantity"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetItems sets the Items field's value.
+func (s *LambdaFunctionAssociations) SetItems(v []*LambdaFunctionAssociation) *LambdaFunctionAssociations {
+	s.Items = v
+	return s
+}
+
+// SetQuantity sets the Quantity field's value.
+func (s *LambdaFunctionAssociations) SetQuantity(v int64) *LambdaFunctionAssociations {
 	s.Quantity = &v
 	return s
 }
@@ -9332,10 +9496,6 @@ func (s *UpdateStreamingDistributionOutput) SetStreamingDistribution(v *Streamin
 type ViewerCertificate struct {
 	_ struct{} `type:"structure"`
 
-	// If you want viewers to use HTTPS to request your objects and you're using
-	// an alternate domain name in your object URLs (for example, https://example.com/logo.jpg),
-	// specify the ACM certificate ARN of the custom viewer certificate for this
-	// distribution. Specify either this value, IAMCertificateId, or CloudFrontDefaultCertificate.
 	ACMCertificateArn *string `type:"string"`
 
 	// Include one of these values to specify the following:
@@ -9423,16 +9583,8 @@ type ViewerCertificate struct {
 	// IAMCertificateId, or CloudFrontDefaultCertificate].
 	CertificateSource *string `deprecated:"true" type:"string" enum:"CertificateSource"`
 
-	// If you want viewers to use HTTPS to request your objects and you're using
-	// the CloudFront domain name of your distribution in your object URLs (for
-	// example, https://d111111abcdef8.cloudfront.net/logo.jpg), set to true. Omit
-	// this value if you are setting an ACMCertificateArn or IAMCertificateId.
 	CloudFrontDefaultCertificate *bool `type:"boolean"`
 
-	// If you want viewers to use HTTPS to request your objects and you're using
-	// an alternate domain name in your object URLs (for example, https://example.com/logo.jpg),
-	// specify the IAM certificate identifier of the custom viewer certificate for
-	// this distribution. Specify either this value, ACMCertificateArn, or CloudFrontDefaultCertificate.
 	IAMCertificateId *string `type:"string"`
 
 	// Specify the minimum version of the SSL/TLS protocol that you want CloudFront
@@ -9542,6 +9694,20 @@ const (
 
 	// CertificateSourceAcm is a CertificateSource enum value
 	CertificateSourceAcm = "acm"
+)
+
+const (
+	// EventTypeViewerRequest is a EventType enum value
+	EventTypeViewerRequest = "viewer-request"
+
+	// EventTypeViewerResponse is a EventType enum value
+	EventTypeViewerResponse = "viewer-response"
+
+	// EventTypeOriginRequest is a EventType enum value
+	EventTypeOriginRequest = "origin-request"
+
+	// EventTypeOriginResponse is a EventType enum value
+	EventTypeOriginResponse = "origin-response"
 )
 
 const (

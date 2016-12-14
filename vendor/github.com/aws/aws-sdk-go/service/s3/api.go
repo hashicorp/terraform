@@ -9740,8 +9740,7 @@ type GetObjectTaggingInput struct {
 	// Key is a required field
 	Key *string `location:"uri" locationName:"Key" min:"1" type:"string" required:"true"`
 
-	// VersionId is a required field
-	VersionId *string `location:"uri" locationName:"VersionId" type:"string" required:"true"`
+	VersionId *string `location:"querystring" locationName:"versionId" type:"string"`
 }
 
 // String returns the string representation
@@ -9765,9 +9764,6 @@ func (s *GetObjectTaggingInput) Validate() error {
 	}
 	if s.Key != nil && len(*s.Key) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
-	}
-	if s.VersionId == nil {
-		invalidParams.Add(request.NewErrParamRequired("VersionId"))
 	}
 
 	if invalidParams.Len() > 0 {
@@ -15453,8 +15449,7 @@ type PutObjectTaggingInput struct {
 	// Tagging is a required field
 	Tagging *Tagging `locationName:"Tagging" type:"structure" required:"true"`
 
-	// VersionId is a required field
-	VersionId *string `location:"uri" locationName:"VersionId" type:"string" required:"true"`
+	VersionId *string `location:"querystring" locationName:"versionId" type:"string"`
 }
 
 // String returns the string representation
@@ -15481,9 +15476,6 @@ func (s *PutObjectTaggingInput) Validate() error {
 	}
 	if s.Tagging == nil {
 		invalidParams.Add(request.NewErrParamRequired("Tagging"))
-	}
-	if s.VersionId == nil {
-		invalidParams.Add(request.NewErrParamRequired("VersionId"))
 	}
 	if s.Tagging != nil {
 		if err := s.Tagging.Validate(); err != nil {

@@ -51052,6 +51052,12 @@ const (
 	// InstanceTypeT2Large is a InstanceType enum value
 	InstanceTypeT2Large = "t2.large"
 
+	// InstanceTypeT2Xlarge is a InstanceType enum value
+	InstanceTypeT2Xlarge = "t2.xlarge"
+
+	// InstanceTypeT22xlarge is a InstanceType enum value
+	InstanceTypeT22xlarge = "t2.2xlarge"
+
 	// InstanceTypeM1Small is a InstanceType enum value
 	InstanceTypeM1Small = "m1.small"
 
@@ -51120,6 +51126,24 @@ const (
 
 	// InstanceTypeR38xlarge is a InstanceType enum value
 	InstanceTypeR38xlarge = "r3.8xlarge"
+
+	// InstanceTypeR4Large is a InstanceType enum value
+	InstanceTypeR4Large = "r4.large"
+
+	// InstanceTypeR4Xlarge is a InstanceType enum value
+	InstanceTypeR4Xlarge = "r4.xlarge"
+
+	// InstanceTypeR42xlarge is a InstanceType enum value
+	InstanceTypeR42xlarge = "r4.2xlarge"
+
+	// InstanceTypeR44xlarge is a InstanceType enum value
+	InstanceTypeR44xlarge = "r4.4xlarge"
+
+	// InstanceTypeR48xlarge is a InstanceType enum value
+	InstanceTypeR48xlarge = "r4.8xlarge"
+
+	// InstanceTypeR416xlarge is a InstanceType enum value
+	InstanceTypeR416xlarge = "r4.16xlarge"
 
 	// InstanceTypeX116xlarge is a InstanceType enum value
 	InstanceTypeX116xlarge = "x1.16xlarge"
