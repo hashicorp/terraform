@@ -21,6 +21,13 @@ func (v *Flag) Set(raw string) error {
 	}
 
 	key, input := raw[0:idx], raw[idx+1:]
+
+	// Trim the whitespace on the key
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return fmt.Errorf("No key to left '=' in arg: %s", raw)
+	}
+
 	value, err := ParseInput(input)
 	if err != nil {
 		return err

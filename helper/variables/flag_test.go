@@ -20,6 +20,18 @@ func TestFlag(t *testing.T) {
 		Error  bool
 	}{
 		{
+			"=value",
+			nil,
+			true,
+		},
+
+		{
+			" =value",
+			nil,
+			true,
+		},
+
+		{
 			"key=value",
 			map[string]interface{}{"key": "value"},
 			false,
@@ -40,6 +52,24 @@ func TestFlag(t *testing.T) {
 		{
 			"key=false",
 			map[string]interface{}{"key": "false"},
+			false,
+		},
+
+		{
+			"key =value",
+			map[string]interface{}{"key": "value"},
+			false,
+		},
+
+		{
+			"key = value",
+			map[string]interface{}{"key": " value"},
+			false,
+		},
+
+		{
+			`key = "value"`,
+			map[string]interface{}{"key": "value"},
 			false,
 		},
 
