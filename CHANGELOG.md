@@ -9,6 +9,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * core: `terraform` block works in the presence of `_override` files [GH-10715]
+  * core: Fix error when a provider in a module only referenced a variable [GH-10719]
 
 ## 0.8.0 (December 13, 2016)
 
