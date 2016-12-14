@@ -90,7 +90,27 @@ func TestAccAWSUserLoginProfile_notAKey(t *testing.T) {
 			{
 				// We own this account but it doesn't have any key associated with it
 				Config:      testAccAWSUserLoginProfileConfig(username, "/", "lolimnotakey"),
-				ExpectError: regexp.MustCompile(`Error encrypting password`),
+				ExpectError: regexp.MustCompile(`Error encrypting Password`),
+			},
+		},
+	})
+}
+
+func TestAccAWSUserLoginProfile_customPassword(t *testing.T) {
+	var conf iam.GetLoginProfileOutput
+
+	username := fmt.Sprintf("test-user-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSUserLoginProfileDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSUserLoginProfileConfigCustomPassword(username, "/", "MyP@ssw0rd@#$!@#$^&*()_+-=[]{}|'%"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSUserLoginProfileExists("aws_iam_user_login_profile.user", &conf),
+				),
 			},
 		},
 	})
@@ -206,44 +226,56 @@ func testAccCheckAWSUserLoginProfileExists(n string, res *iam.GetLoginProfileOut
 	}
 }
 
-func testAccAWSUserLoginProfileConfig(r, p, key string) string {
-	return fmt.Sprintf(`
+const testAccAWSUserLoginProfileBaseConfig = `
 resource "aws_iam_user" "user" {
-	name = "%s"
-	path = "%s"
-	force_destroy = true
+    name = "%s"
+    path = "%s"
+    force_destroy = true
 }
 
 data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "user" {
-	statement {
-		effect = "Allow"
-		actions = ["iam:GetAccountPasswordPolicy"]
-		resources = ["*"]
-	}
-	statement {
-		effect = "Allow"
-		actions = ["iam:ChangePassword"]
-		resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/&{aws:username}"]
-	}
+    statement {
+        effect = "Allow"
+        actions = ["iam:GetAccountPasswordPolicy"]
+        resources = ["*"]
+    }
+    statement {
+        effect = "Allow"
+        actions = ["iam:ChangePassword"]
+        resources = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/&{aws:username}"]
+    }
 }
 
 resource "aws_iam_user_policy" "user" {
-	name = "AllowChangeOwnPassword"
-	user = "${aws_iam_user.user.name}"
-	policy = "${data.aws_iam_policy_document.user.json}"
+    name = "AllowChangeOwnPassword"
+    user = "${aws_iam_user.user.name}"
+    policy = "${data.aws_iam_policy_document.user.json}"
 }
 
 resource "aws_iam_access_key" "user" {
-	user = "${aws_iam_user.user.name}"
+    user = "${aws_iam_user.user.name}"
 }
+`
 
+func testAccAWSUserLoginProfileConfig(r, p, key string) string {
+	return fmt.Sprintf(testAccAWSUserLoginProfileBaseConfig+`
 resource "aws_iam_user_login_profile" "user" {
         user = "${aws_iam_user.user.name}"
-        pgp_key = "%s"
+        pgp_key = <<EOF
+%sEOF
 }
 `, r, p, key)
+}
+
+func testAccAWSUserLoginProfileConfigCustomPassword(r, p, password string) string {
+	return fmt.Sprintf(testAccAWSUserLoginProfileBaseConfig+`
+resource "aws_iam_user_login_profile" "user" {
+        user = "${aws_iam_user.user.name}"
+        password = "%s"
+}
+`, r, p, password)
 }
 
 const testPubKey1 = `mQENBFXbjPUBCADjNjCUQwfxKL+RR2GA6pv/1K+zJZ8UWIF9S0lk7cVIEfJiprzzwiMwBS5cD0da
