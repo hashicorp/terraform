@@ -11,6 +11,10 @@ BUG FIXES:
   * core: Handle whitespace around the key in the `-var` flag. [GH-10717]
   * core: `terraform` block works in the presence of `_override` files [GH-10715]
   * core: Fix error when a provider in a module only referenced a variable [GH-10719]
+  
+DEPRECATION REMOVALS:
+
+  * provider/aws: Removed deprecated `parameter_group` from `aws_rds_cluster` [GH-10733]
 
 ## 0.8.0 (December 13, 2016)
 
