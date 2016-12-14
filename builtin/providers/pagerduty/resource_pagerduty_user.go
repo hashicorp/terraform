@@ -39,7 +39,7 @@ func resourcePagerDutyUser() *schema.Resource {
 					"limited_user",
 					"owner",
 					"read_only_user",
-          "team_responder",
+					"team_responder",
 					"user",
 				}),
 			},
