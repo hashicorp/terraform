@@ -657,6 +657,29 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_moduleProviderVar(t *testing.T) {
+	m := testModule(t, "plan-module-provider-var")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanModuleProviderVarStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_moduleVar(t *testing.T) {
 	m := testModule(t, "plan-module-var")
 	p := testProvider("aws")
