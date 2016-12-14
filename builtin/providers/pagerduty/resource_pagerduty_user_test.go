@@ -161,7 +161,7 @@ resource "pagerduty_user" "foo" {
   name        = "bar"
   email       = "bar@foo.com"
   color       = "red"
-  role        = "user"
+  role        = "team_responder"
   job_title   = "bar"
   description = "bar"
 }
