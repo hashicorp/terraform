@@ -30,6 +30,10 @@ func resourcePagerDutyEscalationPolicy() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
+			"repeat_enabled": {
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"teams": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -94,6 +98,10 @@ func buildEscalationPolicyStruct(d *schema.ResourceData) *pagerduty.EscalationPo
 		escalationPolicy.Teams = expandTeams(attr.([]interface{}))
 	}
 
+	if attr, ok := d.GetOk("repeat_enabled"); ok {
+		escalationPolicy.RepeatEnabled = attr.(bool)
+	}
+
 	return &escalationPolicy
 }
 
@@ -132,6 +140,7 @@ func resourcePagerDutyEscalationPolicyRead(d *schema.ResourceData, meta interfac
 	d.Set("teams", escalationPolicy.Teams)
 	d.Set("description", escalationPolicy.Description)
 	d.Set("num_loops", escalationPolicy.NumLoops)
+	d.Set("repeat_enabled", escalationPolicy.RepeatEnabled)
 
 	if err := d.Set("rule", flattenEscalationRules(escalationPolicy.EscalationRules)); err != nil {
 		return err

@@ -10,6 +10,7 @@ import (
 type Restriction struct {
 	Type            string `json:"type,omitempty"`
 	StartTimeOfDay  string `json:"start_time_of_day,omitempty"`
+	StartDayOfWeek  uint   `json:"start_day_of_week,omitempty"`
 	DurationSeconds uint   `json:"duration_seconds,omitempty"`
 }
 

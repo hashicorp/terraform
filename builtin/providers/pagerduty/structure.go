@@ -95,6 +95,7 @@ func expandScheduleLayers(list []interface{}) []pagerduty.ScheduleLayer {
 				pagerduty.Restriction{
 					Type:            restriction["type"].(string),
 					StartTimeOfDay:  restriction["start_time_of_day"].(string),
+					StartDayOfWeek:  uint(restriction["start_day_of_week"].(int)),
 					DurationSeconds: uint(restriction["duration_seconds"].(int)),
 				},
 			)
@@ -149,6 +150,7 @@ func flattenScheduleLayers(list []pagerduty.ScheduleLayer) []map[string]interfac
 				restrictions = append(restrictions, map[string]interface{}{
 					"duration_seconds":  r.DurationSeconds,
 					"start_time_of_day": r.StartTimeOfDay,
+					"start_day_of_week": r.StartDayOfWeek,
 					"type":              r.Type,
 				})
 			}
