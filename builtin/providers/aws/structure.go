@@ -695,7 +695,10 @@ func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]in
 func expandStringList(configured []interface{}) []*string {
 	vs := make([]*string, 0, len(configured))
 	for _, v := range configured {
-		vs = append(vs, aws.String(v.(string)))
+		val, ok := v.(string)
+		if ok && val != "" {
+			vs = append(vs, aws.String(v.(string)))
+		}
 	}
 	return vs
 }
