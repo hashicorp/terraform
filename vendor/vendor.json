@@ -312,8 +312,10 @@
 			"revisionTime": "2016-12-01T15:35:21Z"
 		},
 		{
+			"checksumSHA1": "nomT+8bvze/Qmc0tK0r0mwgHV6M=",
 			"path": "github.com/Ensighten/udnssdk",
-			"revision": "0290933f5e8afd933f2823fce32bf2847e6ea603"
+			"revision": "9f1218928b30c6dec7f2c184c47286abc325deb9",
+			"revisionTime": "2016-06-13T20:05:45Z"
 		},
 		{
 			"checksumSHA1": "B+GonfgNwOAJMEe0WUHQGATRtMA=",
