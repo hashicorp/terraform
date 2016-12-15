@@ -3,15 +3,16 @@ package dnsimple
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
+	"github.com/dnsimple/dnsimple-go/dnsimple"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/pearkes/dnsimple"
 )
 
 func TestAccDNSimpleRecord_Basic(t *testing.T) {
-	var record dnsimple.Record
+	var record dnsimple.ZoneRecord
 	domain := os.Getenv("DNSIMPLE_DOMAIN")
 
 	resource.Test(t, resource.TestCase{
@@ -37,7 +38,7 @@ func TestAccDNSimpleRecord_Basic(t *testing.T) {
 }
 
 func TestAccDNSimpleRecord_Updated(t *testing.T) {
-	var record dnsimple.Record
+	var record dnsimple.ZoneRecord
 	domain := os.Getenv("DNSIMPLE_DOMAIN")
 
 	resource.Test(t, resource.TestCase{
@@ -83,8 +84,8 @@ func testAccCheckDNSimpleRecordDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.RetrieveRecord(rs.Primary.Attributes["domain"], rs.Primary.ID)
-
+		recordID, _ := strconv.Atoi(rs.Primary.ID)
+		_, err := client.Zones.GetRecord("TODO-ACCOUNT", rs.Primary.Attributes["domain"], recordID)
 		if err == nil {
 			return fmt.Errorf("Record still exists")
 		}
@@ -93,7 +94,7 @@ func testAccCheckDNSimpleRecordDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDNSimpleRecordAttributes(record *dnsimple.Record) resource.TestCheckFunc {
+func testAccCheckDNSimpleRecordAttributes(record *dnsimple.ZoneRecord) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if record.Content != "192.168.0.10" {
@@ -104,7 +105,7 @@ func testAccCheckDNSimpleRecordAttributes(record *dnsimple.Record) resource.Test
 	}
 }
 
-func testAccCheckDNSimpleRecordAttributesUpdated(record *dnsimple.Record) resource.TestCheckFunc {
+func testAccCheckDNSimpleRecordAttributesUpdated(record *dnsimple.ZoneRecord) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if record.Content != "192.168.0.11" {
@@ -115,7 +116,7 @@ func testAccCheckDNSimpleRecordAttributesUpdated(record *dnsimple.Record) resour
 	}
 }
 
-func testAccCheckDNSimpleRecordExists(n string, record *dnsimple.Record) resource.TestCheckFunc {
+func testAccCheckDNSimpleRecordExists(n string, record *dnsimple.ZoneRecord) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -129,13 +130,14 @@ func testAccCheckDNSimpleRecordExists(n string, record *dnsimple.Record) resourc
 
 		client := testAccProvider.Meta().(*dnsimple.Client)
 
-		foundRecord, err := client.RetrieveRecord(rs.Primary.Attributes["domain"], rs.Primary.ID)
-
+		recordID, _ := strconv.Atoi(rs.Primary.ID)
+		resp, err := client.Zones.GetRecord("TODO-ACCOUNT", rs.Primary.Attributes["domain"], recordID)
 		if err != nil {
 			return err
 		}
 
-		if foundRecord.StringId() != rs.Primary.ID {
+		foundRecord := resp.Data
+		if foundRecord.ID != recordID {
 			return fmt.Errorf("Record not found")
 		}
 
