@@ -1,3 +1,34 @@
+Release v1.6.3 (2016-12-14)
+===
+
+Service Client Updates
+---
+* `service/batch`: Adds new service
+  * AWS Batch is a batch computing service that lets customers define queues and compute environments and then submit work as batch jobs.
+* `service/databasemigrationservice`: Updates service API and documentation
+  * Adds support for SSL enabled Oracle endpoints and task modification.
+* `service/elasticbeanstalk`: Updates service documentation
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/cloudwatchlogs`: Updates service API and documentation
+  * Add support for associating LogGroups with AWSTagris tags
+* `service/marketplacecommerceanalytics`: Updates service API and documentation
+  * Add new enum to DataSetType: sales_compensation_billed_revenue
+* `service/rds`: Updates service documentation
+  * Doc-only Update for RDS: New versions available in CreateDBInstance
+* `service/sts`: Updates service documentation
+  * Adding Code Snippet Examples for SDKs for STS
+
+SDK Bug Fixes
+---
+* `aws/request`: Fix retrying timeout requests (#981)
+  * Fixes: Requests Retrying is broken if the error was caused due to a client timeout #947
+* `aws/request`: Fix for Go 1.8 request incorrectly sent with body (#991)
+  * Fixes: service/route53: ListHostedZones hangs and then fails with go1.8 #984
+* private/protocol/rest: Use RawPath instead of Opaque (#993)
+  * Fixes: HTTP2 request failing with REST protocol services, e.g AWS X-Ray
+* private/model/api: Generate REST-JSON JSONVersion correctly (#998)
+  * Fixes: REST-JSON protocol service code missing JSONVersion metadata.
+
 Release v1.6.2 (2016-12-08)
 ===
 

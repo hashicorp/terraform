@@ -25,6 +25,6 @@ func init() {
 var reSanitizeURL = regexp.MustCompile(`\/%2F\w+%2F`)
 
 func sanitizeURL(r *request.Request) {
-	r.HTTPRequest.URL.Opaque =
-		reSanitizeURL.ReplaceAllString(r.HTTPRequest.URL.Opaque, "/")
+	r.HTTPRequest.URL.RawPath =
+		reSanitizeURL.ReplaceAllString(r.HTTPRequest.URL.RawPath, "/")
 }
