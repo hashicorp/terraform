@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/dnsimple/dnsimple-go/dnsimple"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type Config struct {
@@ -22,6 +23,7 @@ type Client struct {
 // Client() returns a new client for accessing dnsimple.
 func (c *Config) Client() (*Client, error) {
 	client := dnsimple.NewClient(dnsimple.NewOauthTokenCredentials(c.Token))
+	client.UserAgent = "HashiCorp-Terraform/" + terraform.VersionString()
 
 	provider := &Client{
 		client: client,
