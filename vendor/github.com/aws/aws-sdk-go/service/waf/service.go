@@ -11,10 +11,13 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
-// This is the AWS WAF API Reference. This guide is for developers who need
-// detailed information about the AWS WAF API actions, data types, and errors.
-// For detailed information about AWS WAF features and an overview of how to
-// use the AWS WAF API, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
+// This is the AWS WAF API Reference for using AWS WAF with Amazon CloudFront.
+// The AWS WAF actions and data types listed in the reference are available
+// for protecting Amazon CloudFront distributions. You can use these actions
+// and data types via the endpoint waf.amazonaws.com. This guide is for developers
+// who need detailed information about the AWS WAF API actions, data types,
+// and errors. For detailed information about AWS WAF features and an overview
+// of how to use the AWS WAF API, see the AWS WAF Developer Guide (http://docs.aws.amazon.com/waf/latest/developerguide/).
 //The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type WAF struct {
@@ -42,16 +45,17 @@ const ServiceName = "waf"
 //     svc := waf.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *WAF {
 	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *WAF {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *WAF {
 	svc := &WAF{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2015-08-24",

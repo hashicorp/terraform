@@ -1,32 +1,70 @@
+Release v1.6.2 (2016-12-08)
+===
+
+Service Client Updates
+---
+* `service/cloudfront`: Add lambda function associations to cache behaviors
+* `service/codepipeline`: This is a doc-only update request to incorporate some recent minor revisions to the doc content.
+* `service/rds`: Updates service API and documentation
+* `service/wafregional`: With this new feature, customers can use AWS WAF directly on Application Load Balancers in a VPC within available regions to protect their websites and web services from malicious attacks such as SQL injection, Cross Site Scripting, bad bots, etc.
+
+Release v1.6.1 (2016-12-07)
+===
+
+Service Client Updates
+---
+* `service/config`: Updates service API
+* `service/s3`: Updates service API
+* `service/sqs`: Updates service API and documentation
+
+Release v1.6.0 (2016-12-06)
+===
+
+Service Client Updates
+---
+* `service/config`: Updates service API and documentation
+* `service/ec2`: Updates service API
+* `service/sts`: Updates service API, documentation, and examples
+
+SDK Bug Fixes
+---
+* private/protocol/xml/xmlutil: Fix SDK XML unmarshaler #975
+  * Fixes GetBucketACL Grantee required type always nil. #916
+
+SDK Feature
+---
+* aws/endpoints: Add endpoint metadata to SDK #961
+  * Adds Region and Endpoint metadata to the SDK. This allows you to enumerate regions and endpoint metadata based on a defined model embedded in the SDK.
+
 Release v1.5.13 (2016-12-01)
 ===
 
 Service Client Updates
 ---
-`service/apigateway`: Updates service API and documentation
-`service/appstream`: Adds new service
-`service/codebuild`: Adds new service
-`service/directconnect`: Updates service API and documentation
-`service/ec2`: Adds new service
-`service/elasticbeanstalk`: Updates service API and documentation
-`service/health`: Adds new service
-`service/lambda`: Updates service API and documentation
-`service/opsworkscm`: Adds new service
-`service/pinpoint`: Adds new service
-`service/shield`: Adds new service
-`service/ssm`: Updates service API and documentation
-`service/states`: Adds new service
-`service/xray`: Adds new service
+* `service/apigateway`: Updates service API and documentation
+* `service/appstream`: Adds new service
+* `service/codebuild`: Adds new service
+* `service/directconnect`: Updates service API and documentation
+* `service/ec2`: Adds new service
+* `service/elasticbeanstalk`: Updates service API and documentation
+* `service/health`: Adds new service
+* `service/lambda`: Updates service API and documentation
+* `service/opsworkscm`: Adds new service
+* `service/pinpoint`: Adds new service
+* `service/shield`: Adds new service
+* `service/ssm`: Updates service API and documentation
+* `service/states`: Adds new service
+* `service/xray`: Adds new service
 
 Release v1.5.12 (2016-11-30)
 ===
 
 Service Client Updates
 ---
-`service/lightsail`: Adds new service
-`service/polly`: Adds new service
-`service/rekognition`: Adds new service
-`service/snowball`: Updates service API and documentation
+* `service/lightsail`: Adds new service
+* `service/polly`: Adds new service
+* `service/rekognition`: Adds new service
+* `service/snowball`: Updates service API and documentation
 
 Release v1.5.11 (2016-11-29)
 ===
@@ -40,10 +78,10 @@ Release v1.5.10 (2016-11-22)
 
 Service Client Updates
 ---
-`service/cloudformation`: Updates service API and documentation
-`service/glacier`: Updates service API, documentation, and examples
-`service/route53`: Updates service API and documentation
-`service/s3`: Updates service API and documentation
+* `service/cloudformation`: Updates service API and documentation
+* `service/glacier`: Updates service API, documentation, and examples
+* `service/route53`: Updates service API and documentation
+* `service/s3`: Updates service API and documentation
 
 SDK Bug Fixes
 ---
@@ -56,29 +94,29 @@ Release v1.5.9 (2016-11-22)
 
 Service Client Updates
 ---
-`service/cloudtrail`: Updates service API and documentation
-`service/ecs`: Updates service API and documentation
+* `service/cloudtrail`: Updates service API and documentation
+* `service/ecs`: Updates service API and documentation
 
 Release v1.5.8 (2016-11-18)
 ===
 
 Service Client Updates
 ---
-`service/application-autoscaling`: Updates service API and documentation
-`service/elasticmapreduce`: Updates service API and documentation
-`service/elastictranscoder`: Updates service API, documentation, and examples
-`service/gamelift`: Updates service API and documentation
-`service/lambda`: Updates service API and documentation
+* `service/application-autoscaling`: Updates service API and documentation
+* `service/elasticmapreduce`: Updates service API and documentation
+* `service/elastictranscoder`: Updates service API, documentation, and examples
+* `service/gamelift`: Updates service API and documentation
+* `service/lambda`: Updates service API and documentation
 
 Release v1.5.7 (2016-11-18)
 ===
 
 Service Client Updates
 ---
-`service/apigateway`: Updates service API and documentation
-`service/meteringmarketplace`: Updates service API and documentation
-`service/monitoring`: Updates service API and documentation
-`service/sqs`: Updates service API, documentation, and examples
+* `service/apigateway`: Updates service API and documentation
+* `service/meteringmarketplace`: Updates service API and documentation
+* `service/monitoring`: Updates service API and documentation
+* `service/sqs`: Updates service API, documentation, and examples
 
 Release v1.5.6 (2016-11-16)
 ===
@@ -93,46 +131,46 @@ Release v1.5.5 (2016-11-15)
 
 Service Client Updates
 ---
-`service/ds`: Updates service API and documentation
-`service/elasticache`: Updates service API and documentation
-`service/kinesis`: Updates service API and documentation
+* `service/ds`: Updates service API and documentation
+* `service/elasticache`: Updates service API and documentation
+* `service/kinesis`: Updates service API and documentation
 
 Release v1.5.4 (2016-11-15)
 ===
 
 Service Client Updates
 ---
-`service/cognito-idp`: Updates service API and documentation
+* `service/cognito-idp`: Updates service API and documentation
 
 Release v1.5.3 (2016-11-11)
 ===
 
 Service Client Updates
 ---
-`service/cloudformation`: Updates service documentation and examples
-`service/logs`: Updates service API and documentation
+* `service/cloudformation`: Updates service documentation and examples
+* `service/logs`: Updates service API and documentation
 
 Release v1.5.2 (2016-11-03)
 ===
 
 Service Client Updates
 ---
-`service/directconnect`: Updates service API and documentation
+* `service/directconnect`: Updates service API and documentation
 
 Release v1.5.1 (2016-11-02)
 ===
 
 Service Client Updates
 ---
-`service/email`: Updates service API and documentation
+* `service/email`: Updates service API and documentation
 
 Release v1.5.0 (2016-11-01)
 ===
 
 Service Client Updates
 ---
-`service/cloudformation`: Updates service API and documentation
-`service/ecr`: Updates service paginators
+* `service/cloudformation`: Updates service API and documentation
+* `service/ecr`: Updates service paginators
 
 SDK Feature Updates
 ---

@@ -20,25 +20,15 @@ import (
 // between distributed components of your applications that perform different
 // tasks without losing messages or requiring each component to be always available.
 //
-// Topics
-//
-//    *
-//
-//    *
-//
-//    * CommonParameters
-//
-//    * CommonErrors
-//
 // Helpful Links
 //
 //    * Making API Requests (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/MakingRequestsArticle.html)
 //
 //    * Amazon SQS product page (http://aws.amazon.com/sqs/)
 //
-//    * Using Amazon SQS Message Attributes (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html)
+//    * Using Amazon SQS Message Attributes (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-attributes.html)
 //
-//    * Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
+//    * Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html)
 //
 //    * Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#sqs_region)
 //
@@ -80,16 +70,17 @@ const ServiceName = "sqs"
 //     svc := sqs.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *SQS {
 	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *SQS {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *SQS {
 	svc := &SQS{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2012-11-05",
