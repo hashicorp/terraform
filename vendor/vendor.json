@@ -2126,6 +2126,42 @@
 			"revisionTime": "2016-04-25T23:31:34Z"
 		},
 		{
+			"checksumSHA1": "WQJBP9v20jr44RiZ1YbfrpGaEqk=",
+			"path": "github.com/newrelic/go-agent",
+			"revision": "7d12ae2201fc160e486197614a6f65afcf3f8170",
+			"revisionTime": "2016-11-16T22:44:47Z"
+		},
+		{
+			"checksumSHA1": "lLXXIL0C/ZzMDqN2BlQRZInhot0=",
+			"path": "github.com/newrelic/go-agent/internal",
+			"revision": "7d12ae2201fc160e486197614a6f65afcf3f8170",
+			"revisionTime": "2016-11-16T22:44:47Z"
+		},
+		{
+			"checksumSHA1": "mkbupMdy+cF7xyo8xW0A6Bq15k4=",
+			"path": "github.com/newrelic/go-agent/internal/jsonx",
+			"revision": "7d12ae2201fc160e486197614a6f65afcf3f8170",
+			"revisionTime": "2016-11-16T22:44:47Z"
+		},
+		{
+			"checksumSHA1": "ywxlVKtGArJ2vDfH1rAqEFwSGds=",
+			"path": "github.com/newrelic/go-agent/internal/logger",
+			"revision": "7d12ae2201fc160e486197614a6f65afcf3f8170",
+			"revisionTime": "2016-11-16T22:44:47Z"
+		},
+		{
+			"checksumSHA1": "S7CiHO7EblgZt9q7wgiXMv/j/ao=",
+			"path": "github.com/newrelic/go-agent/internal/sysinfo",
+			"revision": "7d12ae2201fc160e486197614a6f65afcf3f8170",
+			"revisionTime": "2016-11-16T22:44:47Z"
+		},
+		{
+			"checksumSHA1": "c2JSKesj3tHYgzIF3QL37WfHWG8=",
+			"path": "github.com/newrelic/go-agent/internal/utilization",
+			"revision": "7d12ae2201fc160e486197614a6f65afcf3f8170",
+			"revisionTime": "2016-11-16T22:44:47Z"
+		},
+		{
 			"path": "github.com/nu7hatch/gouuid",
 			"revision": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
 		},
@@ -2138,6 +2174,12 @@
 			"path": "github.com/packethost/packngo",
 			"revision": "7cd5fed006859e86dd5641a6cf9812e855b7574a",
 			"revisionTime": "2016-08-11T16:27:25Z"
+		},
+		{
+			"checksumSHA1": "lOEkLP94OsQSLFp+38rY1GjnMtk=",
+			"path": "github.com/paultyng/go-newrelic/api",
+			"revision": "81a8e05b0e494285f1322f99f3c6f93c8f1192b1",
+			"revisionTime": "2016-11-29T00:49:55Z"
 		},
 		{
 			"path": "github.com/pborman/uuid",
@@ -2231,6 +2273,12 @@
 		{
 			"path": "github.com/tent/http-link-go",
 			"revision": "ac974c61c2f990f4115b119354b5e0b47550e888"
+		},
+		{
+			"checksumSHA1": "y1hkty5dgBN9elK4gP1TtVjT4e8=",
+			"path": "github.com/tomnomnom/linkheader",
+			"revision": "236df730ed7334edb33cb10ba79407491fb4e147",
+			"revisionTime": "2016-06-19T23:20:27Z"
 		},
 		{
 			"checksumSHA1": "jfIUoeCY4uLz1zCgnCxndi5/UNE=",
@@ -2364,6 +2412,18 @@
 		{
 			"path": "golang.org/x/net/context/ctxhttp",
 			"revision": "04b9de9b512f58addf28c9853d50ebef61c3953e"
+		},
+		{
+			"checksumSHA1": "GIGmSrYACByf5JDIP9ByBZksY80=",
+			"path": "golang.org/x/net/idna",
+			"revision": "4971afdc2f162e82d185353533d3cf16188a9f4e",
+			"revisionTime": "2016-11-15T21:05:04Z"
+		},
+		{
+			"checksumSHA1": "AmZIW67T/HUlTTflTmOIy6jdq74=",
+			"path": "golang.org/x/net/publicsuffix",
+			"revision": "4971afdc2f162e82d185353533d3cf16188a9f4e",
+			"revisionTime": "2016-11-15T21:05:04Z"
 		},
 		{
 			"path": "golang.org/x/oauth2",
@@ -2505,6 +2565,12 @@
 			"comment": "v1.8.5",
 			"path": "gopkg.in/ini.v1",
 			"revision": "77178f22699a4ecafce485fb8d86b7afeb7e3e28"
+		},
+		{
+			"checksumSHA1": "mkLQOQwQwoUc9Kr9+PaVGrKUzI4=",
+			"path": "gopkg.in/resty.v0",
+			"revision": "24dc7ba4bc1ef9215048b28e7248f99c42901db5",
+			"revisionTime": "2016-11-01T17:03:53Z"
 		}
 	],
 	"rootPath": "github.com/hashicorp/terraform"
