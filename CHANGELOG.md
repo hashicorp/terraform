@@ -13,6 +13,9 @@ IMPROVEMENTS:
 
  * provider/azurerm: add support for tags to dns_zone [GH-10750]
 
+BUG FIXES:
+
+ * provider/aws: Fixed crash in `data_source_ami` with empty `owner` value [GH-10763]
 
 ## 0.8.1 (December 14, 2016)
 
