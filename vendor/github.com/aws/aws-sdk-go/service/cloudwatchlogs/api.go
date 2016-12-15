@@ -1235,7 +1235,7 @@ func (c *CloudWatchLogs) DescribeMetricFiltersRequest(input *DescribeMetricFilte
 // DescribeMetricFilters API operation for Amazon CloudWatch Logs.
 //
 // Lists the specified metric filters. You can list all the metric filters or
-// filter the results by log name, prefix, metric name, or metric namespace.
+// filter the results by log name, prefix, metric name, and metric namespace.
 // The results are ASCII-sorted by filter name.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1605,6 +1605,75 @@ func (c *CloudWatchLogs) GetLogEventsPages(input *GetLogEventsInput, fn func(p *
 	})
 }
 
+const opListTagsLogGroup = "ListTagsLogGroup"
+
+// ListTagsLogGroupRequest generates a "aws/request.Request" representing the
+// client's request for the ListTagsLogGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See ListTagsLogGroup for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the ListTagsLogGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the ListTagsLogGroupRequest method.
+//    req, resp := client.ListTagsLogGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *CloudWatchLogs) ListTagsLogGroupRequest(input *ListTagsLogGroupInput) (req *request.Request, output *ListTagsLogGroupOutput) {
+	op := &request.Operation{
+		Name:       opListTagsLogGroup,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListTagsLogGroupInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &ListTagsLogGroupOutput{}
+	req.Data = output
+	return
+}
+
+// ListTagsLogGroup API operation for Amazon CloudWatch Logs.
+//
+// Lists the tags for the specified log group.
+//
+// To add tags, use TagLogGroup. To remove tags, use UntagLogGroup.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation ListTagsLogGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   The specified resource does not exist.
+//
+//   * ServiceUnavailableException
+//   The service cannot complete the request.
+//
+func (c *CloudWatchLogs) ListTagsLogGroup(input *ListTagsLogGroupInput) (*ListTagsLogGroupOutput, error) {
+	req, out := c.ListTagsLogGroupRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opPutDestination = "PutDestination"
 
 // PutDestinationRequest generates a "aws/request.Request" representing the
@@ -1824,12 +1893,13 @@ func (c *CloudWatchLogs) PutLogEventsRequest(input *PutLogEventsInput) (req *req
 //    retention period of the log group.
 //
 //    * The log events in the batch must be in chronological ordered by their
-//    timestamp.
+//    timestamp (the time the event occurred, expressed as the number of milliseconds
+//    since Jan 1, 1970 00:00:00 UTC).
 //
 //    * The maximum number of log events in a batch is 10,000.
 //
-//    * A batch of log events in a single PutLogEvents request cannot span more
-//    than 24 hours. Otherwise, the PutLogEvents operation will fail.
+//    * A batch of log events in a single request cannot span more than 24 hours.
+//    Otherwise, the operation fails.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -2115,6 +2185,82 @@ func (c *CloudWatchLogs) PutSubscriptionFilter(input *PutSubscriptionFilterInput
 	return out, err
 }
 
+const opTagLogGroup = "TagLogGroup"
+
+// TagLogGroupRequest generates a "aws/request.Request" representing the
+// client's request for the TagLogGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See TagLogGroup for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the TagLogGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the TagLogGroupRequest method.
+//    req, resp := client.TagLogGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *CloudWatchLogs) TagLogGroupRequest(input *TagLogGroupInput) (req *request.Request, output *TagLogGroupOutput) {
+	op := &request.Operation{
+		Name:       opTagLogGroup,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagLogGroupInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &TagLogGroupOutput{}
+	req.Data = output
+	return
+}
+
+// TagLogGroup API operation for Amazon CloudWatch Logs.
+//
+// Adds or updates the specified tags for the specified log group.
+//
+// To list the tags for a log group, use ListTagsLogGroup. To remove tags, use
+// UntagLogGroup.
+//
+// For more information about tags, see Tag Log Groups in Amazon CloudWatch
+// Logs (http://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/log-group-tagging.html)
+// in the Amazon CloudWatch Logs User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation TagLogGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   The specified resource does not exist.
+//
+//   * InvalidParameterException
+//   A parameter is specified incorrectly.
+//
+func (c *CloudWatchLogs) TagLogGroup(input *TagLogGroupInput) (*TagLogGroupOutput, error) {
+	req, out := c.TagLogGroupRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opTestMetricFilter = "TestMetricFilter"
 
 // TestMetricFilterRequest generates a "aws/request.Request" representing the
@@ -2180,6 +2326,75 @@ func (c *CloudWatchLogs) TestMetricFilterRequest(input *TestMetricFilterInput) (
 //
 func (c *CloudWatchLogs) TestMetricFilter(input *TestMetricFilterInput) (*TestMetricFilterOutput, error) {
 	req, out := c.TestMetricFilterRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opUntagLogGroup = "UntagLogGroup"
+
+// UntagLogGroupRequest generates a "aws/request.Request" representing the
+// client's request for the UntagLogGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UntagLogGroup for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UntagLogGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UntagLogGroupRequest method.
+//    req, resp := client.UntagLogGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *CloudWatchLogs) UntagLogGroupRequest(input *UntagLogGroupInput) (req *request.Request, output *UntagLogGroupOutput) {
+	op := &request.Operation{
+		Name:       opUntagLogGroup,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagLogGroupInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Remove(jsonrpc.UnmarshalHandler)
+	req.Handlers.Unmarshal.PushBackNamed(protocol.UnmarshalDiscardBodyHandler)
+	output = &UntagLogGroupOutput{}
+	req.Data = output
+	return
+}
+
+// UntagLogGroup API operation for Amazon CloudWatch Logs.
+//
+// Removes the specified tags from the specified log group.
+//
+// To list the tags for a log group, use ListTagsLogGroup. To add tags, use
+// UntagLogGroup.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon CloudWatch Logs's
+// API operation UntagLogGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceNotFoundException
+//   The specified resource does not exist.
+//
+func (c *CloudWatchLogs) UntagLogGroup(input *UntagLogGroupInput) (*UntagLogGroupOutput, error) {
+	req, out := c.UntagLogGroupRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -2395,6 +2610,9 @@ type CreateLogGroupInput struct {
 	//
 	// LogGroupName is a required field
 	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+
+	// The key-value pairs to use for the tags.
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
 }
 
 // String returns the string representation
@@ -2416,6 +2634,9 @@ func (s *CreateLogGroupInput) Validate() error {
 	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
 	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -2426,6 +2647,12 @@ func (s *CreateLogGroupInput) Validate() error {
 // SetLogGroupName sets the LogGroupName field's value.
 func (s *CreateLogGroupInput) SetLogGroupName(v string) *CreateLogGroupInput {
 	s.LogGroupName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateLogGroupInput) SetTags(v map[string]*string) *CreateLogGroupInput {
+	s.Tags = v
 	return s
 }
 
@@ -3652,7 +3879,8 @@ type ExportTask struct {
 	// Execution info about the export task.
 	ExecutionInfo *ExportTaskExecutionInfo `locationName:"executionInfo" type:"structure"`
 
-	// The start time. Events with a timestamp prior to this time are not exported.
+	// The start time, expressed as the number of milliseconds since Jan 1, 1970
+	// 00:00:00 UTC. Events with a timestamp prior to this time are not exported.
 	From *int64 `locationName:"from" type:"long"`
 
 	// The name of the log group from which logs data was exported.
@@ -3667,7 +3895,8 @@ type ExportTask struct {
 	// The name of the export task.
 	TaskName *string `locationName:"taskName" min:"1" type:"string"`
 
-	// The end time. Events with a timestamp later than this time are not exported.
+	// The end time, expressed as the number of milliseconds since Jan 1, 1970 00:00:00
+	// UTC. Events with a timestamp later than this time are not exported.
 	To *int64 `locationName:"to" type:"long"`
 }
 
@@ -3804,7 +4033,8 @@ func (s *ExportTaskStatus) SetMessage(v string) *ExportTaskStatus {
 type FilterLogEventsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The end of the time range. Events with a timestamp later than this time are
+	// The end of the time range, expressed as the number of milliseconds since
+	// Jan 1, 1970 00:00:00 UTC. Events with a timestamp later than this time are
 	// not returned.
 	EndTime *int64 `locationName:"endTime" type:"long"`
 
@@ -3833,7 +4063,8 @@ type FilterLogEventsInput struct {
 	// from a previous call.)
 	NextToken *string `locationName:"nextToken" min:"1" type:"string"`
 
-	// The start of the time range. Events with a timestamp prior to this time are
+	// The start of the time range, expressed as the number of milliseconds since
+	// Jan 1, 1970 00:00:00 UTC. Events with a timestamp prior to this time are
 	// not returned.
 	StartTime *int64 `locationName:"startTime" type:"long"`
 }
@@ -3980,7 +4211,8 @@ type FilteredLogEvent struct {
 	// The data contained in the log event.
 	Message *string `locationName:"message" min:"1" type:"string"`
 
-	// The time the event occurred.
+	// The time the event occurred, expressed as the number of milliseconds since
+	// Jan 1, 1970 00:00:00 UTC.
 	Timestamp *int64 `locationName:"timestamp" type:"long"`
 }
 
@@ -4027,7 +4259,8 @@ func (s *FilteredLogEvent) SetTimestamp(v int64) *FilteredLogEvent {
 type GetLogEventsInput struct {
 	_ struct{} `type:"structure"`
 
-	// The end of the time range. Events with a timestamp later than this time are
+	// The end of the time range, expressed as the number of milliseconds since
+	// Jan 1, 1970 00:00:00 UTC. Events with a timestamp later than this time are
 	// not included.
 	EndTime *int64 `locationName:"endTime" type:"long"`
 
@@ -4055,7 +4288,8 @@ type GetLogEventsInput struct {
 	// is false.
 	StartFromHead *bool `locationName:"startFromHead" type:"boolean"`
 
-	// The start of the time range. Events with a timestamp earlier than this time
+	// The start of the time range, expressed as the number of milliseconds since
+	// Jan 1, 1970 00:00:00 UTC. Events with a timestamp earlier than this time
 	// are not included.
 	StartTime *int64 `locationName:"startTime" type:"long"`
 }
@@ -4193,7 +4427,8 @@ type InputLogEvent struct {
 	// Message is a required field
 	Message *string `locationName:"message" min:"1" type:"string" required:"true"`
 
-	// The time the event occurred.
+	// The time the event occurred, expressed as the number of milliseconds since
+	// Jan 1, 1970 00:00:00 UTC.
 	//
 	// Timestamp is a required field
 	Timestamp *int64 `locationName:"timestamp" type:"long" required:"true"`
@@ -4237,6 +4472,70 @@ func (s *InputLogEvent) SetMessage(v string) *InputLogEvent {
 // SetTimestamp sets the Timestamp field's value.
 func (s *InputLogEvent) SetTimestamp(v int64) *InputLogEvent {
 	s.Timestamp = &v
+	return s
+}
+
+type ListTagsLogGroupInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the log group.
+	//
+	// LogGroupName is a required field
+	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListTagsLogGroupInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsLogGroupInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListTagsLogGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListTagsLogGroupInput"}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogGroupName sets the LogGroupName field's value.
+func (s *ListTagsLogGroupInput) SetLogGroupName(v string) *ListTagsLogGroupInput {
+	s.LogGroupName = &v
+	return s
+}
+
+type ListTagsLogGroupOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The tags.
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map"`
+}
+
+// String returns the string representation
+func (s ListTagsLogGroupOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListTagsLogGroupOutput) GoString() string {
+	return s.String()
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListTagsLogGroupOutput) SetTags(v map[string]*string) *ListTagsLogGroupOutput {
+	s.Tags = v
 	return s
 }
 
@@ -4322,10 +4621,12 @@ type LogStream struct {
 	// The creation time of the stream.
 	CreationTime *int64 `locationName:"creationTime" type:"long"`
 
-	// The time of the first event.
+	// The time of the first event, expressed as the number of milliseconds since
+	// Jan 1, 1970 00:00:00 UTC.
 	FirstEventTimestamp *int64 `locationName:"firstEventTimestamp" type:"long"`
 
-	// The time of the last event.
+	// The time of the last event, expressed as the number of milliseconds since
+	// Jan 1, 1970 00:00:00 UTC.
 	LastEventTimestamp *int64 `locationName:"lastEventTimestamp" type:"long"`
 
 	// The ingestion time.
@@ -4595,7 +4896,8 @@ type OutputLogEvent struct {
 	// The data contained in the log event.
 	Message *string `locationName:"message" min:"1" type:"string"`
 
-	// The time the event occurred.
+	// The time the event occurred, expressed as the number of milliseconds since
+	// Jan 1, 1970 00:00:00 UTC.
 	Timestamp *int64 `locationName:"timestamp" type:"long"`
 }
 
@@ -5133,6 +5435,11 @@ type PutSubscriptionFilterInput struct {
 	// DestinationArn is a required field
 	DestinationArn *string `locationName:"destinationArn" min:"1" type:"string" required:"true"`
 
+	// The method used to distribute log data to the destination, when the destination
+	// is an Amazon Kinesis stream. By default, log data is grouped by log stream.
+	// For a more even distribution, you can group log data randomly.
+	Distribution *string `locationName:"distribution" type:"string" enum:"Distribution"`
+
 	// A name for the subscription filter.
 	//
 	// FilterName is a required field
@@ -5202,6 +5509,12 @@ func (s *PutSubscriptionFilterInput) Validate() error {
 // SetDestinationArn sets the DestinationArn field's value.
 func (s *PutSubscriptionFilterInput) SetDestinationArn(v string) *PutSubscriptionFilterInput {
 	s.DestinationArn = &v
+	return s
+}
+
+// SetDistribution sets the Distribution field's value.
+func (s *PutSubscriptionFilterInput) SetDistribution(v string) *PutSubscriptionFilterInput {
+	s.Distribution = &v
 	return s
 }
 
@@ -5328,6 +5641,10 @@ type SubscriptionFilter struct {
 	// The Amazon Resource Name (ARN) of the destination.
 	DestinationArn *string `locationName:"destinationArn" min:"1" type:"string"`
 
+	// The method used to distribute log data to the destination, when the destination
+	// is an Amazon Kinesis stream.
+	Distribution *string `locationName:"distribution" type:"string" enum:"Distribution"`
+
 	// The name of the subscription filter.
 	FilterName *string `locationName:"filterName" min:"1" type:"string"`
 
@@ -5365,6 +5682,12 @@ func (s *SubscriptionFilter) SetDestinationArn(v string) *SubscriptionFilter {
 	return s
 }
 
+// SetDistribution sets the Distribution field's value.
+func (s *SubscriptionFilter) SetDistribution(v string) *SubscriptionFilter {
+	s.Distribution = &v
+	return s
+}
+
 // SetFilterName sets the FilterName field's value.
 func (s *SubscriptionFilter) SetFilterName(v string) *SubscriptionFilter {
 	s.FilterName = &v
@@ -5387,6 +5710,78 @@ func (s *SubscriptionFilter) SetLogGroupName(v string) *SubscriptionFilter {
 func (s *SubscriptionFilter) SetRoleArn(v string) *SubscriptionFilter {
 	s.RoleArn = &v
 	return s
+}
+
+type TagLogGroupInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the log group.
+	//
+	// LogGroupName is a required field
+	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+
+	// The key-value pairs to use for the tags.
+	//
+	// Tags is a required field
+	Tags map[string]*string `locationName:"tags" min:"1" type:"map" required:"true"`
+}
+
+// String returns the string representation
+func (s TagLogGroupInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagLogGroupInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagLogGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagLogGroupInput"}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogGroupName sets the LogGroupName field's value.
+func (s *TagLogGroupInput) SetLogGroupName(v string) *TagLogGroupInput {
+	s.LogGroupName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagLogGroupInput) SetTags(v map[string]*string) *TagLogGroupInput {
+	s.Tags = v
+	return s
+}
+
+type TagLogGroupOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagLogGroupOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagLogGroupOutput) GoString() string {
+	return s.String()
 }
 
 type TestMetricFilterInput struct {
@@ -5469,6 +5864,86 @@ func (s *TestMetricFilterOutput) SetMatches(v []*MetricFilterMatchRecord) *TestM
 	s.Matches = v
 	return s
 }
+
+type UntagLogGroupInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the log group.
+	//
+	// LogGroupName is a required field
+	LogGroupName *string `locationName:"logGroupName" min:"1" type:"string" required:"true"`
+
+	// The tag keys. The corresponding tags are removed from the log group.
+	//
+	// Tags is a required field
+	Tags []*string `locationName:"tags" min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagLogGroupInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagLogGroupInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagLogGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagLogGroupInput"}
+	if s.LogGroupName == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogGroupName"))
+	}
+	if s.LogGroupName != nil && len(*s.LogGroupName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("LogGroupName", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil && len(s.Tags) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Tags", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogGroupName sets the LogGroupName field's value.
+func (s *UntagLogGroupInput) SetLogGroupName(v string) *UntagLogGroupInput {
+	s.LogGroupName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *UntagLogGroupInput) SetTags(v []*string) *UntagLogGroupInput {
+	s.Tags = v
+	return s
+}
+
+type UntagLogGroupOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagLogGroupOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagLogGroupOutput) GoString() string {
+	return s.String()
+}
+
+const (
+	// DistributionRandom is a Distribution enum value
+	DistributionRandom = "Random"
+
+	// DistributionByLogStream is a Distribution enum value
+	DistributionByLogStream = "ByLogStream"
+)
 
 const (
 	// ExportTaskStatusCodeCancelled is a ExportTaskStatusCode enum value

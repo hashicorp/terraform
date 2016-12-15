@@ -970,10 +970,9 @@ type AssumeRoleInput struct {
 	// External ID When Granting Access to Your AWS Resources to a Third Party (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html)
 	// in the IAM User Guide.
 	//
-	// The format for this parameter, as described by its regex pattern, is a string
-	// of characters consisting of upper- and lower-case alphanumeric characters
-	// with no spaces. You can also include underscores or any of the following
-	// characters: =,.@:\/-
+	// The regex used to validated this parameter is a string of characters consisting
+	// of upper- and lower-case alphanumeric characters with no spaces. You can
+	// also include underscores or any of the following characters: =,.@:\/-
 	ExternalId *string `min:"2" type:"string"`
 
 	// An IAM policy in JSON format.
@@ -1017,10 +1016,9 @@ type AssumeRoleInput struct {
 	// requests using the temporary security credentials will expose the role session
 	// name to the external account in their CloudTrail logs.
 	//
-	// The format for this parameter, as described by its regex pattern, is a string
-	// of characters consisting of upper- and lower-case alphanumeric characters
-	// with no spaces. You can also include underscores or any of the following
-	// characters: =,.@-
+	// The regex used to validate this parameter is a string of characters consisting
+	// of upper- and lower-case alphanumeric characters with no spaces. You can
+	// also include underscores or any of the following characters: =,.@-
 	//
 	// RoleSessionName is a required field
 	RoleSessionName *string `min:"2" type:"string" required:"true"`
@@ -1031,10 +1029,9 @@ type AssumeRoleInput struct {
 	// The value is either the serial number for a hardware device (such as GAHT12345678)
 	// or an Amazon Resource Name (ARN) for a virtual device (such as arn:aws:iam::123456789012:mfa/user).
 	//
-	// The format for this parameter, as described by its regex pattern, is a string
-	// of characters consisting of upper- and lower-case alphanumeric characters
-	// with no spaces. You can also include underscores or any of the following
-	// characters: =,.@-
+	// The regex used to validate this parameter is a string of characters consisting
+	// of upper- and lower-case alphanumeric characters with no spaces. You can
+	// also include underscores or any of the following characters: =,.@-
 	SerialNumber *string `min:"9" type:"string"`
 
 	// The value provided by the MFA device, if the trust policy of the role being
@@ -1503,10 +1500,9 @@ type AssumeRoleWithWebIdentityInput struct {
 	// are associated with that user. This session name is included as part of the
 	// ARN and assumed role ID in the AssumedRoleUser response element.
 	//
-	// The format for this parameter, as described by its regex pattern, is a string
-	// of characters consisting of upper- and lower-case alphanumeric characters
-	// with no spaces. You can also include underscores or any of the following
-	// characters: =,.@-
+	// The regex used to validate this parameter is a string of characters consisting
+	// of upper- and lower-case alphanumeric characters with no spaces. You can
+	// also include underscores or any of the following characters: =,.@-
 	//
 	// RoleSessionName is a required field
 	RoleSessionName *string `min:"2" type:"string" required:"true"`
@@ -1983,10 +1979,9 @@ type GetFederationTokenInput struct {
 	// the federated user name in a resource-based policy, such as in an Amazon
 	// S3 bucket policy.
 	//
-	// The format for this parameter, as described by its regex pattern, is a string
-	// of characters consisting of upper- and lower-case alphanumeric characters
-	// with no spaces. You can also include underscores or any of the following
-	// characters: =,.@-
+	// The regex used to validate this parameter is a string of characters consisting
+	// of upper- and lower-case alphanumeric characters with no spaces. You can
+	// also include underscores or any of the following characters: =,.@-
 	//
 	// Name is a required field
 	Name *string `min:"2" type:"string" required:"true"`
@@ -2146,10 +2141,9 @@ type GetSessionTokenInput struct {
 	// You can find the device for an IAM user by going to the AWS Management Console
 	// and viewing the user's security credentials.
 	//
-	// The format for this parameter, as described by its regex pattern, is a string
-	// of characters consisting of upper- and lower-case alphanumeric characters
-	// with no spaces. You can also include underscores or any of the following
-	// characters: =,.@-
+	// The regex used to validate this parameter is a string of characters consisting
+	// of upper- and lower-case alphanumeric characters with no spaces. You can
+	// also include underscores or any of the following characters: =,.@-
 	SerialNumber *string `min:"9" type:"string"`
 
 	// The value provided by the MFA device, if MFA is required. If any policy requires

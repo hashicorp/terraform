@@ -393,7 +393,18 @@ func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicat
 
 // CreateApplicationVersion API operation for AWS Elastic Beanstalk.
 //
-// Creates an application version for the specified application.
+// Creates an application version for the specified application. You can create
+// an application version from a source bundle in Amazon S3, a commit in AWS
+// CodeCommit, or the output of an AWS CodeBuild build as follows:
+//
+// Specify a commit in an AWS CodeCommit repository with SourceBuildInformation.
+//
+// Specify a build in an AWS CodeBuild with SourceBuildInformation and BuildConfiguration.
+//
+// Specify a source bundle in S3 with SourceBundle
+//
+// Omit both SourceBuildInformation and SourceBundle to use the default sample
+// application.
 //
 // Once you create an application version with a specified Amazon S3 bucket
 // and key location, you cannot change that Amazon S3 location. If you change
@@ -420,10 +431,16 @@ func (c *ElasticBeanstalk) CreateApplicationVersionRequest(input *CreateApplicat
 //
 //   * S3LocationNotInServiceRegionException
 //   The specified S3 bucket does not belong to the S3 region in which the service
-//   is running.
+//   is running. The following regions are supported:
+//
+//      * IAD/us-east-1
+//
+//      * PDX/us-west-2
+//
+//      * DUB/eu-west-1
 //
 //   * CodeBuildNotInServiceRegionException
-//   The CodeBuild service is not supported in this region.
+//   AWS CodeBuild is not available in the specified region.
 //
 func (c *ElasticBeanstalk) CreateApplicationVersion(input *CreateApplicationVersionInput) (*ApplicationVersionDescriptionMessage, error) {
 	req, out := c.CreateApplicationVersionRequest(input)
@@ -799,7 +816,13 @@ func (c *ElasticBeanstalk) DeleteApplicationVersionRequest(input *DeleteApplicat
 //
 //   * S3LocationNotInServiceRegionException
 //   The specified S3 bucket does not belong to the S3 region in which the service
-//   is running.
+//   is running. The following regions are supported:
+//
+//      * IAD/us-east-1
+//
+//      * PDX/us-west-2
+//
+//      * DUB/eu-west-1
 //
 func (c *ElasticBeanstalk) DeleteApplicationVersion(input *DeleteApplicationVersionInput) (*DeleteApplicationVersionOutput, error) {
 	req, out := c.DeleteApplicationVersionRequest(input)
@@ -2711,6 +2734,7 @@ type ApplicationVersionDescription struct {
 	// The name of the application to which the application version belongs.
 	ApplicationName *string `min:"1" type:"string"`
 
+	// Reference to the artifact from the AWS CodeBuild build.
 	BuildArn *string `type:"string"`
 
 	// The creation date of the application version.
@@ -2957,19 +2981,40 @@ func (s *AutoScalingGroup) SetName(v string) *AutoScalingGroup {
 	return s
 }
 
+// Settings for an AWS CodeBuild build.
 type BuildConfiguration struct {
 	_ struct{} `type:"structure"`
 
+	// The name of the artifact of the CodeBuild build. If provided, Elastic Beanstalk
+	// stores the build artifact in the S3 location S3-bucket/resources/application-name/codebuild/codebuild-version-label-artifact-name.zip.
+	// If not provided, Elastic Beanstalk stores the build artifact in the S3 location
+	// S3-bucket/resources/application-name/codebuild/codebuild-version-label.zip.
 	ArtifactName *string `type:"string"`
 
+	// The Amazon Resource Name (ARN) of the AWS Identity and Access Management
+	// (IAM) role that enables AWS CodeBuild to interact with dependent AWS services
+	// on behalf of the AWS account.
+	//
 	// CodeBuildServiceRole is a required field
 	CodeBuildServiceRole *string `type:"string" required:"true"`
 
+	// Information about the compute resources the build project will use.
+	//
+	//    * BUILD_GENERAL1_SMALL: Use up to 3 GB memory and 2 vCPUs for builds
+	//
+	//    * BUILD_GENERAL1_MEDIUM: Use up to 7 GB memory and 4 vCPUs for builds
+	//
+	//    * BUILD_GENERAL1_LARGE: Use up to 15 GB memory and 8 vCPUs for builds
 	ComputeType *string `type:"string" enum:"ComputeType"`
 
+	// The ID of the Docker image to use for this build project.
+	//
 	// Image is a required field
 	Image *string `type:"string" required:"true"`
 
+	// How long in minutes, from 5 to 480 (8 hours), for AWS CodeBuild to wait until
+	// timing out any related build that does not get marked as completed. The default
+	// is 60 minutes.
 	TimeoutInMinutes *int64 `type:"integer"`
 }
 
@@ -3656,6 +3701,7 @@ type CreateApplicationVersionInput struct {
 	// already exist.
 	AutoCreateApplication *bool `type:"boolean"`
 
+	// Settings for an AWS CodeBuild build.
 	BuildConfiguration *BuildConfiguration `type:"structure"`
 
 	// Describes this version.
@@ -3668,14 +3714,12 @@ type CreateApplicationVersionInput struct {
 
 	// Specify a commit in an AWS CodeCommit Git repository to use as the source
 	// code for the application version.
-	//
-	// Specify a commit in an AWS CodeCommit repository or a source bundle in S3
-	// (with SourceBundle), but not both. If neither SourceBundle nor SourceBuildInformation
-	// are provided, Elastic Beanstalk uses a sample application.
 	SourceBuildInformation *SourceBuildInformation `type:"structure"`
 
 	// The Amazon S3 bucket and key that identify the location of the source bundle
 	// for this version.
+	//
+	// The Amazon S3 bucket must be in the same region as the environment.
 	//
 	// Specify a source bundle in S3 or a commit in an AWS CodeCommit repository
 	// (with SourceBuildInformation), but not both. If neither SourceBundle nor
@@ -7421,18 +7465,32 @@ func (s *SolutionStackDescription) SetSolutionStackName(v string) *SolutionStack
 type SourceBuildInformation struct {
 	_ struct{} `type:"structure"`
 
-	// The repository name and commit ID, separated by a forward slash. For example,
-	// my-repo/265cfa0cf6af46153527f55d6503ec030551f57a.
+	// The location of the source code, as a formatted string, depending on the
+	// value of SourceRepository
+	//
+	//    * For CodeCommit, the format is the repository name and commit ID, separated
+	//    by a forward slash. For example, my-git-repo/265cfa0cf6af46153527f55d6503ec030551f57a.
+	//
+	//    * For S3, the format is the S3 bucket name and object key, separated by
+	//    a forward slash. For example, my-s3-bucket/Folders/my-source-file.
 	//
 	// SourceLocation is a required field
 	SourceLocation *string `min:"3" type:"string" required:"true"`
 
-	// Location where the repository is stored, such as CodeCommit.
+	// Location where the repository is stored.
+	//
+	//    * CodeCommit
+	//
+	//    * S3
 	//
 	// SourceRepository is a required field
 	SourceRepository *string `type:"string" required:"true" enum:"SourceRepository"`
 
-	// The type of repository, such as Git.
+	// The type of repository.
+	//
+	//    * Git
+	//
+	//    * Zip
 	//
 	// SourceType is a required field
 	SourceType *string `type:"string" required:"true" enum:"SourceType"`
