@@ -447,7 +447,7 @@ func (c *STS) AssumeRoleWithWebIdentityRequest(input *AssumeRoleWithWebIdentityI
 // For more information about how to use web identity federation and the AssumeRoleWithWebIdentity
 // API, see the following resources:
 //
-//    * Using Web Identity Federation APIs for Mobile Apps (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_manual)
+//    * Using Web Identity Federation APIs for Mobile Apps (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc_manual.html)
 //    and Federation Through a Web-based Identity Provider (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_request.html#api_assumerolewithwebidentity).
 //
 //
@@ -761,7 +761,7 @@ func (c *STS) GetFederationTokenRequest(input *GetFederationTokenInput) (req *re
 //
 //    * You cannot use these credentials to call any IAM APIs.
 //
-//    * You cannot call any STS APIs.
+//    * You cannot call any STS APIs except GetCallerIdentity.
 //
 // Permissions
 //
@@ -904,7 +904,7 @@ func (c *STS) GetSessionTokenRequest(input *GetSessionTokenInput) (req *request.
 //    * You cannot call any IAM APIs unless MFA authentication information is
 //    included in the request.
 //
-//    * You cannot call any STS API exceptAssumeRole.
+//    * You cannot call any STS API exceptAssumeRole or GetCallerIdentity.
 //
 // We recommend that you do not call GetSessionToken with root account credentials.
 // Instead, follow our best practices (http://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html#create-iam-users)
