@@ -1,5 +1,12 @@
 ## 0.8.2 (unreleased)
 
+FEATURES:
+ * **New Resource:**  `ultradns_dirpool` [GH-9788]
+ * **New Resource:**  `ultradns_probe_http` [GH-9788]
+ * **New Resource:**  `ultradns_probe_ping` [GH-9788]
+ * **New Resource:**  `ultradns_record` [GH-9788]
+ * **New Resource:**  `ultradns_tcpool` [GH-9788]
+ 
 IMPROVEMENTS:
 
  * provider/azurerm: add support for tags to dns_zone [GH-10750]
