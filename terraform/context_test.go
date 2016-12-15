@@ -210,10 +210,6 @@ func testDiffFn(
 	}
 
 	for k, v := range c.Raw {
-		if _, ok := v.(string); !ok {
-			continue
-		}
-
 		// Ignore __-prefixed keys since they're used for magic
 		if k[0] == '_' && k[1] == '_' {
 			continue
