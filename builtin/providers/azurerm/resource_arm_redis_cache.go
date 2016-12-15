@@ -80,19 +80,19 @@ func resourceArmRedisCache() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"maxclients": {
-							Type:     schema.TypeInt,
+							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
 						"maxmemory_delta": {
-							Type:     schema.TypeInt,
+							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
 
 						"maxmemory_reserved": {
-							Type:     schema.TypeInt,
+							Type:     schema.TypeString,
 							Optional: true,
 							Computed: true,
 						},
@@ -337,12 +337,12 @@ func resourceArmRedisCacheDelete(d *schema.ResourceData, meta interface{}) error
 	resp, err := redisClient.Delete(resGroup, name, make(chan struct{}))
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error issuing Azure ARM delete request of Redis Instance '%s': %s", name, err)
+		return fmt.Errorf("Error issuing Azure ARM delete request of Redis Cache Instance '%s': %s", name, err)
 	}
 
 	checkResp, _ := redisClient.Get(resGroup, name)
 	if checkResp.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("Error issuing Azure ARM delete request of Redis Instance '%s': it still exists after deletion", name)
+		return fmt.Errorf("Error issuing Azure ARM delete request of Redis Cache Instance '%s': it still exists after deletion", name)
 	}
 
 	return nil
@@ -352,7 +352,7 @@ func redisStateRefreshFunc(client redis.Client, resourceGroupName string, sgName
 	return func() (interface{}, string, error) {
 		res, err := client.Get(resourceGroupName, sgName)
 		if err != nil {
-			return nil, "", fmt.Errorf("Error issuing read request in redisStateRefreshFunc to Azure ARM for Redis Instance '%s' (RG: '%s'): %s", sgName, resourceGroupName, err)
+			return nil, "", fmt.Errorf("Error issuing read request in redisStateRefreshFunc to Azure ARM for Redis Cache Instance '%s' (RG: '%s'): %s", sgName, resourceGroupName, err)
 		}
 
 		return res, *res.ProvisioningState, nil
@@ -368,35 +368,31 @@ func expandRedisConfiguration(d *schema.ResourceData) *map[string]*string {
 		return &output
 	}
 
-	for i, v := range configuration {
-		key := v.(string)
-		value := azure.String(configuration[i].(string))
-		switch key {
-		case "maxclients":
-			output["maxclients"] = value
-		case "maxmemory-delta":
-			output["maxmemory_delta"] = value
-		case "maxmemory-reserved":
-			output["maxmemory_reserved"] = value
-		case "maxmemory-policy":
-			output["maxmemory_policy"] = value
-		default:
-			log.Printf("[WARNING] Unknown Redis Configuration Value %s.", key)
-		}
+	// TODO: can we use this to remove the below? \/
+	//config := configuration[0].(map[string]interface{})
+
+	for _, v := range configuration {
+		config := v.(map[string]interface{})
+
+		output["maxclients"] = azure.String(config["maxclients"].(string))
+		output["maxmemory-delta"] = azure.String(config["maxmemory_delta"].(string))
+		output["maxmemory-reserved"] = azure.String(config["maxmemory_reserved"].(string))
+		output["maxmemory-policy"] = azure.String(config["maxmemory_policy"].(string))
 	}
 
 	return &output
 }
 
-func flattenRedisConfiguration(configuration *map[string]*string) *map[string]*string {
+func flattenRedisConfiguration(configuration *map[string]*string) map[string]*string {
 	redisConfiguration := make(map[string]*string, len(*configuration))
 	config := *configuration
-	redisConfiguration["maxclients"] = config["maxclients"]
-	redisConfiguration["maxmemory-delta"] = config["maxmemory_delta"]
-	redisConfiguration["maxmemory-reserved"] = config["maxmemory_reserved"]
-	redisConfiguration["maxmemory-policy"] = config["maxmemory_policy"]
 
-	return &redisConfiguration
+	redisConfiguration["maxclients"] = config["maxclients"]
+	redisConfiguration["maxmemory_delta"] = config["maxmemory-delta"]
+	redisConfiguration["maxmemory_reserved"] = config["maxmemory-reserved"]
+	redisConfiguration["maxmemory_policy"] = config["maxmemory-policy"]
+
+	return redisConfiguration
 }
 
 func validateRedisFamily(v interface{}, k string) (ws []string, errors []error) {
