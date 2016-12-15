@@ -2921,3 +2921,30 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 		t.Fatalf("missing diff for data.aws_vpc.bar.1")
 	}
 }
+
+// interpolated lists need to be stored in the original order.
+func TestContext2Plan_listOrder(t *testing.T) {
+	m := testModule(t, "plan-list-order")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	rDiffs := plan.Diff.Modules[0].Resources
+	rDiffA := rDiffs["aws_instance.a"]
+	rDiffB := rDiffs["aws_instance.b"]
+
+	if !rDiffA.Equal(rDiffB) {
+		t.Fatal("aws_instance.a and aws_instance.b diffs should match:\n", plan)
+	}
+}
