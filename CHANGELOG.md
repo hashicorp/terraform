@@ -1,5 +1,8 @@
 ## 0.8.2 (unreleased)
 
+IMPROVEMENTS:
+
+ * provider/azurerm: add support for tags to dns_zone [GH-10750]
 
 
 ## 0.8.1 (December 14, 2016)
