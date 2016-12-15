@@ -66,3 +66,14 @@ func getVendors(client *pagerduty.Client) ([]pagerduty.Vendor, error) {
 
 	return vendors, nil
 }
+
+func getUintArrayFromMap(m map[string]interface{}, k string) []uint {
+	if val, ok := m[k]; ok {
+		arr := make([]uint, len(val.([]int)))
+		for i, a := range val.([]int) {
+			arr[i] = uint(a)
+		}
+		return arr
+	}
+	return make([]uint, 0)
+}
