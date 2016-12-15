@@ -1,22 +1,22 @@
-## 0.8.1 (unreleased)
+## 0.8.1 (December 14, 2016)
 
 IMPROVEMENTS:
  
- * provider/aws: Support eu-west-2 [GH-10470]
- * provider/aws: Improved the SNS topic subscription protocols validation [GH-10704]
- * providers/google: Add subnetwork_project field to enable cross-project networking [GH-9662]
- * provider/pagerduty: Allow 'team_responder' role for pagerduty_user resource [GH-10728]
+ * provider/aws: Support eu-west-2 ([#10470](https://github.com/hashicorp/terraform/issues/10470))
+ * provider/aws: Improved the SNS topic subscription protocols validation ([#10704](https://github.com/hashicorp/terraform/issues/10704))
+ * providers/google: Add subnetwork_project field to enable cross-project networking ([#9662](https://github.com/hashicorp/terraform/issues/9662))
+ * provider/pagerduty: Allow 'team_responder' role for pagerduty_user resource ([#10728](https://github.com/hashicorp/terraform/issues/10728))
 
 BUG FIXES:
 
-  * core: Handle whitespace around the key in the `-var` flag. [GH-10717]
-  * core: `terraform` block works in the presence of `_override` files [GH-10715]
-  * core: Fix error when a provider in a module only referenced a variable [GH-10719]
-  * core: Destroy ordering for resources that depend on each other across modules is correct [GH-745]
+  * core: Handle whitespace around the key in the `-var` flag. ([#10717](https://github.com/hashicorp/terraform/issues/10717))
+  * core: `terraform` block works in the presence of `_override` files ([#10715](https://github.com/hashicorp/terraform/issues/10715))
+  * core: Fix error when a provider in a module only referenced a variable ([#10719](https://github.com/hashicorp/terraform/issues/10719))
+  * core: Destroy ordering for resources that depend on each other across modules is correct ([#745](https://github.com/hashicorp/terraform/issues/745))
   
 DEPRECATION REMOVALS:
 
-  * provider/aws: Removed deprecated `parameter_group` from `aws_rds_cluster` [GH-10733]
+  * provider/aws: Removed deprecated `parameter_group` from `aws_rds_cluster` ([#10733](https://github.com/hashicorp/terraform/issues/10733))
 
 ## 0.8.0 (December 13, 2016)
 
