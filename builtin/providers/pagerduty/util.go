@@ -67,6 +67,7 @@ func getVendors(client *pagerduty.Client) ([]pagerduty.Vendor, error) {
 	return vendors, nil
 }
 
+// getUintArrayFromMap creates an array of uint from a map
 func getUintArrayFromMap(m map[string]interface{}, k string) []uint {
 	if val, ok := m[k]; ok {
 		arr := make([]uint, len(val.([]int)))
