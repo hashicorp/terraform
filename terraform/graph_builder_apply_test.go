@@ -192,6 +192,46 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 	}
 }
 
+func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: []string{"root", "A"},
+				Resources: map[string]*InstanceDiff{
+					"null_resource.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+
+			&ModuleDiff{
+				Path: []string{"root", "B"},
+				Resources: map[string]*InstanceDiff{
+					"null_resource.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+		},
+	}
+
+	b := &ApplyGraphBuilder{
+		Module:    testModule(t, "graph-builder-apply-module-destroy"),
+		Diff:      diff,
+		Providers: []string{"null"},
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	testGraphHappensBefore(
+		t, g,
+		"module.B.null_resource.foo (destroy)",
+		"module.A.null_resource.foo (destroy)")
+}
+
 const testApplyGraphBuilderStr = `
 aws_instance.create
   provider.aws
