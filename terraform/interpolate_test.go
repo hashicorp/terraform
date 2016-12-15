@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sort"
 	"sync"
 	"testing"
 
@@ -672,6 +673,68 @@ func TestInterpolater_selfVarWithoutResource(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected err, got none")
 	}
+}
+
+// Verify sorting by key index number
+func TestInterpolator_indexKeySort(t *testing.T) {
+	keys := []string{"a.1", "a.2", "a.10", "a.20", "a.3"}
+	sorted := []string{"a.1", "a.2", "a.3", "a.10", "a.20"}
+
+	sort.Sort(indexKeys(keys))
+	for i := range keys {
+		if keys[i] != sorted[i] {
+			t.Fatalf("indexes out of order\nexpected: %q\ngot: %q", sorted, keys)
+		}
+	}
+}
+
+func TestInterpolator_interpolatedListOrder(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_route53_zone.list": &ResourceState{
+						Type:         "aws_route53_zone",
+						Dependencies: []string{},
+						Primary: &InstanceState{
+							ID: "null",
+							Attributes: map[string]string{
+								"foo.#":  "12",
+								"foo.0":  "a",
+								"foo.1":  "b",
+								"foo.2":  "c",
+								"foo.3":  "d",
+								"foo.4":  "e",
+								"foo.5":  "f",
+								"foo.6":  "g",
+								"foo.7":  "h",
+								"foo.8":  "i",
+								"foo.9":  "j",
+								"foo.10": "k",
+								"foo.11": "l",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	i := &Interpolater{
+		Module:    testModule(t, "interpolate-multi-vars"),
+		StateLock: new(sync.RWMutex),
+		State:     state,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	list := []interface{}{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"}
+
+	testInterpolate(t, i, scope, "aws_route53_zone.list.foo",
+		interfaceToVariableSwallowError(list))
 }
 
 func getInterpolaterFixture(t *testing.T) *Interpolater {
