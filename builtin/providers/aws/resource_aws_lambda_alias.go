@@ -85,7 +85,7 @@ func resourceAwsLambdaAliasRead(d *schema.ResourceData, meta interface{}) error 
 	aliasConfiguration, err := conn.GetAlias(params)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
-			if awsErr.Code() == resourceNotFoundException && strings.Contains(awsErr.Message(), "Cannot find alias arn") {
+			if awsErr.Code() == "ResourceNotFoundException" && strings.Contains(awsErr.Message(), "Cannot find alias arn") {
 				d.SetId("")
 				return nil
 			}
