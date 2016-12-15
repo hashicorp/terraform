@@ -64,7 +64,7 @@ func resourceDNSimpleRecord() *schema.Resource {
 }
 
 func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dnsimple.Client)
+	provider := meta.(*Client)
 
 	// Create the new record
 	newRecord := dnsimple.ZoneRecord{
@@ -78,7 +78,7 @@ func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[DEBUG] DNSimple Record create configuration: %#v", newRecord)
 
-	resp, err := client.Zones.CreateRecord("TODO-ACCOUNT", d.Get("domain").(string), newRecord)
+	resp, err := provider.client.Zones.CreateRecord(provider.config.Account, d.Get("domain").(string), newRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to create DNSimple Record: %s", err)
 	}
@@ -90,14 +90,14 @@ func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dnsimple.Client)
+	provider := meta.(*Client)
 
 	recordID, err := strconv.Atoi(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error converting Record ID: %s", err)
 	}
 
-	resp, err := client.Zones.GetRecord("TODO-ACCOUNT", d.Get("domain").(string), recordID)
+	resp, err := provider.client.Zones.GetRecord(provider.config.Account, d.Get("domain").(string), recordID)
 	if err != nil {
 		return fmt.Errorf("Couldn't find DNSimple Record: %s", err)
 	}
@@ -120,7 +120,7 @@ func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dnsimple.Client)
+	provider := meta.(*Client)
 
 	recordID, err := strconv.Atoi(d.Id())
 	if err != nil {
@@ -144,7 +144,7 @@ func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	log.Printf("[DEBUG] DNSimple Record update configuration: %#v", updateRecord)
 
-	_, err = client.Zones.UpdateRecord("TODO-ACCOUNT", d.Get("domain").(string), recordID, updateRecord)
+	_, err = provider.client.Zones.UpdateRecord(provider.config.Account, d.Get("domain").(string), recordID, updateRecord)
 	if err != nil {
 		return fmt.Errorf("Failed to update DNSimple Record: %s", err)
 	}
@@ -153,7 +153,7 @@ func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceDNSimpleRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dnsimple.Client)
+	provider := meta.(*Client)
 
 	log.Printf("[INFO] Deleting DNSimple Record: %s, %s", d.Get("domain").(string), d.Id())
 
@@ -162,7 +162,7 @@ func resourceDNSimpleRecordDelete(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error converting Record ID: %s", err)
 	}
 
-	_, err = client.Zones.DeleteRecord("TODO-ACCOUNT", d.Get("domain").(string), recordID)
+	_, err = provider.client.Zones.DeleteRecord(provider.config.Account, d.Get("domain").(string), recordID)
 	if err != nil {
 		return fmt.Errorf("Error deleting DNSimple Record: %s", err)
 	}

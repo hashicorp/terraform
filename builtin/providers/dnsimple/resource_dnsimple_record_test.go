@@ -77,7 +77,7 @@ func TestAccDNSimpleRecord_Updated(t *testing.T) {
 }
 
 func testAccCheckDNSimpleRecordDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*dnsimple.Client)
+	provider := testAccProvider.Meta().(*Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "dnsimple_record" {
@@ -85,7 +85,7 @@ func testAccCheckDNSimpleRecordDestroy(s *terraform.State) error {
 		}
 
 		recordID, _ := strconv.Atoi(rs.Primary.ID)
-		_, err := client.Zones.GetRecord("TODO-ACCOUNT", rs.Primary.Attributes["domain"], recordID)
+		_, err := provider.client.Zones.GetRecord(provider.config.Account, rs.Primary.Attributes["domain"], recordID)
 		if err == nil {
 			return fmt.Errorf("Record still exists")
 		}
@@ -128,10 +128,10 @@ func testAccCheckDNSimpleRecordExists(n string, record *dnsimple.ZoneRecord) res
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.Meta().(*dnsimple.Client)
+		provider := testAccProvider.Meta().(*Client)
 
 		recordID, _ := strconv.Atoi(rs.Primary.ID)
-		resp, err := client.Zones.GetRecord("TODO-ACCOUNT", rs.Primary.Attributes["domain"], recordID)
+		resp, err := provider.client.Zones.GetRecord(provider.config.Account, rs.Primary.Attributes["domain"], recordID)
 		if err != nil {
 			return err
 		}
