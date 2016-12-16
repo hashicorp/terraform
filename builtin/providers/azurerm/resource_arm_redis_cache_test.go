@@ -147,25 +147,6 @@ func TestAccAzureRMRedisCache_standard(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMRedisCache_standardWithTags(t *testing.T) {
-	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMRedisCache_standardWithTags, ri, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRedisCacheDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMRedisCacheExists("azurerm_redis_cache.test"),
-				),
-			},
-		},
-	})
-}
-
 func TestAccAzureRMRedisCache_premium(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMRedisCache_premium, ri, ri)
@@ -298,6 +279,10 @@ resource "azurerm_redis_cache" "test" {
     family              = "C"
     sku_name            = "Basic"
     enable_non_ssl_port = false
+
+    redis_configuration {
+      maxclients = "256"
+    }
 }
 `
 
@@ -315,6 +300,9 @@ resource "azurerm_redis_cache" "test" {
     family              = "C"
     sku_name            = "Standard"
     enable_non_ssl_port = false
+    redis_configuration {
+      maxclients = "256"
+    }
 }
 `
 
@@ -332,6 +320,9 @@ resource "azurerm_redis_cache" "test" {
     family              = "C"
     sku_name            = "Standard"
     enable_non_ssl_port = false
+    redis_configuration {
+      maxclients = "256"
+    }
 
     tags {
     	environment = "production"

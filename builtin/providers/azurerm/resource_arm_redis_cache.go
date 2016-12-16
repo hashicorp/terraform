@@ -74,8 +74,7 @@ func resourceArmRedisCache() *schema.Resource {
 
 			"redis_configuration": {
 				Type:     schema.TypeList,
-				Optional: true,
-				Computed: true,
+				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{

@@ -33,7 +33,7 @@ func TestAccAzureRMRedisCache_importBasic(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMRedis_importStandard(t *testing.T) {
+func TestAccAzureRMRedisCache_importStandard(t *testing.T) {
 	resourceName := "azurerm_redis_cache.test"
 
 	ri := acctest.RandInt()
@@ -57,7 +57,7 @@ func TestAccAzureRMRedis_importStandard(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMRedis_importPremium(t *testing.T) {
+func TestAccAzureRMRedisCache_importPremium(t *testing.T) {
 	resourceName := "azurerm_redis_cache.test"
 
 	ri := acctest.RandInt()
