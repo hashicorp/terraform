@@ -11,6 +11,7 @@ FEATURES:
  
 IMPROVEMENTS:
 
+ * provider/aws: Add support for BinaryMediaTypes and ContentHandling to AWS API Gateway [GH-10776]
  * provider/azurerm: add support for tags to dns_zone [GH-10750]
 
 BUG FIXES:
