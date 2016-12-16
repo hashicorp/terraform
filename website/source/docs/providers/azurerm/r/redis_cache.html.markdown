@@ -144,11 +144,3 @@ The following attributes are exported:
 ## Relevant Links
  - [Azure Redis Cache: SKU specific configuration limitations](https://azure.microsoft.com/en-us/documentation/articles/cache-configure/#advanced-settings)
  - [Redis: Available Configuration Settings](http://redis.io/topics/config)
-
-## Import
-
-Redis Instances can be imported using the `resource id`, e.g.
-
-```
-terraform import azurerm_redis.instance1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/Microsoft.Cache/Redis/instance1
-```
