@@ -25,9 +25,10 @@ func TestAccAzureRMRedisCache_importBasic(t *testing.T) {
 			},
 
 			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"redis_configuration"},
 			},
 		},
 	})
@@ -49,9 +50,10 @@ func TestAccAzureRMRedisCache_importStandard(t *testing.T) {
 			},
 
 			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"redis_configuration"},
 			},
 		},
 	})
@@ -73,9 +75,10 @@ func TestAccAzureRMRedisCache_importPremium(t *testing.T) {
 			},
 
 			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"redis_configuration"},
 			},
 		},
 	})
@@ -97,9 +100,10 @@ func TestAccAzureRMRedisCache_importPremiumSharded(t *testing.T) {
 			},
 
 			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"redis_configuration"},
 			},
 		},
 	})

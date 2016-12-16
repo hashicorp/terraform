@@ -166,7 +166,7 @@ func TestAccAzureRMRedisCache_premium(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMRedisCache_sharding(t *testing.T) {
+func TestAccAzureRMRedisCache_premiumSharded(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMRedisCache_premiumSharded, ri, ri)
 
@@ -185,10 +185,10 @@ func TestAccAzureRMRedisCache_sharding(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMRedisCache_scaling(t *testing.T) {
+func TestAccAzureRMRedisCache_scalingToSharded(t *testing.T) {
 	ri := acctest.RandInt()
-	standardConfig := fmt.Sprintf(testAccAzureRMRedisCache_standard, ri, ri)
-	premiumConfig := fmt.Sprintf(testAccAzureRMRedisCache_premium, ri, ri)
+	standardConfig := fmt.Sprintf(testAccAzureRMRedisCache_premium, ri, ri)
+	premiumConfig := fmt.Sprintf(testAccAzureRMRedisCache_premiumSharded, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -287,26 +287,6 @@ resource "azurerm_redis_cache" "test" {
 `
 
 var testAccAzureRMRedisCache_standard = `
-resource "azurerm_resource_group" "test" {
-    name = "acctestRG-%d"
-    location = "West US"
-}
-
-resource "azurerm_redis_cache" "test" {
-    name                = "acctestRedis-%d"
-    location            = "${azurerm_resource_group.test.location}"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    capacity            = 1
-    family              = "C"
-    sku_name            = "Standard"
-    enable_non_ssl_port = false
-    redis_configuration {
-      maxclients = "256"
-    }
-}
-`
-
-var testAccAzureRMRedisCache_standardWithTags = `
 resource "azurerm_resource_group" "test" {
     name = "acctestRG-%d"
     location = "West US"
