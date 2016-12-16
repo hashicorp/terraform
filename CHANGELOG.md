@@ -2,7 +2,7 @@
 
 BACKWARDS INCOMPATIBILITIES / NOTES:
 
- * `aws_lambda_function` Please note that runtime is now a required field as AWS have deprecated the use of nodejs 0.10 in lambda functions [GH-9724]
+ * `aws_lambda_function` Please note that `runtime` is now a required field as AWS have deprecated the use of nodejs 0.10 in lambda functions [GH-9724]
 
 FEATURES:
 
