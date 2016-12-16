@@ -1,3 +1,20 @@
+Release v1.6.4 (2016-12-15)
+===
+
+Service Client Updates
+---
+* `service/cognitoidentityprovider`: Updates service API and documentation
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/ssm`: Updates service API and documentation
+  * This will provide customers with access to the Patch Baseline and Patch Compliance APIs.
+
+SDK Bug Fixes
+---
+* `service/route53`: Fix URL path cleaning for Route53 API requests (#1006)
+  * Fixes: SerializationError when using Route53 ChangeResourceRecordSets #1005
+* `aws/request`: Add PriorRequestNotComplete to throttle retry codes (#1002)
+  * Fixes: Not retrying when PriorRequestNotComplete #1001
+
 Release v1.6.3 (2016-12-14)
 ===
 
