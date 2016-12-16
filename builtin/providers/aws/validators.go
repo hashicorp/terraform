@@ -541,6 +541,22 @@ func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, er
 	return
 }
 
+func validateApiGatewayIntegrationContentHandling(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	validTypes := map[string]bool{
+		"CONVERT_TO_BINARY": true,
+		"CONVERT_TO_TEXT":   true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid integration type %q. Valid types are either %q or %q.",
+			k, value, "CONVERT_TO_BINARY", "CONVERT_TO_TEXT"))
+	}
+	return
+}
+
 func validateSQSQueueName(v interface{}, k string) (errors []error) {
 	value := v.(string)
 	if len(value) > 80 {
