@@ -1,8 +1,8 @@
 ---
 description: 'Provides an NS1 zone resource.'
-layout: nsone
+layout: ns1
 page_title: 'NS1: ns1_zone'
-sidebar_current: 'docs-nsone-resource-zone'
+sidebar_current: 'docs-ns1-resource-zone'
 ---
 
 # ns1\_zone
