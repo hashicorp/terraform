@@ -98,12 +98,16 @@ func resourceAwsEMRCluster() *schema.Resource {
 							Optional: true,
 						},
 						"additional_master_security_groups": &schema.Schema{
-							Type:     schema.TypeString,
+							Type:     schema.TypeSet,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 						"additional_slave_security_groups": &schema.Schema{
-							Type:     schema.TypeString,
+							Type:     schema.TypeSet,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 						"emr_managed_master_security_group": &schema.Schema{
 							Type:     schema.TypeString,

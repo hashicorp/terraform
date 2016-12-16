@@ -107,6 +107,8 @@ resource "aws_emr_cluster" "tf-test-cluster" {
     subnet_id                         = "${aws_subnet.main.id}"
     emr_managed_master_security_group = "${aws_security_group.allow_all.id}"
     emr_managed_slave_security_group  = "${aws_security_group.allow_all.id}"
+		additional_master_security_groups = [${"aws_security_group.additional.id"}]
+		additional_slave_security_groups = [${"aws_security_group.additional.id"}]
     instance_profile                  = "${aws_iam_instance_profile.emr_profile.arn}"
   }
 
@@ -164,6 +166,36 @@ resource "aws_security_group" "allow_all" {
 
   tags {
     name = "emr_test"
+  }
+}
+
+resource "aws_security_group" "additional" {
+  name        = "additional"
+  description = "additional sg for testing"
+  vpc_id      = "${aws_vpc.main.id}"
+
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  depends_on = ["aws_subnet.main"]
+
+  lifecycle {
+    ignore_changes = ["ingress", "egress"]
+  }
+
+  tags {
+    name = "emr_test_additional"
   }
 }
 
