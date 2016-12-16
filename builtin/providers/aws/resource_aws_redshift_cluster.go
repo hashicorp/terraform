@@ -328,6 +328,14 @@ func resourceAwsRedshiftClusterCreate(d *schema.ResourceData, meta interface{}) 
 		d.SetId(*resp.Cluster.ClusterIdentifier)
 
 	} else {
+		if _, ok := d.GetOk("master_password"); !ok {
+			return fmt.Errorf(`provider.aws: aws_redshift_cluster: %s: "master_password": required field is not set`, d.Get("cluster_identifier").(string))
+		}
+
+		if _, ok := d.GetOk("master_username"); !ok {
+			return fmt.Errorf(`provider.aws: aws_redshift_cluster: %s: "master_username": required field is not set`, d.Get("cluster_identifier").(string))
+		}
+
 		createOpts := &redshift.CreateClusterInput{
 			ClusterIdentifier:                aws.String(d.Get("cluster_identifier").(string)),
 			Port:                             aws.Int64(int64(d.Get("port").(int))),
