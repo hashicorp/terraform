@@ -3,6 +3,8 @@
 FEATURES:
 
  * **New Provider:**  `New Relic` [GH-10317]
+ * **New Resource:**  `aws_ses_configuration_set` [GH-10735]
+ * **New Resource:**  `aws_ses_event_destination` [GH-10735]
  * **New Resource:**  `ultradns_dirpool` [GH-9788]
  * **New Resource:**  `ultradns_probe_http` [GH-9788]
  * **New Resource:**  `ultradns_probe_ping` [GH-9788]
