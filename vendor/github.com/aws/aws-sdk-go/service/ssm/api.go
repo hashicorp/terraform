@@ -646,6 +646,78 @@ func (c *SSM) CreateMaintenanceWindow(input *CreateMaintenanceWindowInput) (*Cre
 	return out, err
 }
 
+const opCreatePatchBaseline = "CreatePatchBaseline"
+
+// CreatePatchBaselineRequest generates a "aws/request.Request" representing the
+// client's request for the CreatePatchBaseline operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See CreatePatchBaseline for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the CreatePatchBaseline method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the CreatePatchBaselineRequest method.
+//    req, resp := client.CreatePatchBaselineRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) CreatePatchBaselineRequest(input *CreatePatchBaselineInput) (req *request.Request, output *CreatePatchBaselineOutput) {
+	op := &request.Operation{
+		Name:       opCreatePatchBaseline,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &CreatePatchBaselineInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &CreatePatchBaselineOutput{}
+	req.Data = output
+	return
+}
+
+// CreatePatchBaseline API operation for Amazon Simple Systems Manager (SSM).
+//
+// Creates a patch baseline.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation CreatePatchBaseline for usage and error information.
+//
+// Returned Error Codes:
+//   * IdempotentParameterMismatch
+//   Error returned when an idempotent operation is retried and the parameters
+//   don’t match the original call to the API with the same idempotency token.
+//
+//   * ResourceLimitExceededException
+//   Error returned when the caller has exceeded the default resource limits (e.g.
+//   too many Maintenance Windows have been created).
+//
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) CreatePatchBaseline(input *CreatePatchBaselineInput) (*CreatePatchBaselineOutput, error) {
+	req, out := c.CreatePatchBaselineRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDeleteActivation = "DeleteActivation"
 
 // DeleteActivationRequest generates a "aws/request.Request" representing the
@@ -1024,6 +1096,74 @@ func (c *SSM) DeleteParameter(input *DeleteParameterInput) (*DeleteParameterOutp
 	return out, err
 }
 
+const opDeletePatchBaseline = "DeletePatchBaseline"
+
+// DeletePatchBaselineRequest generates a "aws/request.Request" representing the
+// client's request for the DeletePatchBaseline operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeletePatchBaseline for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeletePatchBaseline method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeletePatchBaselineRequest method.
+//    req, resp := client.DeletePatchBaselineRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DeletePatchBaselineRequest(input *DeletePatchBaselineInput) (req *request.Request, output *DeletePatchBaselineOutput) {
+	op := &request.Operation{
+		Name:       opDeletePatchBaseline,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeletePatchBaselineInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DeletePatchBaselineOutput{}
+	req.Data = output
+	return
+}
+
+// DeletePatchBaseline API operation for Amazon Simple Systems Manager (SSM).
+//
+// Deletes a patch baseline.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DeletePatchBaseline for usage and error information.
+//
+// Returned Error Codes:
+//   * ResourceInUseException
+//   Error returned if an attempt is made to delete a patch baseline that is registered
+//   for a patch group.
+//
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) DeletePatchBaseline(input *DeletePatchBaselineInput) (*DeletePatchBaselineOutput, error) {
+	req, out := c.DeletePatchBaselineRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDeregisterManagedInstance = "DeregisterManagedInstance"
 
 // DeregisterManagedInstanceRequest generates a "aws/request.Request" representing the
@@ -1101,6 +1241,74 @@ func (c *SSM) DeregisterManagedInstanceRequest(input *DeregisterManagedInstanceI
 //
 func (c *SSM) DeregisterManagedInstance(input *DeregisterManagedInstanceInput) (*DeregisterManagedInstanceOutput, error) {
 	req, out := c.DeregisterManagedInstanceRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDeregisterPatchBaselineForPatchGroup = "DeregisterPatchBaselineForPatchGroup"
+
+// DeregisterPatchBaselineForPatchGroupRequest generates a "aws/request.Request" representing the
+// client's request for the DeregisterPatchBaselineForPatchGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DeregisterPatchBaselineForPatchGroup for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DeregisterPatchBaselineForPatchGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DeregisterPatchBaselineForPatchGroupRequest method.
+//    req, resp := client.DeregisterPatchBaselineForPatchGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DeregisterPatchBaselineForPatchGroupRequest(input *DeregisterPatchBaselineForPatchGroupInput) (req *request.Request, output *DeregisterPatchBaselineForPatchGroupOutput) {
+	op := &request.Operation{
+		Name:       opDeregisterPatchBaselineForPatchGroup,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DeregisterPatchBaselineForPatchGroupInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DeregisterPatchBaselineForPatchGroupOutput{}
+	req.Data = output
+	return
+}
+
+// DeregisterPatchBaselineForPatchGroup API operation for Amazon Simple Systems Manager (SSM).
+//
+// Removes a patch group from a patch baseline.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DeregisterPatchBaselineForPatchGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidResourceId
+//   The resource ID is not valid. Verify that you entered the correct ID and
+//   try again.
+//
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) DeregisterPatchBaselineForPatchGroup(input *DeregisterPatchBaselineForPatchGroupInput) (*DeregisterPatchBaselineForPatchGroupOutput, error) {
+	req, out := c.DeregisterPatchBaselineForPatchGroupRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -1497,6 +1705,70 @@ func (c *SSM) DescribeAutomationExecutions(input *DescribeAutomationExecutionsIn
 	return out, err
 }
 
+const opDescribeAvailablePatches = "DescribeAvailablePatches"
+
+// DescribeAvailablePatchesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeAvailablePatches operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeAvailablePatches for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeAvailablePatches method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeAvailablePatchesRequest method.
+//    req, resp := client.DescribeAvailablePatchesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DescribeAvailablePatchesRequest(input *DescribeAvailablePatchesInput) (req *request.Request, output *DescribeAvailablePatchesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeAvailablePatches,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeAvailablePatchesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeAvailablePatchesOutput{}
+	req.Data = output
+	return
+}
+
+// DescribeAvailablePatches API operation for Amazon Simple Systems Manager (SSM).
+//
+// Lists all patches that could possibly be included in a patch baseline.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribeAvailablePatches for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) DescribeAvailablePatches(input *DescribeAvailablePatchesInput) (*DescribeAvailablePatchesOutput, error) {
+	req, out := c.DescribeAvailablePatchesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeDocument = "DescribeDocument"
 
 // DescribeDocumentRequest generates a "aws/request.Request" representing the
@@ -1722,6 +1994,79 @@ func (c *SSM) DescribeEffectiveInstanceAssociations(input *DescribeEffectiveInst
 	return out, err
 }
 
+const opDescribeEffectivePatchesForPatchBaseline = "DescribeEffectivePatchesForPatchBaseline"
+
+// DescribeEffectivePatchesForPatchBaselineRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEffectivePatchesForPatchBaseline operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeEffectivePatchesForPatchBaseline for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeEffectivePatchesForPatchBaseline method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeEffectivePatchesForPatchBaselineRequest method.
+//    req, resp := client.DescribeEffectivePatchesForPatchBaselineRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DescribeEffectivePatchesForPatchBaselineRequest(input *DescribeEffectivePatchesForPatchBaselineInput) (req *request.Request, output *DescribeEffectivePatchesForPatchBaselineOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEffectivePatchesForPatchBaseline,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEffectivePatchesForPatchBaselineInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeEffectivePatchesForPatchBaselineOutput{}
+	req.Data = output
+	return
+}
+
+// DescribeEffectivePatchesForPatchBaseline API operation for Amazon Simple Systems Manager (SSM).
+//
+// Retrieves the current effective patches (the patch and the approval state)
+// for the specified patch baseline.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribeEffectivePatchesForPatchBaseline for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidResourceId
+//   The resource ID is not valid. Verify that you entered the correct ID and
+//   try again.
+//
+//   * DoesNotExistException
+//   Error returned when the ID specified for a resource (e.g. a Maintenance Window)
+//   doesn’t exist.
+//
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) DescribeEffectivePatchesForPatchBaseline(input *DescribeEffectivePatchesForPatchBaselineInput) (*DescribeEffectivePatchesForPatchBaselineOutput, error) {
+	req, out := c.DescribeEffectivePatchesForPatchBaselineRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opDescribeInstanceAssociationsStatus = "DescribeInstanceAssociationsStatus"
 
 // DescribeInstanceAssociationsStatusRequest generates a "aws/request.Request" representing the
@@ -1926,6 +2271,232 @@ func (c *SSM) DescribeInstanceInformationPages(input *DescribeInstanceInformatio
 	return page.EachPage(func(p interface{}, lastPage bool) bool {
 		return fn(p.(*DescribeInstanceInformationOutput), lastPage)
 	})
+}
+
+const opDescribeInstancePatchStates = "DescribeInstancePatchStates"
+
+// DescribeInstancePatchStatesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInstancePatchStates operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeInstancePatchStates for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInstancePatchStates method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInstancePatchStatesRequest method.
+//    req, resp := client.DescribeInstancePatchStatesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DescribeInstancePatchStatesRequest(input *DescribeInstancePatchStatesInput) (req *request.Request, output *DescribeInstancePatchStatesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeInstancePatchStates,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeInstancePatchStatesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeInstancePatchStatesOutput{}
+	req.Data = output
+	return
+}
+
+// DescribeInstancePatchStates API operation for Amazon Simple Systems Manager (SSM).
+//
+// Retrieves the high-level patch state of one or more instances.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribeInstancePatchStates for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+//   * InvalidNextToken
+//   The specified token is not valid.
+//
+func (c *SSM) DescribeInstancePatchStates(input *DescribeInstancePatchStatesInput) (*DescribeInstancePatchStatesOutput, error) {
+	req, out := c.DescribeInstancePatchStatesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeInstancePatchStatesForPatchGroup = "DescribeInstancePatchStatesForPatchGroup"
+
+// DescribeInstancePatchStatesForPatchGroupRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInstancePatchStatesForPatchGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeInstancePatchStatesForPatchGroup for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInstancePatchStatesForPatchGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInstancePatchStatesForPatchGroupRequest method.
+//    req, resp := client.DescribeInstancePatchStatesForPatchGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DescribeInstancePatchStatesForPatchGroupRequest(input *DescribeInstancePatchStatesForPatchGroupInput) (req *request.Request, output *DescribeInstancePatchStatesForPatchGroupOutput) {
+	op := &request.Operation{
+		Name:       opDescribeInstancePatchStatesForPatchGroup,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeInstancePatchStatesForPatchGroupInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeInstancePatchStatesForPatchGroupOutput{}
+	req.Data = output
+	return
+}
+
+// DescribeInstancePatchStatesForPatchGroup API operation for Amazon Simple Systems Manager (SSM).
+//
+// Retrieves the high-level patch state for the instances in the specified patch
+// group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribeInstancePatchStatesForPatchGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+//   * InvalidFilter
+//   The filter name is not valid. Verify the you entered the correct name and
+//   try again.
+//
+//   * InvalidNextToken
+//   The specified token is not valid.
+//
+func (c *SSM) DescribeInstancePatchStatesForPatchGroup(input *DescribeInstancePatchStatesForPatchGroupInput) (*DescribeInstancePatchStatesForPatchGroupOutput, error) {
+	req, out := c.DescribeInstancePatchStatesForPatchGroupRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribeInstancePatches = "DescribeInstancePatches"
+
+// DescribeInstancePatchesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeInstancePatches operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribeInstancePatches for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribeInstancePatches method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribeInstancePatchesRequest method.
+//    req, resp := client.DescribeInstancePatchesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DescribeInstancePatchesRequest(input *DescribeInstancePatchesInput) (req *request.Request, output *DescribeInstancePatchesOutput) {
+	op := &request.Operation{
+		Name:       opDescribeInstancePatches,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeInstancePatchesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribeInstancePatchesOutput{}
+	req.Data = output
+	return
+}
+
+// DescribeInstancePatches API operation for Amazon Simple Systems Manager (SSM).
+//
+// Retrieves information about the patches on the specified instance and their
+// state relative to the patch baseline being used for the instance.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribeInstancePatches for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+//   * InvalidInstanceId
+//   The following problems can cause this exception:
+//
+//   You do not have permission to access the instance.
+//
+//   The SSM agent is not running. On managed instances and Linux instances, verify
+//   that the SSM agent is running. On EC2 Windows instances, verify that the
+//   EC2Config service is running.
+//
+//   The SSM agent or EC2Config service is not registered to the SSM endpoint.
+//   Try reinstalling the SSM agent or EC2Config service.
+//
+//   The instance is not in valid state. Valid states are: Running, Pending, Stopped,
+//   Stopping. Invalid states are: Shutting-down and Terminated.
+//
+//   * InvalidFilter
+//   The filter name is not valid. Verify the you entered the correct name and
+//   try again.
+//
+//   * InvalidNextToken
+//   The specified token is not valid.
+//
+func (c *SSM) DescribeInstancePatches(input *DescribeInstancePatchesInput) (*DescribeInstancePatchesOutput, error) {
+	req, out := c.DescribeInstancePatchesRequest(input)
+	err := req.Send()
+	return out, err
 }
 
 const opDescribeMaintenanceWindowExecutionTaskInvocations = "DescribeMaintenanceWindowExecutionTaskInvocations"
@@ -2401,6 +2972,201 @@ func (c *SSM) DescribeParameters(input *DescribeParametersInput) (*DescribeParam
 	return out, err
 }
 
+const opDescribePatchBaselines = "DescribePatchBaselines"
+
+// DescribePatchBaselinesRequest generates a "aws/request.Request" representing the
+// client's request for the DescribePatchBaselines operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribePatchBaselines for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribePatchBaselines method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribePatchBaselinesRequest method.
+//    req, resp := client.DescribePatchBaselinesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DescribePatchBaselinesRequest(input *DescribePatchBaselinesInput) (req *request.Request, output *DescribePatchBaselinesOutput) {
+	op := &request.Operation{
+		Name:       opDescribePatchBaselines,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribePatchBaselinesInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribePatchBaselinesOutput{}
+	req.Data = output
+	return
+}
+
+// DescribePatchBaselines API operation for Amazon Simple Systems Manager (SSM).
+//
+// Lists the patch baselines in your AWS account.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribePatchBaselines for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) DescribePatchBaselines(input *DescribePatchBaselinesInput) (*DescribePatchBaselinesOutput, error) {
+	req, out := c.DescribePatchBaselinesRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribePatchGroupState = "DescribePatchGroupState"
+
+// DescribePatchGroupStateRequest generates a "aws/request.Request" representing the
+// client's request for the DescribePatchGroupState operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribePatchGroupState for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribePatchGroupState method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribePatchGroupStateRequest method.
+//    req, resp := client.DescribePatchGroupStateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DescribePatchGroupStateRequest(input *DescribePatchGroupStateInput) (req *request.Request, output *DescribePatchGroupStateOutput) {
+	op := &request.Operation{
+		Name:       opDescribePatchGroupState,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribePatchGroupStateInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribePatchGroupStateOutput{}
+	req.Data = output
+	return
+}
+
+// DescribePatchGroupState API operation for Amazon Simple Systems Manager (SSM).
+//
+// Returns high-level aggregated patch compliance state for a patch group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribePatchGroupState for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+//   * InvalidNextToken
+//   The specified token is not valid.
+//
+func (c *SSM) DescribePatchGroupState(input *DescribePatchGroupStateInput) (*DescribePatchGroupStateOutput, error) {
+	req, out := c.DescribePatchGroupStateRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opDescribePatchGroups = "DescribePatchGroups"
+
+// DescribePatchGroupsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribePatchGroups operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See DescribePatchGroups for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the DescribePatchGroups method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the DescribePatchGroupsRequest method.
+//    req, resp := client.DescribePatchGroupsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) DescribePatchGroupsRequest(input *DescribePatchGroupsInput) (req *request.Request, output *DescribePatchGroupsOutput) {
+	op := &request.Operation{
+		Name:       opDescribePatchGroups,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribePatchGroupsInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &DescribePatchGroupsOutput{}
+	req.Data = output
+	return
+}
+
+// DescribePatchGroups API operation for Amazon Simple Systems Manager (SSM).
+//
+// Lists all patch groups that have been registered with patch baselines.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation DescribePatchGroups for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) DescribePatchGroups(input *DescribePatchGroupsInput) (*DescribePatchGroupsOutput, error) {
+	req, out := c.DescribePatchGroupsRequest(input)
+	err := req.Send()
+	return out, err
+}
+
 const opGetAutomationExecution = "GetAutomationExecution"
 
 // GetAutomationExecutionRequest generates a "aws/request.Request" representing the
@@ -2555,6 +3321,136 @@ func (c *SSM) GetCommandInvocationRequest(input *GetCommandInvocationInput) (req
 //
 func (c *SSM) GetCommandInvocation(input *GetCommandInvocationInput) (*GetCommandInvocationOutput, error) {
 	req, out := c.GetCommandInvocationRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetDefaultPatchBaseline = "GetDefaultPatchBaseline"
+
+// GetDefaultPatchBaselineRequest generates a "aws/request.Request" representing the
+// client's request for the GetDefaultPatchBaseline operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetDefaultPatchBaseline for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDefaultPatchBaseline method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDefaultPatchBaselineRequest method.
+//    req, resp := client.GetDefaultPatchBaselineRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) GetDefaultPatchBaselineRequest(input *GetDefaultPatchBaselineInput) (req *request.Request, output *GetDefaultPatchBaselineOutput) {
+	op := &request.Operation{
+		Name:       opGetDefaultPatchBaseline,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDefaultPatchBaselineInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetDefaultPatchBaselineOutput{}
+	req.Data = output
+	return
+}
+
+// GetDefaultPatchBaseline API operation for Amazon Simple Systems Manager (SSM).
+//
+// Retrieves the default patch baseline.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation GetDefaultPatchBaseline for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) GetDefaultPatchBaseline(input *GetDefaultPatchBaselineInput) (*GetDefaultPatchBaselineOutput, error) {
+	req, out := c.GetDefaultPatchBaselineRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetDeployablePatchSnapshotForInstance = "GetDeployablePatchSnapshotForInstance"
+
+// GetDeployablePatchSnapshotForInstanceRequest generates a "aws/request.Request" representing the
+// client's request for the GetDeployablePatchSnapshotForInstance operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetDeployablePatchSnapshotForInstance for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetDeployablePatchSnapshotForInstance method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetDeployablePatchSnapshotForInstanceRequest method.
+//    req, resp := client.GetDeployablePatchSnapshotForInstanceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) GetDeployablePatchSnapshotForInstanceRequest(input *GetDeployablePatchSnapshotForInstanceInput) (req *request.Request, output *GetDeployablePatchSnapshotForInstanceOutput) {
+	op := &request.Operation{
+		Name:       opGetDeployablePatchSnapshotForInstance,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetDeployablePatchSnapshotForInstanceInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetDeployablePatchSnapshotForInstanceOutput{}
+	req.Data = output
+	return
+}
+
+// GetDeployablePatchSnapshotForInstance API operation for Amazon Simple Systems Manager (SSM).
+//
+// Retrieves the current snapshot for the patch baseline the instance uses.
+// This API is primarily used by the AWS-ApplyPatchBaseline Systems Manager
+// document.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation GetDeployablePatchSnapshotForInstance for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) GetDeployablePatchSnapshotForInstance(input *GetDeployablePatchSnapshotForInstanceInput) (*GetDeployablePatchSnapshotForInstanceOutput, error) {
+	req, out := c.GetDeployablePatchSnapshotForInstanceRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -3113,6 +4009,143 @@ func (c *SSM) GetParametersRequest(input *GetParametersInput) (req *request.Requ
 //
 func (c *SSM) GetParameters(input *GetParametersInput) (*GetParametersOutput, error) {
 	req, out := c.GetParametersRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetPatchBaseline = "GetPatchBaseline"
+
+// GetPatchBaselineRequest generates a "aws/request.Request" representing the
+// client's request for the GetPatchBaseline operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetPatchBaseline for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetPatchBaseline method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetPatchBaselineRequest method.
+//    req, resp := client.GetPatchBaselineRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) GetPatchBaselineRequest(input *GetPatchBaselineInput) (req *request.Request, output *GetPatchBaselineOutput) {
+	op := &request.Operation{
+		Name:       opGetPatchBaseline,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetPatchBaselineInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetPatchBaselineOutput{}
+	req.Data = output
+	return
+}
+
+// GetPatchBaseline API operation for Amazon Simple Systems Manager (SSM).
+//
+// Retrieves information about a patch baseline.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation GetPatchBaseline for usage and error information.
+//
+// Returned Error Codes:
+//   * DoesNotExistException
+//   Error returned when the ID specified for a resource (e.g. a Maintenance Window)
+//   doesn’t exist.
+//
+//   * InvalidResourceId
+//   The resource ID is not valid. Verify that you entered the correct ID and
+//   try again.
+//
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) GetPatchBaseline(input *GetPatchBaselineInput) (*GetPatchBaselineOutput, error) {
+	req, out := c.GetPatchBaselineRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opGetPatchBaselineForPatchGroup = "GetPatchBaselineForPatchGroup"
+
+// GetPatchBaselineForPatchGroupRequest generates a "aws/request.Request" representing the
+// client's request for the GetPatchBaselineForPatchGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See GetPatchBaselineForPatchGroup for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the GetPatchBaselineForPatchGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the GetPatchBaselineForPatchGroupRequest method.
+//    req, resp := client.GetPatchBaselineForPatchGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) GetPatchBaselineForPatchGroupRequest(input *GetPatchBaselineForPatchGroupInput) (req *request.Request, output *GetPatchBaselineForPatchGroupOutput) {
+	op := &request.Operation{
+		Name:       opGetPatchBaselineForPatchGroup,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetPatchBaselineForPatchGroupInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &GetPatchBaselineForPatchGroupOutput{}
+	req.Data = output
+	return
+}
+
+// GetPatchBaselineForPatchGroup API operation for Amazon Simple Systems Manager (SSM).
+//
+// Retrieves the patch baseline that should be used for the specified patch
+// group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation GetPatchBaselineForPatchGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) GetPatchBaselineForPatchGroup(input *GetPatchBaselineForPatchGroupInput) (*GetPatchBaselineForPatchGroupOutput, error) {
+	req, out := c.GetPatchBaselineForPatchGroupRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -4053,6 +5086,158 @@ func (c *SSM) PutParameterRequest(input *PutParameterInput) (req *request.Reques
 //
 func (c *SSM) PutParameter(input *PutParameterInput) (*PutParameterOutput, error) {
 	req, out := c.PutParameterRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opRegisterDefaultPatchBaseline = "RegisterDefaultPatchBaseline"
+
+// RegisterDefaultPatchBaselineRequest generates a "aws/request.Request" representing the
+// client's request for the RegisterDefaultPatchBaseline operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See RegisterDefaultPatchBaseline for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RegisterDefaultPatchBaseline method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RegisterDefaultPatchBaselineRequest method.
+//    req, resp := client.RegisterDefaultPatchBaselineRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) RegisterDefaultPatchBaselineRequest(input *RegisterDefaultPatchBaselineInput) (req *request.Request, output *RegisterDefaultPatchBaselineOutput) {
+	op := &request.Operation{
+		Name:       opRegisterDefaultPatchBaseline,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RegisterDefaultPatchBaselineInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RegisterDefaultPatchBaselineOutput{}
+	req.Data = output
+	return
+}
+
+// RegisterDefaultPatchBaseline API operation for Amazon Simple Systems Manager (SSM).
+//
+// Defines the default patch baseline.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation RegisterDefaultPatchBaseline for usage and error information.
+//
+// Returned Error Codes:
+//   * InvalidResourceId
+//   The resource ID is not valid. Verify that you entered the correct ID and
+//   try again.
+//
+//   * DoesNotExistException
+//   Error returned when the ID specified for a resource (e.g. a Maintenance Window)
+//   doesn’t exist.
+//
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) RegisterDefaultPatchBaseline(input *RegisterDefaultPatchBaselineInput) (*RegisterDefaultPatchBaselineOutput, error) {
+	req, out := c.RegisterDefaultPatchBaselineRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opRegisterPatchBaselineForPatchGroup = "RegisterPatchBaselineForPatchGroup"
+
+// RegisterPatchBaselineForPatchGroupRequest generates a "aws/request.Request" representing the
+// client's request for the RegisterPatchBaselineForPatchGroup operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See RegisterPatchBaselineForPatchGroup for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the RegisterPatchBaselineForPatchGroup method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the RegisterPatchBaselineForPatchGroupRequest method.
+//    req, resp := client.RegisterPatchBaselineForPatchGroupRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) RegisterPatchBaselineForPatchGroupRequest(input *RegisterPatchBaselineForPatchGroupInput) (req *request.Request, output *RegisterPatchBaselineForPatchGroupOutput) {
+	op := &request.Operation{
+		Name:       opRegisterPatchBaselineForPatchGroup,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &RegisterPatchBaselineForPatchGroupInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &RegisterPatchBaselineForPatchGroupOutput{}
+	req.Data = output
+	return
+}
+
+// RegisterPatchBaselineForPatchGroup API operation for Amazon Simple Systems Manager (SSM).
+//
+// Registers a patch baseline for a patch group.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation RegisterPatchBaselineForPatchGroup for usage and error information.
+//
+// Returned Error Codes:
+//   * AlreadyExistsException
+//   Error returned if an attempt is made to register a patch group with a patch
+//   baseline that is already registered with a different patch baseline.
+//
+//   * DoesNotExistException
+//   Error returned when the ID specified for a resource (e.g. a Maintenance Window)
+//   doesn’t exist.
+//
+//   * InvalidResourceId
+//   The resource ID is not valid. Verify that you entered the correct ID and
+//   try again.
+//
+//   * ResourceLimitExceededException
+//   Error returned when the caller has exceeded the default resource limits (e.g.
+//   too many Maintenance Windows have been created).
+//
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) RegisterPatchBaselineForPatchGroup(input *RegisterPatchBaselineForPatchGroupInput) (*RegisterPatchBaselineForPatchGroupOutput, error) {
+	req, out := c.RegisterPatchBaselineForPatchGroupRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -5022,6 +6207,75 @@ func (c *SSM) UpdateManagedInstanceRoleRequest(input *UpdateManagedInstanceRoleI
 //
 func (c *SSM) UpdateManagedInstanceRole(input *UpdateManagedInstanceRoleInput) (*UpdateManagedInstanceRoleOutput, error) {
 	req, out := c.UpdateManagedInstanceRoleRequest(input)
+	err := req.Send()
+	return out, err
+}
+
+const opUpdatePatchBaseline = "UpdatePatchBaseline"
+
+// UpdatePatchBaselineRequest generates a "aws/request.Request" representing the
+// client's request for the UpdatePatchBaseline operation. The "output" return
+// value can be used to capture response data after the request's "Send" method
+// is called.
+//
+// See UpdatePatchBaseline for usage and error information.
+//
+// Creating a request object using this method should be used when you want to inject
+// custom logic into the request's lifecycle using a custom handler, or if you want to
+// access properties on the request object before or after sending the request. If
+// you just want the service response, call the UpdatePatchBaseline method directly
+// instead.
+//
+// Note: You must call the "Send" method on the returned request object in order
+// to execute the request.
+//
+//    // Example sending a request using the UpdatePatchBaselineRequest method.
+//    req, resp := client.UpdatePatchBaselineRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+func (c *SSM) UpdatePatchBaselineRequest(input *UpdatePatchBaselineInput) (req *request.Request, output *UpdatePatchBaselineOutput) {
+	op := &request.Operation{
+		Name:       opUpdatePatchBaseline,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdatePatchBaselineInput{}
+	}
+
+	req = c.newRequest(op, input, output)
+	output = &UpdatePatchBaselineOutput{}
+	req.Data = output
+	return
+}
+
+// UpdatePatchBaseline API operation for Amazon Simple Systems Manager (SSM).
+//
+// Modifies an existing patch baseline. Fields not specified in the request
+// are left unchanged.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Simple Systems Manager (SSM)'s
+// API operation UpdatePatchBaseline for usage and error information.
+//
+// Returned Error Codes:
+//   * DoesNotExistException
+//   Error returned when the ID specified for a resource (e.g. a Maintenance Window)
+//   doesn’t exist.
+//
+//   * InternalServerError
+//   An error occurred on the server side.
+//
+func (c *SSM) UpdatePatchBaseline(input *UpdatePatchBaselineInput) (*UpdatePatchBaselineOutput, error) {
+	req, out := c.UpdatePatchBaselineRequest(input)
 	err := req.Send()
 	return out, err
 }
@@ -7340,6 +8594,140 @@ func (s *CreateMaintenanceWindowOutput) SetWindowId(v string) *CreateMaintenance
 	return s
 }
 
+type CreatePatchBaselineInput struct {
+	_ struct{} `type:"structure"`
+
+	// A set of rules used to include patches in the baseline.
+	ApprovalRules *PatchRuleGroup `type:"structure"`
+
+	// A list of explicitly approved patches for the baseline.
+	ApprovedPatches []*string `type:"list"`
+
+	// Caller-provided idempotency token.
+	ClientToken *string `min:"1" type:"string" idempotencyToken:"true"`
+
+	// A description of the patch baseline.
+	Description *string `min:"1" type:"string"`
+
+	// A set of global filters used to exclude patches from the baseline.
+	GlobalFilters *PatchFilterGroup `type:"structure"`
+
+	// The name of the patch baseline.
+	//
+	// Name is a required field
+	Name *string `min:"3" type:"string" required:"true"`
+
+	// A list of explicitly rejected patches for the baseline.
+	RejectedPatches []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s CreatePatchBaselineInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreatePatchBaselineInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *CreatePatchBaselineInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "CreatePatchBaselineInput"}
+	if s.ClientToken != nil && len(*s.ClientToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ClientToken", 1))
+	}
+	if s.Description != nil && len(*s.Description) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Description", 1))
+	}
+	if s.Name == nil {
+		invalidParams.Add(request.NewErrParamRequired("Name"))
+	}
+	if s.Name != nil && len(*s.Name) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 3))
+	}
+	if s.ApprovalRules != nil {
+		if err := s.ApprovalRules.Validate(); err != nil {
+			invalidParams.AddNested("ApprovalRules", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.GlobalFilters != nil {
+		if err := s.GlobalFilters.Validate(); err != nil {
+			invalidParams.AddNested("GlobalFilters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApprovalRules sets the ApprovalRules field's value.
+func (s *CreatePatchBaselineInput) SetApprovalRules(v *PatchRuleGroup) *CreatePatchBaselineInput {
+	s.ApprovalRules = v
+	return s
+}
+
+// SetApprovedPatches sets the ApprovedPatches field's value.
+func (s *CreatePatchBaselineInput) SetApprovedPatches(v []*string) *CreatePatchBaselineInput {
+	s.ApprovedPatches = v
+	return s
+}
+
+// SetClientToken sets the ClientToken field's value.
+func (s *CreatePatchBaselineInput) SetClientToken(v string) *CreatePatchBaselineInput {
+	s.ClientToken = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *CreatePatchBaselineInput) SetDescription(v string) *CreatePatchBaselineInput {
+	s.Description = &v
+	return s
+}
+
+// SetGlobalFilters sets the GlobalFilters field's value.
+func (s *CreatePatchBaselineInput) SetGlobalFilters(v *PatchFilterGroup) *CreatePatchBaselineInput {
+	s.GlobalFilters = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CreatePatchBaselineInput) SetName(v string) *CreatePatchBaselineInput {
+	s.Name = &v
+	return s
+}
+
+// SetRejectedPatches sets the RejectedPatches field's value.
+func (s *CreatePatchBaselineInput) SetRejectedPatches(v []*string) *CreatePatchBaselineInput {
+	s.RejectedPatches = v
+	return s
+}
+
+type CreatePatchBaselineOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the created patch baseline.
+	BaselineId *string `min:"20" type:"string"`
+}
+
+// String returns the string representation
+func (s CreatePatchBaselineOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CreatePatchBaselineOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *CreatePatchBaselineOutput) SetBaselineId(v string) *CreatePatchBaselineOutput {
+	s.BaselineId = &v
+	return s
+}
+
 type DeleteActivationInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7618,6 +9006,70 @@ func (s DeleteParameterOutput) GoString() string {
 	return s.String()
 }
 
+type DeletePatchBaselineInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline to delete.
+	//
+	// BaselineId is a required field
+	BaselineId *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeletePatchBaselineInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeletePatchBaselineInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeletePatchBaselineInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeletePatchBaselineInput"}
+	if s.BaselineId == nil {
+		invalidParams.Add(request.NewErrParamRequired("BaselineId"))
+	}
+	if s.BaselineId != nil && len(*s.BaselineId) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("BaselineId", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *DeletePatchBaselineInput) SetBaselineId(v string) *DeletePatchBaselineInput {
+	s.BaselineId = &v
+	return s
+}
+
+type DeletePatchBaselineOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the deleted patch baseline.
+	BaselineId *string `min:"20" type:"string"`
+}
+
+// String returns the string representation
+func (s DeletePatchBaselineOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeletePatchBaselineOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *DeletePatchBaselineOutput) SetBaselineId(v string) *DeletePatchBaselineOutput {
+	s.BaselineId = &v
+	return s
+}
+
 type DeregisterManagedInstanceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -7669,6 +9121,96 @@ func (s DeregisterManagedInstanceOutput) String() string {
 // GoString returns the string representation
 func (s DeregisterManagedInstanceOutput) GoString() string {
 	return s.String()
+}
+
+type DeregisterPatchBaselineForPatchGroupInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline to deregister the patch group from.
+	//
+	// BaselineId is a required field
+	BaselineId *string `min:"20" type:"string" required:"true"`
+
+	// The name of the patch group that should be deregistered from the patch baseline.
+	//
+	// PatchGroup is a required field
+	PatchGroup *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DeregisterPatchBaselineForPatchGroupInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeregisterPatchBaselineForPatchGroupInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DeregisterPatchBaselineForPatchGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DeregisterPatchBaselineForPatchGroupInput"}
+	if s.BaselineId == nil {
+		invalidParams.Add(request.NewErrParamRequired("BaselineId"))
+	}
+	if s.BaselineId != nil && len(*s.BaselineId) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("BaselineId", 20))
+	}
+	if s.PatchGroup == nil {
+		invalidParams.Add(request.NewErrParamRequired("PatchGroup"))
+	}
+	if s.PatchGroup != nil && len(*s.PatchGroup) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PatchGroup", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *DeregisterPatchBaselineForPatchGroupInput) SetBaselineId(v string) *DeregisterPatchBaselineForPatchGroupInput {
+	s.BaselineId = &v
+	return s
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *DeregisterPatchBaselineForPatchGroupInput) SetPatchGroup(v string) *DeregisterPatchBaselineForPatchGroupInput {
+	s.PatchGroup = &v
+	return s
+}
+
+type DeregisterPatchBaselineForPatchGroupOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline the patch group was deregistered from.
+	BaselineId *string `min:"20" type:"string"`
+
+	// The name of the patch group deregistered from the patch baseline.
+	PatchGroup *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s DeregisterPatchBaselineForPatchGroupOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DeregisterPatchBaselineForPatchGroupOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *DeregisterPatchBaselineForPatchGroupOutput) SetBaselineId(v string) *DeregisterPatchBaselineForPatchGroupOutput {
+	s.BaselineId = &v
+	return s
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *DeregisterPatchBaselineForPatchGroupOutput) SetPatchGroup(v string) *DeregisterPatchBaselineForPatchGroupOutput {
+	s.PatchGroup = &v
+	return s
 }
 
 type DeregisterTargetFromMaintenanceWindowInput struct {
@@ -8141,6 +9683,104 @@ func (s *DescribeAutomationExecutionsOutput) SetNextToken(v string) *DescribeAut
 	return s
 }
 
+type DescribeAvailablePatchesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Filters used to scope down the returned patches.
+	Filters []*PatchOrchestratorFilter `type:"list"`
+
+	// The maximum number of patches to return (per page).
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a previous call.)
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeAvailablePatchesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAvailablePatchesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeAvailablePatchesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeAvailablePatchesInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeAvailablePatchesInput) SetFilters(v []*PatchOrchestratorFilter) *DescribeAvailablePatchesInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeAvailablePatchesInput) SetMaxResults(v int64) *DescribeAvailablePatchesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAvailablePatchesInput) SetNextToken(v string) *DescribeAvailablePatchesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeAvailablePatchesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token to use when requesting the next set of items. If there are no additional
+	// items to return, the string is empty.
+	NextToken *string `type:"string"`
+
+	// An array of patches. Each entry in the array is a patch structure.
+	Patches []*Patch `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeAvailablePatchesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeAvailablePatchesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeAvailablePatchesOutput) SetNextToken(v string) *DescribeAvailablePatchesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPatches sets the Patches field's value.
+func (s *DescribeAvailablePatchesOutput) SetPatches(v []*Patch) *DescribeAvailablePatchesOutput {
+	s.Patches = v
+	return s
+}
+
 type DescribeDocumentInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8383,6 +10023,102 @@ func (s *DescribeEffectiveInstanceAssociationsOutput) SetNextToken(v string) *De
 	return s
 }
 
+type DescribeEffectivePatchesForPatchBaselineInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline to retrieve the effective patches for.
+	//
+	// BaselineId is a required field
+	BaselineId *string `min:"20" type:"string" required:"true"`
+
+	// The maximum number of patches to return (per page).
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a previous call.)
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeEffectivePatchesForPatchBaselineInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEffectivePatchesForPatchBaselineInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeEffectivePatchesForPatchBaselineInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeEffectivePatchesForPatchBaselineInput"}
+	if s.BaselineId == nil {
+		invalidParams.Add(request.NewErrParamRequired("BaselineId"))
+	}
+	if s.BaselineId != nil && len(*s.BaselineId) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("BaselineId", 20))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *DescribeEffectivePatchesForPatchBaselineInput) SetBaselineId(v string) *DescribeEffectivePatchesForPatchBaselineInput {
+	s.BaselineId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeEffectivePatchesForPatchBaselineInput) SetMaxResults(v int64) *DescribeEffectivePatchesForPatchBaselineInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeEffectivePatchesForPatchBaselineInput) SetNextToken(v string) *DescribeEffectivePatchesForPatchBaselineInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeEffectivePatchesForPatchBaselineOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of patches and patch status.
+	EffectivePatches []*EffectivePatch `type:"list"`
+
+	// The token to use when requesting the next set of items. If there are no additional
+	// items to return, the string is empty.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeEffectivePatchesForPatchBaselineOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEffectivePatchesForPatchBaselineOutput) GoString() string {
+	return s.String()
+}
+
+// SetEffectivePatches sets the EffectivePatches field's value.
+func (s *DescribeEffectivePatchesForPatchBaselineOutput) SetEffectivePatches(v []*EffectivePatch) *DescribeEffectivePatchesForPatchBaselineOutput {
+	s.EffectivePatches = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeEffectivePatchesForPatchBaselineOutput) SetNextToken(v string) *DescribeEffectivePatchesForPatchBaselineOutput {
+	s.NextToken = &v
+	return s
+}
+
 type DescribeInstanceAssociationsStatusInput struct {
 	_ struct{} `type:"structure"`
 
@@ -8594,6 +10330,352 @@ func (s *DescribeInstanceInformationOutput) SetInstanceInformationList(v []*Inst
 // SetNextToken sets the NextToken field's value.
 func (s *DescribeInstanceInformationOutput) SetNextToken(v string) *DescribeInstanceInformationOutput {
 	s.NextToken = &v
+	return s
+}
+
+type DescribeInstancePatchStatesForPatchGroupInput struct {
+	_ struct{} `type:"structure"`
+
+	// Each entry in the array is a structure containing:
+	//
+	// Key (string 1 ≤ length ≤ 200)
+	//
+	// Values (array containing a single string)
+	//
+	// Type (string “Equal”, “NotEqual”, “LessThan”, “GreaterThan”)
+	Filters []*InstancePatchStateFilter `type:"list"`
+
+	// The maximum number of patches to return (per page).
+	MaxResults *int64 `min:"10" type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a previous call.)
+	NextToken *string `type:"string"`
+
+	// The name of the patch group for which the patch state information should
+	// be retrieved.
+	//
+	// PatchGroup is a required field
+	PatchGroup *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribeInstancePatchStatesForPatchGroupInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeInstancePatchStatesForPatchGroupInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeInstancePatchStatesForPatchGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeInstancePatchStatesForPatchGroupInput"}
+	if s.MaxResults != nil && *s.MaxResults < 10 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 10))
+	}
+	if s.PatchGroup == nil {
+		invalidParams.Add(request.NewErrParamRequired("PatchGroup"))
+	}
+	if s.PatchGroup != nil && len(*s.PatchGroup) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PatchGroup", 1))
+	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeInstancePatchStatesForPatchGroupInput) SetFilters(v []*InstancePatchStateFilter) *DescribeInstancePatchStatesForPatchGroupInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeInstancePatchStatesForPatchGroupInput) SetMaxResults(v int64) *DescribeInstancePatchStatesForPatchGroupInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInstancePatchStatesForPatchGroupInput) SetNextToken(v string) *DescribeInstancePatchStatesForPatchGroupInput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *DescribeInstancePatchStatesForPatchGroupInput) SetPatchGroup(v string) *DescribeInstancePatchStatesForPatchGroupInput {
+	s.PatchGroup = &v
+	return s
+}
+
+type DescribeInstancePatchStatesForPatchGroupOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The high-level patch state for the requested instances.
+	InstancePatchStates []*InstancePatchState `min:"1" type:"list"`
+
+	// The token to use when requesting the next set of items. If there are no additional
+	// items to return, the string is empty.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeInstancePatchStatesForPatchGroupOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeInstancePatchStatesForPatchGroupOutput) GoString() string {
+	return s.String()
+}
+
+// SetInstancePatchStates sets the InstancePatchStates field's value.
+func (s *DescribeInstancePatchStatesForPatchGroupOutput) SetInstancePatchStates(v []*InstancePatchState) *DescribeInstancePatchStatesForPatchGroupOutput {
+	s.InstancePatchStates = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInstancePatchStatesForPatchGroupOutput) SetNextToken(v string) *DescribeInstancePatchStatesForPatchGroupOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeInstancePatchStatesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the instance whose patch state information should be retrieved.
+	//
+	// InstanceIds is a required field
+	InstanceIds []*string `type:"list" required:"true"`
+
+	// The maximum number of instances to return (per page).
+	MaxResults *int64 `min:"10" type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a previous call.)
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeInstancePatchStatesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeInstancePatchStatesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeInstancePatchStatesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeInstancePatchStatesInput"}
+	if s.InstanceIds == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceIds"))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 10 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 10))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceIds sets the InstanceIds field's value.
+func (s *DescribeInstancePatchStatesInput) SetInstanceIds(v []*string) *DescribeInstancePatchStatesInput {
+	s.InstanceIds = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeInstancePatchStatesInput) SetMaxResults(v int64) *DescribeInstancePatchStatesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInstancePatchStatesInput) SetNextToken(v string) *DescribeInstancePatchStatesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeInstancePatchStatesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The high-level patch state for the requested instances.
+	InstancePatchStates []*InstancePatchState `type:"list"`
+
+	// The token to use when requesting the next set of items. If there are no additional
+	// items to return, the string is empty.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeInstancePatchStatesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeInstancePatchStatesOutput) GoString() string {
+	return s.String()
+}
+
+// SetInstancePatchStates sets the InstancePatchStates field's value.
+func (s *DescribeInstancePatchStatesOutput) SetInstancePatchStates(v []*InstancePatchState) *DescribeInstancePatchStatesOutput {
+	s.InstancePatchStates = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInstancePatchStatesOutput) SetNextToken(v string) *DescribeInstancePatchStatesOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeInstancePatchesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Each entry in the array is a structure containing:
+	//
+	// Key (string, 1 ≤ length ≤ 128)
+	//
+	// Values (array of strings 1 ≤ length ≤ 256)
+	Filters []*PatchOrchestratorFilter `type:"list"`
+
+	// The ID of the instance whose patch state information should be retrieved.
+	//
+	// InstanceId is a required field
+	InstanceId *string `type:"string" required:"true"`
+
+	// The maximum number of patches to return (per page).
+	MaxResults *int64 `min:"10" type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a previous call.)
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeInstancePatchesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeInstancePatchesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribeInstancePatchesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribeInstancePatchesInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.MaxResults != nil && *s.MaxResults < 10 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 10))
+	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribeInstancePatchesInput) SetFilters(v []*PatchOrchestratorFilter) *DescribeInstancePatchesInput {
+	s.Filters = v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *DescribeInstancePatchesInput) SetInstanceId(v string) *DescribeInstancePatchesInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribeInstancePatchesInput) SetMaxResults(v int64) *DescribeInstancePatchesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInstancePatchesInput) SetNextToken(v string) *DescribeInstancePatchesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribeInstancePatchesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The token to use when requesting the next set of items. If there are no additional
+	// items to return, the string is empty.
+	NextToken *string `type:"string"`
+
+	// Each entry in the array is a structure containing:
+	//
+	// Title (string)
+	//
+	// KBId (string)
+	//
+	// Classification (string)
+	//
+	// Severity (string)
+	//
+	// State (string – “INSTALLED”, “INSTALLED_OTHER”, “MISSING”, “NOT_APPLICABLE”,
+	// “FAILED”)
+	//
+	// InstalledTime (DateTime)
+	//
+	// InstalledBy (string)
+	Patches []*PatchComplianceData `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeInstancePatchesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeInstancePatchesOutput) GoString() string {
+	return s.String()
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribeInstancePatchesOutput) SetNextToken(v string) *DescribeInstancePatchesOutput {
+	s.NextToken = &v
+	return s
+}
+
+// SetPatches sets the Patches field's value.
+func (s *DescribeInstancePatchesOutput) SetPatches(v []*PatchComplianceData) *DescribeInstancePatchesOutput {
+	s.Patches = v
 	return s
 }
 
@@ -9415,6 +11497,302 @@ func (s *DescribeParametersOutput) SetParameters(v []*ParameterMetadata) *Descri
 	return s
 }
 
+type DescribePatchBaselinesInput struct {
+	_ struct{} `type:"structure"`
+
+	// Each element in the array is a structure containing:
+	//
+	// Key: (string, “NAME_PREFIX” or “OWNER”)
+	//
+	// Value: (array of strings, exactly 1 entry, 1 ≤ length ≤ 255)
+	Filters []*PatchOrchestratorFilter `type:"list"`
+
+	// The maximum number of patch baselines to return (per page).
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a previous call.)
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribePatchBaselinesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePatchBaselinesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribePatchBaselinesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribePatchBaselinesInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+	if s.Filters != nil {
+		for i, v := range s.Filters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Filters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetFilters sets the Filters field's value.
+func (s *DescribePatchBaselinesInput) SetFilters(v []*PatchOrchestratorFilter) *DescribePatchBaselinesInput {
+	s.Filters = v
+	return s
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribePatchBaselinesInput) SetMaxResults(v int64) *DescribePatchBaselinesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribePatchBaselinesInput) SetNextToken(v string) *DescribePatchBaselinesInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribePatchBaselinesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// An array of PatchBaselineIdentity elements.
+	BaselineIdentities []*PatchBaselineIdentity `type:"list"`
+
+	// The token to use when requesting the next set of items. If there are no additional
+	// items to return, the string is empty.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribePatchBaselinesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePatchBaselinesOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaselineIdentities sets the BaselineIdentities field's value.
+func (s *DescribePatchBaselinesOutput) SetBaselineIdentities(v []*PatchBaselineIdentity) *DescribePatchBaselinesOutput {
+	s.BaselineIdentities = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribePatchBaselinesOutput) SetNextToken(v string) *DescribePatchBaselinesOutput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribePatchGroupStateInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the patch group whose patch snapshot should be retrieved.
+	//
+	// PatchGroup is a required field
+	PatchGroup *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DescribePatchGroupStateInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePatchGroupStateInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribePatchGroupStateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribePatchGroupStateInput"}
+	if s.PatchGroup == nil {
+		invalidParams.Add(request.NewErrParamRequired("PatchGroup"))
+	}
+	if s.PatchGroup != nil && len(*s.PatchGroup) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PatchGroup", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *DescribePatchGroupStateInput) SetPatchGroup(v string) *DescribePatchGroupStateInput {
+	s.PatchGroup = &v
+	return s
+}
+
+type DescribePatchGroupStateOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The number of instances in the patch group.
+	Instances *int64 `type:"integer"`
+
+	// The number of instances with patches from the patch baseline that failed
+	// to install.
+	InstancesWithFailedPatches *int64 `type:"integer"`
+
+	// The number of instances with patches installed that aren’t defined in the
+	// patch baseline.
+	InstancesWithInstalledOtherPatches *int64 `type:"integer"`
+
+	// The number of instances with installed patches.
+	InstancesWithInstalledPatches *int64 `type:"integer"`
+
+	// The number of instances with missing patches from the patch baseline.
+	InstancesWithMissingPatches *int64 `type:"integer"`
+
+	// The number of instances with patches that aren’t applicable.
+	InstancesWithNotApplicablePatches *int64 `type:"integer"`
+}
+
+// String returns the string representation
+func (s DescribePatchGroupStateOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePatchGroupStateOutput) GoString() string {
+	return s.String()
+}
+
+// SetInstances sets the Instances field's value.
+func (s *DescribePatchGroupStateOutput) SetInstances(v int64) *DescribePatchGroupStateOutput {
+	s.Instances = &v
+	return s
+}
+
+// SetInstancesWithFailedPatches sets the InstancesWithFailedPatches field's value.
+func (s *DescribePatchGroupStateOutput) SetInstancesWithFailedPatches(v int64) *DescribePatchGroupStateOutput {
+	s.InstancesWithFailedPatches = &v
+	return s
+}
+
+// SetInstancesWithInstalledOtherPatches sets the InstancesWithInstalledOtherPatches field's value.
+func (s *DescribePatchGroupStateOutput) SetInstancesWithInstalledOtherPatches(v int64) *DescribePatchGroupStateOutput {
+	s.InstancesWithInstalledOtherPatches = &v
+	return s
+}
+
+// SetInstancesWithInstalledPatches sets the InstancesWithInstalledPatches field's value.
+func (s *DescribePatchGroupStateOutput) SetInstancesWithInstalledPatches(v int64) *DescribePatchGroupStateOutput {
+	s.InstancesWithInstalledPatches = &v
+	return s
+}
+
+// SetInstancesWithMissingPatches sets the InstancesWithMissingPatches field's value.
+func (s *DescribePatchGroupStateOutput) SetInstancesWithMissingPatches(v int64) *DescribePatchGroupStateOutput {
+	s.InstancesWithMissingPatches = &v
+	return s
+}
+
+// SetInstancesWithNotApplicablePatches sets the InstancesWithNotApplicablePatches field's value.
+func (s *DescribePatchGroupStateOutput) SetInstancesWithNotApplicablePatches(v int64) *DescribePatchGroupStateOutput {
+	s.InstancesWithNotApplicablePatches = &v
+	return s
+}
+
+type DescribePatchGroupsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of patch groups to return (per page).
+	MaxResults *int64 `min:"1" type:"integer"`
+
+	// The token for the next set of items to return. (You received this token from
+	// a previous call.)
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribePatchGroupsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePatchGroupsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DescribePatchGroupsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DescribePatchGroupsInput"}
+	if s.MaxResults != nil && *s.MaxResults < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxResults", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *DescribePatchGroupsInput) SetMaxResults(v int64) *DescribePatchGroupsInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribePatchGroupsInput) SetNextToken(v string) *DescribePatchGroupsInput {
+	s.NextToken = &v
+	return s
+}
+
+type DescribePatchGroupsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// Each entry in the array contains:
+	//
+	// PatchGroup: string (1 ≤ length ≤ 256, Regex: ^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$)
+	//
+	// PatchBaselineIdentity: A PatchBaselineIdentity element.
+	Mappings []*PatchGroupPatchBaselineMapping `type:"list"`
+
+	// The token to use when requesting the next set of items. If there are no additional
+	// items to return, the string is empty.
+	NextToken *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribePatchGroupsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribePatchGroupsOutput) GoString() string {
+	return s.String()
+}
+
+// SetMappings sets the Mappings field's value.
+func (s *DescribePatchGroupsOutput) SetMappings(v []*PatchGroupPatchBaselineMapping) *DescribePatchGroupsOutput {
+	s.Mappings = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *DescribePatchGroupsOutput) SetNextToken(v string) *DescribePatchGroupsOutput {
+	s.NextToken = &v
+	return s
+}
+
 // A default version of a document.
 type DocumentDefaultVersionDescription struct {
 	_ struct{} `type:"structure"`
@@ -9832,6 +12210,47 @@ func (s *DocumentVersionInfo) SetName(v string) *DocumentVersionInfo {
 	return s
 }
 
+// The EffectivePatch structure defines metadata about a patch along with the
+// approval state of the patch in a particular patch baseline. The approval
+// state includes information about whether the patch is currently approved,
+// due to be approved by a rule, explicitly approved, or explicitly rejected
+// and the date the patch was or will be approved.
+type EffectivePatch struct {
+	_ struct{} `type:"structure"`
+
+	// Provides metadata for a patch, including information such as the KB ID, severity,
+	// classification and a URL for where more information can be obtained about
+	// the patch.
+	Patch *Patch `type:"structure"`
+
+	// The status of the patch in a patch baseline. This includes information about
+	// whether the patch is currently approved, due to be approved by a rule, explicitly
+	// approved, or explicitly rejected and the date the patch was or will be approved.
+	PatchStatus *PatchStatus `type:"structure"`
+}
+
+// String returns the string representation
+func (s EffectivePatch) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EffectivePatch) GoString() string {
+	return s.String()
+}
+
+// SetPatch sets the Patch field's value.
+func (s *EffectivePatch) SetPatch(v *Patch) *EffectivePatch {
+	s.Patch = v
+	return s
+}
+
+// SetPatchStatus sets the PatchStatus field's value.
+func (s *EffectivePatch) SetPatchStatus(v *PatchStatus) *EffectivePatch {
+	s.PatchStatus = v
+	return s
+}
+
 // Describes a failed association.
 type FailedCreateAssociation struct {
 	_ struct{} `type:"structure"`
@@ -10220,6 +12639,140 @@ func (s *GetCommandInvocationOutput) SetStatus(v string) *GetCommandInvocationOu
 // SetStatusDetails sets the StatusDetails field's value.
 func (s *GetCommandInvocationOutput) SetStatusDetails(v string) *GetCommandInvocationOutput {
 	s.StatusDetails = &v
+	return s
+}
+
+type GetDefaultPatchBaselineInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetDefaultPatchBaselineInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDefaultPatchBaselineInput) GoString() string {
+	return s.String()
+}
+
+type GetDefaultPatchBaselineOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the default patch baseline.
+	BaselineId *string `min:"20" type:"string"`
+}
+
+// String returns the string representation
+func (s GetDefaultPatchBaselineOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDefaultPatchBaselineOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *GetDefaultPatchBaselineOutput) SetBaselineId(v string) *GetDefaultPatchBaselineOutput {
+	s.BaselineId = &v
+	return s
+}
+
+type GetDeployablePatchSnapshotForInstanceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the instance for which the appropriate patch snapshot should be
+	// retrieved.
+	//
+	// InstanceId is a required field
+	InstanceId *string `type:"string" required:"true"`
+
+	// The user-defined snapshot ID.
+	//
+	// SnapshotId is a required field
+	SnapshotId *string `min:"36" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetDeployablePatchSnapshotForInstanceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDeployablePatchSnapshotForInstanceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetDeployablePatchSnapshotForInstanceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetDeployablePatchSnapshotForInstanceInput"}
+	if s.InstanceId == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceId"))
+	}
+	if s.SnapshotId == nil {
+		invalidParams.Add(request.NewErrParamRequired("SnapshotId"))
+	}
+	if s.SnapshotId != nil && len(*s.SnapshotId) < 36 {
+		invalidParams.Add(request.NewErrParamMinLen("SnapshotId", 36))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *GetDeployablePatchSnapshotForInstanceInput) SetInstanceId(v string) *GetDeployablePatchSnapshotForInstanceInput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetSnapshotId sets the SnapshotId field's value.
+func (s *GetDeployablePatchSnapshotForInstanceInput) SetSnapshotId(v string) *GetDeployablePatchSnapshotForInstanceInput {
+	s.SnapshotId = &v
+	return s
+}
+
+type GetDeployablePatchSnapshotForInstanceOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the instance.
+	InstanceId *string `type:"string"`
+
+	// A pre-signed Amazon S3 URL that can be used to download the patch snapshot.
+	SnapshotDownloadUrl *string `type:"string"`
+
+	// The user-defined snapshot ID.
+	SnapshotId *string `min:"36" type:"string"`
+}
+
+// String returns the string representation
+func (s GetDeployablePatchSnapshotForInstanceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetDeployablePatchSnapshotForInstanceOutput) GoString() string {
+	return s.String()
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *GetDeployablePatchSnapshotForInstanceOutput) SetInstanceId(v string) *GetDeployablePatchSnapshotForInstanceOutput {
+	s.InstanceId = &v
+	return s
+}
+
+// SetSnapshotDownloadUrl sets the SnapshotDownloadUrl field's value.
+func (s *GetDeployablePatchSnapshotForInstanceOutput) SetSnapshotDownloadUrl(v string) *GetDeployablePatchSnapshotForInstanceOutput {
+	s.SnapshotDownloadUrl = &v
+	return s
+}
+
+// SetSnapshotId sets the SnapshotId field's value.
+func (s *GetDeployablePatchSnapshotForInstanceOutput) SetSnapshotId(v string) *GetDeployablePatchSnapshotForInstanceOutput {
+	s.SnapshotId = &v
 	return s
 }
 
@@ -11172,6 +13725,224 @@ func (s *GetParametersOutput) SetParameters(v []*Parameter) *GetParametersOutput
 	return s
 }
 
+type GetPatchBaselineForPatchGroupInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the patch group whose patch baseline should be retrieved.
+	//
+	// PatchGroup is a required field
+	PatchGroup *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetPatchBaselineForPatchGroupInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetPatchBaselineForPatchGroupInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetPatchBaselineForPatchGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetPatchBaselineForPatchGroupInput"}
+	if s.PatchGroup == nil {
+		invalidParams.Add(request.NewErrParamRequired("PatchGroup"))
+	}
+	if s.PatchGroup != nil && len(*s.PatchGroup) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PatchGroup", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *GetPatchBaselineForPatchGroupInput) SetPatchGroup(v string) *GetPatchBaselineForPatchGroupInput {
+	s.PatchGroup = &v
+	return s
+}
+
+type GetPatchBaselineForPatchGroupOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline that should be used for the patch group.
+	BaselineId *string `min:"20" type:"string"`
+
+	// The name of the patch group.
+	PatchGroup *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s GetPatchBaselineForPatchGroupOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetPatchBaselineForPatchGroupOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *GetPatchBaselineForPatchGroupOutput) SetBaselineId(v string) *GetPatchBaselineForPatchGroupOutput {
+	s.BaselineId = &v
+	return s
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *GetPatchBaselineForPatchGroupOutput) SetPatchGroup(v string) *GetPatchBaselineForPatchGroupOutput {
+	s.PatchGroup = &v
+	return s
+}
+
+type GetPatchBaselineInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline to retrieve.
+	//
+	// BaselineId is a required field
+	BaselineId *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s GetPatchBaselineInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetPatchBaselineInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *GetPatchBaselineInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "GetPatchBaselineInput"}
+	if s.BaselineId == nil {
+		invalidParams.Add(request.NewErrParamRequired("BaselineId"))
+	}
+	if s.BaselineId != nil && len(*s.BaselineId) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("BaselineId", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *GetPatchBaselineInput) SetBaselineId(v string) *GetPatchBaselineInput {
+	s.BaselineId = &v
+	return s
+}
+
+type GetPatchBaselineOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A set of rules used to include patches in the baseline.
+	ApprovalRules *PatchRuleGroup `type:"structure"`
+
+	// A list of explicitly approved patches for the baseline.
+	ApprovedPatches []*string `type:"list"`
+
+	// The ID of the retrieved patch baseline.
+	BaselineId *string `min:"20" type:"string"`
+
+	// The date the patch baseline was created.
+	CreatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// A description of the patch baseline.
+	Description *string `min:"1" type:"string"`
+
+	// A set of global filters used to exclude patches from the baseline.
+	GlobalFilters *PatchFilterGroup `type:"structure"`
+
+	// The date the patch baseline was last modified.
+	ModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The name of the patch baseline.
+	Name *string `min:"3" type:"string"`
+
+	// Patch groups included in the patch baseline.
+	PatchGroups []*string `type:"list"`
+
+	// A list of explicitly rejected patches for the baseline.
+	RejectedPatches []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s GetPatchBaselineOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetPatchBaselineOutput) GoString() string {
+	return s.String()
+}
+
+// SetApprovalRules sets the ApprovalRules field's value.
+func (s *GetPatchBaselineOutput) SetApprovalRules(v *PatchRuleGroup) *GetPatchBaselineOutput {
+	s.ApprovalRules = v
+	return s
+}
+
+// SetApprovedPatches sets the ApprovedPatches field's value.
+func (s *GetPatchBaselineOutput) SetApprovedPatches(v []*string) *GetPatchBaselineOutput {
+	s.ApprovedPatches = v
+	return s
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *GetPatchBaselineOutput) SetBaselineId(v string) *GetPatchBaselineOutput {
+	s.BaselineId = &v
+	return s
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *GetPatchBaselineOutput) SetCreatedDate(v time.Time) *GetPatchBaselineOutput {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *GetPatchBaselineOutput) SetDescription(v string) *GetPatchBaselineOutput {
+	s.Description = &v
+	return s
+}
+
+// SetGlobalFilters sets the GlobalFilters field's value.
+func (s *GetPatchBaselineOutput) SetGlobalFilters(v *PatchFilterGroup) *GetPatchBaselineOutput {
+	s.GlobalFilters = v
+	return s
+}
+
+// SetModifiedDate sets the ModifiedDate field's value.
+func (s *GetPatchBaselineOutput) SetModifiedDate(v time.Time) *GetPatchBaselineOutput {
+	s.ModifiedDate = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *GetPatchBaselineOutput) SetName(v string) *GetPatchBaselineOutput {
+	s.Name = &v
+	return s
+}
+
+// SetPatchGroups sets the PatchGroups field's value.
+func (s *GetPatchBaselineOutput) SetPatchGroups(v []*string) *GetPatchBaselineOutput {
+	s.PatchGroups = v
+	return s
+}
+
+// SetRejectedPatches sets the RejectedPatches field's value.
+func (s *GetPatchBaselineOutput) SetRejectedPatches(v []*string) *GetPatchBaselineOutput {
+	s.RejectedPatches = v
+	return s
+}
+
 // Status information about the aggregated associations.
 type InstanceAggregatedAssociationOverview struct {
 	_ struct{} `type:"structure"`
@@ -11717,6 +14488,237 @@ func (s *InstanceInformationStringFilter) SetKey(v string) *InstanceInformationS
 
 // SetValues sets the Values field's value.
 func (s *InstanceInformationStringFilter) SetValues(v []*string) *InstanceInformationStringFilter {
+	s.Values = v
+	return s
+}
+
+// Defines the high-level patch compliance state for a managed instance, providing
+// information about the number of installed, missing, not applicable, and failed
+// patches along with metadata about the operation when this information was
+// gathered for the instance.
+type InstancePatchState struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline used to patch the instance.
+	//
+	// BaselineId is a required field
+	BaselineId *string `min:"20" type:"string" required:"true"`
+
+	// The number of patches from the patch baseline that were attempted to be installed
+	// during the last patching operation, but failed to install.
+	FailedCount *int64 `type:"integer"`
+
+	// The number of patches from the patch baseline that are installed on the instance.
+	InstalledCount *int64 `type:"integer"`
+
+	// The number of patches not specified in the patch baseline that are installed
+	// on the instance.
+	InstalledOtherCount *int64 `type:"integer"`
+
+	// The ID of the managed instance the high-level patch compliance information
+	// was collected for.
+	//
+	// InstanceId is a required field
+	InstanceId *string `type:"string" required:"true"`
+
+	// The number of patches from the patch baseline that are applicable for the
+	// instance but aren’t currently installed.
+	MissingCount *int64 `type:"integer"`
+
+	// The number of patches from the patch baseline that aren’t applicable for
+	// the instance and hence aren’t installed on the instance.
+	NotApplicableCount *int64 `type:"integer"`
+
+	// The type of patching operation that was performed: SCAN (assess patch compliance
+	// state) or INSTALL (install missing patches).
+	//
+	// Operation is a required field
+	Operation *string `type:"string" required:"true" enum:"PatchOperationType"`
+
+	// The time the most recent patching operation completed on the instance.
+	//
+	// OperationEndTime is a required field
+	OperationEndTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+
+	// The time the most recent patching operation was started on the instance.
+	//
+	// OperationStartTime is a required field
+	OperationStartTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+
+	// Placeholder information, this field will always be empty in the current release
+	// of the service.
+	OwnerInformation *string `min:"1" type:"string"`
+
+	// The name of the patch group the managed instance belongs to.
+	//
+	// PatchGroup is a required field
+	PatchGroup *string `min:"1" type:"string" required:"true"`
+
+	// The ID of the patch baseline snapshot used during the patching operation
+	// when this compliance data was collected.
+	SnapshotId *string `min:"36" type:"string"`
+}
+
+// String returns the string representation
+func (s InstancePatchState) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstancePatchState) GoString() string {
+	return s.String()
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *InstancePatchState) SetBaselineId(v string) *InstancePatchState {
+	s.BaselineId = &v
+	return s
+}
+
+// SetFailedCount sets the FailedCount field's value.
+func (s *InstancePatchState) SetFailedCount(v int64) *InstancePatchState {
+	s.FailedCount = &v
+	return s
+}
+
+// SetInstalledCount sets the InstalledCount field's value.
+func (s *InstancePatchState) SetInstalledCount(v int64) *InstancePatchState {
+	s.InstalledCount = &v
+	return s
+}
+
+// SetInstalledOtherCount sets the InstalledOtherCount field's value.
+func (s *InstancePatchState) SetInstalledOtherCount(v int64) *InstancePatchState {
+	s.InstalledOtherCount = &v
+	return s
+}
+
+// SetInstanceId sets the InstanceId field's value.
+func (s *InstancePatchState) SetInstanceId(v string) *InstancePatchState {
+	s.InstanceId = &v
+	return s
+}
+
+// SetMissingCount sets the MissingCount field's value.
+func (s *InstancePatchState) SetMissingCount(v int64) *InstancePatchState {
+	s.MissingCount = &v
+	return s
+}
+
+// SetNotApplicableCount sets the NotApplicableCount field's value.
+func (s *InstancePatchState) SetNotApplicableCount(v int64) *InstancePatchState {
+	s.NotApplicableCount = &v
+	return s
+}
+
+// SetOperation sets the Operation field's value.
+func (s *InstancePatchState) SetOperation(v string) *InstancePatchState {
+	s.Operation = &v
+	return s
+}
+
+// SetOperationEndTime sets the OperationEndTime field's value.
+func (s *InstancePatchState) SetOperationEndTime(v time.Time) *InstancePatchState {
+	s.OperationEndTime = &v
+	return s
+}
+
+// SetOperationStartTime sets the OperationStartTime field's value.
+func (s *InstancePatchState) SetOperationStartTime(v time.Time) *InstancePatchState {
+	s.OperationStartTime = &v
+	return s
+}
+
+// SetOwnerInformation sets the OwnerInformation field's value.
+func (s *InstancePatchState) SetOwnerInformation(v string) *InstancePatchState {
+	s.OwnerInformation = &v
+	return s
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *InstancePatchState) SetPatchGroup(v string) *InstancePatchState {
+	s.PatchGroup = &v
+	return s
+}
+
+// SetSnapshotId sets the SnapshotId field's value.
+func (s *InstancePatchState) SetSnapshotId(v string) *InstancePatchState {
+	s.SnapshotId = &v
+	return s
+}
+
+// Defines a filter used in DescribeInstancePatchStatesForPatchGroup used to
+// scope down the information returned by the API.
+type InstancePatchStateFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The key for the filter. Supported values are FailedCount, InstalledCount,
+	// InstalledOtherCount, MissingCount and NotApplicableCount.
+	//
+	// Key is a required field
+	Key *string `min:"1" type:"string" required:"true"`
+
+	// The type of comparison that should be performed for the value: Equal, NotEqual,
+	// LessThan or GreaterThan.
+	//
+	// Type is a required field
+	Type *string `type:"string" required:"true" enum:"InstancePatchStateOperatorType"`
+
+	// The value for the filter, must be an integer greater than or equal to 0.
+	//
+	// Values is a required field
+	Values []*string `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s InstancePatchStateFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s InstancePatchStateFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *InstancePatchStateFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "InstancePatchStateFilter"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+	if s.Type == nil {
+		invalidParams.Add(request.NewErrParamRequired("Type"))
+	}
+	if s.Values == nil {
+		invalidParams.Add(request.NewErrParamRequired("Values"))
+	}
+	if s.Values != nil && len(s.Values) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Values", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *InstancePatchStateFilter) SetKey(v string) *InstancePatchStateFilter {
+	s.Key = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *InstancePatchStateFilter) SetType(v string) *InstancePatchStateFilter {
+	s.Type = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *InstancePatchStateFilter) SetValues(v []*string) *InstancePatchStateFilter {
 	s.Values = v
 	return s
 }
@@ -13922,6 +16924,600 @@ func (s *ParametersFilter) SetValues(v []*string) *ParametersFilter {
 	return s
 }
 
+// Represents metadata about a patch.
+type Patch struct {
+	_ struct{} `type:"structure"`
+
+	// The classification of the patch (for example, SecurityUpdates, Updates, CriticalUpdates).
+	Classification *string `type:"string"`
+
+	// The URL where more information can be obtained about the patch.
+	ContentUrl *string `type:"string"`
+
+	// The description of the patch.
+	Description *string `type:"string"`
+
+	// The ID of the patch (this is different than the Microsoft Knowledge Base
+	// ID).
+	Id *string `type:"string"`
+
+	// The Microsoft Knowledge Base ID of the patch.
+	KbNumber *string `type:"string"`
+
+	// The language of the patch if it’s language-specific.
+	Language *string `type:"string"`
+
+	// The ID of the MSRC bulletin the patch is related to.
+	MsrcNumber *string `type:"string"`
+
+	// The severity of the patch (for example Critical, Important, Moderate).
+	MsrcSeverity *string `type:"string"`
+
+	// The specific product the patch is applicable for (for example, WindowsServer2016).
+	Product *string `type:"string"`
+
+	// The product family the patch is applicable for (for example, Windows).
+	ProductFamily *string `type:"string"`
+
+	// The date the patch was released.
+	ReleaseDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The title of the patch.
+	Title *string `type:"string"`
+
+	// The name of the vendor providing the patch.
+	Vendor *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Patch) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Patch) GoString() string {
+	return s.String()
+}
+
+// SetClassification sets the Classification field's value.
+func (s *Patch) SetClassification(v string) *Patch {
+	s.Classification = &v
+	return s
+}
+
+// SetContentUrl sets the ContentUrl field's value.
+func (s *Patch) SetContentUrl(v string) *Patch {
+	s.ContentUrl = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *Patch) SetDescription(v string) *Patch {
+	s.Description = &v
+	return s
+}
+
+// SetId sets the Id field's value.
+func (s *Patch) SetId(v string) *Patch {
+	s.Id = &v
+	return s
+}
+
+// SetKbNumber sets the KbNumber field's value.
+func (s *Patch) SetKbNumber(v string) *Patch {
+	s.KbNumber = &v
+	return s
+}
+
+// SetLanguage sets the Language field's value.
+func (s *Patch) SetLanguage(v string) *Patch {
+	s.Language = &v
+	return s
+}
+
+// SetMsrcNumber sets the MsrcNumber field's value.
+func (s *Patch) SetMsrcNumber(v string) *Patch {
+	s.MsrcNumber = &v
+	return s
+}
+
+// SetMsrcSeverity sets the MsrcSeverity field's value.
+func (s *Patch) SetMsrcSeverity(v string) *Patch {
+	s.MsrcSeverity = &v
+	return s
+}
+
+// SetProduct sets the Product field's value.
+func (s *Patch) SetProduct(v string) *Patch {
+	s.Product = &v
+	return s
+}
+
+// SetProductFamily sets the ProductFamily field's value.
+func (s *Patch) SetProductFamily(v string) *Patch {
+	s.ProductFamily = &v
+	return s
+}
+
+// SetReleaseDate sets the ReleaseDate field's value.
+func (s *Patch) SetReleaseDate(v time.Time) *Patch {
+	s.ReleaseDate = &v
+	return s
+}
+
+// SetTitle sets the Title field's value.
+func (s *Patch) SetTitle(v string) *Patch {
+	s.Title = &v
+	return s
+}
+
+// SetVendor sets the Vendor field's value.
+func (s *Patch) SetVendor(v string) *Patch {
+	s.Vendor = &v
+	return s
+}
+
+// Defines the basic information about a patch baseline.
+type PatchBaselineIdentity struct {
+	_ struct{} `type:"structure"`
+
+	// The description of the patch baseline.
+	BaselineDescription *string `min:"1" type:"string"`
+
+	// The ID of the patch baseline.
+	BaselineId *string `min:"20" type:"string"`
+
+	// The name of the patch baseline.
+	BaselineName *string `min:"3" type:"string"`
+
+	// Whether this is the default baseline.
+	DefaultBaseline *bool `type:"boolean"`
+}
+
+// String returns the string representation
+func (s PatchBaselineIdentity) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PatchBaselineIdentity) GoString() string {
+	return s.String()
+}
+
+// SetBaselineDescription sets the BaselineDescription field's value.
+func (s *PatchBaselineIdentity) SetBaselineDescription(v string) *PatchBaselineIdentity {
+	s.BaselineDescription = &v
+	return s
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *PatchBaselineIdentity) SetBaselineId(v string) *PatchBaselineIdentity {
+	s.BaselineId = &v
+	return s
+}
+
+// SetBaselineName sets the BaselineName field's value.
+func (s *PatchBaselineIdentity) SetBaselineName(v string) *PatchBaselineIdentity {
+	s.BaselineName = &v
+	return s
+}
+
+// SetDefaultBaseline sets the DefaultBaseline field's value.
+func (s *PatchBaselineIdentity) SetDefaultBaseline(v bool) *PatchBaselineIdentity {
+	s.DefaultBaseline = &v
+	return s
+}
+
+// Information about the state of a patch on a particular instance as it relates
+// to the patch baseline used to patch the instance.
+type PatchComplianceData struct {
+	_ struct{} `type:"structure"`
+
+	// The classification of the patch (for example, SecurityUpdates, Updates, CriticalUpdates).
+	//
+	// Classification is a required field
+	Classification *string `type:"string" required:"true"`
+
+	// The date/time the patch was installed on the instance.
+	//
+	// InstalledTime is a required field
+	InstalledTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+
+	// The Microsoft Knowledge Base ID of the patch.
+	//
+	// KBId is a required field
+	KBId *string `type:"string" required:"true"`
+
+	// The severity of the patch (for example, Critical, Important, Moderate).
+	//
+	// Severity is a required field
+	Severity *string `type:"string" required:"true"`
+
+	// The state of the patch on the instance (INSTALLED, INSTALLED_OTHER, MISSING,
+	// NOT_APPLICABLE or FAILED).
+	//
+	// State is a required field
+	State *string `type:"string" required:"true" enum:"PatchComplianceDataState"`
+
+	// The title of the patch.
+	//
+	// Title is a required field
+	Title *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s PatchComplianceData) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PatchComplianceData) GoString() string {
+	return s.String()
+}
+
+// SetClassification sets the Classification field's value.
+func (s *PatchComplianceData) SetClassification(v string) *PatchComplianceData {
+	s.Classification = &v
+	return s
+}
+
+// SetInstalledTime sets the InstalledTime field's value.
+func (s *PatchComplianceData) SetInstalledTime(v time.Time) *PatchComplianceData {
+	s.InstalledTime = &v
+	return s
+}
+
+// SetKBId sets the KBId field's value.
+func (s *PatchComplianceData) SetKBId(v string) *PatchComplianceData {
+	s.KBId = &v
+	return s
+}
+
+// SetSeverity sets the Severity field's value.
+func (s *PatchComplianceData) SetSeverity(v string) *PatchComplianceData {
+	s.Severity = &v
+	return s
+}
+
+// SetState sets the State field's value.
+func (s *PatchComplianceData) SetState(v string) *PatchComplianceData {
+	s.State = &v
+	return s
+}
+
+// SetTitle sets the Title field's value.
+func (s *PatchComplianceData) SetTitle(v string) *PatchComplianceData {
+	s.Title = &v
+	return s
+}
+
+// Defines a patch filter.
+type PatchFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The key for the filter (PRODUCT, CLASSIFICATION, MSRC_SEVERITY, PATCH_ID)
+	//
+	// Key is a required field
+	Key *string `type:"string" required:"true" enum:"PatchFilterKey"`
+
+	// The value for the filter key.
+	//
+	// Values is a required field
+	Values []*string `min:"1" type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s PatchFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PatchFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PatchFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PatchFilter"}
+	if s.Key == nil {
+		invalidParams.Add(request.NewErrParamRequired("Key"))
+	}
+	if s.Values == nil {
+		invalidParams.Add(request.NewErrParamRequired("Values"))
+	}
+	if s.Values != nil && len(s.Values) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Values", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *PatchFilter) SetKey(v string) *PatchFilter {
+	s.Key = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *PatchFilter) SetValues(v []*string) *PatchFilter {
+	s.Values = v
+	return s
+}
+
+// A set of patch filters, typically used for approval rules.
+type PatchFilterGroup struct {
+	_ struct{} `type:"structure"`
+
+	// The set of patch filters that make up the group.
+	//
+	// PatchFilters is a required field
+	PatchFilters []*PatchFilter `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s PatchFilterGroup) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PatchFilterGroup) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PatchFilterGroup) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PatchFilterGroup"}
+	if s.PatchFilters == nil {
+		invalidParams.Add(request.NewErrParamRequired("PatchFilters"))
+	}
+	if s.PatchFilters != nil {
+		for i, v := range s.PatchFilters {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "PatchFilters", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPatchFilters sets the PatchFilters field's value.
+func (s *PatchFilterGroup) SetPatchFilters(v []*PatchFilter) *PatchFilterGroup {
+	s.PatchFilters = v
+	return s
+}
+
+// The mapping between a patch group and the patch baseline the patch group
+// is registered with.
+type PatchGroupPatchBaselineMapping struct {
+	_ struct{} `type:"structure"`
+
+	// The patch baseline the patch group is registered with.
+	BaselineIdentity *PatchBaselineIdentity `type:"structure"`
+
+	// The name of the patch group registered with the patch baseline.
+	PatchGroup *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s PatchGroupPatchBaselineMapping) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PatchGroupPatchBaselineMapping) GoString() string {
+	return s.String()
+}
+
+// SetBaselineIdentity sets the BaselineIdentity field's value.
+func (s *PatchGroupPatchBaselineMapping) SetBaselineIdentity(v *PatchBaselineIdentity) *PatchGroupPatchBaselineMapping {
+	s.BaselineIdentity = v
+	return s
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *PatchGroupPatchBaselineMapping) SetPatchGroup(v string) *PatchGroupPatchBaselineMapping {
+	s.PatchGroup = &v
+	return s
+}
+
+// Defines a filter used in Patch Manager APIs.
+type PatchOrchestratorFilter struct {
+	_ struct{} `type:"structure"`
+
+	// The key for the filter.
+	Key *string `min:"1" type:"string"`
+
+	// The value for the filter.
+	Values []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s PatchOrchestratorFilter) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PatchOrchestratorFilter) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PatchOrchestratorFilter) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PatchOrchestratorFilter"}
+	if s.Key != nil && len(*s.Key) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Key", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetKey sets the Key field's value.
+func (s *PatchOrchestratorFilter) SetKey(v string) *PatchOrchestratorFilter {
+	s.Key = &v
+	return s
+}
+
+// SetValues sets the Values field's value.
+func (s *PatchOrchestratorFilter) SetValues(v []*string) *PatchOrchestratorFilter {
+	s.Values = v
+	return s
+}
+
+// Defines an approval rule for a patch baseline.
+type PatchRule struct {
+	_ struct{} `type:"structure"`
+
+	// The number of days after the release date of each patch matched by the rule
+	// the patch is marked as approved in the patch baseline.
+	//
+	// ApproveAfterDays is a required field
+	ApproveAfterDays *int64 `type:"integer" required:"true"`
+
+	// The patch filter group that defines the criteria for the rule.
+	//
+	// PatchFilterGroup is a required field
+	PatchFilterGroup *PatchFilterGroup `type:"structure" required:"true"`
+}
+
+// String returns the string representation
+func (s PatchRule) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PatchRule) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PatchRule) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PatchRule"}
+	if s.ApproveAfterDays == nil {
+		invalidParams.Add(request.NewErrParamRequired("ApproveAfterDays"))
+	}
+	if s.PatchFilterGroup == nil {
+		invalidParams.Add(request.NewErrParamRequired("PatchFilterGroup"))
+	}
+	if s.PatchFilterGroup != nil {
+		if err := s.PatchFilterGroup.Validate(); err != nil {
+			invalidParams.AddNested("PatchFilterGroup", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApproveAfterDays sets the ApproveAfterDays field's value.
+func (s *PatchRule) SetApproveAfterDays(v int64) *PatchRule {
+	s.ApproveAfterDays = &v
+	return s
+}
+
+// SetPatchFilterGroup sets the PatchFilterGroup field's value.
+func (s *PatchRule) SetPatchFilterGroup(v *PatchFilterGroup) *PatchRule {
+	s.PatchFilterGroup = v
+	return s
+}
+
+// A set of rules defining the approval rules for a patch baseline.
+type PatchRuleGroup struct {
+	_ struct{} `type:"structure"`
+
+	// The rules that make up the rule group.
+	//
+	// PatchRules is a required field
+	PatchRules []*PatchRule `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s PatchRuleGroup) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PatchRuleGroup) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *PatchRuleGroup) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "PatchRuleGroup"}
+	if s.PatchRules == nil {
+		invalidParams.Add(request.NewErrParamRequired("PatchRules"))
+	}
+	if s.PatchRules != nil {
+		for i, v := range s.PatchRules {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "PatchRules", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPatchRules sets the PatchRules field's value.
+func (s *PatchRuleGroup) SetPatchRules(v []*PatchRule) *PatchRuleGroup {
+	s.PatchRules = v
+	return s
+}
+
+// Information about the approval status of a patch.
+type PatchStatus struct {
+	_ struct{} `type:"structure"`
+
+	// The date the patch was approved (or will be approved if the status is PENDING_APPROVAL).
+	ApprovalDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The approval status of a patch (APPROVED, PENDING_APPROVAL, EXPLICIT_APPROVED,
+	// EXPLICIT_REJECTED).
+	DeploymentStatus *string `type:"string" enum:"PatchDeploymentStatus"`
+}
+
+// String returns the string representation
+func (s PatchStatus) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s PatchStatus) GoString() string {
+	return s.String()
+}
+
+// SetApprovalDate sets the ApprovalDate field's value.
+func (s *PatchStatus) SetApprovalDate(v time.Time) *PatchStatus {
+	s.ApprovalDate = &v
+	return s
+}
+
+// SetDeploymentStatus sets the DeploymentStatus field's value.
+func (s *PatchStatus) SetDeploymentStatus(v string) *PatchStatus {
+	s.DeploymentStatus = &v
+	return s
+}
+
 type PutInventoryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -14118,6 +17714,160 @@ func (s PutParameterOutput) String() string {
 // GoString returns the string representation
 func (s PutParameterOutput) GoString() string {
 	return s.String()
+}
+
+type RegisterDefaultPatchBaselineInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline that should be the default patch baseline.
+	//
+	// BaselineId is a required field
+	BaselineId *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s RegisterDefaultPatchBaselineInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RegisterDefaultPatchBaselineInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterDefaultPatchBaselineInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterDefaultPatchBaselineInput"}
+	if s.BaselineId == nil {
+		invalidParams.Add(request.NewErrParamRequired("BaselineId"))
+	}
+	if s.BaselineId != nil && len(*s.BaselineId) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("BaselineId", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *RegisterDefaultPatchBaselineInput) SetBaselineId(v string) *RegisterDefaultPatchBaselineInput {
+	s.BaselineId = &v
+	return s
+}
+
+type RegisterDefaultPatchBaselineOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the default patch baseline.
+	BaselineId *string `min:"20" type:"string"`
+}
+
+// String returns the string representation
+func (s RegisterDefaultPatchBaselineOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RegisterDefaultPatchBaselineOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *RegisterDefaultPatchBaselineOutput) SetBaselineId(v string) *RegisterDefaultPatchBaselineOutput {
+	s.BaselineId = &v
+	return s
+}
+
+type RegisterPatchBaselineForPatchGroupInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline to register the patch group with.
+	//
+	// BaselineId is a required field
+	BaselineId *string `min:"20" type:"string" required:"true"`
+
+	// The name of the patch group that should be registered with the patch baseline.
+	//
+	// PatchGroup is a required field
+	PatchGroup *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s RegisterPatchBaselineForPatchGroupInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RegisterPatchBaselineForPatchGroupInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *RegisterPatchBaselineForPatchGroupInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "RegisterPatchBaselineForPatchGroupInput"}
+	if s.BaselineId == nil {
+		invalidParams.Add(request.NewErrParamRequired("BaselineId"))
+	}
+	if s.BaselineId != nil && len(*s.BaselineId) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("BaselineId", 20))
+	}
+	if s.PatchGroup == nil {
+		invalidParams.Add(request.NewErrParamRequired("PatchGroup"))
+	}
+	if s.PatchGroup != nil && len(*s.PatchGroup) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("PatchGroup", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *RegisterPatchBaselineForPatchGroupInput) SetBaselineId(v string) *RegisterPatchBaselineForPatchGroupInput {
+	s.BaselineId = &v
+	return s
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *RegisterPatchBaselineForPatchGroupInput) SetPatchGroup(v string) *RegisterPatchBaselineForPatchGroupInput {
+	s.PatchGroup = &v
+	return s
+}
+
+type RegisterPatchBaselineForPatchGroupOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the patch baseline the patch group was registered with.
+	BaselineId *string `min:"20" type:"string"`
+
+	// The name of the patch group registered with the patch baseline.
+	PatchGroup *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s RegisterPatchBaselineForPatchGroupOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s RegisterPatchBaselineForPatchGroupOutput) GoString() string {
+	return s.String()
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *RegisterPatchBaselineForPatchGroupOutput) SetBaselineId(v string) *RegisterPatchBaselineForPatchGroupOutput {
+	s.BaselineId = &v
+	return s
+}
+
+// SetPatchGroup sets the PatchGroup field's value.
+func (s *RegisterPatchBaselineForPatchGroupOutput) SetPatchGroup(v string) *RegisterPatchBaselineForPatchGroupOutput {
+	s.PatchGroup = &v
+	return s
 }
 
 type RegisterTargetWithMaintenanceWindowInput struct {
@@ -15902,6 +19652,212 @@ func (s UpdateManagedInstanceRoleOutput) GoString() string {
 	return s.String()
 }
 
+type UpdatePatchBaselineInput struct {
+	_ struct{} `type:"structure"`
+
+	// A set of rules used to include patches in the baseline.
+	ApprovalRules *PatchRuleGroup `type:"structure"`
+
+	// A list of explicitly approved patches for the baseline.
+	ApprovedPatches []*string `type:"list"`
+
+	// The ID of the patch baseline to update.
+	//
+	// BaselineId is a required field
+	BaselineId *string `min:"20" type:"string" required:"true"`
+
+	// A description of the patch baseline.
+	Description *string `min:"1" type:"string"`
+
+	// A set of global filters used to exclude patches from the baseline.
+	GlobalFilters *PatchFilterGroup `type:"structure"`
+
+	// The name of the patch baseline.
+	Name *string `min:"3" type:"string"`
+
+	// A list of explicitly rejected patches for the baseline.
+	RejectedPatches []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s UpdatePatchBaselineInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdatePatchBaselineInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdatePatchBaselineInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdatePatchBaselineInput"}
+	if s.BaselineId == nil {
+		invalidParams.Add(request.NewErrParamRequired("BaselineId"))
+	}
+	if s.BaselineId != nil && len(*s.BaselineId) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("BaselineId", 20))
+	}
+	if s.Description != nil && len(*s.Description) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Description", 1))
+	}
+	if s.Name != nil && len(*s.Name) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("Name", 3))
+	}
+	if s.ApprovalRules != nil {
+		if err := s.ApprovalRules.Validate(); err != nil {
+			invalidParams.AddNested("ApprovalRules", err.(request.ErrInvalidParams))
+		}
+	}
+	if s.GlobalFilters != nil {
+		if err := s.GlobalFilters.Validate(); err != nil {
+			invalidParams.AddNested("GlobalFilters", err.(request.ErrInvalidParams))
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetApprovalRules sets the ApprovalRules field's value.
+func (s *UpdatePatchBaselineInput) SetApprovalRules(v *PatchRuleGroup) *UpdatePatchBaselineInput {
+	s.ApprovalRules = v
+	return s
+}
+
+// SetApprovedPatches sets the ApprovedPatches field's value.
+func (s *UpdatePatchBaselineInput) SetApprovedPatches(v []*string) *UpdatePatchBaselineInput {
+	s.ApprovedPatches = v
+	return s
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *UpdatePatchBaselineInput) SetBaselineId(v string) *UpdatePatchBaselineInput {
+	s.BaselineId = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdatePatchBaselineInput) SetDescription(v string) *UpdatePatchBaselineInput {
+	s.Description = &v
+	return s
+}
+
+// SetGlobalFilters sets the GlobalFilters field's value.
+func (s *UpdatePatchBaselineInput) SetGlobalFilters(v *PatchFilterGroup) *UpdatePatchBaselineInput {
+	s.GlobalFilters = v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdatePatchBaselineInput) SetName(v string) *UpdatePatchBaselineInput {
+	s.Name = &v
+	return s
+}
+
+// SetRejectedPatches sets the RejectedPatches field's value.
+func (s *UpdatePatchBaselineInput) SetRejectedPatches(v []*string) *UpdatePatchBaselineInput {
+	s.RejectedPatches = v
+	return s
+}
+
+type UpdatePatchBaselineOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A set of rules used to include patches in the baseline.
+	ApprovalRules *PatchRuleGroup `type:"structure"`
+
+	// A list of explicitly approved patches for the baseline.
+	ApprovedPatches []*string `type:"list"`
+
+	// The ID of the deleted patch baseline.
+	BaselineId *string `min:"20" type:"string"`
+
+	// The date when the patch baseline was created.
+	CreatedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// A description of the Patch Baseline.
+	Description *string `min:"1" type:"string"`
+
+	// A set of global filters used to exclude patches from the baseline.
+	GlobalFilters *PatchFilterGroup `type:"structure"`
+
+	// The date when the patch baseline was last modified.
+	ModifiedDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// The name of the patch baseline.
+	Name *string `min:"3" type:"string"`
+
+	// A list of explicitly rejected patches for the baseline.
+	RejectedPatches []*string `type:"list"`
+}
+
+// String returns the string representation
+func (s UpdatePatchBaselineOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdatePatchBaselineOutput) GoString() string {
+	return s.String()
+}
+
+// SetApprovalRules sets the ApprovalRules field's value.
+func (s *UpdatePatchBaselineOutput) SetApprovalRules(v *PatchRuleGroup) *UpdatePatchBaselineOutput {
+	s.ApprovalRules = v
+	return s
+}
+
+// SetApprovedPatches sets the ApprovedPatches field's value.
+func (s *UpdatePatchBaselineOutput) SetApprovedPatches(v []*string) *UpdatePatchBaselineOutput {
+	s.ApprovedPatches = v
+	return s
+}
+
+// SetBaselineId sets the BaselineId field's value.
+func (s *UpdatePatchBaselineOutput) SetBaselineId(v string) *UpdatePatchBaselineOutput {
+	s.BaselineId = &v
+	return s
+}
+
+// SetCreatedDate sets the CreatedDate field's value.
+func (s *UpdatePatchBaselineOutput) SetCreatedDate(v time.Time) *UpdatePatchBaselineOutput {
+	s.CreatedDate = &v
+	return s
+}
+
+// SetDescription sets the Description field's value.
+func (s *UpdatePatchBaselineOutput) SetDescription(v string) *UpdatePatchBaselineOutput {
+	s.Description = &v
+	return s
+}
+
+// SetGlobalFilters sets the GlobalFilters field's value.
+func (s *UpdatePatchBaselineOutput) SetGlobalFilters(v *PatchFilterGroup) *UpdatePatchBaselineOutput {
+	s.GlobalFilters = v
+	return s
+}
+
+// SetModifiedDate sets the ModifiedDate field's value.
+func (s *UpdatePatchBaselineOutput) SetModifiedDate(v time.Time) *UpdatePatchBaselineOutput {
+	s.ModifiedDate = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *UpdatePatchBaselineOutput) SetName(v string) *UpdatePatchBaselineOutput {
+	s.Name = &v
+	return s
+}
+
+// SetRejectedPatches sets the RejectedPatches field's value.
+func (s *UpdatePatchBaselineOutput) SetRejectedPatches(v []*string) *UpdatePatchBaselineOutput {
+	s.RejectedPatches = v
+	return s
+}
+
 const (
 	// AssociationFilterKeyInstanceId is a AssociationFilterKey enum value
 	AssociationFilterKeyInstanceId = "InstanceId"
@@ -16150,6 +20106,20 @@ const (
 )
 
 const (
+	// InstancePatchStateOperatorTypeEqual is a InstancePatchStateOperatorType enum value
+	InstancePatchStateOperatorTypeEqual = "Equal"
+
+	// InstancePatchStateOperatorTypeNotEqual is a InstancePatchStateOperatorType enum value
+	InstancePatchStateOperatorTypeNotEqual = "NotEqual"
+
+	// InstancePatchStateOperatorTypeLessThan is a InstancePatchStateOperatorType enum value
+	InstancePatchStateOperatorTypeLessThan = "LessThan"
+
+	// InstancePatchStateOperatorTypeGreaterThan is a InstancePatchStateOperatorType enum value
+	InstancePatchStateOperatorTypeGreaterThan = "GreaterThan"
+)
+
+const (
 	// InventoryAttributeDataTypeString is a InventoryAttributeDataType enum value
 	InventoryAttributeDataTypeString = "string"
 
@@ -16258,6 +20228,59 @@ const (
 
 	// ParametersFilterKeyKeyId is a ParametersFilterKey enum value
 	ParametersFilterKeyKeyId = "KeyId"
+)
+
+const (
+	// PatchComplianceDataStateInstalled is a PatchComplianceDataState enum value
+	PatchComplianceDataStateInstalled = "INSTALLED"
+
+	// PatchComplianceDataStateInstalledOther is a PatchComplianceDataState enum value
+	PatchComplianceDataStateInstalledOther = "INSTALLED_OTHER"
+
+	// PatchComplianceDataStateMissing is a PatchComplianceDataState enum value
+	PatchComplianceDataStateMissing = "MISSING"
+
+	// PatchComplianceDataStateNotApplicable is a PatchComplianceDataState enum value
+	PatchComplianceDataStateNotApplicable = "NOT_APPLICABLE"
+
+	// PatchComplianceDataStateFailed is a PatchComplianceDataState enum value
+	PatchComplianceDataStateFailed = "FAILED"
+)
+
+const (
+	// PatchDeploymentStatusApproved is a PatchDeploymentStatus enum value
+	PatchDeploymentStatusApproved = "APPROVED"
+
+	// PatchDeploymentStatusPendingApproval is a PatchDeploymentStatus enum value
+	PatchDeploymentStatusPendingApproval = "PENDING_APPROVAL"
+
+	// PatchDeploymentStatusExplicitApproved is a PatchDeploymentStatus enum value
+	PatchDeploymentStatusExplicitApproved = "EXPLICIT_APPROVED"
+
+	// PatchDeploymentStatusExplicitRejected is a PatchDeploymentStatus enum value
+	PatchDeploymentStatusExplicitRejected = "EXPLICIT_REJECTED"
+)
+
+const (
+	// PatchFilterKeyProduct is a PatchFilterKey enum value
+	PatchFilterKeyProduct = "PRODUCT"
+
+	// PatchFilterKeyClassification is a PatchFilterKey enum value
+	PatchFilterKeyClassification = "CLASSIFICATION"
+
+	// PatchFilterKeyMsrcSeverity is a PatchFilterKey enum value
+	PatchFilterKeyMsrcSeverity = "MSRC_SEVERITY"
+
+	// PatchFilterKeyPatchId is a PatchFilterKey enum value
+	PatchFilterKeyPatchId = "PATCH_ID"
+)
+
+const (
+	// PatchOperationTypeScan is a PatchOperationType enum value
+	PatchOperationTypeScan = "Scan"
+
+	// PatchOperationTypeInstall is a PatchOperationType enum value
+	PatchOperationTypeInstall = "Install"
 )
 
 const (
