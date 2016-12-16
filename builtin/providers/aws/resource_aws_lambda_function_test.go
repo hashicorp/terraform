@@ -346,7 +346,7 @@ func TestAccAWSLambdaFunction_s3Update(t *testing.T) {
 			},
 			// Extra step because of missing ComputedWhen
 			// See https://github.com/hashicorp/terraform/pull/4846 & https://github.com/hashicorp/terraform/pull/5330
-			resource.TestStep{
+			{
 				Config: genAWSLambdaFunctionConfig_s3(bucketName, key, path),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_s3", "tf_acc_lambda_name_s3", &conf),
@@ -401,6 +401,98 @@ func TestAccAWSLambdaFunction_s3Update_unversioned(t *testing.T) {
 					testAccCheckAwsLambdaFunctionName(&conf, "tf_acc_lambda_name_s3_unversioned"),
 					testAccCheckAwsLambdaFunctionArnHasSuffix(&conf, "tf_acc_lambda_name_s3_unversioned"),
 					testAccCheckAwsLambdaSourceCodeHash(&conf, "0tdaP9H9hsk9c2CycSwOG/sa/x5JyAmSYunA/ce99Pg="),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSLambdaFunction_runtimeValidation_noRuntime(t *testing.T) {
+	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSLambdaConfigNoRuntime(rName),
+				ExpectError: regexp.MustCompile(`\\"runtime\\": required field is not set`),
+			},
+		},
+	})
+}
+
+func TestAccAWSLambdaFunction_runtimeValidation_nodeJs(t *testing.T) {
+	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccAWSLambdaConfigNodeJsRuntime(rName),
+				ExpectError: regexp.MustCompile(fmt.Sprintf("%s has reached end of life since October 2016 and has been deprecated in favor of %s", lambda.RuntimeNodejs, lambda.RuntimeNodejs43)),
+			},
+		},
+	})
+}
+
+func TestAccAWSLambdaFunction_runtimeValidation_nodeJs43(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaConfigNodeJs43Runtime(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "runtime", lambda.RuntimeNodejs43),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSLambdaFunction_runtimeValidation_python27(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaConfigPython27Runtime(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "runtime", lambda.RuntimePython27),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSLambdaFunction_runtimeValidation_java8(t *testing.T) {
+	var conf lambda.GetFunctionOutput
+	rName := fmt.Sprintf("tf_test_%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckLambdaFunctionDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLambdaConfigJava8Runtime(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAwsLambdaFunctionExists("aws_lambda_function.lambda_function_test", rName, &conf),
+					resource.TestCheckResourceAttr("aws_lambda_function.lambda_function_test", "runtime", lambda.RuntimeJava8),
 				),
 			},
 		},
@@ -637,6 +729,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `, rName)
 }
@@ -757,6 +850,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     publish = true
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `, rName)
 }
@@ -768,6 +862,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 
     vpc_config = {
         subnet_ids = ["${aws_subnet.subnet_for_lambda.id}"]
@@ -813,8 +908,68 @@ resource "aws_lambda_function" "lambda_function_s3test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `, acctest.RandInt(), rName)
+}
+
+func testAccAWSLambdaConfigNoRuntime(rName string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+}
+`, rName)
+}
+
+func testAccAWSLambdaConfigNodeJsRuntime(rName string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "nodejs"
+}
+`, rName)
+}
+
+func testAccAWSLambdaConfigNodeJs43Runtime(rName string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "nodejs4.3"
+}
+`, rName)
+}
+
+func testAccAWSLambdaConfigPython27Runtime(rName string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "python2.7"
+}
+`, rName)
+}
+
+func testAccAWSLambdaConfigJava8Runtime(rName string) string {
+	return fmt.Sprintf(baseAccAWSLambdaConfig+`
+resource "aws_lambda_function" "lambda_function_test" {
+    filename = "test-fixtures/lambdatest.zip"
+    function_name = "%s"
+    role = "${aws_iam_role.iam_for_lambda.arn}"
+    handler = "exports.example"
+    runtime = "java8"
+}
+`, rName)
 }
 
 const testAccAWSLambdaFunctionConfig_local_tpl = `
@@ -842,6 +997,7 @@ resource "aws_lambda_function" "lambda_function_local" {
     function_name = "tf_acc_lambda_name_local"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `
 
@@ -879,23 +1035,24 @@ resource "aws_lambda_function" "lambda_function_local" {
     function_name = "tf_acc_lambda_name_local"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `
 
 const testAccAWSLambdaFunctionConfig_s3_tpl = `
 resource "aws_s3_bucket" "artifacts" {
-	bucket = "%s"
-	acl = "private"
-	force_destroy = true
-	versioning {
-		enabled = true
-	}
+    bucket = "%s"
+    acl = "private"
+    force_destroy = true
+    versioning {
+        enabled = true
+    }
 }
 resource "aws_s3_bucket_object" "o" {
-	bucket = "${aws_s3_bucket.artifacts.bucket}"
-	key = "%s"
-	source = "%s"
-	etag = "${md5(file("%s"))}"
+    bucket = "${aws_s3_bucket.artifacts.bucket}"
+    key = "%s"
+    source = "%s"
+    etag = "${md5(file("%s"))}"
 }
 resource "aws_iam_role" "iam_for_lambda" {
     name = "iam_for_lambda"
@@ -916,12 +1073,13 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 resource "aws_lambda_function" "lambda_function_s3" {
-	s3_bucket = "${aws_s3_bucket_object.o.bucket}"
-	s3_key = "${aws_s3_bucket_object.o.key}"
-	s3_object_version = "${aws_s3_bucket_object.o.version_id}"
+    s3_bucket = "${aws_s3_bucket_object.o.bucket}"
+    s3_key = "${aws_s3_bucket_object.o.key}"
+    s3_object_version = "${aws_s3_bucket_object.o.version_id}"
     function_name = "tf_acc_lambda_name_s3"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `
 
@@ -932,15 +1090,15 @@ func genAWSLambdaFunctionConfig_s3(bucket, key, path string) string {
 
 const testAccAWSLambdaFunctionConfig_s3_unversioned_tpl = `
 resource "aws_s3_bucket" "artifacts" {
-	bucket = "%s"
-	acl = "private"
-	force_destroy = true
+    bucket = "%s"
+    acl = "private"
+    force_destroy = true
 }
 resource "aws_s3_bucket_object" "o" {
-	bucket = "${aws_s3_bucket.artifacts.bucket}"
-	key = "%s"
-	source = "%s"
-	etag = "${md5(file("%s"))}"
+    bucket = "${aws_s3_bucket.artifacts.bucket}"
+    key = "%s"
+    source = "%s"
+    etag = "${md5(file("%s"))}"
 }
 resource "aws_iam_role" "iam_for_lambda" {
     name = "iam_for_lambda"
@@ -961,11 +1119,12 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 resource "aws_lambda_function" "lambda_function_s3" {
-	s3_bucket = "${aws_s3_bucket_object.o.bucket}"
-	s3_key = "${aws_s3_bucket_object.o.key}"
+    s3_bucket = "${aws_s3_bucket_object.o.bucket}"
+    s3_key = "${aws_s3_bucket_object.o.key}"
     function_name = "tf_acc_lambda_name_s3_unversioned"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `
 
