@@ -1,5 +1,9 @@
 ## 0.8.2 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * `aws_lambda_function` Please note that runtime is now a required field as AWS have deprecated the use of nodejs 0.10 in lambda functions [GH-9724]
+
 FEATURES:
 
  * **New Provider:**  `New Relic` [GH-10317]
@@ -14,6 +18,7 @@ FEATURES:
 IMPROVEMENTS:
 
  * provider/aws: Add support for BinaryMediaTypes and ContentHandling to AWS API Gateway [GH-10776]
+ * provider/aws: Deprecated aws_lambda_function nodejs runtime in favor of nodejs4.3 [GH-9724]
  * provider/azurerm: add support for tags to dns_zone [GH-10750]
 
 BUG FIXES:
