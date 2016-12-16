@@ -373,10 +373,25 @@ func expandRedisConfiguration(d *schema.ResourceData) *map[string]*string {
 	for _, v := range configuration {
 		config := v.(map[string]interface{})
 
-		output["maxclients"] = azure.String(config["maxclients"].(string))
-		output["maxmemory-delta"] = azure.String(config["maxmemory_delta"].(string))
-		output["maxmemory-reserved"] = azure.String(config["maxmemory_reserved"].(string))
-		output["maxmemory-policy"] = azure.String(config["maxmemory_policy"].(string))
+		maxClients := config["maxclients"].(string)
+		if maxClients != "" {
+			output["maxclients"] = azure.String(maxClients)
+		}
+
+		maxMemoryDelta := config["maxmemory_delta"].(string)
+		if maxMemoryDelta != "" {
+			output["maxmemory-delta"] = azure.String(maxMemoryDelta)
+		}
+
+		maxMemoryReserved := config["maxmemory_reserved"].(string)
+		if maxMemoryReserved != "" {
+			output["maxmemory-reserved"] = azure.String(maxMemoryReserved)
+		}
+
+		maxMemoryPolicy := config["maxmemory_policy"].(string)
+		if maxMemoryPolicy != "" {
+			output["maxmemory-policy"] = azure.String(maxMemoryPolicy)
+		}
 	}
 
 	return &output
