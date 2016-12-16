@@ -26,6 +26,10 @@ resource "azurerm_redis_cache" "test" {
   family              = "C"
   sku_name            = "Basic"
   enable_non_ssl_port = false
+
+  redis_configuration {
+    maxclients = "256"
+  }
 }
 
 ```
@@ -46,6 +50,10 @@ resource "azurerm_redis_cache" "test" {
   family              = "C"
   sku_name            = "Standard"
   enable_non_ssl_port = false
+
+  redis_configuration {
+    maxclients = "1000"
+  }
 }
 
 ```
@@ -67,7 +75,7 @@ resource "azurerm_redis_cache" "test" {
   enable_non_ssl_port = false
   shard_count         = 3
   redis_configuration {
-    maxclients         = "256",
+    maxclients         = "7500",
     maxmemory_reserved = "2",
     maxmemory_delta    = "2"
     maxmemory_policy   = "allkeys-lru"
@@ -97,7 +105,7 @@ The following arguments are supported:
 
 * `shard_count` - (Optional) *Only available when using the Premium SKU* The number of Shards to create on the Redis Cluster.
 
-* `redis_configuration` - (Optional) Potential Redis configuration values - with some limitations by SKU - defaults/details are shown below.
+* `redis_configuration` - (Required) Potential Redis configuration values - with some limitations by SKU - defaults/details are shown below.
 ```
 redis_configuration {
   maxclients         = "512"
