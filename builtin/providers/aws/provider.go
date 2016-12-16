@@ -340,6 +340,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_ses_receipt_filter":                       resourceAwsSesReceiptFilter(),
 			"aws_ses_receipt_rule":                         resourceAwsSesReceiptRule(),
 			"aws_ses_receipt_rule_set":                     resourceAwsSesReceiptRuleSet(),
+			"aws_ses_configuration_set":                    resourceAwsSesConfigurationSet(),
+			"aws_ses_event_destination":                    resourceAwsSesEventDestination(),
 			"aws_s3_bucket":                                resourceAwsS3Bucket(),
 			"aws_s3_bucket_policy":                         resourceAwsS3BucketPolicy(),
 			"aws_s3_bucket_object":                         resourceAwsS3BucketObject(),
