@@ -753,6 +753,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+		runtime = "nodejs4.3"
 }
 `, rName)
 }
@@ -764,6 +765,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
     environment {
         variables = {
             foo = "bar"
@@ -780,6 +782,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
     environment {
         variables = {
             foo = "baz"
@@ -797,6 +800,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `, rName)
 }
@@ -830,6 +834,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
     kms_key_arn = "${aws_kms_key.foo.arn}"
+    runtime = "nodejs4.3"
     environment {
         variables = {
             foo = "bar"
@@ -846,6 +851,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
     environment {
         variables = {
             foo = "bar"
@@ -923,7 +929,7 @@ resource "aws_lambda_function" "lambda_function_s3test" {
     handler = "exports.example"
     runtime = "nodejs4.3"
 }
-`, acctest.RandInt(), rName, rSt)
+`, acctest.RandInt(), rSt, rName)
 }
 
 func testAccAWSLambdaConfigNoRuntime(rName, rSt string) string {
@@ -933,6 +939,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
+    runtime = "nodejs4.3"
 }
 `, rName)
 }
@@ -944,7 +951,7 @@ resource "aws_lambda_function" "lambda_function_test" {
     function_name = "%s"
     role = "${aws_iam_role.iam_for_lambda.arn}"
     handler = "exports.example"
-    runtime = "nodejs"
+    runtime = "nodejs4.3"
 }
 `, rName)
 }
