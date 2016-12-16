@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -620,33 +618,6 @@ func (i *Interpolater) computeResourceMultiVariable(
 	return &variable, err
 }
 
-type indexKeys []string
-
-// we need to separate the index integer from the ID, and sort numerically
-func (i indexKeys) Less(j, k int) bool {
-	jDot := strings.LastIndex(i[j], ".")
-	kDot := strings.LastIndex(i[j], ".")
-
-	// These should all be properly formatted, but check the indexes and return
-	// a safe value just in case.
-	if jDot < 0 || kDot < 0 {
-		return i[j] < i[k]
-	}
-
-	jIdx, _ := strconv.Atoi(i[j][jDot+1:])
-	kIdx, _ := strconv.Atoi(i[k][kDot+1:])
-
-	return jIdx < kIdx
-}
-
-func (i indexKeys) Swap(j, k int) {
-	i[j], i[k] = i[k], i[j]
-}
-
-func (i indexKeys) Len() int {
-	return len(i)
-}
-
 func (i *Interpolater) interpolateComplexTypeAttribute(
 	resourceID string,
 	attributes map[string]string) (ast.Variable, error) {
@@ -668,23 +639,8 @@ func (i *Interpolater) interpolateComplexTypeAttribute(
 			return unknownVariable(), nil
 		}
 
-		keys := make([]string, 0)
-		listElementKey := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
-		for id := range attributes {
-			if listElementKey.MatchString(id) {
-				keys = append(keys, id)
-			}
-		}
-
-		// sort the keys by their index number, rather than lexicographically by the key
-		sort.Sort(indexKeys(keys))
-
-		var members []string
-		for _, key := range keys {
-			members = append(members, attributes[key])
-		}
-
-		return hil.InterfaceToVariable(members)
+		expanded := flatmap.Expand(attributes, resourceID)
+		return hil.InterfaceToVariable(expanded)
 	}
 
 	if lengthAttr, isMap := attributes[resourceID+".%"]; isMap {
@@ -699,15 +655,7 @@ func (i *Interpolater) interpolateComplexTypeAttribute(
 			return unknownVariable(), nil
 		}
 
-		resourceFlatMap := make(map[string]string)
-		mapElementKey := regexp.MustCompile("^" + resourceID + "\\.([^%]+)$")
-		for id, val := range attributes {
-			if mapElementKey.MatchString(id) {
-				resourceFlatMap[id] = val
-			}
-		}
-
-		expanded := flatmap.Expand(resourceFlatMap, resourceID)
+		expanded := flatmap.Expand(attributes, resourceID)
 		return hil.InterfaceToVariable(expanded)
 	}
 
