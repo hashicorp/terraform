@@ -1,14 +1,14 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_hosted_zone"
-sidebar_current: "docs-aws-datasource-hosted-zone"
+page_title: "AWS: aws_route53_zone"
+sidebar_current: "docs-aws-datasource-route53-zone"
 description: |-
-    Provides details about a specific Hosted Zone
+    Provides details about a specific Route 53 Hosted Zone
 ---
 
-# aws\_hosted\_zone
+# aws\_route53\_zone
 
-`aws_hosted_zone` provides details about a specific Hosted Zone.
+`aws_route53_zone` provides details about a specific Route 53 Hosted Zone.
 
 This data source allows to find a Hosted Zone ID given Hosted Zone name and certain search criteria. 
 
