@@ -267,6 +267,14 @@ func (t *Tree) Validate() error {
 		return newErr
 	}
 
+	// If we're the root, we do extra validation. This validation usually
+	// requires the entire tree (since children don't have parent pointers).
+	if len(t.path) == 0 {
+		if err := t.validateProviderAlias(); err != nil {
+			return err
+		}
+	}
+
 	// Get the child trees
 	children := t.Children()
 
