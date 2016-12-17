@@ -184,7 +184,7 @@ func testAccCheckAWSOpsworksCreateAppAttributes(
 		}
 
 		if *opsapp.AppSource.Type != "other" {
-			return fmt.Errorf("Unnexpected appsource type: %s", *opsapp.Type)
+			return fmt.Errorf("Unnexpected appsource type: %s", *opsapp.AppSource.Type)
 		}
 
 		expectedEnv := []*opsworks.EnvironmentVariable{
