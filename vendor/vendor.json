@@ -2269,6 +2269,12 @@
 			"revisionTime": "2016-10-27T15:40:24Z"
 		},
 		{
+			"checksumSHA1": "fCtp8mJPTtEMkpDz8TgRtJzMYw0=",
+			"path": "github.com/sean-/pgacl",
+			"revision": "3d9f301f1bf3d5b590119b28132d2e8d5d1f1a62",
+			"revisionTime": "2016-12-15T16:51:43Z"
+		},
+		{
 			"checksumSHA1": "BqtlwAjgFuHsVVdnw+dGSe+CKLM=",
 			"path": "github.com/sethvargo/go-fastly",
 			"revision": "2f6c4b7ec89b1e3ece8e770af7b2b546c5a048de",
