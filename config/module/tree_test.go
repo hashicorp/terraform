@@ -1,6 +1,7 @@
 package module
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -264,6 +265,49 @@ func TestTreeName(t *testing.T) {
 
 	if actual != RootName {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+// This is a table-driven test for tree validation. This is the preferred
+// way to test Validate. Non table-driven tests exist historically but
+// that style shouldn't be done anymore.
+func TestTreeValidate_table(t *testing.T) {
+	cases := []struct {
+		Name    string
+		Fixture string
+		Err     string
+	}{
+		{
+			"provider alias in child",
+			"validate-alias-good",
+			"",
+		},
+
+		{
+			"undefined provider alias in child",
+			"validate-alias-bad",
+			"alias must be defined",
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
+			tree := NewTree("", testConfig(t, tc.Fixture))
+			if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			err := tree.Validate()
+			if (err != nil) != (tc.Err != "") {
+				t.Fatalf("err: %s", err)
+			}
+			if err == nil {
+				return
+			}
+			if !strings.Contains(err.Error(), tc.Err) {
+				t.Fatalf("err should contain %q: %s", tc.Err, err)
+			}
+		})
 	}
 }
 
