@@ -70,7 +70,7 @@ func (c *Config) NewClient() (*Client, error) {
 func (c *Client) Connect() (*sql.DB, error) {
 	db, err := sql.Open("postgres", c.connStr)
 	if err != nil {
-		return nil, fmt.Errorf("Error connecting to PostgreSQL server: %s", err)
+		return nil, fmt.Errorf("Error connecting to PostgreSQL server: %v", err)
 	}
 
 	return db, nil
