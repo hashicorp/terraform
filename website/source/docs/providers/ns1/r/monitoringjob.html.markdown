@@ -1,13 +1,13 @@
 ---
 description: 'Provides an NS1 monitoring job resource.'
-layout: nsone
+layout: ns1
 page_title: 'NS1: ns1_monitoringjob'
-sidebar_current: 'docs-nsone-resource-monitoringjob'
+sidebar_current: 'docs-ns1-resource-monitoringjob'
 ---
 
 # ns1\_monitoringjob
 
-NSONE's Monitoring jobs enable up/down monitoring of your different service endpoints, and can feed directly into DNS records to drive DNS failover.
+NS1's Monitoring jobs enable up/down monitoring of your different service endpoints, and can feed directly into DNS records to drive DNS failover.
 
 ## Example Usage
 
@@ -35,10 +35,10 @@ values. Many are originally defined in
 The following arguments are supported:
 
   * `name` - (Required) The friendly name of this monitoring job.
-  * `job_type` - (Required) One of the job types from the `/monitoring/jobtypes` NSONE API endpoint.
-  * `regions` - (Required) NSONE Monitoring regions to run the job in. List of valid regions is available from the `/monitoring/regions` NSONE API endpoint.
+  * `job_type` - (Required) One of the job types from the `/monitoring/jobtypes` NS1 API endpoint.
+  * `regions` - (Required) NS1 Monitoring regions to run the job in. List of valid regions is available from the `/monitoring/regions` NS1 API endpoint.
   * `frequency` - (Required) How often to run the job in seconds. Int.
-  * `config` - (Required) A map of configuration for this job_type, see the `/monitoring/jobtypes` NSONE API endpoint for more info.
+  * `config` - (Required) A map of configuration for this job_type, see the `/monitoring/jobtypes` NS1 API endpoint for more info.
 
   * `active` - If the job is active. Bool. Default: `true`.
   * `policy` - The policy of how many regions need to fail to make the check fail, this is one of: `"quorum"`, `"one"`, `"all"`. Default: `"quorum"`.
@@ -52,10 +52,10 @@ The following arguments are supported:
   * `rules` - List of rules determining failure conditions.  Each entry must have the following inputs:
     * `value` - (Required) Value to compare to.
     * `comparison` - (Required) Type of comparison to perform.
-    * `key` - (Required) The output key from the job, to which the value will be compared - see the `/monitoring/jobtypes` NSONE API endpoint for list of valid keys for each job type.
+    * `key` - (Required) The output key from the job, to which the value will be compared - see the `/monitoring/jobtypes` NS1 API endpoint for list of valid keys for each job type.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-  * `id` - The internal NSONE ID of this monitoring job. This is passed into a `resource_datafeed` `config.jobid`.
+  * `id` - The internal NS1 ID of this monitoring job. This is passed into a `resource_datafeed` `config.jobid`.

@@ -1,7 +1,7 @@
 ---
-layout: "nsone"
+layout: "ns1"
 page_title: "Provider: NS1"
-sidebar_current: "docs-nsone-index"
+sidebar_current: "docs-ns1-index"
 description: |-
   The NS1 provider is used to interact with the resources supported by NS1. The provider needs to be configured with the proper credentials before it can be used.
 ---
