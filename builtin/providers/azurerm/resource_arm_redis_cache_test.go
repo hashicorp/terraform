@@ -185,32 +185,6 @@ func TestAccAzureRMRedisCache_premiumSharded(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMRedisCache_scalingToSharded(t *testing.T) {
-	ri := acctest.RandInt()
-	standardConfig := fmt.Sprintf(testAccAzureRMRedisCache_premium, ri, ri)
-	premiumConfig := fmt.Sprintf(testAccAzureRMRedisCache_premiumSharded, ri, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMRedisCacheDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: standardConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMRedisCacheExists("azurerm_redis_cache.test"),
-				),
-			},
-			{
-				Config: premiumConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMRedisCacheExists("azurerm_redis_cache.test"),
-				),
-			},
-		},
-	})
-}
-
 func testCheckAzureRMRedisCacheExists(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		// Ensure we have enough information in state to look up in API
