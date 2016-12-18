@@ -21,6 +21,7 @@ IMPROVEMENTS:
 
  * provider/aws: Add support for BinaryMediaTypes and ContentHandling to AWS API Gateway [GH-10776]
  * provider/aws: Deprecated aws_lambda_function nodejs runtime in favor of nodejs4.3 [GH-9724]
+ * provider/aws: Support updating of aws_db_instance db_subnet_group_name [GH-10818]
  * provider/azurerm: add support for tags to dns_zone [GH-10750]
  * provider/pagerduty pagerduty_schedule - support for start_day_of_week (schedule restriction) [GH-10069]
 
