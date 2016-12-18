@@ -66,7 +66,10 @@ func expandMap(m map[string]string, prefix string) map[string]interface{} {
 			continue
 		}
 
-		// It contains a period, so it is a more complex structure
+		// skip the map count value
+		if key == "%" {
+			continue
+		}
 		result[key] = Expand(m, k[:len(prefix)+len(key)])
 	}
 
