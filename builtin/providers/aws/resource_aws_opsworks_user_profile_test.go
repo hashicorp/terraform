@@ -4,20 +4,27 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSOpsworksUserProfile(t *testing.T) {
 	rName := fmt.Sprintf("test-user-%d", acctest.RandInt())
 	roleName := fmt.Sprintf("tf-ops-user-profile-%d", acctest.RandInt())
 	resource.Test(t, resource.TestCase{
-		PreCheck:  func() { testAccPreCheck(t) },
-		Providers: testAccProviders,
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAwsOpsworksUserProfileDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAwsOpsworksUserProfileCreate(rName, roleName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksUserProfileExists(
+						"aws_opsworks_user_profile.user", rName),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_user_profile.user", "ssh_public_key", "",
 					),
@@ -31,6 +38,80 @@ func TestAccAWSOpsworksUserProfile(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckAWSOpsworksUserProfileExists(
+	n, username string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		if _, ok := rs.Primary.Attributes["user_arn"]; !ok {
+			return fmt.Errorf("User Profile user arn is missing, should be set.")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).opsworksconn
+
+		params := &opsworks.DescribeUserProfilesInput{
+			IamUserArns: []*string{aws.String(rs.Primary.Attributes["user_arn"])},
+		}
+		resp, err := conn.DescribeUserProfiles(params)
+
+		if err != nil {
+			return err
+		}
+
+		if v := len(resp.UserProfiles); v != 1 {
+			return fmt.Errorf("Expected 1 response returned, got %d", v)
+		}
+
+		opsuserprofile := *resp.UserProfiles[0]
+
+		if *opsuserprofile.AllowSelfManagement {
+			return fmt.Errorf("Unnexpected allowSelfManagement: %s",
+				*opsuserprofile.AllowSelfManagement)
+		}
+
+		if *opsuserprofile.Name != username {
+			return fmt.Errorf("Unnexpected name: %s", *opsuserprofile.Name)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAwsOpsworksUserProfileDestroy(s *terraform.State) error {
+	client := testAccProvider.Meta().(*AWSClient).opsworksconn
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_opsworks_user_profile" {
+			continue
+		}
+
+		req := &opsworks.DescribeUserProfilesInput{
+			IamUserArns: []*string{aws.String(rs.Primary.Attributes["user_arn"])},
+		}
+		resp, err := client.DescribeUserProfiles(req)
+
+		if err == nil {
+			if len(resp.UserProfiles) > 0 {
+				return fmt.Errorf("OpsWorks User Profiles still exist.")
+			}
+		}
+
+		if awserr, ok := err.(awserr.Error); ok {
+			if awserr.Code() != "ResourceNotFoundException" {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func testAccAwsOpsworksUserProfileCreate(rn, roleName string) string {
