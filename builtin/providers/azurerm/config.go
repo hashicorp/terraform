@@ -10,6 +10,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
+	"github.com/Azure/azure-sdk-for-go/arm/containerservice"
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
@@ -38,13 +39,14 @@ type ArmClient struct {
 
 	rivieraClient *riviera.Client
 
-	availSetClient         compute.AvailabilitySetsClient
-	usageOpsClient         compute.UsageOperationsClient
-	vmExtensionImageClient compute.VirtualMachineExtensionImagesClient
-	vmExtensionClient      compute.VirtualMachineExtensionsClient
-	vmScaleSetClient       compute.VirtualMachineScaleSetsClient
-	vmImageClient          compute.VirtualMachineImagesClient
-	vmClient               compute.VirtualMachinesClient
+	availSetClient          compute.AvailabilitySetsClient
+	usageOpsClient          compute.UsageOperationsClient
+	vmExtensionImageClient  compute.VirtualMachineExtensionImagesClient
+	vmExtensionClient       compute.VirtualMachineExtensionsClient
+	vmScaleSetClient        compute.VirtualMachineScaleSetsClient
+	vmImageClient           compute.VirtualMachineImagesClient
+	vmClient                compute.VirtualMachinesClient
+	containerServicesClient containerservice.ContainerServicesClient
 
 	appGatewayClient             network.ApplicationGatewaysClient
 	ifaceClient                  network.InterfacesClient
@@ -224,6 +226,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	vmc.Authorizer = spt
 	vmc.Sender = autorest.CreateSender(withRequestLogging())
 	client.vmClient = vmc
+
+	csc := containerservice.NewContainerServicesClient(c.SubscriptionID)
+	setUserAgent(&csc.Client)
+	csc.Authorizer = spt
+	csc.Sender = autorest.CreateSender(withRequestLogging())
+	client.containerServicesClient = csc
 
 	agc := network.NewApplicationGatewaysClientWithBaseURI(endpoint, c.SubscriptionID)
 	setUserAgent(&agc.Client)
