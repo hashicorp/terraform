@@ -10,11 +10,9 @@ description: |-
 
 Creates an Azure Container Service Instance
 
-## Example Usage
+## Example Usage (Kubernetes)
 
 ```
-// 5
-
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG1"
   location = "West US"
@@ -102,11 +100,11 @@ The following arguments are supported:
 
 `agent_pool_profile` supports the following:
 
-* `name` - (Required) XXX.
-* `count` - (Required) XXX.
-* `dns_prefix` - (Required) XXX.
-* `fqdn` - (Required) XXX.
-* `vm_size` - (Required) XXX.
+* `name` - (Required) The Name for this Agent Pool.
+* `count` - (Required) The Number of agents to create for this Agent Pool.
+* `dns_prefix` - (Required) The DNS Prefix given to Agents in this Agent Pool.
+* `fqdn` - (Required) The FQDN assigned to the Agent Pool. <-- TODO: isn't that computed?
+* `vm_size` - (Required) The VM Size of each of the Agent Pool VM's (e.g. Standard_F1 / Standard_D2v2).
 
 `service_principal` supports the following:
 
@@ -116,7 +114,7 @@ The following arguments are supported:
 `diagnostics_profile` supports the following:
 
 * `enabled` - (Required) Should VM Diagnostics be enabled for the Container Service VM's
-* `storage_uri` - (Optional) XXX.
+* `storage_uri` - (Optional) The URI for the Storage Account to store Diagnostic Data.
 
 ## Attributes Reference
 
