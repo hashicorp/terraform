@@ -164,7 +164,7 @@ func (c *conn) handlePgpass(o values) {
 		return
 	}
 	mode := fileinfo.Mode()
-	if mode & (0x77) != 0 {
+	if mode&(0x77) != 0 {
 		// XXX should warn about incorrect .pgpass permissions as psql does
 		return
 	}
@@ -180,7 +180,7 @@ func (c *conn) handlePgpass(o values) {
 	db := o.Get("dbname")
 	username := o.Get("user")
 	// From: https://github.com/tg/pgpass/blob/master/reader.go
-	getFields := func (s string) []string {
+	getFields := func(s string) []string {
 		fs := make([]string, 0, 5)
 		f := make([]rune, 0, len(s))
 
@@ -200,7 +200,7 @@ func (c *conn) handlePgpass(o values) {
 			}
 		}
 		return append(fs, string(f))
-	}	
+	}
 	for scanner.Scan() {
 		line := scanner.Text()
 		if len(line) == 0 || line[0] == '#' {
@@ -210,7 +210,7 @@ func (c *conn) handlePgpass(o values) {
 		if len(split) != 5 {
 			continue
 		}
-		if (split[0] == "*" || split[0] == hostname || (split[0] == "localhost" && (hostname == "" || ntw == "unix"))) && (split[1] == "*" || split[1] == port) && (split[2] == "*" || split[2] == db)  && (split[3] == "*" || split[3] == username)  {
+		if (split[0] == "*" || split[0] == hostname || (split[0] == "localhost" && (hostname == "" || ntw == "unix"))) && (split[1] == "*" || split[1] == port) && (split[2] == "*" || split[2] == db) && (split[3] == "*" || split[3] == username) {
 			o["password"] = split[4]
 			return
 		}
@@ -362,7 +362,7 @@ func network(o values) (string, string) {
 		return "unix", sockPath
 	}
 
-	return "tcp", host + ":" + o.Get("port")
+	return "tcp", net.JoinHostPort(host, o.Get("port"))
 }
 
 type values map[string]string
@@ -614,8 +614,6 @@ func (cn *conn) simpleExec(q string) (res driver.Result, commandTag string, err 
 func (cn *conn) simpleQuery(q string) (res *rows, err error) {
 	defer cn.errRecover(&err)
 
-	st := &stmt{cn: cn, name: ""}
-
 	b := cn.writeBuf('Q')
 	b.string(q)
 	cn.send(b)
@@ -634,10 +632,7 @@ func (cn *conn) simpleQuery(q string) (res *rows, err error) {
 			}
 			if res == nil {
 				res = &rows{
-					cn:       cn,
-					colNames: st.colNames,
-					colTyps:  st.colTyps,
-					colFmts:  st.colFmts,
+					cn: cn,
 				}
 			}
 			res.done = true
@@ -973,8 +968,23 @@ func (cn *conn) ssl(o values) {
 	verifyCaOnly := false
 	tlsConf := tls.Config{}
 	switch mode := o.Get("sslmode"); mode {
-	case "require", "":
+	// "require" is the default.
+	case "", "require":
+		// We must skip TLS's own verification since it requires full
+		// verification since Go 1.3.
 		tlsConf.InsecureSkipVerify = true
+
+		// From http://www.postgresql.org/docs/current/static/libpq-ssl.html:
+		// Note: For backwards compatibility with earlier versions of PostgreSQL, if a
+		// root CA file exists, the behavior of sslmode=require will be the same as
+		// that of verify-ca, meaning the server certificate is validated against the
+		// CA. Relying on this behavior is discouraged, and applications that need
+		// certificate validation should always use verify-ca or verify-full.
+		if _, err := os.Stat(o.Get("sslrootcert")); err == nil {
+			verifyCaOnly = true
+		} else {
+			o.Set("sslrootcert", "")
+		}
 	case "verify-ca":
 		// We must skip TLS's own verification since it requires full
 		// verification since Go 1.3.
@@ -985,7 +995,7 @@ func (cn *conn) ssl(o values) {
 	case "disable":
 		return
 	default:
-		errorf(`unsupported sslmode %q; only "require" (default), "verify-full", and "disable" supported`, mode)
+		errorf(`unsupported sslmode %q; only "require" (default), "verify-full", "verify-ca", and "disable" supported`, mode)
 	}
 
 	cn.setupSSLClientCertificates(&tlsConf, o)
