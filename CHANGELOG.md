@@ -31,6 +31,7 @@ BUG FIXES:
  * provider/aws: Require `master_username` and `master_password` if no snapshot given in Redshift Cluster [GH-9837]
  * provider/docker: Fix regression, 'cert_path' stop working [GH-10801]
  * provider/google: Use node_version during google_container_cluster creation [GH-10817]
+ * provider/openstack: Handle Volume Creation Errors [GH-10821]
 
 ## 0.8.1 (December 14, 2016)
 
