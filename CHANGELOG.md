@@ -14,6 +14,7 @@ FEATURES:
  * **New Resource:**  `ultradns_probe_ping` [GH-9788]
  * **New Resource:**  `ultradns_record` [GH-9788]
  * **New Resource:**  `ultradns_tcpool` [GH-9788]
+ * **New Data Source:**  `aws_iam_account_alias` [GH-10804]
  
 IMPROVEMENTS:
 
