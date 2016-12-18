@@ -78,6 +78,35 @@ func TestAccAWSDBInstance_kmsKey(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstance_subnetGroup(t *testing.T) {
+	var v rds.DBInstance
+	rName := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfigWithSubnetGroup(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "db_subnet_group_name", "foo"),
+				),
+			},
+			{
+				Config: testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "db_subnet_group_name", "bar"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSDBInstance_optionGroup(t *testing.T) {
 	var v rds.DBInstance
 
@@ -760,6 +789,134 @@ resource "aws_db_instance" "bar" {
   username             = "foo"
   password             = "barbarbar"
   parameter_group_name = "default.mysql5.6"
+  port = 3305
+  allocated_storage = 10
+
+  apply_immediately = true
+}`, rName)
+}
+
+func testAccAWSDBInstanceConfigWithSubnetGroup(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-1"
+	}
+}
+
+resource "aws_subnet" "bar" {
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-2"
+	}
+}
+
+resource "aws_db_subnet_group" "foo" {
+	name = "foo"
+	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test"
+	}
+}
+
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  db_subnet_group_name = "${aws_db_subnet_group.foo.name}"
+  port = 3305
+  allocated_storage = 10
+
+  apply_immediately = true
+}`, rName)
+}
+
+func testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.10.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-1"
+	}
+}
+
+resource "aws_subnet" "bar" {
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-2"
+	}
+}
+
+resource "aws_subnet" "test" {
+	cidr_block = "10.10.3.0/24"
+	availability_zone = "us-west-2c"
+	vpc_id = "${aws_vpc.bar.id}"
+	tags {
+		Name = "tf-dbsubnet-test-3"
+	}
+}
+
+resource "aws_subnet" "another_test" {
+	cidr_block = "10.10.4.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.bar.id}"
+	tags {
+		Name = "tf-dbsubnet-test-4"
+	}
+}
+
+resource "aws_db_subnet_group" "foo" {
+	name = "foo"
+	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test"
+	}
+}
+
+resource "aws_db_subnet_group" "bar" {
+	name = "bar"
+	subnet_ids = ["${aws_subnet.test.id}", "${aws_subnet.another_test.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test-updated"
+	}
+}
+
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  db_subnet_group_name = "${aws_db_subnet_group.bar.name}"
   port = 3305
   allocated_storage = 10
 
