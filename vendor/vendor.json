@@ -48,7 +48,16 @@
 			"versionExact": "v7.0.1-beta"
 		},
 		{
-			"checksumSHA1": "uC6vwlBtGNsb+aJJG3m9tdEfHQM=",
+			"checksumSHA1": "VECRv0I+g9uIgIZpeKb38hF/sT0=",
+			"comment": "v2.1.1-beta-8-gca4d906",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/redis",
+			"revision": "0984e0641ae43b89283223034574d6465be93bf4",
+			"revisionTime": "2016-11-30T22:29:01Z",
+			"version": "v7.0.1-beta",
+			"versionExact": "v7.0.1-beta"
+		},
+		{
+			"checksumSHA1": "VECRv0I+g9uIgIZpeKb38hF/sT0=",
 			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/resources/resources",
 			"revision": "0984e0641ae43b89283223034574d6465be93bf4",
