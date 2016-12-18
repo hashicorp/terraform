@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,6 +18,7 @@ import (
 
 func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 	stackName := fmt.Sprintf("tf-%d", acctest.RandInt())
+	var opslayer opsworks.Layer
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -25,6 +27,9 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAwsOpsworksCustomLayerConfigNoVpcCreate(stackName),
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSOpsworksCustomLayerExists(
+						"aws_opsworks_custom_layer.tf-acc", &opslayer),
+					testAccCheckAWSOpsworksCreateLayerAttributes(&opslayer, stackName),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_custom_layer.tf-acc", "name", stackName,
 					),
@@ -136,6 +141,99 @@ func TestAccAWSOpsworksCustomLayer(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testAccCheckAWSOpsworksCustomLayerExists(
+	n string, opslayer *opsworks.Layer) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).opsworksconn
+
+		params := &opsworks.DescribeLayersInput{
+			LayerIds: []*string{aws.String(rs.Primary.ID)},
+		}
+		resp, err := conn.DescribeLayers(params)
+
+		if err != nil {
+			return err
+		}
+
+		if v := len(resp.Layers); v != 1 {
+			return fmt.Errorf("Expected 1 response returned, got %d", v)
+		}
+
+		*opslayer = *resp.Layers[0]
+
+		return nil
+	}
+}
+
+func testAccCheckAWSOpsworksCreateLayerAttributes(
+	opslayer *opsworks.Layer, stackName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *opslayer.Name != stackName {
+			return fmt.Errorf("Unexpected name: %s", *opslayer.Name)
+		}
+
+		if *opslayer.AutoAssignElasticIps {
+			return fmt.Errorf(
+				"Unexpected AutoAssignElasticIps: %s", *opslayer.AutoAssignElasticIps)
+		}
+
+		if !*opslayer.EnableAutoHealing {
+			return fmt.Errorf(
+				"Unexpected EnableAutoHealing: %s", *opslayer.EnableAutoHealing)
+		}
+
+		if !*opslayer.LifecycleEventConfiguration.Shutdown.DelayUntilElbConnectionsDrained {
+			return fmt.Errorf(
+				"Unexpected DelayUntilElbConnectionsDrained: %s",
+				*opslayer.LifecycleEventConfiguration.Shutdown.DelayUntilElbConnectionsDrained)
+		}
+
+		if *opslayer.LifecycleEventConfiguration.Shutdown.ExecutionTimeout != 300 {
+			return fmt.Errorf(
+				"Unexpected ExecutionTimeout: %s",
+				*opslayer.LifecycleEventConfiguration.Shutdown.ExecutionTimeout)
+		}
+
+		if v := len(opslayer.CustomSecurityGroupIds); v != 2 {
+			return fmt.Errorf("Expected 2 customSecurityGroupIds, got %d", v)
+		}
+
+		expectedPackages := []*string{
+			aws.String("git"),
+			aws.String("golang"),
+		}
+
+		if !reflect.DeepEqual(expectedPackages, opslayer.Packages) {
+			return fmt.Errorf("Unexpected Packages: %s", opslayer.Packages)
+		}
+
+		expectedEbsVolumes := []*opsworks.VolumeConfiguration{
+			&opsworks.VolumeConfiguration{
+				VolumeType:    aws.String("gp2"),
+				NumberOfDisks: aws.Int64(2),
+				MountPoint:    aws.String("/home"),
+				Size:          aws.Int64(100),
+				RaidLevel:     aws.Int64(0),
+			},
+		}
+
+		if !reflect.DeepEqual(expectedEbsVolumes, opslayer.VolumeConfigurations) {
+			return fmt.Errorf("Unnexpected VolumeConfiguration: %s", opslayer.VolumeConfigurations)
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckAwsOpsworksCustomLayerDestroy(s *terraform.State) error {
