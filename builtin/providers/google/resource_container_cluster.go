@@ -278,6 +278,10 @@ func resourceContainerClusterCreate(d *schema.ResourceData, meta interface{}) er
 		InitialNodeCount: int64(d.Get("initial_node_count").(int)),
 	}
 
+	if v, ok := d.GetOk("node_version"); ok {
+		cluster.InitialClusterVersion = v.(string)
+	}
+
 	if v, ok := d.GetOk("cluster_ipv4_cidr"); ok {
 		cluster.ClusterIpv4Cidr = v.(string)
 	}
