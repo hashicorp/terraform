@@ -292,6 +292,10 @@ func validateAwsAccountId(v interface{}, k string) (ws []string, errors []error)
 func validateArn(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
+	if value == "" {
+		return
+	}
+
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
 	pattern := `^arn:aws:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
