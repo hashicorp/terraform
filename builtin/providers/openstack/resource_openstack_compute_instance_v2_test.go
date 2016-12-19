@@ -857,6 +857,89 @@ func TestAccComputeV2Instance_bootFromVolumeForceNew(t *testing.T) {
 	})
 }
 
+func TestAccComputeV2Instance_blockDeviceNewVolume(t *testing.T) {
+	var instance_1 servers.Server
+	var testAccComputeV2Instance_blockDeviceNewVolume = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			block_device {
+				uuid = "%s"
+				source_type = "image"
+				destination_type = "local"
+				boot_index = 0
+				delete_on_termination = true
+			}
+			block_device {
+				source_type = "blank"
+				destination_type = "volume"
+				volume_size = 1
+				boot_index = 1
+				delete_on_termination = true
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_blockDeviceNewVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2Instance_blockDeviceExistingVolume(t *testing.T) {
+	var instance_1 servers.Server
+	var volume_1 volumes.Volume
+	var testAccComputeV2Instance_blockDeviceExistingVolume = fmt.Sprintf(`
+		resource "openstack_blockstorage_volume_v1" "volume_1" {
+			name = "volume_1"
+			size = 1
+		}
+
+		resource "openstack_compute_instance_v2" "instance_1" {
+			name = "instance_1"
+			security_groups = ["default"]
+			block_device {
+				uuid = "%s"
+				source_type = "image"
+				destination_type = "local"
+				boot_index = 0
+				delete_on_termination = true
+			}
+			block_device {
+				uuid = "${openstack_blockstorage_volume_v1.volume_1.id}"
+				source_type = "volume"
+				destination_type = "volume"
+				boot_index = 1
+				delete_on_termination = true
+			}
+		}`,
+		os.Getenv("OS_IMAGE_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2InstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2Instance_blockDeviceExistingVolume,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
+					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume_1),
+				),
+			},
+		},
+	})
+}
+
 // TODO: verify the personality really exists on the instance.
 func TestAccComputeV2Instance_personality(t *testing.T) {
 	var instance servers.Server
