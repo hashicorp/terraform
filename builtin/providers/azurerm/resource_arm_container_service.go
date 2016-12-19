@@ -8,7 +8,10 @@ import (
 
 	"time"
 
+	"bytes"
+
 	"github.com/Azure/azure-sdk-for-go/arm/containerservice"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -81,7 +84,7 @@ func resourceArmContainerService() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"ssh_keys": {
+						"ssh_key": {
 							Type:     schema.TypeList,
 							Required: true,
 							Elem: &schema.Resource{
@@ -153,7 +156,7 @@ func resourceArmContainerService() *schema.Resource {
 				},
 			},
 
-			"diagnostics": {
+			"diagnostics_profile": {
 				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
@@ -204,7 +207,7 @@ func resourceArmContainerServiceCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	diagosticsProfile, err := expandAzureRmContainerServiceDiagnostics(d)
+	diagnosticsProfile, err := expandAzureRmContainerServiceDiagnostics(d)
 	if err != nil {
 		return err
 	}
@@ -226,7 +229,7 @@ func resourceArmContainerServiceCreate(d *schema.ResourceData, meta interface{})
 				OrchestratorType: containerservice.OchestratorTypes(orchestrationPlatform),
 			},
 			AgentPoolProfiles:       &agentProfiles,
-			DiagnosticsProfile:      &diagosticsProfile,
+			DiagnosticsProfile:      &diagnosticsProfile,
 			ServicePrincipalProfile: &servicePrincipalProfile,
 		},
 		Tags: expandTags(tags),
@@ -288,32 +291,29 @@ func resourceArmContainerServiceRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("orchestration_platform", string(resp.Properties.OrchestratorProfile.OrchestratorType))
 
-	if resp.Properties.MasterProfile != nil {
-		// TODO: flatten
-		d.Set("master_count", resp.Properties.MasterProfile.Count)
-		d.Set("master_dns_prefix", resp.Properties.MasterProfile.DNSPrefix)
-		d.Set("master_fqdn", resp.Properties.MasterProfile.Fqdn)
+	masterProfiles := flattenAzureRmContainerServiceMasterProfile(*resp.Properties.MasterProfile)
+	if masterProfiles != nil {
+		d.Set("master_profile", masterProfiles)
 	}
 
-	if resp.Properties.LinuxProfile != nil {
-		// TODO: flatten
-		d.Set("linux_admin_username", resp.Properties.LinuxProfile.AdminUsername)
-		d.Set("linux_admin_ssh_keys", parseAzureRmContainerServiceSSHKeys(resp.Properties.LinuxProfile.SSH.PublicKeys))
+	linuxProfile := flattenAzureRmContainerServiceLinuxProfile(*resp.Properties.LinuxProfile)
+	if linuxProfile != nil {
+		d.Set("linux_profile", linuxProfile)
 	}
 
-	if resp.Properties.AgentPoolProfiles != nil {
-		profiles := parseAzureRmContainerServiceAgentProfiles(resp.Properties.AgentPoolProfiles)
-		d.Set("agent_pool_profile", profiles)
+	agentPoolProfiles := flattenAzureRmContainerServiceAgentPoolProfiles(resp.Properties.AgentPoolProfiles)
+	if agentPoolProfiles != nil {
+		d.Set("agent_pool_profile", agentPoolProfiles)
 	}
 
-	if resp.Properties.DiagnosticsProfile != nil && resp.Properties.DiagnosticsProfile.VMDiagnostics != nil {
-		d.Set("diagnostics_enabled", resp.Properties.DiagnosticsProfile.VMDiagnostics.Enabled)
-		d.Set("diagnostics_storage_uri", resp.Properties.DiagnosticsProfile.VMDiagnostics.StorageURI)
+	servicePrincipal := flattenAzureRmContainerServiceServicePrincipalProfile(resp.Properties.ServicePrincipalProfile)
+	if servicePrincipal != nil {
+		d.Set("service_principal", servicePrincipal)
 	}
 
-	if resp.Properties.ServicePrincipalProfile != nil {
-		d.Set("client_id", resp.Properties.ServicePrincipalProfile.ClientID)
-		d.Set("client_secret", resp.Properties.ServicePrincipalProfile.Secret)
+	diagnosticProfile := flattenAzureRmContainerServiceDiagnosticsProfile(resp.Properties.DiagnosticsProfile)
+	if diagnosticProfile != nil {
+		d.Set("diagnostics_profile", diagnosticProfile)
 	}
 
 	flattenAndSetTags(d, resp.Tags)
@@ -339,40 +339,96 @@ func resourceArmContainerServiceDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	return nil
-}
-
-func parseAzureRmContainerServiceSSHKeys(keys *[]containerservice.SSHPublicKey) []*string {
-
-	sshKeys := make([]*string, 0, len(*keys))
-
-	for _, key := range *keys {
-		sshKeys = append(sshKeys, key.KeyData)
-	}
-
-	return sshKeys
 
 }
 
-func parseAzureRmContainerServiceAgentProfiles(pools *[]containerservice.AgentPoolProfile) *[]interface{} {
-	profiles := make([]interface{}, len(*pools))
-
-	for _, v := range *pools {
-		profile := make(map[string]interface{}, 5)
-
-		profile["name"] = v.Name
-		profile["count"] = v.Count
-		profile["dns_prefix"] = v.DNSPrefix
-		profile["fqdn"] = v.Fqdn
-		profile["vm_size"] = string(v.VMSize)
-
-		profiles = append(profiles, profile)
+func flattenAzureRmContainerServiceMasterProfile(profile containerservice.MasterProfile) *schema.Set {
+	masterProfiles := &schema.Set{
+		F: resourceAzureRMContainerServiceMasterProfileHash,
 	}
+
+	masterProfile := make(map[string]interface{}, 2)
+
+	masterProfile["count"] = profile.Count
+	masterProfile["dns_prefix"] = profile.DNSPrefix
+
+	masterProfiles.Add(masterProfile)
+
+	return masterProfiles
+}
+
+func flattenAzureRmContainerServiceLinuxProfile(profile containerservice.LinuxProfile) *schema.Set {
+	profiles := schema.Set{
+		F: resourceAzureRMContainerServiceLinuxProfilesHash,
+	}
+
+	values := map[string]interface{}{}
+
+	sshKeys := schema.Set{
+		F: resourceAzureRMContainerServiceLinuxProfilesSSHKeysHash,
+	}
+	for _, ssh := range *profile.SSH.PublicKeys {
+		keys := map[string]interface{}{}
+		keys["key_data"] = ssh.KeyData
+		sshKeys.Add(keys)
+	}
+
+	values["admin_username"] = profile.AdminUsername
+	values["ssh_key"] = sshKeys.List()
+	profiles.Add(values)
 
 	return &profiles
 }
 
+func flattenAzureRmContainerServiceAgentPoolProfiles(profiles *[]containerservice.AgentPoolProfile) *schema.Set {
+	agentPoolProfiles := schema.Set{
+		F: resourceAzureRMContainerServiceAgentPoolProfilesHash,
+	}
+
+	for _, profile := range *profiles {
+		agentPoolProfile := map[string]interface{}{}
+		agentPoolProfile["count"] = profile.Count
+		agentPoolProfile["dns_prefix"] = profile.DNSPrefix
+		agentPoolProfile["fqdn"] = profile.Fqdn
+		agentPoolProfile["name"] = profile.Name
+		agentPoolProfile["vm_size"] = string(profile.VMSize)
+		agentPoolProfiles.Add(agentPoolProfile)
+	}
+
+	return &agentPoolProfiles
+}
+
+func flattenAzureRmContainerServiceServicePrincipalProfile(profile *containerservice.ServicePrincipalProfile) *schema.Set {
+	servicePrincipalProfiles := schema.Set{
+		F: resourceAzureRMContainerServiceServicePrincipalProfileHash,
+	}
+
+	values := map[string]interface{}{}
+
+	values["client_id"] = profile.ClientID
+	values["client_secret"] = profile.Secret
+
+	servicePrincipalProfiles.Add(values)
+
+	return &servicePrincipalProfiles
+}
+
+func flattenAzureRmContainerServiceDiagnosticsProfile(profile *containerservice.DiagnosticsProfile) *schema.Set {
+	diagnosticProfiles := schema.Set{
+		F: resourceAzureRMContainerServiceDiagnosticProfilesHash,
+	}
+
+	values := map[string]interface{}{}
+
+	values["enabled"] = profile.VMDiagnostics.Enabled
+	values["storage_uri"] = profile.VMDiagnostics.StorageURI
+	diagnosticProfiles.Add(values)
+
+	return &diagnosticProfiles
+}
+
 func expandAzureRmContainerServiceDiagnostics(d *schema.ResourceData) (containerservice.DiagnosticsProfile, error) {
-	configs := d.Get("diagnostics").(*schema.Set).List()
+	configs := d.Get("diagnostics_profile").(*schema.Set).List()
 	profile := containerservice.DiagnosticsProfile{}
 
 	for _, configRaw := range configs {
@@ -400,7 +456,7 @@ func expandAzureRmContainerServiceLinuxProfile(d *schema.ResourceData) (containe
 	config := profiles[0].(map[string]interface{})
 
 	adminUsername := config["admin_username"].(string)
-	linuxKeys := config["ssh_keys"].([]interface{})
+	linuxKeys := config["ssh_key"].([]interface{})
 	sshPublicKeys := []containerservice.SSHPublicKey{}
 
 	for _, key := range linuxKeys {
@@ -512,4 +568,68 @@ func validateArmContainerServiceOrchestrationPlatform(v interface{}, k string) (
 		errors = append(errors, fmt.Errorf("Container Service: Orchestration Platgorm can only be DCOS / Kubernetes / Swarm"))
 	}
 	return
+}
+
+func resourceAzureRMContainerServiceMasterProfileHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["count"].(*int32)))
+	buf.WriteString(fmt.Sprintf("%s-", m["dns_prefix"].(*string)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAzureRMContainerServiceLinuxProfilesHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%s-", m["admin_username"].(*string)))
+	// TODO: SSH Keys
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAzureRMContainerServiceLinuxProfilesSSHKeysHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%s-", m["key_data"].(*string)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAzureRMContainerServiceAgentPoolProfilesHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%d-", m["count"].(*int32)))
+	buf.WriteString(fmt.Sprintf("%s-", m["dns_prefix"].(*string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["fqdn"].(*string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(*string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["vm_size"].(string)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAzureRMContainerServiceServicePrincipalProfileHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%s-", m["client_id"].(*string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["client_secret"].(*string)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAzureRMContainerServiceDiagnosticProfilesHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	buf.WriteString(fmt.Sprintf("%t", m["enabled"].(*bool)))
+	storage_uri := m["storage_uri"].(*string)
+	if storage_uri != nil {
+		buf.WriteString(fmt.Sprintf("%s-", storage_uri))
+	}
+
+	return hashcode.String(buf.String())
 }
