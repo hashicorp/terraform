@@ -12,7 +12,6 @@ import (
 )
 
 func TestAccFWFirewallV1_basic(t *testing.T) {
-
 	var policyID *string
 
 	resource.Test(t, resource.TestCase{
@@ -21,15 +20,16 @@ func TestAccFWFirewallV1_basic(t *testing.T) {
 		CheckDestroy: testAccCheckFWFirewallV1Destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testFirewallConfig,
+				Config: testAccFWFirewallV1_basic_1,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFWFirewallV1Exists("openstack_fw_firewall_v1.accept_test", "", "", policyID),
+					testAccCheckFWFirewallV1Exists("openstack_fw_firewall_v1.fw_1", "", "", policyID),
 				),
 			},
 			resource.TestStep{
-				Config: testFirewallConfigUpdated,
+				Config: testAccFWFirewallV1_basic_2,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFWFirewallV1Exists("openstack_fw_firewall_v1.accept_test", "accept_test", "terraform acceptance test", policyID),
+					testAccCheckFWFirewallV1Exists(
+						"openstack_fw_firewall_v1.fw_1", "fw_1", "terraform acceptance test", policyID),
 				),
 			},
 		},
@@ -37,11 +37,10 @@ func TestAccFWFirewallV1_basic(t *testing.T) {
 }
 
 func testAccCheckFWFirewallV1Destroy(s *terraform.State) error {
-
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckOpenstackFirewallDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "openstack_firewall" {
@@ -60,9 +59,7 @@ func testAccCheckFWFirewallV1Destroy(s *terraform.State) error {
 }
 
 func testAccCheckFWFirewallV1Exists(n, expectedName, expectedDescription string, policyID *string) resource.TestCheckFunc {
-
 	return func(s *terraform.State) error {
-
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -75,7 +72,7 @@ func testAccCheckFWFirewallV1Exists(n, expectedName, expectedDescription string,
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckFirewallExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Exists) Error creating OpenStack networking client: %s", err)
 		}
 
 		var found *firewalls.Firewall
@@ -93,17 +90,21 @@ func testAccCheckFWFirewallV1Exists(n, expectedName, expectedDescription string,
 			break
 		}
 
-		if found.Name != expectedName {
-			return fmt.Errorf("Expected Name to be <%s> but found <%s>", expectedName, found.Name)
+		switch {
+		case found.Name != expectedName:
+			err = fmt.Errorf("Expected Name to be <%s> but found <%s>", expectedName, found.Name)
+		case found.Description != expectedDescription:
+			err = fmt.Errorf("Expected Description to be <%s> but found <%s>",
+				expectedDescription, found.Description)
+		case found.PolicyID == "":
+			err = fmt.Errorf("Policy should not be empty")
+		case policyID != nil && found.PolicyID == *policyID:
+			err = fmt.Errorf("Policy had not been correctly updated. Went from <%s> to <%s>",
+				expectedName, found.Name)
 		}
-		if found.Description != expectedDescription {
-			return fmt.Errorf("Expected Description to be <%s> but found <%s>", expectedDescription, found.Description)
-		}
-		if found.PolicyID == "" {
-			return fmt.Errorf("Policy should not be empty")
-		}
-		if policyID != nil && found.PolicyID == *policyID {
-			return fmt.Errorf("Policy had not been correctly updated. Went from <%s> to <%s>", expectedName, found.Name)
+
+		if err != nil {
+			return err
 		}
 
 		policyID = &found.PolicyID
@@ -112,25 +113,25 @@ func testAccCheckFWFirewallV1Exists(n, expectedName, expectedDescription string,
 	}
 }
 
-const testFirewallConfig = `
-resource "openstack_fw_firewall_v1" "accept_test" {
-	policy_id = "${openstack_fw_policy_v1.accept_test_policy_1.id}"
+const testAccFWFirewallV1_basic_1 = `
+resource "openstack_fw_firewall_v1" "fw_1" {
+  policy_id = "${openstack_fw_policy_v1.policy_1.id}"
 }
 
-resource "openstack_fw_policy_v1" "accept_test_policy_1" {
-	name = "policy-1"
+resource "openstack_fw_policy_v1" "policy_1" {
+  name = "policy_1"
 }
 `
 
-const testFirewallConfigUpdated = `
-resource "openstack_fw_firewall_v1" "accept_test" {
-        name = "accept_test"
-        description = "terraform acceptance test"
-        policy_id = "${openstack_fw_policy_v1.accept_test_policy_2.id}"
-        admin_state_up = true
+const testAccFWFirewallV1_basic_2 = `
+resource "openstack_fw_firewall_v1" "fw_1" {
+  name = "fw_1"
+  description = "terraform acceptance test"
+  policy_id = "${openstack_fw_policy_v1.policy_2.id}"
+  admin_state_up = true
 }
 
-resource "openstack_fw_policy_v1" "accept_test_policy_2" {
-	name = "policy-2"
+resource "openstack_fw_policy_v1" "policy_2" {
+  name = "policy_2"
 }
 `
