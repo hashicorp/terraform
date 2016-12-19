@@ -27,6 +27,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+ * core: Improve validation for provider aliases to allow inheritance in moduels. [GH-10807]
  * provider/aws: Fixed crash in `data_source_ami` with empty `owner` value [GH-10763]
  * provider/aws: Require `master_username` and `master_password` if no snapshot given in Redshift Cluster [GH-9837]
  * provider/azurerm: fix network_interface.ip_configuration hash for load balancers [GH-10834]
