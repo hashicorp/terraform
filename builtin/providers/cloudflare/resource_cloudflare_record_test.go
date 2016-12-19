@@ -119,11 +119,13 @@ func TestAccCloudFlareRecord_Updated(t *testing.T) {
 					testAccCheckCloudFlareRecordExists("cloudflare_record.foobar", &record),
 					testAccCheckCloudFlareRecordAttributesUpdated(&record),
 					resource.TestCheckResourceAttr(
-						"cloudflare_record.foobar", "name", "terraform"),
+						"cloudflare_record.foobar", "name", "terraform2"),
 					resource.TestCheckResourceAttr(
 						"cloudflare_record.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
 						"cloudflare_record.foobar", "value", "192.168.0.11"),
+					resource.TestCheckResourceAttr(
+						"cloudflare_record.foobar", "ttl", "3601"),
 				),
 			},
 		},
@@ -265,10 +267,10 @@ const testAccCheckCloudFlareRecordConfigNewValue = `
 resource "cloudflare_record" "foobar" {
 	domain = "%s"
 
-	name = "terraform"
+	name = "terraform2"
 	value = "192.168.0.11"
 	type = "A"
-	ttl = 3600
+	ttl = 3601
 }`
 
 const testAccCheckCloudFlareRecordConfigForceNew = `
