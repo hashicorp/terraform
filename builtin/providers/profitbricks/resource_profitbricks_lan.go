@@ -5,7 +5,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/profitbricks/profitbricks-sdk-go"
 	"log"
-	"time"
 )
 
 func resourceProfitBricksLan() *schema.Resource {
@@ -36,8 +35,8 @@ func resourceProfitBricksLan() *schema.Resource {
 }
 
 func resourceProfitBricksLanCreate(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 	profitbricks.SetDepth("5")
 	request := profitbricks.Lan{
 		Properties: profitbricks.LanProperties{
@@ -68,8 +67,8 @@ func resourceProfitBricksLanCreate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceProfitBricksLanRead(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
 	lan := profitbricks.GetLan(d.Get("datacenter_id").(string), d.Id())
 
@@ -84,8 +83,9 @@ func resourceProfitBricksLanRead(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceProfitBricksLanUpdate(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
+
 	properties := &profitbricks.LanProperties{}
 	if d.HasChange("public") {
 		_, newValue := d.GetChange("public")
@@ -110,18 +110,10 @@ func resourceProfitBricksLanUpdate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceProfitBricksLanDelete(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
 	resp := profitbricks.DeleteLan(d.Get("datacenter_id").(string), d.Id())
-	if resp.StatusCode > 299 {
-		//try again in 20 seconds
-		time.Sleep(60 * time.Second)
-		resp = profitbricks.DeleteLan(d.Get("datacenter_id").(string), d.Id())
-		if resp.StatusCode > 299 && resp.StatusCode != 404 {
-			return fmt.Errorf("An error occured while deleting a lan dcId %s ID %s %s", d.Get("datacenter_id").(string), d.Id(), string(resp.Body))
-		}
-	}
 
 	if resp.Headers.Get("Location") != "" {
 		err := waitTillProvisioned(meta, resp.Headers.Get("Location"))

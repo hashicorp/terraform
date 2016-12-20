@@ -35,7 +35,7 @@ The credentials provided in `.tf` file will override credentials in the environm
 provider "profitbricks" {
     username = "profitbricks_username"
     password = "profitbricks_password"
-    timeout = 100
+    retries = 100
 }
 
 
@@ -53,7 +53,7 @@ The following arguments are supported:
     
 * `password` - (Required) If omitted, the `PROFITBRICKS_PASSWORD` environment variable is used.
 
-* `timeout` - (Optional) Timeout describes number of retries while waiting for a resource to be provisioned. Default value is 50. 
+* `retries` - (Optional) Number of retries while waiting for a resource to be provisioned. Default value is 50.
 
     
 #Support

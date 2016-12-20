@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/profitbricks/profitbricks-sdk-go"
-	"log"
 )
 
 func resourceProfitBricksFirewall() *schema.Resource {
@@ -85,8 +84,8 @@ func resourceProfitBricksFirewall() *schema.Resource {
 }
 
 func resourceProfitBricksFirewallCreate(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
 	fw := profitbricks.FirewallRule{
 		Properties: profitbricks.FirewallruleProperties{
@@ -135,8 +134,8 @@ func resourceProfitBricksFirewallCreate(d *schema.ResourceData, meta interface{}
 }
 
 func resourceProfitBricksFirewallRead(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
 	fw := profitbricks.GetFirewallRule(d.Get("datacenter_id").(string), d.Get("server_id").(string), d.Get("nic_id").(string), d.Id())
 
@@ -159,8 +158,8 @@ func resourceProfitBricksFirewallRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceProfitBricksFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
 	properties := profitbricks.FirewallruleProperties{}
 
@@ -215,16 +214,13 @@ func resourceProfitBricksFirewallUpdate(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return err
 	}
-	return nil //resourceProfitBricksFirewallRead(d, meta)
+	return resourceProfitBricksFirewallRead(d, meta)
 }
 
 func resourceProfitBricksFirewallDelete(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
-	log.Printf("[DEBUG] Datacenter ID: %s", d.Get("datacenter_id").(string))
-	log.Printf("[DEBUG] Server ID: %s", d.Get("server_id").(string))
-	log.Printf("[DEBUG] NIC ID: %s", d.Get("nic_id").(string))
-	log.Printf("[DEBUG] Firewall ID: %s", d.Id())
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
+
 	resp := profitbricks.DeleteFirewallRule(d.Get("datacenter_id").(string), d.Get("server_id").(string), d.Get("nic_id").(string), d.Id())
 
 	if resp.StatusCode > 299 {

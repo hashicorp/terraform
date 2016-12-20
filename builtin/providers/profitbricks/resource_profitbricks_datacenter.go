@@ -6,7 +6,6 @@ import (
 	"github.com/profitbricks/profitbricks-sdk-go"
 	"log"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -42,8 +41,8 @@ func resourceProfitBricksDatacenter() *schema.Resource {
 }
 
 func resourceProfitBricksDatacenterCreate(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
 	datacenter := profitbricks.Datacenter{
 		Properties: profitbricks.DatacenterProperties{
@@ -73,9 +72,9 @@ func resourceProfitBricksDatacenterCreate(d *schema.ResourceData, meta interface
 }
 
 func resourceProfitBricksDatacenterRead(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
+	config := meta.(*Config)
 
-	profitbricks.SetAuth(username, password)
+	profitbricks.SetAuth(config.Username, config.Password)
 	datacenter := profitbricks.GetDatacenter(d.Id())
 	if datacenter.StatusCode > 299 {
 		return fmt.Errorf("Error while fetching a data center ID %s %s", d.Id(), datacenter.Response)
@@ -88,9 +87,9 @@ func resourceProfitBricksDatacenterRead(d *schema.ResourceData, meta interface{}
 }
 
 func resourceProfitBricksDatacenterUpdate(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
+	config := meta.(*Config)
 
-	profitbricks.SetAuth(username, password)
+	profitbricks.SetAuth(config.Username, config.Password)
 
 	obj := profitbricks.DatacenterProperties{}
 
@@ -111,9 +110,9 @@ func resourceProfitBricksDatacenterUpdate(d *schema.ResourceData, meta interface
 }
 
 func resourceProfitBricksDatacenterDelete(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
+	config := meta.(*Config)
 
-	profitbricks.SetAuth(username, password)
+	profitbricks.SetAuth(config.Username, config.Password)
 	dcid := d.Id()
 	resp := profitbricks.DeleteDatacenter(dcid)
 
@@ -129,15 +128,10 @@ func resourceProfitBricksDatacenterDelete(d *schema.ResourceData, meta interface
 }
 
 func waitTillProvisioned(meta interface{}, path string) error {
-	username, password, timeout := getCredentials(meta)
-	profitbricks.SetAuth(username, password)
-	//log.Printf("[DEBUG] Request status path: %s", path)
-	waitCount := 50
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
-	if timeout != 0 {
-		waitCount = timeout
-	}
-	for i := 0; i < waitCount; i++ {
+	for i := 0; i < config.Retries; i++ {
 		request := profitbricks.GetRequestStatus(path)
 		pc, _, _, ok := runtime.Caller(1)
 		details := runtime.FuncForPC(pc)
@@ -158,15 +152,6 @@ func waitTillProvisioned(meta interface{}, path string) error {
 		i++
 	}
 	return fmt.Errorf("Timeout has expired")
-}
-
-func getCredentials(meta interface{}) (username, password string, timeout int) {
-	creds := meta.(string)
-
-	splitv := strings.Split(creds, ",")
-	username, password, to := splitv[0], splitv[1], splitv[2]
-	timeout, _ = strconv.Atoi(to)
-	return username, password, timeout
 }
 
 func getImageId(dcId string, imageName string, imageType string) string {

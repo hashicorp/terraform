@@ -210,9 +210,9 @@ func resourceProfitBricksServer() *schema.Resource {
 }
 
 func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
-	profitbricks.SetAuth(username, password)
 	request := profitbricks.Server{
 		Properties: profitbricks.ServerProperties{
 			Name:  d.Get("name").(string),
@@ -419,9 +419,9 @@ func resourceProfitBricksServerCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceProfitBricksServerRead(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
-	profitbricks.SetAuth(username, password)
 	dcId := d.Get("datacenter_id").(string)
 
 	server := profitbricks.GetServer(dcId, d.Id())
@@ -459,9 +459,9 @@ func resourceProfitBricksServerRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceProfitBricksServerUpdate(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
-	profitbricks.SetAuth(username, password)
 	dcId := d.Get("datacenter_id").(string)
 
 	request := profitbricks.ServerProperties{}
@@ -580,9 +580,9 @@ func resourceProfitBricksServerUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceProfitBricksServerDelete(d *schema.ResourceData, meta interface{}) error {
-	username, password, _ := getCredentials(meta)
+	config := meta.(*Config)
+	profitbricks.SetAuth(config.Username, config.Password)
 
-	profitbricks.SetAuth(username, password)
 	dcId := d.Get("datacenter_id").(string)
 
 	server := profitbricks.GetServer(dcId, d.Id())
