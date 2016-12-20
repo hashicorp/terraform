@@ -1,6 +1,7 @@
 package archive
 
 import (
+	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
@@ -68,6 +69,12 @@ func dataSourceFile() *schema.Resource {
 				ForceNew:    true,
 				Description: "Base64 Encoded SHA256 checksum of output file",
 			},
+			"output_md5": &schema.Schema{
+				Type:        schema.TypeString,
+				Computed:    true,
+				ForceNew:    true,
+				Description: "MD5 of output file",
+			},
 		},
 	}
 }
@@ -94,13 +101,14 @@ func dataSourceFileRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	sha1, base64sha256, err := genFileShas(outputPath)
+	sha1, base64sha256, md5, err := genFileShas(outputPath)
 	if err != nil {
 
 		return fmt.Errorf("could not generate file checksum sha256: %s", err)
 	}
 	d.Set("output_sha", sha1)
 	d.Set("output_base64sha256", base64sha256)
+	d.Set("output_md5", md5)
 
 	d.Set("output_size", fi.Size())
 	d.SetId(d.Get("output_sha").(string))
@@ -136,10 +144,10 @@ func archive(d *schema.ResourceData) error {
 	return nil
 }
 
-func genFileShas(filename string) (string, string, error) {
+func genFileShas(filename string) (string, string, string, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return "", "", fmt.Errorf("could not compute file '%s' checksum: %s", filename, err)
+		return "", "", "", fmt.Errorf("could not compute file '%s' checksum: %s", filename, err)
 	}
 	h := sha1.New()
 	h.Write([]byte(data))
@@ -150,5 +158,9 @@ func genFileShas(filename string) (string, string, error) {
 	shaSum := h256.Sum(nil)
 	sha256base64 := base64.StdEncoding.EncodeToString(shaSum[:])
 
-	return sha1, sha256base64, nil
+	md5 := md5.New()
+	md5.Write([]byte(data))
+	md5Sum := hex.EncodeToString(md5.Sum(nil))
+
+	return sha1, sha256base64, md5Sum, nil
 }
