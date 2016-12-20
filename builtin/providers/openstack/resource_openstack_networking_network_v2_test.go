@@ -2,7 +2,6 @@ package openstack
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -17,23 +16,7 @@ import (
 )
 
 func TestAccNetworkingV2Network_basic(t *testing.T) {
-	region := os.Getenv(OS_REGION_NAME)
-
 	var network networks.Network
-
-	var testAccNetworkingV2Network_basic = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
-			name = "network_1"
-			admin_state_up = "true"
-		}`, region)
-
-	var testAccNetworkingV2Network_update = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
-			name = "network_2"
-			admin_state_up = "true"
-		}`, region)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -57,21 +40,17 @@ func TestAccNetworkingV2Network_basic(t *testing.T) {
 }
 
 func TestAccNetworkingV2Network_netstack(t *testing.T) {
-	region := os.Getenv(OS_REGION_NAME)
-
 	var network networks.Network
 	var subnet subnets.Subnet
 	var router routers.Router
 
 	var testAccNetworkingV2Network_netstack = fmt.Sprintf(`
 		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
 			name = "network_1"
 			admin_state_up = "true"
 		}
 
 		resource "openstack_networking_subnet_v2" "foo" {
-			region = "%s"
 			name = "subnet_1"
 			network_id = "${openstack_networking_network_v2.foo.id}"
 			cidr = "192.168.10.0/24"
@@ -79,15 +58,13 @@ func TestAccNetworkingV2Network_netstack(t *testing.T) {
 		}
 
 		resource "openstack_networking_router_v2" "foo" {
-			region = "%s"
 			name = "router_1"
 		}
 
 		resource "openstack_networking_router_interface_v2" "foo" {
-			region = "%s"
 			router_id = "${openstack_networking_router_v2.foo.id}"
 			subnet_id = "${openstack_networking_subnet_v2.foo.id}"
-		}`, region, region, region, region)
+		}`)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -108,8 +85,6 @@ func TestAccNetworkingV2Network_netstack(t *testing.T) {
 }
 
 func TestAccNetworkingV2Network_fullstack(t *testing.T) {
-	region := os.Getenv(OS_REGION_NAME)
-
 	var instance servers.Server
 	var network networks.Network
 	var port ports.Port
@@ -118,13 +93,11 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
 
 	var testAccNetworkingV2Network_fullstack = fmt.Sprintf(`
 		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
 			name = "network_1"
 			admin_state_up = "true"
 		}
 
 		resource "openstack_networking_subnet_v2" "foo" {
-			region = "%s"
 			name = "subnet_1"
 			network_id = "${openstack_networking_network_v2.foo.id}"
 			cidr = "192.168.199.0/24"
@@ -132,7 +105,6 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
 		}
 
 		resource "openstack_compute_secgroup_v2" "foo" {
-			region = "%s"
 			name = "secgroup_1"
 			description = "a security group"
 			rule {
@@ -144,7 +116,6 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
 		}
 
 		resource "openstack_networking_port_v2" "foo" {
-			region = "%s"
 			name = "port_1"
 			network_id = "${openstack_networking_network_v2.foo.id}"
 			admin_state_up = "true"
@@ -156,14 +127,13 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
 		}
 
 		resource "openstack_compute_instance_v2" "foo" {
-			region = "%s"
 			name = "terraform-test"
 			security_groups = ["${openstack_compute_secgroup_v2.foo.name}"]
 
 			network {
 				port = "${openstack_networking_port_v2.foo.id}"
 			}
-		}`, region, region, region, region, region)
+		}`)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -238,17 +208,13 @@ func testAccCheckNetworkingV2NetworkExists(t *testing.T, n string, network *netw
 }
 
 var testAccNetworkingV2Network_basic = fmt.Sprintf(`
-	resource "openstack_networking_network_v2" "foo" {
-		region = "%s"
-		name = "network_1"
-		admin_state_up = "true"
-	}`,
-	OS_REGION_NAME)
+  resource "openstack_networking_network_v2" "foo" {
+    name = "network_1"
+    admin_state_up = "true"
+  }`)
 
 var testAccNetworkingV2Network_update = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			region = "%s"
-			name = "network_2"
-			admin_state_up = "true"
-			}`,
-	OS_REGION_NAME)
+  resource "openstack_networking_network_v2" "foo" {
+    name = "network_2"
+    admin_state_up = "true"
+  }`)

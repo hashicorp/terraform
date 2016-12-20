@@ -447,7 +447,27 @@ func TestExpandStringList(t *testing.T) {
 			stringList,
 			expected)
 	}
+}
 
+func TestExpandStringListEmptyItems(t *testing.T) {
+	initialList := []string{"foo", "bar", "", "baz"}
+	l := make([]interface{}, len(initialList))
+	for i, v := range initialList {
+		l[i] = v
+	}
+	stringList := expandStringList(l)
+	expected := []*string{
+		aws.String("foo"),
+		aws.String("bar"),
+		aws.String("baz"),
+	}
+
+	if !reflect.DeepEqual(stringList, expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			stringList,
+			expected)
+	}
 }
 
 func TestExpandParameters(t *testing.T) {

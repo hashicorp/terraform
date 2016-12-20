@@ -173,6 +173,12 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"metadata_startup_script": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"metadata_fingerprint": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -477,6 +483,7 @@ func resourceComputeInstanceTemplateCreate(d *schema.ResourceData, meta interfac
 		return err
 	}
 	instanceProperties.Disks = disks
+
 	metadata, err := resourceInstanceMetadata(d)
 	if err != nil {
 		return err
@@ -693,7 +700,6 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 			log.Printf("[WARN] Removing Instance Template %q because it's gone", d.Get("name").(string))
 			// The resource doesn't exist anymore
 			d.SetId("")
-
 			return nil
 		}
 
@@ -702,44 +708,89 @@ func resourceComputeInstanceTemplateRead(d *schema.ResourceData, meta interface{
 
 	// Set the metadata fingerprint if there is one.
 	if instanceTemplate.Properties.Metadata != nil {
-		d.Set("metadata_fingerprint", instanceTemplate.Properties.Metadata.Fingerprint)
+		if err = d.Set("metadata_fingerprint", instanceTemplate.Properties.Metadata.Fingerprint); err != nil {
+			return fmt.Errorf("Error setting metadata_fingerprint: %s", err)
+		}
+
+		md := instanceTemplate.Properties.Metadata
+
+		_md := flattenMetadata(md)
+
+		if script, scriptExists := d.GetOk("metadata_startup_script"); scriptExists {
+			if err = d.Set("metadata_startup_script", script); err != nil {
+				return fmt.Errorf("Error setting metadata_startup_script: %s", err)
+			}
+			delete(_md, "startup-script")
+		}
+		if err = d.Set("metadata", _md); err != nil {
+			return fmt.Errorf("Error setting metadata: %s", err)
+		}
 	}
 
 	// Set the tags fingerprint if there is one.
 	if instanceTemplate.Properties.Tags != nil {
-		d.Set("tags_fingerprint", instanceTemplate.Properties.Tags.Fingerprint)
+		if err = d.Set("tags_fingerprint", instanceTemplate.Properties.Tags.Fingerprint); err != nil {
+			return fmt.Errorf("Error setting tags_fingerprint: %s", err)
+		}
 	}
-	d.Set("self_link", instanceTemplate.SelfLink)
-	d.Set("name", instanceTemplate.Name)
+	if err = d.Set("self_link", instanceTemplate.SelfLink); err != nil {
+		return fmt.Errorf("Error setting self_link: %s", err)
+	}
+	if err = d.Set("name", instanceTemplate.Name); err != nil {
+		return fmt.Errorf("Error setting name: %s", err)
+	}
 	if instanceTemplate.Properties.Disks != nil {
-		d.Set("disk", flattenDisks(instanceTemplate.Properties.Disks, d))
+		if err = d.Set("disk", flattenDisks(instanceTemplate.Properties.Disks, d)); err != nil {
+			return fmt.Errorf("Error setting disk: %s", err)
+		}
 	}
-	d.Set("description", instanceTemplate.Description)
-	d.Set("machine_type", instanceTemplate.Properties.MachineType)
-	d.Set("can_ip_forward", instanceTemplate.Properties.CanIpForward)
-	if instanceTemplate.Properties.Metadata != nil {
-		d.Set("metadata", flattenMetadata(instanceTemplate.Properties.Metadata))
+	if err = d.Set("description", instanceTemplate.Description); err != nil {
+		return fmt.Errorf("Error setting description: %s", err)
 	}
-	d.Set("instance_description", instanceTemplate.Properties.Description)
-	d.Set("project", project)
+	if err = d.Set("machine_type", instanceTemplate.Properties.MachineType); err != nil {
+		return fmt.Errorf("Error setting machine_type: %s", err)
+	}
+
+	if err = d.Set("can_ip_forward", instanceTemplate.Properties.CanIpForward); err != nil {
+		return fmt.Errorf("Error setting can_ip_forward: %s", err)
+	}
+
+	if err = d.Set("instance_description", instanceTemplate.Properties.Description); err != nil {
+		return fmt.Errorf("Error setting instance_description: %s", err)
+	}
+	if err = d.Set("project", project); err != nil {
+		return fmt.Errorf("Error setting project: %s", err)
+	}
 	if instanceTemplate.Properties.NetworkInterfaces != nil {
 		networkInterfaces, region := flattenNetworkInterfaces(instanceTemplate.Properties.NetworkInterfaces)
-		d.Set("network_interface", networkInterfaces)
+		if err = d.Set("network_interface", networkInterfaces); err != nil {
+			return fmt.Errorf("Error setting network_interface: %s", err)
+		}
 		// region is where to look up the subnetwork if there is one attached to the instance template
 		if region != "" {
-			d.Set("region", region)
+			if err = d.Set("region", region); err != nil {
+				return fmt.Errorf("Error setting region: %s", err)
+			}
 		}
 	}
 	if instanceTemplate.Properties.Scheduling != nil {
 		scheduling, autoRestart := flattenScheduling(instanceTemplate.Properties.Scheduling)
-		d.Set("scheduling", scheduling)
-		d.Set("automatic_restart", autoRestart)
+		if err = d.Set("scheduling", scheduling); err != nil {
+			return fmt.Errorf("Error setting scheduling: %s", err)
+		}
+		if err = d.Set("automatic_restart", autoRestart); err != nil {
+			return fmt.Errorf("Error setting automatic_restart: %s", err)
+		}
 	}
 	if instanceTemplate.Properties.Tags != nil {
-		d.Set("tags", instanceTemplate.Properties.Tags.Items)
+		if err = d.Set("tags", instanceTemplate.Properties.Tags.Items); err != nil {
+			return fmt.Errorf("Error setting tags: %s", err)
+		}
 	}
 	if instanceTemplate.Properties.ServiceAccounts != nil {
-		d.Set("service_account", flattenServiceAccounts(instanceTemplate.Properties.ServiceAccounts))
+		if err = d.Set("service_account", flattenServiceAccounts(instanceTemplate.Properties.ServiceAccounts)); err != nil {
+			return fmt.Errorf("Error setting service_account: %s", err)
+		}
 	}
 	return nil
 }

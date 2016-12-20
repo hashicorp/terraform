@@ -37,8 +37,8 @@ The following arguments are supported:
 * `vpc_offering` - (Required) The name or ID of the VPC offering to use for this VPC.
     Changing this forces a new resource to be created.
 
-* `network_domain` - (Optional) DNS domain for guest
-    networks. Changing this forces a new resource to be created.
+* `network_domain` - (Optional) The default DNS domain for networks created in
+    this VPC. Changing this forces a new resource to be created.
 
 * `project` - (Optional) The name or ID of the project to deploy this
     instance to. Changing this forces a new resource to be created.

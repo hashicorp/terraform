@@ -227,6 +227,9 @@ func (c *RDS) AddTagsToResourceRequest(input *AddTagsToResourceInput) (req *requ
 //   * DBSnapshotNotFound
 //   DBSnapshotIdentifier does not refer to an existing DB snapshot.
 //
+//   * DBClusterNotFoundFault
+//   DBClusterIdentifier does not refer to an existing DB cluster.
+//
 func (c *RDS) AddTagsToResource(input *AddTagsToResourceInput) (*AddTagsToResourceOutput, error) {
 	req, out := c.AddTagsToResourceRequest(input)
 	err := req.Send()
@@ -655,8 +658,10 @@ func (c *RDS) CopyDBSnapshotRequest(input *CopyDBSnapshotInput) (req *request.Re
 // Copies the specified DB snapshot. The source DB snapshot must be in the "available"
 // state.
 //
-// If you are copying from a shared manual DB snapshot, the SourceDBSnapshotIdentifier
-// must be the ARN of the shared DB snapshot.
+// To copy a DB snapshot from a shared manual DB snapshot, SourceDBSnapshotIdentifier
+// must be the Amazon Resource Name (ARN) of the shared DB snapshot.
+//
+// You can not copy an encrypted DB snapshot from another AWS region.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -850,6 +855,9 @@ func (c *RDS) CreateDBClusterRequest(input *CreateDBClusterInput) (req *request.
 //   * InvalidSubnet
 //   The requested subnet is invalid, or multiple subnets were requested that
 //   are not all in a common VPC.
+//
+//   * InvalidDBInstanceState
+//   The specified DB instance is not in the available state.
 //
 //   * DBClusterParameterGroupNotFound
 //   DBClusterParameterGroupName does not refer to an existing DB Cluster parameter
@@ -4982,13 +4990,12 @@ func (c *RDS) FailoverDBClusterRequest(input *FailoverDBClusterInput) (req *requ
 //
 // Forces a failover for a DB cluster.
 //
-// A failover for a DB cluster promotes one of the read-only instances in the
-// DB cluster to the master DB instance (the cluster writer) and deletes the
-// current primary instance.
+// A failover for a DB cluster promotes one of the Aurora Replicas (read-only
+// instances) in the DB cluster to be the primary instance (the cluster writer).
 //
-// Amazon Aurora will automatically fail over to a read-only instance, if one
-// exists, when the primary instance fails. You can force a failover when you
-// want to simulate a failure of a DB instance for testing. Because each instance
+// Amazon Aurora will automatically fail over to an Aurora Replica, if one exists,
+// when the primary instance fails. You can force a failover when you want to
+// simulate a failure of a primary instance for testing. Because each instance
 // in a DB cluster has its own endpoint address, you will need to clean up and
 // re-establish any existing connections that use those endpoint addresses when
 // the failover is complete.
@@ -5082,6 +5089,9 @@ func (c *RDS) ListTagsForResourceRequest(input *ListTagsForResourceInput) (req *
 //
 //   * DBSnapshotNotFound
 //   DBSnapshotIdentifier does not refer to an existing DB snapshot.
+//
+//   * DBClusterNotFoundFault
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 func (c *RDS) ListTagsForResource(input *ListTagsForResourceInput) (*ListTagsForResourceOutput, error) {
 	req, out := c.ListTagsForResourceRequest(input)
@@ -6385,6 +6395,9 @@ func (c *RDS) RemoveTagsFromResourceRequest(input *RemoveTagsFromResourceInput) 
 //
 //   * DBSnapshotNotFound
 //   DBSnapshotIdentifier does not refer to an existing DB snapshot.
+//
+//   * DBClusterNotFoundFault
+//   DBClusterIdentifier does not refer to an existing DB cluster.
 //
 func (c *RDS) RemoveTagsFromResource(input *RemoveTagsFromResourceInput) (*RemoveTagsFromResourceOutput, error) {
 	req, out := c.RemoveTagsFromResourceRequest(input)
@@ -8256,9 +8269,9 @@ type CopyDBSnapshotInput struct {
 	// otherwise false. The default is false.
 	CopyTags *bool `type:"boolean"`
 
-	// The AWS Key Management Service (AWS KMS) key identifier for an encrypted
-	// DB snapshot. The KMS key identifier is the Amazon Resource Name (ARN) or
-	// the KMS key alias for the KMS encryption key.
+	// The AWS KMS key ID for an encrypted DB snapshot. The KMS key ID is the Amazon
+	// Resource Name (ARN), KMS key identifier, or the KMS key alias for the KMS
+	// encryption key.
 	//
 	// If you copy an unencrypted DB snapshot and specify a value for the KmsKeyId
 	// parameter, Amazon RDS encrypts the target DB snapshot using the specified
@@ -8266,8 +8279,8 @@ type CopyDBSnapshotInput struct {
 	//
 	// If you copy an encrypted DB snapshot from your AWS account, you can specify
 	// a value for KmsKeyId to encrypt the copy with a new KMS encryption key. If
-	// you don't specify a value for KmsKeyId then the copy of the DB snapshot is
-	// encrypted with the same KMS key as the source DB snapshot.
+	// you don't specify a value for KmsKeyId, then the copy of the DB snapshot
+	// is encrypted with the same KMS key as the source DB snapshot.
 	//
 	// If you copy an encrypted DB snapshot that is shared from another AWS account,
 	// then you must specify a value for KmsKeyId.
@@ -8277,6 +8290,8 @@ type CopyDBSnapshotInput struct {
 	//
 	// If you are copying from a shared manual DB snapshot, this must be the ARN
 	// of the shared DB snapshot.
+	//
+	// You cannot copy an encrypted, shared DB snapshot from one AWS region to another.
 	//
 	// Constraints:
 	//
@@ -8291,7 +8306,7 @@ type CopyDBSnapshotInput struct {
 	//
 	// Example: rds:mydb-2012-04-02-00-01
 	//
-	// Example: arn:aws:rds:rr-regn-1:123456789012:snapshot:mysql-instance1-snapshot-20130805
+	// Example: arn:aws:rds:us-west-2:123456789012:snapshot:mysql-instance1-snapshot-20130805
 	//
 	// SourceDBSnapshotIdentifier is a required field
 	SourceDBSnapshotIdentifier *string `type:"string" required:"true"`
@@ -9325,21 +9340,69 @@ type CreateDBInstanceInput struct {
 	// Amazon Aurora
 	//
 	//    * Version 5.6 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-2, eu-west-1, us-east-1, us-west-2): 5.6.10a
+	//    ap-south-1, ap-southeast-2, eu-west-1, us-east-1, us-east-2, us-west-2):
+	//    5.6.10a
 	//
 	// MariaDB
+	//
+	//    * Version 10.1 (available in these AWS regions: us-east-2): 10.1.16
 	//
 	//    * Version 10.1 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
 	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
 	//    us-east-1, us-west-1, us-west-2): 10.1.14
 	//
-	//    * Version 10.0 (available in all AWS regions): 10.0.17 | 10.0.24
+	//    * Version 10.0 (available in all AWS regions): 10.0.24
+	//
+	//    * Version 10.0 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
+	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
+	//    us-east-1, us-gov-west-1, us-west-1, us-west-2): 10.0.17
+	//
+	// Microsoft SQL Server 2016
+	//
+	//    * 13.00.2164.0.v1 (supported for all editions, and all AWS regions except
+	//    sa-east-1)
+	//
+	// Microsoft SQL Server 2014
+	//
+	//    * 12.00.5000.0.v1 (supported for all editions, and all AWS regions)
+	//
+	//    * 12.00.4422.0.v1 (supported for all editions except Enterprise Edition,
+	//    and all AWS regions except us-east-2)
+	//
+	// Microsoft SQL Server 2012
+	//
+	//    * 11.00.6020.0.v1 (supported for all editions, and all AWS regions)
+	//
+	//    * 11.00.5058.0.v1 (supported for all editions, and all AWS regions except
+	//    us-east-2)
+	//
+	//    * 11.00.2100.60.v1 (supported for all editions, and all AWS regions except
+	//    us-east-2)
+	//
+	// Microsoft SQL Server 2008 R2
+	//
+	//    * 10.50.6529.0.v1 (supported for all editions, and all AWS regions except
+	//    us-east-2)
+	//
+	//    * 10.50.6000.34.v1 (supported for all editions, and all AWS regions except
+	//    us-east-2)
+	//
+	//    * 10.50.2789.0.v1 (supported for all editions, and all AWS regions except
+	//    us-east-2)
 	//
 	// MySQL
 	//
-	//    * Version 5.7 (available in all AWS regions): 5.7.10 | 5.7.11
+	//    * Version 5.7 (available in all AWS regions): 5.7.11
 	//
-	//    * Version 5.6 (available in all AWS regions): 5.6.27 | 5.6.29
+	//    * Version 5.7 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
+	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
+	//    us-east-1, us-gov-west-1, us-west-1, us-west-2): 5.7.10
+	//
+	//    * Version 5.6 (available in all AWS regions): 5.6.29
+	//
+	//    * Version 5.6 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
+	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
+	//    us-east-1, us-gov-west-1, us-west-1, us-west-2): 5.6.27
 	//
 	//    * Version 5.6 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
 	//    ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1,
@@ -9363,150 +9426,103 @@ type CreateDBInstanceInput struct {
 	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
 	//    us-west-2): 5.5.40 | 5.5.40a
 	//
-	// Oracle Database Enterprise Edition (oracle-ee)
+	// Oracle 12c
 	//
-	//    * Version 12.1.0.2 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2): 12.1.0.2.v5
+	// 12.1.0.2.v6 (supported for EE in all AWS regions, and SE2 in all AWS regions
+	// except us-gov-west-1)
 	//
-	//    * Version 12.1.0.2 (available in all AWS regions): 12.1.0.2.v1 | 12.1.0.2.v2
-	//    | 12.1.0.2.v3 | 12.1.0.2.v4
+	//    * 12.1.0.2.v5 (supported for EE in all AWS regions, and SE2 in all AWS
+	//    regions except us-gov-west-1)
 	//
-	//    * Version 12.1.0.1 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 12.1.0.1.v6
+	//    * 12.1.0.2.v4 (supported for EE in all AWS regions, and SE2 in all AWS
+	//    regions except us-gov-west-1)
 	//
-	//    * Version 12.1.0.1 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-west-1, us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
+	//    * 12.1.0.2.v3 (supported for EE in all AWS regions, and SE2 in all AWS
+	//    regions except us-gov-west-1)
 	//
-	//    * Version 12.1.0.1 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-gov-west-1, us-west-1, us-west-2): 12.1.0.1.v1 | 12.1.0.1.v2
+	//    * 12.1.0.2.v2 (supported for EE in all AWS regions, and SE2 in all AWS
+	//    regions except us-gov-west-1)
 	//
-	//    * Version 11.2.0.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2): 11.2.0.4.v6 | 11.2.0.4.v9
+	//    * 12.1.0.2.v1 (supported for EE in all AWS regions, and SE2 in all AWS
+	//    regions except us-gov-west-1)
 	//
-	//    * Version 11.2.0.4 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
-	//    | 11.2.0.4.v4 | 11.2.0.4.v5 | 11.2.0.4.v7 | 11.2.0.4.v8
+	//    * 12.1.0.1.v6 (supported for EE, SE1, and SE, in all AWS regions except
+	//    ap-south-1, ap-northeast-2)
 	//
-	// Oracle Database Standard Edition Two (oracle-se2)
+	//    * 12.1.0.1.v5 (supported for EE, SE1, and SE, in all AWS regions except
+	//    ap-south-1, ap-northeast-2)
 	//
-	//    * Version 12.1.0.2 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2): 12.1.0.2.v5
+	//    * 12.1.0.1.v4 (supported for EE, SE1, and SE, in all AWS regions except
+	//    ap-south-1, ap-northeast-2)
 	//
-	//    * Version 12.1.0.2 (available in all AWS regions): 12.1.0.2.v2 | 12.1.0.2.v3
-	//    | 12.1.0.2.v4
+	//    * 12.1.0.1.v3 (supported for EE, SE1, and SE, in all AWS regions except
+	//    ap-south-1, ap-northeast-2)
 	//
-	// Oracle Database Standard Edition One (oracle-se1)
+	//    * 12.1.0.1.v2 (supported for EE, SE1, and SE, in all AWS regions except
+	//    ap-south-1, ap-northeast-2)
 	//
-	//    * Version 12.1.0.1 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 12.1.0.1.v6
+	//    * 12.1.0.1.v1 (supported for EE, SE1, and SE, in all AWS regions except
+	//    ap-south-1, ap-northeast-2)
 	//
-	//    * Version 12.1.0.1 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-west-1, us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
+	// Oracle 11g
 	//
-	//    * Version 12.1.0.1 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-gov-west-1, us-west-1, us-west-2): 12.1.0.1.v1 | 12.1.0.1.v2
+	//    * 11.2.0.4.v10 (supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * Version 11.2.0.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2): 11.2.0.4.v6 | 11.2.0.4.v9
+	//    * 11.2.0.4.v9 (supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * Version 11.2.0.4 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
-	//    | 11.2.0.4.v4 | 11.2.0.4.v5 | 11.2.0.4.v7 | 11.2.0.4.v8
+	//    * 11.2.0.4.v8 (supported for EE, SE1, and SE, in all AWS regions)
 	//
-	// Oracle Database Standard Edition (oracle-se)
+	//    * 11.2.0.4.v7 (supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * Version 12.1.0.1 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 12.1.0.1.v6
+	//    * 11.2.0.4.v6 (supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * Version 12.1.0.1 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-west-1, us-west-2): 12.1.0.1.v3 | 12.1.0.1.v4 | 12.1.0.1.v5
+	//    * 11.2.0.4.v5 (supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * Version 12.1.0.1 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
-	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-gov-west-1, us-west-1, us-west-2): 12.1.0.1.v1 | 12.1.0.1.v2
+	//    * 11.2.0.4.v4 (supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * Version 11.2.0.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
-	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2): 11.2.0.4.v6 | 11.2.0.4.v9
+	//    * 11.2.0.4.v3 (supported for EE, SE1, and SE, in all AWS regions)
 	//
-	//    * Version 11.2.0.4 (available in all AWS regions): 11.2.0.4.v1 | 11.2.0.4.v3
-	//    | 11.2.0.4.v4 | 11.2.0.4.v5 | 11.2.0.4.v7 | 11.2.0.4.v8
+	//    * 11.2.0.4.v1 (supported for EE, SE1, and SE, in all AWS regions)
 	//
 	// PostgreSQL
 	//
 	//    * Version 9.5 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
 	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2): 9.5.2 | 9.5.4
+	//    us-east-1, us-west-1, us-west-2):   *  9.5.4
+	//
+	//    * Version 9.5 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
+	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
+	//    us-east-1, us-east-2, us-west-1, us-west-2):   *  9.5.2
 	//
 	//    * Version 9.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
 	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
-	//    us-east-1, us-west-1, us-west-2): 9.4.7 | 9.4.9
+	//    us-east-1, us-west-1, us-west-2):   *  9.4.9
 	//
-	//    * Version 9.4 (available in all AWS regions): 9.4.5
+	//    * Version 9.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
+	//    ap-south-1, ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1,
+	//    us-east-1, us-east-2, us-west-1, us-west-2):   *  9.4.7
+	//
+	//    * Version 9.4 (available in all AWS regions):   *  9.4.5
 	//
 	//    * Version 9.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
 	//    ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1,
-	//    us-gov-west-1, us-west-1, us-west-2): 9.4.1 | 9.4.4
+	//    us-gov-west-1, us-west-1, us-west-2):   *  9.4.4
+	//
+	//    * Version 9.4 (available in these AWS regions: ap-northeast-1, ap-northeast-2,
+	//    ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1,
+	//    us-east-2, us-gov-west-1, us-west-1, us-west-2):   *  9.4.1
 	//
 	//    * Version 9.3 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
 	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-gov-west-1,
-	//    us-west-1, us-west-2): 9.3.10 | 9.3.3 | 9.3.5 | 9.3.6 | 9.3.9
+	//    us-west-1, us-west-2):   *  9.3.10 | 9.3.3 | 9.3.5 | 9.3.6 | 9.3.9
 	//
 	//    * Version 9.3 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
 	//    ap-southeast-2, eu-west-1, sa-east-1, us-east-1, us-gov-west-1, us-west-1,
-	//    us-west-2): 9.3.1 | 9.3.2
+	//    us-west-2):   *  9.3.1 | 9.3.2
 	//
 	//    * Version 9.3 (available in these AWS regions: ap-northeast-1, ap-southeast-1,
 	//    ap-southeast-2, eu-central-1, eu-west-1, sa-east-1, us-east-1, us-west-1,
-	//    us-west-2): 9.3.12 | 9.3.14
-	//
-	// Microsoft SQL Server Enterprise Edition (sqlserver-ee)
-	//
-	//    * Version 11.00 (available in all AWS regions): 11.00.2100.60.v1 | 11.00.5058.0.v1
-	//    | 11.00.6020.0.v1
-	//
-	//    * Version 10.50 (available in all AWS regions): 10.50.2789.0.v1 | 10.50.6000.34.v1
-	//    | 10.50.6529.0.v1
-	//
-	// Microsoft SQL Server Express Edition (sqlserver-ex)
-	//
-	//    * Version 12.00 (available in all AWS regions): 12.00.4422.0.v1
-	//
-	//    * Version 11.00 (available in all AWS regions): 11.00.2100.60.v1 | 11.00.5058.0.v1
-	//    | 11.00.6020.0.v1
-	//
-	//    * Version 10.50 (available in all AWS regions): 10.50.2789.0.v1 | 10.50.6000.34.v1
-	//    | 10.50.6529.0.v1
-	//
-	// Microsoft SQL Server Standard Edition (sqlserver-se)
-	//
-	//    * Version 12.00 (available in all AWS regions): 12.00.4422.0.v1
-	//
-	//    * Version 11.00 (available in all AWS regions): 11.00.2100.60.v1 | 11.00.5058.0.v1
-	//    | 11.00.6020.0.v1
-	//
-	//    * Version 10.50 (available in all AWS regions): 10.50.2789.0.v1 | 10.50.6000.34.v1
-	//    | 10.50.6529.0.v1
-	//
-	// Microsoft SQL Server Web Edition (sqlserver-web)
-	//
-	//    * Version 12.00 (available in all AWS regions): 12.00.4422.0.v1
-	//
-	//    * Version 11.00 (available in all AWS regions): 11.00.2100.60.v1 | 11.00.5058.0.v1
-	//    | 11.00.6020.0.v1
-	//
-	//    * Version 10.50 (available in all AWS regions): 10.50.2789.0.v1 | 10.50.6000.34.v1
-	//    | 10.50.6529.0.v1
+	//    us-west-2):   *  9.3.12 | 9.3.14
 	EngineVersion *string `type:"string"`
 
 	// The amount of Provisioned IOPS (input/output operations per second) to be
@@ -11149,6 +11165,10 @@ type DBCluster struct {
 	// associated with.
 	CharacterSetName *string `type:"string"`
 
+	// Specifies the time when the DB cluster was created, in Universal Coordinated
+	// Time (UTC).
+	ClusterCreateTime *time.Time `type:"timestamp" timestampFormat:"iso8601"`
+
 	// The Amazon Resource Name (ARN) for the DB cluster.
 	DBClusterArn *string `type:"string"`
 
@@ -11205,6 +11225,9 @@ type DBCluster struct {
 
 	// Contains the master username for the DB cluster.
 	MasterUsername *string `type:"string"`
+
+	// Specifies whether the DB cluster has instances in multiple Availability Zones.
+	MultiAZ *bool `type:"boolean"`
 
 	// Specifies the progress of the operation as a percentage.
 	PercentProgress *string `type:"string"`
@@ -11288,6 +11311,12 @@ func (s *DBCluster) SetBackupRetentionPeriod(v int64) *DBCluster {
 // SetCharacterSetName sets the CharacterSetName field's value.
 func (s *DBCluster) SetCharacterSetName(v string) *DBCluster {
 	s.CharacterSetName = &v
+	return s
+}
+
+// SetClusterCreateTime sets the ClusterCreateTime field's value.
+func (s *DBCluster) SetClusterCreateTime(v time.Time) *DBCluster {
+	s.ClusterCreateTime = &v
 	return s
 }
 
@@ -11384,6 +11413,12 @@ func (s *DBCluster) SetLatestRestorableTime(v time.Time) *DBCluster {
 // SetMasterUsername sets the MasterUsername field's value.
 func (s *DBCluster) SetMasterUsername(v string) *DBCluster {
 	s.MasterUsername = &v
+	return s
+}
+
+// SetMultiAZ sets the MultiAZ field's value.
+func (s *DBCluster) SetMultiAZ(v bool) *DBCluster {
+	s.MultiAZ = &v
 	return s
 }
 
@@ -14736,7 +14771,13 @@ type DescribeDBClustersInput struct {
 	//    * Cannot end with a hyphen or contain two consecutive hyphens
 	DBClusterIdentifier *string `type:"string"`
 
-	// This parameter is not currently supported.
+	// A filter that specifies one or more DB clusters to describe.
+	//
+	// Supported filters:
+	//
+	//    * db-cluster-id - Accepts DB cluster identifiers and DB cluster Amazon
+	//    Resource Names (ARNs). The results list will only include information
+	//    about the DB clusters identified by these ARNs.
 	Filters []*Filter `locationNameList:"Filter" type:"list"`
 
 	// An optional pagination token provided by a previous DescribeDBClusters request.
@@ -15031,7 +15072,13 @@ type DescribeDBInstancesInput struct {
 	//    * Cannot end with a hyphen or contain two consecutive hyphens
 	DBInstanceIdentifier *string `type:"string"`
 
-	// This parameter is not currently supported.
+	// A filter that specifies one or more DB instances to describe.
+	//
+	// Supported filters:
+	//
+	//    * db-instance-id - Accepts DB instance identifiers and DB instance Amazon
+	//    Resource Names (ARNs). The results list will only include information
+	//    about the DB instances identified by these ARNs.
 	Filters []*Filter `locationNameList:"Filter" type:"list"`
 
 	// An optional pagination token provided by a previous DescribeDBInstances request.
@@ -17117,9 +17164,13 @@ type DescribePendingMaintenanceActionsInput struct {
 	//
 	// Supported filters:
 	//
-	//    * db-instance-id - Accepts DB instance identifiers and DB instance Amazon
+	//    * db-cluster-id - Accepts DB cluster identifiers and DB cluster Amazon
 	//    Resource Names (ARNs). The results list will only include pending maintenance
-	//    actions for the DB instances identified by these ARNs.
+	//    actions for the DB clusters identified by these ARNs.
+	//
+	//    * db-instance-id - Accepts DB instance identifiers and DB instance ARNs.
+	//    The results list will only include pending maintenance actions for the
+	//    DB instances identified by these ARNs.
 	Filters []*Filter `locationNameList:"Filter" type:"list"`
 
 	// An optional pagination token provided by a previous DescribePendingMaintenanceActions

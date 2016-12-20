@@ -71,6 +71,7 @@ func Provider() terraform.ResourceProvider {
 			"azurerm_network_security_group":    resourceArmNetworkSecurityGroup(),
 			"azurerm_network_security_rule":     resourceArmNetworkSecurityRule(),
 			"azurerm_public_ip":                 resourceArmPublicIp(),
+			"azurerm_redis_cache":               resourceArmRedisCache(),
 			"azurerm_route":                     resourceArmRoute(),
 			"azurerm_route_table":               resourceArmRouteTable(),
 			"azurerm_servicebus_namespace":      resourceArmServiceBusNamespace(),
@@ -205,7 +206,18 @@ func registerAzureResourceProvidersWithSubscription(client *riviera.Client) erro
 	var err error
 	providerRegistrationOnce.Do(func() {
 		// We register Microsoft.Compute during client initialization
-		providers := []string{"Microsoft.Network", "Microsoft.Cdn", "Microsoft.Storage", "Microsoft.Sql", "Microsoft.Search", "Microsoft.Resources", "Microsoft.ServiceBus", "Microsoft.KeyVault", "Microsoft.EventHub"}
+		providers := []string{
+			"Microsoft.Cache",
+			"Microsoft.Network",
+			"Microsoft.Cdn",
+			"Microsoft.Storage",
+			"Microsoft.Sql",
+			"Microsoft.Search",
+			"Microsoft.Resources",
+			"Microsoft.ServiceBus",
+			"Microsoft.KeyVault",
+			"Microsoft.EventHub",
+		}
 
 		var wg sync.WaitGroup
 		wg.Add(len(providers))

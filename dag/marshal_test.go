@@ -34,6 +34,27 @@ func TestGraphDot_basic(t *testing.T) {
 	}
 }
 
+func TestGraphDot_attrs(t *testing.T) {
+	var g Graph
+	g.Add(&testGraphNodeDotter{
+		Result: &DotNode{
+			Name:  "foo",
+			Attrs: map[string]string{"foo": "bar"},
+		},
+	})
+
+	actual := strings.TrimSpace(string(g.Dot(nil)))
+	expected := strings.TrimSpace(testGraphDotAttrsStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
+type testGraphNodeDotter struct{ Result *DotNode }
+
+func (n *testGraphNodeDotter) Name() string                      { return n.Result.Name }
+func (n *testGraphNodeDotter) DotNode(string, *DotOpts) *DotNode { return n.Result }
+
 const testGraphDotBasicStr = `digraph {
 	compound = "true"
 	newrank = "true"
@@ -47,6 +68,14 @@ const testGraphDotEmptyStr = `digraph {
 	compound = "true"
 	newrank = "true"
 	subgraph "root" {
+	}
+}`
+
+const testGraphDotAttrsStr = `digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] foo" [foo = "bar"]
 	}
 }`
 

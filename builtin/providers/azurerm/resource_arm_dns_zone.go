@@ -50,6 +50,8 @@ func resourceArmDnsZone() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -58,11 +60,15 @@ func resourceArmDnsZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	rivieraClient := client.rivieraClient
 
+	tags := d.Get("tags").(map[string]interface{})
+	expandedTags := expandTags(tags)
+
 	createRequest := rivieraClient.NewRequest()
 	createRequest.Command = &dns.CreateDNSZone{
 		Name:              d.Get("name").(string),
 		Location:          "global",
 		ResourceGroupName: d.Get("resource_group_name").(string),
+		Tags:              *expandedTags,
 	}
 
 	createResponse, err := createRequest.Execute()
@@ -130,6 +136,8 @@ func resourceArmDnsZoneRead(d *schema.ResourceData, meta interface{}) error {
 	if err := d.Set("name_servers", nameServers); err != nil {
 		return err
 	}
+
+	flattenAndSetTags(d, resp.Tags)
 
 	return nil
 }

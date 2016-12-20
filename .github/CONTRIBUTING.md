@@ -44,7 +44,7 @@ ensure Terraform remains stable.
 
 We make the distinction between these two types of providers to help
 highlight the vast amounts of community effort that goes in to making Terraform
-great, and to help contributers better understand the role HashiCorp employees
+great, and to help contributors better understand the role HashiCorp employees
 play in the various areas of the code base.
 
 ## Issues
@@ -52,7 +52,7 @@ play in the various areas of the code base.
 ### Issue Reporting Checklists
 
 We welcome issues of all kinds including feature requests, bug reports, and
-general questions. Below you'll find checklists with guidlines for well-formed
+general questions. Below you'll find checklists with guidelines for well-formed
 issues of each type.
 
 #### Bug Reports
@@ -220,7 +220,7 @@ existing resources, but you still get to implement something completely new.
 #### New Provider
 
 Implementing a new provider gives Terraform the ability to manage resources in
-a whole new API. It's a larger undertaking, but brings major new functionaliy
+a whole new API. It's a larger undertaking, but brings major new functionality
 into Terraform.
 
  - [ ] __Acceptance tests__: Each provider should include an acceptance test
@@ -368,12 +368,12 @@ point to the framework is the `resource.Test()` function.
 Tests are divided into `TestStep`s. Each `TestStep` proceeds by applying some
 Terraform configuration using the provider under test, and then verifying that
 results are as expected by making assertions using the provider API. It is
-common for a single test function to excercise both the creation of and updates
+common for a single test function to exercise both the creation of and updates
 to a single resource. Most tests follow a similar structure.
 
 1. Pre-flight checks are made to ensure that sufficient provider configuration
    is available to be able to proceed - for example in an acceptance test
-   targetting AWS, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` must be set prior
+   targeting AWS, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` must be set prior
    to running acceptance tests. This is common to all tests exercising a single
    provider.
 
@@ -462,7 +462,7 @@ When executing the test, the following steps are taken for each `TestStep`:
    the resource - though in this case it is necessary to split the ID into
    constituent parts in order to use the provider API. For computed properties,
    we instead assert that the value saved in the Terraform state was the
-   expected value if possible. The testing framework providers helper functions
+   expected value if possible. The testing framework provides helper functions
    for several common types of check - for example:
 
     ```go

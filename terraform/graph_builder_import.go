@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // ImportGraphBuilder implements GraphBuilder and is responsible for building
@@ -38,10 +39,9 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 	}
 
 	// Custom factory for creating providers.
-	providerFactory := func(name string, path []string) GraphNodeProvider {
+	concreteProvider := func(a *NodeAbstractProvider) dag.Vertex {
 		return &NodeApplyableProvider{
-			NameValue: name,
-			PathValue: path,
+			NodeAbstractProvider: a,
 		}
 	}
 
@@ -53,7 +53,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		&ImportStateTransformer{Targets: b.ImportTargets},
 
 		// Provider-related transformations
-		&MissingProviderTransformer{Providers: b.Providers, Factory: providerFactory},
+		&MissingProviderTransformer{Providers: b.Providers, Concrete: concreteProvider},
 		&ProviderTransformer{},
 		&DisableProviderTransformerOld{},
 		&PruneProviderTransformer{},

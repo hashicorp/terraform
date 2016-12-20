@@ -67,6 +67,13 @@ func TestLoadFile_lifecycleKeyCheck(t *testing.T) {
 	t.Logf("err: %s", err)
 }
 
+func TestLoadFile_varInvalidKey(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "var-invalid-key.tf"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+}
+
 func TestLoadFile_resourceArityMistake(t *testing.T) {
 	_, err := LoadFile(filepath.Join(fixtureDir, "resource-arity-mistake.tf"))
 	if err == nil {
@@ -75,6 +82,13 @@ func TestLoadFile_resourceArityMistake(t *testing.T) {
 	expected := "Error loading test-fixtures/resource-arity-mistake.tf: position 2:10: resource must be followed by exactly two strings, a type and a name"
 	if err.Error() != expected {
 		t.Fatalf("expected:\n%s\ngot:\n%s", expected, err)
+	}
+}
+
+func TestLoadFile_resourceMultiLifecycle(t *testing.T) {
+	_, err := LoadFile(filepath.Join(fixtureDir, "resource-multi-lifecycle.tf"))
+	if err == nil {
+		t.Fatal("should have error")
 	}
 }
 

@@ -82,6 +82,12 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 				Deprecated:    "Use field request_parameters instead",
 			},
 
+			"content_handling": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateApiGatewayIntegrationContentHandling,
+			},
+
 			"passthrough_behavior": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -131,6 +137,11 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 		credentials = aws.String(val.(string))
 	}
 
+	var contentHandling *string
+	if val, ok := d.GetOk("content_handling"); ok {
+		contentHandling = aws.String(val.(string))
+	}
+
 	_, err := conn.PutIntegration(&apigateway.PutIntegrationInput{
 		HttpMethod: aws.String(d.Get("http_method").(string)),
 		ResourceId: aws.String(d.Get("resource_id").(string)),
@@ -144,6 +155,7 @@ func resourceAwsApiGatewayIntegrationCreate(d *schema.ResourceData, meta interfa
 		CacheNamespace:      nil,
 		CacheKeyParameters:  nil,
 		PassthroughBehavior: passthroughBehavior,
+		ContentHandling:     contentHandling,
 	})
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Integration: %s", err)
@@ -185,6 +197,7 @@ func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface
 	d.Set("request_parameters", aws.StringValueMap(integration.RequestParameters))
 	d.Set("request_parameters_in_json", aws.StringValueMap(integration.RequestParameters))
 	d.Set("passthrough_behavior", integration.PassthroughBehavior)
+	d.Set("content_handling", integration.ContentHandling)
 
 	return nil
 }

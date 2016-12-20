@@ -158,6 +158,120 @@ resource "aws_s3_bucket" "versioning_bucket" {
 }
 ```
 
+### Using replication configuration
+
+```
+provider "aws" {
+  alias  = "west"
+  region = "eu-west-1"
+}
+
+provider "aws" {
+  alias  = "central"
+  region = "eu-central-1"
+}
+
+resource "aws_iam_role" "replication" {
+  name               = "tf-iam-role-replication-12345"
+  assume_role_policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "s3.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_iam_policy" "replication" {
+    name = "tf-iam-role-policy-replication-12345"
+    policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "s3:GetReplicationConfiguration",
+        "s3:ListBucket"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "${aws_s3_bucket.bucket.arn}"
+      ]
+    },
+    {
+      "Action": [
+        "s3:GetObjectVersion",
+        "s3:GetObjectVersionAcl"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "${aws_s3_bucket.bucket.arn}/*"
+      ]
+    },
+    {
+      "Action": [
+        "s3:ReplicateObject",
+        "s3:ReplicateDelete"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_s3_bucket.destination.arn}/*"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_iam_policy_attachment" "replication" {
+    name = "tf-iam-role-attachment-replication-12345"
+    roles = ["${aws_iam_role.replication.name}"]
+    policy_arn = "${aws_iam_policy.replication.arn}"
+}
+
+resource "aws_s3_bucket" "destination" {
+    provider = "aws.west"
+    bucket   = "tf-test-bucket-destination-12345"
+    region   = "eu-west-1"
+
+    versioning {
+        enabled = true
+    }
+}
+
+resource "aws_s3_bucket" "bucket" {
+    provider = "aws.central"
+    bucket   = "tf-test-bucket-12345"
+    acl      = "private"
+    region   = "eu-central-1"
+
+    versioning {
+        enabled = true
+    }
+
+    replication_configuration {
+        role = "${aws_iam_role.replication.arn}"
+        rules {
+            id     = "foobar"
+            prefix = "foo"
+            status = "Enabled"
+
+            destination {
+                bucket        = "${aws_s3_bucket.destination.arn}"
+                storage_class = "STANDARD"
+            }
+        }
+    }
+}
+
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -174,10 +288,12 @@ The following arguments are supported:
 * `logging` - (Optional) A settings of [bucket logging](https://docs.aws.amazon.com/AmazonS3/latest/UG/ManagingBucketLogging.html) (documented below).
 * `lifecycle_rule` - (Optional) A configuration of [object lifecycle management](http://docs.aws.amazon.com/AmazonS3/latest/dev/object-lifecycle-mgmt.html) (documented below).
 * `acceleration_status` - (Optional) Sets the accelerate configuration of an existing bucket. Can be `Enabled` or `Suspended`.
+* `region` - (Optional) If specified, the AWS region this bucket should reside in. Otherwise, the region used by the callee.
 * `request_payer` - (Optional) Specifies who should bear the cost of Amazon S3 data transfer.
 Can be either `BucketOwner` or `Requester`. By default, the owner of the S3 bucket would incur
 the costs of any data transfer. See [Requester Pays Buckets](http://docs.aws.amazon.com/AmazonS3/latest/dev/RequesterPaysBuckets.html)
 developer guide for more information.
+* `replication_configuration` - (Optional) A configuration of [replication configuration](http://docs.aws.amazon.com/AmazonS3/latest/dev/crr.html) (documented below).
 
 ~> **NOTE:** You cannot use `acceleration_status` in `cn-north-1` or `us-gov-west-1`
 
@@ -200,6 +316,7 @@ The `CORS` object supports the following:
 The `versioning` object supports the following:
 
 * `enabled` - (Optional) Enable versioning. Once you version-enable a bucket, it can never return to an unversioned state. You can, however, suspend versioning on that bucket.
+* `mfa_delete` - (Optional) Enable MFA delete for either `Change the versioning state of your bucket` or `Permanently delete an object version`. Default is `false`.
 
 The `logging` object supports the following:
 
@@ -240,12 +357,29 @@ The `noncurrent_version_transition` object supports the following
 * `days` (Required) Specifies the number of days an object is noncurrent object versions expire.
 * `storage_class` (Required) Specifies the Amazon S3 storage class to which you want the noncurrent versions object to transition. Can be `STANDARD_IA` or `GLACIER`.
 
+The `replication_configuration` object supports the following:
+
+* `role` - (Required) The ARN of the IAM role for Amazon S3 to assume when replicating the objects.
+* `rules` - (Required) Specifies the rules managing the replication (documented below).
+
+The `rules` object supports the following:
+
+* `id` - (Optional) Unique identifier for the rule.
+* `destination` - (Required) Specifies the destination for the rule (documented below).
+* `prefix` - (Required) Object keyname prefix identifying one or more objects to which the rule applies. Set as an empty string to replicate the whole bucket.
+* `status` - (Required) The status of the rule. Either `Enabled` or `Disabled`. The rule is ignored if status is not Enabled.
+
+The `destination` object supports the following:
+
+* `bucket` - (Required) The ARN of the S3 bucket where you want Amazon S3 to store replicas of the object identified by the rule.
+* `storage_class` - (Optional) The class of storage used to store the object.
+
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The name of the bucket.
-* `arn` - The ARN of the bucket. Will be of format `arn:aws:s3:::bucketname`
+* `arn` - The ARN of the bucket. Will be of format `arn:aws:s3:::bucketname`.
 * `hosted_zone_id` - The [Route 53 Hosted Zone ID](https://docs.aws.amazon.com/general/latest/gr/rande.html#s3_website_region_endpoints) for this bucket's region.
 * `region` - The AWS region this bucket resides in.
 * `website_endpoint` - The website endpoint, if the bucket is configured with a website. If not, this will be an empty string.
@@ -253,7 +387,7 @@ The following attributes are exported:
 
 ## Import
 
-S3 bucket can be imported using the `bucket`, e.g. 
+S3 bucket can be imported using the `bucket`, e.g.
 
 ```
 $ terraform import aws_s3_bucket.bucket bucket-name

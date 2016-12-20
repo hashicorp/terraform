@@ -1695,16 +1695,34 @@ func TestStateModuleOrphans_empty(t *testing.T) {
 
 	// just calling this to check for panic
 	state.ModuleOrphans(RootModulePath, nil)
+}
 
-	for _, mod := range state.Modules {
-		if mod == nil {
-			t.Fatal("found nil module")
-		}
-		if mod.Path == nil {
-			t.Fatal("found nil module path")
-		}
-		if len(mod.Path) == 0 {
-			t.Fatal("found empty module path")
-		}
+func TestReadState_prune(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{Path: rootModulePath},
+			nil,
+		},
+	}
+	state.init()
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := &State{
+		Version: state.Version,
+		Lineage: state.Lineage,
+	}
+	expected.init()
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("got:\n%#v", actual)
 	}
 }

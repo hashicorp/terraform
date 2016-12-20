@@ -657,6 +657,29 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_moduleProviderVar(t *testing.T) {
+	m := testModule(t, "plan-module-provider-var")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanModuleProviderVarStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_moduleVar(t *testing.T) {
 	m := testModule(t, "plan-module-var")
 	p := testProvider("aws")
@@ -1314,6 +1337,31 @@ func TestContext2Plan_computedList(t *testing.T) {
 
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanComputedListStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+// GH-8695. This tests that you can index into a computed list on a
+// splatted resource.
+func TestContext2Plan_computedMultiIndex(t *testing.T) {
+	m := testModule(t, "plan-computed-multi-index")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanComputedMultiIndexStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -2316,6 +2364,47 @@ STATE:
 	}
 }
 
+// Test that targeting a module properly plans any inputs that depend
+// on another module.
+func TestContext2Plan_targetedCrossModule(t *testing.T) {
+	m := testModule(t, "plan-targeted-cross-module")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.B"},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+module.A:
+  CREATE: aws_instance.foo
+    foo:  "" => "bar"
+    type: "" => "aws_instance"
+module.B:
+  CREATE: aws_instance.bar
+    foo:  "" => "<computed>"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+	`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Plan_targetedOrphan(t *testing.T) {
 	m := testModule(t, "plan-targeted-orphan")
 	p := testProvider("aws")
@@ -2830,5 +2919,32 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	}
 	if _, ok := moduleDiff.Resources["data.aws_vpc.bar.1"]; !ok {
 		t.Fatalf("missing diff for data.aws_vpc.bar.1")
+	}
+}
+
+// interpolated lists need to be stored in the original order.
+func TestContext2Plan_listOrder(t *testing.T) {
+	m := testModule(t, "plan-list-order")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	rDiffs := plan.Diff.Modules[0].Resources
+	rDiffA := rDiffs["aws_instance.a"]
+	rDiffB := rDiffs["aws_instance.b"]
+
+	if !rDiffA.Equal(rDiffB) {
+		t.Fatal("aws_instance.a and aws_instance.b diffs should match:\n", plan)
 	}
 }

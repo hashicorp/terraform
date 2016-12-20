@@ -19,10 +19,9 @@ func TestAccComputeV2VolumeAttach_importBasic(t *testing.T) {
 			},
 
 			resource.TestStep{
-				ResourceName:            resourceName,
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"region"},
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})

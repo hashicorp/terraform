@@ -62,35 +62,33 @@ type reqGetScreenboards struct {
 }
 
 // GetScreenboard returns a single screenboard created on this account.
-func (self *Client) GetScreenboard(id int) (*Screenboard, error) {
+func (client *Client) GetScreenboard(id int) (*Screenboard, error) {
 	out := &Screenboard{}
-	err := self.doJsonRequest("GET", fmt.Sprintf("/v1/screen/%d", id), nil, out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", fmt.Sprintf("/v1/screen/%d", id), nil, out); err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
 // GetScreenboards returns a list of all screenboards created on this account.
-func (self *Client) GetScreenboards() ([]*ScreenboardLite, error) {
+func (client *Client) GetScreenboards() ([]*ScreenboardLite, error) {
 	var out reqGetScreenboards
-	err := self.doJsonRequest("GET", "/v1/screen", nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", "/v1/screen", nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Screenboards, nil
 }
 
 // DeleteScreenboard deletes a screenboard by the identifier.
-func (self *Client) DeleteScreenboard(id int) error {
-	return self.doJsonRequest("DELETE", fmt.Sprintf("/v1/screen/%d", id), nil, nil)
+func (client *Client) DeleteScreenboard(id int) error {
+	return client.doJsonRequest("DELETE", fmt.Sprintf("/v1/screen/%d", id), nil, nil)
 }
 
 // CreateScreenboard creates a new screenboard when given a Screenboard struct. Note
 // that the Id, Resource, Url and similar elements are not used in creation.
-func (self *Client) CreateScreenboard(board *Screenboard) (*Screenboard, error) {
+func (client *Client) CreateScreenboard(board *Screenboard) (*Screenboard, error) {
 	out := &Screenboard{}
-	if err := self.doJsonRequest("POST", "/v1/screen", board, out); err != nil {
+	if err := client.doJsonRequest("POST", "/v1/screen", board, out); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -98,8 +96,8 @@ func (self *Client) CreateScreenboard(board *Screenboard) (*Screenboard, error) 
 
 // UpdateScreenboard in essence takes a Screenboard struct and persists it back to
 // the server. Use this if you've updated your local and need to push it back.
-func (self *Client) UpdateScreenboard(board *Screenboard) error {
-	return self.doJsonRequest("PUT", fmt.Sprintf("/v1/screen/%d", board.Id), board, nil)
+func (client *Client) UpdateScreenboard(board *Screenboard) error {
+	return client.doJsonRequest("PUT", fmt.Sprintf("/v1/screen/%d", board.Id), board, nil)
 }
 
 type ScreenShareResponse struct {
@@ -108,11 +106,11 @@ type ScreenShareResponse struct {
 }
 
 // ShareScreenboard shares an existing screenboard, it takes and updates ScreenShareResponse
-func (self *Client) ShareScreenboard(id int, response *ScreenShareResponse) error {
-	return self.doJsonRequest("GET", fmt.Sprintf("/v1/screen/share/%d", id), nil, response)
+func (client *Client) ShareScreenboard(id int, response *ScreenShareResponse) error {
+	return client.doJsonRequest("GET", fmt.Sprintf("/v1/screen/share/%d", id), nil, response)
 }
 
 // RevokeScreenboard revokes a currently shared screenboard
-func (self *Client) RevokeScreenboard(id int) error {
-	return self.doJsonRequest("DELETE", fmt.Sprintf("/v1/screen/share/%d", id), nil, nil)
+func (client *Client) RevokeScreenboard(id int) error {
+	return client.doJsonRequest("DELETE", fmt.Sprintf("/v1/screen/share/%d", id), nil, nil)
 }

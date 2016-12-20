@@ -121,6 +121,9 @@ func (c *WAF) CreateByteMatchSetRequest(input *CreateByteMatchSetInput) (req *re
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
 //
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
 //   * StaleDataException
 //   The operation failed because you tried to create, update, or delete an object
 //   by using a change token that has already been used.
@@ -250,6 +253,9 @@ func (c *WAF) CreateIPSetRequest(input *CreateIPSetInput) (req *request.Request,
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
 //
 //   * LimitsExceededException
 //   The operation exceeds a resource limit, for example, the maximum number of
@@ -387,6 +393,9 @@ func (c *WAF) CreateRuleRequest(input *CreateRuleInput) (req *request.Request, o
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
 //
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
 //   * LimitsExceededException
 //   The operation exceeds a resource limit, for example, the maximum number of
 //   WebACL objects that you can create for an AWS account. For more information,
@@ -514,6 +523,9 @@ func (c *WAF) CreateSizeConstraintSetRequest(input *CreateSizeConstraintSetInput
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
 //
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
 //   * LimitsExceededException
 //   The operation exceeds a resource limit, for example, the maximum number of
 //   WebACL objects that you can create for an AWS account. For more information,
@@ -632,6 +644,9 @@ func (c *WAF) CreateSqlInjectionMatchSetRequest(input *CreateSqlInjectionMatchSe
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
 //
 //   * StaleDataException
 //   The operation failed because you tried to create, update, or delete an object
@@ -772,6 +787,9 @@ func (c *WAF) CreateWebACLRequest(input *CreateWebACLInput) (req *request.Reques
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
 //
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
 //   * LimitsExceededException
 //   The operation exceeds a resource limit, for example, the maximum number of
 //   WebACL objects that you can create for an AWS account. For more information,
@@ -891,6 +909,9 @@ func (c *WAF) CreateXssMatchSetRequest(input *CreateXssMatchSetInput) (req *requ
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
 //
 //   * StaleDataException
 //   The operation failed because you tried to create, update, or delete an object
@@ -3053,6 +3074,9 @@ func (c *WAF) UpdateByteMatchSetRequest(input *UpdateByteMatchSetInput) (req *re
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
 //
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
 //   * NonexistentContainerException
 //   The operation failed because you tried to add an object to or delete an object
 //   from another object that doesn't exist. For example:
@@ -3140,15 +3164,25 @@ func (c *WAF) UpdateIPSetRequest(input *UpdateIPSetInput) (req *request.Request,
 //    change an IPSetDescriptor object, you delete the existing object and add
 //    a new one.
 //
-//    * The IP address version, IPv4.
+//    * The IP address version, IPv4 or IPv6.
 //
 //    * The IP address in CIDR notation, for example, 192.0.2.0/24 (for the
 //    range of IP addresses from 192.0.2.0 to 192.0.2.255) or 192.0.2.44/32
 //    (for the individual IP address 192.0.2.44).
 //
-// AWS WAF supports /8, /16, /24, and /32 IP address ranges. For more information
-// about CIDR notation, see the Wikipedia entry Classless Inter-Domain Routing
-// (https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
+// AWS WAF supports /8, /16, /24, and /32 IP address ranges for IPv4, and /24,
+// /32, /48, /56, /64 and /128 for IPv6. For more information about CIDR notation,
+// see the Wikipedia entry Classless Inter-Domain Routing (https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
+//
+// IPv6 addresses can be represented using any of the following formats:
+//
+//    * 1111:0000:0000:0000:0000:0000:0000:0111/128
+//
+//    * 1111:0:0:0:0:0:0:0111/128
+//
+//    * 1111::0111/128
+//
+//    * 1111::111/128
 //
 // You use an IPSet to specify which web requests you want to allow or block
 // based on the IP addresses that the requests originated from. For example,
@@ -3236,6 +3270,9 @@ func (c *WAF) UpdateIPSetRequest(input *UpdateIPSetInput) (req *request.Request,
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
 //
 //   * NonexistentContainerException
 //   The operation failed because you tried to add an object to or delete an object
@@ -3418,6 +3455,9 @@ func (c *WAF) UpdateRuleRequest(input *UpdateRuleInput) (req *request.Request, o
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
 //
 //   * NonexistentContainerException
 //   The operation failed because you tried to add an object to or delete an object
@@ -3607,6 +3647,9 @@ func (c *WAF) UpdateSizeConstraintSetRequest(input *UpdateSizeConstraintSetInput
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
 //
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
 //   * NonexistentContainerException
 //   The operation failed because you tried to add an object to or delete an object
 //   from another object that doesn't exist. For example:
@@ -3783,6 +3826,9 @@ func (c *WAF) UpdateSqlInjectionMatchSetRequest(input *UpdateSqlInjectionMatchSe
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
 //
 //   * NonexistentContainerException
 //   The operation failed because you tried to add an object to or delete an object
@@ -3974,6 +4020,9 @@ func (c *WAF) UpdateWebACLRequest(input *UpdateWebACLInput) (req *request.Reques
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
 //
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
+//
 //   * NonexistentContainerException
 //   The operation failed because you tried to add an object to or delete an object
 //   from another object that doesn't exist. For example:
@@ -4150,6 +4199,9 @@ func (c *WAF) UpdateXssMatchSetRequest(input *UpdateXssMatchSetInput) (req *requ
 //
 //      * You tried to update a ByteMatchSet with a Field of HEADER but no value
 //      for Data.
+//
+//      * Your request references an ARN that is malformed, or corresponds to
+//      a resource with which a web ACL cannot be associated.
 //
 //   * NonexistentContainerException
 //   The operation failed because you tried to add an object to or delete an object
@@ -6418,8 +6470,8 @@ type GetSampledRequestsInput struct {
 
 	// The start date and time and the end date and time of the range for which
 	// you want GetSampledRequests to return a sample of requests. Specify the date
-	// and time in Unix time format (in seconds). You can specify any time range
-	// in the previous three hours.
+	// and time in the following format: "2016-09-27T14:50Z". You can specify any
+	// time range in the previous three hours.
 	//
 	// TimeWindow is a required field
 	TimeWindow *TimeWindow `type:"structure" required:"true"`
@@ -6970,16 +7022,20 @@ func (s *HTTPRequest) SetURI(v string) *HTTPRequest {
 }
 
 // Contains one or more IP addresses or blocks of IP addresses specified in
-// Classless Inter-Domain Routing (CIDR) notation. To specify an individual
-// IP address, you specify the four-part IP address followed by a /32, for example,
-// 192.0.2.0/31. To block a range of IP addresses, you can specify a /24, a
-// /16, or a /8 CIDR. For more information about CIDR notation, perform an Internet
-// search on cidr notation.
+// Classless Inter-Domain Routing (CIDR) notation. AWS WAF supports /8, /16,
+// /24, and /32 IP address ranges for IPv4, and /24, /32, /48, /56, /64 and
+// /128 for IPv6.
+//
+// To specify an individual IP address, you specify the four-part IP address
+// followed by a /32, for example, 192.0.2.0/31. To block a range of IP addresses,
+// you can specify a /128, /64, /56, /48, /32, /24, /16, or /8 CIDR. For more
+// information about CIDR notation, see the Wikipedia entry Classless Inter-Domain
+// Routing (https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
 type IPSet struct {
 	_ struct{} `type:"structure"`
 
-	// The IP address type (IPV4) and the IP address range (in CIDR notation) that
-	// web requests originate from. If the WebACL is associated with a CloudFront
+	// The IP address type (IPV4 or IPV6) and the IP address range (in CIDR notation)
+	// that web requests originate from. If the WebACL is associated with a CloudFront
 	// distribution, this is the value of one of the following fields in CloudFront
 	// access logs:
 	//
@@ -7035,12 +7091,12 @@ func (s *IPSet) SetName(v string) *IPSet {
 	return s
 }
 
-// Specifies the IP address type (IPV4) and the IP address range (in CIDR format)
-// that web requests originate from.
+// Specifies the IP address type (IPV4 or IPV6) and the IP address range (in
+// CIDR format) that web requests originate from.
 type IPSetDescriptor struct {
 	_ struct{} `type:"structure"`
 
-	// Specify IPV4.
+	// Specify IPV4 or IPV6.
 	//
 	// Type is a required field
 	Type *string `type:"string" required:"true" enum:"IPSetDescriptorType"`
@@ -7053,10 +7109,17 @@ type IPSetDescriptor struct {
 	//    * To configure AWS WAF to allow, block, or count requests that originated
 	//    from IP addresses from 192.0.2.0 to 192.0.2.255, specify 192.0.2.0/24.
 	//
-	// AWS WAF supports only /8, /16, /24, and /32 IP addresses.
-	//
 	// For more information about CIDR notation, see the Wikipedia entry Classless
 	// Inter-Domain Routing (https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
+	//
+	// Specify an IPv6 address by using CIDR notation. For example:
+	//
+	//    * To configure AWS WAF to allow, block, or count requests that originated
+	//    from the IP address 1111:0000:0000:0000:0000:0000:0000:0111, specify 1111:0000:0000:0000:0000:0000:0000:0111/128.
+	//
+	//    * To configure AWS WAF to allow, block, or count requests that originated
+	//    from IP addresses 1111:0000:0000:0000:0000:0000:0000:0000 to 1111:0000:0000:0000:ffff:ffff:ffff:ffff,
+	//    specify 1111:0000:0000:0000:0000:0000:0000:0000/64.
 	//
 	// Value is a required field
 	Value *string `type:"string" required:"true"`
@@ -7148,8 +7211,8 @@ type IPSetUpdate struct {
 	// Action is a required field
 	Action *string `type:"string" required:"true" enum:"ChangeAction"`
 
-	// The IP address type (IPV4) and the IP address range (in CIDR notation) that
-	// web requests originate from.
+	// The IP address type (IPV4 or IPV6) and the IP address range (in CIDR notation)
+	// that web requests originate from.
 	//
 	// IPSetDescriptor is a required field
 	IPSetDescriptor *IPSetDescriptor `type:"structure" required:"true"`
@@ -7915,6 +7978,9 @@ func (s *Predicate) SetType(v string) *Predicate {
 type Rule struct {
 	_ struct{} `type:"structure"`
 
+	// A friendly name or description for the metrics for this Rule. The name can
+	// contain only alphanumeric characters (A-Z, a-z, 0-9); the name can't contain
+	// whitespace. You can't change MetricName after you create the Rule.
 	MetricName *string `type:"string"`
 
 	// The friendly name or description for the Rule. You can't change the name
@@ -8165,7 +8231,7 @@ type SizeConstraint struct {
 	// ComparisonOperator is a required field
 	ComparisonOperator *string `type:"string" required:"true" enum:"ComparisonOperator"`
 
-	// Specifies where in a web request to look for TargetString.
+	// Specifies where in a web request to look for the size constraint.
 	//
 	// FieldToMatch is a required field
 	FieldToMatch *FieldToMatch `type:"structure" required:"true"`
@@ -8656,7 +8722,7 @@ func (s *SqlInjectionMatchSetUpdate) SetSqlInjectionMatchTuple(v *SqlInjectionMa
 type SqlInjectionMatchTuple struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies where in a web request to look for TargetString.
+	// Specifies where in a web request to look for snippets of malicious SQL code.
 	//
 	// FieldToMatch is a required field
 	FieldToMatch *FieldToMatch `type:"structure" required:"true"`
@@ -8793,15 +8859,17 @@ type TimeWindow struct {
 	_ struct{} `type:"structure"`
 
 	// The end of the time range from which you want GetSampledRequests to return
-	// a sample of the requests that your AWS resource received. You can specify
-	// any time range in the previous three hours.
+	// a sample of the requests that your AWS resource received. Specify the date
+	// and time in the following format: "2016-09-27T14:50Z". You can specify any
+	// time range in the previous three hours.
 	//
 	// EndTime is a required field
 	EndTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// The beginning of the time range from which you want GetSampledRequests to
-	// return a sample of the requests that your AWS resource received. You can
-	// specify any time range in the previous three hours.
+	// return a sample of the requests that your AWS resource received. Specify
+	// the date and time in the following format: "2016-09-27T14:50Z". You can specify
+	// any time range in the previous three hours.
 	//
 	// StartTime is a required field
 	StartTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
@@ -9432,11 +9500,9 @@ type UpdateWebACLInput struct {
 	// ChangeToken is a required field
 	ChangeToken *string `min:"1" type:"string" required:"true"`
 
-	// For the action that is associated with a rule in a WebACL, specifies the
-	// action that you want AWS WAF to perform when a web request matches all of
-	// the conditions in a rule. For the default action in a WebACL, specifies the
-	// action that you want AWS WAF to take when a web request doesn't match all
-	// of the conditions in any of the rules in a WebACL.
+	// A default action for the web ACL, either ALLOW or BLOCK. AWS WAF performs
+	// the default action if a request doesn't match the criteria in any of the
+	// rules in a web ACL.
 	DefaultAction *WafAction `type:"structure"`
 
 	// An array of updates to make to the WebACL.
@@ -9741,6 +9807,9 @@ type WebACL struct {
 	// DefaultAction is a required field
 	DefaultAction *WafAction `type:"structure" required:"true"`
 
+	// A friendly name or description for the metrics for this WebACL. The name
+	// can contain only alphanumeric characters (A-Z, a-z, 0-9); the name can't
+	// contain whitespace. You can't change MetricName after you create the WebACL.
 	MetricName *string `type:"string"`
 
 	// A friendly name or description of the WebACL. You can't change the name of
@@ -9858,9 +9927,6 @@ type WebACLUpdate struct {
 	// you want to insert or delete, the priority of the Rule in the WebACL, and
 	// the action that you want AWS WAF to take when a web request matches the Rule
 	// (ALLOW, BLOCK, or COUNT).
-	//
-	// To specify whether to insert or delete a Rule, use the Action parameter in
-	// the WebACLUpdate data type.
 	//
 	// ActivatedRule is a required field
 	ActivatedRule *ActivatedRule `type:"structure" required:"true"`
@@ -10077,7 +10143,7 @@ func (s *XssMatchSetUpdate) SetXssMatchTuple(v *XssMatchTuple) *XssMatchSetUpdat
 type XssMatchTuple struct {
 	_ struct{} `type:"structure"`
 
-	// Specifies where in a web request to look for TargetString.
+	// Specifies where in a web request to look for cross-site scripting attacks.
 	//
 	// FieldToMatch is a required field
 	FieldToMatch *FieldToMatch `type:"structure" required:"true"`

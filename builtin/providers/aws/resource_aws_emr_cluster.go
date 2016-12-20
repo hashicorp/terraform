@@ -70,6 +70,18 @@ func resourceAwsEMRCluster() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+			"termination_protection": &schema.Schema{
+				Type:     schema.TypeBool,
+				ForceNew: true,
+				Optional: true,
+				Computed: true,
+			},
+			"keep_job_flow_alive_when_no_steps": &schema.Schema{
+				Type:     schema.TypeBool,
+				ForceNew: true,
+				Optional: true,
+				Computed: true,
+			},
 			"ec2_attributes": &schema.Schema{
 				Type:     schema.TypeList,
 				MaxItems: 1,
@@ -169,13 +181,22 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 
 	applications := d.Get("applications").(*schema.Set).List()
 
+	keepJobFlowAliveWhenNoSteps := true
+	if v, ok := d.GetOk("keep_job_flow_alive_when_no_steps"); ok {
+		keepJobFlowAliveWhenNoSteps = v.(bool)
+	}
+
+	terminationProtection := false
+	if v, ok := d.GetOk("termination_protection"); ok {
+		terminationProtection = v.(bool)
+	}
 	instanceConfig := &emr.JobFlowInstancesConfig{
 		MasterInstanceType: aws.String(masterInstanceType),
 		SlaveInstanceType:  aws.String(coreInstanceType),
 		InstanceCount:      aws.Int64(int64(coreInstanceCount)),
-		// Default values that we can open up in the future
-		KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
-		TerminationProtected:        aws.Bool(false),
+
+		KeepJobFlowAliveWhenNoSteps: aws.Bool(keepJobFlowAliveWhenNoSteps),
+		TerminationProtected:        aws.Bool(terminationProtection),
 	}
 
 	var instanceProfile string
@@ -377,7 +398,7 @@ func resourceAwsEMRClusterUpdate(d *schema.ResourceData, meta interface{}) error
 			InstanceGroups: []*emr.InstanceGroupModifyConfig{
 				{
 					InstanceGroupId: coreGroup.Id,
-					InstanceCount:   aws.Int64(int64(coreInstanceCount)),
+					InstanceCount:   aws.Int64(int64(coreInstanceCount) - 1),
 				},
 			},
 		}

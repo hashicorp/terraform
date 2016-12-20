@@ -108,9 +108,9 @@ func resourceArmTrafficManagerEndpointCreate(d *schema.ResourceData, meta interf
 	resGroup := d.Get("resource_group_name").(string)
 
 	params := trafficmanager.Endpoint{
-		Name:       &name,
-		Type:       &fullEndpointType,
-		Properties: getArmTrafficManagerEndpointProperties(d),
+		Name:               &name,
+		Type:               &fullEndpointType,
+		EndpointProperties: getArmTrafficManagerEndpointProperties(d),
 	}
 
 	_, err := client.CreateOrUpdate(resGroup, profileName, endpointType, name, params)
@@ -162,7 +162,7 @@ func resourceArmTrafficManagerEndpointRead(d *schema.ResourceData, meta interfac
 		return fmt.Errorf("Error making Read request on TrafficManager Endpoint %s: %s", name, err)
 	}
 
-	endpoint := *resp.Properties
+	endpoint := *resp.EndpointProperties
 
 	d.Set("resource_group_name", resGroup)
 	d.Set("name", resp.Name)

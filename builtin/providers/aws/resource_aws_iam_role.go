@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"time"
 
@@ -19,6 +20,9 @@ func resourceAwsIamRole() *schema.Resource {
 		Read:   resourceAwsIamRoleRead,
 		Update: resourceAwsIamRoleUpdate,
 		Delete: resourceAwsIamRoleDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"arn": {
@@ -78,9 +82,10 @@ func resourceAwsIamRole() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"assume_role_policy": {
-				Type:     schema.TypeString,
-				Required: true,
+			"assume_role_policy": &schema.Schema{
+				Type:             schema.TypeString,
+				Required:         true,
+				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
 
 			"create_date": {
@@ -180,6 +185,14 @@ func resourceAwsIamRoleReadResult(d *schema.ResourceData, role *iam.Role) error 
 		return err
 	}
 	if err := d.Set("create_date", role.CreateDate.Format(time.RFC3339)); err != nil {
+		return err
+	}
+
+	assumRolePolicy, err := url.QueryUnescape(*role.AssumeRolePolicyDocument)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("assume_role_policy", assumRolePolicy); err != nil {
 		return err
 	}
 	return nil

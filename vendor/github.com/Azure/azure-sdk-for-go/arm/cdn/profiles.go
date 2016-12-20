@@ -27,8 +27,7 @@ import (
 
 // ProfilesClient is the use these APIs to manage Azure CDN resources through
 // the Azure Resource Manager. You must make sure that requests made to these
-// resources are secure. For more information, see
-// https://msdn.microsoft.com/en-us/library/azure/dn790557.aspx.
+// resources are secure.
 type ProfilesClient struct {
 	ManagementClient
 }
@@ -44,23 +43,31 @@ func NewProfilesClientWithBaseURI(baseURI string, subscriptionID string) Profile
 	return ProfilesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// Create sends the create request. This method may poll for completion.
+// Create creates a new CDN profile with a profile name under the specified
+// subscription and resource group. This method may poll for completion.
 // Polling can be canceled by passing the cancel channel argument. The
 // channel will be used to cancel polling and any outstanding HTTP requests.
 //
-// profileName is name of the CDN profile within the resource group.
-// profileProperties is profile properties needed for creation.
-// resourceGroupName is name of the resource group within the Azure
-// subscription.
-func (client ProfilesClient) Create(profileName string, profileProperties ProfileCreateParameters, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+// resourceGroupName is name of the Resource group within the Azure
+// subscription. profileName is name of the CDN profile which is unique
+// within the resource group. profile is profile properties needed to create
+// a new profile.
+func (client ProfilesClient) Create(resourceGroupName string, profileName string, profile Profile, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
-		{TargetValue: profileProperties,
-			Constraints: []validation.Constraint{{Target: "profileProperties.Location", Name: validation.Null, Rule: true, Chain: nil},
-				{Target: "profileProperties.Sku", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: profile,
+			Constraints: []validation.Constraint{{Target: "profile.Sku", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "profile.ProfileProperties", Name: validation.Null, Rule: false,
+					Chain: []validation.Constraint{{Target: "profile.ProfileProperties.ResourceState", Name: validation.ReadOnly, Rule: true, Chain: nil},
+						{Target: "profile.ProfileProperties.ProvisioningState", Name: validation.ReadOnly, Rule: true, Chain: nil},
+					}}}}}); err != nil {
 		return result, validation.NewErrorWithValidationError(err, "cdn.ProfilesClient", "Create")
 	}
 
-	req, err := client.CreatePreparer(profileName, profileProperties, resourceGroupName, cancel)
+	req, err := client.CreatePreparer(resourceGroupName, profileName, profile, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "Create", nil, "Failure preparing request")
 	}
@@ -80,7 +87,7 @@ func (client ProfilesClient) Create(profileName string, profileProperties Profil
 }
 
 // CreatePreparer prepares the Create request.
-func (client ProfilesClient) CreatePreparer(profileName string, profileProperties ProfileCreateParameters, resourceGroupName string, cancel <-chan struct{}) (*http.Request, error) {
+func (client ProfilesClient) CreatePreparer(resourceGroupName string, profileName string, profile Profile, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"profileName":       autorest.Encode("path", profileName),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -96,7 +103,7 @@ func (client ProfilesClient) CreatePreparer(profileName string, profilePropertie
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Cdn/profiles/{profileName}", pathParameters),
-		autorest.WithJSON(profileProperties),
+		autorest.WithJSON(profile),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
@@ -121,36 +128,46 @@ func (client ProfilesClient) CreateResponder(resp *http.Response) (result autore
 	return
 }
 
-// DeleteIfExists sends the delete if exists request. This method may poll for
+// Delete deletes an existing CDN profile with the specified parameters.
+// Deleting a profile will result in the deletion of all subresources
+// including endpoints, origins and custom domains. This method may poll for
 // completion. Polling can be canceled by passing the cancel channel
 // argument. The channel will be used to cancel polling and any outstanding
 // HTTP requests.
 //
-// profileName is name of the CDN profile within the resource group.
-// resourceGroupName is name of the resource group within the Azure
-// subscription.
-func (client ProfilesClient) DeleteIfExists(profileName string, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.DeleteIfExistsPreparer(profileName, resourceGroupName, cancel)
-	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "DeleteIfExists", nil, "Failure preparing request")
+// resourceGroupName is name of the Resource group within the Azure
+// subscription. profileName is name of the CDN profile which is unique
+// within the resource group.
+func (client ProfilesClient) Delete(resourceGroupName string, profileName string, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.ProfilesClient", "Delete")
 	}
 
-	resp, err := client.DeleteIfExistsSender(req)
+	req, err := client.DeletePreparer(resourceGroupName, profileName, cancel)
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "Delete", nil, "Failure preparing request")
+	}
+
+	resp, err := client.DeleteSender(req)
 	if err != nil {
 		result.Response = resp
-		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "DeleteIfExists", resp, "Failure sending request")
+		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "Delete", resp, "Failure sending request")
 	}
 
-	result, err = client.DeleteIfExistsResponder(resp)
+	result, err = client.DeleteResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.ProfilesClient", "DeleteIfExists", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "cdn.ProfilesClient", "Delete", resp, "Failure responding to request")
 	}
 
 	return
 }
 
-// DeleteIfExistsPreparer prepares the DeleteIfExists request.
-func (client ProfilesClient) DeleteIfExistsPreparer(profileName string, resourceGroupName string, cancel <-chan struct{}) (*http.Request, error) {
+// DeletePreparer prepares the Delete request.
+func (client ProfilesClient) DeletePreparer(resourceGroupName string, profileName string, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"profileName":       autorest.Encode("path", profileName),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -169,17 +186,17 @@ func (client ProfilesClient) DeleteIfExistsPreparer(profileName string, resource
 	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
 
-// DeleteIfExistsSender sends the DeleteIfExists request. The method will close the
+// DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
-func (client ProfilesClient) DeleteIfExistsSender(req *http.Request) (*http.Response, error) {
+func (client ProfilesClient) DeleteSender(req *http.Request) (*http.Response, error) {
 	return autorest.SendWithSender(client,
 		req,
 		azure.DoPollForAsynchronous(client.PollingDelay))
 }
 
-// DeleteIfExistsResponder handles the response to the DeleteIfExists request. The method always
+// DeleteResponder handles the response to the Delete request. The method always
 // closes the http.Response Body.
-func (client ProfilesClient) DeleteIfExistsResponder(resp *http.Response) (result autorest.Response, err error) {
+func (client ProfilesClient) DeleteResponder(resp *http.Response) (result autorest.Response, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -189,13 +206,26 @@ func (client ProfilesClient) DeleteIfExistsResponder(resp *http.Response) (resul
 	return
 }
 
-// GenerateSsoURI sends the generate sso uri request.
+// GenerateSsoURI generates a dynamic SSO URI used to sign in to the CDN
+// supplemental portal. Supplemnetal portal is used to configure advanced
+// feature capabilities that are not yet available in the Azure portal, such
+// as core reports in a standard profile; rules engine, advanced HTTP
+// reports, and real-time stats and alerts in a premium profile. The SSO URI
+// changes approximately every 10 minutes.
 //
-// profileName is name of the CDN profile within the resource group.
-// resourceGroupName is name of the resource group within the Azure
-// subscription.
-func (client ProfilesClient) GenerateSsoURI(profileName string, resourceGroupName string) (result SsoURI, err error) {
-	req, err := client.GenerateSsoURIPreparer(profileName, resourceGroupName)
+// resourceGroupName is name of the Resource group within the Azure
+// subscription. profileName is name of the CDN profile which is unique
+// within the resource group.
+func (client ProfilesClient) GenerateSsoURI(resourceGroupName string, profileName string) (result SsoURI, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.ProfilesClient", "GenerateSsoURI")
+	}
+
+	req, err := client.GenerateSsoURIPreparer(resourceGroupName, profileName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "GenerateSsoURI", nil, "Failure preparing request")
 	}
@@ -215,7 +245,7 @@ func (client ProfilesClient) GenerateSsoURI(profileName string, resourceGroupNam
 }
 
 // GenerateSsoURIPreparer prepares the GenerateSsoURI request.
-func (client ProfilesClient) GenerateSsoURIPreparer(profileName string, resourceGroupName string) (*http.Request, error) {
+func (client ProfilesClient) GenerateSsoURIPreparer(resourceGroupName string, profileName string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"profileName":       autorest.Encode("path", profileName),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -253,13 +283,22 @@ func (client ProfilesClient) GenerateSsoURIResponder(resp *http.Response) (resul
 	return
 }
 
-// Get sends the get request.
+// Get gets a CDN profile with the specified profile name under the specified
+// subscription and resource group.
 //
-// profileName is name of the CDN profile within the resource group.
-// resourceGroupName is name of the resource group within the Azure
-// subscription.
-func (client ProfilesClient) Get(profileName string, resourceGroupName string) (result Profile, err error) {
-	req, err := client.GetPreparer(profileName, resourceGroupName)
+// resourceGroupName is name of the Resource group within the Azure
+// subscription. profileName is name of the CDN profile which is unique
+// within the resource group.
+func (client ProfilesClient) Get(resourceGroupName string, profileName string) (result Profile, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.ProfilesClient", "Get")
+	}
+
+	req, err := client.GetPreparer(resourceGroupName, profileName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "Get", nil, "Failure preparing request")
 	}
@@ -279,7 +318,7 @@ func (client ProfilesClient) Get(profileName string, resourceGroupName string) (
 }
 
 // GetPreparer prepares the Get request.
-func (client ProfilesClient) GetPreparer(profileName string, resourceGroupName string) (*http.Request, error) {
+func (client ProfilesClient) GetPreparer(resourceGroupName string, profileName string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"profileName":       autorest.Encode("path", profileName),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -317,11 +356,101 @@ func (client ProfilesClient) GetResponder(resp *http.Response) (result Profile, 
 	return
 }
 
-// ListByResourceGroup sends the list by resource group request.
+// List lists all the CDN profiles within an Azure subscription.
+func (client ProfilesClient) List() (result ProfileListResult, err error) {
+	req, err := client.ListPreparer()
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "List", nil, "Failure preparing request")
+	}
+
+	resp, err := client.ListSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "List", resp, "Failure sending request")
+	}
+
+	result, err = client.ListResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "cdn.ProfilesClient", "List", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListPreparer prepares the List request.
+func (client ProfilesClient) ListPreparer() (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
+	}
+
+	queryParameters := map[string]interface{}{
+		"api-version": client.APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/Microsoft.Cdn/profiles", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare(&http.Request{})
+}
+
+// ListSender sends the List request. The method will close the
+// http.Response Body if it receives an error.
+func (client ProfilesClient) ListSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req)
+}
+
+// ListResponder handles the response to the List request. The method always
+// closes the http.Response Body.
+func (client ProfilesClient) ListResponder(resp *http.Response) (result ProfileListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// ListNextResults retrieves the next set of results, if any.
+func (client ProfilesClient) ListNextResults(lastResults ProfileListResult) (result ProfileListResult, err error) {
+	req, err := lastResults.ProfileListResultPreparer()
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "List", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+
+	resp, err := client.ListSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "List", resp, "Failure sending next results request")
+	}
+
+	result, err = client.ListResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "cdn.ProfilesClient", "List", resp, "Failure responding to next results request")
+	}
+
+	return
+}
+
+// ListByResourceGroup lists all the CDN profiles within a resource group.
 //
-// resourceGroupName is name of the resource group within the Azure
+// resourceGroupName is name of the Resource group within the Azure
 // subscription.
 func (client ProfilesClient) ListByResourceGroup(resourceGroupName string) (result ProfileListResult, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.ProfilesClient", "ListByResourceGroup")
+	}
+
 	req, err := client.ListByResourceGroupPreparer(resourceGroupName)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "ListByResourceGroup", nil, "Failure preparing request")
@@ -379,74 +508,50 @@ func (client ProfilesClient) ListByResourceGroupResponder(resp *http.Response) (
 	return
 }
 
-// ListBySubscriptionID sends the list by subscription id request.
-func (client ProfilesClient) ListBySubscriptionID() (result ProfileListResult, err error) {
-	req, err := client.ListBySubscriptionIDPreparer()
+// ListByResourceGroupNextResults retrieves the next set of results, if any.
+func (client ProfilesClient) ListByResourceGroupNextResults(lastResults ProfileListResult) (result ProfileListResult, err error) {
+	req, err := lastResults.ProfileListResultPreparer()
 	if err != nil {
-		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "ListBySubscriptionID", nil, "Failure preparing request")
+		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "ListByResourceGroup", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
 	}
 
-	resp, err := client.ListBySubscriptionIDSender(req)
+	resp, err := client.ListByResourceGroupSender(req)
 	if err != nil {
 		result.Response = autorest.Response{Response: resp}
-		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "ListBySubscriptionID", resp, "Failure sending request")
+		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "ListByResourceGroup", resp, "Failure sending next results request")
 	}
 
-	result, err = client.ListBySubscriptionIDResponder(resp)
+	result, err = client.ListByResourceGroupResponder(resp)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "cdn.ProfilesClient", "ListBySubscriptionID", resp, "Failure responding to request")
+		err = autorest.NewErrorWithError(err, "cdn.ProfilesClient", "ListByResourceGroup", resp, "Failure responding to next results request")
 	}
 
 	return
 }
 
-// ListBySubscriptionIDPreparer prepares the ListBySubscriptionID request.
-func (client ProfilesClient) ListBySubscriptionIDPreparer() (*http.Request, error) {
-	pathParameters := map[string]interface{}{
-		"subscriptionId": autorest.Encode("path", client.SubscriptionID),
-	}
-
-	queryParameters := map[string]interface{}{
-		"api-version": client.APIVersion,
-	}
-
-	preparer := autorest.CreatePreparer(
-		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/Microsoft.Cdn/profiles", pathParameters),
-		autorest.WithQueryParameters(queryParameters))
-	return preparer.Prepare(&http.Request{})
-}
-
-// ListBySubscriptionIDSender sends the ListBySubscriptionID request. The method will close the
-// http.Response Body if it receives an error.
-func (client ProfilesClient) ListBySubscriptionIDSender(req *http.Request) (*http.Response, error) {
-	return autorest.SendWithSender(client, req)
-}
-
-// ListBySubscriptionIDResponder handles the response to the ListBySubscriptionID request. The method always
-// closes the http.Response Body.
-func (client ProfilesClient) ListBySubscriptionIDResponder(resp *http.Response) (result ProfileListResult, err error) {
-	err = autorest.Respond(
-		resp,
-		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result),
-		autorest.ByClosing())
-	result.Response = autorest.Response{Response: resp}
-	return
-}
-
-// Update sends the update request. This method may poll for completion.
-// Polling can be canceled by passing the cancel channel argument. The
-// channel will be used to cancel polling and any outstanding HTTP requests.
+// Update updates an existing CDN profile with the specified profile name
+// under the specified subscription and resource group. This method may poll
+// for completion. Polling can be canceled by passing the cancel channel
+// argument. The channel will be used to cancel polling and any outstanding
+// HTTP requests.
 //
-// profileName is name of the CDN profile within the resource group.
-// profileProperties is profile properties needed for update.
-// resourceGroupName is name of the resource group within the Azure
-// subscription.
-func (client ProfilesClient) Update(profileName string, profileProperties ProfileUpdateParameters, resourceGroupName string, cancel <-chan struct{}) (result autorest.Response, err error) {
-	req, err := client.UpdatePreparer(profileName, profileProperties, resourceGroupName, cancel)
+// resourceGroupName is name of the Resource group within the Azure
+// subscription. profileName is name of the CDN profile which is unique
+// within the resource group. profileUpdateParameters is profile properties
+// needed to update an existing profile.
+func (client ProfilesClient) Update(resourceGroupName string, profileName string, profileUpdateParameters ProfileUpdateParameters, cancel <-chan struct{}) (result autorest.Response, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+		return result, validation.NewErrorWithValidationError(err, "cdn.ProfilesClient", "Update")
+	}
+
+	req, err := client.UpdatePreparer(resourceGroupName, profileName, profileUpdateParameters, cancel)
 	if err != nil {
 		return result, autorest.NewErrorWithError(err, "cdn.ProfilesClient", "Update", nil, "Failure preparing request")
 	}
@@ -466,7 +571,7 @@ func (client ProfilesClient) Update(profileName string, profileProperties Profil
 }
 
 // UpdatePreparer prepares the Update request.
-func (client ProfilesClient) UpdatePreparer(profileName string, profileProperties ProfileUpdateParameters, resourceGroupName string, cancel <-chan struct{}) (*http.Request, error) {
+func (client ProfilesClient) UpdatePreparer(resourceGroupName string, profileName string, profileUpdateParameters ProfileUpdateParameters, cancel <-chan struct{}) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"profileName":       autorest.Encode("path", profileName),
 		"resourceGroupName": autorest.Encode("path", resourceGroupName),
@@ -482,7 +587,7 @@ func (client ProfilesClient) UpdatePreparer(profileName string, profilePropertie
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Cdn/profiles/{profileName}", pathParameters),
-		autorest.WithJSON(profileProperties),
+		autorest.WithJSON(profileUpdateParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare(&http.Request{Cancel: cancel})
 }
