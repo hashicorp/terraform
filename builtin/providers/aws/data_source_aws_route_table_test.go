@@ -19,6 +19,7 @@ func TestAccDataSourceAwsRouteTable(t *testing.T) {
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_tag"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_filter"),
 					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_subnet"),
+					testAccDataSourceAwsRouteTableCheck("data.aws_route_table.by_id"),
 				),
 			},
 		},
@@ -129,4 +130,8 @@ data "aws_route_table" "by_subnet" {
   depends_on = ["aws_route_table_association.a"]
 }
 
+data "aws_route_table" "by_id" {
+  id = "${aws_route_table.test.id}"
+  depends_on = ["aws_route_table_association.a"]
+}
 `
