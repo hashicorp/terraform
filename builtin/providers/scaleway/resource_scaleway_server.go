@@ -3,6 +3,7 @@ package scaleway
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/scaleway/scaleway-cli/pkg/api"
@@ -97,6 +98,13 @@ func resourceScalewayServer() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"volumes": &schema.Schema{
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeInt,
+				},
+				Required: true,
+			},
 		},
 	}
 }
@@ -117,7 +125,20 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 	server.CommercialType = d.Get("type").(string)
 
 	if bootscript, ok := d.GetOk("bootscript"); ok {
-		server.Bootscript = String(bootscript.(string))
+		bootscript_id := bootscript.(string)
+
+		bootscripts, err := scaleway.GetBootscripts()
+		if err != nil {
+			return err
+		}
+
+		for _, b := range *bootscripts {
+			if b.Title == bootscript {
+				bootscript_id = b.Identifier
+			}
+		}
+
+		server.Bootscript = &bootscript_id
 	}
 
 	if vs, ok := d.GetOk("volume"); ok {
@@ -148,6 +169,25 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 		}
 	}
 
+	if raw, ok := d.GetOk("volumes"); ok {
+		server.Volumes = make(map[string]string)
+		for i, vol := range raw.([]interface{}) {
+			var volume = api.ScalewayVolumeDefinition{
+				Name:         fmt.Sprintf("%s-%s", server.Name, strconv.Itoa(vol.(int))),
+				Size:         uint64(vol.(int)) * gb,
+				Type:         "l_ssd",
+				Organization: scaleway.Organization,
+			}
+			vol_id, err := scaleway.PostVolume(volume)
+			if err != nil {
+				log.Printf("[ERROR] Got error while creating volume: %q\n", err)
+				return err
+			}
+			server.Volumes[strconv.Itoa(i+1)] = vol_id
+		}
+	}
+
+	log.Printf("creating server: %q\n", server)
 	id, err := scaleway.PostServer(server)
 	if err != nil {
 		return err
