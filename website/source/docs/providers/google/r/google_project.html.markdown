@@ -13,7 +13,7 @@ currently limited to adding or modifying the IAM Policy for the project.
 
 When adding a policy to a project, the policy will be merged with the
 project's existing policy. The policy is always specified in a
-`google_iam_policy` data source and referencd from the project's
+`google_iam_policy` data source and referenced from the project's
 `policy_data` attribute.
 
 ## Example Usage

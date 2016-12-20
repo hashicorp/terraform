@@ -129,9 +129,10 @@ func resourceAwsInstance() *schema.Resource {
 			},
 
 			"network_interface_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"vpc_security_group_ids", "subnet_id", "associate_public_ip_address"},
 			},
 
 			"public_ip": &schema.Schema{

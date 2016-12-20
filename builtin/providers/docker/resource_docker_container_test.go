@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"archive/tar"
+	"bytes"
 	"fmt"
 	"testing"
 
@@ -180,6 +182,55 @@ func TestAccDockerContainer_customized(t *testing.T) {
 	})
 }
 
+func TestAccDockerContainer_upload(t *testing.T) {
+	var c dc.Container
+
+	testCheck := func(*terraform.State) error {
+		client := testAccProvider.Meta().(*dc.Client)
+
+		buf := new(bytes.Buffer)
+		opts := dc.DownloadFromContainerOptions{
+			OutputStream: buf,
+			Path:         "/terraform/test.txt",
+		}
+
+		if err := client.DownloadFromContainer(c.ID, opts); err != nil {
+			return fmt.Errorf("Unable to download a file from container: %s", err)
+		}
+
+		r := bytes.NewReader(buf.Bytes())
+		tr := tar.NewReader(r)
+
+		if _, err := tr.Next(); err != nil {
+			return fmt.Errorf("Unable to read content of tar archive: %s", err)
+		}
+
+		fbuf := new(bytes.Buffer)
+		fbuf.ReadFrom(tr)
+		content := fbuf.String()
+
+		if content != "foo" {
+			return fmt.Errorf("file content is invalid")
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerContainerUploadConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccContainerRunning("docker_container.foo", &c),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
 func testAccContainerRunning(n string, container *dc.Container) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -282,6 +333,22 @@ resource "docker_container" "foo" {
 	host {
 		host = "testhost2"
 		ip = "10.0.2.0"
+	}
+}
+`
+
+const testAccDockerContainerUploadConfig = `
+resource "docker_image" "foo" {
+	name = "nginx:latest"
+}
+
+resource "docker_container" "foo" {
+	name = "tf-test"
+	image = "${docker_image.foo.latest}"
+
+	upload {
+		content = "foo"
+		file = "/terraform/test.txt"
 	}
 }
 `

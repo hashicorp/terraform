@@ -25,8 +25,8 @@ import (
 	"net/http"
 )
 
-// DeploymentsClient is the client for the Deployments methods of the
-// Resources service.
+// DeploymentsClient is the provides operations for working with resources and
+// resource groups.
 type DeploymentsClient struct {
 	ManagementClient
 }
@@ -42,10 +42,14 @@ func NewDeploymentsClientWithBaseURI(baseURI string, subscriptionID string) Depl
 	return DeploymentsClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// Cancel cancel a currently running template deployment.
+// Cancel you can cancel a deployment only if the provisioningState is
+// Accepted or Running. After the deployment is canceled, the
+// provisioningState is set to Canceled. Canceling a template deployment
+// stops the currently running template deployment and leaves the resource
+// group partially deployed.
 //
 // resourceGroupName is the name of the resource group. The name is case
-// insensitive. deploymentName is the name of the deployment.
+// insensitive. deploymentName is the name of the deployment to cancel.
 func (client DeploymentsClient) Cancel(resourceGroupName string, deploymentName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -116,10 +120,11 @@ func (client DeploymentsClient) CancelResponder(resp *http.Response) (result aut
 	return
 }
 
-// CheckExistence checks whether deployment exists.
+// CheckExistence checks whether the deployment exists.
 //
-// resourceGroupName is the name of the resource group to check. The name is
-// case insensitive. deploymentName is the name of the deployment.
+// resourceGroupName is the name of the resource group with the deployment to
+// check. The name is case insensitive. deploymentName is the name of the
+// deployment to check.
 func (client DeploymentsClient) CheckExistence(resourceGroupName string, deploymentName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -190,14 +195,15 @@ func (client DeploymentsClient) CheckExistenceResponder(resp *http.Response) (re
 	return
 }
 
-// CreateOrUpdate create a named template deployment using a template. This
-// method may poll for completion. Polling can be canceled by passing the
-// cancel channel argument. The channel will be used to cancel polling and
-// any outstanding HTTP requests.
+// CreateOrUpdate you can provide the template and parameters directly in the
+// request or link to JSON files. This method may poll for completion.
+// Polling can be canceled by passing the cancel channel argument. The
+// channel will be used to cancel polling and any outstanding HTTP requests.
 //
-// resourceGroupName is the name of the resource group. The name is case
-// insensitive. deploymentName is the name of the deployment. parameters is
-// additional parameters supplied to the operation.
+// resourceGroupName is the name of the resource group to deploy the resources
+// to. The name is case insensitive. The resource group must already exist.
+// deploymentName is the name of the deployment. parameters is additional
+// parameters supplied to the operation.
 func (client DeploymentsClient) CreateOrUpdate(resourceGroupName string, deploymentName string, parameters Deployment, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -279,12 +285,23 @@ func (client DeploymentsClient) CreateOrUpdateResponder(resp *http.Response) (re
 	return
 }
 
-// Delete delete deployment. This method may poll for completion. Polling can
+// Delete a template deployment that is currently running cannot be deleted.
+// Deleting a template deployment removes the associated deployment
+// operations. Deleting a template deployment does not affect the state of
+// the resource group. This is an asynchronous operation that returns a
+// status of 202 until the template deployment is successfully deleted. The
+// Location response header contains the URI that is used to obtain the
+// status of the process. While the process is running, a call to the URI in
+// the Location header returns a status of 202. When the process finishes,
+// the URI in the Location header returns a status of 204 on success. If the
+// asynchronous request failed, the URI in the Location header returns an
+// error-level status code. This method may poll for completion. Polling can
 // be canceled by passing the cancel channel argument. The channel will be
 // used to cancel polling and any outstanding HTTP requests.
 //
-// resourceGroupName is the name of the resource group. The name is case
-// insensitive. deploymentName is the name of the deployment to be deleted.
+// resourceGroupName is the name of the resource group with the deployment to
+// delete. The name is case insensitive. deploymentName is the name of the
+// deployment to delete.
 func (client DeploymentsClient) Delete(resourceGroupName string, deploymentName string, cancel <-chan struct{}) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -357,10 +374,11 @@ func (client DeploymentsClient) DeleteResponder(resp *http.Response) (result aut
 	return
 }
 
-// ExportTemplate exports a deployment template.
+// ExportTemplate exports the template used for specified deployment.
 //
 // resourceGroupName is the name of the resource group. The name is case
-// insensitive. deploymentName is the name of the deployment.
+// insensitive. deploymentName is the name of the deployment from which to
+// get the template.
 func (client DeploymentsClient) ExportTemplate(resourceGroupName string, deploymentName string) (result DeploymentExportResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -432,10 +450,10 @@ func (client DeploymentsClient) ExportTemplateResponder(resp *http.Response) (re
 	return
 }
 
-// Get get a deployment.
+// Get gets a deployment.
 //
-// resourceGroupName is the name of the resource group to get. The name is
-// case insensitive. deploymentName is the name of the deployment.
+// resourceGroupName is the name of the resource group. The name is case
+// insensitive. deploymentName is the name of the deployment to get.
 func (client DeploymentsClient) Get(resourceGroupName string, deploymentName string) (result DeploymentExtended, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -507,11 +525,13 @@ func (client DeploymentsClient) GetResponder(resp *http.Response) (result Deploy
 	return
 }
 
-// List get a list of deployments.
+// List get all the deployments for a resource group.
 //
-// resourceGroupName is the name of the resource group to filter by. The name
-// is case insensitive. filter is the filter to apply on the operation. top
-// is query parameters. If null is passed returns all deployments.
+// resourceGroupName is the name of the resource group with the deployments to
+// get. The name is case insensitive. filter is the filter to apply on the
+// operation. For example, you can use $filter=provisioningState eq
+// '{state}'. top is the number of results to get. If null is passed, returns
+// all deployments.
 func (client DeploymentsClient) List(resourceGroupName string, filter string, top *int32) (result DeploymentListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -608,11 +628,12 @@ func (client DeploymentsClient) ListNextResults(lastResults DeploymentListResult
 	return
 }
 
-// Validate validate a deployment template.
+// Validate validates whether the specified template is syntactically correct
+// and will be accepted by Azure Resource Manager..
 //
-// resourceGroupName is the name of the resource group. The name is case
-// insensitive. deploymentName is the name of the deployment. parameters is
-// deployment to validate.
+// resourceGroupName is the name of the resource group the template will be
+// deployed to. The name is case insensitive. deploymentName is the name of
+// the deployment. parameters is parameters to validate.
 func (client DeploymentsClient) Validate(resourceGroupName string, deploymentName string, parameters Deployment) (result DeploymentValidateResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,

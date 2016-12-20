@@ -24,8 +24,8 @@ import (
 	"net/http"
 )
 
-// ProvidersClient is the client for the Providers methods of the Resources
-// service.
+// ProvidersClient is the provides operations for working with resources and
+// resource groups.
 type ProvidersClient struct {
 	ManagementClient
 }
@@ -41,11 +41,11 @@ func NewProvidersClientWithBaseURI(baseURI string, subscriptionID string) Provid
 	return ProvidersClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// Get gets a resource provider.
+// Get gets the specified resource provider.
 //
-// resourceProviderNamespace is namespace of the resource provider. expand is
-// the $expand query parameter. e.g. To include property aliases in response,
-// use $expand=resourceTypes/aliases.
+// resourceProviderNamespace is the namespace of the resource provider. expand
+// is the $expand query parameter. For example, to include property aliases
+// in response, use $expand=resourceTypes/aliases.
 func (client ProvidersClient) Get(resourceProviderNamespace string, expand string) (result Provider, err error) {
 	req, err := client.GetPreparer(resourceProviderNamespace, expand)
 	if err != nil {
@@ -107,11 +107,13 @@ func (client ProvidersClient) GetResponder(resp *http.Response) (result Provider
 	return
 }
 
-// List gets a list of resource providers.
+// List gets all resource providers for a subscription.
 //
-// top is query parameters. If null is passed returns all deployments. expand
-// is the $expand query parameter. e.g. To include property aliases in
-// response, use $expand=resourceTypes/aliases.
+// top is the number of results to return. If null is passed returns all
+// deployments. expand is the properties to include in the results. For
+// example, use &$expand=metadata in the query string to retrieve resource
+// provider metadata. To include property aliases in response, use
+// $expand=resourceTypes/aliases.
 func (client ProvidersClient) List(top *int32, expand string) (result ProviderListResult, err error) {
 	req, err := client.ListPreparer(top, expand)
 	if err != nil {
@@ -199,9 +201,10 @@ func (client ProvidersClient) ListNextResults(lastResults ProviderListResult) (r
 	return
 }
 
-// Register registers provider to be used with a subscription.
+// Register registers a subscription with a resource provider.
 //
-// resourceProviderNamespace is namespace of the resource provider.
+// resourceProviderNamespace is the namespace of the resource provider to
+// register.
 func (client ProvidersClient) Register(resourceProviderNamespace string) (result Provider, err error) {
 	req, err := client.RegisterPreparer(resourceProviderNamespace)
 	if err != nil {
@@ -260,9 +263,10 @@ func (client ProvidersClient) RegisterResponder(resp *http.Response) (result Pro
 	return
 }
 
-// Unregister unregisters provider from a subscription.
+// Unregister unregisters a subscription from a resource provider.
 //
-// resourceProviderNamespace is namespace of the resource provider.
+// resourceProviderNamespace is the namespace of the resource provider to
+// unregister.
 func (client ProvidersClient) Unregister(resourceProviderNamespace string) (result Provider, err error) {
 	req, err := client.UnregisterPreparer(resourceProviderNamespace)
 	if err != nil {

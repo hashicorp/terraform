@@ -115,6 +115,26 @@ func TestAccComputeInstanceTemplate_subnet_custom(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstanceTemplate_metadata_startup_script(t *testing.T) {
+	var instanceTemplate compute.InstanceTemplate
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstanceTemplate_startup_script,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceTemplateExists(
+						"google_compute_instance_template.foobar", &instanceTemplate),
+					testAccCheckComputeInstanceTemplateStartupScript(&instanceTemplate, "echo 'Hello'"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeInstanceTemplateDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -265,6 +285,31 @@ func testAccCheckComputeInstanceTemplateTag(instanceTemplate *compute.InstanceTe
 		}
 
 		return fmt.Errorf("tag not found: %s", n)
+	}
+}
+
+func testAccCheckComputeInstanceTemplateStartupScript(instanceTemplate *compute.InstanceTemplate, n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if instanceTemplate.Properties.Metadata == nil && n == "" {
+			return nil
+		} else if instanceTemplate.Properties.Metadata == nil && n != "" {
+			return fmt.Errorf("Expected metadata.startup-script to be '%s', metadata wasn't set at all", n)
+		}
+		for _, item := range instanceTemplate.Properties.Metadata.Items {
+			if item.Key != "startup-script" {
+				continue
+			}
+			if item.Value != nil && *item.Value == n {
+				return nil
+			} else if item.Value == nil && n == "" {
+				return nil
+			} else if item.Value == nil && n != "" {
+				return fmt.Errorf("Expected metadata.startup-script to be '%s', wasn't set", n)
+			} else if *item.Value != n {
+				return fmt.Errorf("Expected metadata.startup-script to be '%s', got '%s'", n, *item.Value)
+			}
+		}
+		return fmt.Errorf("This should never be reached.")
 	}
 }
 
@@ -421,3 +466,26 @@ resource "google_compute_instance_template" "foobar" {
 		foo = "bar"
 	}
 }`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+
+var testAccComputeInstanceTemplate_startup_script = fmt.Sprintf(`
+resource "google_compute_instance_template" "foobar" {
+	name = "instance-test-%s"
+	machine_type = "n1-standard-1"
+
+	disk {
+		source_image = "debian-8-jessie-v20160803"
+		auto_delete = true
+		disk_size_gb = 10
+		boot = true
+	}
+
+	metadata {
+		foo = "bar"
+	}
+
+	network_interface{
+		network = "default"
+	}
+	
+	metadata_startup_script = "echo 'Hello'"
+}`, acctest.RandString(10))

@@ -1,11 +1,40 @@
 ## 0.8.0-rc3 (unreleased)
 
+FEATURES:
+
+ * **New Provider:** `external` [GH-8768]
+ * **New Provider:** `Rancher` [GH-9173]
+ * **New Data Source:** `aws_iam_server_certificate` [GH-10558]
+ * **New Data Source:** `pagerduty_user` [GH-10541]
+ * **New Resource:** `aws_opsworks_rds_db_instance` [GH-10294]
+ * **New Resource:** `aws_vpc_endpoint_route_table_association` [GH-10137]
+
+
 IMPROVEMENTS:
+
+ * provider/aws: Add support for termination protection and autotermination to EMR [GH-10252]
+ * provider/azurerm: make DiskSizeGB optional for azurerm_virtual_machine data_disks [GH-10232]
+ * provider/azurerm support `license_type` virtual_machine property [GH-10539]
+ * provider/datadog: Make monitor thresholds optional. [GH-10526]
+ * provider/datadog: Improve datadog timeboard support [GH-10027]
+ * provider/docker: Upload files into container before first start [GH-9520]
+ * provider/fastly: add ssl_hostname option [GH-9629]
  * provider/openstack: Detect Region for Importing Resources [GH-10509]
+ * provider/google: Instances and templates now both support `metadata_startup_script` and `metadata.startup-script`. [GH-10537]
 
 BUG FIXES:
 
+  * core: Fix a diff mismatch error that could happen when a resource depends on a count resource being decreased. [GH-10522]
   * core: On Unix machines if `getent` is not available, fall back to shell to find home dir. [GH-10515]
+  * communicator/ssh: Avoid race that could cause parallel remote execs on the same host to overwrite each other [GH-10549]
+  * provider/aws: cloudfront distribution 404 should mark as gone [GH-10281]
+  * provider/aws: Assign correct number of core instances (n-1) to aws-emr-cluster on update [GH-10529]
+  * provider/aws: Allow update of Service role on a CodeDeploy deployment group [GH-9866]
+  * provider/aws: fixed the api_gw_domain_name replace operation [GH-10179]
+  * provider/aws: Forces the API GW domain name certificates to recreate the resource [GH-10588]
+  * provider/azurem: azurerm_availability_set not is ForceNew for UpdateDomain and FaultDomain [GH-10545]
+  * provider/datadog: Refactor monitor tags to a list instead of a map. [GH-10570]
+  * provider/openstack: Fix Ordering of Port Allowed Address Pairs [GH-10250]
 
 ## 0.8.0-rc2 (December 2, 2016)
 
@@ -169,6 +198,7 @@ BUG FIXES:
 
 BUG FIXES:
  * provider/azurerm: set ForceNew for storage image and OS disk of virtual_machine ([#10340](https://github.com/hashicorp/terraform/issues/10340))
+ * provider/aws: Fix issue removing Lambda environment variables [GH-10492]
 
 
 
@@ -2649,4 +2679,4 @@ IMPROVEMENTS:
   * providers/google: Add `size` option to disk blocks for instances. ([#1284](https://github.com/hashicorp/terraform/issues/1284))
   * providers/aws: Improve support for tagging resources.
   * providers/aws: Add a short syntax for Route 53 Record names, e.g.
-      `www` 
+      `www`

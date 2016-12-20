@@ -254,7 +254,7 @@ func (client JobsClient) GetResponder(resp *http.Response) (result JobDefinition
 // List lists all jobs under the specified job collection.
 //
 // resourceGroupName is the resource group name. jobCollectionName is the job
-// collection name. top is the number of jobs to request, in the of range
+// collection name. top is the number of jobs to request, in the of range of
 // [1..100]. skip is the (0-based) index of the job history list from which
 // to begin requesting entries. filter is the filter to apply on the job
 // state.
@@ -363,8 +363,8 @@ func (client JobsClient) ListNextResults(lastResults JobListResult) (result JobL
 //
 // resourceGroupName is the resource group name. jobCollectionName is the job
 // collection name. jobName is the job name. top is the number of job history
-// to request, in the of range [1..100]. skip is the (0-based) index of the
-// job history list from which to begin requesting entries. filter is the
+// to request, in the of range of [1..100]. skip is the (0-based) index of
+// the job history list from which to begin requesting entries. filter is the
 // filter to apply on the job state.
 func (client JobsClient) ListJobHistory(resourceGroupName string, jobCollectionName string, jobName string, top *int32, skip *int32, filter string) (result JobHistoryListResult, err error) {
 	if err := validation.Validate([]validation.Validation{
