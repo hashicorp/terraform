@@ -10,9 +10,6 @@ description: |-
 
 A [service integration](https://v2.developer.pagerduty.com/v2/page/api-reference#!/Services/post_services_id_integrations) is an integration that belongs to a service.
 
-`Note`: A service integration `cannot` be deleted via Terraform nor the PagerDuty API so if you remove a service integration, be sure to remove it from the PagerDuty Web UI afterwards. However, if you delete the `service` attached to the `integration`, the integration will be removed.
-
-
 ## Example Usage
 
 ```
