@@ -77,7 +77,7 @@ The following arguments are supported:
 
 * `agent_pool_profile` - (Required) One or more Agent Pool Profile's block as documented below.
 
-* `service_principal` - (Required) A Service Principal block as documented below.
+* `service_principal` - (Optional for 'DCOS' / 'Swarm' - Required for 'Kubernetes') A Service Principal block as documented below.
 
 * `diagnostics_profile` - (Required) A VM Diagnostics Profile block as documented below.
 
@@ -86,7 +86,7 @@ The following arguments are supported:
 
 `master_profile` supports the following:
 
-* `count` - (Required) The number of Master Nodes to create for this Container Service.
+* `count` - (Required) Number of masters (VMs) in the container service cluster. Allowed values are 1, 3, and 5. The default value is 1.
 * `dns_prefix` - (Required) The DNS Prefix to use for the Container Service master nodes.
 
 `linux_profile` supports the following:
@@ -96,25 +96,24 @@ The following arguments are supported:
 
 `ssh_key` supports the following:
 
-* `key_data` - (Required) The Public SSH Key used to access the cluster.
+* `key_data` - (Required) The Public SSH Key used to access the cluster. The certificate must be in PEM format with or without headers.
 
 `agent_pool_profile` supports the following:
 
-* `name` - (Required) The Name for this Agent Pool.
-* `count` - (Required) The Number of agents to create for this Agent Pool.
+* `name` - (Required) Unique name of the agent pool profile in the context of the subscription and resource group.
+* `count` - (Required) Number of agents (VMs) to host docker containers. Allowed values must be in the range of 1 to 100 (inclusive). The default value is 1.
 * `dns_prefix` - (Required) The DNS Prefix given to Agents in this Agent Pool.
-* `fqdn` - (Required) The FQDN assigned to the Agent Pool. <-- TODO: isn't that computed?
 * `vm_size` - (Required) The VM Size of each of the Agent Pool VM's (e.g. Standard_F1 / Standard_D2v2).
 
 `service_principal` supports the following:
 
-* `client_id` - (Required) An Azure Resource Manager Service Principle Client ID.
-* `client_secret` - (Required) An Azure Resource Manager Service Principle Client Secret.
+* `client_id` - (Required) The ID for the Service Principal.
+* `client_secret` - (Required) The secret password associated with the service principal.
 
 `diagnostics_profile` supports the following:
 
 * `enabled` - (Required) Should VM Diagnostics be enabled for the Container Service VM's
-* `storage_uri` - (Optional) The URI for the Storage Account to store Diagnostic Data.
+* `storage_uri` - (Computed) The URI for the Storage Account to store Diagnostic Data.
 
 ## Attributes Reference
 
