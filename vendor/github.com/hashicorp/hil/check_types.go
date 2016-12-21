@@ -119,7 +119,9 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	switch tc.n.Op {
 	case ast.ArithmeticOpLogicalAnd, ast.ArithmeticOpLogicalOr:
 		return tc.checkLogical(v, exprs)
-	case ast.ArithmeticOpEqual, ast.ArithmeticOpNotEqual, ast.ArithmeticOpLessThan, ast.ArithmeticOpGreaterThan, ast.ArithmeticOpGreaterThanOrEqual, ast.ArithmeticOpLessThanOrEqual:
+	case ast.ArithmeticOpEqual, ast.ArithmeticOpNotEqual,
+		ast.ArithmeticOpLessThan, ast.ArithmeticOpGreaterThan,
+		ast.ArithmeticOpGreaterThanOrEqual, ast.ArithmeticOpLessThanOrEqual:
 		return tc.checkComparison(v, exprs)
 	default:
 		return tc.checkNumeric(v, exprs)
@@ -135,20 +137,11 @@ func (tc *typeCheckArithmetic) checkNumeric(v *TypeCheck, exprs []ast.Type) (ast
 	mathFunc := "__builtin_IntMath"
 	mathType := ast.TypeInt
 	for _, v := range exprs {
-		exit := true
-		switch v {
-		case ast.TypeInt:
-			mathFunc = "__builtin_IntMath"
-			mathType = v
-		case ast.TypeFloat:
+		// We assume int math but if we find ANY float, the entire
+		// expression turns into floating point math.
+		if v == ast.TypeFloat {
 			mathFunc = "__builtin_FloatMath"
 			mathType = v
-		default:
-			exit = false
-		}
-
-		// We found the type, so leave
-		if exit {
 			break
 		}
 	}
@@ -193,7 +186,6 @@ func (tc *typeCheckArithmetic) checkNumeric(v *TypeCheck, exprs []ast.Type) (ast
 }
 
 func (tc *typeCheckArithmetic) checkComparison(v *TypeCheck, exprs []ast.Type) (ast.Node, error) {
-
 	if len(exprs) != 2 {
 		// This should never happen, because the parser never produces
 		// nodes that violate this.
@@ -218,6 +210,22 @@ func (tc *typeCheckArithmetic) checkComparison(v *TypeCheck, exprs []ast.Type) (
 		return nil, fmt.Errorf(
 			"comparison operators apply only to bool, float, int, and string",
 		)
+	}
+
+	// For non-equality comparisons, we will do implicit conversions to
+	// integer types if possible. In this case, we need to go through and
+	// determine the type of comparison we're doing to enable the implicit
+	// conversion.
+	if tc.n.Op != ast.ArithmeticOpEqual && tc.n.Op != ast.ArithmeticOpNotEqual {
+		compareFunc = "__builtin_IntCompare"
+		compareType = ast.TypeInt
+		for _, expr := range exprs {
+			if expr == ast.TypeFloat {
+				compareFunc = "__builtin_FloatCompare"
+				compareType = ast.TypeFloat
+				break
+			}
+		}
 	}
 
 	// Verify (and possibly, convert) the args
