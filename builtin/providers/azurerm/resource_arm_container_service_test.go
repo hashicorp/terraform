@@ -35,9 +35,9 @@ func TestAccAzureRMContainerService_masterProfileCountValidation(t *testing.T) {
 		Value    int
 		ErrCount int
 	}{
-		{Value: 0, ErrCount: 0},
-		{Value: 1, ErrCount: 1},
-		{Value: 2, ErrCount: 0},
+		{Value: 0, ErrCount: 1},
+		{Value: 1, ErrCount: 0},
+		{Value: 2, ErrCount: 1},
 		{Value: 3, ErrCount: 0},
 		{Value: 4, ErrCount: 1},
 		{Value: 5, ErrCount: 0},
@@ -78,25 +78,6 @@ func TestAccAzureRMContainerService_agentProfilePoolCountValidation(t *testing.T
 func TestAccAzureRMContainerService_dcosBasic(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMContainerService_dcosBasic, ri, ri, ri, ri, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMContainerServiceDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMContainerServiceExists("azurerm_container_service.test"),
-				),
-			},
-		},
-	})
-}
-
-func TestAccAzureRMContainerService_dcosComplete(t *testing.T) {
-	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMContainerService_dcosComplete, ri, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -170,25 +151,6 @@ func TestAccAzureRMContainerService_swarmBasic(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMContainerService_swarmComplete(t *testing.T) {
-	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMContainerService_swarmComplete, ri, ri, ri, ri, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMContainerServiceDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMContainerServiceExists("azurerm_container_service.test"),
-				),
-			},
-		},
-	})
-}
-
 var testAccAzureRMContainerService_dcosBasic = `
 resource "azurerm_resource_group" "test" {
   name     = "acctestRG-%d"
@@ -224,49 +186,6 @@ resource "azurerm_container_service" "test" {
 
   diagnostics_profile {
     enabled = false
-  }
-}
-`
-
-var testAccAzureRMContainerService_dcosComplete = `
-resource "azurerm_resource_group" "test" {
-  name     = "acctestRG-%d"
-  location = "West US"
-}
-
-resource "azurerm_container_service" "test" {
-  name                   = "acctestcontservice%d"
-  location               = "${azurerm_resource_group.test.location}"
-  resource_group_name    = "${azurerm_resource_group.test.name}"
-  orchestration_platform = "DCOS"
-
-  master_profile {
-    count      = 1
-    dns_prefix = "acctestmaster%d"
-  }
-
-  linux_profile {
-    admin_username = "acctestuser%d"
-
-    ssh_key {
-      key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqaZoyiz1qbdOQ8xEf6uEu1cCwYowo5FHtsBhqLoDnnp7KUTEBN+L2NxRIfQ781rxV6Iq5jSav6b2Q8z5KiseOlvKA/RF2wqU0UPYqQviQhLmW6THTpmrv/YkUCuzxDpsH7DUDhZcwySLKVVe0Qm3+5N2Ta6UYH3lsDf9R9wTP2K/+vAnflKebuypNlmocIvakFWoZda18FOmsOoIVXQ8HWFNCuw9ZCunMSN62QGamCe3dL5cXlkgHYv7ekJE15IA9aOJcM7e90oeTqo+7HTcWfdu0qQqPWY5ujyMw/llas8tsXY85LFqRnr3gJ02bAscjc477+X+j/gkpFoN1QEmt terraform@demo.tld"
-    }
-  }
-
-  agent_pool_profile {
-    name       = "default"
-    count      = 1
-    dns_prefix = "acctestagent%d"
-    fqdn       = "you.demo.com"
-    vm_size    = "Standard_A0"
-  }
-
-  diagnostics_profile {
-    enabled = false
-  }
-
-  tags {
-    you = "me"
   }
 }
 `
@@ -398,49 +317,6 @@ resource "azurerm_container_service" "test" {
 
   diagnostics_profile {
     enabled = false
-  }
-}
-`
-
-var testAccAzureRMContainerService_swarmComplete = `
-resource "azurerm_resource_group" "test" {
-  name     = "acctestRG-%d"
-  location = "West US"
-}
-
-resource "azurerm_container_service" "test" {
-  name                   = "acctestcontservice%d"
-  location               = "${azurerm_resource_group.test.location}"
-  resource_group_name    = "${azurerm_resource_group.test.name}"
-  orchestration_platform = "Swarm"
-
-  master_profile {
-    count      = 1
-    dns_prefix = "acctestmaster%d"
-  }
-
-  linux_profile {
-    admin_username = "acctestuser%d"
-
-    ssh_key {
-      key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCqaZoyiz1qbdOQ8xEf6uEu1cCwYowo5FHtsBhqLoDnnp7KUTEBN+L2NxRIfQ781rxV6Iq5jSav6b2Q8z5KiseOlvKA/RF2wqU0UPYqQviQhLmW6THTpmrv/YkUCuzxDpsH7DUDhZcwySLKVVe0Qm3+5N2Ta6UYH3lsDf9R9wTP2K/+vAnflKebuypNlmocIvakFWoZda18FOmsOoIVXQ8HWFNCuw9ZCunMSN62QGamCe3dL5cXlkgHYv7ekJE15IA9aOJcM7e90oeTqo+7HTcWfdu0qQqPWY5ujyMw/llas8tsXY85LFqRnr3gJ02bAscjc477+X+j/gkpFoN1QEmt terraform@demo.tld"
-    }
-  }
-
-  agent_pool_profile {
-    name       = "default"
-    count      = 1
-    dns_prefix = "acctestagent%d"
-    fqdn       = "you.demo.com"
-    vm_size    = "Standard_A0"
-  }
-
-  diagnostics_profile {
-    enabled = false
-  }
-
-  tags {
-    you = "me"
   }
 }
 `

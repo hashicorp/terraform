@@ -58,7 +58,7 @@ func resourceArmContainerService() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"count": {
 							Type:         schema.TypeInt,
-							Required:     true,
+							Optional:     true,
 							Default:      1,
 							ValidateFunc: validateArmContainerServiceMasterProfileCount,
 						},
@@ -116,7 +116,7 @@ func resourceArmContainerService() *schema.Resource {
 
 						"count": {
 							Type:         schema.TypeInt,
-							Required:     true,
+							Optional:     true,
 							Default:      1,
 							ValidateFunc: validateArmContainerServiceAgentPoolProfileCount,
 						},
@@ -174,6 +174,7 @@ func resourceArmContainerService() *schema.Resource {
 						"storage_uri": {
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 					},
 				},
