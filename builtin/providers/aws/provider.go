@@ -171,6 +171,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_security_group":           dataSourceAwsSecurityGroup(),
 			"aws_vpc":                      dataSourceAwsVpc(),
 			"aws_vpc_endpoint_service":     dataSourceAwsVpcEndpointService(),
+			"aws_vpc_peering_connection":   dataSourceAwsVpcPeeringConnection(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -450,7 +451,7 @@ func init() {
 			" no session name is passed to the AssumeRole call.",
 
 		"assume_role_external_id": "The external ID to use when assuming the role. If omitted," +
-			" no external ID is passed to the AssumeRole call.",
+			" no external ID is passed to t he AssumeRole call.",
 	}
 }
 
