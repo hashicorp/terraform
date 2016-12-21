@@ -8,7 +8,7 @@ description: |-
 
 # scaleway\_server
 
-Provides ARM servers. This allows servers to be created, updated and deleted.
+Provides servers. This allows servers to be created, updated and deleted.
 For additional details please refer to [API documentation](https://developer.scaleway.com/#servers).
 
 ## Example Usage
@@ -30,9 +30,9 @@ resource "scaleway_server" "test" {
 
 The following arguments are supported:
 
-* `name` - (Required) name of ARM server
-* `image` - (Required) base image of ARM server
-* `type` - (Required) type of ARM server
+* `name` - (Required) name of server
+* `image` - (Required) base image of server
+* `type` - (Required) type of server
 * `bootscript` - (Optional) server bootscript
 * `tags` - (Optional) list of tags for server
 * `enable_ipv6` - (Optional) enable ipv6
