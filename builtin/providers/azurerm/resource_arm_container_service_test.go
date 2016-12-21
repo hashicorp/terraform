@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAzureRMContainerServiceOrchestrationPlatform_validation(t *testing.T) {
+func TestAccAzureRMContainerService_orchestrationPlatformValidation(t *testing.T) {
 	cases := []struct {
 		Value    string
 		ErrCount int
@@ -26,6 +26,51 @@ func TestAccAzureRMContainerServiceOrchestrationPlatform_validation(t *testing.T
 
 		if len(errors) != tc.ErrCount {
 			t.Fatalf("Expected the Azure RM Container Service Orchestration Platform to trigger a validation error")
+		}
+	}
+}
+
+func TestAccAzureRMContainerService_masterProfileCountValidation(t *testing.T) {
+	cases := []struct {
+		Value    int
+		ErrCount int
+	}{
+		{Value: 0, ErrCount: 0},
+		{Value: 1, ErrCount: 1},
+		{Value: 2, ErrCount: 0},
+		{Value: 3, ErrCount: 0},
+		{Value: 4, ErrCount: 1},
+		{Value: 5, ErrCount: 0},
+		{Value: 6, ErrCount: 1},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateArmContainerServiceMasterProfileCount(tc.Value, "azurerm_container_service")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the Azure RM Container Service Master Profile Count to trigger a validation error")
+		}
+	}
+}
+
+func TestAccAzureRMContainerService_agentProfilePoolCountValidation(t *testing.T) {
+	cases := []struct {
+		Value    int
+		ErrCount int
+	}{
+		{Value: 0, ErrCount: 1},
+		{Value: 1, ErrCount: 0},
+		{Value: 2, ErrCount: 0},
+		{Value: 99, ErrCount: 0},
+		{Value: 100, ErrCount: 0},
+		{Value: 101, ErrCount: 1},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateArmContainerServiceAgentPoolProfileCount(tc.Value, "azurerm_container_service")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the Azure RM Container Service Agent Pool Profile Count to trigger a validation error")
 		}
 	}
 }
