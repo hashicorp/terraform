@@ -65,15 +65,11 @@ resource "google_compute_instance" "ilb-instance-1" {
 		}
 	}
 
-	metadata_startup_script = <<EOF
-#! /bin/bash
-apt-get update
-apt-get install apache2 -y
-a2ensite default-ssl
-a2enmod ssl
-service apache2 restart
-echo '<!doctype html><html><body><h1>ilb-instance-1</h1></body></html>' | tee /var/www/html/index.html
-EOF
+	service_account {
+    	scopes = ["compute-rw"]
+  	}
+
+	metadata_startup_script = "${file("startup.sh")}"
 }
 
 resource "google_compute_instance" "ilb-instance-2" {
@@ -94,15 +90,11 @@ resource "google_compute_instance" "ilb-instance-2" {
 		}
 	}
 
-	metadata_startup_script = <<EOF
-#! /bin/bash
-apt-get update
-apt-get install apache2 -y
-a2ensite default-ssl
-a2enmod ssl
-service apache2 restart
-echo '<!doctype html><html><body><h1>ilb-instance-2</h1></body></html>' | tee /var/www/html/index.html
-EOF
+	service_account {
+    	scopes = ["compute-rw"]
+  	}
+
+	metadata_startup_script = "${file("startup.sh")}"
 }
 
 resource "google_compute_instance" "ilb-instance-3" {
@@ -123,15 +115,11 @@ resource "google_compute_instance" "ilb-instance-3" {
 		}
 	}
 
-	metadata_startup_script = <<EOF
-#! /bin/bash
-apt-get update
-apt-get install apache2 -y
-a2ensite default-ssl
-a2enmod ssl
-service apache2 restart
-echo '<!doctype html><html><body><h1>ilb-instance-3</h1></body></html>' | tee /var/www/html/index.html
-EOF
+	service_account {
+    	scopes = ["compute-rw"]
+  	}
+
+	metadata_startup_script = "${file("startup.sh")}"
 }
 
 resource "google_compute_instance" "ilb-instance-4" {
@@ -152,15 +140,11 @@ resource "google_compute_instance" "ilb-instance-4" {
 		}
 	}
 
-	metadata_startup_script = <<EOF
-#! /bin/bash
-apt-get update
-apt-get install apache2 -y
-a2ensite default-ssl
-a2enmod ssl
-service apache2 restart
-echo '<!doctype html><html><body><h1>ilb-instance-4</h1></body></html>' | tee /var/www/html/index.html
-EOF
+	service_account {
+    	scopes = ["compute-rw"]
+  	}
+
+	metadata_startup_script = "${file("startup.sh")}"
 }
 
 resource "google_compute_instance_group" "us-ig1" {
