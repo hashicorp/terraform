@@ -25,6 +25,7 @@ IMPROVEMENTS:
  * provider/aws: Allow update to RDS password when restoring from snapshot [GH-8622]
  * provider/azurerm: add support for tags to dns_zone [GH-10750]
  * provider/pagerduty pagerduty_schedule - support for start_day_of_week (schedule restriction) [GH-10069]
+ * state/remote/swift: add support for token authentication [GH-10866]
 
 BUG FIXES:
 
