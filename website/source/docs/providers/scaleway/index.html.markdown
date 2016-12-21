@@ -85,13 +85,13 @@ you can leave them out:
 ```
 provider "scaleway" {
   organization = ""
-  access_key = ""
+  token = ""
   region = "par1"
 }
 ```
 
 ...and instead set these environment variables:
 
-- **SCALEWAY_ORGANIZATION**: Your Scaleway organization `access key`
-- **SCALEWAY_ACCESS_KEY**: Your API access `token`
+- **SCALEWAY_ORGANIZATION**: Your Scaleway `organization` access key
+- **SCALEWAY_TOKEN**: Your API access `token`
 - **SCALEWAY_REGION**: The Scaleway region
