@@ -130,8 +130,10 @@ func (p *Provisioner) Apply(
 		// easily build a ResourceData structure. We do this by simply treating
 		// the conn info as configuration input.
 		raw := make(map[string]interface{})
-		for k, v := range s.Ephemeral.ConnInfo {
-			raw[k] = v
+		if s != nil {
+			for k, v := range s.Ephemeral.ConnInfo {
+				raw[k] = v
+			}
 		}
 
 		c, err := config.NewRawConfig(raw)
