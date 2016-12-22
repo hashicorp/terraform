@@ -1008,10 +1008,10 @@
 			"revisionTime": "2016-11-06T04:23:43Z"
 		},
 		{
-			"checksumSHA1": "L0fG0Aej27fMmhJwshFsqgVY4dM=",
+			"checksumSHA1": "QhYMdplKQJAMptRaHZBB8CF6HdM=",
 			"path": "github.com/cloudflare/cloudflare-go",
-			"revision": "06a204ed25dc2873323f27d0e134ed4fdbd1c1ec",
-			"revisionTime": "2016-10-05T09:59:54Z"
+			"revision": "6cfcb7ec3886f434daf8515d14d4ab208cae845c",
+			"revisionTime": "2016-12-21T19:00:05Z"
 		},
 		{
 			"comment": "v2.3.0-alpha.0-652-ge552791",
