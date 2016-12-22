@@ -1720,6 +1720,69 @@ func TestContext2Apply_cancel(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_cancelProvisioner(t *testing.T) {
+	m := testModule(t, "apply-cancel-provisioner")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr := testProvisioner()
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	prStopped := make(chan struct{})
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		// Start the stop process
+		go ctx.Stop()
+
+		<-prStopped
+		return nil
+	}
+	pr.StopFn = func() error {
+		close(prStopped)
+		return nil
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Start the Apply in a goroutine
+	var applyErr error
+	stateCh := make(chan *State)
+	go func() {
+		state, err := ctx.Apply()
+		if err != nil {
+			applyErr = err
+		}
+
+		stateCh <- state
+	}()
+
+	// Wait for completion
+	state := <-stateCh
+	if applyErr != nil {
+		t.Fatalf("err: %s", applyErr)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo: (tainted)
+  ID = foo
+  num = 2
+  type = aws_instance
+	`)
+
+	if !pr.StopCalled {
+		t.Fatal("stop should be called")
+	}
+}
+
 func TestContext2Apply_compute(t *testing.T) {
 	m := testModule(t, "apply-compute")
 	p := testProvider("aws")
