@@ -137,6 +137,42 @@ func TestProvisionerApply(t *testing.T) {
 	}
 }
 
+func TestProvisionerApply_nilState(t *testing.T) {
+	p := &Provisioner{
+		ConnSchema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeString,
+				Optional: true,
+			},
+		},
+
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+
+		ApplyFunc: func(ctx context.Context) error {
+			return nil
+		},
+	}
+
+	conf := map[string]interface{}{
+		"foo": 42,
+	}
+
+	c, err := config.NewRawConfig(conf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	err = p.Apply(nil, nil, terraform.NewResourceConfig(c))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestProvisionerStop(t *testing.T) {
 	var p Provisioner
 
