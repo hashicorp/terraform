@@ -13,18 +13,20 @@ import (
 )
 
 const (
-	roleBypassRLSAttr     = "bypass_row_level_security"
-	roleConnLimitAttr     = "connection_limit"
-	roleCreateDBAttr      = "create_database"
-	roleCreateRoleAttr    = "create_role"
-	roleEncryptedPassAttr = "encrypted_password"
-	roleInheritAttr       = "inherit"
-	roleLoginAttr         = "login"
-	roleNameAttr          = "name"
-	rolePasswordAttr      = "password"
-	roleReplicationAttr   = "replication"
-	roleSuperuserAttr     = "superuser"
-	roleValidUntilAttr    = "valid_until"
+	roleBypassRLSAttr         = "bypass_row_level_security"
+	roleConnLimitAttr         = "connection_limit"
+	roleCreateDBAttr          = "create_database"
+	roleCreateRoleAttr        = "create_role"
+	roleEncryptedPassAttr     = "encrypted_password"
+	roleInheritAttr           = "inherit"
+	roleLoginAttr             = "login"
+	roleNameAttr              = "name"
+	rolePasswordAttr          = "password"
+	roleReplicationAttr       = "replication"
+	roleSkipDropRoleAttr      = "skip_drop_role"
+	roleSkipReassignOwnedAttr = "skip_reassign_owned"
+	roleSuperuserAttr         = "superuser"
+	roleValidUntilAttr        = "valid_until"
 
 	// Deprecated options
 	roleDepEncryptedAttr = "encrypted"
@@ -119,6 +121,18 @@ func resourcePostgreSQLRole() *schema.Resource {
 				Optional:    true,
 				Default:     false,
 				Description: "Determine whether a role bypasses every row-level security (RLS) policy",
+			},
+			roleSkipDropRoleAttr: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Skip actually running the DROP ROLE command when removing a ROLE from PostgreSQL",
+			},
+			roleSkipReassignOwnedAttr: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Skip actually running the REASSIGN OWNED command when removing a role from PostgreSQL",
 			},
 		},
 	}
@@ -240,11 +254,35 @@ func resourcePostgreSQLRoleDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 	defer conn.Close()
 
-	roleName := d.Get(roleNameAttr).(string)
-	query := fmt.Sprintf("DROP ROLE %s", pq.QuoteIdentifier(roleName))
-	_, err = conn.Query(query)
+	txn, err := conn.Begin()
 	if err != nil {
-		return errwrap.Wrapf("Error deleting role: {{err}}", err)
+		return err
+	}
+	defer txn.Rollback()
+
+	roleName := d.Get(roleNameAttr).(string)
+
+	queries := make([]string, 0, 3)
+	if !d.Get(roleSkipReassignOwnedAttr).(bool) {
+		queries = append(queries, fmt.Sprintf("REASSIGN OWNED BY %s TO CURRENT_USER", pq.QuoteIdentifier(roleName)))
+		queries = append(queries, fmt.Sprintf("DROP OWNED BY %s", pq.QuoteIdentifier(roleName)))
+	}
+
+	if !d.Get(roleSkipDropRoleAttr).(bool) {
+		queries = append(queries, fmt.Sprintf("DROP ROLE %s", pq.QuoteIdentifier(roleName)))
+	}
+
+	if len(queries) > 0 {
+		for _, query := range queries {
+			_, err = conn.Query(query)
+			if err != nil {
+				return errwrap.Wrapf("Error deleting role: {{err}}", err)
+			}
+		}
+
+		if err := txn.Commit(); err != nil {
+			return errwrap.Wrapf("Error committing schema: {{err}}", err)
+		}
 	}
 
 	d.SetId("")
@@ -282,6 +320,8 @@ func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error 
 		d.Set(roleInheritAttr, roleInherit)
 		d.Set(roleLoginAttr, roleCanLogin)
 		d.Set(roleReplicationAttr, roleReplication)
+		d.Set(roleSkipDropRoleAttr, d.Get(roleSkipDropRoleAttr).(bool))
+		d.Set(roleSkipReassignOwnedAttr, d.Get(roleSkipReassignOwnedAttr).(bool))
 		d.Set(roleSuperuserAttr, roleSuperuser)
 		d.Set(roleValidUntilAttr, roleValidUntil)
 		d.SetId(roleName)
