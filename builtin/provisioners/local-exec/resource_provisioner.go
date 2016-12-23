@@ -68,8 +68,24 @@ func applyFn(ctx context.Context) error {
 		"Executing: %s %s \"%s\"",
 		shell, flag, command))
 
-	// Run the command to completion
-	err := cmd.Run()
+	// Start the command
+	err := cmd.Start()
+	if err == nil {
+		// Wait for the command to complete in a goroutine
+		doneCh := make(chan struct{})
+		go func() {
+			defer close(doneCh)
+			err = cmd.Wait()
+		}()
+
+		// Wait for the command to finish or for us to be interrupted
+		select {
+		case <-doneCh:
+		case <-ctx.Done():
+			cmd.Process.Kill()
+			err = cmd.Wait()
+		}
+	}
 
 	// Close the write-end of the pipe so that the goroutine mirroring output
 	// ends properly.

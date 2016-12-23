@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
@@ -32,6 +33,37 @@ func TestResourceProvider_Apply(t *testing.T) {
 	expected := "foo"
 	if actual != expected {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceProvider_stop(t *testing.T) {
+	c := testConfig(t, map[string]interface{}{
+		"command": "sleep 60",
+	})
+
+	output := new(terraform.MockUIOutput)
+	p := Provisioner()
+
+	var err error
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		err = p.Apply(output, nil, c)
+	}()
+
+	select {
+	case <-doneCh:
+		t.Fatal("should not finish quickly")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	// Stop it
+	p.Stop()
+
+	select {
+	case <-doneCh:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("should finish")
 	}
 }
 
