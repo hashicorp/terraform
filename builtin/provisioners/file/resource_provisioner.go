@@ -58,9 +58,23 @@ func applyFn(ctx context.Context) error {
 		defer os.Remove(src)
 	}
 
-	// Get destination
+	// Begin the file copy
 	dst := data.Get("destination").(string)
-	return copyFiles(comm, src, dst)
+	resultCh := make(chan error, 1)
+	go func() {
+		resultCh <- copyFiles(comm, src, dst)
+	}()
+
+	// Allow the file copy to complete unless there is an interrupt.
+	// If there is an interrupt we make no attempt to cleanly close
+	// the connection currently. We just abruptly exit. Because Terraform
+	// taints the resource, this is fine.
+	select {
+	case err := <-resultCh:
+		return err
+	case <-ctx.Done():
+		return fmt.Errorf("file transfer interrupted")
+	}
 }
 
 // getSrc returns the file to use as source
