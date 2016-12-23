@@ -71,3 +71,20 @@ which take the following arguments:
 ## Attributes Reference
 
 All of the argument attributes except `filter` are also exported as result attributes.
+
+* `accepter` - A configuration block that describes [VPC Peering Connection]
+(http://docs.aws.amazon.com/AmazonVPC/latest/PeeringGuide) options set for the accepter VPC.
+
+* `requester` - A configuration block that describes [VPC Peering Connection]
+(http://docs.aws.amazon.com/AmazonVPC/latest/PeeringGuide) options set for the requester VPC.
+
+#### Accepter and Requester Attributes Reference
+
+* `allow_remote_vpc_dns_resolution` - Indicates whether a local VPC can resolve public DNS hostnames to
+private IP addresses when queried from instances in a peer VPC.
+
+* `allow_classic_link_to_remote_vpc` - Indicates whether a local ClassicLink connection can communicate
+with the peer VPC over the VPC peering connection.
+
+* `allow_vpc_to_remote_classic_link` - Indicates whether a local VPC can communicate with a ClassicLink
+connection in the peer VPC over the VPC peering connection.
