@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/communicator/ssh"
 	"github.com/hashicorp/terraform/communicator/winrm"
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -51,19 +50,4 @@ func New(s *terraform.InstanceState) (Communicator, error) {
 	default:
 		return nil, fmt.Errorf("connection type '%s' not supported", connType)
 	}
-}
-
-// NewData creates a new Communicator from a ResourceData structure that
-// represents the connection information.
-func NewData(d *schema.ResourceData) (Communicator, error) {
-	// Turn the ResourceData into a legacy-style ConnInfo struct that
-	// is used to instantiate the communicator.
-	raw := d.State()
-	state := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: raw.Attributes,
-		},
-	}
-
-	return New(state)
 }

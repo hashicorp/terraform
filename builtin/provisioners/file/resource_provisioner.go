@@ -40,11 +40,11 @@ func Provisioner() terraform.ResourceProvisioner {
 }
 
 func applyFn(ctx context.Context) error {
-	connData := ctx.Value(schema.ProvConnDataKey).(*schema.ResourceData)
+	connState := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
 	data := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
 
 	// Get a new communicator
-	comm, err := communicator.NewData(connData)
+	comm, err := communicator.New(connState)
 	if err != nil {
 		return err
 	}
