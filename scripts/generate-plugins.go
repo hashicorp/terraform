@@ -270,6 +270,9 @@ import (
 IMPORTS
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
+
+	// Legacy, will remove once it conforms with new structure
+	chefprovisioner "github.com/hashicorp/terraform/builtin/provisioners/chef"
 )
 
 var InternalProviders = map[string]plugin.ProviderFunc{
@@ -278,6 +281,12 @@ PROVIDERS
 
 var InternalProvisioners = map[string]plugin.ProvisionerFunc{
 PROVISIONERS
+}
+
+func init() {
+	// Legacy provisioners that don't match our heuristics for auto-finding
+	// built-in provisioners.
+	InternalProvisioners["chef"] = func() terraform.ResourceProvisioner { return new(chefprovisioner.ResourceProvisioner) }
 }
 
 `
