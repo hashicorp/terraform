@@ -61,6 +61,10 @@ const (
 
 	// This returns a terraform.UIOutput. Guaranteed to never be nil.
 	ProvOutputKey
+
+	// This returns the raw InstanceState passed to Apply. Guaranteed to
+	// be set, but may be nil.
+	ProvRawStateKey
 )
 
 // InternalValidate should be called to validate the structure
@@ -171,5 +175,6 @@ func (p *Provisioner) Apply(
 	ctx = context.WithValue(ctx, ProvConnDataKey, connData)
 	ctx = context.WithValue(ctx, ProvConfigDataKey, configData)
 	ctx = context.WithValue(ctx, ProvOutputKey, o)
+	ctx = context.WithValue(ctx, ProvRawStateKey, s)
 	return p.ApplyFunc(ctx)
 }
