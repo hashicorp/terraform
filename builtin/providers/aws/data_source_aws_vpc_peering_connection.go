@@ -14,42 +14,42 @@ func dataSourceAwsVpcPeeringConnection() *schema.Resource {
 		Read: dataSourceAwsVpcPeeringConnectionRead,
 
 		Schema: map[string]*schema.Schema{
-			"id": &schema.Schema{
+			"id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"status": &schema.Schema{
+			"status": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"vpc_id": &schema.Schema{
+			"vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"owner_id": &schema.Schema{
+			"owner_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"cidr_block": &schema.Schema{
+			"cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"peer_vpc_id": &schema.Schema{
+			"peer_vpc_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"peer_owner_id": &schema.Schema{
+			"peer_owner_id": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
 			},
-			"peer_cidr_block": &schema.Schema{
+			"peer_cidr_block": {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -67,7 +67,7 @@ func dataSourceAwsVpcPeeringConnectionRead(d *schema.ResourceData, meta interfac
 
 	req := &ec2.DescribeVpcPeeringConnectionsInput{}
 
-	if id := d.Get("id"); id != "" {
+	if id, ok := d.GetOk("id"); ok {
 		req.VpcPeeringConnectionIds = aws.StringSlice([]string{id.(string)})
 	}
 

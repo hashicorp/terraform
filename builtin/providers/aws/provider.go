@@ -451,7 +451,7 @@ func init() {
 			" no session name is passed to the AssumeRole call.",
 
 		"assume_role_external_id": "The external ID to use when assuming the role. If omitted," +
-			" no external ID is passed to t he AssumeRole call.",
+			" no external ID is passed to the AssumeRole call.",
 	}
 }
 
