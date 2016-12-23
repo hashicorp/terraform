@@ -23,6 +23,7 @@ func Provisioner() terraform.ResourceProvisioner {
 			"inline": &schema.Schema{
 				Type:          schema.TypeList,
 				Elem:          &schema.Schema{Type: schema.TypeString},
+				PromoteSingle: true,
 				Optional:      true,
 				ConflictsWith: []string{"script", "scripts"},
 			},
