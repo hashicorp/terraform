@@ -583,6 +583,72 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		{
+			Name: "List decode with promotion",
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:          TypeList,
+					Required:      true,
+					Elem:          &Schema{Type: TypeInt},
+					PromoteSingle: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ports": "5",
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"ports.0": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "5",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Name: "List decode with promotion with list",
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:          TypeList,
+					Required:      true,
+					Elem:          &Schema{Type: TypeInt},
+					PromoteSingle: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{"5"},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"ports.0": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "5",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
 					Type:     TypeList,
@@ -3583,6 +3649,40 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Config: nil,
 
 			Err: true,
+		},
+
+		"List with promotion": {
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:          TypeList,
+					Elem:          &Schema{Type: TypeInt},
+					PromoteSingle: true,
+					Optional:      true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": "5",
+			},
+
+			Err: false,
+		},
+
+		"List with promotion set as list": {
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:          TypeList,
+					Elem:          &Schema{Type: TypeInt},
+					PromoteSingle: true,
+					Optional:      true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{"5"},
+			},
+
+			Err: false,
 		},
 
 		"Optional sub-resource": {
