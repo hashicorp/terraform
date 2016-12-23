@@ -132,6 +132,11 @@ type Provisioner struct {
 // ResourceProvisioner represents a generic chef provisioner
 type ResourceProvisioner struct{}
 
+func (r *ResourceProvisioner) Stop() error {
+	// Noop for now. TODO in the future.
+	return nil
+}
+
 // Apply executes the file provisioner
 func (r *ResourceProvisioner) Apply(
 	o terraform.UIOutput,
