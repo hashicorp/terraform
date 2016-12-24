@@ -1,6 +1,10 @@
 ## 0.8.3 (unreleased)
 
 
+IMPROVEMENTS:
+ 
+ * provider/pagerduty Add delete support to pagerduty_service_integration [GH-10891]
+
 
 ## 0.8.2 (December 21, 2016)
 
