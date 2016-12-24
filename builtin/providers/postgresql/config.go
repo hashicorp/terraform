@@ -31,7 +31,7 @@ type Client struct {
 func (c *Config) NewClient() (*Client, error) {
 	// NOTE: dbname must come before user otherwise dbname will be set to
 	// user.
-	const dsnFmt = "host=%s port=%d dbname=%s user=%s password=%s sslmode=%s fallback_application_name=%s connect_timeout=%d"
+	const dsnFmt = "host='%s' port='%d' dbname='%s' user='%s' password='%s' sslmode='%s' fallback_application_name='%s' connect_timeout='%d'"
 
 	logDSN := fmt.Sprintf(dsnFmt, c.Host, c.Port, c.Database, c.Username, "<redacted>", c.SSLMode, c.ApplicationName, c.ConnectTimeoutSec)
 	log.Printf("[INFO] PostgreSQL DSN: `%s`", logDSN)
