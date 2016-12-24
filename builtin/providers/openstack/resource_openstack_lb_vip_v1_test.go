@@ -21,13 +21,13 @@ func TestAccLBV1VIP_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccLBV1VIP_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckLBV1VIPExists(t, "openstack_lb_vip_v1.vip_1", &vip),
+					testAccCheckLBV1VIPExists("openstack_lb_vip_v1.vip_1", &vip),
 				),
 			},
 			resource.TestStep{
 				Config: testAccLBV1VIP_update,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_lb_vip_v1.vip_1", "name", "tf_test_lb_vip_updated"),
+					resource.TestCheckResourceAttr("openstack_lb_vip_v1.vip_1", "name", "vip_1_updated"),
 				),
 			},
 		},
@@ -38,7 +38,7 @@ func testAccCheckLBV1VIPDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckLBV1VIPDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -55,7 +55,7 @@ func testAccCheckLBV1VIPDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckLBV1VIPExists(t *testing.T, n string, vip *vips.VirtualIP) resource.TestCheckFunc {
+func testAccCheckLBV1VIPExists(n string, vip *vips.VirtualIP) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -69,7 +69,7 @@ func testAccCheckLBV1VIPExists(t *testing.T, n string, vip *vips.VirtualIP) reso
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckLBV1VIPExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 		}
 
 		found, err := vips.Get(networkingClient, rs.Primary.ID).Extract()
@@ -87,74 +87,68 @@ func testAccCheckLBV1VIPExists(t *testing.T, n string, vip *vips.VirtualIP) reso
 	}
 }
 
-var testAccLBV1VIP_basic = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-    region = "%s"
-    name = "network_1"
-    admin_state_up = "true"
+const testAccLBV1VIP_basic = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_lb_pool_v1" "pool_1" {
+  name = "pool_1"
+  protocol = "HTTP"
+  lb_method = "ROUND_ROBIN"
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+}
+
+resource "openstack_lb_vip_v1" "vip_1" {
+  name = "vip_1"
+  protocol = "HTTP"
+  port = 80
+  admin_state_up = true
+  pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+
+  persistence {
+    type = "SOURCE_IP"
   }
+}
+`
 
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-    region = "%s"
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-    ip_version = 4
+const testAccLBV1VIP_update = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+
+resource "openstack_lb_pool_v1" "pool_1" {
+  name = "pool_1"
+  protocol = "HTTP"
+  lb_method = "ROUND_ROBIN"
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+}
+
+resource "openstack_lb_vip_v1" "vip_1" {
+  name = "vip_1_updated"
+  protocol = "HTTP"
+  port = 80
+  admin_state_up = true
+  pool_id = "${openstack_lb_pool_v1.pool_1.id}"
+  subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+
+  persistence {
+    type = "SOURCE_IP"
   }
-
-  resource "openstack_lb_pool_v1" "pool_1" {
-    region = "%s"
-    name = "tf_test_lb_pool"
-    protocol = "HTTP"
-    subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-    lb_method = "ROUND_ROBIN"
-  }
-
-  resource "openstack_lb_vip_v1" "vip_1" {
-    region = "RegionOne"
-    name = "tf_test_lb_vip"
-    subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-    protocol = "HTTP"
-    port = 80
-    pool_id = "${openstack_lb_pool_v1.pool_1.id}"
-    admin_state_up = true
-    persistence {
-      type = "SOURCE_IP"
-    }
-  }`,
-	OS_REGION_NAME, OS_REGION_NAME, OS_REGION_NAME)
-
-var testAccLBV1VIP_update = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-    region = "%s"
-    name = "network_1"
-    admin_state_up = "true"
-  }
-
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-    region = "%s"
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-    ip_version = 4
-  }
-
-  resource "openstack_lb_pool_v1" "pool_1" {
-    region = "%s"
-    name = "tf_test_lb_pool"
-    protocol = "HTTP"
-    subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-    lb_method = "ROUND_ROBIN"
-  }
-
-  resource "openstack_lb_vip_v1" "vip_1" {
-    region = "RegionOne"
-    name = "tf_test_lb_vip_updated"
-    subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-    protocol = "HTTP"
-    port = 80
-    pool_id = "${openstack_lb_pool_v1.pool_1.id}"
-    admin_state_up = true
-    persistence {
-      type = "SOURCE_IP"
-    }
-  }`,
-	OS_REGION_NAME, OS_REGION_NAME, OS_REGION_NAME)
+}
+`
