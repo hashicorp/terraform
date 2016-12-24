@@ -165,7 +165,7 @@ func (c *Client) UpdateIntegration(serviceID string, i Integration) (*Integratio
 
 // DeleteIntegration deletes an existing integration.
 func (c *Client) DeleteIntegration(serviceID string, integrationID string) error {
-	_, err := c.delete("/services/" + serviceID + "/integrations" + integrationID)
+	_, err := c.delete("/services/" + serviceID + "/integrations/" + integrationID)
 	return err
 }
 
