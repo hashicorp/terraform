@@ -3,6 +3,7 @@
 
 IMPROVEMENTS:
  
+ * provider/archive: `archive_file` now exports `output_md5` attribute in addition to existing SHA1 and Base64 SHA256 hashes. [GH-10851]
  * provider/pagerduty Add delete support to pagerduty_service_integration [GH-10891]
 
 
