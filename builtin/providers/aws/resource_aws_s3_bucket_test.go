@@ -635,6 +635,35 @@ func TestAccAWSS3Bucket_Replication(t *testing.T) {
 	})
 }
 
+// StorageClass issue: https://github.com/hashicorp/terraform/issues/10909
+func TestAccAWSS3Bucket_ReplicationWithoutStorageClass(t *testing.T) {
+	rInt := acctest.RandInt()
+
+	// record the initialized providers so that we can use them to check for the instances in each region
+	var providers []*schema.Provider
+	providerFactories := map[string]terraform.ResourceProviderFactory{
+		"aws": func() (terraform.ResourceProvider, error) {
+			p := Provider()
+			providers = append(providers, p.(*schema.Provider))
+			return p, nil
+		},
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		CheckDestroy:      testAccCheckAWSS3BucketDestroyWithProviders(&providers),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSS3BucketConfigReplicationWithoutStorageClass(rInt),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExistsWithProviders("aws_s3_bucket.bucket", &providers),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSS3Bucket_ReplicationExpectVersioningValidationError(t *testing.T) {
 	rInt := acctest.RandInt()
 
@@ -1409,6 +1438,43 @@ resource "aws_s3_bucket" "bucket" {
             destination {
                 bucket        = "${aws_s3_bucket.destination.arn}"
                 storage_class = "STANDARD"
+            }
+        }
+    }
+}
+
+resource "aws_s3_bucket" "destination" {
+    provider = "aws.euwest"
+    bucket   = "tf-test-bucket-destination-%d"
+    region   = "eu-west-1"
+
+    versioning {
+        enabled = true
+    }
+}
+`, randInt, randInt, randInt)
+}
+
+func testAccAWSS3BucketConfigReplicationWithoutStorageClass(randInt int) string {
+	return fmt.Sprintf(testAccAWSS3BucketConfigReplicationBasic+`
+resource "aws_s3_bucket" "bucket" {
+    provider = "aws.uswest2"
+    bucket   = "tf-test-bucket-%d"
+    acl      = "private"
+
+    versioning {
+        enabled = true
+    }
+
+    replication_configuration {
+        role = "${aws_iam_role.role.arn}"
+        rules {
+            id     = "foobar"
+            prefix = "foo"
+            status = "Enabled"
+
+            destination {
+                bucket        = "${aws_s3_bucket.destination.arn}"
             }
         }
     }
