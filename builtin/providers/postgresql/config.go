@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"unicode"
 
 	_ "github.com/lib/pq" //PostgreSQL db
 )
@@ -38,7 +39,12 @@ func (c *Config) NewClient() (*Client, error) {
 	q := func(s string) string {
 		b := bytes.NewBufferString(`'`)
 		b.Grow(len(s) + 2)
+		var haveWhitespace bool
 		for _, r := range s {
+			if unicode.IsSpace(r) {
+				haveWhitespace = true
+			}
+
 			switch r {
 			case '\'':
 				b.WriteString(`\'`)
@@ -50,7 +56,12 @@ func (c *Config) NewClient() (*Client, error) {
 		}
 
 		b.WriteString(`'`)
-		return b.String()
+
+		str := b.String()
+		if haveWhitespace {
+			return str
+		}
+		return str[1 : len(str)-1]
 	}
 
 	logDSN := fmt.Sprintf(dsnFmt, q(c.Host), c.Port, q(c.Database), q(c.Username), q("<redacted>"), q(c.SSLMode), q(c.ApplicationName), c.ConnectTimeoutSec)
