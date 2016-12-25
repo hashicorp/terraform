@@ -58,7 +58,7 @@ func (c *Config) NewClient() (*Client, error) {
 		b.WriteString(`'`)
 
 		str := b.String()
-		if haveWhitespace {
+		if haveWhitespace || len(str) == 2 {
 			return str
 		}
 		return str[1 : len(str)-1]
