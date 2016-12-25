@@ -69,11 +69,11 @@ func TestAccPostgresqlSchema_AddPolicy(t *testing.T) {
 					resource.TestCheckResourceAttr("postgresql_role.policy_move", "name", "policy_move"),
 
 					resource.TestCheckResourceAttr("postgresql_role.all_with_grantstay", "name", "all_with_grantstay"),
-					// resource.TestCheckResourceAttr("postgresql_role.all_with_grantdrop", "name", "all_with_grantdrop"),
+					resource.TestCheckResourceAttr("postgresql_role.all_with_grantdrop", "name", "all_with_grantdrop"),
 
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "name", "test4"),
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "owner", "all_without_grant_stay"),
-					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.#", "6"),
+					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.#", "7"),
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.108605972.create", "false"),
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.108605972.create_with_grant", "true"),
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.108605972.role", "all_with_grantstay"),
@@ -99,11 +99,11 @@ func TestAccPostgresqlSchema_AddPolicy(t *testing.T) {
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.3959936977.role", "policy_compose"),
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.3959936977.usage", "false"),
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.3959936977.usage_with_grant", "true"),
-					// resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.create", "false"),
-					// resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.create_with_grant", "true"),
-					// resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.role", "all_with_grantdrop"),
-					// resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.usage", "false"),
-					// resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.usage_with_grant", "true"),
+					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.create", "false"),
+					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.create_with_grant", "true"),
+					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.role", "all_with_grantdrop"),
+					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.usage", "false"),
+					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.4178211897.usage_with_grant", "true"),
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.815478369.create", "true"),
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.815478369.create_with_grant", "false"),
 					resource.TestCheckResourceAttr("postgresql_schema.test4", "policy.815478369.role", "policy_compose"),
@@ -298,9 +298,9 @@ resource "postgresql_role" "all_with_grantstay" {
   name = "all_with_grantstay"
 }
 
-// resource "postgresql_role" "all_with_grantdrop" {
-//   name = "all_with_grantdrop"
-// }
+resource "postgresql_role" "all_with_grantdrop" {
+  name = "all_with_grantdrop"
+}
 
 resource "postgresql_schema" "test4" {
   name = "test4"
@@ -336,11 +336,11 @@ resource "postgresql_schema" "test4" {
     role = "${postgresql_role.all_with_grantstay.name}"
   }
 
-  // policy {
-  //   create_with_grant = true
-  //   usage_with_grant = true
-  //   role = "${postgresql_role.all_with_grantdrop.name}"
-  // }
+  policy {
+    create_with_grant = true
+    usage_with_grant = true
+    role = "${postgresql_role.all_with_grantdrop.name}"
+  }
 
   policy {
     create_with_grant = true
