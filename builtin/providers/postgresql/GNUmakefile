@@ -4,7 +4,8 @@ PSQL?=/opt/local/lib/postgresql96/bin/psql
 PGDATA?=$(GOPATH)/src/github.com/hashicorp/terraform/builtin/providers/postgresql/data
 
 initdb::
-	/opt/local/lib/postgresql96/bin/initdb --no-locale -U postgres -D $(PGDATA)
+	echo "" > pwfile
+	/opt/local/lib/postgresql96/bin/initdb --no-locale -U postgres -A md5 --pwfile=pwfile -D $(PGDATA)
 
 startdb::
 	2>&1 \
@@ -18,6 +19,7 @@ startdb::
 
 cleandb::
 	rm -rf $(PGDATA)
+	rm -f pwfile
 
 freshdb:: cleandb initdb startdb
 
