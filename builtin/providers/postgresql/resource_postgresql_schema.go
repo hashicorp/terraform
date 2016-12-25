@@ -350,7 +350,18 @@ func setSchemaPolicy(txn *sql.Tx, d *schema.ResourceData) error {
 	for _, p := range dropped {
 		pMap := p.(map[string]interface{})
 		rolePolicy := schemaPolicyToACL(pMap)
-		queries = append(queries, rolePolicy.Revokes(schemaName)...)
+
+		var foundUser bool
+		err := txn.QueryRow(`SELECT TRUE FROM pg_catalog.pg_user WHERE usename = $1`, rolePolicy.Role).Scan(&foundUser)
+		switch {
+		case err == sql.ErrNoRows:
+			// Don't execute this role's REVOKEs because the role
+			// was dropped first and therefore doesn't exist.
+		case err != nil:
+			return errwrap.Wrapf("Error reading schema: {{err}}", err)
+		default:
+			queries = append(queries, rolePolicy.Revokes(schemaName)...)
+		}
 	}
 
 	for _, p := range added {
