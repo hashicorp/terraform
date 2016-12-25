@@ -2271,10 +2271,10 @@
 			"revisionTime": "2016-10-27T15:40:24Z"
 		},
 		{
-			"checksumSHA1": "fCtp8mJPTtEMkpDz8TgRtJzMYw0=",
-			"path": "github.com/sean-/pgacl",
-			"revision": "3d9f301f1bf3d5b590119b28132d2e8d5d1f1a62",
-			"revisionTime": "2016-12-15T16:51:43Z"
+			"checksumSHA1": "tEKRyau4iRjmq2iwJbduD9RhN5s=",
+			"path": "github.com/sean-/postgresql-acl",
+			"revision": "d10489e5d217ebe9c23470c4d0ba7081a6d1e799",
+			"revisionTime": "2016-12-25T12:04:19Z"
 		},
 		{
 			"checksumSHA1": "BqtlwAjgFuHsVVdnw+dGSe+CKLM=",
