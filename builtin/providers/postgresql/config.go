@@ -1,6 +1,7 @@
 package postgresql
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"log"
@@ -31,12 +32,31 @@ type Client struct {
 func (c *Config) NewClient() (*Client, error) {
 	// NOTE: dbname must come before user otherwise dbname will be set to
 	// user.
-	const dsnFmt = "host='%s' port='%d' dbname='%s' user='%s' password='%s' sslmode='%s' fallback_application_name='%s' connect_timeout='%d'"
+	const dsnFmt = "host=%s port=%d dbname=%s user=%s password=%s sslmode=%s fallback_application_name=%s connect_timeout=%d"
 
-	logDSN := fmt.Sprintf(dsnFmt, c.Host, c.Port, c.Database, c.Username, "<redacted>", c.SSLMode, c.ApplicationName, c.ConnectTimeoutSec)
+	// Quote empty strings or strings that contain whitespace
+	q := func(s string) string {
+		b := bytes.NewBufferString(`'`)
+		b.Grow(len(s) + 2)
+		for _, r := range s {
+			switch r {
+			case '\'':
+				b.WriteString(`\'`)
+			case '\\':
+				b.WriteString(`\\`)
+			default:
+				b.WriteRune(r)
+			}
+		}
+
+		b.WriteString(`'`)
+		return b.String()
+	}
+
+	logDSN := fmt.Sprintf(dsnFmt, q(c.Host), c.Port, q(c.Database), q(c.Username), q("<redacted>"), q(c.SSLMode), q(c.ApplicationName), c.ConnectTimeoutSec)
 	log.Printf("[INFO] PostgreSQL DSN: `%s`", logDSN)
 
-	connStr := fmt.Sprintf(dsnFmt, c.Host, c.Port, c.Database, c.Username, c.Password, c.SSLMode, c.ApplicationName, c.ConnectTimeoutSec)
+	connStr := fmt.Sprintf(dsnFmt, q(c.Host), c.Port, q(c.Database), q(c.Username), q(c.Password), q(c.SSLMode), q(c.ApplicationName), c.ConnectTimeoutSec)
 	client := Client{
 		connStr:  connStr,
 		username: c.Username,
