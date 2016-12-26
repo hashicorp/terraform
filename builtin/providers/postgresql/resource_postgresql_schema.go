@@ -79,8 +79,9 @@ func resourcePostgreSQLSchema() *schema.Resource {
 						schemaPolicyRoleAttr: {
 							Type:        schema.TypeString,
 							Elem:        &schema.Schema{Type: schema.TypeString},
-							Required:    true,
-							Description: "ROLE who will receive this policy",
+							Optional:    true,
+							Default:     "",
+							Description: "ROLE who will receive this policy (default: PUBLIC)",
 						},
 						schemaPolicyUsageAttr: {
 							Type:          schema.TypeBool,
@@ -351,16 +352,20 @@ func setSchemaPolicy(txn *sql.Tx, d *schema.ResourceData) error {
 		pMap := p.(map[string]interface{})
 		rolePolicy := schemaPolicyToACL(pMap)
 
-		var foundUser bool
-		err := txn.QueryRow(`SELECT TRUE FROM pg_catalog.pg_user WHERE usename = $1`, rolePolicy.Role).Scan(&foundUser)
-		switch {
-		case err == sql.ErrNoRows:
-			// Don't execute this role's REVOKEs because the role
-			// was dropped first and therefore doesn't exist.
-		case err != nil:
-			return errwrap.Wrapf("Error reading schema: {{err}}", err)
-		default:
-			queries = append(queries, rolePolicy.Revokes(schemaName)...)
+		// The PUBLIC role can not be DROP'ed, therefore we do not need
+		// to prevent revoking against it not existing.
+		if rolePolicy.Role != "" {
+			var foundUser bool
+			err := txn.QueryRow(`SELECT TRUE FROM pg_catalog.pg_user WHERE usename = $1`, rolePolicy.Role).Scan(&foundUser)
+			switch {
+			case err == sql.ErrNoRows:
+				// Don't execute this role's REVOKEs because the role
+				// was dropped first and therefore doesn't exist.
+			case err != nil:
+				return errwrap.Wrapf("Error reading schema: {{err}}", err)
+			default:
+				queries = append(queries, rolePolicy.Revokes(schemaName)...)
+			}
 		}
 	}
 
