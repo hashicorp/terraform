@@ -5,14 +5,15 @@
 # may change in the future and is likely not required when doing
 # non-delete related operations. But for now it is.
 
-POSTGRES?=/opt/local/lib/postgresql96/bin/postgres
-PSQL?=/opt/local/lib/postgresql96/bin/psql
+POSTGRES?=$(wildcard /usr/local/bin/postgres /opt/local/lib/postgresql96/bin/postgres)
+PSQL?=$(wildcard /usr/local/bin/psql /opt/local/lib/postgresql96/bin/psql)
+INITDB?=$(wildcard /usr/local/bin/initdb /opt/local/lib/postgresql96/bin/initdb)
 
 PGDATA?=$(GOPATH)/src/github.com/hashicorp/terraform/builtin/providers/postgresql/data
 
 initdb::
 	echo "" > pwfile
-	/opt/local/lib/postgresql96/bin/initdb --no-locale -U postgres -A md5 --pwfile=pwfile -D $(PGDATA)
+	$(INITDB) --no-locale -U postgres -A md5 --pwfile=pwfile -D $(PGDATA)
 
 startdb::
 	2>&1 \
