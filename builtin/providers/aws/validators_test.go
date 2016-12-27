@@ -189,6 +189,12 @@ func TestValidateAwsAccountId(t *testing.T) {
 }
 
 func TestValidateArn(t *testing.T) {
+	v := ""
+	_, errors := validateArn(v, "arn")
+	if len(errors) != 0 {
+		t.Fatalf("%q should not be validated as an ARN: %q", v, errors)
+	}
+
 	validNames := []string{
 		"arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/My App/MyEnvironment", // Beanstalk
 		"arn:aws:iam::123456789012:user/David",                                             // IAM User
