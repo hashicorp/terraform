@@ -8,6 +8,7 @@ import (
 	"sync"
 	"unicode"
 
+	"github.com/hashicorp/errwrap"
 	_ "github.com/lib/pq" //PostgreSQL db
 )
 
@@ -89,7 +90,7 @@ func (c *Config) NewClient() (*Client, error) {
 func (c *Client) Connect() (*sql.DB, error) {
 	db, err := sql.Open("postgres", c.connStr)
 	if err != nil {
-		return nil, fmt.Errorf("Error connecting to PostgreSQL server: %v", err)
+		return nil, errwrap.Wrapf("Error connecting to PostgreSQL server: {{err}}", err)
 	}
 
 	return db, nil
