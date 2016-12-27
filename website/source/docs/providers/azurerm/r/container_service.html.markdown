@@ -77,7 +77,7 @@ The following arguments are supported:
 
 * `agent_pool_profile` - (Required) One or more Agent Pool Profile's block as documented below.
 
-* `service_principal` - (Optional for 'DCOS' / 'Swarm' - Required for 'Kubernetes') A Service Principal block as documented below.
+* `service_principal` - (only Required when you're using `Kubernetes` as an Orchestration Platform) A Service Principal block as documented below.
 
 * `diagnostics_profile` - (Required) A VM Diagnostics Profile block as documented below.
 
