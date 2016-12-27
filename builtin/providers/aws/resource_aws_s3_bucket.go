@@ -1428,12 +1428,11 @@ func resourceAwsS3BucketReplicationConfigurationUpdate(s3conn *s3.S3, d *schema.
 			bd := dest[0].(map[string]interface{})
 			ruleDestination.Bucket = aws.String(bd["bucket"].(string))
 
-			if storageClass, ok := bd["storage_class"]; ok {
+			if storageClass, ok := bd["storage_class"]; ok && storageClass != "" {
 				ruleDestination.StorageClass = aws.String(storageClass.(string))
 			}
 		}
 		rcRule.Destination = ruleDestination
-
 		rules = append(rules, rcRule)
 	}
 
