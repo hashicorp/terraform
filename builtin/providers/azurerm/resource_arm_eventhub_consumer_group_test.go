@@ -166,8 +166,6 @@ resource "azurerm_eventhub_consumer_group" "test" {
     eventhub_name = "${azurerm_eventhub.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
     location = "${azurerm_resource_group.test.location}"
-
-    eventhub_path = "stoney"
     user_metadata = "some-meta-data"
 }
 `

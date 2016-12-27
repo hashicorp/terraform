@@ -6,7 +6,7 @@ description: |-
   Creates a new Event Hub Consumer Group as a nested resource within an Event Hub.
 ---
 
-# azurerm\_eventhub\_consumer_group
+# azurerm\_eventhub\_consumer\_group
 
 Creates a new Event Hub Consumer Group as a nested resource within an Event Hub.
 
@@ -45,7 +45,6 @@ resource "azurermeventhub_consumer_group" "test" {
     eventhub_name = "${azurerm_eventhub.test.name}"
     resource_group_name = "${azurerm_resource_group.test.name}"
     location = "${azurerm_resource_group.test.location}"
-
     user_metadata = "some-meta-data"
 }
 ```
@@ -72,7 +71,7 @@ The following attributes are exported:
 
 ## Import
 
-EventHub's can be imported using the `resource id`, e.g.
+EventHub Consumer Groups can be imported using the `resource id`, e.g.
 
 ```
 terraform import azurerm_eventhub_consumer_group.consumerGroup1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.EventHub/namespaces/namespace1/eventhubs/eventhub1/consumergroups/consumerGroup1
