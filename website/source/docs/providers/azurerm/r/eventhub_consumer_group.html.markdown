@@ -39,7 +39,7 @@ resource "azurerm_eventhub" "test" {
   message_retention   = 2
 }
 
-resource "azurermeventhub_consumer_group" "test" {
+resource "azurerm_eventhub_consumer_group" "test" {
     name = "acceptanceTestEventHubConsumerGroup"
     namespace_name = "${azurerm_eventhub_namespace.test.name}"
     eventhub_name = "${azurerm_eventhub.test.name}"
@@ -67,7 +67,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - The EventHub ID.
+* `id` - The EventHub Consumer Group ID.
 
 ## Import
 
