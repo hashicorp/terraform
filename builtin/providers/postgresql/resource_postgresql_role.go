@@ -38,6 +38,7 @@ func resourcePostgreSQLRole() *schema.Resource {
 		Read:   resourcePostgreSQLRoleRead,
 		Update: resourcePostgreSQLRoleUpdate,
 		Delete: resourcePostgreSQLRoleDelete,
+		Exists: resourcePostgreSQLRoleExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -140,6 +141,9 @@ func resourcePostgreSQLRole() *schema.Resource {
 
 func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return errwrap.Wrapf("Error connecting to PostgreSQL: {{err}}", err)
@@ -243,12 +247,15 @@ func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) erro
 
 	d.SetId(roleName)
 
-	return resourcePostgreSQLRoleRead(d, meta)
+	return resourcePostgreSQLRoleReadImpl(d, meta)
 }
 
 func resourcePostgreSQLRoleDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Client)
-	conn, err := client.Connect()
+	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
+	conn, err := c.Connect()
 	if err != nil {
 		return err
 	}
@@ -290,7 +297,38 @@ func resourcePostgreSQLRoleDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
+func resourcePostgreSQLRoleExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	conn, err := c.Connect()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
+	var roleName string
+	err = conn.QueryRow("SELECT rolname FROM pg_catalog.pg_roles WHERE rolname=$1", d.Id()).Scan(&roleName)
+	switch {
+	case err == sql.ErrNoRows:
+		return false, nil
+	case err != nil:
+		return false, err
+	}
+
+	return true, nil
+}
+
 func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	return resourcePostgreSQLRoleReadImpl(d, meta)
+}
+
+func resourcePostgreSQLRoleReadImpl(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
 	conn, err := c.Connect()
 	if err != nil {
@@ -347,6 +385,9 @@ func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error 
 
 func resourcePostgreSQLRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return err
@@ -393,7 +434,7 @@ func resourcePostgreSQLRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	return resourcePostgreSQLRoleRead(d, meta)
+	return resourcePostgreSQLRoleReadImpl(d, meta)
 }
 
 func setRoleName(conn *sql.DB, d *schema.ResourceData) error {

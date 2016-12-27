@@ -1,4 +1,4 @@
-# env TESTARGS='-test.parallel=1 -run TestAccPostgresqlSchema_AddPolicy' TF_LOG=warn make test
+# env TESTARGS='-run TestAccPostgresqlSchema_AddPolicy' TF_LOG=warn make test
 #
 # NOTE: As of PostgreSQL 9.6.1 the -test.parallel=1 is required when
 # performing `DROP ROLE`-related actions.  This behavior and requirement
