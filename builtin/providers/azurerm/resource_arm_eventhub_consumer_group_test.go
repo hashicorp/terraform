@@ -70,7 +70,7 @@ func testCheckAzureRMEventHubConsumerGroupDestroy(s *terraform.State) error {
 		}
 
 		if resp.StatusCode != http.StatusNotFound {
-			return fmt.Errorf("EventHub Consumer Group still exists:\n%#v", resp.Properties)
+			return fmt.Errorf("EventHub Consumer Group still exists:\n%#v", resp.ConsumerGroupProperties)
 		}
 	}
 

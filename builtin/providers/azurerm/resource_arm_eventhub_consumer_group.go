@@ -81,7 +81,7 @@ func resourceArmEventHubConsumerGroupCreate(d *schema.ResourceData, meta interfa
 	parameters := eventhub.ConsumerGroupCreateOrUpdateParameters{
 		Name:     &name,
 		Location: &location,
-		Properties: &eventhub.ConsumerGroupProperties{
+		ConsumerGroupProperties: &eventhub.ConsumerGroupProperties{
 			EventHubPath: &eventHubPath,
 			UserMetadata: &userMetaData,
 		},
@@ -139,8 +139,8 @@ func resourceArmEventHubConsumerGroupRead(d *schema.ResourceData, meta interface
 	d.Set("resource_group_name", resGroup)
 	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 
-	d.Set("eventhub_path", resp.Properties.EventHubPath)
-	d.Set("user_metadata", resp.Properties.UserMetadata)
+	d.Set("eventhub_path", resp.ConsumerGroupProperties.EventHubPath)
+	d.Set("user_metadata", resp.ConsumerGroupProperties.UserMetadata)
 
 	return nil
 }
