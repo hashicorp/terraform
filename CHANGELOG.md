@@ -6,6 +6,10 @@ IMPROVEMENTS:
  * provider/archive: `archive_file` now exports `output_md5` attribute in addition to existing SHA1 and Base64 SHA256 hashes. [GH-10851]
  * provider/pagerduty Add delete support to pagerduty_service_integration [GH-10891]
 
+BUG FIXES:
+
+ * provider/aws: `storage_class` is now correctly treated as optional when configuring replication for `aws_s3_bucket` resources. [GH-10921]
+
 
 ## 0.8.2 (December 21, 2016)
 
