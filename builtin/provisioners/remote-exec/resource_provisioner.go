@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -68,7 +69,7 @@ func applyFn(ctx context.Context) error {
 	}
 
 	// Copy and execute each script
-	if err := runScripts(o, comm, scripts); err != nil {
+	if err := runScripts(ctx, o, comm, scripts); err != nil {
 		return err
 	}
 
@@ -133,18 +134,29 @@ func collectScripts(d *schema.ResourceData) ([]io.ReadCloser, error) {
 
 // runScripts is used to copy and execute a set of scripts
 func runScripts(
+	ctx context.Context,
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	scripts []io.ReadCloser) error {
+	// Wrap out context in a cancelation function that we use to
+	// kill the connection.
+	ctx, cancelFunc := context.WithCancel(ctx)
+	defer cancelFunc()
+
+	// Wait for the context to end and then disconnect
+	go func() {
+		<-ctx.Done()
+		comm.Disconnect()
+	}()
+
 	// Wait and retry until we establish the connection
-	err := retryFunc(comm.Timeout(), func() error {
+	err := retryFunc(ctx, comm.Timeout(), func() error {
 		err := comm.Connect(o)
 		return err
 	})
 	if err != nil {
 		return err
 	}
-	defer comm.Disconnect()
 
 	for _, script := range scripts {
 		var cmd *remote.Cmd
@@ -156,7 +168,7 @@ func runScripts(
 		go copyOutput(o, errR, errDoneCh)
 
 		remotePath := comm.ScriptPath()
-		err = retryFunc(comm.Timeout(), func() error {
+		err = retryFunc(ctx, comm.Timeout(), func() error {
 			if err := comm.UploadScript(remotePath, script); err != nil {
 				return fmt.Errorf("Failed to upload script: %v", err)
 			}
@@ -177,6 +189,13 @@ func runScripts(
 			if cmd.ExitStatus != 0 {
 				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
 			}
+		}
+
+		// If we have an error, end our context so the disconnect happens.
+		// This has to happen before the output cleanup below since during
+		// an interrupt this will cause the outputs to end.
+		if err != nil {
+			cancelFunc()
 		}
 
 		// Wait for output to clean up
@@ -212,19 +231,54 @@ func copyOutput(
 }
 
 // retryFunc is used to retry a function for a given duration
-func retryFunc(timeout time.Duration, f func() error) error {
-	finish := time.After(timeout)
-	for {
-		err := f()
-		if err == nil {
-			return nil
-		}
-		log.Printf("Retryable error: %v", err)
+func retryFunc(ctx context.Context, timeout time.Duration, f func() error) error {
+	// Build a new context with the timeout
+	ctx, done := context.WithTimeout(ctx, timeout)
+	defer done()
 
-		select {
-		case <-finish:
-			return err
-		case <-time.After(3 * time.Second):
+	// Try the function in a goroutine
+	var errVal atomic.Value
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+
+		for {
+			// If our context ended, we want to exit right away.
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			// Try the function call
+			err := f()
+			if err == nil {
+				return
+			}
+
+			log.Printf("Retryable error: %v", err)
+			errVal.Store(err)
 		}
+	}()
+
+	// Wait for completion
+	select {
+	case <-doneCh:
+	case <-ctx.Done():
 	}
+
+	// Check if we have a context error to check if we're interrupted or timeout
+	switch ctx.Err() {
+	case context.Canceled:
+		return fmt.Errorf("interrupted")
+	case context.DeadlineExceeded:
+		return fmt.Errorf("timeout")
+	}
+
+	// Check if we got an error executing
+	if err, ok := errVal.Load().(error); ok {
+		return err
+	}
+
+	return nil
 }
