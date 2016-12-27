@@ -47,7 +47,7 @@ func resourcePostgreSQLDatabase() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Computed:    true,
-				Description: "The ROLE name who owns the database",
+				Description: "The ROLE which owns the database",
 			},
 			dbTemplateAttr: {
 				Type:        schema.TypeString,

@@ -8,7 +8,7 @@ description: |-
 
 # postgresql\_schema
 
-The ``postgresql_schema`` resource creates and manages a [schema
+The ``postgresql_schema`` resource creates and manages [schema
 objects](https://www.postgresql.org/docs/current/static/ddl-schemas.html) within
 a PostgreSQL database.
 
