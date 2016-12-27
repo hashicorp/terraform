@@ -632,10 +632,14 @@ func (c *Context) Refresh() (*State, error) {
 //
 // Stop will block until the task completes.
 func (c *Context) Stop() {
+	log.Printf("[WARN] terraform: Stop called, initiating interrupt sequence")
+
 	c.l.Lock()
 
 	// If we're running, then stop
 	if c.runContextCancel != nil {
+		log.Printf("[WARN] terraform: run context exists, stopping")
+
 		// Tell the hook we want to stop
 		c.sh.Stop()
 
@@ -652,8 +656,11 @@ func (c *Context) Stop() {
 
 	// Wait if we have a context
 	if ctx != nil {
+		log.Printf("[WARN] terraform: stop waiting for context completion")
 		<-ctx.Done()
 	}
+
+	log.Printf("[WARN] terraform: stop complete")
 }
 
 // Validate validates the configuration and returns any warnings or errors.
