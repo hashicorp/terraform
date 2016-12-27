@@ -202,7 +202,6 @@ The following arguments are supported:
 `diagnostics_profile` supports the following:
 
 * `enabled` - (Required) Should VM Diagnostics be enabled for the Container Service VM's
-* `storage_uri` - (Computed) The URI for the Storage Account to store Diagnostic Data.
 
 ## Attributes Reference
 

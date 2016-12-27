@@ -173,7 +173,6 @@ func resourceArmContainerService() *schema.Resource {
 
 						"storage_uri": {
 							Type:     schema.TypeString,
-							Optional: true,
 							Computed: true,
 						},
 					},
@@ -444,16 +443,11 @@ func expandAzureRmContainerServiceDiagnostics(d *schema.ResourceData) (container
 		data := configRaw.(map[string]interface{})
 
 		enabled := data["enabled"].(bool)
-		storage_uri := data["storage_uri"].(string)
 
 		profile = containerservice.DiagnosticsProfile{
 			VMDiagnostics: &containerservice.VMDiagnostics{
 				Enabled: &enabled,
 			},
-		}
-
-		if storage_uri != "" {
-			profile.VMDiagnostics.StorageURI = &storage_uri
 		}
 	}
 
@@ -646,12 +640,8 @@ func resourceAzureRMContainerServiceDiagnosticProfilesHash(v interface{}) int {
 	m := v.(map[string]interface{})
 
 	enabled := m["enabled"].(*bool)
-	storage_uri := m["storage_uri"].(*string)
 
 	buf.WriteString(fmt.Sprintf("%t", *enabled))
-	if storage_uri != nil {
-		buf.WriteString(fmt.Sprintf("%s-", *storage_uri))
-	}
 
 	return hashcode.String(buf.String())
 }
