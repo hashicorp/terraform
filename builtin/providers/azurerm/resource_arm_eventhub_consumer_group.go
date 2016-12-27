@@ -7,15 +7,14 @@ import (
 	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func resourceArmEventHubConsumerGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceArmEventHubConsumerGroupCreate,
+		Create: resourceArmEventHubConsumerGroupCreateUpdate,
 		Read:   resourceArmEventHubConsumerGroupRead,
-		Update: resourceArmEventHubConsumerGroupCreate,
+		Update: resourceArmEventHubConsumerGroupCreateUpdate,
 		Delete: resourceArmEventHubConsumerGroupDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -65,7 +64,7 @@ func resourceArmEventHubConsumerGroup() *schema.Resource {
 	}
 }
 
-func resourceArmEventHubConsumerGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceArmEventHubConsumerGroupCreateUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	eventhubClient := client.eventHubConsumerGroupClient
 	log.Printf("[INFO] preparing arguments for Azure ARM EventHub Consumer Group creation.")
@@ -87,15 +86,12 @@ func resourceArmEventHubConsumerGroupCreate(d *schema.ResourceData, meta interfa
 		},
 	}
 
-	resp, err := eventhubClient.CreateOrUpdate(resGroup, namespaceName, eventHubName, name, parameters)
+	_, err := eventhubClient.CreateOrUpdate(resGroup, namespaceName, eventHubName, name, parameters)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("CREATE: %s", spew.Sdump(resp))
-
 	read, err := eventhubClient.Get(resGroup, namespaceName, eventHubName, name)
-	log.Printf("READ %s", spew.Sdump(read))
 
 	if err != nil {
 		return err
@@ -107,7 +103,7 @@ func resourceArmEventHubConsumerGroupCreate(d *schema.ResourceData, meta interfa
 
 	d.SetId(*read.ID)
 
-	return resourceArmEventHubRead(d, meta)
+	return resourceArmEventHubConsumerGroupRead(d, meta)
 }
 
 func resourceArmEventHubConsumerGroupRead(d *schema.ResourceData, meta interface{}) error {
@@ -130,8 +126,6 @@ func resourceArmEventHubConsumerGroupRead(d *schema.ResourceData, meta interface
 		d.SetId("")
 		return nil
 	}
-
-	log.Printf("API Response %s", spew.Sdump(resp))
 
 	d.Set("name", name)
 	d.Set("eventhub_name", eventHubName)
