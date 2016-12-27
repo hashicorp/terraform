@@ -34,6 +34,7 @@ func resourcePostgreSQLSchema() *schema.Resource {
 		Read:   resourcePostgreSQLSchemaRead,
 		Update: resourcePostgreSQLSchemaUpdate,
 		Delete: resourcePostgreSQLSchemaDelete,
+		Exists: resourcePostgreSQLSchemaExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -105,6 +106,8 @@ func resourcePostgreSQLSchema() *schema.Resource {
 }
 
 func resourcePostgreSQLSchemaCreate(d *schema.ResourceData, meta interface{}) error {
+	c := meta.(*Client)
+
 	queries := []string{}
 
 	schemaName := d.Get(schemaNameAttr).(string)
@@ -150,7 +153,9 @@ func resourcePostgreSQLSchemaCreate(d *schema.ResourceData, meta interface{}) er
 		queries = append(queries, policy.Grants(schemaName)...)
 	}
 
-	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return errwrap.Wrapf("Error connecting to PostgreSQL: {{err}}", err)
@@ -176,12 +181,15 @@ func resourcePostgreSQLSchemaCreate(d *schema.ResourceData, meta interface{}) er
 
 	d.SetId(schemaName)
 
-	return resourcePostgreSQLSchemaRead(d, meta)
+	return resourcePostgreSQLSchemaReadImpl(d, meta)
 }
 
 func resourcePostgreSQLSchemaDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Client)
-	conn, err := client.Connect()
+	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
+	conn, err := c.Connect()
 	if err != nil {
 		return err
 	}
@@ -211,7 +219,38 @@ func resourcePostgreSQLSchemaDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
+func resourcePostgreSQLSchemaExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	conn, err := c.Connect()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
+	var schemaName string
+	err = conn.QueryRow("SELECT n.nspname FROM pg_catalog.pg_namespace n WHERE n.nspname=$1", d.Id()).Scan(&schemaName)
+	switch {
+	case err == sql.ErrNoRows:
+		return false, nil
+	case err != nil:
+		return false, errwrap.Wrapf("Error reading schema: {{err}}", err)
+	}
+
+	return true, nil
+}
+
 func resourcePostgreSQLSchemaRead(d *schema.ResourceData, meta interface{}) error {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	return resourcePostgreSQLSchemaReadImpl(d, meta)
+}
+
+func resourcePostgreSQLSchemaReadImpl(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
 	conn, err := c.Connect()
 	if err != nil {
@@ -263,6 +302,9 @@ func resourcePostgreSQLSchemaRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourcePostgreSQLSchemaUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return err
@@ -291,7 +333,7 @@ func resourcePostgreSQLSchemaUpdate(d *schema.ResourceData, meta interface{}) er
 		return errwrap.Wrapf("Error committing schema: {{err}}", err)
 	}
 
-	return resourcePostgreSQLSchemaRead(d, meta)
+	return resourcePostgreSQLSchemaReadImpl(d, meta)
 }
 
 func setSchemaName(txn *sql.Tx, d *schema.ResourceData) error {
