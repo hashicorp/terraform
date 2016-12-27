@@ -580,7 +580,7 @@ func resourceAzureRMContainerServiceMasterProfileHash(v interface{}) int {
 	dnsPrefix := m["dns_prefix"].(*string)
 
 	buf.WriteString(fmt.Sprintf("%d-", count))
-	buf.WriteString(fmt.Sprintf("%s-", dnsPrefix))
+	buf.WriteString(fmt.Sprintf("%s-", *dnsPrefix))
 
 	return hashcode.String(buf.String())
 }
@@ -591,8 +591,7 @@ func resourceAzureRMContainerServiceLinuxProfilesHash(v interface{}) int {
 
 	adminUsername := m["admin_username"].(*string)
 
-	buf.WriteString(fmt.Sprintf("%s-", adminUsername))
-	// TODO: SSH Keys
+	buf.WriteString(fmt.Sprintf("%s-", *adminUsername))
 
 	return hashcode.String(buf.String())
 }
@@ -603,7 +602,7 @@ func resourceAzureRMContainerServiceLinuxProfilesSSHKeysHash(v interface{}) int 
 
 	keyData := m["key_data"].(*string)
 
-	buf.WriteString(fmt.Sprintf("%s-", keyData))
+	buf.WriteString(fmt.Sprintf("%s-", *keyData))
 
 	return hashcode.String(buf.String())
 }
@@ -619,9 +618,9 @@ func resourceAzureRMContainerServiceAgentPoolProfilesHash(v interface{}) int {
 	vm_size := m["vm_size"].(string)
 
 	buf.WriteString(fmt.Sprintf("%d-", count))
-	buf.WriteString(fmt.Sprintf("%s-", dnsPrefix))
-	buf.WriteString(fmt.Sprintf("%s-", fqdn))
-	buf.WriteString(fmt.Sprintf("%s-", name))
+	buf.WriteString(fmt.Sprintf("%s-", *dnsPrefix))
+	buf.WriteString(fmt.Sprintf("%s-", *fqdn))
+	buf.WriteString(fmt.Sprintf("%s-", *name))
 	buf.WriteString(fmt.Sprintf("%s-", vm_size))
 
 	return hashcode.String(buf.String())
@@ -634,8 +633,10 @@ func resourceAzureRMContainerServiceServicePrincipalProfileHash(v interface{}) i
 	clientId := m["client_id"].(*string)
 	clientSecret := m["client_secret"].(*string)
 
-	buf.WriteString(fmt.Sprintf("%s-", clientId))
-	buf.WriteString(fmt.Sprintf("%s-", clientSecret))
+	buf.WriteString(fmt.Sprintf("%s-", *clientId))
+	if clientSecret != nil {
+		buf.WriteString(fmt.Sprintf("%s-", *clientSecret))
+	}
 
 	return hashcode.String(buf.String())
 }
@@ -647,9 +648,9 @@ func resourceAzureRMContainerServiceDiagnosticProfilesHash(v interface{}) int {
 	enabled := m["enabled"].(*bool)
 	storage_uri := m["storage_uri"].(*string)
 
-	buf.WriteString(fmt.Sprintf("%t", enabled))
+	buf.WriteString(fmt.Sprintf("%t", *enabled))
 	if storage_uri != nil {
-		buf.WriteString(fmt.Sprintf("%s-", storage_uri))
+		buf.WriteString(fmt.Sprintf("%s-", *storage_uri))
 	}
 
 	return hashcode.String(buf.String())
