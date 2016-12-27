@@ -374,7 +374,7 @@ func resourcePostgreSQLRoleReadImpl(d *schema.ResourceData, meta interface{}) er
 	err = conn.QueryRow("SELECT COALESCE(passwd, '') FROM pg_catalog.pg_shadow AS s WHERE s.usename = $1", roleId).Scan(&rolePassword)
 	switch {
 	case err == sql.ErrNoRows:
-		return fmt.Errorf("PostgreSQL role (%s) not found in shadow database: {{err}}", roleId)
+		return errwrap.Wrapf(fmt.Errorf("PostgreSQL role (%s) not found in shadow database: {{err}}", roleId), err)
 	case err != nil:
 		return errwrap.Wrapf("Error reading role: {{err}}", err)
 	default:
