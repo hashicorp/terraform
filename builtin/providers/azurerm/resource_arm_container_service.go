@@ -89,11 +89,12 @@ func resourceArmContainerService() *schema.Resource {
 						"ssh_key": {
 							Type:     schema.TypeList,
 							Required: true,
+							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"key_data": {
 										Type:     schema.TypeString,
-										Optional: true,
+										Required: true,
 									},
 								},
 							},
