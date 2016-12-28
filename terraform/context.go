@@ -93,6 +93,7 @@ type Context struct {
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
 	runLock             sync.Mutex
+	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
 	shadowErr           error
@@ -648,16 +649,10 @@ func (c *Context) Stop() {
 		c.runContextCancel = nil
 	}
 
-	// Grab the context before we unlock
-	ctx := c.runContext
-
-	// Unlock
-	c.l.Unlock()
-
-	// Wait if we have a context
-	if ctx != nil {
-		log.Printf("[WARN] terraform: stop waiting for context completion")
-		<-ctx.Done()
+	// Grab the condition var before we exit
+	if cond := c.runCond; cond != nil {
+		cond.Wait()
+		c.l.Unlock()
 	}
 
 	log.Printf("[WARN] terraform: stop complete")
@@ -727,22 +722,21 @@ func (c *Context) SetVariable(k string, v interface{}) {
 }
 
 func (c *Context) acquireRun(phase string) func() {
-	// Acquire the runlock first. This is the lock that is held for
-	// the duration of a run to prevent multiple runs.
-	c.runLock.Lock()
-
 	// With the run lock held, grab the context lock to make changes
 	// to the run context.
 	c.l.Lock()
 	defer c.l.Unlock()
 
+	// Wait until we're no longer running
+	for c.runCond != nil {
+		c.runCond.Wait()
+	}
+
+	// Build our lock
+	c.runCond = sync.NewCond(&c.l)
+
 	// Setup debugging
 	dbug.SetPhase(phase)
-
-	// runContext should never be non-nil, check that here
-	if c.runContext != nil {
-		panic("acquireRun called with runContext != nil")
-	}
 
 	// Create a new run context
 	c.runContext, c.runContextCancel = context.WithCancel(context.Background())
@@ -772,11 +766,13 @@ func (c *Context) releaseRun() {
 		c.runContextCancel()
 	}
 
+	// Unlock all waiting our condition
+	cond := c.runCond
+	c.runCond = nil
+	cond.Broadcast()
+
 	// Unset the context
 	c.runContext = nil
-
-	// Unlock the run lock
-	c.runLock.Unlock()
 }
 
 func (c *Context) walk(
