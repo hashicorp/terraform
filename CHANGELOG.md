@@ -1,5 +1,9 @@
 ## 0.8.3 (unreleased)
 
+FEATURES:
+
+ * **New Resource:**  `azurerm_eventhub_consumer_group` [GH-9902]
+
 
 IMPROVEMENTS:
  
