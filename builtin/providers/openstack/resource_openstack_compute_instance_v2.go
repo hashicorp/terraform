@@ -21,6 +21,8 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -333,6 +335,11 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
+
 	var createOpts servers.CreateOptsBuilder
 
 	// Determines the Image ID using the following rules:
@@ -362,10 +369,12 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 	// Build a list of networks with the information given upon creation.
 	// Error out if an invalid network configuration was used.
-	networkDetails, err := getInstanceNetworks(computeClient, d)
+	networkDetails, err := getInstanceNetworks(computeClient, networkingClient, d)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("[DEBUG] networkDetails: %+v", networkDetails)
 
 	networks := make([]servers.Network, len(networkDetails))
 	for i, net := range networkDetails {
@@ -464,7 +473,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 	// Now that the instance has been created, we need to do an early read on the
 	// networks in order to associate floating IPs
-	_, err = getInstanceNetworksAndAddresses(computeClient, d)
+	_, err = getInstanceNetworksAndAddresses(computeClient, networkingClient, d)
 
 	// If floating IPs were specified, associate them after the instance has launched.
 	err = associateFloatingIPsToInstance(computeClient, d)
@@ -494,6 +503,11 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
+
 	server, err := servers.Get(computeClient, d.Id()).Extract()
 	if err != nil {
 		return CheckDeleted(d, err, "server")
@@ -504,7 +518,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("name", server.Name)
 
 	// Get the instance network and address information
-	networks, err := getInstanceNetworksAndAddresses(computeClient, d)
+	networks, err := getInstanceNetworksAndAddresses(computeClient, networkingClient, d)
 	if err != nil {
 		return err
 	}
@@ -896,14 +910,14 @@ func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
 
 // getInstanceNetworks collects instance network information from different sources
 // and aggregates it all together.
-func getInstanceNetworksAndAddresses(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) ([]map[string]interface{}, error) {
+func getInstanceNetworksAndAddresses(computeClient *gophercloud.ServiceClient, networkingClient *gophercloud.ServiceClient, d *schema.ResourceData) ([]map[string]interface{}, error) {
 	server, err := servers.Get(computeClient, d.Id()).Extract()
 
 	if err != nil {
 		return nil, CheckDeleted(d, err, "server")
 	}
 
-	networkDetails, err := getInstanceNetworks(computeClient, d)
+	networkDetails, err := getInstanceNetworks(computeClient, networkingClient, d)
 	addresses := getInstanceAddresses(server.Addresses)
 	if err != nil {
 		return nil, err
@@ -950,7 +964,7 @@ func getInstanceNetworksAndAddresses(computeClient *gophercloud.ServiceClient, d
 	return networks, nil
 }
 
-func getInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) ([]map[string]interface{}, error) {
+func getInstanceNetworks(computeClient *gophercloud.ServiceClient, networkingClient *gophercloud.ServiceClient, d *schema.ResourceData) ([]map[string]interface{}, error) {
 	rawNetworks := d.Get("network").([]interface{})
 	newNetworks := make([]map[string]interface{}, 0, len(rawNetworks))
 	var tenantnet tenantnetworks.Network
@@ -1006,6 +1020,22 @@ func getInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.Res
 		} else {
 			networkID = rawMap["uuid"].(string)
 			networkName = rawMap["name"].(string)
+		}
+
+		if rawMap["uuid"].(string) == "" && rawMap["port"].(string) != "" {
+			port, err := ports.Get(networkingClient, rawMap["port"].(string)).Extract()
+			if err != nil {
+				return nil, err
+			}
+
+			network, err := networks.Get(networkingClient, port.NetworkID).Extract()
+			if err != nil {
+				return nil, err
+			}
+
+			networkID = network.ID
+			networkName = network.Name
+
 		}
 
 		newNetworks = append(newNetworks, map[string]interface{}{
