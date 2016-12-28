@@ -1982,9 +1982,11 @@
 			"revision": "0826b98aaa29c0766956cb40d45cf7482a597671"
 		},
 		{
+			"checksumSHA1": "dNYxHiBLalTqluak2/Z8c3RsSEM=",
 			"comment": "go1.0-cutoff-74-g8ad2b29",
 			"path": "github.com/lib/pq",
-			"revision": "8ad2b298cadd691a77015666a5372eae5dbfac8f"
+			"revision": "50761b0867bd1d9d069276790bcd4a3bccf2324a",
+			"revisionTime": "2016-08-31T22:25:20Z"
 		},
 		{
 			"comment": "go1.0-cutoff-74-g8ad2b29",
@@ -2267,6 +2269,12 @@
 			"path": "github.com/scaleway/scaleway-cli/pkg/scwversion",
 			"revision": "88132ecdd39da62f7c73c5a8e1a383d7da5e0e09",
 			"revisionTime": "2016-10-27T15:40:24Z"
+		},
+		{
+			"checksumSHA1": "tEKRyau4iRjmq2iwJbduD9RhN5s=",
+			"path": "github.com/sean-/postgresql-acl",
+			"revision": "d10489e5d217ebe9c23470c4d0ba7081a6d1e799",
+			"revisionTime": "2016-12-25T12:04:19Z"
 		},
 		{
 			"checksumSHA1": "BqtlwAjgFuHsVVdnw+dGSe+CKLM=",
