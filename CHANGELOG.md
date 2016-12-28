@@ -12,6 +12,7 @@ BUG FIXES:
  * provider/aws: `storage_class` is now correctly treated as optional when configuring replication for `aws_s3_bucket` resources. [GH-10921]
  * provider/aws: `user_data` on `aws_launch_configuration` resources is only base 64 encoded if the value provided is not already base 64 encoded. [GH-10871]
  * provider/aws: Reworked validateArn function to handle empty values [GH-10833]
+ * provider/openstack: Handle PENDING_UPDATE status with LBaaS v2 members [GH-10875]
 
 
 ## 0.8.2 (December 21, 2016)
