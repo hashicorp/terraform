@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"sync"
+	"unicode"
 
+	"github.com/hashicorp/errwrap"
 	_ "github.com/lib/pq" //PostgreSQL db
 )
 
@@ -26,6 +29,13 @@ type Config struct {
 type Client struct {
 	username string
 	connStr  string
+
+	// PostgreSQL lock on pg_catalog.  Many of the operations that Terraform
+	// performs are not permitted to be concurrent.  Unlike traditional
+	// PostgreSQL tables that use MVCC, many of the PostgreSQL system
+	// catalogs look like tables, but are not in-fact able to be
+	// concurrently updated.
+	catalogLock sync.RWMutex
 }
 
 // NewClient returns new client config
@@ -38,7 +48,12 @@ func (c *Config) NewClient() (*Client, error) {
 	q := func(s string) string {
 		b := bytes.NewBufferString(`'`)
 		b.Grow(len(s) + 2)
+		var haveWhitespace bool
 		for _, r := range s {
+			if unicode.IsSpace(r) {
+				haveWhitespace = true
+			}
+
 			switch r {
 			case '\'':
 				b.WriteString(`\'`)
@@ -50,7 +65,12 @@ func (c *Config) NewClient() (*Client, error) {
 		}
 
 		b.WriteString(`'`)
-		return b.String()
+
+		str := b.String()
+		if haveWhitespace || len(str) == 2 {
+			return str
+		}
+		return str[1 : len(str)-1]
 	}
 
 	logDSN := fmt.Sprintf(dsnFmt, q(c.Host), c.Port, q(c.Database), q(c.Username), q("<redacted>"), q(c.SSLMode), q(c.ApplicationName), c.ConnectTimeoutSec)
@@ -70,7 +90,7 @@ func (c *Config) NewClient() (*Client, error) {
 func (c *Client) Connect() (*sql.DB, error) {
 	db, err := sql.Open("postgres", c.connStr)
 	if err != nil {
-		return nil, fmt.Errorf("Error connecting to PostgreSQL server: %s", err)
+		return nil, errwrap.Wrapf("Error connecting to PostgreSQL server: {{err}}", err)
 	}
 
 	return db, nil
