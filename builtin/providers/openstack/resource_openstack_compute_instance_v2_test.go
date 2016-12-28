@@ -74,7 +74,7 @@ func TestAccComputeV2Instance_volumeAttach(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeAttach,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.myvol", &volume),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.myvol", &volume),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume),
 				),
@@ -121,7 +121,7 @@ func TestAccComputeV2Instance_volumeAttachPostCreation(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeAttachPostCreationInstanceAndVolume,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.myvol", &volume),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.myvol", &volume),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume),
 				),
@@ -167,7 +167,7 @@ func TestAccComputeV2Instance_volumeDetachPostCreation(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeDetachPostCreationInstanceAndVolume,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.myvol", &volume),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.myvol", &volume),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume),
 				),
@@ -175,7 +175,7 @@ func TestAccComputeV2Instance_volumeDetachPostCreation(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeDetachPostCreationInstance,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.myvol", &volume),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.myvol", &volume),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumesDetached(&instance),
 				),
@@ -255,8 +255,8 @@ func TestAccComputeV2Instance_volumeDetachAdditionalVolumePostCreation(t *testin
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeDetachAdditionalVolumePostCreationInstanceAndVolume,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume_1),
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume_2),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.root_volume", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.additional_volume", &volume_2),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_1),
 					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_2),
@@ -265,8 +265,8 @@ func TestAccComputeV2Instance_volumeDetachAdditionalVolumePostCreation(t *testin
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeDetachPostCreationInstance,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume_1),
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume_2),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.root_volume", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.additional_volume", &volume_2),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_1),
 					testAccCheckComputeV2InstanceVolumeDetached(&instance, "openstack_blockstorage_volume_v1.additional_volume"),
@@ -332,8 +332,8 @@ func TestAccComputeV2Instance_volumeAttachInstanceDelete(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeAttachInstanceDelete_1,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume_1),
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume_2),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.root_volume", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.additional_volume", &volume_2),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_1),
 					testAccCheckComputeV2InstanceVolumeAttachment(&instance, &volume_2),
@@ -342,8 +342,8 @@ func TestAccComputeV2Instance_volumeAttachInstanceDelete(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeAttachInstanceDelete_2,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.root_volume", &volume_1),
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.additional_volume", &volume_2),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.root_volume", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.additional_volume", &volume_2),
 					testAccCheckComputeV2InstanceDoesNotExist(t, "openstack_compute_instance_v2.foo", &instance),
 					testAccCheckComputeV2InstanceVolumeDetached(&instance, "openstack_blockstorage_volume_v1.root_volume"),
 					testAccCheckComputeV2InstanceVolumeDetached(&instance, "openstack_blockstorage_volume_v1.additional_volume"),
@@ -408,7 +408,7 @@ func TestAccComputeV2Instance_volumeAttachToNewInstance(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeAttachToNewInstance_1,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.volume_1", &volume_1),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_2", &instance_2),
 					testAccCheckComputeV2InstanceVolumeAttachment(&instance_1, &volume_1),
@@ -418,7 +418,7 @@ func TestAccComputeV2Instance_volumeAttachToNewInstance(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeV2Instance_volumeAttachToNewInstance_2,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.volume_1", &volume_1),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_2", &instance_2),
 					testAccCheckComputeV2InstanceVolumeDetached(&instance_1, "openstack_blockstorage_volume_v1.volume_1"),
@@ -933,7 +933,7 @@ func TestAccComputeV2Instance_blockDeviceExistingVolume(t *testing.T) {
 				Config: testAccComputeV2Instance_blockDeviceExistingVolume,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.instance_1", &instance_1),
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume_1),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.volume_1", &volume_1),
 				),
 			},
 		},

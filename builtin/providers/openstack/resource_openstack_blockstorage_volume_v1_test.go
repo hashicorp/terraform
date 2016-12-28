@@ -2,7 +2,6 @@ package openstack
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -15,15 +14,6 @@ import (
 func TestAccBlockStorageV1Volume_basic(t *testing.T) {
 	var volume volumes.Volume
 
-	var testAccBlockStorageV1Volume_bootable = fmt.Sprintf(`
-		resource "openstack_blockstorage_volume_v1" "volume_1" {
-			region = "%s"
-			name = "tf-test-volume-bootable"
-			size = 5
-			image_id = "%s"
-		}`,
-		os.Getenv("OS_REGION_NAME"), os.Getenv("OS_IMAGE_ID"))
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -32,22 +22,39 @@ func TestAccBlockStorageV1Volume_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccBlockStorageV1Volume_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckBlockStorageV1VolumeExists(t, "openstack_blockstorage_volume_v1.volume_1", &volume),
-					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume"),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.volume_1", &volume),
 					testAccCheckBlockStorageV1VolumeMetadata(&volume, "foo", "bar"),
+					resource.TestCheckResourceAttr(
+						"openstack_blockstorage_volume_v1.volume_1", "name", "volume_1"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccBlockStorageV1Volume_update,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume-updated"),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.volume_1", &volume),
 					testAccCheckBlockStorageV1VolumeMetadata(&volume, "foo", "bar"),
+					resource.TestCheckResourceAttr(
+						"openstack_blockstorage_volume_v1.volume_1", "name", "volume_1-updated"),
 				),
 			},
+		},
+	})
+}
+
+func TestAccBlockStorageV1Volume_image(t *testing.T) {
+	var volume volumes.Volume
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBlockStorageV1VolumeDestroy,
+		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccBlockStorageV1Volume_bootable,
+				Config: testAccBlockStorageV1Volume_image,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_blockstorage_volume_v1.volume_1", "name", "tf-test-volume-bootable"),
+					testAccCheckBlockStorageV1VolumeExists("openstack_blockstorage_volume_v1.volume_1", &volume),
+					resource.TestCheckResourceAttr(
+						"openstack_blockstorage_volume_v1.volume_1", "name", "volume_1"),
 				),
 			},
 		},
@@ -75,7 +82,7 @@ func testAccCheckBlockStorageV1VolumeDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckBlockStorageV1VolumeExists(t *testing.T, n string, volume *volumes.Volume) resource.TestCheckFunc {
+func testAccCheckBlockStorageV1VolumeExists(n string, volume *volumes.Volume) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -151,22 +158,32 @@ func testAccCheckBlockStorageV1VolumeMetadata(
 	}
 }
 
-var testAccBlockStorageV1Volume_basic = fmt.Sprintf(`
-	resource "openstack_blockstorage_volume_v1" "volume_1" {
-		name = "tf-test-volume"
-		description = "first test volume"
-		metadata{
-			foo = "bar"
-		}
-		size = 1
-	}`)
+const testAccBlockStorageV1Volume_basic = `
+resource "openstack_blockstorage_volume_v1" "volume_1" {
+  name = "volume_1"
+  description = "first test volume"
+  metadata{
+    foo = "bar"
+  }
+  size = 1
+}
+`
 
-var testAccBlockStorageV1Volume_update = fmt.Sprintf(`
-	resource "openstack_blockstorage_volume_v1" "volume_1" {
-		name = "tf-test-volume-updated"
-		description = "first test volume"
-		metadata{
-			foo = "bar"
-		}
-		size = 1
-	}`)
+const testAccBlockStorageV1Volume_update = `
+resource "openstack_blockstorage_volume_v1" "volume_1" {
+  name = "volume_1-updated"
+  description = "first test volume"
+  metadata{
+    foo = "bar"
+  }
+  size = 1
+}
+`
+
+var testAccBlockStorageV1Volume_image = fmt.Sprintf(`
+resource "openstack_blockstorage_volume_v1" "volume_1" {
+  name = "volume_1"
+  size = 5
+  image_id = "%s"
+}
+`, OS_IMAGE_ID)
