@@ -14069,6 +14069,9 @@ type UpdateInstanceInput struct {
 
 	// The instance's Amazon EC2 key name.
 	SshKeyName *string `type:"string"`
+
+	// The instance's placement tenancy.
+	Tenancy *string `type:"string"`
 }
 
 // String returns the string representation
