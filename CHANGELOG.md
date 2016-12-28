@@ -18,6 +18,7 @@ BUG FIXES:
  * provider/aws: `user_data` on `aws_launch_configuration` resources is only base 64 encoded if the value provided is not already base 64 encoded. [GH-10871]
  * provider/aws: Reworked validateArn function to handle empty values [GH-10833]
  * provider/aws: Guard against nil change output in route53_zone that causes panic [GH-10798]
+ * provider/aws: Set aws_autoscaling_policy metric_aggregation_type to be Computed [GH-10904]
  * provider/openstack: Handle PENDING_UPDATE status with LBaaS v2 members [GH-10875]
 
 
