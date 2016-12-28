@@ -63,8 +63,9 @@ type ArmClient struct {
 	cdnProfilesClient  cdn.ProfilesClient
 	cdnEndpointsClient cdn.EndpointsClient
 
-	eventHubClient           eventhub.EventHubsClient
-	eventHubNamespacesClient eventhub.NamespacesClient
+	eventHubClient              eventhub.EventHubsClient
+	eventHubConsumerGroupClient eventhub.ConsumerGroupsClient
+	eventHubNamespacesClient    eventhub.NamespacesClient
 
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
@@ -225,6 +226,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	ehc.Authorizer = spt
 	ehc.Sender = autorest.CreateSender(withRequestLogging())
 	client.eventHubClient = ehc
+
+	chcgc := eventhub.NewConsumerGroupsClient(c.SubscriptionID)
+	setUserAgent(&chcgc.Client)
+	chcgc.Authorizer = spt
+	chcgc.Sender = autorest.CreateSender(withRequestLogging())
+	client.eventHubConsumerGroupClient = chcgc
 
 	ehnc := eventhub.NewNamespacesClient(c.SubscriptionID)
 	setUserAgent(&ehnc.Client)
