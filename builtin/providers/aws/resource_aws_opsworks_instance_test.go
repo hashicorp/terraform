@@ -45,6 +45,9 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 						"aws_opsworks_instance.tf-acc", "architecture", "x86_64",
 					),
 					resource.TestCheckResourceAttr(
+						"aws_opsworks_instance.tf-acc", "tenancy", "default",
+					),
+					resource.TestCheckResourceAttr(
 						"aws_opsworks_instance.tf-acc", "os", "Amazon Linux 2014.09", // inherited from opsworks_stack_test
 					),
 					resource.TestCheckResourceAttr(
@@ -72,6 +75,9 @@ func TestAccAWSOpsworksInstance(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(
 						"aws_opsworks_instance.tf-acc", "os", "Amazon Linux 2015.09",
+					),
+					resource.TestCheckResourceAttr(
+						"aws_opsworks_instance.tf-acc", "tenancy", "default",
 					),
 				),
 			},
@@ -124,6 +130,9 @@ func testAccCheckAWSOpsworksInstanceAttributes(
 		}
 		if *opsinst.Architecture != "x86_64" {
 			return fmt.Errorf("Unexpected architecture: %s", *opsinst.Architecture)
+		}
+		if *opsinst.Tenancy != "default" {
+			return fmt.Errorf("Unexpected tenancy: %s", *opsinst.Tenancy)
 		}
 		if *opsinst.InfrastructureClass != "ec2" {
 			return fmt.Errorf("Unexpected infrastructure class: %s", *opsinst.InfrastructureClass)
