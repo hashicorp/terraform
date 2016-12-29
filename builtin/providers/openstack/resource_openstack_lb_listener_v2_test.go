@@ -20,14 +20,16 @@ func TestAccLBV2Listener_basic(t *testing.T) {
 			resource.TestStep{
 				Config: TestAccLBV2ListenerConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckLBV2ListenerExists(t, "openstack_lb_listener_v2.listener_1", &listener),
+					testAccCheckLBV2ListenerExists("openstack_lb_listener_v2.listener_1", &listener),
 				),
 			},
 			resource.TestStep{
 				Config: TestAccLBV2ListenerConfig_update,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_lb_listener_v2.listener_1", "name", "tf_test_listener_updated"),
-					resource.TestCheckResourceAttr("openstack_lb_listener_v2.listener_1", "connection_limit", "100"),
+					resource.TestCheckResourceAttr(
+						"openstack_lb_listener_v2.listener_1", "name", "listener_1_updated"),
+					resource.TestCheckResourceAttr(
+						"openstack_lb_listener_v2.listener_1", "connection_limit", "100"),
 				),
 			},
 		},
@@ -38,7 +40,7 @@ func testAccCheckLBV2ListenerDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckLBV2ListenerDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -55,7 +57,7 @@ func testAccCheckLBV2ListenerDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckLBV2ListenerExists(t *testing.T, n string, listener *listeners.Listener) resource.TestCheckFunc {
+func testAccCheckLBV2ListenerExists(n string, listener *listeners.Listener) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -69,7 +71,7 @@ func testAccCheckLBV2ListenerExists(t *testing.T, n string, listener *listeners.
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckLBV2ListenerExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 		}
 
 		found, err := listeners.Get(networkingClient, rs.Primary.ID).Extract()
@@ -87,56 +89,56 @@ func testAccCheckLBV2ListenerExists(t *testing.T, n string, listener *listeners.
 	}
 }
 
-var TestAccLBV2ListenerConfig_basic = fmt.Sprintf(`
-	resource "openstack_networking_network_v2" "network_1" {
-		name = "tf_test_network"
-		admin_state_up = "true"
-	}
+const TestAccLBV2ListenerConfig_basic = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
 
-	resource "openstack_networking_subnet_v2" "subnet_1" {
-		network_id = "${openstack_networking_network_v2.network_1.id}"
-		cidr = "192.168.199.0/24"
-		ip_version = 4
-		name = "tf_test_subnet"
-	}
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
 
-	resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
-		vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-		name = "tf_test_loadbalancer_v2"
-	}
+resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
+  name = "loadbalancer_1"
+  vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+}
 
-	resource "openstack_lb_listener_v2" "listener_1" {
-		protocol = "HTTP"
-		protocol_port = 8080
-		loadbalancer_id = "${openstack_lb_loadbalancer_v2.loadbalancer_1.id}"
-		name = "tf_test_listener"
-	}
-  `)
+resource "openstack_lb_listener_v2" "listener_1" {
+  name = "listener_1"
+  protocol = "HTTP"
+  protocol_port = 8080
+  loadbalancer_id = "${openstack_lb_loadbalancer_v2.loadbalancer_1.id}"
+}
+`
 
-var TestAccLBV2ListenerConfig_update = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-		name = "tf_test_network"
-		admin_state_up = "true"
-  }
+const TestAccLBV2ListenerConfig_update = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
 
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-		network_id = "${openstack_networking_network_v2.network_1.id}"
-		cidr = "192.168.199.0/24"
-		ip_version = 4
-		name = "tf_test_subnet"
-  }
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
 
-  resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
-		vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-		name = "tf_test_loadbalancer_v2"
-  }
+resource "openstack_lb_loadbalancer_v2" "loadbalancer_1" {
+  name = "loadbalancer_1"
+  vip_subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+}
 
-  resource "openstack_lb_listener_v2" "listener_1" {
-		protocol = "HTTP"
-		protocol_port = 8080
-		loadbalancer_id = "${openstack_lb_loadbalancer_v2.loadbalancer_1.id}"
-		name = "tf_test_listener_updated"
-		connection_limit = 100
-		admin_state_up = "true"
-  }
-`)
+resource "openstack_lb_listener_v2" "listener_1" {
+  name = "listener_1_updated"
+  protocol = "HTTP"
+  protocol_port = 8080
+  connection_limit = 100
+  admin_state_up = "true"
+  loadbalancer_id = "${openstack_lb_loadbalancer_v2.loadbalancer_1.id}"
+}
+`

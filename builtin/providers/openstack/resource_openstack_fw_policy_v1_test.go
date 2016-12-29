@@ -18,11 +18,10 @@ func TestAccFWPolicyV1_basic(t *testing.T) {
 		CheckDestroy: testAccCheckFWPolicyV1Destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testFirewallPolicyConfig,
+				Config: testAccFWPolicyV1_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWPolicyV1Exists(
-						"openstack_fw_policy_v1.accept_test",
-						"", "", 0),
+						"openstack_fw_policy_v1.policy_1", "", "", 0),
 				),
 			},
 		},
@@ -36,11 +35,10 @@ func TestAccFWPolicyV1_addRules(t *testing.T) {
 		CheckDestroy: testAccCheckFWPolicyV1Destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testFirewallPolicyConfigAddRules,
+				Config: testAccFWPolicyV1_addRules,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWPolicyV1Exists(
-						"openstack_fw_policy_v1.accept_test",
-						"accept_test", "terraform acceptance test", 2),
+						"openstack_fw_policy_v1.policy_1", "policy_1", "terraform acceptance test", 2),
 				),
 			},
 		},
@@ -54,11 +52,10 @@ func TestAccFWPolicyV1_deleteRules(t *testing.T) {
 		CheckDestroy: testAccCheckFWPolicyV1Destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testFirewallPolicyUpdateDeleteRule,
+				Config: testAccFWPolicyV1_deleteRules,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFWPolicyV1Exists(
-						"openstack_fw_policy_v1.accept_test",
-						"accept_test", "terraform acceptance test", 1),
+						"openstack_fw_policy_v1.policy_1", "policy_1", "terraform acceptance test", 1),
 				),
 			},
 		},
@@ -66,11 +63,10 @@ func TestAccFWPolicyV1_deleteRules(t *testing.T) {
 }
 
 func testAccCheckFWPolicyV1Destroy(s *terraform.State) error {
-
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckOpenstackFirewallPolicyDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "openstack_fw_policy_v1" {
@@ -88,9 +84,7 @@ func testAccCheckFWPolicyV1Destroy(s *terraform.State) error {
 }
 
 func testAccCheckFWPolicyV1Exists(n, name, description string, ruleCount int) resource.TestCheckFunc {
-
 	return func(s *terraform.State) error {
-
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -103,7 +97,7 @@ func testAccCheckFWPolicyV1Exists(n, name, description string, ruleCount int) re
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckFirewallPolicyExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 		}
 
 		var found *policies.Policy
@@ -121,60 +115,60 @@ func testAccCheckFWPolicyV1Exists(n, name, description string, ruleCount int) re
 			break
 		}
 
-		if name != found.Name {
-			return fmt.Errorf("Expected name <%s>, but found <%s>", name, found.Name)
+		switch {
+		case name != found.Name:
+			err = fmt.Errorf("Expected name <%s>, but found <%s>", name, found.Name)
+		case description != found.Description:
+			err = fmt.Errorf("Expected description <%s>, but found <%s>", description, found.Description)
+		case ruleCount != len(found.Rules):
+			err = fmt.Errorf("Expected rule count <%d>, but found <%d>", ruleCount, len(found.Rules))
 		}
 
-		if description != found.Description {
-			return fmt.Errorf("Expected description <%s>, but found <%s>", description, found.Description)
-		}
-
-		if ruleCount != len(found.Rules) {
-			return fmt.Errorf("Expected rule count <%d>, but found <%d>", ruleCount, len(found.Rules))
+		if err != nil {
+			return err
 		}
 
 		return nil
 	}
 }
 
-const testFirewallPolicyConfig = `
-resource "openstack_fw_policy_v1" "accept_test" {
-
+const testAccFWPolicyV1_basic = `
+resource "openstack_fw_policy_v1" "policy_1" {
 }
 `
 
-const testFirewallPolicyConfigAddRules = `
-resource "openstack_fw_policy_v1" "accept_test" {
-	name = "accept_test"
-	description =  "terraform acceptance test"
-	rules = [
-		"${openstack_fw_rule_v1.accept_test_udp_deny.id}",
-		"${openstack_fw_rule_v1.accept_test_tcp_allow.id}"
-	]
+const testAccFWPolicyV1_addRules = `
+resource "openstack_fw_policy_v1" "policy_1" {
+  name = "policy_1"
+  description =  "terraform acceptance test"
+  rules = [
+    "${openstack_fw_rule_v1.udp_deny.id}",
+    "${openstack_fw_rule_v1.tcp_allow.id}"
+  ]
 }
 
-resource "openstack_fw_rule_v1" "accept_test_tcp_allow" {
-	protocol = "tcp"
-	action = "allow"
+resource "openstack_fw_rule_v1" "tcp_allow" {
+  protocol = "tcp"
+  action = "allow"
 }
 
-resource "openstack_fw_rule_v1" "accept_test_udp_deny" {
-	protocol = "udp"
-	action = "deny"
+resource "openstack_fw_rule_v1" "udp_deny" {
+  protocol = "udp"
+  action = "deny"
 }
 `
 
-const testFirewallPolicyUpdateDeleteRule = `
-resource "openstack_fw_policy_v1" "accept_test" {
-	name = "accept_test"
-	description =  "terraform acceptance test"
-	rules = [
-		"${openstack_fw_rule_v1.accept_test_udp_deny.id}"
-	]
+const testAccFWPolicyV1_deleteRules = `
+resource "openstack_fw_policy_v1" "policy_1" {
+  name = "policy_1"
+  description =  "terraform acceptance test"
+  rules = [
+    "${openstack_fw_rule_v1.udp_deny.id}"
+  ]
 }
 
-resource "openstack_fw_rule_v1" "accept_test_udp_deny" {
-	protocol = "udp"
-	action = "deny"
+resource "openstack_fw_rule_v1" "udp_deny" {
+  protocol = "udp"
+  action = "deny"
 }
 `
