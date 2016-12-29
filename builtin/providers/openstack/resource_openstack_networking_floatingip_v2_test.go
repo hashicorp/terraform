@@ -57,7 +57,7 @@ func TestAccNetworkingV2FloatingIP_attach(t *testing.T) {
 				Config: testAccNetworkV2FloatingIP_attach,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2FloatingIPExists(t, "openstack_networking_floatingip_v2.myip", &fip),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.foo", &instance),
 					testAccCheckNetworkingV2InstanceFloatingIPAttach(&instance, &fip),
 				),
 			},
