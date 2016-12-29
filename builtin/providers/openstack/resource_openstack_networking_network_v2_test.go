@@ -145,9 +145,9 @@ func TestAccNetworkingV2Network_fullstack(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
 					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.foo", &subnet),
-					testAccCheckComputeV2SecGroupExists(t, "openstack_compute_secgroup_v2.foo", &secgroup),
+					testAccCheckComputeV2SecGroupExists("openstack_compute_secgroup_v2.foo", &secgroup),
 					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.foo", &port),
-					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.foo", &instance),
 				),
 			},
 		},
