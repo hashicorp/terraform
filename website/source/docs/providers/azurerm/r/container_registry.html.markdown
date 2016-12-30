@@ -73,3 +73,11 @@ The following attributes are exported:
 * `admin_username` - The Username associated with the Container Registry Admin account - if the admin account is enabled.
 
 * `admin_password` - The Password associated with the Container Registry Admin account - if the admin account is enabled.
+
+## Import
+
+Container Registries can be imported using the `resource id`, e.g.
+
+```
+terraform import azurerm_container_registry.test /subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/mygroup1/providers/Microsoft.ContainerRegistry/registries/myregistry1
+```
