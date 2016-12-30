@@ -38,7 +38,6 @@ const (
 	checkBundleConfigPayloadAttr       = "payload"
 	checkBundleConfigPortAttr          = "port"
 	checkBundleConfigReadLimitAttr     = "read_limit"
-	checkBundleConfigReverseSecretAttr = "reverse:secret_key"
 	checkBundleConfigSecretAttr        = "secret"
 	checkBundleConfigSubmissionURLAttr = "submission_url"
 	checkBundleConfigURLAttr           = "url"
@@ -82,12 +81,6 @@ func resourceCheckBundle() *schema.Resource {
 				Elem:        &schema.Schema{Type: schema.TypeString},
 				Description: "",
 			},
-			// NOTE(sean@): need to confirm if this is actually experimental or not
-			// checkBundleReverseConnectURLsAttr: &schema.Schema{
-			// 	Type:        schema.TypeList,
-			// 	Elem:        &schema.Schema{Type: schema.TypeString},
-			// 	Description: "",
-			// },
 			checkBundleBrokersAttr: &schema.Schema{
 				Type:        schema.TypeList,
 				Required:    true,
@@ -115,12 +108,6 @@ func resourceCheckBundle() *schema.Resource {
 							Type:        schema.TypeString,
 							Optional:    true,
 							Description: "",
-						},
-						checkBundleConfigReverseSecretAttr: &schema.Schema{
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "",
-							Sensitive:   true,
 						},
 						checkBundleConfigHTTPVersionAttr: &schema.Schema{
 							Type:        schema.TypeString,
@@ -435,7 +422,6 @@ func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set(checkBundleCreatedAttr, cb.Created)
 	d.Set(checkBundleLastModifiedAttr, cb.LastModified)
 	d.Set(checkBundleLastModifiedByAttr, cb.LastModifedBy)
-	d.Set(checkBundleReverseConnectURLsAttr, cb.ReverseConnectURLs)
 	d.Set(checkBundleBrokersAttr, cb.Brokers)
 	d.Set(checkBundleConfigAttr, []interface{}{config})
 	d.Set(checkBundleMetricNameAttr, cb.DisplayName)
