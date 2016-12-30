@@ -94,7 +94,7 @@ func resourceArmEventHubAuthorizationRule() *schema.Resource {
 
 func resourceArmEventHubAuthorizationRuleCreateUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient).eventHubClient
-	log.Printf("[INFO] preparing arguments for Azure ARM EventHub Consumer Group creation.")
+	log.Printf("[INFO] preparing arguments for Azure ARM EventHub Authorization Rule creation.")
 
 	name := d.Get("name").(string)
 	namespaceName := d.Get("namespace_name").(string)
