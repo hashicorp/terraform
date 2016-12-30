@@ -8,6 +8,7 @@ FEATURES:
 IMPROVEMENTS:
  
  * provider/aws: Add support for instance tenancy in `aws_opsworks_instance` [GH-10885]
+ * provider/aws: Added a validation for security group rule types [GH-10864]
  * provider/archive: `archive_file` now exports `output_md5` attribute in addition to existing SHA1 and Base64 SHA256 hashes. [GH-10851]
  * provider/pagerduty Add delete support to pagerduty_service_integration [GH-10891]
  * provider/postgresql Add permissions support to `postgresql_schema` as nested `policy` attributes [GH-10808]
