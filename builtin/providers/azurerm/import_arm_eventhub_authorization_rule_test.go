@@ -57,30 +57,6 @@ func TestAccAzureRMEventHubAuthorizationRule_importSend(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMEventHubAuthorizationRule_importManage(t *testing.T) {
-	resourceName := "azurerm_eventhub_authorization_rule.test"
-
-	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_manage, ri, ri, ri, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubAuthorizationRuleDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-			},
-
-			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
-
 func TestAccAzureRMEventHubAuthorizationRule_importReadWrite(t *testing.T) {
 	resourceName := "azurerm_eventhub_authorization_rule.test"
 
@@ -105,11 +81,11 @@ func TestAccAzureRMEventHubAuthorizationRule_importReadWrite(t *testing.T) {
 	})
 }
 
-func TestAccAzureRMEventHubAuthorizationRule_importAll(t *testing.T) {
+func TestAccAzureRMEventHubAuthorizationRule_importManage(t *testing.T) {
 	resourceName := "azurerm_eventhub_authorization_rule.test"
 
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_all, ri, ri, ri, ri)
+	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_manage, ri, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
