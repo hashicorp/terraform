@@ -14,6 +14,15 @@
 		{
 			"checksumSHA1": "duGYYmAIPryWG256C+VrJgNy1uU=",
 			"comment": "v2.1.1-beta-8-gca4d906",
+			"path": "github.com/Azure/azure-sdk-for-go/arm/containerregistry",
+			"revision": "0984e0641ae43b89283223034574d6465be93bf4",
+			"revisionTime": "2016-11-30T22:29:01Z",
+			"version": "v7.0.1-beta",
+			"versionExact": "v7.0.1-beta"
+		},
+		{
+			"checksumSHA1": "duGYYmAIPryWG256C+VrJgNy1uU=",
+			"comment": "v2.1.1-beta-8-gca4d906",
 			"path": "github.com/Azure/azure-sdk-for-go/arm/compute",
 			"revision": "0984e0641ae43b89283223034574d6465be93bf4",
 			"revisionTime": "2016-11-30T22:29:01Z",
