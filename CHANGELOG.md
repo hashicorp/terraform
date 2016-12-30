@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New Resource:**  `azurerm_eventhub_consumer_group` [GH-9902]
+ * **New Data Source:**  `aws_vpc_peering_connection` [GH-10913]
 
 
 IMPROVEMENTS:
