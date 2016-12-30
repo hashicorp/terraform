@@ -28,8 +28,9 @@ import (
 // For a list of region-specific endpoints that AWS Elastic Beanstalk supports,
 // go to Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#elasticbeanstalk_region)
 // in the Amazon Web Services Glossary.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01
 type ElasticBeanstalk struct {
 	*client.Client
 }
@@ -40,8 +41,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "elasticbeanstalk"
+// Service information constants
+const (
+	ServiceName = "elasticbeanstalk" // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName        // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the ElasticBeanstalk client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -54,7 +58,7 @@ const ServiceName = "elasticbeanstalk"
 //     // Create a ElasticBeanstalk client with additional configuration
 //     svc := elasticbeanstalk.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *ElasticBeanstalk {
-	c := p.ClientConfig(ServiceName, cfgs...)
+	c := p.ClientConfig(EndpointsID, cfgs...)
 	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 

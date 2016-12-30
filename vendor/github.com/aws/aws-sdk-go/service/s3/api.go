@@ -39,7 +39,6 @@ const opAbortMultipartUpload = "AbortMultipartUpload"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) AbortMultipartUploadRequest(input *AbortMultipartUploadInput) (req *request.Request, output *AbortMultipartUploadOutput) {
 	op := &request.Operation{
 		Name:       opAbortMultipartUpload,
@@ -107,7 +106,6 @@ const opCompleteMultipartUpload = "CompleteMultipartUpload"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) CompleteMultipartUploadRequest(input *CompleteMultipartUploadInput) (req *request.Request, output *CompleteMultipartUploadOutput) {
 	op := &request.Operation{
 		Name:       opCompleteMultipartUpload,
@@ -166,7 +164,6 @@ const opCopyObject = "CopyObject"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) CopyObjectRequest(input *CopyObjectInput) (req *request.Request, output *CopyObjectOutput) {
 	op := &request.Operation{
 		Name:       opCopyObject,
@@ -231,7 +228,6 @@ const opCreateBucket = "CreateBucket"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) CreateBucketRequest(input *CreateBucketInput) (req *request.Request, output *CreateBucketOutput) {
 	op := &request.Operation{
 		Name:       opCreateBucket,
@@ -299,7 +295,6 @@ const opCreateMultipartUpload = "CreateMultipartUpload"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) CreateMultipartUploadRequest(input *CreateMultipartUploadInput) (req *request.Request, output *CreateMultipartUploadOutput) {
 	op := &request.Operation{
 		Name:       opCreateMultipartUpload,
@@ -364,7 +359,6 @@ const opDeleteBucket = "DeleteBucket"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketRequest(input *DeleteBucketInput) (req *request.Request, output *DeleteBucketOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucket,
@@ -426,7 +420,6 @@ const opDeleteBucketAnalyticsConfiguration = "DeleteBucketAnalyticsConfiguration
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketAnalyticsConfigurationRequest(input *DeleteBucketAnalyticsConfigurationInput) (req *request.Request, output *DeleteBucketAnalyticsConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucketAnalyticsConfiguration,
@@ -488,7 +481,6 @@ const opDeleteBucketCors = "DeleteBucketCors"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketCorsRequest(input *DeleteBucketCorsInput) (req *request.Request, output *DeleteBucketCorsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucketCors,
@@ -549,7 +541,6 @@ const opDeleteBucketInventoryConfiguration = "DeleteBucketInventoryConfiguration
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketInventoryConfigurationRequest(input *DeleteBucketInventoryConfigurationInput) (req *request.Request, output *DeleteBucketInventoryConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucketInventoryConfiguration,
@@ -611,7 +602,6 @@ const opDeleteBucketLifecycle = "DeleteBucketLifecycle"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketLifecycleRequest(input *DeleteBucketLifecycleInput) (req *request.Request, output *DeleteBucketLifecycleOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucketLifecycle,
@@ -672,7 +662,6 @@ const opDeleteBucketMetricsConfiguration = "DeleteBucketMetricsConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketMetricsConfigurationRequest(input *DeleteBucketMetricsConfigurationInput) (req *request.Request, output *DeleteBucketMetricsConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucketMetricsConfiguration,
@@ -734,7 +723,6 @@ const opDeleteBucketPolicy = "DeleteBucketPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketPolicyRequest(input *DeleteBucketPolicyInput) (req *request.Request, output *DeleteBucketPolicyOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucketPolicy,
@@ -795,7 +783,6 @@ const opDeleteBucketReplication = "DeleteBucketReplication"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketReplicationRequest(input *DeleteBucketReplicationInput) (req *request.Request, output *DeleteBucketReplicationOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucketReplication,
@@ -856,7 +843,6 @@ const opDeleteBucketTagging = "DeleteBucketTagging"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketTaggingRequest(input *DeleteBucketTaggingInput) (req *request.Request, output *DeleteBucketTaggingOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucketTagging,
@@ -917,7 +903,6 @@ const opDeleteBucketWebsite = "DeleteBucketWebsite"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteBucketWebsiteRequest(input *DeleteBucketWebsiteInput) (req *request.Request, output *DeleteBucketWebsiteOutput) {
 	op := &request.Operation{
 		Name:       opDeleteBucketWebsite,
@@ -978,7 +963,6 @@ const opDeleteObject = "DeleteObject"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteObjectRequest(input *DeleteObjectInput) (req *request.Request, output *DeleteObjectOutput) {
 	op := &request.Operation{
 		Name:       opDeleteObject,
@@ -1039,7 +1023,6 @@ const opDeleteObjectTagging = "DeleteObjectTagging"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteObjectTaggingRequest(input *DeleteObjectTaggingInput) (req *request.Request, output *DeleteObjectTaggingOutput) {
 	op := &request.Operation{
 		Name:       opDeleteObjectTagging,
@@ -1098,7 +1081,6 @@ const opDeleteObjects = "DeleteObjects"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) DeleteObjectsRequest(input *DeleteObjectsInput) (req *request.Request, output *DeleteObjectsOutput) {
 	op := &request.Operation{
 		Name:       opDeleteObjects,
@@ -1158,7 +1140,6 @@ const opGetBucketAccelerateConfiguration = "GetBucketAccelerateConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketAccelerateConfigurationRequest(input *GetBucketAccelerateConfigurationInput) (req *request.Request, output *GetBucketAccelerateConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketAccelerateConfiguration,
@@ -1217,7 +1198,6 @@ const opGetBucketAcl = "GetBucketAcl"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketAclRequest(input *GetBucketAclInput) (req *request.Request, output *GetBucketAclOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketAcl,
@@ -1276,7 +1256,6 @@ const opGetBucketAnalyticsConfiguration = "GetBucketAnalyticsConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketAnalyticsConfigurationRequest(input *GetBucketAnalyticsConfigurationInput) (req *request.Request, output *GetBucketAnalyticsConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketAnalyticsConfiguration,
@@ -1336,7 +1315,6 @@ const opGetBucketCors = "GetBucketCors"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketCorsRequest(input *GetBucketCorsInput) (req *request.Request, output *GetBucketCorsOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketCors,
@@ -1395,7 +1373,6 @@ const opGetBucketInventoryConfiguration = "GetBucketInventoryConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketInventoryConfigurationRequest(input *GetBucketInventoryConfigurationInput) (req *request.Request, output *GetBucketInventoryConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketInventoryConfiguration,
@@ -1455,7 +1432,6 @@ const opGetBucketLifecycle = "GetBucketLifecycle"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketLifecycleRequest(input *GetBucketLifecycleInput) (req *request.Request, output *GetBucketLifecycleOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, GetBucketLifecycle, has been deprecated")
@@ -1517,7 +1493,6 @@ const opGetBucketLifecycleConfiguration = "GetBucketLifecycleConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketLifecycleConfigurationRequest(input *GetBucketLifecycleConfigurationInput) (req *request.Request, output *GetBucketLifecycleConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketLifecycleConfiguration,
@@ -1576,7 +1551,6 @@ const opGetBucketLocation = "GetBucketLocation"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketLocationRequest(input *GetBucketLocationInput) (req *request.Request, output *GetBucketLocationOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketLocation,
@@ -1635,7 +1609,6 @@ const opGetBucketLogging = "GetBucketLogging"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketLoggingRequest(input *GetBucketLoggingInput) (req *request.Request, output *GetBucketLoggingOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketLogging,
@@ -1695,7 +1668,6 @@ const opGetBucketMetricsConfiguration = "GetBucketMetricsConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketMetricsConfigurationRequest(input *GetBucketMetricsConfigurationInput) (req *request.Request, output *GetBucketMetricsConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketMetricsConfiguration,
@@ -1755,7 +1727,6 @@ const opGetBucketNotification = "GetBucketNotification"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketNotificationRequest(input *GetBucketNotificationConfigurationRequest) (req *request.Request, output *NotificationConfigurationDeprecated) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, GetBucketNotification, has been deprecated")
@@ -1817,7 +1788,6 @@ const opGetBucketNotificationConfiguration = "GetBucketNotificationConfiguration
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketNotificationConfigurationRequest(input *GetBucketNotificationConfigurationRequest) (req *request.Request, output *NotificationConfiguration) {
 	op := &request.Operation{
 		Name:       opGetBucketNotificationConfiguration,
@@ -1876,7 +1846,6 @@ const opGetBucketPolicy = "GetBucketPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketPolicyRequest(input *GetBucketPolicyInput) (req *request.Request, output *GetBucketPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketPolicy,
@@ -1935,7 +1904,6 @@ const opGetBucketReplication = "GetBucketReplication"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketReplicationRequest(input *GetBucketReplicationInput) (req *request.Request, output *GetBucketReplicationOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketReplication,
@@ -1994,7 +1962,6 @@ const opGetBucketRequestPayment = "GetBucketRequestPayment"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketRequestPaymentRequest(input *GetBucketRequestPaymentInput) (req *request.Request, output *GetBucketRequestPaymentOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketRequestPayment,
@@ -2053,7 +2020,6 @@ const opGetBucketTagging = "GetBucketTagging"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketTaggingRequest(input *GetBucketTaggingInput) (req *request.Request, output *GetBucketTaggingOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketTagging,
@@ -2112,7 +2078,6 @@ const opGetBucketVersioning = "GetBucketVersioning"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketVersioningRequest(input *GetBucketVersioningInput) (req *request.Request, output *GetBucketVersioningOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketVersioning,
@@ -2171,7 +2136,6 @@ const opGetBucketWebsite = "GetBucketWebsite"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetBucketWebsiteRequest(input *GetBucketWebsiteInput) (req *request.Request, output *GetBucketWebsiteOutput) {
 	op := &request.Operation{
 		Name:       opGetBucketWebsite,
@@ -2230,7 +2194,6 @@ const opGetObject = "GetObject"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetObjectRequest(input *GetObjectInput) (req *request.Request, output *GetObjectOutput) {
 	op := &request.Operation{
 		Name:       opGetObject,
@@ -2294,7 +2257,6 @@ const opGetObjectAcl = "GetObjectAcl"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetObjectAclRequest(input *GetObjectAclInput) (req *request.Request, output *GetObjectAclOutput) {
 	op := &request.Operation{
 		Name:       opGetObjectAcl,
@@ -2358,7 +2320,6 @@ const opGetObjectTagging = "GetObjectTagging"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetObjectTaggingRequest(input *GetObjectTaggingInput) (req *request.Request, output *GetObjectTaggingOutput) {
 	op := &request.Operation{
 		Name:       opGetObjectTagging,
@@ -2417,7 +2378,6 @@ const opGetObjectTorrent = "GetObjectTorrent"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) GetObjectTorrentRequest(input *GetObjectTorrentInput) (req *request.Request, output *GetObjectTorrentOutput) {
 	op := &request.Operation{
 		Name:       opGetObjectTorrent,
@@ -2476,7 +2436,6 @@ const opHeadBucket = "HeadBucket"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) HeadBucketRequest(input *HeadBucketInput) (req *request.Request, output *HeadBucketOutput) {
 	op := &request.Operation{
 		Name:       opHeadBucket,
@@ -2543,7 +2502,6 @@ const opHeadObject = "HeadObject"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) HeadObjectRequest(input *HeadObjectInput) (req *request.Request, output *HeadObjectOutput) {
 	op := &request.Operation{
 		Name:       opHeadObject,
@@ -2609,7 +2567,6 @@ const opListBucketAnalyticsConfigurations = "ListBucketAnalyticsConfigurations"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) ListBucketAnalyticsConfigurationsRequest(input *ListBucketAnalyticsConfigurationsInput) (req *request.Request, output *ListBucketAnalyticsConfigurationsOutput) {
 	op := &request.Operation{
 		Name:       opListBucketAnalyticsConfigurations,
@@ -2668,7 +2625,6 @@ const opListBucketInventoryConfigurations = "ListBucketInventoryConfigurations"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) ListBucketInventoryConfigurationsRequest(input *ListBucketInventoryConfigurationsInput) (req *request.Request, output *ListBucketInventoryConfigurationsOutput) {
 	op := &request.Operation{
 		Name:       opListBucketInventoryConfigurations,
@@ -2727,7 +2683,6 @@ const opListBucketMetricsConfigurations = "ListBucketMetricsConfigurations"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) ListBucketMetricsConfigurationsRequest(input *ListBucketMetricsConfigurationsInput) (req *request.Request, output *ListBucketMetricsConfigurationsOutput) {
 	op := &request.Operation{
 		Name:       opListBucketMetricsConfigurations,
@@ -2786,7 +2741,6 @@ const opListBuckets = "ListBuckets"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) ListBucketsRequest(input *ListBucketsInput) (req *request.Request, output *ListBucketsOutput) {
 	op := &request.Operation{
 		Name:       opListBuckets,
@@ -2845,7 +2799,6 @@ const opListMultipartUploads = "ListMultipartUploads"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) ListMultipartUploadsRequest(input *ListMultipartUploadsInput) (req *request.Request, output *ListMultipartUploadsOutput) {
 	op := &request.Operation{
 		Name:       opListMultipartUploads,
@@ -2935,7 +2888,6 @@ const opListObjectVersions = "ListObjectVersions"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) ListObjectVersionsRequest(input *ListObjectVersionsInput) (req *request.Request, output *ListObjectVersionsOutput) {
 	op := &request.Operation{
 		Name:       opListObjectVersions,
@@ -3025,7 +2977,6 @@ const opListObjects = "ListObjects"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) ListObjectsRequest(input *ListObjectsInput) (req *request.Request, output *ListObjectsOutput) {
 	op := &request.Operation{
 		Name:       opListObjects,
@@ -3122,7 +3073,6 @@ const opListObjectsV2 = "ListObjectsV2"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) ListObjectsV2Request(input *ListObjectsV2Input) (req *request.Request, output *ListObjectsV2Output) {
 	op := &request.Operation{
 		Name:       opListObjectsV2,
@@ -3220,7 +3170,6 @@ const opListParts = "ListParts"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) ListPartsRequest(input *ListPartsInput) (req *request.Request, output *ListPartsOutput) {
 	op := &request.Operation{
 		Name:       opListParts,
@@ -3310,7 +3259,6 @@ const opPutBucketAccelerateConfiguration = "PutBucketAccelerateConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketAccelerateConfigurationRequest(input *PutBucketAccelerateConfigurationInput) (req *request.Request, output *PutBucketAccelerateConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketAccelerateConfiguration,
@@ -3371,7 +3319,6 @@ const opPutBucketAcl = "PutBucketAcl"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketAclRequest(input *PutBucketAclInput) (req *request.Request, output *PutBucketAclOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketAcl,
@@ -3432,7 +3379,6 @@ const opPutBucketAnalyticsConfiguration = "PutBucketAnalyticsConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketAnalyticsConfigurationRequest(input *PutBucketAnalyticsConfigurationInput) (req *request.Request, output *PutBucketAnalyticsConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketAnalyticsConfiguration,
@@ -3494,7 +3440,6 @@ const opPutBucketCors = "PutBucketCors"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketCorsRequest(input *PutBucketCorsInput) (req *request.Request, output *PutBucketCorsOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketCors,
@@ -3555,7 +3500,6 @@ const opPutBucketInventoryConfiguration = "PutBucketInventoryConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketInventoryConfigurationRequest(input *PutBucketInventoryConfigurationInput) (req *request.Request, output *PutBucketInventoryConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketInventoryConfiguration,
@@ -3617,7 +3561,6 @@ const opPutBucketLifecycle = "PutBucketLifecycle"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketLifecycleRequest(input *PutBucketLifecycleInput) (req *request.Request, output *PutBucketLifecycleOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, PutBucketLifecycle, has been deprecated")
@@ -3681,7 +3624,6 @@ const opPutBucketLifecycleConfiguration = "PutBucketLifecycleConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketLifecycleConfigurationRequest(input *PutBucketLifecycleConfigurationInput) (req *request.Request, output *PutBucketLifecycleConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketLifecycleConfiguration,
@@ -3743,7 +3685,6 @@ const opPutBucketLogging = "PutBucketLogging"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketLoggingRequest(input *PutBucketLoggingInput) (req *request.Request, output *PutBucketLoggingOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketLogging,
@@ -3806,7 +3747,6 @@ const opPutBucketMetricsConfiguration = "PutBucketMetricsConfiguration"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketMetricsConfigurationRequest(input *PutBucketMetricsConfigurationInput) (req *request.Request, output *PutBucketMetricsConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketMetricsConfiguration,
@@ -3868,7 +3808,6 @@ const opPutBucketNotification = "PutBucketNotification"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketNotificationRequest(input *PutBucketNotificationInput) (req *request.Request, output *PutBucketNotificationOutput) {
 	if c.Client.Config.Logger != nil {
 		c.Client.Config.Logger.Log("This operation, PutBucketNotification, has been deprecated")
@@ -3932,7 +3871,6 @@ const opPutBucketNotificationConfiguration = "PutBucketNotificationConfiguration
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketNotificationConfigurationRequest(input *PutBucketNotificationConfigurationInput) (req *request.Request, output *PutBucketNotificationConfigurationOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketNotificationConfiguration,
@@ -3993,7 +3931,6 @@ const opPutBucketPolicy = "PutBucketPolicy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketPolicyRequest(input *PutBucketPolicyInput) (req *request.Request, output *PutBucketPolicyOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketPolicy,
@@ -4055,7 +3992,6 @@ const opPutBucketReplication = "PutBucketReplication"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketReplicationRequest(input *PutBucketReplicationInput) (req *request.Request, output *PutBucketReplicationOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketReplication,
@@ -4117,7 +4053,6 @@ const opPutBucketRequestPayment = "PutBucketRequestPayment"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketRequestPaymentRequest(input *PutBucketRequestPaymentInput) (req *request.Request, output *PutBucketRequestPaymentOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketRequestPayment,
@@ -4182,7 +4117,6 @@ const opPutBucketTagging = "PutBucketTagging"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketTaggingRequest(input *PutBucketTaggingInput) (req *request.Request, output *PutBucketTaggingOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketTagging,
@@ -4243,7 +4177,6 @@ const opPutBucketVersioning = "PutBucketVersioning"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketVersioningRequest(input *PutBucketVersioningInput) (req *request.Request, output *PutBucketVersioningOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketVersioning,
@@ -4305,7 +4238,6 @@ const opPutBucketWebsite = "PutBucketWebsite"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutBucketWebsiteRequest(input *PutBucketWebsiteInput) (req *request.Request, output *PutBucketWebsiteOutput) {
 	op := &request.Operation{
 		Name:       opPutBucketWebsite,
@@ -4366,7 +4298,6 @@ const opPutObject = "PutObject"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutObjectRequest(input *PutObjectInput) (req *request.Request, output *PutObjectOutput) {
 	op := &request.Operation{
 		Name:       opPutObject,
@@ -4425,7 +4356,6 @@ const opPutObjectAcl = "PutObjectAcl"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutObjectAclRequest(input *PutObjectAclInput) (req *request.Request, output *PutObjectAclOutput) {
 	op := &request.Operation{
 		Name:       opPutObjectAcl,
@@ -4490,7 +4420,6 @@ const opPutObjectTagging = "PutObjectTagging"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) PutObjectTaggingRequest(input *PutObjectTaggingInput) (req *request.Request, output *PutObjectTaggingOutput) {
 	op := &request.Operation{
 		Name:       opPutObjectTagging,
@@ -4549,7 +4478,6 @@ const opRestoreObject = "RestoreObject"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) RestoreObjectRequest(input *RestoreObjectInput) (req *request.Request, output *RestoreObjectOutput) {
 	op := &request.Operation{
 		Name:       opRestoreObject,
@@ -4613,7 +4541,6 @@ const opUploadPart = "UploadPart"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) UploadPartRequest(input *UploadPartInput) (req *request.Request, output *UploadPartOutput) {
 	op := &request.Operation{
 		Name:       opUploadPart,
@@ -4678,7 +4605,6 @@ const opUploadPartCopy = "UploadPartCopy"
 //    if err == nil { // resp is now filled
 //        fmt.Println(resp)
 //    }
-//
 func (c *S3) UploadPartCopyRequest(input *UploadPartCopyInput) (req *request.Request, output *UploadPartCopyOutput) {
 	op := &request.Operation{
 		Name:       opUploadPartCopy,

@@ -38,6 +38,7 @@ const opCancelUpdateStack = "CancelUpdateStack"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CancelUpdateStack
 func (c *CloudFormation) CancelUpdateStackRequest(input *CancelUpdateStackInput) (req *request.Request, output *CancelUpdateStackOutput) {
 	op := &request.Operation{
 		Name:       opCancelUpdateStack,
@@ -70,6 +71,7 @@ func (c *CloudFormation) CancelUpdateStackRequest(input *CancelUpdateStackInput)
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation CancelUpdateStack for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CancelUpdateStack
 func (c *CloudFormation) CancelUpdateStack(input *CancelUpdateStackInput) (*CancelUpdateStackOutput, error) {
 	req, out := c.CancelUpdateStackRequest(input)
 	err := req.Send()
@@ -102,6 +104,7 @@ const opContinueUpdateRollback = "ContinueUpdateRollback"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ContinueUpdateRollback
 func (c *CloudFormation) ContinueUpdateRollbackRequest(input *ContinueUpdateRollbackInput) (req *request.Request, output *ContinueUpdateRollbackOutput) {
 	op := &request.Operation{
 		Name:       opContinueUpdateRollback,
@@ -141,6 +144,7 @@ func (c *CloudFormation) ContinueUpdateRollbackRequest(input *ContinueUpdateRoll
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation ContinueUpdateRollback for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ContinueUpdateRollback
 func (c *CloudFormation) ContinueUpdateRollback(input *ContinueUpdateRollbackInput) (*ContinueUpdateRollbackOutput, error) {
 	req, out := c.ContinueUpdateRollbackRequest(input)
 	err := req.Send()
@@ -173,6 +177,7 @@ const opCreateChangeSet = "CreateChangeSet"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CreateChangeSet
 func (c *CloudFormation) CreateChangeSetRequest(input *CreateChangeSetInput) (req *request.Request, output *CreateChangeSetOutput) {
 	op := &request.Operation{
 		Name:       opCreateChangeSet,
@@ -225,6 +230,7 @@ func (c *CloudFormation) CreateChangeSetRequest(input *CreateChangeSetInput) (re
 //   * LimitExceededException
 //   Quota for the resource has already been reached.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CreateChangeSet
 func (c *CloudFormation) CreateChangeSet(input *CreateChangeSetInput) (*CreateChangeSetOutput, error) {
 	req, out := c.CreateChangeSetRequest(input)
 	err := req.Send()
@@ -257,6 +263,7 @@ const opCreateStack = "CreateStack"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CreateStack
 func (c *CloudFormation) CreateStackRequest(input *CreateStackInput) (req *request.Request, output *CreateStackOutput) {
 	op := &request.Operation{
 		Name:       opCreateStack,
@@ -298,6 +305,7 @@ func (c *CloudFormation) CreateStackRequest(input *CreateStackInput) (req *reque
 //   The template contains resources with capabilities that were not specified
 //   in the Capabilities parameter.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CreateStack
 func (c *CloudFormation) CreateStack(input *CreateStackInput) (*CreateStackOutput, error) {
 	req, out := c.CreateStackRequest(input)
 	err := req.Send()
@@ -330,6 +338,7 @@ const opDeleteChangeSet = "DeleteChangeSet"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DeleteChangeSet
 func (c *CloudFormation) DeleteChangeSetRequest(input *DeleteChangeSetInput) (req *request.Request, output *DeleteChangeSetOutput) {
 	op := &request.Operation{
 		Name:       opDeleteChangeSet,
@@ -368,6 +377,7 @@ func (c *CloudFormation) DeleteChangeSetRequest(input *DeleteChangeSetInput) (re
 //   the change set status might be CREATE_IN_PROGRESS or the stack status might
 //   be UPDATE_IN_PROGRESS.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DeleteChangeSet
 func (c *CloudFormation) DeleteChangeSet(input *DeleteChangeSetInput) (*DeleteChangeSetOutput, error) {
 	req, out := c.DeleteChangeSetRequest(input)
 	err := req.Send()
@@ -400,6 +410,7 @@ const opDeleteStack = "DeleteStack"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DeleteStack
 func (c *CloudFormation) DeleteStackRequest(input *DeleteStackInput) (req *request.Request, output *DeleteStackOutput) {
 	op := &request.Operation{
 		Name:       opDeleteStack,
@@ -431,6 +442,7 @@ func (c *CloudFormation) DeleteStackRequest(input *DeleteStackInput) (req *reque
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation DeleteStack for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DeleteStack
 func (c *CloudFormation) DeleteStack(input *DeleteStackInput) (*DeleteStackOutput, error) {
 	req, out := c.DeleteStackRequest(input)
 	err := req.Send()
@@ -463,6 +475,7 @@ const opDescribeAccountLimits = "DescribeAccountLimits"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeAccountLimits
 func (c *CloudFormation) DescribeAccountLimitsRequest(input *DescribeAccountLimitsInput) (req *request.Request, output *DescribeAccountLimitsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAccountLimits,
@@ -491,6 +504,7 @@ func (c *CloudFormation) DescribeAccountLimitsRequest(input *DescribeAccountLimi
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation DescribeAccountLimits for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeAccountLimits
 func (c *CloudFormation) DescribeAccountLimits(input *DescribeAccountLimitsInput) (*DescribeAccountLimitsOutput, error) {
 	req, out := c.DescribeAccountLimitsRequest(input)
 	err := req.Send()
@@ -523,6 +537,7 @@ const opDescribeChangeSet = "DescribeChangeSet"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeChangeSet
 func (c *CloudFormation) DescribeChangeSetRequest(input *DescribeChangeSetInput) (req *request.Request, output *DescribeChangeSetOutput) {
 	op := &request.Operation{
 		Name:       opDescribeChangeSet,
@@ -559,6 +574,7 @@ func (c *CloudFormation) DescribeChangeSetRequest(input *DescribeChangeSetInput)
 //   The specified change set name or ID doesn't exit. To view valid change sets
 //   for a stack, use the ListChangeSets action.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeChangeSet
 func (c *CloudFormation) DescribeChangeSet(input *DescribeChangeSetInput) (*DescribeChangeSetOutput, error) {
 	req, out := c.DescribeChangeSetRequest(input)
 	err := req.Send()
@@ -591,6 +607,7 @@ const opDescribeStackEvents = "DescribeStackEvents"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackEvents
 func (c *CloudFormation) DescribeStackEventsRequest(input *DescribeStackEventsInput) (req *request.Request, output *DescribeStackEventsOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStackEvents,
@@ -629,6 +646,7 @@ func (c *CloudFormation) DescribeStackEventsRequest(input *DescribeStackEventsIn
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation DescribeStackEvents for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackEvents
 func (c *CloudFormation) DescribeStackEvents(input *DescribeStackEventsInput) (*DescribeStackEventsOutput, error) {
 	req, out := c.DescribeStackEventsRequest(input)
 	err := req.Send()
@@ -686,6 +704,7 @@ const opDescribeStackResource = "DescribeStackResource"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackResource
 func (c *CloudFormation) DescribeStackResourceRequest(input *DescribeStackResourceInput) (req *request.Request, output *DescribeStackResourceOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStackResource,
@@ -716,6 +735,7 @@ func (c *CloudFormation) DescribeStackResourceRequest(input *DescribeStackResour
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation DescribeStackResource for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackResource
 func (c *CloudFormation) DescribeStackResource(input *DescribeStackResourceInput) (*DescribeStackResourceOutput, error) {
 	req, out := c.DescribeStackResourceRequest(input)
 	err := req.Send()
@@ -748,6 +768,7 @@ const opDescribeStackResources = "DescribeStackResources"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackResources
 func (c *CloudFormation) DescribeStackResourcesRequest(input *DescribeStackResourcesInput) (req *request.Request, output *DescribeStackResourcesOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStackResources,
@@ -792,6 +813,7 @@ func (c *CloudFormation) DescribeStackResourcesRequest(input *DescribeStackResou
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation DescribeStackResources for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackResources
 func (c *CloudFormation) DescribeStackResources(input *DescribeStackResourcesInput) (*DescribeStackResourcesOutput, error) {
 	req, out := c.DescribeStackResourcesRequest(input)
 	err := req.Send()
@@ -824,6 +846,7 @@ const opDescribeStacks = "DescribeStacks"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStacks
 func (c *CloudFormation) DescribeStacksRequest(input *DescribeStacksInput) (req *request.Request, output *DescribeStacksOutput) {
 	op := &request.Operation{
 		Name:       opDescribeStacks,
@@ -860,6 +883,7 @@ func (c *CloudFormation) DescribeStacksRequest(input *DescribeStacksInput) (req 
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation DescribeStacks for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStacks
 func (c *CloudFormation) DescribeStacks(input *DescribeStacksInput) (*DescribeStacksOutput, error) {
 	req, out := c.DescribeStacksRequest(input)
 	err := req.Send()
@@ -917,6 +941,7 @@ const opEstimateTemplateCost = "EstimateTemplateCost"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/EstimateTemplateCost
 func (c *CloudFormation) EstimateTemplateCostRequest(input *EstimateTemplateCostInput) (req *request.Request, output *EstimateTemplateCostOutput) {
 	op := &request.Operation{
 		Name:       opEstimateTemplateCost,
@@ -946,6 +971,7 @@ func (c *CloudFormation) EstimateTemplateCostRequest(input *EstimateTemplateCost
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation EstimateTemplateCost for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/EstimateTemplateCost
 func (c *CloudFormation) EstimateTemplateCost(input *EstimateTemplateCostInput) (*EstimateTemplateCostOutput, error) {
 	req, out := c.EstimateTemplateCostRequest(input)
 	err := req.Send()
@@ -978,6 +1004,7 @@ const opExecuteChangeSet = "ExecuteChangeSet"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ExecuteChangeSet
 func (c *CloudFormation) ExecuteChangeSetRequest(input *ExecuteChangeSetInput) (req *request.Request, output *ExecuteChangeSetOutput) {
 	op := &request.Operation{
 		Name:       opExecuteChangeSet,
@@ -1031,6 +1058,7 @@ func (c *CloudFormation) ExecuteChangeSetRequest(input *ExecuteChangeSetInput) (
 //   The template contains resources with capabilities that were not specified
 //   in the Capabilities parameter.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ExecuteChangeSet
 func (c *CloudFormation) ExecuteChangeSet(input *ExecuteChangeSetInput) (*ExecuteChangeSetOutput, error) {
 	req, out := c.ExecuteChangeSetRequest(input)
 	err := req.Send()
@@ -1063,6 +1091,7 @@ const opGetStackPolicy = "GetStackPolicy"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetStackPolicy
 func (c *CloudFormation) GetStackPolicyRequest(input *GetStackPolicyInput) (req *request.Request, output *GetStackPolicyOutput) {
 	op := &request.Operation{
 		Name:       opGetStackPolicy,
@@ -1091,6 +1120,7 @@ func (c *CloudFormation) GetStackPolicyRequest(input *GetStackPolicyInput) (req 
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation GetStackPolicy for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetStackPolicy
 func (c *CloudFormation) GetStackPolicy(input *GetStackPolicyInput) (*GetStackPolicyOutput, error) {
 	req, out := c.GetStackPolicyRequest(input)
 	err := req.Send()
@@ -1123,6 +1153,7 @@ const opGetTemplate = "GetTemplate"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetTemplate
 func (c *CloudFormation) GetTemplateRequest(input *GetTemplateInput) (req *request.Request, output *GetTemplateOutput) {
 	op := &request.Operation{
 		Name:       opGetTemplate,
@@ -1162,6 +1193,7 @@ func (c *CloudFormation) GetTemplateRequest(input *GetTemplateInput) (req *reque
 //   The specified change set name or ID doesn't exit. To view valid change sets
 //   for a stack, use the ListChangeSets action.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetTemplate
 func (c *CloudFormation) GetTemplate(input *GetTemplateInput) (*GetTemplateOutput, error) {
 	req, out := c.GetTemplateRequest(input)
 	err := req.Send()
@@ -1194,6 +1226,7 @@ const opGetTemplateSummary = "GetTemplateSummary"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetTemplateSummary
 func (c *CloudFormation) GetTemplateSummaryRequest(input *GetTemplateSummaryInput) (req *request.Request, output *GetTemplateSummaryOutput) {
 	op := &request.Operation{
 		Name:       opGetTemplateSummary,
@@ -1230,6 +1263,7 @@ func (c *CloudFormation) GetTemplateSummaryRequest(input *GetTemplateSummaryInpu
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation GetTemplateSummary for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetTemplateSummary
 func (c *CloudFormation) GetTemplateSummary(input *GetTemplateSummaryInput) (*GetTemplateSummaryOutput, error) {
 	req, out := c.GetTemplateSummaryRequest(input)
 	err := req.Send()
@@ -1262,6 +1296,7 @@ const opListChangeSets = "ListChangeSets"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListChangeSets
 func (c *CloudFormation) ListChangeSetsRequest(input *ListChangeSetsInput) (req *request.Request, output *ListChangeSetsOutput) {
 	op := &request.Operation{
 		Name:       opListChangeSets,
@@ -1291,6 +1326,7 @@ func (c *CloudFormation) ListChangeSetsRequest(input *ListChangeSetsInput) (req 
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation ListChangeSets for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListChangeSets
 func (c *CloudFormation) ListChangeSets(input *ListChangeSetsInput) (*ListChangeSetsOutput, error) {
 	req, out := c.ListChangeSetsRequest(input)
 	err := req.Send()
@@ -1323,6 +1359,7 @@ const opListExports = "ListExports"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListExports
 func (c *CloudFormation) ListExportsRequest(input *ListExportsInput) (req *request.Request, output *ListExportsOutput) {
 	op := &request.Operation{
 		Name:       opListExports,
@@ -1356,6 +1393,7 @@ func (c *CloudFormation) ListExportsRequest(input *ListExportsInput) (req *reque
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation ListExports for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListExports
 func (c *CloudFormation) ListExports(input *ListExportsInput) (*ListExportsOutput, error) {
 	req, out := c.ListExportsRequest(input)
 	err := req.Send()
@@ -1388,6 +1426,7 @@ const opListImports = "ListImports"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListImports
 func (c *CloudFormation) ListImportsRequest(input *ListImportsInput) (req *request.Request, output *ListImportsOutput) {
 	op := &request.Operation{
 		Name:       opListImports,
@@ -1421,6 +1460,7 @@ func (c *CloudFormation) ListImportsRequest(input *ListImportsInput) (req *reque
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation ListImports for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListImports
 func (c *CloudFormation) ListImports(input *ListImportsInput) (*ListImportsOutput, error) {
 	req, out := c.ListImportsRequest(input)
 	err := req.Send()
@@ -1453,6 +1493,7 @@ const opListStackResources = "ListStackResources"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListStackResources
 func (c *CloudFormation) ListStackResourcesRequest(input *ListStackResourcesInput) (req *request.Request, output *ListStackResourcesOutput) {
 	op := &request.Operation{
 		Name:       opListStackResources,
@@ -1489,6 +1530,7 @@ func (c *CloudFormation) ListStackResourcesRequest(input *ListStackResourcesInpu
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation ListStackResources for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListStackResources
 func (c *CloudFormation) ListStackResources(input *ListStackResourcesInput) (*ListStackResourcesOutput, error) {
 	req, out := c.ListStackResourcesRequest(input)
 	err := req.Send()
@@ -1546,6 +1588,7 @@ const opListStacks = "ListStacks"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListStacks
 func (c *CloudFormation) ListStacksRequest(input *ListStacksInput) (req *request.Request, output *ListStacksOutput) {
 	op := &request.Operation{
 		Name:       opListStacks,
@@ -1583,6 +1626,7 @@ func (c *CloudFormation) ListStacksRequest(input *ListStacksInput) (req *request
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation ListStacks for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListStacks
 func (c *CloudFormation) ListStacks(input *ListStacksInput) (*ListStacksOutput, error) {
 	req, out := c.ListStacksRequest(input)
 	err := req.Send()
@@ -1640,6 +1684,7 @@ const opSetStackPolicy = "SetStackPolicy"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/SetStackPolicy
 func (c *CloudFormation) SetStackPolicyRequest(input *SetStackPolicyInput) (req *request.Request, output *SetStackPolicyOutput) {
 	op := &request.Operation{
 		Name:       opSetStackPolicy,
@@ -1669,6 +1714,7 @@ func (c *CloudFormation) SetStackPolicyRequest(input *SetStackPolicyInput) (req 
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation SetStackPolicy for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/SetStackPolicy
 func (c *CloudFormation) SetStackPolicy(input *SetStackPolicyInput) (*SetStackPolicyOutput, error) {
 	req, out := c.SetStackPolicyRequest(input)
 	err := req.Send()
@@ -1701,6 +1747,7 @@ const opSignalResource = "SignalResource"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/SignalResource
 func (c *CloudFormation) SignalResourceRequest(input *SignalResourceInput) (req *request.Request, output *SignalResourceOutput) {
 	op := &request.Operation{
 		Name:       opSignalResource,
@@ -1735,6 +1782,7 @@ func (c *CloudFormation) SignalResourceRequest(input *SignalResourceInput) (req 
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation SignalResource for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/SignalResource
 func (c *CloudFormation) SignalResource(input *SignalResourceInput) (*SignalResourceOutput, error) {
 	req, out := c.SignalResourceRequest(input)
 	err := req.Send()
@@ -1767,6 +1815,7 @@ const opUpdateStack = "UpdateStack"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/UpdateStack
 func (c *CloudFormation) UpdateStackRequest(input *UpdateStackInput) (req *request.Request, output *UpdateStackOutput) {
 	op := &request.Operation{
 		Name:       opUpdateStack,
@@ -1808,6 +1857,7 @@ func (c *CloudFormation) UpdateStackRequest(input *UpdateStackInput) (req *reque
 //   The template contains resources with capabilities that were not specified
 //   in the Capabilities parameter.
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/UpdateStack
 func (c *CloudFormation) UpdateStack(input *UpdateStackInput) (*UpdateStackOutput, error) {
 	req, out := c.UpdateStackRequest(input)
 	err := req.Send()
@@ -1840,6 +1890,7 @@ const opValidateTemplate = "ValidateTemplate"
 //        fmt.Println(resp)
 //    }
 //
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ValidateTemplate
 func (c *CloudFormation) ValidateTemplateRequest(input *ValidateTemplateInput) (req *request.Request, output *ValidateTemplateOutput) {
 	op := &request.Operation{
 		Name:       opValidateTemplate,
@@ -1870,6 +1921,7 @@ func (c *CloudFormation) ValidateTemplateRequest(input *ValidateTemplateInput) (
 //
 // See the AWS API reference guide for AWS CloudFormation's
 // API operation ValidateTemplate for usage and error information.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ValidateTemplate
 func (c *CloudFormation) ValidateTemplate(input *ValidateTemplateInput) (*ValidateTemplateOutput, error) {
 	req, out := c.ValidateTemplateRequest(input)
 	err := req.Send()
@@ -1877,6 +1929,7 @@ func (c *CloudFormation) ValidateTemplate(input *ValidateTemplateInput) (*Valida
 }
 
 // The AccountLimit data type.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/AccountLimit
 type AccountLimit struct {
 	_ struct{} `type:"structure"`
 
@@ -1910,6 +1963,7 @@ func (s *AccountLimit) SetValue(v int64) *AccountLimit {
 }
 
 // The input for the CancelUpdateStack action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CancelUpdateStackInput
 type CancelUpdateStackInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1948,6 +2002,7 @@ func (s *CancelUpdateStackInput) SetStackName(v string) *CancelUpdateStackInput 
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CancelUpdateStackOutput
 type CancelUpdateStackOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1964,6 +2019,7 @@ func (s CancelUpdateStackOutput) GoString() string {
 
 // The Change structure describes the changes AWS CloudFormation will perform
 // if you execute the change set.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/Change
 type Change struct {
 	_ struct{} `type:"structure"`
 
@@ -2000,6 +2056,7 @@ func (s *Change) SetType(v string) *Change {
 
 // The ChangeSetSummary structure describes a change set, its status, and the
 // stack with which it's associated.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ChangeSetSummary
 type ChangeSetSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -2102,6 +2159,7 @@ func (s *ChangeSetSummary) SetStatusReason(v string) *ChangeSetSummary {
 }
 
 // The input for the ContinueUpdateRollback action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ContinueUpdateRollbackInput
 type ContinueUpdateRollbackInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2206,6 +2264,7 @@ func (s *ContinueUpdateRollbackInput) SetStackName(v string) *ContinueUpdateRoll
 }
 
 // The output for a ContinueUpdateRollback action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ContinueUpdateRollbackOutput
 type ContinueUpdateRollbackOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2221,6 +2280,7 @@ func (s ContinueUpdateRollbackOutput) GoString() string {
 }
 
 // The input for the CreateChangeSet action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CreateChangeSetInput
 type CreateChangeSetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2483,6 +2543,7 @@ func (s *CreateChangeSetInput) SetUsePreviousTemplate(v bool) *CreateChangeSetIn
 }
 
 // The output for the CreateChangeSet action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CreateChangeSetOutput
 type CreateChangeSetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2516,6 +2577,7 @@ func (s *CreateChangeSetOutput) SetStackId(v string) *CreateChangeSetOutput {
 }
 
 // The input for CreateStack action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CreateStackInput
 type CreateStackInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2774,6 +2836,7 @@ func (s *CreateStackInput) SetTimeoutInMinutes(v int64) *CreateStackInput {
 }
 
 // The output for a CreateStack action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/CreateStackOutput
 type CreateStackOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2798,6 +2861,7 @@ func (s *CreateStackOutput) SetStackId(v string) *CreateStackOutput {
 }
 
 // The input for the DeleteChangeSet action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DeleteChangeSetInput
 type DeleteChangeSetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2854,6 +2918,7 @@ func (s *DeleteChangeSetInput) SetStackName(v string) *DeleteChangeSetInput {
 }
 
 // The output for the DeleteChangeSet action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DeleteChangeSetOutput
 type DeleteChangeSetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2869,6 +2934,7 @@ func (s DeleteChangeSetOutput) GoString() string {
 }
 
 // The input for DeleteStack action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DeleteStackInput
 type DeleteStackInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2939,6 +3005,7 @@ func (s *DeleteStackInput) SetStackName(v string) *DeleteStackInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DeleteStackOutput
 type DeleteStackOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2954,6 +3021,7 @@ func (s DeleteStackOutput) GoString() string {
 }
 
 // The input for the DescribeAccountLimits action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeAccountLimitsInput
 type DescribeAccountLimitsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2991,6 +3059,7 @@ func (s *DescribeAccountLimitsInput) SetNextToken(v string) *DescribeAccountLimi
 }
 
 // The output for the DescribeAccountLimits action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeAccountLimitsOutput
 type DescribeAccountLimitsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3026,6 +3095,7 @@ func (s *DescribeAccountLimitsOutput) SetNextToken(v string) *DescribeAccountLim
 }
 
 // The input for the DescribeChangeSet action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeChangeSetInput
 type DescribeChangeSetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3095,6 +3165,7 @@ func (s *DescribeChangeSetInput) SetStackName(v string) *DescribeChangeSetInput 
 }
 
 // The output for the DescribeChangeSet action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeChangeSetOutput
 type DescribeChangeSetOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3259,6 +3330,7 @@ func (s *DescribeChangeSetOutput) SetTags(v []*Tag) *DescribeChangeSetOutput {
 }
 
 // The input for DescribeStackEvents action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackEventsInput
 type DescribeStackEventsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3313,6 +3385,7 @@ func (s *DescribeStackEventsInput) SetStackName(v string) *DescribeStackEventsIn
 }
 
 // The output for a DescribeStackEvents action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackEventsOutput
 type DescribeStackEventsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3347,6 +3420,7 @@ func (s *DescribeStackEventsOutput) SetStackEvents(v []*StackEvent) *DescribeSta
 }
 
 // The input for DescribeStackResource action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackResourceInput
 type DescribeStackResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3410,6 +3484,7 @@ func (s *DescribeStackResourceInput) SetStackName(v string) *DescribeStackResour
 }
 
 // The output for a DescribeStackResource action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackResourceOutput
 type DescribeStackResourceOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3435,6 +3510,7 @@ func (s *DescribeStackResourceOutput) SetStackResourceDetail(v *StackResourceDet
 }
 
 // The input for DescribeStackResources action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackResourcesInput
 type DescribeStackResourcesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3501,6 +3577,7 @@ func (s *DescribeStackResourcesInput) SetStackName(v string) *DescribeStackResou
 }
 
 // The output for a DescribeStackResources action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStackResourcesOutput
 type DescribeStackResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3525,6 +3602,7 @@ func (s *DescribeStackResourcesOutput) SetStackResources(v []*StackResource) *De
 }
 
 // The input for DescribeStacks action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStacksInput
 type DescribeStacksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3579,6 +3657,7 @@ func (s *DescribeStacksInput) SetStackName(v string) *DescribeStacksInput {
 }
 
 // The output for a DescribeStacks action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/DescribeStacksOutput
 type DescribeStacksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3613,6 +3692,7 @@ func (s *DescribeStacksOutput) SetStacks(v []*Stack) *DescribeStacksOutput {
 }
 
 // The input for an EstimateTemplateCost action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/EstimateTemplateCostInput
 type EstimateTemplateCostInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3683,6 +3763,7 @@ func (s *EstimateTemplateCostInput) SetTemplateURL(v string) *EstimateTemplateCo
 }
 
 // The output for a EstimateTemplateCost action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/EstimateTemplateCostOutput
 type EstimateTemplateCostOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3708,6 +3789,7 @@ func (s *EstimateTemplateCostOutput) SetUrl(v string) *EstimateTemplateCostOutpu
 }
 
 // The input for the ExecuteChangeSet action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ExecuteChangeSetInput
 type ExecuteChangeSetInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3764,6 +3846,7 @@ func (s *ExecuteChangeSetInput) SetStackName(v string) *ExecuteChangeSetInput {
 }
 
 // The output for the ExecuteChangeSet action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ExecuteChangeSetOutput
 type ExecuteChangeSetOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3779,6 +3862,7 @@ func (s ExecuteChangeSetOutput) GoString() string {
 }
 
 // The Export structure describes the exported output values for a stack.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/Export
 type Export struct {
 	_ struct{} `type:"structure"`
 
@@ -3824,6 +3908,7 @@ func (s *Export) SetValue(v string) *Export {
 }
 
 // The input for the GetStackPolicy action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetStackPolicyInput
 type GetStackPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3864,6 +3949,7 @@ func (s *GetStackPolicyInput) SetStackName(v string) *GetStackPolicyInput {
 }
 
 // The output for the GetStackPolicy action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetStackPolicyOutput
 type GetStackPolicyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3890,6 +3976,7 @@ func (s *GetStackPolicyOutput) SetStackPolicyBody(v string) *GetStackPolicyOutpu
 }
 
 // The input for a GetTemplate action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetTemplateInput
 type GetTemplateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3961,6 +4048,7 @@ func (s *GetTemplateInput) SetTemplateStage(v string) *GetTemplateInput {
 }
 
 // The output for GetTemplate action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetTemplateOutput
 type GetTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4002,6 +4090,7 @@ func (s *GetTemplateOutput) SetTemplateBody(v string) *GetTemplateOutput {
 }
 
 // The input for the GetTemplateSummary action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetTemplateSummaryInput
 type GetTemplateSummaryInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4081,6 +4170,7 @@ func (s *GetTemplateSummaryInput) SetTemplateURL(v string) *GetTemplateSummaryIn
 }
 
 // The output for the GetTemplateSummary action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/GetTemplateSummaryOutput
 type GetTemplateSummaryOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4179,6 +4269,7 @@ func (s *GetTemplateSummaryOutput) SetVersion(v string) *GetTemplateSummaryOutpu
 }
 
 // The input for the ListChangeSets action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListChangeSetsInput
 type ListChangeSetsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4235,6 +4326,7 @@ func (s *ListChangeSetsInput) SetStackName(v string) *ListChangeSetsInput {
 }
 
 // The output for the ListChangeSets action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListChangeSetsOutput
 type ListChangeSetsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4269,6 +4361,7 @@ func (s *ListChangeSetsOutput) SetSummaries(v []*ChangeSetSummary) *ListChangeSe
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListExportsInput
 type ListExportsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4306,6 +4399,7 @@ func (s *ListExportsInput) SetNextToken(v string) *ListExportsInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListExportsOutput
 type ListExportsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4339,6 +4433,7 @@ func (s *ListExportsOutput) SetNextToken(v string) *ListExportsOutput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListImportsInput
 type ListImportsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4391,6 +4486,7 @@ func (s *ListImportsInput) SetNextToken(v string) *ListImportsInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListImportsOutput
 type ListImportsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4425,6 +4521,7 @@ func (s *ListImportsOutput) SetNextToken(v string) *ListImportsOutput {
 }
 
 // The input for the ListStackResource action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListStackResourcesInput
 type ListStackResourcesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4485,6 +4582,7 @@ func (s *ListStackResourcesInput) SetStackName(v string) *ListStackResourcesInpu
 }
 
 // The output for a ListStackResources action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListStackResourcesOutput
 type ListStackResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4519,6 +4617,7 @@ func (s *ListStackResourcesOutput) SetStackResourceSummaries(v []*StackResourceS
 }
 
 // The input for ListStacks action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListStacksInput
 type ListStacksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4567,6 +4666,7 @@ func (s *ListStacksInput) SetStackStatusFilter(v []*string) *ListStacksInput {
 }
 
 // The output for ListStacks action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ListStacksOutput
 type ListStacksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4602,6 +4702,7 @@ func (s *ListStacksOutput) SetStackSummaries(v []*StackSummary) *ListStacksOutpu
 }
 
 // The Output data type.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/Output
 type Output struct {
 	_ struct{} `type:"structure"`
 
@@ -4644,6 +4745,7 @@ func (s *Output) SetOutputValue(v string) *Output {
 }
 
 // The Parameter data type.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/Parameter
 type Parameter struct {
 	_ struct{} `type:"structure"`
 
@@ -4692,6 +4794,7 @@ func (s *Parameter) SetUsePreviousValue(v bool) *Parameter {
 // A set of criteria that AWS CloudFormation uses to validate parameter values.
 // Although other constraints might be defined in the stack template, AWS CloudFormation
 // returns only the AllowedValues property.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ParameterConstraints
 type ParameterConstraints struct {
 	_ struct{} `type:"structure"`
 
@@ -4716,6 +4819,7 @@ func (s *ParameterConstraints) SetAllowedValues(v []*string) *ParameterConstrain
 }
 
 // The ParameterDeclaration data type.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ParameterDeclaration
 type ParameterDeclaration struct {
 	_ struct{} `type:"structure"`
 
@@ -4787,6 +4891,7 @@ func (s *ParameterDeclaration) SetParameterType(v string) *ParameterDeclaration 
 
 // The ResourceChange structure describes the resource and the action that AWS
 // CloudFormation will perform on it if you execute this change set.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ResourceChange
 type ResourceChange struct {
 	_ struct{} `type:"structure"`
 
@@ -4881,6 +4986,7 @@ func (s *ResourceChange) SetScope(v []*string) *ResourceChange {
 
 // For a resource with Modify as the action, the ResourceChange structure describes
 // the changes AWS CloudFormation will make to that resource.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ResourceChangeDetail
 type ResourceChangeDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -4974,6 +5080,7 @@ func (s *ResourceChangeDetail) SetTarget(v *ResourceTargetDefinition) *ResourceC
 
 // The field that AWS CloudFormation will change, such as the name of a resource's
 // property, and whether the resource will be recreated.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ResourceTargetDefinition
 type ResourceTargetDefinition struct {
 	_ struct{} `type:"structure"`
 
@@ -5022,6 +5129,7 @@ func (s *ResourceTargetDefinition) SetRequiresRecreation(v string) *ResourceTarg
 }
 
 // The input for the SetStackPolicy action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/SetStackPolicyInput
 type SetStackPolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5090,6 +5198,7 @@ func (s *SetStackPolicyInput) SetStackPolicyURL(v string) *SetStackPolicyInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/SetStackPolicyOutput
 type SetStackPolicyOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5105,6 +5214,7 @@ func (s SetStackPolicyOutput) GoString() string {
 }
 
 // The input for the SignalResource action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/SignalResourceInput
 type SignalResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5197,6 +5307,7 @@ func (s *SignalResourceInput) SetUniqueId(v string) *SignalResourceInput {
 	return s
 }
 
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/SignalResourceOutput
 type SignalResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5212,6 +5323,7 @@ func (s SignalResourceOutput) GoString() string {
 }
 
 // The Stack data type.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/Stack
 type Stack struct {
 	_ struct{} `type:"structure"`
 
@@ -5384,6 +5496,7 @@ func (s *Stack) SetTimeoutInMinutes(v int64) *Stack {
 }
 
 // The StackEvent data type.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/StackEvent
 type StackEvent struct {
 	_ struct{} `type:"structure"`
 
@@ -5500,6 +5613,7 @@ func (s *StackEvent) SetTimestamp(v time.Time) *StackEvent {
 }
 
 // The StackResource data type.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/StackResource
 type StackResource struct {
 	_ struct{} `type:"structure"`
 
@@ -5607,6 +5721,7 @@ func (s *StackResource) SetTimestamp(v time.Time) *StackResource {
 }
 
 // Contains detailed information about the specified stack resource.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/StackResourceDetail
 type StackResourceDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -5725,6 +5840,7 @@ func (s *StackResourceDetail) SetStackName(v string) *StackResourceDetail {
 }
 
 // Contains high-level information about the specified stack resource.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/StackResourceSummary
 type StackResourceSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -5805,6 +5921,7 @@ func (s *StackResourceSummary) SetResourceType(v string) *StackResourceSummary {
 }
 
 // The StackSummary Data Type
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/StackSummary
 type StackSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -5900,6 +6017,7 @@ func (s *StackSummary) SetTemplateDescription(v string) *StackSummary {
 
 // The Tag type enables you to specify a key-value pair that can be used to
 // store information about an AWS CloudFormation stack.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -5936,6 +6054,7 @@ func (s *Tag) SetValue(v string) *Tag {
 }
 
 // The TemplateParameter data type.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/TemplateParameter
 type TemplateParameter struct {
 	_ struct{} `type:"structure"`
 
@@ -5988,6 +6107,7 @@ func (s *TemplateParameter) SetParameterKey(v string) *TemplateParameter {
 }
 
 // The input for an UpdateStack action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/UpdateStackInput
 type UpdateStackInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6254,6 +6374,7 @@ func (s *UpdateStackInput) SetUsePreviousTemplate(v bool) *UpdateStackInput {
 }
 
 // The output for an UpdateStack action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/UpdateStackOutput
 type UpdateStackOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -6278,6 +6399,7 @@ func (s *UpdateStackOutput) SetStackId(v string) *UpdateStackOutput {
 }
 
 // The input for ValidateTemplate action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ValidateTemplateInput
 type ValidateTemplateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -6339,6 +6461,7 @@ func (s *ValidateTemplateInput) SetTemplateURL(v string) *ValidateTemplateInput 
 }
 
 // The output for ValidateTemplate action.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/cloudformation-2010-05-15/ValidateTemplateOutput
 type ValidateTemplateOutput struct {
 	_ struct{} `type:"structure"`
 
