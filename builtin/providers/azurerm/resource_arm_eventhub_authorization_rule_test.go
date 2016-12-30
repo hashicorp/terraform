@@ -10,25 +10,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAzureRMEventHubAuthorizationRule_none(t *testing.T) {
-	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_none, ri, ri, ri, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubAuthorizationRuleDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMEventHubAuthorizationRuleExists("azurerm_eventhub_authorization_rule.test"),
-				),
-			},
-		},
-	})
-}
-
 func TestAccAzureRMEventHubAuthorizationRule_listen(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_listen, ri, ri, ri, ri)
@@ -179,37 +160,6 @@ func testCheckAzureRMEventHubAuthorizationRuleExists(name string) resource.TestC
 		return nil
 	}
 }
-
-var testAccAzureRMEventHubAuthorizationRule_none = `
-resource "azurerm_resource_group" "test" {
-    name = "acctestRG-%d"
-    location = "West US"
-}
-resource "azurerm_eventhub_namespace" "test" {
-    name = "acctesteventhubnamespace-%d"
-    location = "${azurerm_resource_group.test.location}"
-    resource_group_name = "${azurerm_resource_group.test.name}"
-    sku = "Standard"
-}
-resource "azurerm_eventhub" "test" {
-  name                = "acctesteventhub-%d"
-  namespace_name      = "${azurerm_eventhub_namespace.test.name}"
-  location            = "${azurerm_resource_group.test.location}"
-  resource_group_name = "${azurerm_resource_group.test.name}"
-  partition_count     = 2
-  message_retention   = 7
-}
-resource "azurerm_eventhub_authorization_rule" "test" {
-  name                = "acctesteventhubrule-%d"
-  namespace_name      = "${azurerm_eventhub_namespace.test.name}"
-  eventhub_name       = "${azurerm_eventhub.test.name}"
-  resource_group_name = "${azurerm_resource_group.test.name}"
-  location            = "${azurerm_resource_group.test.location}"
-  listen              = false
-  manage              = false
-  send                = false
-}
-`
 
 var testAccAzureRMEventHubAuthorizationRule_listen = `
 resource "azurerm_resource_group" "test" {

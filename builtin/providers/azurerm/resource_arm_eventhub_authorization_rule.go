@@ -103,6 +103,9 @@ func resourceArmEventHubAuthorizationRuleCreateUpdate(d *schema.ResourceData, me
 	resGroup := d.Get("resource_group_name").(string)
 
 	rights := expandEventHubAuthorizationRuleAccessRights(d)
+	if len(*rights) == 0 {
+		return fmt.Errorf("At least one Authorization Rule State must be enabled (e.g. Listen/Manage/Send)")
+	}
 
 	parameters := eventhub.SharedAccessAuthorizationRuleCreateOrUpdateParameters{
 		Name:     &name,

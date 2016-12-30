@@ -9,30 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAzureRMEventHubAuthorizationRule_importNone(t *testing.T) {
-	resourceName := "azurerm_eventhub_authorization_rule.test"
-
-	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMEventHubAuthorizationRule_none, ri, ri, ri, ri)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMEventHubAuthorizationRuleDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: config,
-			},
-
-			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
-
 func TestAccAzureRMEventHubAuthorizationRule_importListen(t *testing.T) {
 	resourceName := "azurerm_eventhub_authorization_rule.test"
 
