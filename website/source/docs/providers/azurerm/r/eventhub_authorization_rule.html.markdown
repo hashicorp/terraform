@@ -67,11 +67,11 @@ The following arguments are supported:
 
 ~> **NOTE** At least one of the 3 permissions below needs to be set.
 
-* `listen` - (Optional) Does this Authorization Rule have permissions to Listen to the Event Hub?
+* `listen` - (Optional) Does this Authorization Rule have permissions to Listen to the Event Hub? Defaults to `false`.
 
-* `send` - (Optional) Does this Authorization Rule have permissions to Send to the Event Hub?
+* `send` - (Optional) Does this Authorization Rule have permissions to Send to the Event Hub? Defaults to `false`.
 
-* `manage` - (Optional) Does this Authorization Rule have permissions to Manage to the Event Hub? When this property is `true` - both `listen` and `send` must be too.
+* `manage` - (Optional) Does this Authorization Rule have permissions to Manage to the Event Hub? When this property is `true` - both `listen` and `send` must be too. Defaults to `false`.
 
 ## Attributes Reference
 
