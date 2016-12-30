@@ -12,7 +12,8 @@ import (
 
 func TestAccAzureRMContainerRegistry_basic(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMContainerRegistry_basic, ri, ri, ri)
+	rs := acctest.RandString(4)
+	config := fmt.Sprintf(testAccAzureRMContainerRegistry_basic, ri, rs, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -30,9 +31,9 @@ func TestAccAzureRMContainerRegistry_basic(t *testing.T) {
 }
 
 func TestAccAzureRMContainerRegistry_complete(t *testing.T) {
-
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMContainerRegistry_complete, ri, ri, ri)
+	rs := acctest.RandString(4)
+	config := fmt.Sprintf(testAccAzureRMContainerRegistry_complete, ri, rs, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -110,14 +111,14 @@ resource "azurerm_resource_group" "test" {
 }
 
 resource "azurerm_storage_account" "test" {
-  name                = "testAccSa-%d"
+  name                = "testaccsa%s"
   resource_group_name = "${azurerm_resource_group.test.name}"
   location            = "${azurerm_resource_group.test.location}"
   account_type        = "Standard_LRS"
 }
 
 resource "azurerm_container_registry" "test" {
-  name                = "testAccCr-%d"
+  name                = "testacccr%d"
   resource_group_name = "${azurerm_resource_group.test.name}"
   location            = "${azurerm_resource_group.test.location}"
 
@@ -135,14 +136,14 @@ resource "azurerm_resource_group" "test" {
 }
 
 resource "azurerm_storage_account" "test" {
-  name                = "testAccSa-%d"
+  name                = "testaccsa%s"
   resource_group_name = "${azurerm_resource_group.test.name}"
   location            = "${azurerm_resource_group.test.location}"
   account_type        = "Standard_LRS"
 }
 
 resource "azurerm_container_registry" "test" {
-  name                = "testAccCr-%d"
+  name                = "testacccr%d"
   resource_group_name = "${azurerm_resource_group.test.name}"
   location            = "${azurerm_resource_group.test.location}"
   admin_enabled       = false
