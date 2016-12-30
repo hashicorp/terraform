@@ -6,6 +6,8 @@ import (
 
 	"net/http"
 
+	"regexp"
+
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -23,9 +25,10 @@ func resourceArmContainerRegistry() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ForceNew:     true,
+				ValidateFunc: validateAzureRMContainerRegistryName,
 			},
 
 			"resource_group_name": {
@@ -213,4 +216,22 @@ func resourceAzureRMContainerRegistryStorageAccountHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	name := m["name"].(*string)
 	return hashcode.String(*name)
+}
+
+func validateAzureRMContainerRegistryName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"alpha numeric characters only are allowed in %q: %q", k, value))
+	}
+
+	if 5 > len(value) {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 5 characters: %q", k, value))
+	}
+
+	if len(value) >= 50 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 50 characters: %q %d", k, value, len(value)))
+	}
+
+	return
 }
