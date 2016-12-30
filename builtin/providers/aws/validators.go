@@ -608,3 +608,19 @@ func validateSNSSubscriptionProtocol(v interface{}, k string) (ws []string, erro
 	}
 	return
 }
+
+func validateSecurityRuleType(v interface{}, k string) (ws []string, errors []error) {
+	value := strings.ToLower(v.(string))
+
+	validTypes := map[string]bool{
+		"ingress": true,
+		"egress":  true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Security Group Rule type %q. Valid types are either %q or %q.",
+			k, value, "ingress", "egress"))
+	}
+	return
+}
