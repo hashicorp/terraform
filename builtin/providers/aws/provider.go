@@ -171,6 +171,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_security_group":           dataSourceAwsSecurityGroup(),
 			"aws_vpc":                      dataSourceAwsVpc(),
 			"aws_vpc_endpoint_service":     dataSourceAwsVpcEndpointService(),
+			"aws_vpc_peering_connection":   dataSourceAwsVpcPeeringConnection(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
