@@ -57,13 +57,13 @@ func resourceArmEventHubAuthorizationRule() *schema.Resource {
 				Default:  false,
 			},
 
-			"manage": {
+			"send": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
 			},
 
-			"send": {
+			"manage": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -199,19 +199,19 @@ func resourceArmEventHubAuthorizationRuleDelete(d *schema.ResourceData, meta int
 
 func expandEventHubAuthorizationRuleAccessRights(d *schema.ResourceData) *[]eventhub.AccessRights {
 	canSend := d.Get("send").(bool)
-	canManage := d.Get("manage").(bool)
 	canListen := d.Get("listen").(bool)
+	canManage := d.Get("manage").(bool)
 	rights := []eventhub.AccessRights{}
 	if canListen {
 		rights = append(rights, eventhub.Listen)
 	}
 
-	if canManage {
-		rights = append(rights, eventhub.Manage)
-	}
-
 	if canSend {
 		rights = append(rights, eventhub.Send)
+	}
+
+	if canManage {
+		rights = append(rights, eventhub.Manage)
 	}
 
 	return &rights
@@ -220,23 +220,23 @@ func expandEventHubAuthorizationRuleAccessRights(d *schema.ResourceData) *[]even
 func flattenEventHubAuthorizationRuleAccessRights(d *schema.ResourceData, resp eventhub.SharedAccessAuthorizationRuleResource) {
 
 	var canListen = false
-	var canManage = false
 	var canSend = false
+	var canManage = false
 
 	for _, right := range *resp.Rights {
 		switch right {
 		case eventhub.Listen:
 			canListen = true
-		case eventhub.Manage:
-			canManage = true
 		case eventhub.Send:
 			canSend = true
+		case eventhub.Manage:
+			canManage = true
 		default:
 			log.Printf("[DEBUG] Unknown Authorization Rule Right '%s'", right)
 		}
 	}
 
 	d.Set("listen", canListen)
-	d.Set("manage", canManage)
 	d.Set("send", canSend)
+	d.Set("manage", canManage)
 }

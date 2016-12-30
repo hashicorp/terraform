@@ -46,8 +46,8 @@ resource "azurerm_eventhub_authorization_rule" "test" {
   resource_group_name = "${azurerm_resource_group.test.name}"
   location            = "${azurerm_resource_group.test.location}"
   listen              = true
-  manage              = false
   send                = false
+  manage              = false
 }
 ```
 
@@ -65,11 +65,13 @@ The following arguments are supported:
 
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
 
+~> **NOTE** At least one of the 3 permissions below needs to be set.
+
 * `listen` - (Optional) Does this Authorization Rule have permissions to Listen to the Event Hub?
 
-* `manage` - (Optional) Does this Authorization Rule have permissions to Manage to the Event Hub?
-
 * `send` - (Optional) Does this Authorization Rule have permissions to Send to the Event Hub?
+
+* `manage` - (Optional) Does this Authorization Rule have permissions to Manage to the Event Hub? When this property is `true` - both `listen` and `send` must be too.
 
 ## Attributes Reference
 
@@ -91,5 +93,5 @@ The following attributes are exported:
 EventHubs can be imported using the `resource id`, e.g.
 
 ```
-terraform import azurerm_eventhub_authorization_rule.rule1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.EventHub/namespaces/namespace1/eventhubs/eventhub1
+terraform import azurerm_eventhub_authorization_rule.rule1 /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.EventHub/namespaces/namespace1/eventhubs/eventhub1/authorizationRules/rule1
 ```
