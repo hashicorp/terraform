@@ -25,9 +25,9 @@ func TestAccNetworkingV2Port_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Port_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.foo", &subnet),
-					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
-					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.foo", &port),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.port_1", &port),
 				),
 			},
 		},
@@ -47,9 +47,9 @@ func TestAccNetworkingV2Port_noip(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Port_noip,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.foo", &subnet),
-					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.foo", &network),
-					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.foo", &port),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.port_1", &port),
 				),
 			},
 		},
@@ -69,11 +69,11 @@ func TestAccNetworkingV2Port_allowedAddressPairs(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Port_allowedAddressPairs,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.vrrp_subnet", &subnet),
-					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.vrrp_network", &network),
-					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.vrrp_port_1", &vrrp_port_1),
-					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.vrrp_port_2", &vrrp_port_2),
-					testAccCheckNetworkingV2PortExists(t, "openstack_networking_port_v2.instance_port", &instance_port),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.vrrp_subnet", &subnet),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.vrrp_network", &network),
+					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.vrrp_port_1", &vrrp_port_1),
+					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.vrrp_port_2", &vrrp_port_2),
+					testAccCheckNetworkingV2PortExists("openstack_networking_port_v2.instance_port", &instance_port),
 				),
 			},
 		},
@@ -84,7 +84,7 @@ func testAccCheckNetworkingV2PortDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckNetworkingV2PortDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -101,7 +101,7 @@ func testAccCheckNetworkingV2PortDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckNetworkingV2PortExists(t *testing.T, n string, port *ports.Port) resource.TestCheckFunc {
+func testAccCheckNetworkingV2PortExists(n string, port *ports.Port) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -115,7 +115,7 @@ func testAccCheckNetworkingV2PortExists(t *testing.T, n string, port *ports.Port
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckNetworkingV2PortExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 		}
 
 		found, err := ports.Get(networkingClient, rs.Primary.ID).Extract()
@@ -133,108 +133,117 @@ func testAccCheckNetworkingV2PortExists(t *testing.T, n string, port *ports.Port
 	}
 }
 
-var testAccNetworkingV2Port_basic = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			name = "network_1"
-			admin_state_up = "true"
-		}
+const testAccNetworkingV2Port_basic = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
 
-		resource "openstack_networking_subnet_v2" "foo" {
-			name = "subnet_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			cidr = "192.168.199.0/24"
-			ip_version = 4
-		}
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
 
-		resource "openstack_networking_port_v2" "foo" {
-			name = "port_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			admin_state_up = "true"
-			fixed_ip {
-				subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
-				ip_address = "192.168.199.23"
-			}
-		}`)
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  admin_state_up = "true"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
 
-var testAccNetworkingV2Port_noip = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "foo" {
-			name = "network_1"
-			admin_state_up = "true"
-		}
-		resource "openstack_networking_subnet_v2" "foo" {
-			name = "subnet_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			cidr = "192.168.199.0/24"
-			ip_version = 4
-		}
-		resource "openstack_networking_port_v2" "foo" {
-			name = "port_1"
-			network_id = "${openstack_networking_network_v2.foo.id}"
-			admin_state_up = "true"
-			fixed_ip {
-				subnet_id =  "${openstack_networking_subnet_v2.foo.id}"
-			}
-		}`)
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
+    ip_address = "192.168.199.23"
+  }
+}
+`
 
-var testAccNetworkingV2Port_allowedAddressPairs = fmt.Sprintf(`
-		resource "openstack_networking_network_v2" "vrrp_network" {
-			name = "vrrp_network"
-			admin_state_up = "true"
-		}
+const testAccNetworkingV2Port_noip = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
 
-		resource "openstack_networking_subnet_v2" "vrrp_subnet" {
-			name = "vrrp_subnet"
-			network_id = "${openstack_networking_network_v2.vrrp_network.id}"
-			cidr = "10.0.0.0/24"
-			ip_version = 4
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
 
-			allocation_pools {
-				start = "10.0.0.2"
-				end = "10.0.0.200"
-			}
-		}
+resource "openstack_networking_port_v2" "port_1" {
+  name = "port_1"
+  admin_state_up = "true"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
 
-		resource "openstack_networking_router_v2" "vrrp_router" {
-			name = "vrrp_router"
-		}
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.subnet_1.id}"
+  }
+}
+`
 
-		resource "openstack_networking_router_interface_v2" "vrrp_interface" {
-			router_id = "${openstack_networking_router_v2.vrrp_router.id}"
-			subnet_id = "${openstack_networking_subnet_v2.vrrp_subnet.id}"
-		}
+const testAccNetworkingV2Port_allowedAddressPairs = `
+resource "openstack_networking_network_v2" "vrrp_network" {
+  name = "vrrp_network"
+  admin_state_up = "true"
+}
 
-		resource "openstack_networking_port_v2" "vrrp_port_1" {
-			name = "vrrp_port_1"
-			network_id = "${openstack_networking_network_v2.vrrp_network.id}"
-			admin_state_up = "true"
-			fixed_ip {
-				subnet_id =  "${openstack_networking_subnet_v2.vrrp_subnet.id}"
-				ip_address = "10.0.0.202"
-			}
-		}
+resource "openstack_networking_subnet_v2" "vrrp_subnet" {
+  name = "vrrp_subnet"
+  cidr = "10.0.0.0/24"
+  ip_version = 4
+  network_id = "${openstack_networking_network_v2.vrrp_network.id}"
 
-		resource "openstack_networking_port_v2" "vrrp_port_2" {
-			name = "vrrp_port_2"
-			network_id = "${openstack_networking_network_v2.vrrp_network.id}"
-			admin_state_up = "true"
-			fixed_ip {
-				subnet_id =  "${openstack_networking_subnet_v2.vrrp_subnet.id}"
-				ip_address = "10.0.0.201"
-			}
-		}
+  allocation_pools {
+    start = "10.0.0.2"
+    end = "10.0.0.200"
+  }
+}
 
-		resource "openstack_networking_port_v2" "instance_port" {
-			name = "instance_port"
-			network_id = "${openstack_networking_network_v2.vrrp_network.id}"
-			admin_state_up = "true"
+resource "openstack_networking_router_v2" "vrrp_router" {
+  name = "vrrp_router"
+}
 
-			allowed_address_pairs {
-				ip_address = "${openstack_networking_port_v2.vrrp_port_1.fixed_ip.0.ip_address}"
-				mac_address = "${openstack_networking_port_v2.vrrp_port_1.mac_address}"
-			}
+resource "openstack_networking_router_interface_v2" "vrrp_interface" {
+  router_id = "${openstack_networking_router_v2.vrrp_router.id}"
+  subnet_id = "${openstack_networking_subnet_v2.vrrp_subnet.id}"
+}
 
-			allowed_address_pairs {
-				ip_address = "${openstack_networking_port_v2.vrrp_port_2.fixed_ip.0.ip_address}"
-				mac_address = "${openstack_networking_port_v2.vrrp_port_2.mac_address}"
-			}
-		}`)
+resource "openstack_networking_port_v2" "vrrp_port_1" {
+  name = "vrrp_port_1"
+  admin_state_up = "true"
+  network_id = "${openstack_networking_network_v2.vrrp_network.id}"
+
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.vrrp_subnet.id}"
+    ip_address = "10.0.0.202"
+  }
+}
+
+resource "openstack_networking_port_v2" "vrrp_port_2" {
+  name = "vrrp_port_2"
+  admin_state_up = "true"
+  network_id = "${openstack_networking_network_v2.vrrp_network.id}"
+
+  fixed_ip {
+    subnet_id =  "${openstack_networking_subnet_v2.vrrp_subnet.id}"
+    ip_address = "10.0.0.201"
+  }
+}
+
+resource "openstack_networking_port_v2" "instance_port" {
+  name = "instance_port"
+  admin_state_up = "true"
+  network_id = "${openstack_networking_network_v2.vrrp_network.id}"
+
+  allowed_address_pairs {
+    ip_address = "${openstack_networking_port_v2.vrrp_port_1.fixed_ip.0.ip_address}"
+    mac_address = "${openstack_networking_port_v2.vrrp_port_1.mac_address}"
+  }
+
+  allowed_address_pairs {
+    ip_address = "${openstack_networking_port_v2.vrrp_port_2.fixed_ip.0.ip_address}"
+    mac_address = "${openstack_networking_port_v2.vrrp_port_2.mac_address}"
+  }
+}
+`

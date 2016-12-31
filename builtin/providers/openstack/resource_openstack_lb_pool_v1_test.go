@@ -58,8 +58,8 @@ func TestAccLBV1Pool_fullstack(t *testing.T) {
 			resource.TestStep{
 				Config: testAccLBV1Pool_fullstack_1,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.network_1", &network),
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
 					testAccCheckComputeV2SecGroupExists("openstack_compute_secgroup_v2.secgroup_1", &secgroup),
 					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance1),
 					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_2", &instance2),
@@ -71,8 +71,8 @@ func TestAccLBV1Pool_fullstack(t *testing.T) {
 			resource.TestStep{
 				Config: testAccLBV1Pool_fullstack_2,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2NetworkExists(t, "openstack_networking_network_v2.network_1", &network),
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2NetworkExists("openstack_networking_network_v2.network_1", &network),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
 					testAccCheckComputeV2SecGroupExists("openstack_compute_secgroup_v2.secgroup_1", &secgroup),
 					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_1", &instance1),
 					testAccCheckComputeV2InstanceExists("openstack_compute_instance_v2.instance_2", &instance2),
