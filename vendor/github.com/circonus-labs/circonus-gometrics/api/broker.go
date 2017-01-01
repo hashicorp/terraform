@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Broker API support - Fetch and Search
+// See: https://login.circonus.com/resources/api/calls/broker
+
 package api
 
 import (
@@ -9,7 +12,6 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
-	"strings"
 )
 
 // BrokerDetail instance attributes
@@ -37,24 +39,29 @@ type Broker struct {
 	Type      string         `json:"_type"`
 }
 
-const baseBrokerPath = "/broker"
+const (
+	baseBrokerPath = "/broker"
+	brokerCIDRegex = "^" + baseBrokerPath + "/[0-9]+$"
+)
 
-// FetchBrokerByID fetch a broker configuration by [group]id
-func (a *API) FetchBrokerByID(id IDType) (*Broker, error) {
-	cid := CIDType(fmt.Sprintf("%s/%d", baseBrokerPath, id))
-	return a.FetchBrokerByCID(cid)
-}
+// FetchBroker fetch a broker configuration by cid
+func (a *API) FetchBroker(cid CIDType) (*Broker, error) {
+	if cid == nil || *cid == "" {
+		return nil, fmt.Errorf("Invalid broker CID [none]")
+	}
 
-// FetchBrokerByCID fetch a broker configuration by cid
-func (a *API) FetchBrokerByCID(cid CIDType) (*Broker, error) {
-	if matched, err := regexp.MatchString("^"+baseBrokerPath+"/[0-9]+$", string(cid)); err != nil {
+	brokerCID := string(*cid)
+
+	matched, err := regexp.MatchString(brokerCIDRegex, brokerCID)
+	if err != nil {
 		return nil, err
-	} else if !matched {
-		return nil, fmt.Errorf("Invalid broker CID %v", cid)
+	}
+	if !matched {
+		return nil, fmt.Errorf("Invalid broker CID [%s]", brokerCID)
 	}
 
 	reqURL := url.URL{
-		Path: string(cid),
+		Path: brokerCID,
 	}
 
 	result, err := a.Get(reqURL.String())
@@ -71,32 +78,9 @@ func (a *API) FetchBrokerByCID(cid CIDType) (*Broker, error) {
 
 }
 
-// FetchBrokerListByTag return list of brokers with a specific tag
-func (a *API) FetchBrokerListByTag(searchTag TagType) ([]Broker, error) {
-	query := SearchQueryType(fmt.Sprintf("f__tags_has=%s", strings.Replace(strings.Join(searchTag, ","), ",", "&f__tags_has=", -1)))
-	return a.BrokerSearch(query)
-}
-
-// BrokerSearch return a list of brokers matching a query/filter
-func (a *API) BrokerSearch(query SearchQueryType) ([]Broker, error) {
-	queryURL := fmt.Sprintf("/broker?%s", string(query))
-
-	result, err := a.Get(queryURL)
-	if err != nil {
-		return nil, err
-	}
-
-	var brokers []Broker
-	if err := json.Unmarshal(result, &brokers); err != nil {
-		return nil, err
-	}
-
-	return brokers, nil
-}
-
-// FetchBrokerList return list of all brokers available to the api token/app
-func (a *API) FetchBrokerList() ([]Broker, error) {
-	result, err := a.Get("/broker")
+// FetchBrokers return list of all brokers available to the api token/app
+func (a *API) FetchBrokers() (*[]Broker, error) {
+	result, err := a.Get(baseBrokerPath)
 	if err != nil {
 		return nil, err
 	}
@@ -106,5 +90,58 @@ func (a *API) FetchBrokerList() ([]Broker, error) {
 		return nil, err
 	}
 
-	return response, nil
+	return &response, nil
+}
+
+// // FetchBrokersByTag return list of brokers with a specific tag
+// func (a *API) FetchBrokersByTag(searchTags TagType) (*[]Broker, error) {
+// 	if len(searchTags) == 0 {
+// 		return a.FetchBrokers()
+// 	}
+//
+// 	filter := map[string]string{
+// 		"f__tags_has": strings.Replace(strings.Join(searchTags, ","), ",", "&f__tags_has=", -1),
+// 	}
+//
+// 	return a.SearchBrokers(nil, &filter)
+// }
+
+// SearchBrokers returns list of annotations matching a search query and/or filter
+//    - a search query (see: https://login.circonus.com/resources/api#searching)
+//    - a filter (see: https://login.circonus.com/resources/api#filtering)
+func (a *API) SearchBrokers(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]Broker, error) {
+	q := url.Values{}
+
+	if searchCriteria != nil && *searchCriteria != "" {
+		q.Set("search", string(*searchCriteria))
+	}
+
+	if filterCriteria != nil && len(*filterCriteria) > 0 {
+		for filter, criteria := range *filterCriteria {
+			for _, val := range criteria {
+				q.Add(filter, val)
+			}
+		}
+	}
+
+	if q.Encode() == "" {
+		return a.FetchBrokers()
+	}
+
+	reqURL := url.URL{
+		Path:     baseBrokerPath,
+		RawQuery: q.Encode(),
+	}
+
+	result, err := a.Get(reqURL.String())
+	if err != nil {
+		return nil, fmt.Errorf("[ERROR] API call error %+v", err)
+	}
+
+	var brokers []Broker
+	if err := json.Unmarshal(result, &brokers); err != nil {
+		return nil, err
+	}
+
+	return &brokers, nil
 }

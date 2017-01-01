@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Metric Cluster API support - Fetch, Create, Update, Delete, and Search
+// See: https://login.circonus.com/resources/api/calls/metric_cluster
+
 package api
 
 import (
@@ -28,27 +31,29 @@ type MetricCluster struct {
 	Tags                []string            `json:"tags"`
 }
 
-const baseMetricClusterPath = "/metric_cluster"
+const (
+	baseMetricClusterPath = "/metric_cluster"
+	metricClusterCIDRegex = "^" + baseMetricClusterPath + "/[0-9]+$"
+)
 
-// FetchMetricClusterByID fetch a metric cluster configuration by id
-func (a *API) FetchMetricClusterByID(id IDType, extras string) (*MetricCluster, error) {
-	reqURL := url.URL{
-		Path: fmt.Sprintf("%s/%d", baseMetricClusterPath, id),
+// FetchMetricCluster fetch a metric cluster configuration by cid
+func (a *API) FetchMetricCluster(cid CIDType, extras string) (*MetricCluster, error) {
+	if cid == nil || *cid == "" {
+		return nil, fmt.Errorf("Invalid metric cluster CID [none]")
 	}
-	cid := CIDType(reqURL.String())
-	return a.FetchMetricClusterByCID(cid, extras)
-}
 
-// FetchMetricClusterByCID fetch a check bundle configuration by id
-func (a *API) FetchMetricClusterByCID(cid CIDType, extras string) (*MetricCluster, error) {
-	if matched, err := regexp.MatchString("^"+baseMetricClusterPath+"/[0-9]+$", string(cid)); err != nil {
+	clusterCID := string(*cid)
+
+	matched, err := regexp.MatchString(metricClusterCIDRegex, clusterCID)
+	if err != nil {
 		return nil, err
-	} else if !matched {
-		return nil, fmt.Errorf("Invalid metric cluster CID %v", cid)
+	}
+	if !matched {
+		return nil, fmt.Errorf("Invalid metric cluster CID [%s]", clusterCID)
 	}
 
 	reqURL := url.URL{
-		Path: string(cid),
+		Path: clusterCID,
 	}
 
 	extra := ""
@@ -78,23 +83,30 @@ func (a *API) FetchMetricClusterByCID(cid CIDType, extras string) (*MetricCluste
 	return cluster, nil
 }
 
-// MetricClusterSearch returns list of metric clusters matching a search query (or all metric
-// clusters if no search query is provided)
-//    - a search query not a filter (see: https://login.circonus.com/resources/api#searching)
-func (a *API) MetricClusterSearch(searchCriteria SearchQueryType) ([]MetricCluster, error) {
+// FetchMetricClusters fetch metric cluster configurations
+func (a *API) FetchMetricClusters(extras string) (*[]MetricCluster, error) {
+
 	reqURL := url.URL{
 		Path: baseMetricClusterPath,
 	}
 
-	if searchCriteria != "" {
+	extra := ""
+	switch extras {
+	case "metrics":
+		extra = "_matching_metrics"
+	case "uuids":
+		extra = "_matching_uuid_metrics"
+	}
+
+	if extra != "" {
 		q := url.Values{}
-		q.Set("search", string(searchCriteria))
+		q.Set("extra", extra)
 		reqURL.RawQuery = q.Encode()
 	}
 
 	resp, err := a.Get(reqURL.String())
 	if err != nil {
-		return nil, fmt.Errorf("[ERROR] API call error %+v", err)
+		return nil, err
 	}
 
 	var clusters []MetricCluster
@@ -102,42 +114,21 @@ func (a *API) MetricClusterSearch(searchCriteria SearchQueryType) ([]MetricClust
 		return nil, err
 	}
 
-	return clusters, nil
-}
-
-// CreateMetricCluster create a new metric cluster
-func (a *API) CreateMetricCluster(config *MetricCluster) (*MetricCluster, error) {
-	reqURL := url.URL{
-		Path: baseMetricClusterPath,
-	}
-	cfg, err := json.Marshal(config)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := a.Post(reqURL.String(), cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	cluster := &MetricCluster{}
-	if err := json.Unmarshal(resp, cluster); err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
+	return &clusters, nil
 }
 
 // UpdateMetricCluster updates a metric cluster
 func (a *API) UpdateMetricCluster(config *MetricCluster) (*MetricCluster, error) {
-	if matched, err := regexp.MatchString("^"+baseMetricClusterPath+"/[0-9]+$", string(config.CID)); err != nil {
-		return nil, err
-	} else if !matched {
-		return nil, fmt.Errorf("Invalid metric cluster CID %v", config.CID)
+	if config == nil {
+		return nil, fmt.Errorf("Invalid metric cluster config [nil]")
 	}
 
-	reqURL := url.URL{
-		Path: config.CID,
+	clusterCID := string(config.CID)
+
+	if matched, err := regexp.MatchString(metricClusterCIDRegex, clusterCID); err != nil {
+		return nil, err
+	} else if !matched {
+		return nil, fmt.Errorf("Invalid metric cluster CID [%s]", clusterCID)
 	}
 
 	cfg, err := json.Marshal(config)
@@ -145,15 +136,111 @@ func (a *API) UpdateMetricCluster(config *MetricCluster) (*MetricCluster, error)
 		return nil, err
 	}
 
-	resp, err := a.Put(reqURL.String(), cfg)
+	result, err := a.Put(clusterCID, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	cluster := &MetricCluster{}
-	if err := json.Unmarshal(resp, cluster); err != nil {
+	if err := json.Unmarshal(result, cluster); err != nil {
 		return nil, err
 	}
 
 	return cluster, nil
+}
+
+// CreateMetricCluster create a new metric cluster
+func (a *API) CreateMetricCluster(config *MetricCluster) (*MetricCluster, error) {
+	if config == nil {
+		return nil, fmt.Errorf("Invalid metric cluster config [nil]")
+	}
+
+	cfg, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := a.Post(baseMetricClusterPath, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster := &MetricCluster{}
+	if err := json.Unmarshal(result, cluster); err != nil {
+		return nil, err
+	}
+
+	return cluster, nil
+}
+
+// DeleteMetricCluster delete a metric cluster
+func (a *API) DeleteMetricCluster(config *MetricCluster) (bool, error) {
+	if config == nil {
+		return false, fmt.Errorf("Invalid metric cluster config [none]")
+	}
+
+	cid := CIDType(&config.CID)
+	return a.DeleteMetricClusterByCID(cid)
+}
+
+// DeleteMetricClusterByCID delete a metric cluster by cid
+func (a *API) DeleteMetricClusterByCID(cid CIDType) (bool, error) {
+	if cid == nil || *cid == "" {
+		return false, fmt.Errorf("Invalid metric cluster CID [none]")
+	}
+
+	clusterCID := string(*cid)
+
+	if matched, err := regexp.MatchString(metricClusterCIDRegex, clusterCID); err != nil {
+		return false, err
+	} else if !matched {
+		return false, fmt.Errorf("Invalid metric cluster CID [%s]", clusterCID)
+	}
+
+	_, err := a.Delete(clusterCID)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// SearchMetricClusters returns list of metric clusters matching a search query and/or filter
+//    - a search query (see: https://login.circonus.com/resources/api#searching)
+//    - a filter (see: https://login.circonus.com/resources/api#filtering)
+func (a *API) SearchMetricClusters(searchCriteria *SearchQueryType, filterCriteria *SearchFilterType) (*[]MetricCluster, error) {
+	q := url.Values{}
+
+	if searchCriteria != nil && *searchCriteria != "" {
+		q.Set("search", string(*searchCriteria))
+	}
+
+	if filterCriteria != nil && len(*filterCriteria) > 0 {
+		for filter, criteria := range *filterCriteria {
+			for _, val := range criteria {
+				q.Add(filter, val)
+			}
+		}
+	}
+
+	if q.Encode() == "" {
+		return a.FetchMetricClusters("")
+	}
+
+	reqURL := url.URL{
+		Path:     baseMetricClusterPath,
+		RawQuery: q.Encode(),
+	}
+
+	result, err := a.Get(reqURL.String())
+	if err != nil {
+		return nil, fmt.Errorf("[ERROR] API call error %+v", err)
+	}
+
+	var clusters []MetricCluster
+	if err := json.Unmarshal(result, &clusters); err != nil {
+		return nil, err
+	}
+
+	return &clusters, nil
 }

@@ -35,11 +35,8 @@ type TokenKeyType string
 // TokenAppType - Circonus API Token app name
 type TokenAppType string
 
-// IDType Circonus object id (numeric portion of cid)
-type IDType int
-
 // CIDType Circonus object cid
-type CIDType string
+type CIDType *string
 
 // URLType submission url type
 type URLType string
@@ -48,7 +45,7 @@ type URLType string
 type SearchQueryType string
 
 // SearchFilterType search filter
-type SearchFilterType string
+type SearchFilterType map[string][]string
 
 // TagType search/select/custom tag(s) type
 type TagType []string
@@ -73,6 +70,11 @@ type API struct {
 
 // NewAPI returns a new Circonus API
 func NewAPI(ac *Config) (*API, error) {
+	return New(ac)
+}
+
+// New returns a new Circonus API
+func New(ac *Config) (*API, error) {
 
 	if ac == nil {
 		return nil, errors.New("Invalid API configuration (nil)")

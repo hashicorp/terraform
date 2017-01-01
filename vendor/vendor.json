@@ -1166,10 +1166,10 @@
 			"revisionTime": "2017-01-10T09:44:45Z"
 		},
 		{
-			"checksumSHA1": "g/vmxuzOO5jByeWMiJ20DSE1a7A=",
+			"checksumSHA1": "9w15JjirqHVa0v/hxb5AEGe5P24=",
 			"path": "github.com/circonus-labs/circonus-gometrics",
-			"revision": "26d54584db263c5c0f95f435fe3c6321f1c6ef7f",
-			"revisionTime": "2016-12-22T13:17:52Z"
+			"revision": "94cd6a631993145fc73b9e045972badbfb3f27c0",
+			"revisionTime": "2016-12-30T20:22:19Z"
 		},
 		{
 			"checksumSHA1": "QhYMdplKQJAMptRaHZBB8CF6HdM=",
