@@ -463,9 +463,6 @@ func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
 	// NOTE(sean@): todo
 	metrics := map[string]interface{}{} // NOTE(sean@): TODO
 
-	// NOTE(sean@): todo
-	tags := []interface{}{} // NOTE(sean@): TODO
-
 	d.Set(checkBrokersAttr, cb.Brokers)
 	d.Set(checkConfigAttr, []interface{}{checkConfig})
 	d.Set(checkMetricNameAttr, cb.DisplayName)
@@ -475,7 +472,7 @@ func checkBundleRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set(checkNotesAttr, cb.Notes)
 	d.Set(checkPeriodAttr, cb.Period)
 	d.Set(checkActiveAttr, active)
-	d.Set(checkTagsAttr, []interface{}{tags})
+	d.Set(checkTagsAttr, cb.Tags)
 	d.Set(checkTargetAttr, cb.Target)
 	d.Set(checkTimeoutAttr, cb.Timeout)
 	d.Set(checkTypeAttr, cb.Type)
