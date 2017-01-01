@@ -35,8 +35,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"circonus_check":        resourceCheck(),
-			"circonus_check_bundle": resourceCheckBundle(),
+			"circonus_check": resourceCheckBundle(),
 		},
 
 		ConfigureFunc: providerConfigure,

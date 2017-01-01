@@ -99,6 +99,11 @@ type CirconusMetrics struct {
 
 // NewCirconusMetrics returns a CirconusMetrics instance
 func NewCirconusMetrics(cfg *Config) (*CirconusMetrics, error) {
+	return New(cfg)
+}
+
+// New returns a CirconusMetrics instance
+func New(cfg *Config) (*CirconusMetrics, error) {
 
 	if cfg == nil {
 		return nil, errors.New("invalid configuration (nil)")
@@ -184,7 +189,7 @@ func NewCirconusMetrics(cfg *Config) (*CirconusMetrics, error) {
 		cfg.CheckManager.Debug = cm.Debug
 		cfg.CheckManager.Log = cm.Log
 
-		check, err := checkmgr.NewCheckManager(&cfg.CheckManager)
+		check, err := checkmgr.New(&cfg.CheckManager)
 		if err != nil {
 			return nil, err
 		}

@@ -27,7 +27,7 @@ func (m *CirconusMetrics) submit(output map[string]interface{}, newMetrics map[s
 
 	str, err := json.Marshal(output)
 	if err != nil {
-		m.Log.Printf("[ERROR] marshling output %+v", err)
+		m.Log.Printf("[ERROR] marshaling output %+v", err)
 		return
 	}
 
