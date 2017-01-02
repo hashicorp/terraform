@@ -24,6 +24,7 @@ BUG FIXES:
  * provider/aws: Set `aws_autoscaling_policy` `metric_aggregation_type` to be Computed [GH-10904]
  * provider/aws: `storage_class` is now correctly treated as optional when configuring replication for `aws_s3_bucket` resources. [GH-10921]
  * provider/aws: `user_data` on `aws_launch_configuration` resources is only base 64 encoded if the value provided is not already base 64 encoded. [GH-10871]
+ * provider/aws: Add snapshotting to the list of pending state for elasticache [GH-10965]
  * provider/openstack: Handle `PENDING_UPDATE` status with LBaaS v2 members [GH-10875]
 
 
