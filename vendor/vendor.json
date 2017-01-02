@@ -1123,6 +1123,12 @@
 			"revision": "73c4e3dc02a78deaba8640d5f3a8c236ec1352bf"
 		},
 		{
+			"checksumSHA1": "n25vuAkZbpXDMGrutoefN+b4g+M=",
+			"path": "github.com/franela/goreq",
+			"revision": "fc08df6ca2d4a0d1a5ae24739aa268863943e723",
+			"revisionTime": "2016-05-08T00:03:57Z"
+		},
+		{
 			"checksumSHA1": "f2PcX9lM3DK0GgmS79mHe11BE2U=",
 			"path": "github.com/fsouza/go-dockerclient",
 			"revision": "b21e1152923f46354476a3befa5b7aab0f441b4c",
