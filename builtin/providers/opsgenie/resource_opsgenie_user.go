@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/opsgenie/opsgenie-go-sdk/client"
 	"github.com/opsgenie/opsgenie-go-sdk/user"
 )
 
@@ -39,10 +38,7 @@ func resourceOpsGenieUser() *schema.Resource {
 }
 
 func resourceOpsGenieUserCreate(d *schema.ResourceData, meta interface{}) error {
-	client, cliErr := meta.(*client.OpsGenieClient).User()
-	if cliErr != nil {
-		return cliErr
-	}
+	client := meta.(*OpsGenieClient).users
 
 	username := d.Get("username").(string)
 	fullName := d.Get("full_name").(string)
@@ -81,10 +77,7 @@ func resourceOpsGenieUserCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceOpsGenieUserRead(d *schema.ResourceData, meta interface{}) error {
-	client, cliErr := meta.(*client.OpsGenieClient).User()
-	if cliErr != nil {
-		return cliErr
-	}
+	client := meta.(*OpsGenieClient).users
 
 	getRequest := user.GetUserRequest{
 		Id: d.Id(),
@@ -103,10 +96,7 @@ func resourceOpsGenieUserRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceOpsGenieUserUpdate(d *schema.ResourceData, meta interface{}) error {
-	client, cliErr := meta.(*client.OpsGenieClient).User()
-	if cliErr != nil {
-		return cliErr
-	}
+	client := meta.(*OpsGenieClient).users
 
 	updateRequest := user.UpdateUserRequest{
 		Id: d.Id(),
@@ -141,10 +131,7 @@ func resourceOpsGenieUserUpdate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceOpsGenieUserDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Updating OpsGenie user '%s'", d.Get("username").(string))
-	client, cliErr := meta.(*client.OpsGenieClient).User()
-	if cliErr != nil {
-		return cliErr
-	}
+	client := meta.(*OpsGenieClient).users
 
 	deleteRequest := user.DeleteUserRequest{
 		Id: d.Id(),

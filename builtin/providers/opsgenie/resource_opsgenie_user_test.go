@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/opsgenie/opsgenie-go-sdk/client"
 	"github.com/opsgenie/opsgenie-go-sdk/user"
 )
 
@@ -31,23 +30,18 @@ func TestAccOpsGenieUser_basic(t *testing.T) {
 }
 
 func testCheckOpsGenieUserDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*client.OpsGenieClient)
+	client := testAccProvider.Meta().(*OpsGenieClient).users
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "opsgenie_user" {
 			continue
 		}
 
-		userClient, err := conn.User()
-		if err != nil {
-			return err
-		}
-
 		req := user.GetUserRequest{
 			Id: rs.Primary.Attributes["id"],
 		}
 
-		result, err := userClient.Get(req)
+		result, _ := client.Get(req)
 		if result != nil {
 			return fmt.Errorf("User still exists:\n%#v", result)
 		}
@@ -67,17 +61,13 @@ func testCheckOpsGenieUserExists(name string) resource.TestCheckFunc {
 		id := rs.Primary.Attributes["id"]
 		username := rs.Primary.Attributes["username"]
 
-		conn := testAccProvider.Meta().(*client.OpsGenieClient)
-		userClient, err := conn.User()
-		if err != nil {
-			return err
-		}
+		client := testAccProvider.Meta().(*OpsGenieClient).users
 
 		req := user.GetUserRequest{
 			Id: rs.Primary.Attributes["id"],
 		}
 
-		result, err := userClient.Get(req)
+		result, _ := client.Get(req)
 		if result == nil {
 			return fmt.Errorf("Bad: User %q (username: %q) does not exist", id, username)
 		}
