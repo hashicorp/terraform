@@ -27,8 +27,9 @@ import (
 //    EBS volume.
 // For more information about Amazon CloudWatch Events features, see the Amazon
 // CloudWatch Developer Guide (http://docs.aws.amazon.com/AmazonCloudWatch/latest/DeveloperGuide).
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/events-2015-10-07
 type CloudWatchEvents struct {
 	*client.Client
 }
@@ -39,8 +40,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "events"
+// Service information constants
+const (
+	ServiceName = "events"    // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the CloudWatchEvents client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -53,7 +57,7 @@ const ServiceName = "events"
 //     // Create a CloudWatchEvents client with additional configuration
 //     svc := cloudwatchevents.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *CloudWatchEvents {
-	c := p.ClientConfig(ServiceName, cfgs...)
+	c := p.ClientConfig(EndpointsID, cfgs...)
 	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 

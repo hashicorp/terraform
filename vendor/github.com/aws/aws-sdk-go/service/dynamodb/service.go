@@ -124,8 +124,9 @@ import (
 // For conceptual information about modifying data, see Working with Items (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/WorkingWithItems.html)
 // and Query and Scan Operations (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/QueryAndScan.html)
 // in the Amazon DynamoDB Developer Guide.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/dynamodb-2012-08-10
 type DynamoDB struct {
 	*client.Client
 }
@@ -136,8 +137,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "dynamodb"
+// Service information constants
+const (
+	ServiceName = "dynamodb"  // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the DynamoDB client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -150,7 +154,7 @@ const ServiceName = "dynamodb"
 //     // Create a DynamoDB client with additional configuration
 //     svc := dynamodb.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *DynamoDB {
-	c := p.ClientConfig(ServiceName, cfgs...)
+	c := p.ClientConfig(EndpointsID, cfgs...)
 	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
