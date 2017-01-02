@@ -12,7 +12,7 @@ import (
 
 func TestAccOpsGenieUser_basic(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccAzureRMContainerRegistry_basic, ri)
+	config := fmt.Sprintf(testAccOpsGenieUser_basic, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -76,7 +76,7 @@ func testCheckOpsGenieUserExists(name string) resource.TestCheckFunc {
 	}
 }
 
-var testAccAzureRMContainerRegistry_basic = `
+var testAccOpsGenieUser_basic = `
 resource "opsgenie_user" "test" {
   username  = "acctest-%d@example.tld"
   full_name = "Acceptance Test User"
