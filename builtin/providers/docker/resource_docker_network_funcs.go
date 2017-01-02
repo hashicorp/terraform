@@ -55,7 +55,9 @@ func resourceDockerNetworkCreate(d *schema.ResourceData, meta interface{}) error
 	d.Set("scope", retNetwork.Scope)
 	d.Set("driver", retNetwork.Driver)
 	d.Set("options", retNetwork.Options)
-	d.Set("internal", retNetwork.Internal)
+
+	// The 'internal' property is not send back when create network
+	d.Set("internal", createOpts.Internal)
 
 	return nil
 }
