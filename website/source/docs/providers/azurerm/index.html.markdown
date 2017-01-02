@@ -76,6 +76,12 @@ The following arguments are supported:
 * `tenant_id` - (Optional) The tenant ID to use. It can also be sourced from the
   `ARM_TENANT_ID` environment variable.
 
+* `skip_provider_registration` - (Optional) Prevents the provier from registering
+  the ARM provider namespaces, this can be used if you don't wish to give the Active
+  Directory Application permission to register resource providers. It can also be
+  sourced from the `ARM_SKIP_PROVIDER_REGISTRATION` environment variable, defaults
+  to `false`.
+
 ## Creating Credentials
 
 Azure requires that an application is added to Azure Active Directory to generate the `client_id`, `client_secret`, and `tenant_id` needed by Terraform (`subscription_id` can be recovered from your Azure account details).
