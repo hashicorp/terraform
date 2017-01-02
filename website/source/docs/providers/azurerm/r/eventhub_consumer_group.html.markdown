@@ -57,6 +57,8 @@ The following arguments are supported:
 
 * `namespace_name` - (Required) Specifies the name of the grandparent EventHub Namespace. Changing this forces a new resource to be created.
 
+* `eventhub_name` - (Required) Specifies the name of the EventHub. Changing this forces a new resource to be created.
+
 * `resource_group_name` - (Required) The name of the resource group in which the EventHub Consumer Group's grandparent Namespace exists. Changing this forces a new resource to be created.
 
 * `location` - (Required) Specifies the supported Azure location where the resource exists. Changing this forces a new resource to be created.
