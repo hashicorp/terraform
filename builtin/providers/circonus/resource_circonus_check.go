@@ -249,7 +249,7 @@ func resourceCheckBundle() *schema.Resource {
 							Description: "Name of the metric",
 						},
 						checkMetricTagsAttr: &schema.Schema{
-							Type:        schema.TypeList,
+							Type:        schema.TypeSet,
 							Optional:    true,
 							Computed:    true,
 							Description: "Tags assigned to a metric",
@@ -257,6 +257,7 @@ func resourceCheckBundle() *schema.Resource {
 								Type:         schema.TypeString,
 								ValidateFunc: validateTag,
 							},
+							Set: schema.HashString,
 						},
 						checkMetricTypeAttr: &schema.Schema{
 							Type:         schema.TypeString,
@@ -296,14 +297,15 @@ func resourceCheckBundle() *schema.Resource {
 				ValidateFunc: validatePeriod,
 			},
 			checkTagsAttr: &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Computed: true,
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Computed:    true,
+				Description: "An array of tags",
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validateTag,
 				},
-				Description: "An array of tags",
+				Set: schema.HashString,
 			},
 			checkTargetAttr: &schema.Schema{
 				Type:        schema.TypeString,
@@ -622,14 +624,11 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 
 			var metricTags []string
 			if tagsRaw, ok := metricMap[checkMetricTagsAttr]; ok {
-				if err := validateTags(tagsRaw); err != nil {
-					return nil, err
-				}
+				tags := flattenSet(tagsRaw.(*schema.Set))
 
-				tagsList := tagsRaw.([]interface{})
-				metricTags = make([]string, 0, len(tagsList))
-				for _, tagRaw := range tagsList {
-					metricTags = append(metricTags, tagRaw.(string))
+				metricTags = make([]string, 0, len(tags))
+				for _, tag := range tags {
+					metricTags = append(metricTags, *tag)
 				}
 			}
 
@@ -662,14 +661,11 @@ func getCheckBundleInput(d *schema.ResourceData, meta interface{}) (*api.CheckBu
 	}
 
 	if tagsRaw, ok := d.GetOk(checkTagsAttr); ok {
-		if err := validateTags(tagsRaw); err != nil {
-			return nil, err
-		}
+		checkTags := flattenSet(tagsRaw.(*schema.Set))
 
-		tagsList := tagsRaw.([]interface{})
-		cb.Tags = make([]string, 0, len(tagsList))
-		for _, tagRaw := range tagsList {
-			cb.Tags = append(cb.Tags, tagRaw.(string))
+		cb.Tags = make([]string, 0, len(checkTags))
+		for _, tag := range checkTags {
+			cb.Tags = append(cb.Tags, *tag)
 		}
 	}
 
