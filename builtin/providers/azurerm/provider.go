@@ -7,6 +7,9 @@ import (
 
 	"sync"
 
+	"log"
+
+	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/mutexkv"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -42,6 +45,12 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
+			},
+
+			"skip_provider_registration": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_SKIP_PROVIDER_REGISTRATION", false),
 			},
 		},
 
@@ -121,10 +130,11 @@ func Provider() terraform.ResourceProvider {
 type Config struct {
 	ManagementURL string
 
-	SubscriptionID string
-	ClientID       string
-	ClientSecret   string
-	TenantID       string
+	SubscriptionID           string
+	ClientID                 string
+	ClientSecret             string
+	TenantID                 string
+	SkipProviderRegistration bool
 
 	validateCredentialsOnce sync.Once
 }
@@ -151,10 +161,11 @@ func (c *Config) validate() error {
 func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 	return func(d *schema.ResourceData) (interface{}, error) {
 		config := &Config{
-			SubscriptionID: d.Get("subscription_id").(string),
-			ClientID:       d.Get("client_id").(string),
-			ClientSecret:   d.Get("client_secret").(string),
-			TenantID:       d.Get("tenant_id").(string),
+			SubscriptionID:           d.Get("subscription_id").(string),
+			ClientID:                 d.Get("client_id").(string),
+			ClientSecret:             d.Get("client_secret").(string),
+			TenantID:                 d.Get("tenant_id").(string),
+			SkipProviderRegistration: d.Get("skip_provider_registration").(bool),
 		}
 
 		if err := config.validate(); err != nil {
@@ -168,30 +179,30 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 
 		client.StopContext = p.StopContext()
 
-		err = registerAzureResourceProvidersWithSubscription(client.rivieraClient)
+		// List all the available providers and their registration state to avoid unnecessary
+		// requests. This also lets us check if the provider credentials are correct.
+		providerList, err := client.providers.List(nil, "")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Unable to list provider registration status, it is possible that this is due to invalid "+
+				"credentials or the service principal does not have permission to use the Resource Manager API, Azure "+
+				"error: %s", err)
+		}
+
+		if !config.SkipProviderRegistration {
+			err = registerAzureResourceProvidersWithSubscription(*providerList.Value, client.providers)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		return client, nil
 	}
 }
 
-func registerProviderWithSubscription(providerName string, client *riviera.Client) error {
-	request := client.NewRequest()
-	request.Command = riviera.RegisterResourceProvider{
-		Namespace: providerName,
-	}
-
-	response, err := request.Execute()
+func registerProviderWithSubscription(providerName string, client resources.ProvidersClient) error {
+	_, err := client.Register(providerName)
 	if err != nil {
-		return fmt.Errorf("Cannot request provider registration for Azure Resource Manager: %s.", err)
-	}
-
-	if !response.IsSuccessful() {
-		return fmt.Errorf("Credentials for accessing the Azure Resource Manager API are likely " +
-			"to be incorrect, or\n  the service principal does not have permission to use " +
-			"the Azure Service Management\n  API.")
+		return fmt.Errorf("Cannot register provider %s with Azure Resource Manager: %s.", providerName, err)
 	}
 
 	return nil
@@ -203,28 +214,41 @@ var providerRegistrationOnce sync.Once
 // all Azure resource providers which the Terraform provider may require (regardless of
 // whether they are actually used by the configuration or not). It was confirmed by Microsoft
 // that this is the approach their own internal tools also take.
-func registerAzureResourceProvidersWithSubscription(client *riviera.Client) error {
+func registerAzureResourceProvidersWithSubscription(providerList []resources.Provider, client resources.ProvidersClient) error {
 	var err error
 	providerRegistrationOnce.Do(func() {
-		// We register Microsoft.Compute during client initialization
-		providers := []string{
-			"Microsoft.Cache",
-			"Microsoft.Network",
-			"Microsoft.Cdn",
-			"Microsoft.Storage",
-			"Microsoft.Sql",
-			"Microsoft.Search",
-			"Microsoft.Resources",
-			"Microsoft.ServiceBus",
-			"Microsoft.KeyVault",
-			"Microsoft.EventHub",
+		providers := map[string]struct{}{
+			"Microsoft.Compute":    struct{}{},
+			"Microsoft.Cache":      struct{}{},
+			"Microsoft.Network":    struct{}{},
+			"Microsoft.Cdn":        struct{}{},
+			"Microsoft.Storage":    struct{}{},
+			"Microsoft.Sql":        struct{}{},
+			"Microsoft.Search":     struct{}{},
+			"Microsoft.Resources":  struct{}{},
+			"Microsoft.ServiceBus": struct{}{},
+			"Microsoft.KeyVault":   struct{}{},
+			"Microsoft.EventHub":   struct{}{},
+		}
+
+		// filter out any providers already registered
+		for _, p := range providerList {
+			if _, ok := providers[*p.Namespace]; !ok {
+				continue
+			}
+
+			if strings.ToLower(*p.RegistrationState) == "registered" {
+				log.Printf("[DEBUG] Skipping provider registration for namespace %s\n", *p.Namespace)
+				delete(providers, *p.Namespace)
+			}
 		}
 
 		var wg sync.WaitGroup
 		wg.Add(len(providers))
-		for _, providerName := range providers {
+		for providerName := range providers {
 			go func(p string) {
 				defer wg.Done()
+				log.Printf("[DEBUG] Registering provider with namespace %s\n", p)
 				if innerErr := registerProviderWithSubscription(p, client); err != nil {
 					err = innerErr
 				}
