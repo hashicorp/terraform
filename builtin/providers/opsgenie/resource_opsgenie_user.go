@@ -33,6 +33,8 @@ func resourceOpsGenieUser() *schema.Resource {
 				Required: true,
 				// TODO: Max length 255
 			},
+
+			// TODO: Locale & Timezone
 		},
 	}
 }
