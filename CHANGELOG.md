@@ -2,29 +2,29 @@
 
 FEATURES:
 
- * **New Resource:**  `azurerm_eventhub_consumer_group` [GH-9902]
- * **New Resource:**  `azurerm_eventhub_authorization_rule` [GH-10971]
- * **New Resource:**  `azurerm_container_registry` [GH-10973]
  * **New Data Source:**  `aws_vpc_peering_connection` [GH-10913]
-
+ * **New Resource:**  `azurerm_container_registry` [GH-10973]
+ * **New Resource:**  `azurerm_eventhub_authorization_rule` [GH-10971]
+ * **New Resource:**  `azurerm_eventhub_consumer_group` [GH-9902]
 
 IMPROVEMENTS:
  
+ * provider/archive: `archive_file` now exports `output_md5` attribute in addition to existing SHA1 and Base64 SHA256 hashes. [GH-10851]
+ * provider/aws: Add `most_recent` to the `ebs_snapshot` data source [GH-10986]
  * provider/aws: Add support for instance tenancy in `aws_opsworks_instance` [GH-10885]
  * provider/aws: Added a validation for security group rule types [GH-10864]
- * provider/aws: Add `most_recent` to the `ebs_snapshot` data source [GH-10986]
- * provider/archive: `archive_file` now exports `output_md5` attribute in addition to existing SHA1 and Base64 SHA256 hashes. [GH-10851]
- * provider/pagerduty Add delete support to pagerduty_service_integration [GH-10891]
+ * provider/azurerm: Azure resource providers which are already registered are no longer re-registered. [GH-10991]
+ * provider/pagerduty Add delete support to `pagerduty_service_integration` [GH-10891]
  * provider/postgresql Add permissions support to `postgresql_schema` as nested `policy` attributes [GH-10808]
 
 BUG FIXES:
 
+ * provider/aws: Guard against nil change output in `route53_zone` that causes panic [GH-10798]
+ * provider/aws: Reworked validateArn function to handle empty values [GH-10833]
+ * provider/aws: Set `aws_autoscaling_policy` `metric_aggregation_type` to be Computed [GH-10904]
  * provider/aws: `storage_class` is now correctly treated as optional when configuring replication for `aws_s3_bucket` resources. [GH-10921]
  * provider/aws: `user_data` on `aws_launch_configuration` resources is only base 64 encoded if the value provided is not already base 64 encoded. [GH-10871]
- * provider/aws: Reworked validateArn function to handle empty values [GH-10833]
- * provider/aws: Guard against nil change output in route53_zone that causes panic [GH-10798]
- * provider/aws: Set aws_autoscaling_policy metric_aggregation_type to be Computed [GH-10904]
- * provider/openstack: Handle PENDING_UPDATE status with LBaaS v2 members [GH-10875]
+ * provider/openstack: Handle `PENDING_UPDATE` status with LBaaS v2 members [GH-10875]
 
 
 ## 0.8.2 (December 21, 2016)
