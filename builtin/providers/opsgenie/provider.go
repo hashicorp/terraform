@@ -21,7 +21,9 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
-		DataSourcesMap: map[string]*schema.Resource{},
+		DataSourcesMap: map[string]*schema.Resource{
+			"opsgenie_user": dataSourceOpsGenieUser(),
+		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"opsgenie_user": resourceOpsGenieUser(),
