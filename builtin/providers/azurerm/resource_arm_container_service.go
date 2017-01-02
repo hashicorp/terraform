@@ -69,6 +69,7 @@ func resourceArmContainerService() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceAzureRMContainerServiceMasterProfileHash,
 			},
 
 			"linux_profile": {
@@ -96,6 +97,7 @@ func resourceArmContainerService() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceAzureRMContainerServiceLinuxProfilesHash,
 			},
 
 			"agent_pool_profile": {
@@ -135,6 +137,7 @@ func resourceArmContainerService() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceAzureRMContainerServiceAgentPoolProfilesHash,
 			},
 
 			"service_principal": {
@@ -154,6 +157,7 @@ func resourceArmContainerService() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceAzureRMContainerServiceServicePrincipalProfileHash,
 			},
 
 			"diagnostics_profile": {
@@ -173,6 +177,7 @@ func resourceArmContainerService() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceAzureRMContainerServiceDiagnosticProfilesHash,
 			},
 
 			"tags": tagsSchema(),
