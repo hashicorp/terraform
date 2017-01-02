@@ -193,7 +193,7 @@ func resourceArmContainerRegistryDelete(d *schema.ResourceData, meta interface{}
 	resp, err := client.Delete(resourceGroup, name)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Error issuing Azure ARM delete request of ContainerRegistry '%s': %s", name, err)
+		return fmt.Errorf("Error issuing Azure ARM delete request of Container Registry '%s': %s", name, err)
 	}
 
 	return nil
