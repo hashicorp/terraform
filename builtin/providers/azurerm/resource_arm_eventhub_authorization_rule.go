@@ -102,9 +102,9 @@ func resourceArmEventHubAuthorizationRuleCreateUpdate(d *schema.ResourceData, me
 	location := d.Get("location").(string)
 	resGroup := d.Get("resource_group_name").(string)
 
-	rights := expandEventHubAuthorizationRuleAccessRights(d)
-	if len(*rights) == 0 {
-		return fmt.Errorf("At least one Authorization Rule State must be enabled (e.g. Listen/Manage/Send)")
+	rights, err := expandEventHubAuthorizationRuleAccessRights(d)
+	if err != nil {
+		return err
 	}
 
 	parameters := eventhub.SharedAccessAuthorizationRuleCreateOrUpdateParameters{
@@ -115,7 +115,7 @@ func resourceArmEventHubAuthorizationRuleCreateUpdate(d *schema.ResourceData, me
 		},
 	}
 
-	_, err := client.CreateOrUpdateAuthorizationRule(resGroup, namespaceName, eventHubName, name, parameters)
+	_, err = client.CreateOrUpdateAuthorizationRule(resGroup, namespaceName, eventHubName, name, parameters)
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func resourceArmEventHubAuthorizationRuleDelete(d *schema.ResourceData, meta int
 	return nil
 }
 
-func expandEventHubAuthorizationRuleAccessRights(d *schema.ResourceData) *[]eventhub.AccessRights {
+func expandEventHubAuthorizationRuleAccessRights(d *schema.ResourceData) (*[]eventhub.AccessRights, error) {
 	canSend := d.Get("send").(bool)
 	canListen := d.Get("listen").(bool)
 	canManage := d.Get("manage").(bool)
@@ -214,7 +214,15 @@ func expandEventHubAuthorizationRuleAccessRights(d *schema.ResourceData) *[]even
 		rights = append(rights, eventhub.Manage)
 	}
 
-	return &rights
+	if len(rights) == 0 {
+		return nil, fmt.Errorf("At least one Authorization Rule State must be enabled (e.g. Listen/Manage/Send)")
+	}
+
+	if canManage && !(canListen && canSend) {
+		return nil, fmt.Errorf("In order to enable the 'Manage' Authorization Rule - both the 'Listen' and 'Send' rules must be enabled")
+	}
+
+	return &rights, nil
 }
 
 func flattenEventHubAuthorizationRuleAccessRights(d *schema.ResourceData, resp eventhub.SharedAccessAuthorizationRuleResource) {
