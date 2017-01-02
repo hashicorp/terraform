@@ -1188,3 +1188,63 @@ func TestNormalizeJsonString(t *testing.T) {
 		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", expected, invalidJson)
 	}
 }
+
+func TestCheckYamlString(t *testing.T) {
+	var err error
+	var actual string
+
+	validYaml := `---
+abc:
+  def: 123
+  xyz:
+    -
+      a: "ホリネズミ"
+      b: "1"
+`
+
+	actual, err = checkYamlString(validYaml)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing YAML, but got: %s", err)
+	}
+
+	// We expect the same YAML string back
+	if actual != validYaml {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, validYaml)
+	}
+
+	invalidYaml := `abc: [`
+
+	actual, err = checkYamlString(invalidYaml)
+	if err == nil {
+		t.Fatalf("Expected to throw an error while parsing YAML, but got: %s", err)
+	}
+
+	// We expect the invalid YAML to be shown back to us again.
+	if actual != invalidYaml {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, invalidYaml)
+	}
+}
+
+func TestNormalizeCloudFormationTemplate(t *testing.T) {
+	var err error
+	var actual string
+
+	validNormalizedJson := `{"abc":"1"}`
+	actual, err = normalizeCloudFormationTemplate(validNormalizedJson)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing template, but got: %s", err)
+	}
+	if actual != validNormalizedJson {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, validNormalizedJson)
+	}
+
+	validNormalizedYaml := `abc: 1
+`
+	actual, err = normalizeCloudFormationTemplate(validNormalizedYaml)
+	if err != nil {
+		t.Fatalf("Expected not to throw an error while parsing template, but got: %s", err)
+	}
+	if actual != validNormalizedYaml {
+		t.Fatalf("Got:\n\n%s\n\nExpected:\n\n%s\n", actual, validNormalizedYaml)
+	}
+}

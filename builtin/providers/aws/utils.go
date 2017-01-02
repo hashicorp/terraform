@@ -1,6 +1,9 @@
 package aws
 
-import "encoding/base64"
+import (
+	"encoding/base64"
+	"regexp"
+)
 
 // Base64Encode encodes data if the input isn't already encoded using base64.StdEncoding.EncodeToString.
 // If the input is already base64 encoded, return the original input unchanged.
@@ -16,4 +19,8 @@ func base64Encode(data []byte) string {
 func isBase64Encoded(data []byte) bool {
 	_, err := base64.StdEncoding.DecodeString(string(data))
 	return err == nil
+}
+
+func looksLikeJsonString(s interface{}) bool {
+	return regexp.MustCompile(`^\s*{`).MatchString(s.(string))
 }

@@ -759,6 +759,49 @@ func TestValidateJsonString(t *testing.T) {
 	}
 }
 
+func TestValidateCloudFormationTemplate(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `{"abc":"`,
+			ErrCount: 1,
+		},
+		{
+			Value:    "abc: [",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateCloudFormationTemplate(tc.Value, "template")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    `{"abc":"1"}`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `abc: 1`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateCloudFormationTemplate(tc.Value, "template")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
 func TestValidateApiGatewayIntegrationType(t *testing.T) {
 	type testCases struct {
 		Value    string
