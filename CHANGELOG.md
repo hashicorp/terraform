@@ -3,6 +3,7 @@
 FEATURES:
 
  * **New Resource:**  `azurerm_eventhub_consumer_group` [GH-9902]
+ * **New Resource:**  `azurerm_eventhub_authorization_rule` [GH-10971]
  * **New Resource:**  `azurerm_container_registry` [GH-10973]
  * **New Data Source:**  `aws_vpc_peering_connection` [GH-10913]
 
