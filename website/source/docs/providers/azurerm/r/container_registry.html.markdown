@@ -59,7 +59,7 @@ The following arguments are supported:
 
 `storage_account` supports the following:
 
-* `name` - (Required) The name of the storage account. If specified, the storage account must be in the same physical location as the Container Registry.
+* `name` - (Required) The name of the storage account, which must be in the same physical location as the Container Registry.
 * `access_key` - (Required) The access key to the storage account.
 
 ## Attributes Reference
