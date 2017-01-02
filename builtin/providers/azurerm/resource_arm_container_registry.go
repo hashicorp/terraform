@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/jen20/riviera/azure"
 )
 
 func resourceArmContainerRegistry() *schema.Resource {
@@ -104,15 +105,13 @@ func resourceArmContainerRegistryCreate(d *schema.ResourceData, meta interface{}
 		Tags: expandTags(tags),
 	}
 
-	if v, ok := d.GetOk("storage_account"); ok {
-		accounts := v.(*schema.Set).List()
-		account := accounts[0].(map[string]interface{})
-		storageAccountName := account["name"].(string)
-		storageAccountAccessKey := account["access_key"].(string)
-		parameters.RegistryProperties.StorageAccount = &containerregistry.StorageAccountProperties{
-			Name:      &storageAccountName,
-			AccessKey: &storageAccountAccessKey,
-		}
+	accounts := d.Get("storage_account").(*schema.Set).List()
+	account := accounts[0].(map[string]interface{})
+	storageAccountName := account["name"].(string)
+	storageAccountAccessKey := account["access_key"].(string)
+	parameters.RegistryProperties.StorageAccount = &containerregistry.StorageAccountProperties{
+		Name:      azure.String(storageAccountName),
+		AccessKey: azure.String(storageAccountAccessKey),
 	}
 
 	_, err := client.CreateOrUpdate(resourceGroup, name, parameters)
