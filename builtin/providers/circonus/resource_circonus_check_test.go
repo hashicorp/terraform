@@ -36,13 +36,13 @@ func TestAccCirconusCheckBundle_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.#", "1"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.name", "_usage`0`_used"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.tags.#", "1"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.tags.0", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.tags.1384943139", "source:circonus"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "metric.0.type", "numeric"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "name", "Terraform test: api.circonus.com metric usage check"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "period", "60"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.#", "2"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.0", "creator:terraform"),
-					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.1", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.1384943139", "source:circonus"),
+					resource.TestCheckResourceAttr("circonus_check.usage_check", "tags.4159623090", "creator:terraform"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "target", "api.circonus.com"),
 					resource.TestCheckResourceAttr("circonus_check.usage_check", "type", "json"),
 				),
@@ -142,7 +142,7 @@ resource "circonus_check" "usage_check" {
     read_limit = 1048576
     redirects = 3
   }
-  # TODO(sean@): the order of the tags should not matter
-  tags = ["creator:terraform","source:circonus"]
+
+  tags = ["source:circonus", "creator:terraform"]
 }
 `
