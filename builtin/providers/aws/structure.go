@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/directoryservice"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
@@ -921,6 +922,34 @@ func expandESEBSOptions(m map[string]interface{}) *elasticsearch.EBSOptions {
 	}
 
 	return &options
+}
+
+func flattenConfigRecordingGroup(g *configservice.RecordingGroup) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if g.AllSupported != nil {
+		m["all_supported"] = *g.AllSupported
+	}
+
+	if g.IncludeGlobalResourceTypes != nil {
+		m["include_global_resource_types"] = *g.IncludeGlobalResourceTypes
+	}
+
+	if g.ResourceTypes != nil {
+		m["resource_types"] = flattenStringList(g.ResourceTypes)
+	}
+
+	return []map[string]interface{}{m}
+}
+
+func flattenConfigSnapshotDeliveryProperties(p *configservice.ConfigSnapshotDeliveryProperties) []map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if p.DeliveryFrequency != nil {
+		m["delivery_frequency"] = *p.DeliveryFrequency
+	}
+
+	return []map[string]interface{}{m}
 }
 
 func pointersMapToStringList(pointers map[string]*string) map[string]interface{} {
