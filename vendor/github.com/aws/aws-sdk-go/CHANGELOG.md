@@ -1,3 +1,76 @@
+Release v1.6.9 (2016-12-30)
+===
+
+Service Client Updates
+---
+* `service/codedeploy`: Updates service API and documentation
+  * CodeDeploy will support Iam Session Arns in addition to Iam User Arns for on premise host authentication.
+* `service/ecs`: Updates service API and documentation
+  * Amazon EC2 Container Service (ECS) now supports the ability to customize the placement of tasks on container instances.
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+
+Release v1.6.8 (2016-12-22)
+===
+
+Service Client Updates
+---
+* `service/apigateway`: Updates service API and documentation
+  * Amazon API Gateway is adding support for generating SDKs in more languages. This update introduces two new operations used to dynamically discover these SDK types and what configuration each type accepts.
+* `service/directoryservice`: Updates service documentation
+  * Added code snippets for the DS SDKs
+* `service/elasticbeanstalk`: Updates service API and documentation
+* `service/iam`: Updates service API and documentation
+  * Adds service-specific credentials to IAM service to make it easier to onboard CodeCommit customers.  These are username/password credentials that work with a single service.
+* `service/kms`: Updates service API, documentation, and examples
+  * Update docs and add SDK examples
+
+Release v1.6.7 (2016-12-22)
+===
+
+Service Client Updates
+---
+* `service/ecr`: Updates service API and documentation
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/rds`: Updates service API and documentation
+  * Cross Region Encrypted Snapshot Copying (CopyDBSnapshot)
+
+Release v1.6.6 (2016-12-20)
+===
+
+Service Client Updates
+---
+* `aws/endpoints`: Updated Regions and Endpoints metadata.
+* `service/firehose`: Updates service API, documentation, and examples
+  * Processing feature enables users to process and modify records before Amazon Firehose delivers them to destinations.
+* `service/route53`: Updates service API and documentation
+  * Enum updates for eu-west-2 and ca-central-1
+* `service/storagegateway`: Updates service API, documentation, and examples
+  * File gateway is a new mode in the AWS Storage Gateway that support a file interface into S3, alongside the current block-based volume and VTL storage. File gateway combines a service and virtual software appliance, enabling you to store and retrieve objects in Amazon S3 using industry standard file protocols such as NFS. The software appliance, or gateway, is deployed into your on-premises environment as a virtual machine (VM) running on VMware ESXi. The gateway provides access to objects in S3 as files on a Network File System (NFS) mount point.
+
+Release v1.6.5 (2016-12-19)
+===
+
+Service Client Updates
+---
+* `service/cloudformation`: Updates service documentation
+  * Minor doc update for CloudFormation.
+* `service/cloudtrail`: Updates service paginators
+* `service/cognitoidentity`: Updates service API and documentation
+  * We are adding Groups to Cognito user pools. Developers can perform CRUD operations on groups, add and remove users from groups, list users in groups, etc. We are adding fine-grained role-based access control for Cognito identity pools. Developers can configure an identity pool to get the IAM role from an authenticated user's token, or they can configure rules that will map a user to a different role
+* `service/applicationdiscoveryservice`: Updates service API and documentation
+  * Adds new APIs to group discovered servers into Applications with get summary and neighbors. Includes additional filters for ListConfigurations and DescribeAgents API.
+* `service/inspector`: Updates service API, documentation, and examples
+  * Doc-only Update for Inspector: Adding SDK code snippets for Inspector
+* `service/sqs`: Updates service documentation
+
+SDK Bug Fixes
+---
+* `aws/request`: Add PriorRequestNotComplete to throttle retry codes (#1011)
+  * Fixes: Not retrying when PriorRequestNotComplete #1009
+
+SDK Feature
+---
+* `private/model/api`: Adds crosslinking to service documentation (#1010)
 Release v1.6.4 (2016-12-15)
 ===
 
