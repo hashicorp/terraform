@@ -53,7 +53,7 @@ export PATH="$SRCROOT/bin:$SRCPATH/bin:\$PATH"
 EOF
 chmod 755 /etc/profile.d/gopath.sh
 
-cat >>/home/vagrant/.bashrc <<EOF
+grep -q -F 'cd /opt/gopath/src/github.com/hashicorp/terraform' /home/vagrant/.bashrc || cat >>/home/vagrant/.bashrc <<EOF
 
 ## After login, change to terraform directory
 cd /opt/gopath/src/github.com/hashicorp/terraform
