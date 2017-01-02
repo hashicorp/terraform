@@ -113,6 +113,10 @@ To make a resource importable, please see the
 * azurerm_storage_account
 * azurerm_virtual_network
 
+### Circonus
+
+* circonus_check
+
 ### DigitalOcean
 
 * digitalocean_domain

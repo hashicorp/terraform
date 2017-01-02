@@ -10,14 +10,24 @@
           <a href="/docs/providers/circonus/index.html">Circonus Provider</a>
         </li>
 
-        <li<%= sidebar_current(/^docs-circonus-resource/) %>>
-        <a href="#">Resources</a>
-                <ul class="nav nav-visible">
-                    <li<%= sidebar_current("docs-circonus-resource-circonus_check") %>>
-                        <a href="/docs/providers/circonus/r/circonus_database.html">circonus_database</a>
-                    </li>
-                </ul>
+        <li<%= sidebar_current(/^docs-circonus-datasource/) %>>
+          <a href="#">Data Sources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-circonus-datasource-broker") %>>
+              <a href="/docs/providers/circonus/d/broker.html">broker</a>
+            </li>
+          </ul>
         </li>
+
+        <li<%= sidebar_current(/^docs-circonus-resource/) %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-circonus-resource-circonus_check") %>>
+              <a href="/docs/providers/circonus/r/circonus_database.html">circonus_database</a>
+            </li>
+          </ul>
+        </li>
+
       </ul>
     </div>
   <% end %>
