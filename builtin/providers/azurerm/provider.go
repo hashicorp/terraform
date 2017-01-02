@@ -51,9 +51,10 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			// These resources use the Azure ARM SDK
-			"azurerm_availability_set": resourceArmAvailabilitySet(),
-			"azurerm_cdn_endpoint":     resourceArmCdnEndpoint(),
-			"azurerm_cdn_profile":      resourceArmCdnProfile(),
+			"azurerm_availability_set":   resourceArmAvailabilitySet(),
+			"azurerm_cdn_endpoint":       resourceArmCdnEndpoint(),
+			"azurerm_cdn_profile":        resourceArmCdnProfile(),
+			"azurerm_container_registry": resourceArmContainerRegistry(),
 
 			"azurerm_eventhub":                resourceArmEventHub(),
 			"azurerm_eventhub_consumer_group": resourceArmEventHubConsumerGroup(),
@@ -209,6 +210,7 @@ func registerAzureResourceProvidersWithSubscription(client *riviera.Client) erro
 		// We register Microsoft.Compute during client initialization
 		providers := []string{
 			"Microsoft.Cache",
+			"Microsoft.ContainerRegistry",
 			"Microsoft.Network",
 			"Microsoft.Cdn",
 			"Microsoft.Storage",
