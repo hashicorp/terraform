@@ -30,12 +30,7 @@ func resourceArmContainerService() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": {
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": {
 				Type:     schema.TypeString,
@@ -197,25 +192,10 @@ func resourceArmContainerServiceCreate(d *schema.ResourceData, meta interface{})
 
 	orchestrationPlatform := d.Get("orchestration_platform").(string)
 
-	masterProfile, err := expandAzureRmContainerServiceMasterProfile(d)
-	if err != nil {
-		return err
-	}
-
-	linuxProfile, err := expandAzureRmContainerServiceLinuxProfile(d)
-	if err != nil {
-		return err
-	}
-
-	agentProfiles, err := expandAzureRmContainerServiceAgentProfiles(d)
-	if err != nil {
-		return err
-	}
-
-	diagnosticsProfile, err := expandAzureRmContainerServiceDiagnostics(d)
-	if err != nil {
-		return err
-	}
+	masterProfile := expandAzureRmContainerServiceMasterProfile(d)
+	linuxProfile := expandAzureRmContainerServiceLinuxProfile(d)
+	agentProfiles := expandAzureRmContainerServiceAgentProfiles(d)
+	diagnosticsProfile := expandAzureRmContainerServiceDiagnostics(d)
 
 	tags := d.Get("tags").(map[string]interface{})
 
@@ -234,12 +214,12 @@ func resourceArmContainerServiceCreate(d *schema.ResourceData, meta interface{})
 		Tags: expandTags(tags),
 	}
 
-	servicePrincipalProfile, _ := expandAzureRmContainerServiceServicePrincipal(d)
+	servicePrincipalProfile := expandAzureRmContainerServiceServicePrincipal(d)
 	if servicePrincipalProfile != nil {
 		parameters.ServicePrincipalProfile = servicePrincipalProfile
 	}
 
-	_, err = containerServiceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
+	_, err := containerServiceClient.CreateOrUpdate(resGroup, name, parameters, make(chan struct{}))
 	if err != nil {
 		return err
 	}
@@ -337,6 +317,9 @@ func resourceArmContainerServiceDelete(d *schema.ResourceData, meta interface{})
 	name := id.Path["containerServices"]
 
 	resp, err := containerServiceClient.Delete(resGroup, name, make(chan struct{}))
+	if err != nil {
+		return err
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Error issuing Azure ARM delete request of Container Service '%s': %s", name, err)
@@ -436,7 +419,7 @@ func flattenAzureRmContainerServiceDiagnosticsProfile(profile *containerservice.
 	return &diagnosticProfiles
 }
 
-func expandAzureRmContainerServiceDiagnostics(d *schema.ResourceData) (containerservice.DiagnosticsProfile, error) {
+func expandAzureRmContainerServiceDiagnostics(d *schema.ResourceData) containerservice.DiagnosticsProfile {
 	configs := d.Get("diagnostics_profile").(*schema.Set).List()
 	profile := containerservice.DiagnosticsProfile{}
 
@@ -452,10 +435,10 @@ func expandAzureRmContainerServiceDiagnostics(d *schema.ResourceData) (container
 		}
 	}
 
-	return profile, nil
+	return profile
 }
 
-func expandAzureRmContainerServiceLinuxProfile(d *schema.ResourceData) (containerservice.LinuxProfile, error) {
+func expandAzureRmContainerServiceLinuxProfile(d *schema.ResourceData) containerservice.LinuxProfile {
 	profiles := d.Get("linux_profile").(*schema.Set).List()
 	config := profiles[0].(map[string]interface{})
 
@@ -485,10 +468,10 @@ func expandAzureRmContainerServiceLinuxProfile(d *schema.ResourceData) (containe
 		},
 	}
 
-	return profile, nil
+	return profile
 }
 
-func expandAzureRmContainerServiceMasterProfile(d *schema.ResourceData) (containerservice.MasterProfile, error) {
+func expandAzureRmContainerServiceMasterProfile(d *schema.ResourceData) containerservice.MasterProfile {
 	configs := d.Get("master_profile").(*schema.Set).List()
 	profile := containerservice.MasterProfile{}
 
@@ -504,14 +487,14 @@ func expandAzureRmContainerServiceMasterProfile(d *schema.ResourceData) (contain
 		}
 	}
 
-	return profile, nil
+	return profile
 }
 
-func expandAzureRmContainerServiceServicePrincipal(d *schema.ResourceData) (*containerservice.ServicePrincipalProfile, error) {
+func expandAzureRmContainerServiceServicePrincipal(d *schema.ResourceData) *containerservice.ServicePrincipalProfile {
 
 	value, exists := d.GetOk("service_principal")
 	if !exists {
-		return nil, nil
+		return nil
 	}
 
 	configs := value.(*schema.Set).List()
@@ -526,10 +509,10 @@ func expandAzureRmContainerServiceServicePrincipal(d *schema.ResourceData) (*con
 		Secret:   &clientSecret,
 	}
 
-	return &principal, nil
+	return &principal
 }
 
-func expandAzureRmContainerServiceAgentProfiles(d *schema.ResourceData) ([]containerservice.AgentPoolProfile, error) {
+func expandAzureRmContainerServiceAgentProfiles(d *schema.ResourceData) []containerservice.AgentPoolProfile {
 	configs := d.Get("agent_pool_profile").(*schema.Set).List()
 	profiles := make([]containerservice.AgentPoolProfile, 0, len(configs))
 
@@ -553,7 +536,7 @@ func expandAzureRmContainerServiceAgentProfiles(d *schema.ResourceData) ([]conta
 		profiles = append(profiles, profile)
 	}
 
-	return profiles, nil
+	return profiles
 }
 
 func containerServiceStateRefreshFunc(client *ArmClient, resourceGroupName string, containerServiceName string) resource.StateRefreshFunc {
