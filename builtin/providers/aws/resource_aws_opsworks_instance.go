@@ -280,6 +280,7 @@ func resourceAwsOpsworksInstance() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				Computed:     true,
+				ForceNew:     true,
 				ValidateFunc: validateTenancy,
 			},
 
@@ -819,10 +820,6 @@ func resourceAwsOpsworksInstanceUpdate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("ssh_key_name"); ok {
 		req.SshKeyName = aws.String(v.(string))
-	}
-
-	if v, ok := d.GetOk("tenancy"); ok {
-		req.Tenancy = aws.String(v.(string))
 	}
 
 	log.Printf("[DEBUG] Updating OpsWorks instance: %s", d.Id())

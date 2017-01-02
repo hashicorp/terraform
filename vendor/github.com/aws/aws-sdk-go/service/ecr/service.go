@@ -17,8 +17,9 @@ import (
 // ECR supports private Docker repositories with resource-based permissions
 // using AWS IAM so that specific users or Amazon EC2 instances can access repositories
 // and images. Developers can use the Docker CLI to author and manage images.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ecr-2015-09-21
 type ECR struct {
 	*client.Client
 }
@@ -29,8 +30,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "ecr"
+// Service information constants
+const (
+	ServiceName = "ecr"       // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the ECR client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -43,7 +47,7 @@ const ServiceName = "ecr"
 //     // Create a ECR client with additional configuration
 //     svc := ecr.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *ECR {
-	c := p.ClientConfig(ServiceName, cfgs...)
+	c := p.ClientConfig(EndpointsID, cfgs...)
 	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
