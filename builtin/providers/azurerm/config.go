@@ -144,15 +144,6 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error creating Riviera client: %s", err)
 	}
-
-	// validate that the credentials are correct using Riviera. Note that this must be
-	// done _before_ using the Microsoft SDK, because Riviera handles errors. Using a
-	// namespace registration instead of a simple OAuth token refresh guarantees that
-	// service delegation is correct. This has the effect of registering Microsoft.Compute
-	// which is neccessary anyway.
-	if err := registerProviderWithSubscription("Microsoft.Compute", rivieraClient); err != nil {
-		return nil, err
-	}
 	client.rivieraClient = rivieraClient
 
 	oauthConfig, err := azure.PublicCloud.OAuthConfigForTenant(c.TenantID)
