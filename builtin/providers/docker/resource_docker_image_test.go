@@ -89,6 +89,22 @@ func TestAccDockerImage_data(t *testing.T) {
 	})
 }
 
+func TestAccDockerImage_data_pull_trigger(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                  func() { testAccPreCheck(t) },
+		Providers:                 testAccProviders,
+		PreventPostDestroyRefresh: true,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccDockerImageFromDataConfigWithPullTrigger,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestMatchResourceAttr("docker_image.foobarbazoo", "latest", contentDigestRegexp),
+				),
+			},
+		},
+	})
+}
+
 func testAccDockerImageDestroy(s *terraform.State) error {
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "docker_image" {
@@ -131,6 +147,16 @@ data "docker_registry_image" "foobarbaz" {
 }
 resource "docker_image" "foobarbaz" {
 	name = "${data.docker_registry_image.foobarbaz.name}"
-	pull_trigger = "${data.docker_registry_image.foobarbaz.sha256_digest}"
+	pull_triggers = ["${data.docker_registry_image.foobarbaz.sha256_digest}"]
+}
+`
+
+const testAccDockerImageFromDataConfigWithPullTrigger = `
+data "docker_registry_image" "foobarbazoo" {
+	name = "alpine:3.1"
+}
+resource "docker_image" "foobarbazoo" {
+	name = "${data.docker_registry_image.foobarbazoo.name}"
+	pull_trigger = "${data.docker_registry_image.foobarbazoo.sha256_digest}"
 }
 `

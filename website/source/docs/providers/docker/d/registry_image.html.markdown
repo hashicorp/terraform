@@ -23,7 +23,7 @@ data "docker_registry_image" "ubuntu" {
 
 resource "docker_image" "ubuntu" {
     name = "${data.docker_registry_image.ubuntu.name}"
-    pull_trigger = "${data.docker_registry_image.ubuntu.sha256_digest}"
+    pull_triggers = ["${data.docker_registry_image.ubuntu.sha256_digest}"]
 }
 ```
 
