@@ -42,7 +42,7 @@ func TestAccAWSEMRCluster_terminationProtected(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEmrClusterExists("aws_emr_cluster.tf-test-cluster", &jobFlow),
 					resource.TestCheckResourceAttr(
-						"aws_emr_cluster.tf-test-cluster", "termination_protected", "false"),
+						"aws_emr_cluster.tf-test-cluster", "termination_protection", "false"),
 				),
 			},
 			{
@@ -50,7 +50,14 @@ func TestAccAWSEMRCluster_terminationProtected(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEmrClusterExists("aws_emr_cluster.tf-test-cluster", &jobFlow),
 					resource.TestCheckResourceAttr(
-						"aws_emr_cluster.tf-test-cluster", "termination_protected", "true"),
+						"aws_emr_cluster.tf-test-cluster", "termination_protection", "true"),
+				),
+			},
+			{
+				//Need to turn off termination_protection to allow the job to be deleted
+				Config: testAccAWSEmrClusterConfig(r),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEmrClusterExists("aws_emr_cluster.tf-test-cluster", &jobFlow),
 				),
 			},
 		},
@@ -500,7 +507,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
   }
 
   keep_job_flow_alive_when_no_steps = true
-  termination_protected = true
+  termination_protection = true
 
   bootstrap_action {
     path = "s3://elasticmapreduce/bootstrap-actions/run-if"
