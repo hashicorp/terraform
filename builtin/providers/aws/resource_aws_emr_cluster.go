@@ -380,7 +380,10 @@ func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsEMRClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
+	d.Partial(true)
+
 	if d.HasChange("core_instance_count") {
+		d.SetPartial("core_instance_count")
 		log.Printf("[DEBUG] Modify EMR cluster")
 		groups, err := fetchAllEMRInstanceGroups(meta, d.Id())
 		if err != nil {
@@ -409,24 +412,31 @@ func resourceAwsEMRClusterUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		log.Printf("[DEBUG] Modify EMR Cluster done...")
+
+		log.Println("[INFO] Waiting for EMR Cluster to be available")
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"STARTING", "BOOTSTRAPPING"},
+			Target:     []string{"WAITING", "RUNNING"},
+			Refresh:    resourceAwsEMRClusterStateRefreshFunc(d, meta),
+			Timeout:    40 * time.Minute,
+			MinTimeout: 10 * time.Second,
+			Delay:      5 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf("[WARN] Error waiting for EMR Cluster state to be \"WAITING\" or \"RUNNING\" after modification: %s", err)
+		}
 	}
 
-	log.Println(
-		"[INFO] Waiting for EMR Cluster to be available")
-
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"STARTING", "BOOTSTRAPPING"},
-		Target:     []string{"WAITING", "RUNNING"},
-		Refresh:    resourceAwsEMRClusterStateRefreshFunc(d, meta),
-		Timeout:    40 * time.Minute,
-		MinTimeout: 10 * time.Second,
-		Delay:      5 * time.Second,
+	if err := setTagsEMR(conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
-	_, err := stateConf.WaitForState()
-	if err != nil {
-		return fmt.Errorf("[WARN] Error waiting for EMR Cluster state to be \"WAITING\" or \"RUNNING\" after modification: %s", err)
-	}
+	d.Partial(false)
 
 	return resourceAwsEMRClusterRead(d, meta)
 }
@@ -591,6 +601,64 @@ func tagsToMapEMR(ts []*emr.Tag) map[string]string {
 	}
 
 	return result
+}
+
+func diffTagsEMR(oldTags, newTags []*emr.Tag) ([]*emr.Tag, []*emr.Tag) {
+	// First, we're creating everything we have
+	create := make(map[string]interface{})
+	for _, t := range newTags {
+		create[*t.Key] = *t.Value
+	}
+
+	// Build the list of what to remove
+	var remove []*emr.Tag
+	for _, t := range oldTags {
+		old, ok := create[*t.Key]
+		if !ok || old != *t.Value {
+			// Delete it!
+			remove = append(remove, t)
+		}
+	}
+
+	return expandTags(create), remove
+}
+
+func setTagsEMR(conn *emr.EMR, d *schema.ResourceData) error {
+	if d.HasChange("tags") {
+		oraw, nraw := d.GetChange("tags")
+		o := oraw.(map[string]interface{})
+		n := nraw.(map[string]interface{})
+		create, remove := diffTagsEMR(expandTags(o), expandTags(n))
+
+		// Set tags
+		if len(remove) > 0 {
+			log.Printf("[DEBUG] Removing tags: %s", remove)
+			k := make([]*string, len(remove), len(remove))
+			for i, t := range remove {
+				k[i] = t.Key
+			}
+
+			_, err := conn.RemoveTags(&emr.RemoveTagsInput{
+				ResourceId: aws.String(d.Id()),
+				TagKeys:    k,
+			})
+			if err != nil {
+				return err
+			}
+		}
+		if len(create) > 0 {
+			log.Printf("[DEBUG] Creating tags: %s", create)
+			_, err := conn.AddTags(&emr.AddTagsInput{
+				ResourceId: aws.String(d.Id()),
+				Tags:       create,
+			})
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActionConfig {
