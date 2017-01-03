@@ -2,6 +2,7 @@
 
 FEATURES:
 
+ * **New Provider:**  `Ignition` [GH-6189]
  * **New Data Source:**  `aws_vpc_peering_connection` [GH-10913]
  * **New Resource:**  `azurerm_container_registry` [GH-10973]
  * **New Resource:**  `azurerm_eventhub_authorization_rule` [GH-10971]
