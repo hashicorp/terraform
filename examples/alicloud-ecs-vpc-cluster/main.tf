@@ -26,7 +26,7 @@ module "control-nodes" {
   ssh_username = "${var.ssh_username}"
   short_name = "${var.short_name}"
   availability_zones = "${module.vpc.availability_zones}"
-  security_group_id = "${module.security-groups.control_security_group}"
+  security_groups = ["${module.security-groups.control_security_group}"]
   vswitch_id = "${module.vpc.vswitch_ids}"
   internet_charge_type = "${var.internet_charge_type}"
 }
@@ -41,7 +41,7 @@ module "edge-nodes" {
   ssh_username = "${var.ssh_username}"
   short_name = "${var.short_name}"
   availability_zones = "${module.vpc.availability_zones}"
-  security_group_id = "${module.security-groups.worker_security_group}"
+  security_groups = ["${module.security-groups.worker_security_group}"]
   vswitch_id = "${module.vpc.vswitch_ids}"
   internet_charge_type = "${var.internet_charge_type}"
 }
@@ -56,7 +56,7 @@ module "worker-nodes" {
   ssh_username = "${var.ssh_username}"
   short_name = "${var.short_name}"
   availability_zones = "${module.vpc.availability_zones}"
-  security_group_id = "${module.security-groups.worker_security_group}"
+  security_groups = ["${module.security-groups.worker_security_group}"]
   vswitch_id = "${module.vpc.vswitch_ids}"
   internet_charge_type = "${var.internet_charge_type}"
 }

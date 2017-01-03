@@ -4,17 +4,45 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/denverdino/aliyungo/common"
 	"github.com/denverdino/aliyungo/ecs"
-
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAliCloudVpc_basic(t *testing.T) {
+func TestAccAlicloudVpc_basic(t *testing.T) {
 	var vpc ecs.VpcSetType
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() {
+		PreCheck: func() {
+			testAccPreCheck(t)
+		},
+
+		// module name
+		IDRefreshName: "alicloud_vpc.foo",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckVpcDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVpcConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcExists("alicloud_vpc.foo", &vpc),
+					resource.TestCheckResourceAttr(
+						"alicloud_vpc.foo", "cidr_block", "172.16.0.0/12"),
+					resource.TestCheckResourceAttrSet(
+						"alicloud_vpc.foo", "router_id"),
+				),
+			},
+		},
+	})
+
+}
+
+func TestAccAlicloudVpc_update(t *testing.T) {
+	var vpc ecs.VpcSetType
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
 			testAccPreCheck(t)
 		},
 		Providers:    testAccProviders,
@@ -24,20 +52,21 @@ func TestAccAliCloudVpc_basic(t *testing.T) {
 				Config: testAccVpcConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("alicloud_vpc.foo", &vpc),
-					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
 					resource.TestCheckResourceAttr(
-						"alicloud_vpc.foo", "cidr_block", "10.1.0.0/16"),
+						"alicloud_vpc.foo", "cidr_block", "172.16.0.0/12"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccVpcConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcExists("alicloud_vpc.foo", &vpc),
+					resource.TestCheckResourceAttr(
+						"alicloud_vpc.foo", "name", "tf_test_bar"),
 				),
 			},
 		},
 	})
 }
-
-const testAccVpcConfig = `
-resource "alicloud_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
-}
-`
 
 func testAccCheckVpcExists(n string, vpc *ecs.VpcSetType) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -51,27 +80,16 @@ func testAccCheckVpcExists(n string, vpc *ecs.VpcSetType) resource.TestCheckFunc
 		}
 
 		client := testAccProvider.Meta().(*AliyunClient)
-		resp, err := client.DescribeVpc(rs.Primary.ID)
+		instance, err := client.DescribeVpc(rs.Primary.ID)
+
 		if err != nil {
 			return err
 		}
-
-		if resp == nil {
-			return fmt.Errorf("Not found: %s", n)
+		if instance == nil {
+			return fmt.Errorf("VPC not found")
 		}
 
-		*vpc = *resp
-
-		return nil
-	}
-}
-
-func testAccCheckVpcCidr(vpc *ecs.VpcSetType, expected string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		if vpc.CidrBlock != expected {
-			return fmt.Errorf("Bad cidr: %s", vpc.CidrBlock)
-		}
-
+		*vpc = *instance
 		return nil
 	}
 }
@@ -84,17 +102,37 @@ func testAccCheckVpcDestroy(s *terraform.State) error {
 			continue
 		}
 
-		vpc, err := client.DescribeVpc(rs.Primary.ID)
-		if err == nil && vpc != nil {
+		// Try to find the VPC
+		instance, err := client.DescribeVpc(rs.Primary.ID)
+
+		if instance != nil {
 			return fmt.Errorf("VPCs still exist")
 		}
 
 		if err != nil {
-			return err
+			// Verify the error is what we want
+			e, _ := err.(*common.Error)
+
+			if e.ErrorResponse.Code != "InvalidVpcID.NotFound" {
+				return err
+			}
 		}
 
-		return nil
 	}
 
 	return nil
 }
+
+const testAccVpcConfig = `
+resource "alicloud_vpc" "foo" {
+        name = "tf_test_foo"
+        cidr_block = "172.16.0.0/12"
+}
+`
+
+const testAccVpcConfigUpdate = `
+resource "alicloud_vpc" "foo" {
+	cidr_block = "172.16.0.0/12"
+	name = "tf_test_bar"
+}
+`

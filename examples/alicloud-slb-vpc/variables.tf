@@ -1,24 +1,30 @@
+variable "availability_zones" {
+  default = "cn-beijing-c"
+}
+
 variable "name" {
   default = "slb_alicloud"
 }
-variable "vpc_id" {
-  default = "vpc-2ze0z1hayvlsbk98gw805"
-}
-variable "vswitch_id" {
-  default = "vsw-2ze7cfya11g7uah2grc8f"
-}
 
-variable "instances" {
-  type = "list"
-  default = [
-    "i-2zecejialx1rx513qcyv",
-    "i-2zedgb871dbnpc5x3w9n"]
+variable "cidr_blocks" {
+  type = "map"
+  default = {
+    az0 = "10.1.1.0/24"
+    az1 = "10.1.2.0/24"
+    az2 = "10.1.3.0/24"
+  }
 }
 
 variable "internet_charge_type" {
   default = "paybytraffic"
 }
 
-variable "internet" {
-  default = "false"
+variable "long_name" {
+  default = "alicloud"
+}
+variable "vpc_cidr" {
+  default = "10.1.0.0/21"
+}
+variable "region" {
+  default = "cn-beijing"
 }

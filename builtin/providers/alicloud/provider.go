@@ -32,18 +32,20 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"alicloud_instance":        resourceAliyunInstance(),
-			"alicloud_disk":            resourceAliyunDisk(),
-			"alicloud_disk_attachment": resourceAliyunDiskAttachment(),
-			"alicloud_security_group":  resourceAliyunSecurityGroup(),
-			"alicloud_vpc":             resourceAliyunVpc(),
-			"alicloud_nat_gateway":     resourceAliyunNatGateway(),
+			"alicloud_instance":            resourceAliyunInstance(),
+			"alicloud_disk":                resourceAliyunDisk(),
+			"alicloud_disk_attachment":     resourceAliyunDiskAttachment(),
+			"alicloud_security_group":      resourceAliyunSecurityGroup(),
+			"alicloud_security_group_rule": resourceAliyunSecurityGroupRule(),
+			"alicloud_vpc":                 resourceAliyunVpc(),
+			"alicloud_nat_gateway":         resourceAliyunNatGateway(),
 			//both subnet and vswith exists,cause compatible old version, and compatible aws habit.
 			"alicloud_subnet":          resourceAliyunSubnet(),
 			"alicloud_vswitch":         resourceAliyunSubnet(),
 			"alicloud_eip":             resourceAliyunEip(),
 			"alicloud_eip_association": resourceAliyunEipAssociation(),
 			"alicloud_slb":             resourceAliyunSlb(),
+			"alicloud_slb_attachment":  resourceAliyunSlbAttachment(),
 		},
 
 		ConfigureFunc: providerConfigure,

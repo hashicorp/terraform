@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"time"
 )
 
 func resourceAliyunSlb() *schema.Resource {
@@ -31,7 +32,6 @@ func resourceAliyunSlb() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
-				Computed: true,
 			},
 
 			"vswitch_id": &schema.Schema{
@@ -44,14 +44,15 @@ func resourceAliyunSlb() *schema.Resource {
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     true,
+				Default:      "paybytraffic",
 				ValidateFunc: validateSlbInternetChargeType,
 			},
 
 			"bandwidth": &schema.Schema{
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Default:      1,
 				ValidateFunc: validateSlbBandwidth,
+				Computed:     true,
 			},
 
 			"listener": &schema.Schema{
@@ -62,12 +63,6 @@ func resourceAliyunSlb() *schema.Resource {
 						"instance_port": &schema.Schema{
 							Type:         schema.TypeInt,
 							ValidateFunc: validateInstancePort,
-							Required:     true,
-						},
-
-						"instance_protocol": &schema.Schema{
-							Type:         schema.TypeString,
-							ValidateFunc: validateInstanceProtocol,
 							Required:     true,
 						},
 
@@ -98,6 +93,7 @@ func resourceAliyunSlb() *schema.Resource {
 				Set: resourceAliyunSlbListenerHash,
 			},
 
+			//deprecated
 			"instances": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -108,11 +104,6 @@ func resourceAliyunSlb() *schema.Resource {
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
-			},
-
-			"vpc_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
 			},
 		},
 	}
@@ -144,7 +135,7 @@ func resourceAliyunSlbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("internet_charge_type"); ok && v.(string) != "" {
-		slbArgs.InternetChargeType = common.InternetChargeType(v.(string))
+		slbArgs.InternetChargeType = slb.InternetChargeType(v.(string))
 	}
 
 	if v, ok := d.GetOk("bandwidth"); ok && v.(int) != 0 {
@@ -154,7 +145,6 @@ func resourceAliyunSlbCreate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("vswitch_id"); ok && v.(string) != "" {
 		slbArgs.VSwitchId = v.(string)
 	}
-
 	slb, err := slbconn.CreateLoadBalancer(slbArgs)
 	if err != nil {
 		return err
@@ -168,12 +158,12 @@ func resourceAliyunSlbCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("internet_charge_type")
 	d.SetPartial("bandwidth")
 	d.SetPartial("vswitch_id")
+	d.SetPartial("address")
 
 	return resourceAliyunSlbUpdate(d, meta)
 }
 
 func resourceAliyunSlbRead(d *schema.ResourceData, meta interface{}) error {
-
 	slbconn := meta.(*AliyunClient).slbconn
 	loadBalancer, err := slbconn.DescribeLoadBalancerAttribute(d.Id())
 	if err != nil {
@@ -192,12 +182,10 @@ func resourceAliyunSlbRead(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		d.Set("internal", false)
 	}
-
 	d.Set("internet_charge_type", loadBalancer.InternetChargeType)
 	d.Set("bandwidth", loadBalancer.Bandwidth)
 	d.Set("vswitch_id", loadBalancer.VSwitchId)
 	d.Set("address", loadBalancer.Address)
-	d.Set("vpc_id", loadBalancer.VpcId)
 
 	return nil
 }
@@ -217,8 +205,8 @@ func resourceAliyunSlbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("name")
 	}
 
-	if d.Get("vswitch_id") == "" {
-		//don't intranet web, then can modify bandwidth
+	if d.Get("internet") == true && d.Get("internet_charge_type") == "paybybandwidth" {
+		//don't intranet web and paybybandwidth, then can modify bandwidth
 		if d.HasChange("bandwidth") {
 			args := &slb.ModifyLoadBalancerInternetSpecArgs{
 				LoadBalancerId: d.Id(),
@@ -245,7 +233,7 @@ func resourceAliyunSlbUpdate(d *schema.ResourceData, meta interface{}) error {
 			for _, listener := range remove {
 				err := slbconn.DeleteLoadBalancerListener(d.Id(), listener.LoadBalancerPort)
 				if err != nil {
-					return fmt.Errorf("Failure removing outdated SLB listeners: %s", err)
+					return fmt.Errorf("Failure removing outdated SLB listeners: %#v", err)
 				}
 			}
 		}
@@ -254,7 +242,7 @@ func resourceAliyunSlbUpdate(d *schema.ResourceData, meta interface{}) error {
 			for _, listener := range add {
 				err := createListener(slbconn, d.Id(), listener)
 				if err != nil {
-					return fmt.Errorf("Failure add SLB listeners: %s", err)
+					return fmt.Errorf("Failure add SLB listeners: %#v", err)
 				}
 			}
 		}
@@ -292,25 +280,40 @@ func resourceAliyunSlbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("instances")
 	}
 
+	d.Partial(false)
+
 	return resourceAliyunSlbRead(d, meta)
 }
 
 func resourceAliyunSlbDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AliyunClient).slbconn
 
-	err := conn.DeleteLoadBalancer(d.Id())
-	if err != nil {
-		return err
-	}
-	return nil
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
+		err := conn.DeleteLoadBalancer(d.Id())
+
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		loadBalancer, err := conn.DescribeLoadBalancerAttribute(d.Id())
+		if err != nil {
+			e, _ := err.(*common.Error)
+			if e.ErrorResponse.Code == LoadBalancerNotFound {
+				return nil
+			}
+			return resource.NonRetryableError(err)
+		}
+		if loadBalancer != nil {
+			return resource.RetryableError(fmt.Errorf("LoadBalancer in use - trying again while it deleted."))
+		}
+		return nil
+	})
 }
 
 func resourceAliyunSlbListenerHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m["instance_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-",
-		strings.ToLower(m["instance_protocol"].(string))))
 	buf.WriteString(fmt.Sprintf("%d-", m["lb_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-",
 		strings.ToLower(m["lb_protocol"].(string))))
@@ -348,6 +351,19 @@ func createListener(conn *slb.Client, loadBalancerId string, listener *Listener)
 		}
 
 		if err := conn.CreateLoadBalancerHTTPListener(args); err != nil {
+			return err
+		}
+	}
+
+	if listener.Protocol == strings.ToLower("udp") {
+		args := &slb.CreateLoadBalancerUDPListenerArgs{
+			LoadBalancerId:    loadBalancerId,
+			ListenerPort:      listener.LoadBalancerPort,
+			BackendServerPort: listener.InstancePort,
+			Bandwidth:         listener.Bandwidth,
+		}
+
+		if err := conn.CreateLoadBalancerUDPListener(args); err != nil {
 			return err
 		}
 	}

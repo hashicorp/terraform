@@ -5,7 +5,7 @@ variable "count_format" {
   default = "%02d"
 }
 variable "image_id" {
-  default = "ubuntu1404_64_40G_cloudinit_20160727.raw"
+  default = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
 }
 
 variable "role" {
@@ -21,12 +21,9 @@ variable "ecs_password" {
 }
 variable "availability_zones" {
 }
-variable "security_group_id" {
+variable "allocate_public_ip" {
+  default = true
 }
-variable "ssh_username" {
-  default = "root"
-}
-
 variable "internet_charge_type" {
   default = "PayByTraffic"
 }

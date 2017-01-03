@@ -5,7 +5,7 @@ variable "count_format" {
   default = "%02d"
 }
 variable "image_id" {
-  default = "ubuntu1404_64_40G_cloudinit_20160727.raw"
+  default = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
 }
 
 variable "role" {
@@ -26,11 +26,12 @@ variable "ecs_password" {
 variable "availability_zones" {
   default = "cn-beijing-b"
 }
-variable "security_group_id" {
-  default = "sg-25y6ag32b"
-}
 variable "ssh_username" {
   default = "root"
+}
+
+variable "allocate_public_ip" {
+  default = true
 }
 
 variable "internet_charge_type" {
@@ -47,24 +48,10 @@ variable "internet_max_bandwidth_out" {
   default = 5
 }
 
-variable "disk_category" {
-  default = "cloud_ssd"
-}
-variable "disk_size" {
-  default = "40"
-}
-variable "device_name" {
-  default = "/dev/xvdb"
-}
-
 variable "slb_name" {
   default = "slb_worder"
 }
 
 variable "internet" {
   default = true
-}
-
-variable "load_balancer_weight" {
-  default = "100"
 }

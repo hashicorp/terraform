@@ -1,5 +1,5 @@
 resource "alicloud_disk" "disk" {
-  availability_zone = "${element(split(",", var.availability_zones), count.index)}"
+  availability_zone = "${var.availability_zones}"
   category = "${var.disk_category}"
   size = "${var.disk_size}"
   count = "${var.count}"
@@ -11,8 +11,8 @@ resource "alicloud_instance" "instance" {
   image_id = "${var.image_id}"
   instance_type = "${var.ecs_type}"
   count = "${var.count}"
-  availability_zone = "${element(split(",", var.availability_zones), count.index)}"
-  security_group_id = "${var.security_group_id}"
+  availability_zone = "${var.availability_zones}"
+  security_groups = ["${var.security_groups}"]
   vswitch_id = "${var.vswitch_id}"
 
   internet_charge_type = "${var.internet_charge_type}"

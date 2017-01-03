@@ -7,7 +7,7 @@ resource "alicloud_vswitch" "main" {
   vpc_id = "${alicloud_vpc.main.id}"
   count = "${length(split(",", var.availability_zones))}"
   cidr_block = "${lookup(var.cidr_blocks, "az${count.index}")}"
-  availability_zone = "${element(split(",", var.availability_zones), count.index)}"
+  availability_zone = "${var.availability_zones}"
   depends_on = [
     "alicloud_vpc.main"]
 }

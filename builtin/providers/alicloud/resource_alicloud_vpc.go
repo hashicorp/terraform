@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/denverdino/aliyungo/ecs"
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"time"
 )
 
@@ -30,7 +30,7 @@ func resourceAliyunVpc() *schema.Resource {
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					if len(value) < 2 || len(value) > 128 {
-						errors = append(errors, fmt.Errorf("%q cannot be longer than 128 characters", k))
+						errors = append(errors, fmt.Errorf("%s cannot be longer than 128 characters", k))
 					}
 
 					if strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") {
@@ -46,7 +46,7 @@ func resourceAliyunVpc() *schema.Resource {
 				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 					value := v.(string)
 					if len(value) < 2 || len(value) > 256 {
-						errors = append(errors, fmt.Errorf("%q cannot be longer than 256 characters", k))
+						errors = append(errors, fmt.Errorf("%s cannot be longer than 256 characters", k))
 
 					}
 					return
@@ -67,16 +67,16 @@ func resourceAliyunVpcCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	ec2conn := meta.(*AliyunClient).ecsconn
+	ecsconn := meta.(*AliyunClient).ecsconn
 
-	vpc, err := ec2conn.CreateVpc(args)
+	vpc, err := ecsconn.CreateVpc(args)
 	if err != nil {
 		return err
 	}
 
 	d.SetId(vpc.VpcId)
 
-	err = ec2conn.WaitForVpcAvailable(args.RegionId, vpc.VpcId, 60)
+	err = ecsconn.WaitForVpcAvailable(args.RegionId, vpc.VpcId, 60)
 	if err != nil {
 		return fmt.Errorf("Timeout when WaitForVpcAvailable")
 	}
@@ -150,9 +150,21 @@ func resourceAliyunVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAliyunVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AliyunClient).ecsconn
 
-	return resource.Retry(5 * time.Minute, func() *resource.RetryError {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		err := conn.DeleteVpc(d.Id())
-		if err == nil {
+
+		if err != nil {
+			return resource.RetryableError(fmt.Errorf("Vpc in use - trying again while it is deleted."))
+		}
+
+		args := &ecs.DescribeVpcsArgs{
+			RegionId: getRegion(d, meta),
+			VpcId:    d.Id(),
+		}
+		vpc, _, descErr := conn.DescribeVpcs(args)
+		if descErr != nil {
+			return resource.NonRetryableError(err)
+		} else if vpc == nil || len(vpc) < 1 {
 			return nil
 		}
 

@@ -3,10 +3,11 @@ package alicloud
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/denverdino/aliyungo/common"
-	"log"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
+	"log"
+	"strings"
 	"time"
 )
 
@@ -26,7 +27,6 @@ func resourceAliyunNatGateway() *schema.Resource {
 			"spec": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -38,7 +38,7 @@ func resourceAliyunNatGateway() *schema.Resource {
 				Optional: true,
 			},
 
-			"bandwidth_package_id": &schema.Schema{
+			"bandwidth_package_ids": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -77,13 +77,10 @@ func resourceAliyunNatGatewayCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	bandwidthPackages := d.Get("bandwidth_packages").([]interface{})
-	if len(bandwidthPackages) > 1 {
-		return fmt.Errorf("Only one bandwidth package config per NatGateway is supported")
-	}
 
-	// if len(packages) > 4 {
-	// 	return fmt.Errorf("Only less than 4 bandwidth packages form per NatGateway is supported")
-	// }
+	if len(bandwidthPackages) > 4 {
+		return fmt.Errorf("Only less than 4 bandwidth packages form per NatGateway is supported")
+	}
 
 	bandwidthPackageTypes := []BandwidthPackageType{}
 
@@ -119,7 +116,7 @@ func resourceAliyunNatGatewayCreate(d *schema.ResourceData, meta interface{}) er
 
 	resp, err := CreateNatGateway(conn, args)
 	if err != nil {
-		return fmt.Errorf("CreateNatGateway got error: %s", err)
+		return fmt.Errorf("CreateNatGateway got error: %#v", err)
 	}
 
 	d.SetId(resp.NatGatewayId)
@@ -135,9 +132,9 @@ func resourceAliyunNatGatewayCreate(d *schema.ResourceData, meta interface{}) er
 
 	d.SetPartial("bandwidth_packages")
 
-	d.Set("bandwidth_package_id", resp.BandwidthPackageIds.BandwidthPackageId[0])
-	d.SetPartial("bandwidth_package_id")
-
+	//d.Set("bandwidth_package_id", resp.BandwidthPackageIds.BandwidthPackageId[0])
+	d.SetPartial("bandwidth_package_ids")
+	d.Partial(false)
 	return resourceAliyunNatGatewayRead(d, meta)
 }
 
@@ -155,6 +152,8 @@ func resourceAliyunNatGatewayRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	d.Set("name", natGateway.Name)
+	d.Set("spec", natGateway.Spec)
+	d.Set("bandwidth_package_ids", strings.Join(natGateway.BandwidthPackageIds.BandwidthPackageId, ","))
 	d.Set("description", natGateway.Description)
 
 	return nil
@@ -176,7 +175,7 @@ func resourceAliyunNatGatewayUpdate(d *schema.ResourceData, meta interface{}) er
 		if v, ok := d.GetOk("name"); ok {
 			name = v.(string)
 		} else {
-			return fmt.Errorf("can to change name to empty string")
+			return fmt.Errorf("cann't change name to empty string")
 		}
 
 		args := &ModifyNatGatewayAttributeArgs{
@@ -209,47 +208,73 @@ func resourceAliyunNatGatewayUpdate(d *schema.ResourceData, meta interface{}) er
 
 		err := ModifyNatGatewayAttribute(client.vpcconn, args)
 		if err != nil {
-			return fmt.Errorf("%s %s", err, *args)
+			return fmt.Errorf("%#v %#v", err, *args)
 		}
 
 		d.SetPartial("description")
 	}
 
-	return nil
+	if d.HasChange("spec") {
+		var spec NatGatewaySpec
+		if v, ok := d.GetOk("spec"); ok {
+			spec = NatGatewaySpec(v.(string))
+		} else {
+			// set default to small spec
+			spec = NatGatewaySmallSpec
+		}
+
+		args := &ModifyNatGatewaySpecArgs{
+			RegionId:     natGateway.RegionId,
+			NatGatewayId: natGateway.NatGatewayId,
+			Spec:         spec,
+		}
+
+		err := ModifyNatGatewaySpec(client.vpcconn, args)
+		if err != nil {
+			return fmt.Errorf("%#v %#v", err, *args)
+		}
+
+		d.SetPartial("spec")
+	}
+	d.Partial(false)
+
+	return resourceAliyunNatGatewayRead(d, meta)
 }
 
 func resourceAliyunNatGatewayDelete(d *schema.ResourceData, meta interface{}) error {
 
 	client := meta.(*AliyunClient)
 
-	packages, err := DescribeBandwidthPackages(client.vpcconn, &DescribeBandwidthPackagesArgs{
-		RegionId:     getRegion(d, meta),
-		NatGatewayId: d.Id(),
-	})
-	if err != nil {
-		return err
-	}
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 
-	return resource.Retry(5 * time.Minute, func() *resource.RetryError {
-		for _, e := range packages {
+		packages, err := DescribeBandwidthPackages(client.vpcconn, &DescribeBandwidthPackagesArgs{
+			RegionId:     getRegion(d, meta),
+			NatGatewayId: d.Id(),
+		})
+		if err != nil {
+			log.Printf("[ERROR] Describe bandwidth package is failed, natGateway Id: %s", d.Id())
+			return resource.NonRetryableError(err)
+		}
+
+		retry := false
+		for _, pack := range packages {
 			err = DeleteBandwidthPackage(client.vpcconn, &DeleteBandwidthPackageArgs{
 				RegionId:           getRegion(d, meta),
-				BandwidthPackageId: e.BandwidthPackageId,
+				BandwidthPackageId: pack.BandwidthPackageId,
 			})
 
 			if err != nil {
 				er, _ := err.(*common.Error)
-				if er.ErrorResponse.Code == "Forbidden.SomeIpReferredByForwardEntry" {
-					return resource.RetryableError(fmt.Errorf("Bandwidth package in use - trying again while it is deleted."))
+				if er.ErrorResponse.Code == NatGatewayInvalidRegionId {
+					log.Printf("[ERROR] Delete bandwidth package is failed, bandwidthPackageId: %#v", pack.BandwidthPackageId)
+					return resource.NonRetryableError(err)
 				}
-
-				if e.BandwidthPackageId != "" && er.ErrorResponse.Code == "InvalidBandwidthPackageId.NotFound" {
-					continue
-				}
-
-				log.Println("[ERROR] Delete bandwidth package is failed, bandwidthPackageId: %", e.BandwidthPackageId)
-				return resource.NonRetryableError(err)
+				retry = true
 			}
+		}
+
+		if retry {
+			return resource.RetryableError(fmt.Errorf("Bandwidth package in use - trying again while it is deleted."))
 		}
 
 		args := &DeleteNatGatewayArgs{
@@ -258,16 +283,26 @@ func resourceAliyunNatGatewayDelete(d *schema.ResourceData, meta interface{}) er
 		}
 
 		err = DeleteNatGateway(client.vpcconn, args)
-		if err == nil {
+		if err != nil {
+			er, _ := err.(*common.Error)
+			if er.ErrorResponse.Code == DependencyViolationBandwidthPackages {
+				return resource.RetryableError(fmt.Errorf("NatGateway in use - trying again while it is deleted."))
+			}
+		}
+
+		describeArgs := &DescribeNatGatewaysArgs{
+			RegionId:     client.Region,
+			NatGatewayId: d.Id(),
+		}
+		gw, _, gwErr := DescribeNatGateways(client.vpcconn, describeArgs)
+
+		if gwErr != nil {
+			log.Printf("[ERROR] Describe NatGateways failed.")
+			return resource.NonRetryableError(gwErr)
+		} else if gw == nil || len(gw) < 1 {
 			return nil
 		}
 
-		er, _ := err.(*common.Error)
-		if er.ErrorResponse.Code == "DependencyViolation.BandwidthPackages" {
-			return resource.RetryableError(fmt.Errorf("NatGateway in use - trying again while it is deleted."))
-		}
-
-		log.Println("[ERROR] Delete NatGateway is failed.")
-		return resource.NonRetryableError(err)
+		return resource.RetryableError(fmt.Errorf("NatGateway in use - trying again while it is deleted."))
 	})
 }

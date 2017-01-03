@@ -3,12 +3,12 @@ package alicloud
 import (
 	"fmt"
 
-	"github.com/denverdino/aliyungo/ecs"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/resource"
-	"time"
 	"github.com/denverdino/aliyungo/common"
+	"github.com/denverdino/aliyungo/ecs"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"log"
+	"time"
 )
 
 func resourceAliyunDisk() *schema.Resource {
@@ -25,13 +25,15 @@ func resourceAliyunDisk() *schema.Resource {
 				ForceNew: true,
 			},
 			"name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateDiskName,
 			},
 
 			"description": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateDiskDescription,
 			},
 
 			"category": &schema.Schema{
@@ -63,7 +65,6 @@ func resourceAliyunDisk() *schema.Resource {
 }
 
 func resourceAliyunDiskCreate(d *schema.ResourceData, meta interface{}) error {
-
 	client := meta.(*AliyunClient)
 
 	conn := client.ecsconn
@@ -96,16 +97,7 @@ func resourceAliyunDiskCreate(d *schema.ResourceData, meta interface{}) error {
 			args.DiskCategory == ecs.DiskCategoryCloudSSD) && (size < 20 || size > 32768) {
 			return fmt.Errorf("the size of %s disk must between 20 to 32768", args.DiskCategory)
 		}
-
 		args.Size = size
-	} else {
-		if args.DiskCategory == ecs.DiskCategoryCloud {
-			args.Size = 5
-		}
-		if args.DiskCategory == ecs.DiskCategoryCloudEfficiency ||
-			args.DiskCategory == ecs.DiskCategoryCloudSSD {
-			args.Size = 20
-		}
 
 		d.Set("size", args.Size)
 	}
@@ -114,31 +106,79 @@ func resourceAliyunDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		args.SnapshotId = v.(string)
 	}
 
-	if v, ok := d.GetOk("name"); ok && v.(string) != "" {
-		args.DiskName = v.(string)
+	if args.Size <= 0 && args.SnapshotId == "" {
+		return fmt.Errorf("One of size or snapshot_id is required when specifying an ECS disk.")
 	}
 
 	if v, ok := d.GetOk("name"); ok && v.(string) != "" {
 		args.DiskName = v.(string)
+	}
+
+	if v, ok := d.GetOk("description"); ok && v.(string) != "" {
+		args.Description = v.(string)
 	}
 
 	diskID, err := conn.CreateDisk(args)
 	if err != nil {
-		return fmt.Errorf("CreateDisk got a error: %s", err)
+		return fmt.Errorf("CreateDisk got a error: %#v", err)
 	}
 
 	d.SetId(diskID)
+	d.Partial(true)
+
 	d.SetPartial("name")
+	d.SetPartial("description")
 	d.SetPartial("availability_zone")
 	d.SetPartial("description")
 	d.SetPartial("size")
 	d.SetPartial("category")
 	d.SetPartial("snapshot_id")
 
-	return resourceAliyunDiskRead(d, meta)
+	d.Partial(false)
+
+	return resourceAliyunDiskUpdate(d, meta)
 }
 
 func resourceAliyunDiskRead(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AliyunClient).ecsconn
+
+	disks, _, err := conn.DescribeDisks(&ecs.DescribeDisksArgs{
+		RegionId: getRegion(d, meta),
+		DiskIds:  []string{d.Id()},
+	})
+
+	if err != nil {
+		if notFoundError(err) {
+			d.SetId("")
+			return nil
+		}
+		return fmt.Errorf("Error DescribeDiskAttribute: %#v", err)
+	}
+
+	log.Printf("[DEBUG] DescribeDiskAttribute for instance: %#v", disks)
+
+	if disks != nil && len(disks) > 0 {
+		disk := disks[0]
+		d.Set("availability_zone", disk.ZoneId)
+		d.Set("category", disk.Category)
+		d.Set("size", disk.Size)
+		d.Set("status", disk.Status)
+		d.Set("name", disk.DiskName)
+		d.Set("description", disk.Description)
+		d.Set("snapshot_id", disk.SourceSnapshotId)
+	}
+
+	tags, _, err := conn.DescribeTags(&ecs.DescribeTagsArgs{
+		RegionId:     getRegion(d, meta),
+		ResourceType: ecs.TagResourceDisk,
+		ResourceId:   d.Id(),
+	})
+
+	if err != nil {
+		log.Printf("[DEBUG] DescribeTags for disk got error: %#v", err)
+	}
+
+	d.Set("tags", tagsToString(tags))
 
 	return nil
 }
@@ -150,13 +190,14 @@ func resourceAliyunDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 	d.Partial(true)
 
 	if err := setTags(client, ecs.TagResourceDisk, d); err != nil {
-		return err
+		log.Printf("[DEBUG] Set tags for instance got error: %#v", err)
+		return fmt.Errorf("Set tags for instance got error: %#v", err)
 	} else {
 		d.SetPartial("tags")
 	}
 
 	if d.HasChange("name") {
-		val := d.Get("description").(string)
+		val := d.Get("name").(string)
 		args := &ecs.ModifyDiskAttributeArgs{
 			DiskId:   d.Id(),
 			DiskName: val,
@@ -183,24 +224,36 @@ func resourceAliyunDiskUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("description")
 	}
 
+	d.Partial(false)
+
 	return resourceAliyunDiskRead(d, meta)
 }
 
 func resourceAliyunDiskDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AliyunClient).ecsconn
 
-	return resource.Retry(5 * time.Minute, func() *resource.RetryError {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		err := conn.DeleteDisk(d.Id())
-		if err == nil {
+		if err != nil {
+			e, _ := err.(*common.Error)
+			if e.ErrorResponse.Code == DiskIncorrectStatus || e.ErrorResponse.Code == DiskCreatingSnapshot {
+				return resource.RetryableError(fmt.Errorf("Disk in use - trying again while it is deleted."))
+			}
+		}
+
+		disks, _, descErr := conn.DescribeDisks(&ecs.DescribeDisksArgs{
+			RegionId: getRegion(d, meta),
+			DiskIds:  []string{d.Id()},
+		})
+
+		if descErr != nil {
+			log.Printf("[ERROR] Delete disk is failed.")
+			return resource.NonRetryableError(descErr)
+		}
+		if disks == nil || len(disks) < 1 {
 			return nil
 		}
 
-		e, _ := err.(*common.Error)
-		if e.ErrorResponse.Code == "IncorrectDiskStatus" || e.ErrorResponse.Code == "DiskCreatingSnapshot" {
-			return resource.RetryableError(fmt.Errorf("Disk in use - trying again while it is deleted."))
-		}
-
-		log.Printf("[ERROR] Delete disk is failed.")
-		return resource.NonRetryableError(err)
+		return resource.RetryableError(fmt.Errorf("Disk in use - trying again while it is deleted."))
 	})
 }

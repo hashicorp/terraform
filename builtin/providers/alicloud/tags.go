@@ -6,6 +6,7 @@ import (
 
 	"github.com/denverdino/aliyungo/ecs"
 	"github.com/hashicorp/terraform/helper/schema"
+	"strings"
 )
 
 func String(v string) *string {
@@ -100,12 +101,16 @@ func tagsFromMap(m map[string]interface{}) []Tag {
 	return result
 }
 
-func tagsToMap(tags []ecs.TagItemType) map[string]string {
-	result := map[string]string{}
+func tagsToString(tags []ecs.TagItemType) string {
+	result := make([]string, 0, len(tags))
 
 	for _, tag := range tags {
-		result[tag.TagKey] = tag.TagValue
+		ecsTags := ecs.TagItemType{
+			TagKey:   tag.TagKey,
+			TagValue: tag.TagValue,
+		}
+		result = append(result, ecsTags.TagKey+":"+ecsTags.TagValue)
 	}
 
-	return result
+	return strings.Join(result, ",")
 }

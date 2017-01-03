@@ -13,3 +13,8 @@ output "hostname_list" {
 output "ecs_ids" {
   value = "${join(",", alicloud_instance.instance.*.id)}"
 }
+
+output "slb_backendserver" {
+  value = "${alicloud_slb_attachment.default.backend_servers}"
+}
+

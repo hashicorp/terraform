@@ -9,7 +9,7 @@ type InstanceNetWork string
 
 const (
 	ClassicNet = InstanceNetWork("Classic")
-	VpcNet = InstanceNetWork("Vpc")
+	VpcNet     = InstanceNetWork("Vpc")
 )
 
 const defaultTimeout = 120
@@ -31,10 +31,10 @@ type Protocal string
 
 // Constants of protocal definition
 const (
-	Http = Protocal("http")
+	Http  = Protocal("http")
 	Https = Protocal("https")
-	Tcp = Protocal("tcp")
-	Udp = Protocal("udp")
+	Tcp   = Protocal("tcp")
+	Udp   = Protocal("udp")
 )
 
 // ValidProtocals network protocal list

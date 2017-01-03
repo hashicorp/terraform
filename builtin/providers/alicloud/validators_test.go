@@ -128,6 +128,96 @@ func TestValidateSecurityGroupDescription(t *testing.T) {
 	}
 }
 
+func TestValidateSecurityRuleType(t *testing.T) {
+	validSecurityRuleType := []string{"ingress", "egress"}
+	for _, v := range validSecurityRuleType {
+		_, errors := validateSecurityRuleType(v, "security_rule_type")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid security rule type: %q", v, errors)
+		}
+	}
+
+	invalidSecurityRuleType := []string{"y", "gress", "in", "out"}
+	for _, v := range invalidSecurityRuleType {
+		_, errors := validateSecurityRuleType(v, "security_rule_type")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid security rule type", v)
+		}
+	}
+}
+
+func TestValidateSecurityRuleIpProtocol(t *testing.T) {
+	validIpProtocol := []string{"tcp", "udp", "icmp", "gre", "all"}
+	for _, v := range validIpProtocol {
+		_, errors := validateSecurityRuleIpProtocol(v, "security_rule_ip_protocol")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid ip protocol: %q", v, errors)
+		}
+	}
+
+	invalidIpProtocol := []string{"y", "ecmp", "http", "https"}
+	for _, v := range invalidIpProtocol {
+		_, errors := validateSecurityRuleIpProtocol(v, "security_rule_ip_protocol")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid ip protocol", v)
+		}
+	}
+}
+
+func TestValidateSecurityRuleNicType(t *testing.T) {
+	validRuleNicType := []string{"intranet", "internet"}
+	for _, v := range validRuleNicType {
+		_, errors := validateSecurityRuleNicType(v, "security_rule_nic_type")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid nic type: %q", v, errors)
+		}
+	}
+
+	invalidRuleNicType := []string{"inter", "ecmp", "http", "https"}
+	for _, v := range invalidRuleNicType {
+		_, errors := validateSecurityRuleNicType(v, "security_rule_nic_type")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid nic type", v)
+		}
+	}
+}
+
+func TestValidateSecurityRulePolicy(t *testing.T) {
+	validRulePolicy := []string{"accept", "drop"}
+	for _, v := range validRulePolicy {
+		_, errors := validateSecurityRulePolicy(v, "security_rule_policy")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid security rule policy: %q", v, errors)
+		}
+	}
+
+	invalidRulePolicy := []string{"inter", "ecmp", "http", "https"}
+	for _, v := range invalidRulePolicy {
+		_, errors := validateSecurityRulePolicy(v, "security_rule_policy")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid security rule policy", v)
+		}
+	}
+}
+
+func TestValidateSecurityRulePriority(t *testing.T) {
+	validPriority := []int{1, 50, 100}
+	for _, v := range validPriority {
+		_, errors := validateSecurityPriority(v, "security_rule_priority")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid security rule priority: %q", v, errors)
+		}
+	}
+
+	invalidPriority := []int{-1, 0, 101}
+	for _, v := range invalidPriority {
+		_, errors := validateSecurityPriority(v, "security_rule_priority")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid security rule priority", v)
+		}
+	}
+}
+
 func TestValidateCIDRNetworkAddress(t *testing.T) {
 	validCIDRNetworkAddress := []string{"192.168.10.0/24", "0.0.0.0/0", "10.121.10.0/24"}
 	for _, v := range validCIDRNetworkAddress {

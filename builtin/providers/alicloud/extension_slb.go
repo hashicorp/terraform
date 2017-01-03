@@ -9,7 +9,6 @@ import (
 
 type Listener struct {
 	InstancePort     int
-	InstanceProtocol string
 	LoadBalancerPort int
 	Protocol         string
 	SSLCertificateId string
@@ -30,7 +29,6 @@ func expandListeners(configured []interface{}) ([]*Listener, error) {
 		lp := data["lb_port"].(int)
 		l := &Listener{
 			InstancePort:     ip,
-			InstanceProtocol: data["instance_protocol"].(string),
 			LoadBalancerPort: lp,
 			Protocol:         data["lb_protocol"].(string),
 			Bandwidth:        data["bandwidth"].(int),
@@ -44,7 +42,7 @@ func expandListeners(configured []interface{}) ([]*Listener, error) {
 		if l.SSLCertificateId != "" {
 			// validate the protocol is correct
 			for _, p := range []string{"https", "ssl"} {
-				if (strings.ToLower(l.InstanceProtocol) == p) || (strings.ToLower(l.Protocol) == p) {
+				if strings.ToLower(l.Protocol) == p {
 					valid = true
 				}
 			}
@@ -65,7 +63,9 @@ func expandListeners(configured []interface{}) ([]*Listener, error) {
 func expandBackendServers(list []interface{}) []slb.BackendServerType {
 	result := make([]slb.BackendServerType, 0, len(list))
 	for _, i := range list {
-		result = append(result, slb.BackendServerType{ServerId: i.(string), Weight: 100})
+		if i.(string) != "" {
+			result = append(result, slb.BackendServerType{ServerId: i.(string), Weight: 100})
+		}
 	}
 	return result
 }

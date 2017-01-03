@@ -3,12 +3,12 @@ package alicloud
 import (
 	"fmt"
 
-	"github.com/denverdino/aliyungo/ecs"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/resource"
-	"time"
 	"github.com/denverdino/aliyungo/common"
-	"log"
+	"github.com/denverdino/aliyungo/ecs"
+	"github.com/hashicorp/terraform/helper/resource"
+
+	"github.com/hashicorp/terraform/helper/schema"
+	"time"
 )
 
 func resourceAliyunSecurityGroup() *schema.Resource {
@@ -72,7 +72,7 @@ func resourceAliyunSecurityGroupRead(d *schema.ResourceData, meta interface{}) e
 			d.SetId("")
 			return nil
 		}
-		return fmt.Errorf("Error DescribeSecurityGroupAttribute: %s", err)
+		return fmt.Errorf("Error DescribeSecurityGroupAttribute: %#v", err)
 	}
 
 	d.Set("name", sg.SecurityGroupName)
@@ -124,20 +124,32 @@ func resourceAliyunSecurityGroupDelete(d *schema.ResourceData, meta interface{})
 
 	conn := meta.(*AliyunClient).ecsconn
 
-	return resource.Retry(5 * time.Minute, func() *resource.RetryError {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		err := conn.DeleteSecurityGroup(getRegion(d, meta), d.Id())
 
-		if err == nil {
+		if err != nil {
+			e, _ := err.(*common.Error)
+			if e.ErrorResponse.Code == SgDependencyViolation {
+				return resource.RetryableError(fmt.Errorf("Security group in use - trying again while it is deleted."))
+			}
+		}
+
+		sg, err := conn.DescribeSecurityGroupAttribute(&ecs.DescribeSecurityGroupAttributeArgs{
+			RegionId:        getRegion(d, meta),
+			SecurityGroupId: d.Id(),
+		})
+
+		if err != nil {
+			e, _ := err.(*common.Error)
+			if e.ErrorResponse.Code == InvalidSecurityGroupIdNotFound {
+				return nil
+			}
+			return resource.NonRetryableError(err)
+		} else if sg == nil {
 			return nil
 		}
 
-		e, _ := err.(*common.Error)
-		if e.ErrorResponse.Code == "DependencyViolation" {
-			return resource.RetryableError(fmt.Errorf("Security group in use - trying again while it is deleted."))
-		}
-
-		log.Printf("[ERROR] Delete security group is failed.")
-		return resource.NonRetryableError(err)
+		return resource.RetryableError(fmt.Errorf("Security group in use - trying again while it is deleted."))
 	})
 }
 

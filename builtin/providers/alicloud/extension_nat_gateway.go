@@ -66,19 +66,20 @@ type DescribeNatGatewayResponse struct {
 	common.Response
 	common.PaginationResult
 	NatGateways struct {
-			    NatGateway []NatGatewaySetType
-		    }
+		NatGateway []NatGatewaySetType
+	}
 }
 
-type DescribeNetGatewaysArgs struct {
+type DescribeNatGatewaysArgs struct {
 	RegionId     common.Region
 	NatGatewayId string
 	VpcId        string
 	common.Pagination
 }
 
-func DescribeNatGateways(client *ecs.Client, args *DescribeNetGatewaysArgs) (natGateways []NatGatewaySetType,
-pagination *common.PaginationResult, err error) {
+func DescribeNatGateways(client *ecs.Client, args *DescribeNatGatewaysArgs) (natGateways []NatGatewaySetType,
+	pagination *common.PaginationResult, err error) {
+
 	args.Validate()
 	response := DescribeNatGatewayResponse{}
 
@@ -105,6 +106,17 @@ type ModifyNatGatewayAttributeResponse struct {
 func ModifyNatGatewayAttribute(client *ecs.Client, args *ModifyNatGatewayAttributeArgs) error {
 	response := ModifyNatGatewayAttributeResponse{}
 	return client.Invoke("ModifyNatGatewayAttribute", args, &response)
+}
+
+type ModifyNatGatewaySpecArgs struct {
+	RegionId     common.Region
+	NatGatewayId string
+	Spec         NatGatewaySpec
+}
+
+func ModifyNatGatewaySpec(client *ecs.Client, args *ModifyNatGatewaySpecArgs) error {
+	response := ModifyNatGatewayAttributeResponse{}
+	return client.Invoke("ModifyNatGatewaySpec", args, &response)
 }
 
 type DeleteNatGatewayArgs struct {
@@ -137,8 +149,8 @@ type DescribeBandwidthPackageType struct {
 type DescribeBandwidthPackagesResponse struct {
 	common.Response
 	BandwidthPackages struct {
-				  BandwidthPackage []DescribeBandwidthPackageType
-			  }
+		BandwidthPackage []DescribeBandwidthPackageType
+	}
 }
 
 func DescribeBandwidthPackages(client *ecs.Client, args *DescribeBandwidthPackagesArgs) ([]DescribeBandwidthPackageType, error) {
@@ -172,3 +184,11 @@ type DescribeSnatTableEntriesArgs struct {
 func DescribeSnatTableEntries(client *ecs.Client, args *DescribeSnatTableEntriesArgs) {
 
 }
+
+type NatGatewaySpec string
+
+const (
+	NatGatewaySmallSpec  = NatGatewaySpec("Small")
+	NatGatewayMiddleSpec = NatGatewaySpec("Middle")
+	NatGatewayLargeSpec  = NatGatewaySpec("Large")
+)

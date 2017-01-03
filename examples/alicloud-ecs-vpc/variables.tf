@@ -5,7 +5,7 @@ variable "count_format" {
   default = "%02d"
 }
 variable "image_id" {
-  default = "ubuntu1404_64_40G_cloudinit_20160727.raw"
+  default = "ubuntu_140405_64_40G_cloudinit_20161115.vhd"
 }
 
 variable "role" {
@@ -21,7 +21,8 @@ variable "ecs_password" {
 }
 variable "availability_zones" {
 }
-variable "security_group_id" {
+variable "security_groups" {
+  type    = "list"
 }
 variable "ssh_username" {
   default = "root"

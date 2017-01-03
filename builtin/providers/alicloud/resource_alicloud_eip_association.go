@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/resource"
-	"time"
 	"github.com/denverdino/aliyungo/common"
-	"log"
+	"github.com/denverdino/aliyungo/ecs"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
+	"time"
 )
 
 func resourceAliyunEipAssociation() *schema.Resource {
@@ -48,7 +48,7 @@ func resourceAliyunEipAssociationCreate(d *schema.ResourceData, meta interface{}
 
 	d.SetId(allocationId + ":" + instanceId)
 
-	return nil
+	return resourceAliyunEipAssociationRead(d, meta)
 }
 
 func resourceAliyunEipAssociationRead(d *schema.ResourceData, meta interface{}) error {
@@ -60,6 +60,7 @@ func resourceAliyunEipAssociationRead(d *schema.ResourceData, meta interface{}) 
 	}
 
 	eip, err := client.DescribeEipAddress(allocationId)
+
 	if err != nil {
 		if notFoundError(err) {
 			d.SetId("")
@@ -87,24 +88,36 @@ func resourceAliyunEipAssociationDelete(d *schema.ResourceData, meta interface{}
 		return err
 	}
 
-	return resource.Retry(5 * time.Minute, func() *resource.RetryError {
+	return resource.Retry(5*time.Minute, func() *resource.RetryError {
 		err := conn.UnassociateEipAddress(allocationId, instanceId)
-		if err == nil {
+
+		if err != nil {
+			e, _ := err.(*common.Error)
+			errCode := e.ErrorResponse.Code
+			if errCode == InstanceIncorrectStatus || errCode == HaVipIncorrectStatus {
+				return resource.RetryableError(fmt.Errorf("Eip in use - trying again while make it unassociated."))
+			}
+		}
+
+		args := &ecs.DescribeEipAddressesArgs{
+			RegionId:     getRegion(d, meta),
+			AllocationId: allocationId,
+		}
+
+		eips, _, descErr := conn.DescribeEipAddresses(args)
+
+		if descErr != nil {
+			return resource.NonRetryableError(descErr)
+		} else if eips == nil || len(eips) < 1 {
 			return nil
 		}
-
-		e, _ := err.(*common.Error)
-		errCode := e.ErrorResponse.Code
-		if errCode == "IncorrectEipStatus" || errCode == "IncorrectInstanceStatus" || errCode == "IncorrectHaVipStatus" {
-			return resource.RetryableError(fmt.Errorf("Eip in use - trying again while make it unassociated."))
+		for _, eip := range eips {
+			if eip.Status != ecs.EipStatusAvailable {
+				return resource.RetryableError(fmt.Errorf("Eip in use - trying again while make it unassociated."))
+			}
 		}
 
-		if errCode == "InvalidInstanceId.NotFound" || errCode == "InvalidHaVip.NotFound" || errCode == "ResourceNotAssociated" {
-			return nil
-		}
-
-		log.Println("[ERROR] Make EIP unassociated failed.")
-		return resource.NonRetryableError(err)
+		return nil
 	})
 }
 
