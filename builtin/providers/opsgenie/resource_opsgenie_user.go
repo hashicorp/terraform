@@ -81,6 +81,26 @@ func resourceOpsGenieUserCreate(d *schema.ResourceData, meta interface{}) error 
 func resourceOpsGenieUserRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*OpsGenieClient).users
 
+	listRequest := user.ListUsersRequest{}
+	listResponse, err := client.List(listRequest)
+	if err != nil {
+		return err
+	}
+
+	var found *user.GetUserResponse
+	for _, user := range listResponse.Users {
+		if user.Id == d.Id() {
+			found = &user
+			break
+		}
+	}
+
+	if found == nil {
+		d.SetId("")
+		log.Printf("[INFO] User %q not found. Removing from state", d.Get("username").(string))
+		return nil
+	}
+
 	getRequest := user.GetUserRequest{
 		Id: d.Id(),
 	}
@@ -132,7 +152,7 @@ func resourceOpsGenieUserUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceOpsGenieUserDelete(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("[INFO] Updating OpsGenie user '%s'", d.Get("username").(string))
+	log.Printf("[INFO] Deleting OpsGenie user '%s'", d.Get("username").(string))
 	client := meta.(*OpsGenieClient).users
 
 	deleteRequest := user.DeleteUserRequest{

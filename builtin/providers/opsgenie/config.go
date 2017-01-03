@@ -13,6 +13,7 @@ type OpsGenieClient struct {
 
 	StopContext context.Context
 
+	teams client.OpsGenieTeamClient
 	users client.OpsGenieUserClient
 }
 
@@ -25,10 +26,15 @@ type Config struct {
 func (c *Config) Client() (*OpsGenieClient, error) {
 	opsGenie := new(client.OpsGenieClient)
 	opsGenie.SetAPIKey(c.ApiKey)
+	client := OpsGenieClient{}
 
 	log.Printf("[INFO] OpsGenie client configured")
 
-	client := OpsGenieClient{}
+	teamsClient, err := opsGenie.Team()
+	if err != nil {
+		return nil, err
+	}
+	client.teams = *teamsClient
 
 	usersClient, err := opsGenie.User()
 	if err != nil {

@@ -35,7 +35,7 @@ func testAccDataSourceOpsGenieUser(src, n string) resource.TestCheckFunc {
 		a := r.Primary.Attributes
 
 		if a["id"] == "" {
-			return fmt.Errorf("Expected to get a user ID from PagerDuty")
+			return fmt.Errorf("Expected to get a user ID from OpsGenie")
 		}
 
 		testAtts := []string{"username", "full_name", "role"}

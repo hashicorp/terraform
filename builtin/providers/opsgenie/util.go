@@ -6,7 +6,6 @@ import (
 )
 
 func checkOpsGenieResponse(code int, status string) error {
-
 	if code == http.StatusOK {
 		return nil
 	}
