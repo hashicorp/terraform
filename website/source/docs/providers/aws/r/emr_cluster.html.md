@@ -27,6 +27,7 @@ resource "aws_emr_cluster" "emr-test-cluster" {
     subnet_id                         = "${aws_subnet.main.id}"
     emr_managed_master_security_group = "${aws_security_group.sg.id}"
     emr_managed_slave_security_group  = "${aws_security_group.sg.id}"
+    service_access_security_group     = "${aws_security_group.sg.id}"
     instance_profile                  = "${aws_iam_instance_profile.emr_profile.arn}"
   }
 
@@ -72,7 +73,7 @@ The following arguments are supported:
 * `log_uri` - (Optional) S3 bucket to write the log files of the job flow. If a value
 	is not provided, logs are not created
 * `applications` - (Optional) A list of applications for the cluster. Valid values are: `Hadoop`, `Hive`,
-* `termination_protection` - (Optional) Switch on/off termination protection (default is off) 
+* `termination_protection` - (Optional) Switch on/off termination protection (default is off)
 * `keep_job_flow_alive_when_no_steps` - (Optional) Switch on/off run cluster with no steps or when all steps are complete (default is on)
 	`Mahout`, `Pig`, and `Spark.` Case insensitive
 * `ec2_attributes` - (Optional) Attributes for the EC2 instances running the job
@@ -93,12 +94,21 @@ Attributes for the Amazon EC2 instances running the job flow
 	node as the user called `hadoop`
 * `subnet_id` - (Optional) VPC subnet id where you want the job flow to launch.
 Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched in a Amazon VPC
+<<<<<<< HEAD
+* `additional_master_security_groups` - (Optional) list of additional Amazon EC2 security group IDs for the master node
+* `additional_slave_security_groups` - (Optional) list of additional Amazon EC2 security group IDs for the slave nodes
+* `emr_managed_master_security_group` - (Optional) identifier of the Amazon EC2 security group for the master node
+* `emr_managed_slave_security_group` - (Optional) identifier of the Amazon EC2 security group for the slave nodes
+* `service_access_security_group` - (Optional) identifier of the Amazon EC2 security group for the service access
+* `instance_profile` - (Optional) Instance Profile for EC2 instances of the cluster assume this role
+=======
 * `additional_master_security_groups` - (Optional) List of additional Amazon EC2 security group IDs for the master node
 * `additional_slave_security_groups` - (Optional) List of additional Amazon EC2 security group IDs for the slave nodes
 * `emr_managed_master_security_group` - (Optional) Identifier of the Amazon EC2 security group for the master node
 * `emr_managed_slave_security_group` - (Optional) Identifier of the Amazon EC2 security group for the slave nodes
 * `service_access_security_group` - (Optional) Identifier of the Amazon EC2 service-access security group - required when the cluster runs on a private subnet
 * `instance_profile` - (Required) Instance Profile for EC2 instances of the cluster assume this role
+>>>>>>> 12f4b5ecb83a9936cb0a3fa31c5d1ec5e75c07d0
 
 
 ## bootstrap\_action
@@ -112,6 +122,21 @@ Cannot specify the `cc1.4xlarge` instance type for nodes of a job flow launched 
 The following attributes are exported:
 
 * `id` - The ID of the EMR Cluster
+<<<<<<< HEAD
+* `name`
+* `release_label`
+* `master_instance_type`
+* `core_instance_type`
+* `core_instance_count`
+* `log_uri`
+* `applications`
+* `ec2_attributes`
+* `bootstrap_action`
+* `configurations`
+* `service_role`
+* `visible_to_all_users`
+* `tags`
+=======
 * `name` - The name of the cluster.
 * `release_label` - The release label for the Amazon EMR release.
 * `master_instance_type` - The EC2 instance type of the master node.
@@ -126,6 +151,7 @@ The following attributes are exported:
 * `service_role` - The IAM role that will be assumed by the Amazon EMR service to access AWS resources on your behalf.
 * `visible_to_all_users` - Indicates whether the job flow is visible to all IAM users of the AWS account associated with the job flow.
 * `tags` - The list of tags associated with a cluster.
+>>>>>>> 12f4b5ecb83a9936cb0a3fa31c5d1ec5e75c07d0
 
 
 ## Example bootable config
@@ -149,6 +175,7 @@ resource "aws_emr_cluster" "tf-test-cluster" {
     subnet_id                         = "${aws_subnet.main.id}"
     emr_managed_master_security_group = "${aws_security_group.allow_all.id}"
     emr_managed_slave_security_group  = "${aws_security_group.allow_all.id}"
+    service_access_security_group     = "${aws_security_group.allow_all.id}"
     instance_profile                  = "${aws_iam_instance_profile.emr_profile.arn}"
   }
 
