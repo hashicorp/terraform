@@ -31,6 +31,7 @@ BUG FIXES:
  * provider/aws: Add snapshotting to the list of pending state for elasticache [GH-10965]
  * provider/aws: Add support for updating tags in aws_emr_cluster [GH-11003]
  * provider/aws: Fix the normalization of AWS policy statements [GH-11009]
+ * provider/google-cloud: Fix backwards incompatibility around create_timeout in instances [GH-10858]
  * provider/openstack: Handle `PENDING_UPDATE` status with LBaaS v2 members [GH-10875]
 
 
