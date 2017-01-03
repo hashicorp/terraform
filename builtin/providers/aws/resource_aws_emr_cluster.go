@@ -98,12 +98,16 @@ func resourceAwsEMRCluster() *schema.Resource {
 							Optional: true,
 						},
 						"additional_master_security_groups": &schema.Schema{
-							Type:     schema.TypeString,
+							Type:     schema.TypeSet,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 						"additional_slave_security_groups": &schema.Schema{
-							Type:     schema.TypeString,
+							Type:     schema.TypeSet,
 							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set:      schema.HashString,
 						},
 						"emr_managed_master_security_group": &schema.Schema{
 							Type:     schema.TypeString,
@@ -215,19 +219,11 @@ func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if v, ok := attributes["additional_master_security_groups"]; ok {
-			strSlice := strings.Split(v.(string), ",")
-			for i, s := range strSlice {
-				strSlice[i] = strings.TrimSpace(s)
-			}
-			instanceConfig.AdditionalMasterSecurityGroups = aws.StringSlice(strSlice)
+			instanceConfig.AdditionalMasterSecurityGroups = expandStringList(v.(*schema.Set).List())
 		}
 
 		if v, ok := attributes["additional_slave_security_groups"]; ok {
-			strSlice := strings.Split(v.(string), ",")
-			for i, s := range strSlice {
-				strSlice[i] = strings.TrimSpace(s)
-			}
-			instanceConfig.AdditionalSlaveSecurityGroups = aws.StringSlice(strSlice)
+			instanceConfig.AdditionalSlaveSecurityGroups = expandStringList(v.(*schema.Set).List())
 		}
 
 		if v, ok := attributes["emr_managed_master_security_group"]; ok {
