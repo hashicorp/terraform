@@ -24,6 +24,7 @@ func resourcePostgreSQLExtension() *schema.Resource {
 		Read:   resourcePostgreSQLExtensionRead,
 		Update: resourcePostgreSQLExtensionUpdate,
 		Delete: resourcePostgreSQLExtensionDelete,
+		Exists: resourcePostgreSQLExtensionExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -52,6 +53,9 @@ func resourcePostgreSQLExtension() *schema.Resource {
 
 func resourcePostgreSQLExtensionCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return err
@@ -61,7 +65,7 @@ func resourcePostgreSQLExtensionCreate(d *schema.ResourceData, meta interface{})
 	extName := d.Get(extNameAttr).(string)
 
 	b := bytes.NewBufferString("CREATE EXTENSION ")
-	fmt.Fprintf(b, pq.QuoteIdentifier(extName))
+	fmt.Fprint(b, pq.QuoteIdentifier(extName))
 
 	if v, ok := d.GetOk(extSchemaAttr); ok {
 		fmt.Fprint(b, " SCHEMA ", pq.QuoteIdentifier(v.(string)))
@@ -79,11 +83,43 @@ func resourcePostgreSQLExtensionCreate(d *schema.ResourceData, meta interface{})
 
 	d.SetId(extName)
 
-	return resourcePostgreSQLExtensionRead(d, meta)
+	return resourcePostgreSQLExtensionReadImpl(d, meta)
+}
+
+func resourcePostgreSQLExtensionExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
+	conn, err := c.Connect()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
+	var extName string
+	err = conn.QueryRow("SELECT extname FROM pg_catalog.pg_extension WHERE extname = $1", d.Id()).Scan(&extName)
+	switch {
+	case err == sql.ErrNoRows:
+		return false, nil
+	case err != nil:
+		return false, err
+	}
+
+	return true, nil
 }
 
 func resourcePostgreSQLExtensionRead(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	return resourcePostgreSQLExtensionReadImpl(d, meta)
+}
+
+func resourcePostgreSQLExtensionReadImpl(d *schema.ResourceData, meta interface{}) error {
+	c := meta.(*Client)
+
 	conn, err := c.Connect()
 	if err != nil {
 		return err
@@ -111,6 +147,9 @@ func resourcePostgreSQLExtensionRead(d *schema.ResourceData, meta interface{}) e
 
 func resourcePostgreSQLExtensionDelete(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return err
@@ -132,6 +171,9 @@ func resourcePostgreSQLExtensionDelete(d *schema.ResourceData, meta interface{})
 
 func resourcePostgreSQLExtensionUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return err
@@ -148,7 +190,7 @@ func resourcePostgreSQLExtensionUpdate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	return resourcePostgreSQLExtensionRead(d, meta)
+	return resourcePostgreSQLExtensionReadImpl(d, meta)
 }
 
 func setExtSchema(conn *sql.DB, d *schema.ResourceData) error {

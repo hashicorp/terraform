@@ -21,15 +21,18 @@ func TestAccNetworkingV2Subnet_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Subnet_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
 				),
 			},
 			resource.TestStep{
 				Config: testAccNetworkingV2Subnet_update,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "name", "subnet_1"),
-					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "gateway_ip", "192.168.199.1"),
-					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "enable_dhcp", "true"),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_subnet_v2.subnet_1", "name", "subnet_1"),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_subnet_v2.subnet_1", "gateway_ip", "192.168.199.1"),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_subnet_v2.subnet_1", "enable_dhcp", "true"),
 				),
 			},
 		},
@@ -47,8 +50,9 @@ func TestAccNetworkingV2Subnet_enableDHCP(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Subnet_enableDHCP,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
-					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "enable_dhcp", "true"),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_subnet_v2.subnet_1", "enable_dhcp", "true"),
 				),
 			},
 		},
@@ -66,8 +70,9 @@ func TestAccNetworkingV2Subnet_disableDHCP(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Subnet_disableDHCP,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
-					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "enable_dhcp", "false"),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_subnet_v2.subnet_1", "enable_dhcp", "false"),
 				),
 			},
 		},
@@ -85,8 +90,9 @@ func TestAccNetworkingV2Subnet_noGateway(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Subnet_noGateway,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
-					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "gateway_ip", ""),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_subnet_v2.subnet_1", "gateway_ip", ""),
 				),
 			},
 		},
@@ -104,8 +110,9 @@ func TestAccNetworkingV2Subnet_impliedGateway(t *testing.T) {
 			resource.TestStep{
 				Config: testAccNetworkingV2Subnet_impliedGateway,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckNetworkingV2SubnetExists(t, "openstack_networking_subnet_v2.subnet_1", &subnet),
-					resource.TestCheckResourceAttr("openstack_networking_subnet_v2.subnet_1", "gateway_ip", "192.168.199.1"),
+					testAccCheckNetworkingV2SubnetExists("openstack_networking_subnet_v2.subnet_1", &subnet),
+					resource.TestCheckResourceAttr(
+						"openstack_networking_subnet_v2.subnet_1", "gateway_ip", "192.168.199.1"),
 				),
 			},
 		},
@@ -116,7 +123,7 @@ func testAccCheckNetworkingV2SubnetDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 	if err != nil {
-		return fmt.Errorf("(testAccCheckNetworkingV2SubnetDestroy) Error creating OpenStack networking client: %s", err)
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
@@ -133,7 +140,7 @@ func testAccCheckNetworkingV2SubnetDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckNetworkingV2SubnetExists(t *testing.T, n string, subnet *subnets.Subnet) resource.TestCheckFunc {
+func testAccCheckNetworkingV2SubnetExists(n string, subnet *subnets.Subnet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -147,7 +154,7 @@ func testAccCheckNetworkingV2SubnetExists(t *testing.T, n string, subnet *subnet
 		config := testAccProvider.Meta().(*Config)
 		networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
 		if err != nil {
-			return fmt.Errorf("(testAccCheckNetworkingV2SubnetExists) Error creating OpenStack networking client: %s", err)
+			return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 		}
 
 		found, err := subnets.Get(networkingClient, rs.Primary.ID).Extract()
@@ -165,84 +172,93 @@ func testAccCheckNetworkingV2SubnetExists(t *testing.T, n string, subnet *subnet
 	}
 }
 
-var testAccNetworkingV2Subnet_basic = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-    name = "network_1"
-    admin_state_up = "true"
+const testAccNetworkingV2Subnet_basic = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  cidr = "192.168.199.0/24"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+
+  allocation_pools {
+    start = "192.168.199.100"
+    end = "192.168.199.200"
   }
+}
+`
 
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-		allocation_pools {
-			start = "192.168.199.100"
-			end = "192.168.199.200"
-		}
-  }`)
+const testAccNetworkingV2Subnet_update = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
 
-var testAccNetworkingV2Subnet_update = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-    name = "network_1"
-    admin_state_up = "true"
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  gateway_ip = "192.168.199.1"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+
+  allocation_pools {
+    start = "192.168.199.100"
+    end = "192.168.199.200"
   }
+}
+`
 
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-    name = "subnet_1"
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-    gateway_ip = "192.168.199.1"
- 		allocation_pools {
-			start = "192.168.199.100"
-			end = "192.168.199.200"
-		}
- }`)
+const testAccNetworkingV2Subnet_enableDHCP = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
 
-var testAccNetworkingV2Subnet_enableDHCP = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-    name = "network_1"
-    admin_state_up = "true"
-  }
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  gateway_ip = "192.168.199.1"
+  enable_dhcp = true
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+`
 
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-    name = "tf-test-subnet"
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-    gateway_ip = "192.168.199.1"
-    enable_dhcp = true
-  }`)
+const testAccNetworkingV2Subnet_disableDHCP = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
 
-var testAccNetworkingV2Subnet_disableDHCP = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-    name = "network_1"
-    admin_state_up = "true"
-  }
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  enable_dhcp = false
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+`
 
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-    name = "tf-test-subnet"
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-    enable_dhcp = false
-  }`)
+const testAccNetworkingV2Subnet_noGateway = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
 
-var testAccNetworkingV2Subnet_noGateway = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-    name = "network_1"
-    admin_state_up = "true"
-  }
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-    name = "tf-test-subnet"
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-		no_gateway = true
-  }`)
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  no_gateway = true
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+`
 
-var testAccNetworkingV2Subnet_impliedGateway = fmt.Sprintf(`
-  resource "openstack_networking_network_v2" "network_1" {
-    name = "network_1"
-    admin_state_up = "true"
-  }
-  resource "openstack_networking_subnet_v2" "subnet_1" {
-    name = "tf-test-subnet"
-    network_id = "${openstack_networking_network_v2.network_1.id}"
-    cidr = "192.168.199.0/24"
-  }`)
+const testAccNetworkingV2Subnet_impliedGateway = `
+resource "openstack_networking_network_v2" "network_1" {
+  name = "network_1"
+  admin_state_up = "true"
+}
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  name = "subnet_1"
+  cidr = "192.168.199.0/24"
+  network_id = "${openstack_networking_network_v2.network_1.id}"
+}
+`

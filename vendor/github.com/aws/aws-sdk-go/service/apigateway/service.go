@@ -16,7 +16,7 @@ import (
 // to securely connect mobile and web applications to APIs that run on AWS Lambda,
 // Amazon EC2, or other publicly addressable web services that are hosted outside
 // of AWS.
-//The service client's operations are safe to be used concurrently.
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
 type APIGateway struct {
 	*client.Client
@@ -28,8 +28,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "apigateway"
+// Service information constants
+const (
+	ServiceName = "apigateway" // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName  // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the APIGateway client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -42,17 +45,18 @@ const ServiceName = "apigateway"
 //     // Create a APIGateway client with additional configuration
 //     svc := apigateway.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *APIGateway {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *APIGateway {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *APIGateway {
 	svc := &APIGateway{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2015-07-09",

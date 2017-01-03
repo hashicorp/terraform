@@ -11,11 +11,22 @@ import (
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
-// This is the AWS Directory Service API Reference. This guide provides detailed
+// AWS Directory Service is a web service that makes it easy for you to setup
+// and run directories in the AWS cloud, or connect your AWS resources with
+// an existing on-premises Microsoft Active Directory. This guide provides detailed
 // information about AWS Directory Service operations, data types, parameters,
-// and errors.
-//The service client's operations are safe to be used concurrently.
+// and errors. For information about AWS Directory Services features, see AWS
+// Directory Service (https://aws.amazon.com/directoryservice/) and the AWS
+// Directory Service Administration Guide (http://docs.aws.amazon.com/directoryservice/latest/admin-guide/what_is.html).
+//
+// AWS provides SDKs that consist of libraries and sample code for various programming
+// languages and platforms (Java, Ruby, .Net, iOS, Android, etc.). The SDKs
+// provide a convenient way to create programmatic access to AWS Directory Service
+// and other AWS services. For more information about the AWS SDKs, including
+// how to download and install them, see Tools for Amazon Web Services (http://aws.amazon.com/tools/).
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/ds-2015-04-16
 type DirectoryService struct {
 	*client.Client
 }
@@ -26,8 +37,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "ds"
+// Service information constants
+const (
+	ServiceName = "ds"        // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the DirectoryService client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -40,17 +54,18 @@ const ServiceName = "ds"
 //     // Create a DirectoryService client with additional configuration
 //     svc := directoryservice.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *DirectoryService {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *DirectoryService {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *DirectoryService {
 	svc := &DirectoryService{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2015-04-16",

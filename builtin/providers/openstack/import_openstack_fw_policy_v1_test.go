@@ -7,7 +7,7 @@ import (
 )
 
 func TestAccOpenStackFWPolicyV1_importBasic(t *testing.T) {
-	resourceName := "openstack_fw_policy_v1.accept_test"
+	resourceName := "openstack_fw_policy_v1.policy_1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -15,7 +15,7 @@ func TestAccOpenStackFWPolicyV1_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckFWPolicyV1Destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testFirewallPolicyConfigAddRules,
+				Config: testAccFWPolicyV1_addRules,
 			},
 
 			resource.TestStep{

@@ -131,6 +131,12 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		&ParentProviderTransformer{},
 		&AttachProviderConfigTransformer{Module: t.Module},
 
+		// Add all the variables. We can depend on resources through
+		// variables due to module parameters, and we need to properly
+		// determine that.
+		&RootVariableTransformer{Module: t.Module},
+		&ModuleVariableTransformer{Module: t.Module},
+
 		&ReferenceTransformer{},
 	}
 

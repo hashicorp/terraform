@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -641,21 +639,8 @@ func (i *Interpolater) interpolateComplexTypeAttribute(
 			return unknownVariable(), nil
 		}
 
-		keys := make([]string, 0)
-		listElementKey := regexp.MustCompile("^" + resourceID + "\\.[0-9]+$")
-		for id := range attributes {
-			if listElementKey.MatchString(id) {
-				keys = append(keys, id)
-			}
-		}
-		sort.Strings(keys)
-
-		var members []string
-		for _, key := range keys {
-			members = append(members, attributes[key])
-		}
-
-		return hil.InterfaceToVariable(members)
+		expanded := flatmap.Expand(attributes, resourceID)
+		return hil.InterfaceToVariable(expanded)
 	}
 
 	if lengthAttr, isMap := attributes[resourceID+".%"]; isMap {
@@ -670,15 +655,7 @@ func (i *Interpolater) interpolateComplexTypeAttribute(
 			return unknownVariable(), nil
 		}
 
-		resourceFlatMap := make(map[string]string)
-		mapElementKey := regexp.MustCompile("^" + resourceID + "\\.([^%]+)$")
-		for id, val := range attributes {
-			if mapElementKey.MatchString(id) {
-				resourceFlatMap[id] = val
-			}
-		}
-
-		expanded := flatmap.Expand(resourceFlatMap, resourceID)
+		expanded := flatmap.Expand(attributes, resourceID)
 		return hil.InterfaceToVariable(expanded)
 	}
 

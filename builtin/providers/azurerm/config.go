@@ -9,9 +9,11 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
+	"github.com/Azure/azure-sdk-for-go/arm/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/arm/eventhub"
 	"github.com/Azure/azure-sdk-for-go/arm/keyvault"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"github.com/Azure/azure-sdk-for-go/arm/redis"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/servicebus"
@@ -62,8 +64,11 @@ type ArmClient struct {
 	cdnProfilesClient  cdn.ProfilesClient
 	cdnEndpointsClient cdn.EndpointsClient
 
-	eventHubClient           eventhub.EventHubsClient
-	eventHubNamespacesClient eventhub.NamespacesClient
+	containerRegistryClient containerregistry.RegistriesClient
+
+	eventHubClient              eventhub.EventHubsClient
+	eventHubConsumerGroupClient eventhub.ConsumerGroupsClient
+	eventHubNamespacesClient    eventhub.NamespacesClient
 
 	providers           resources.ProvidersClient
 	resourceGroupClient resources.GroupsClient
@@ -77,6 +82,8 @@ type ArmClient struct {
 	storageUsageClient   storage.UsageOperationsClient
 
 	deploymentsClient resources.DeploymentsClient
+
+	redisClient redis.Client
 
 	trafficManagerProfilesClient  trafficmanager.ProfilesClient
 	trafficManagerEndpointsClient trafficmanager.EndpointsClient
@@ -139,15 +146,6 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("Error creating Riviera client: %s", err)
-	}
-
-	// validate that the credentials are correct using Riviera. Note that this must be
-	// done _before_ using the Microsoft SDK, because Riviera handles errors. Using a
-	// namespace registration instead of a simple OAuth token refresh guarantees that
-	// service delegation is correct. This has the effect of registering Microsoft.Compute
-	// which is neccessary anyway.
-	if err := registerProviderWithSubscription("Microsoft.Compute", rivieraClient); err != nil {
-		return nil, err
 	}
 	client.rivieraClient = rivieraClient
 
@@ -217,11 +215,23 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	agc.Sender = autorest.CreateSender(withRequestLogging())
 	client.appGatewayClient = agc
 
+	crc := containerregistry.NewRegistriesClient(c.SubscriptionID)
+	setUserAgent(&crc.Client)
+	crc.Authorizer = spt
+	crc.Sender = autorest.CreateSender(withRequestLogging())
+	client.containerRegistryClient = crc
+
 	ehc := eventhub.NewEventHubsClient(c.SubscriptionID)
 	setUserAgent(&ehc.Client)
 	ehc.Authorizer = spt
 	ehc.Sender = autorest.CreateSender(withRequestLogging())
 	client.eventHubClient = ehc
+
+	chcgc := eventhub.NewConsumerGroupsClient(c.SubscriptionID)
+	setUserAgent(&chcgc.Client)
+	chcgc.Authorizer = spt
+	chcgc.Sender = autorest.CreateSender(withRequestLogging())
+	client.eventHubConsumerGroupClient = chcgc
 
 	ehnc := eventhub.NewNamespacesClient(c.SubscriptionID)
 	setUserAgent(&ehnc.Client)
@@ -384,6 +394,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	tmec.Authorizer = spt
 	tmec.Sender = autorest.CreateSender(withRequestLogging())
 	client.trafficManagerEndpointsClient = tmec
+
+	rdc := redis.NewClient(c.SubscriptionID)
+	setUserAgent(&rdc.Client)
+	rdc.Authorizer = spt
+	rdc.Sender = autorest.CreateSender(withRequestLogging())
+	client.redisClient = rdc
 
 	sbnc := servicebus.NewNamespacesClient(c.SubscriptionID)
 	setUserAgent(&sbnc.Client)

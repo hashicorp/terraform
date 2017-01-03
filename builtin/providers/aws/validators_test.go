@@ -189,6 +189,12 @@ func TestValidateAwsAccountId(t *testing.T) {
 }
 
 func TestValidateArn(t *testing.T) {
+	v := ""
+	_, errors := validateArn(v, "arn")
+	if len(errors) != 0 {
+		t.Fatalf("%q should not be validated as an ARN: %q", v, errors)
+	}
+
 	validNames := []string{
 		"arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/My App/MyEnvironment", // Beanstalk
 		"arn:aws:iam::123456789012:user/David",                                             // IAM User
@@ -892,6 +898,28 @@ func TestValidateSNSSubscriptionProtocol(t *testing.T) {
 	for _, v := range invalidProtocols {
 		if _, errors := validateSNSSubscriptionProtocol(v, "protocol"); len(errors) == 0 {
 			t.Fatalf("%q should be an invalid SNS Subscription protocol: %v", v, errors)
+		}
+	}
+}
+
+func TestValidateSecurityRuleType(t *testing.T) {
+	validTypes := []string{
+		"ingress",
+		"egress",
+	}
+	for _, v := range validTypes {
+		if _, errors := validateSecurityRuleType(v, "type"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid Security Group Rule type: %v", v, errors)
+		}
+	}
+
+	invalidTypes := []string{
+		"foo",
+		"ingresss",
+	}
+	for _, v := range invalidTypes {
+		if _, errors := validateSecurityRuleType(v, "type"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Security Group Rule type: %v", v, errors)
 		}
 	}
 }

@@ -216,7 +216,6 @@ func resourceAwsDbInstance() *schema.Resource {
 			"db_subnet_group_name": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 			},
 
@@ -443,13 +442,19 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		var sgUpdate bool
+		var passwordUpdate bool
+
+		if _, ok := d.GetOk("password"); ok {
+			passwordUpdate = true
+		}
+
 		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
 			sgUpdate = true
 		}
 		if attr := d.Get("security_group_names").(*schema.Set); attr.Len() > 0 {
 			sgUpdate = true
 		}
-		if sgUpdate {
+		if sgUpdate || passwordUpdate {
 			log.Printf("[INFO] DB is restoring from snapshot with default security, but custom security should be set, will now update after snapshot is restored!")
 
 			// wait for instance to get up and then modify security
@@ -936,6 +941,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		req.DBPortNumber = aws.Int64(int64(d.Get("port").(int)))
 		requestUpdate = true
 	}
+	if d.HasChange("db_subnet_group_name") {
+		d.SetPartial("db_subnet_group_name")
+		req.DBSubnetGroupName = aws.String(d.Get("db_subnet_group_name").(string))
+		requestUpdate = true
+	}
 
 	log.Printf("[DEBUG] Send DB Instance Modification request: %t", requestUpdate)
 	if requestUpdate {
@@ -949,7 +959,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 
 		stateConf := &resource.StateChangeConf{
 			Pending: []string{"creating", "backing-up", "modifying", "resetting-master-credentials",
-				"maintenance", "renaming", "rebooting", "upgrading", "configuring-enhanced-monitoring"},
+				"maintenance", "renaming", "rebooting", "upgrading", "configuring-enhanced-monitoring", "moving-to-vpc"},
 			Target:     []string{"available"},
 			Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
 			Timeout:    80 * time.Minute,

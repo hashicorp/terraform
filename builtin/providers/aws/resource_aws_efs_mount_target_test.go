@@ -10,12 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/efs"
 
+	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 	var mount efs.MountTargetDescription
+	ct := fmt.Sprintf("createtoken-%d", acctest.RandInt())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -23,7 +25,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 		CheckDestroy: testAccCheckEfsMountTargetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSEFSMountTargetConfig,
+				Config: testAccAWSEFSMountTargetConfig(ct),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
@@ -37,7 +39,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSEFSMountTargetConfigModified,
+				Config: testAccAWSEFSMountTargetConfigModified(ct),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
@@ -66,13 +68,15 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 func TestAccAWSEFSMountTarget_disappears(t *testing.T) {
 	var mount efs.MountTargetDescription
 
+	ct := fmt.Sprintf("createtoken-%d", acctest.RandInt())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpnGatewayDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSEFSMountTargetConfig,
+				Config: testAccAWSEFSMountTargetConfig(ct),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.alpha",
@@ -218,9 +222,10 @@ func testAccAWSEFSMountTargetDisappears(mount *efs.MountTargetDescription) resou
 
 }
 
-const testAccAWSEFSMountTargetConfig = `
+func testAccAWSEFSMountTargetConfig(ct string) string {
+	return fmt.Sprintf(`
 resource "aws_efs_file_system" "foo" {
-	creation_token = "radeksimko"
+	creation_token = "%s"
 }
 
 resource "aws_efs_mount_target" "alpha" {
@@ -237,11 +242,13 @@ resource "aws_subnet" "alpha" {
 	availability_zone = "us-west-2a"
 	cidr_block = "10.0.1.0/24"
 }
-`
+`, ct)
+}
 
-const testAccAWSEFSMountTargetConfigModified = `
+func testAccAWSEFSMountTargetConfigModified(ct string) string {
+	return fmt.Sprintf(`
 resource "aws_efs_file_system" "foo" {
-	creation_token = "radeksimko"
+	creation_token = "%s"
 }
 
 resource "aws_efs_mount_target" "alpha" {
@@ -269,4 +276,5 @@ resource "aws_subnet" "beta" {
 	availability_zone = "us-west-2b"
 	cidr_block = "10.0.2.0/24"
 }
-`
+`, ct)
+}

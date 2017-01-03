@@ -36,6 +36,8 @@ func TestAccAWSAPIGatewayIntegration_basic(t *testing.T) {
 						"aws_api_gateway_integration.test", "request_templates.application/xml", "#set($inputRoot = $input.path('$'))\n{ }"),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration.test", "passthrough_behavior", "WHEN_NO_MATCH"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_integration.test", "content_handling", ""),
 				),
 			},
 
@@ -52,6 +54,8 @@ func TestAccAWSAPIGatewayIntegration_basic(t *testing.T) {
 						"aws_api_gateway_integration.test", "uri", ""),
 					resource.TestCheckResourceAttr(
 						"aws_api_gateway_integration.test", "passthrough_behavior", "NEVER"),
+					resource.TestCheckResourceAttr(
+						"aws_api_gateway_integration.test", "content_handling", "CONVERT_TO_BINARY"),
 				),
 			},
 		},
@@ -65,6 +69,9 @@ func testAccCheckAWSAPIGatewayMockIntegrationAttributes(conf *apigateway.Integra
 		}
 		if *conf.RequestParameters["integration.request.header.X-Authorization"] != "'updated'" {
 			return fmt.Errorf("wrong updated RequestParameters for header.X-Authorization")
+		}
+		if *conf.ContentHandling != "CONVERT_TO_BINARY" {
+			return fmt.Errorf("wrong ContentHandling: %q", *conf.ContentHandling)
 		}
 		return nil
 	}
@@ -232,6 +239,7 @@ resource "aws_api_gateway_integration" "test" {
 
   type = "MOCK"
   passthrough_behavior = "NEVER"
+  content_handling = "CONVERT_TO_BINARY"
 
 }
 `

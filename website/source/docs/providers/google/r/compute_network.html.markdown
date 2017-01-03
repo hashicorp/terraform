@@ -14,8 +14,8 @@ Manages a network within GCE.
 
 ```js
 resource "google_compute_network" "default" {
-  name       = "test"
-  ipv4_range = "10.0.0.0/16"
+  name                    = "test"
+  auto_create_subnetworks = "true"
 }
 ```
 
@@ -37,7 +37,7 @@ The following arguments are supported:
 
 * `description` - (Optional) A brief description of this resource.
 
-* `ipv4_range` - (Optional) The IPv4 address range that machines in this network
+* `ipv4_range` - (DEPRECATED, Optional) The IPv4 address range that machines in this network
     are assigned to, represented as a CIDR block. If not set, an auto or custom
     subnetted network will be created, depending on the value of  
     `auto_create_subnetworks` attribute. This attribute may not be used if

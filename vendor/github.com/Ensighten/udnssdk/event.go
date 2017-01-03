@@ -3,6 +3,7 @@ package udnssdk
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 )
 
@@ -65,7 +66,7 @@ func (s *EventsService) Select(r RRSetKey, query string) ([]EventInfoDTO, error)
 	for {
 		reqEvents, ri, res, err := s.SelectWithOffset(r, query, offset)
 		if err != nil {
-			if res.StatusCode >= 500 {
+			if res != nil && res.StatusCode >= 500 {
 				errcnt = errcnt + 1
 				if errcnt < maxerrs {
 					time.Sleep(waittime)
@@ -88,7 +89,7 @@ func (s *EventsService) Select(r RRSetKey, query string) ([]EventInfoDTO, error)
 }
 
 // SelectWithOffset requests list of events by RRSetKey, query and offset, also returning list metadata, the actual response, or an error
-func (s *EventsService) SelectWithOffset(r RRSetKey, query string, offset int) ([]EventInfoDTO, ResultInfo, *Response, error) {
+func (s *EventsService) SelectWithOffset(r RRSetKey, query string, offset int) ([]EventInfoDTO, ResultInfo, *http.Response, error) {
 	var tld EventInfoListDTO
 
 	uri := r.EventsQueryURI(query, offset)
@@ -102,23 +103,23 @@ func (s *EventsService) SelectWithOffset(r RRSetKey, query string, offset int) (
 }
 
 // Find requests an event by name, type, zone & guid, also returning the actual response, or an error
-func (s *EventsService) Find(e EventKey) (EventInfoDTO, *Response, error) {
+func (s *EventsService) Find(e EventKey) (EventInfoDTO, *http.Response, error) {
 	var t EventInfoDTO
 	res, err := s.client.get(e.URI(), &t)
 	return t, res, err
 }
 
 // Create requests creation of an event by RRSetKey, with provided event-info, returning actual response or an error
-func (s *EventsService) Create(r RRSetKey, ev EventInfoDTO) (*Response, error) {
+func (s *EventsService) Create(r RRSetKey, ev EventInfoDTO) (*http.Response, error) {
 	return s.client.post(r.EventsURI(), ev, nil)
 }
 
 // Update requests update of an event by EventKey, withprovided event-info, returning the actual response or an error
-func (s *EventsService) Update(e EventKey, ev EventInfoDTO) (*Response, error) {
+func (s *EventsService) Update(e EventKey, ev EventInfoDTO) (*http.Response, error) {
 	return s.client.put(e.URI(), ev, nil)
 }
 
 // Delete requests deletion of an event by EventKey, returning the actual response or an error
-func (s *EventsService) Delete(e EventKey) (*Response, error) {
+func (s *EventsService) Delete(e EventKey) (*http.Response, error) {
 	return s.client.delete(e.URI(), nil)
 }
