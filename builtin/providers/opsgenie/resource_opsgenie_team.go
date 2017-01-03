@@ -26,7 +26,6 @@ func resourceOpsGenieTeam() *schema.Resource {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validateOpsGenieTeamName,
-				// TODO: validation (alphanumberic, numbers & underscores)
 			},
 			"member": {
 				Type:     schema.TypeList,
