@@ -86,8 +86,8 @@ func dataSourceAwsIamPolicyDocument() *schema.Resource {
 				},
 			},
 			"json": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:             schema.TypeString,
+				Computed:         true,
 				ValidateFunc:     validateJsonString,
 				DiffSuppressFunc: suppressEquivalentAwsPolicyDiffs,
 			},
@@ -155,7 +155,7 @@ func dataSourceAwsIamPolicyDocumentRead(d *schema.ResourceData, meta interface{}
 		// should never happen if the above code is correct
 		return err
 	}
-	jsonString := normalizeJsonString(string(jsonDoc))
+	jsonString, _ := normalizeJsonString(string(jsonDoc))
 
 	d.Set("json", jsonString)
 	d.SetId(strconv.Itoa(hashcode.String(jsonString)))
