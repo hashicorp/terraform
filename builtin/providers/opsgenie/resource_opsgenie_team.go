@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"regexp"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/opsgenie/opsgenie-go-sdk/team"
 )
@@ -21,16 +23,11 @@ func resourceOpsGenieTeam() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"name": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateOpsGenieTeamName,
 				// TODO: validation (alphanumberic, numbers & underscores)
 			},
-			/*
-				"description": {
-					Type: schema.TypeString,
-					Optional: true,
-				},
-			*/
 			"member": {
 				Type:     schema.TypeList,
 				Optional: true,
@@ -205,6 +202,20 @@ func expandOpsGenieTeamMembers(d *schema.ResourceData) []team.Member {
 	}
 
 	return members
+}
+
+func validateOpsGenieTeamName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if !regexp.MustCompile(`^[a-zA-Z0-9_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf(
+			"alpha numeric characters and underscoresare allowed in %q: %q", k, value))
+	}
+
+	if len(value) >= 100 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 100 characters: %q %d", k, value, len(value)))
+	}
+
+	return
 }
 
 func validateOpsGenieTeamRole(v interface{}, k string) (ws []string, errors []error) {

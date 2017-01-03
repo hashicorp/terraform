@@ -10,6 +10,83 @@ import (
 	"github.com/opsgenie/opsgenie-go-sdk/team"
 )
 
+//
+func TestAccOpsGenieTeamName_validation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "hello-world",
+			ErrCount: 1,
+		},
+		{
+			Value:    "hello_world",
+			ErrCount: 0,
+		},
+		{
+			Value:    "helloWorld",
+			ErrCount: 0,
+		},
+		{
+			Value:    "helloworld12",
+			ErrCount: 0,
+		},
+		{
+			Value:    "hello@world",
+			ErrCount: 1,
+		},
+		{
+			Value:    "qfvbdsbvipqdbwsbddbdcwqffewsqwcdw21ddwqwd3324120",
+			ErrCount: 0,
+		},
+		{
+			Value:    "qfvbdsbvipqdbwsbddbdcwqffewsqwcdw21ddwqwd33241202qfvbdsbvipqdbwsbddbdcwqffewsqwcdw21ddwqwd33241202",
+			ErrCount: 0,
+		},
+		{
+			Value:    "qfvbdsbvipqdbwsbddbdcwqfjjfewsqwcdw21ddwqwd3324120qfvbdsbvipqdbwsbddbdcwqfjjfewsqwcdw21ddwqwd3324120",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOpsGenieTeamName(tc.Value, "opsgenie_team")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the OpsGenie Team Name to trigger a validation error: %v", errors)
+		}
+	}
+}
+
+func TestAccOpsGenieTeamRole_validation(t *testing.T) {
+	cases := []struct {
+		Value    string
+		ErrCount int
+	}{
+		{
+			Value:    "admin",
+			ErrCount: 0,
+		},
+		{
+			Value:    "user",
+			ErrCount: 0,
+		},
+		{
+			Value:    "custom",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range cases {
+		_, errors := validateOpsGenieTeamRole(tc.Value, "opsgenie_team")
+
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected the OpsGenie Team Role to trigger a validation error")
+		}
+	}
+}
+
 func TestAccOpsGenieTeam_basic(t *testing.T) {
 	ri := acctest.RandInt()
 	config := fmt.Sprintf(testAccOpsGenieTeam_basic, ri)
