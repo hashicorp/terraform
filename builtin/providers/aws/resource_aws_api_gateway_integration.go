@@ -17,7 +17,7 @@ func resourceAwsApiGatewayIntegration() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsApiGatewayIntegrationCreate,
 		Read:   resourceAwsApiGatewayIntegrationRead,
-		Update: resourceAwsApiGatewayIntegrationUpdate,
+		Update: resourceAwsApiGatewayIntegrationCreate,
 		Delete: resourceAwsApiGatewayIntegrationDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -200,10 +200,6 @@ func resourceAwsApiGatewayIntegrationRead(d *schema.ResourceData, meta interface
 	d.Set("content_handling", integration.ContentHandling)
 
 	return nil
-}
-
-func resourceAwsApiGatewayIntegrationUpdate(d *schema.ResourceData, meta interface{}) error {
-	return resourceAwsApiGatewayIntegrationCreate(d, meta)
 }
 
 func resourceAwsApiGatewayIntegrationDelete(d *schema.ResourceData, meta interface{}) error {

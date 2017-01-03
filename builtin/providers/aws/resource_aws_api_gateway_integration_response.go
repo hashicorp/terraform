@@ -17,57 +17,63 @@ func resourceAwsApiGatewayIntegrationResponse() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsApiGatewayIntegrationResponseCreate,
 		Read:   resourceAwsApiGatewayIntegrationResponseRead,
-		Update: resourceAwsApiGatewayIntegrationResponseUpdate,
+		Update: resourceAwsApiGatewayIntegrationResponseCreate,
 		Delete: resourceAwsApiGatewayIntegrationResponseDelete,
 
 		Schema: map[string]*schema.Schema{
-			"rest_api_id": &schema.Schema{
+			"rest_api_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"resource_id": &schema.Schema{
+			"resource_id": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"http_method": &schema.Schema{
+			"http_method": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateHTTPMethod,
 			},
 
-			"status_code": &schema.Schema{
+			"status_code": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"selection_pattern": &schema.Schema{
+			"selection_pattern": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"response_templates": &schema.Schema{
+			"response_templates": {
 				Type:     schema.TypeMap,
 				Optional: true,
 				Elem:     schema.TypeString,
 			},
 
-			"response_parameters": &schema.Schema{
+			"response_parameters": {
 				Type:          schema.TypeMap,
 				Elem:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"response_parameters_in_json"},
 			},
 
-			"response_parameters_in_json": &schema.Schema{
+			"response_parameters_in_json": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ConflictsWith: []string{"response_parameters"},
 				Deprecated:    "Use field response_parameters instead",
+			},
+
+			"content_handling": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateApiGatewayIntegrationContentHandling,
 			},
 		},
 	}
@@ -92,6 +98,10 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 			return fmt.Errorf("Error unmarshaling response_parameters_in_json: %s", err)
 		}
 	}
+	var contentHandling *string
+	if val, ok := d.GetOk("content_handling"); ok {
+		contentHandling = aws.String(val.(string))
+	}
 
 	input := apigateway.PutIntegrationResponseInput{
 		HttpMethod:         aws.String(d.Get("http_method").(string)),
@@ -100,10 +110,12 @@ func resourceAwsApiGatewayIntegrationResponseCreate(d *schema.ResourceData, meta
 		StatusCode:         aws.String(d.Get("status_code").(string)),
 		ResponseTemplates:  aws.StringMap(templates),
 		ResponseParameters: aws.StringMap(parameters),
+		ContentHandling:    contentHandling,
 	}
 	if v, ok := d.GetOk("selection_pattern"); ok {
 		input.SelectionPattern = aws.String(v.(string))
 	}
+
 	_, err := conn.PutIntegrationResponse(&input)
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway Integration Response: %s", err)
@@ -141,10 +153,6 @@ func resourceAwsApiGatewayIntegrationResponseRead(d *schema.ResourceData, meta i
 	d.Set("response_parameters", aws.StringValueMap(integrationResponse.ResponseParameters))
 	d.Set("response_parameters_in_json", aws.StringValueMap(integrationResponse.ResponseParameters))
 	return nil
-}
-
-func resourceAwsApiGatewayIntegrationResponseUpdate(d *schema.ResourceData, meta interface{}) error {
-	return resourceAwsApiGatewayIntegrationResponseCreate(d, meta)
 }
 
 func resourceAwsApiGatewayIntegrationResponseDelete(d *schema.ResourceData, meta interface{}) error {

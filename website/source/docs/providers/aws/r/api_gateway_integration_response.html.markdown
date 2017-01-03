@@ -72,3 +72,4 @@ The following arguments are supported:
 * `response_parameters` - (Optional) A map of response parameters that can be read from the backend response.
   For example: `response_parameters = { "method.response.header.X-Some-Header" = "integration.response.header.X-Some-Other-Header" }`,
 * `response_parameters_in_json` - **Deprecated**, use `response_parameters` instead.
+* `content_handling` - (Optional) Specifies how to handle request payload content type conversions. Supported values are `CONVERT_TO_BINARY` and `CONVERT_TO_TEXT`. If this property is not defined, the response payload will be passed through from the integration response to the method response without modification.
