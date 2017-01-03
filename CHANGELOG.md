@@ -29,6 +29,7 @@ BUG FIXES:
  * provider/aws: `user_data` on `aws_launch_configuration` resources is only base 64 encoded if the value provided is not already base 64 encoded. [GH-10871]
  * provider/aws: Add snapshotting to the list of pending state for elasticache [GH-10965]
  * provider/aws: Add support for updating tags in aws_emr_cluster [GH-11003]
+ * provider/aws: Fix the normalization of AWS policy statements [GH-11009]
  * provider/openstack: Handle `PENDING_UPDATE` status with LBaaS v2 members [GH-10875]
 
 
