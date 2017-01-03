@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -48,7 +49,7 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	d.SetId(*ig.InternetGatewayId)
 	log.Printf("[INFO] InternetGateway ID: %s", d.Id())
 
-	resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
 		igRaw, _, err := IGStateRefreshFunc(conn, d.Id())()
 		if igRaw != nil {
 			return nil
@@ -59,6 +60,10 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 			return resource.NonRetryableError(err)
 		}
 	})
+
+	if err != nil {
+		return errwrap.Wrapf("{{err}}", err)
+	}
 
 	err = setTags(conn, d)
 	if err != nil {
@@ -168,9 +173,21 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 		d.Id(),
 		d.Get("vpc_id").(string))
 
-	_, err := conn.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
-		InternetGatewayId: aws.String(d.Id()),
-		VpcId:             aws.String(d.Get("vpc_id").(string)),
+	err := resource.Retry(2*time.Minute, func() *resource.RetryError {
+		_, err := conn.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
+			InternetGatewayId: aws.String(d.Id()),
+			VpcId:             aws.String(d.Get("vpc_id").(string)),
+		})
+		if err == nil {
+			return nil
+		}
+		if ec2err, ok := err.(awserr.Error); ok {
+			switch ec2err.Code() {
+			case "InvalidInternetGatewayID.NotFound":
+				return resource.RetryableError(err) // retry
+			}
+		}
+		return resource.NonRetryableError(err)
 	})
 	if err != nil {
 		return err
@@ -187,7 +204,7 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 		Pending: []string{"detached", "attaching"},
 		Target:  []string{"available"},
 		Refresh: IGAttachStateRefreshFunc(conn, d.Id(), "available"),
-		Timeout: 1 * time.Minute,
+		Timeout: 4 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
@@ -237,24 +254,28 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 
 // InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // an EC2 instance.
-func detachIGStateRefreshFunc(conn *ec2.EC2, instanceID, vpcID string) resource.StateRefreshFunc {
+func detachIGStateRefreshFunc(conn *ec2.EC2, gatewayID, vpcID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		_, err := conn.DetachInternetGateway(&ec2.DetachInternetGatewayInput{
-			InternetGatewayId: aws.String(instanceID),
+			InternetGatewayId: aws.String(gatewayID),
 			VpcId:             aws.String(vpcID),
 		})
 		if err != nil {
-			ec2err, ok := err.(awserr.Error)
-			if ok {
-				if ec2err.Code() == "InvalidInternetGatewayID.NotFound" {
-					return nil, "Not Found", err
-				} else if ec2err.Code() == "Gateway.NotAttached" {
+			if ec2err, ok := err.(awserr.Error); ok {
+				switch ec2err.Code() {
+				case "InvalidInternetGatewayID.NotFound":
+					log.Printf("[TRACE] Error detaching Internet Gateway '%s' from VPC '%s': %s", gatewayID, vpcID, err)
+					return nil, "Not Found", nil
+
+				case "Gateway.NotAttached":
 					return "detached", "detached", nil
-				} else if ec2err.Code() == "DependencyViolation" {
+
+				case "DependencyViolation":
 					return nil, "detaching", nil
 				}
 			}
 		}
+
 		// DetachInternetGateway only returns an error, so if it's nil, assume we're
 		// detached
 		return "detached", "detached", nil

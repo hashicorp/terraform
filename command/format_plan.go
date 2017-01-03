@@ -114,14 +114,21 @@ func formatPlanModuleExpand(
 			symbol = "-"
 		}
 
-		taintStr := ""
+		var extraAttr []string
 		if rdiff.DestroyTainted {
-			taintStr = " (tainted)"
+			extraAttr = append(extraAttr, "tainted")
+		}
+		if rdiff.DestroyDeposed {
+			extraAttr = append(extraAttr, "deposed")
+		}
+		var extraStr string
+		if len(extraAttr) > 0 {
+			extraStr = fmt.Sprintf(" (%s)", strings.Join(extraAttr, ", "))
 		}
 
 		buf.WriteString(opts.Color.Color(fmt.Sprintf(
 			"[%s]%s %s%s\n",
-			color, symbol, name, taintStr)))
+			color, symbol, name, extraStr)))
 
 		// Get all the attributes that are changing, and sort them. Also
 		// determine the longest key so that we can align them all.
@@ -145,7 +152,7 @@ func formatPlanModuleExpand(
 			attrDiff := rdiff.Attributes[attrK]
 
 			v := attrDiff.New
-			if attrDiff.NewComputed {
+			if v == "" && attrDiff.NewComputed {
 				v = "<computed>"
 			}
 

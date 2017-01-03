@@ -46,6 +46,7 @@ func TestAccAWSDBInstance_basic(t *testing.T) {
 						"aws_db_instance.bar", "username", "foo"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
+					resource.TestCheckResourceAttrSet("aws_db_instance.bar", "hosted_zone_id"),
 				),
 			},
 		},
@@ -71,6 +72,35 @@ func TestAccAWSDBInstance_kmsKey(t *testing.T) {
 					testAccCheckAWSDBInstanceAttributes(&v),
 					resource.TestMatchResourceAttr(
 						"aws_db_instance.bar", "kms_key_id", keyRegex),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSDBInstance_subnetGroup(t *testing.T) {
+	var v rds.DBInstance
+	rName := acctest.RandString(10)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSDBInstanceConfigWithSubnetGroup(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "db_subnet_group_name", "foo"),
+				),
+			},
+			{
+				Config: testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "db_subnet_group_name", "bar"),
 				),
 			},
 		},
@@ -158,6 +188,7 @@ func TestAccAWSDBInstanceNoSnapshot(t *testing.T) {
 
 func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 	var dbInstance rds.DBInstance
+	rName := acctest.RandString(5)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -165,7 +196,7 @@ func TestAccAWSDBInstance_enhancedMonitoring(t *testing.T) {
 		CheckDestroy: testAccCheckAWSDBInstanceNoSnapshot,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccSnapshotInstanceConfig_enhancedMonitoring,
+				Config: testAccSnapshotInstanceConfig_enhancedMonitoring(rName),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.enhanced_monitoring", &dbInstance),
 					resource.TestCheckResourceAttr(
@@ -347,9 +378,9 @@ func testAccCheckAWSDBInstanceSnapshot(s *terraform.State) error {
 			if newerr.Code() == "DBSnapshotNotFound" {
 				return fmt.Errorf("Snapshot %s not found", snapshot_identifier)
 			}
-		} else { // snapshot was found
+		} else { // snapshot was found,
 			// verify we have the tags copied to the snapshot
-			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta())
+			instanceARN, err := buildRDSARN(snapshot_identifier, testAccProvider.Meta().(*AWSClient).partition, testAccProvider.Meta().(*AWSClient).accountid, testAccProvider.Meta().(*AWSClient).region)
 			// tags have a different ARN, just swapping :db: for :snapshot:
 			tagsARN := strings.Replace(instanceARN, ":db:", ":snapshot:", 1)
 			if err != nil {
@@ -656,9 +687,10 @@ resource "aws_db_instance" "no_snapshot" {
 `, acctest.RandString(5))
 }
 
-var testAccSnapshotInstanceConfig_enhancedMonitoring = `
+func testAccSnapshotInstanceConfig_enhancedMonitoring(rName string) string {
+	return fmt.Sprintf(`
 resource "aws_iam_role" "enhanced_policy_role" {
-    name = "enhanced-monitoring-role"
+    name = "enhanced-monitoring-role-%s"
     assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -687,7 +719,7 @@ resource "aws_iam_policy_attachment" "test-attach" {
 }
 
 resource "aws_db_instance" "enhanced_monitoring" {
-	identifier = "foobarbaz-test-terraform-enhanced-monitoring"
+	identifier = "foobarbaz-enhanced-monitoring-%s"
 	depends_on = ["aws_iam_policy_attachment.test-attach"]
 
 	allocated_storage = 5
@@ -705,8 +737,8 @@ resource "aws_db_instance" "enhanced_monitoring" {
 	monitoring_interval = "5"
 
 	skip_final_snapshot = true
+}`, rName, rName)
 }
-`
 
 func testAccSnapshotInstanceConfig_iopsUpdate(rName string, iops int) string {
 	return fmt.Sprintf(`
@@ -757,6 +789,134 @@ resource "aws_db_instance" "bar" {
   username             = "foo"
   password             = "barbarbar"
   parameter_group_name = "default.mysql5.6"
+  port = 3305
+  allocated_storage = 10
+
+  apply_immediately = true
+}`, rName)
+}
+
+func testAccAWSDBInstanceConfigWithSubnetGroup(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-1"
+	}
+}
+
+resource "aws_subnet" "bar" {
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-2"
+	}
+}
+
+resource "aws_db_subnet_group" "foo" {
+	name = "foo"
+	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test"
+	}
+}
+
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  db_subnet_group_name = "${aws_db_subnet_group.foo.name}"
+  port = 3305
+  allocated_storage = 10
+
+  apply_immediately = true
+}`, rName)
+}
+
+func testAccAWSDBInstanceConfigWithSubnetGroupUpdated(rName string) string {
+	return fmt.Sprintf(`
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.10.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-1"
+	}
+}
+
+resource "aws_subnet" "bar" {
+	cidr_block = "10.1.2.0/24"
+	availability_zone = "us-west-2b"
+	vpc_id = "${aws_vpc.foo.id}"
+	tags {
+		Name = "tf-dbsubnet-test-2"
+	}
+}
+
+resource "aws_subnet" "test" {
+	cidr_block = "10.10.3.0/24"
+	availability_zone = "us-west-2c"
+	vpc_id = "${aws_vpc.bar.id}"
+	tags {
+		Name = "tf-dbsubnet-test-3"
+	}
+}
+
+resource "aws_subnet" "another_test" {
+	cidr_block = "10.10.4.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id = "${aws_vpc.bar.id}"
+	tags {
+		Name = "tf-dbsubnet-test-4"
+	}
+}
+
+resource "aws_db_subnet_group" "foo" {
+	name = "foo"
+	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test"
+	}
+}
+
+resource "aws_db_subnet_group" "bar" {
+	name = "bar"
+	subnet_ids = ["${aws_subnet.test.id}", "${aws_subnet.another_test.id}"]
+	tags {
+		Name = "tf-dbsubnet-group-test-updated"
+	}
+}
+
+resource "aws_db_instance" "bar" {
+  identifier           = "mydb-rds-%s"
+  engine               = "mysql"
+  engine_version       = "5.6.23"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "barbarbar"
+  parameter_group_name = "default.mysql5.6"
+  db_subnet_group_name = "${aws_db_subnet_group.bar.name}"
   port = 3305
   allocated_storage = 10
 

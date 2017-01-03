@@ -59,9 +59,8 @@ func (client *Client) PostMetrics(series []Metric) error {
 // timeseries data for that time peried
 func (client *Client) QueryMetrics(from, to int64, query string) ([]Series, error) {
 	var out reqMetrics
-	err := client.doJsonRequest("GET", "/v1/query?from="+strconv.FormatInt(from, 10)+"&to="+strconv.FormatInt(to, 10)+"&query="+query,
-		nil, &out)
-	if err != nil {
+	if err := client.doJsonRequest("GET", "/v1/query?from="+strconv.FormatInt(from, 10)+"&to="+strconv.FormatInt(to, 10)+"&query="+query,
+		nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Series, nil

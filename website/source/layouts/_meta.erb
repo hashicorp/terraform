@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="<%= current_page.data.description %>">
+    <meta name="description" content="<%= description_for(current_page) %>">
 
     <link rel="shortcut icon" href="<%= image_path('favicon.png') %>">
 
-    <title><%= [current_page.data.page_title, "Terraform by HashiCorp"].compact.join(" - ") %></title>
+    <title><%= title_for(current_page) %></title>
 
     <%= stylesheet_link_tag "application" %>
 

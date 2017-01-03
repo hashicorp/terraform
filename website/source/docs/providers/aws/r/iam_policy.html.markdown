@@ -37,10 +37,14 @@ EOF
 The following arguments are supported:
 
 * `description` - (Optional) Description of the IAM policy.
+* `name` - (Optional, Forces new resource) The name of the policy.
+* `name_prefix` - (Optional, Forces new resource) Creates a unique name beginning with the specified prefix. Conflicts with `name`.
 * `path` - (Optional, default "/") Path in which to create the policy.
+  See [IAM Identifiers](https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html) for more information.
 * `policy` - (Required) The policy document. This is a JSON formatted string.
-  The heredoc syntax or `file` function is helpful here.
-* `name` (Required) - The name of the policy.
+  The heredoc syntax, `file` function, or the [`aws_iam_policy_document` data
+  source](/docs/providers/aws/d/iam_policy_document.html)
+  are all helpful here.
 
 ## Attributes Reference
 
@@ -52,3 +56,11 @@ The following attributes are exported:
 * `name` - The name of the policy.
 * `path` - The path of the policy in IAM.
 * `policy` - The policy document.
+
+## Import
+
+IAM Policies can be imported using the `arn`, e.g.
+
+```
+$ terraform import aws_iam_policy.administrator arn:aws:iam::123456789012:policy/UsersManageOwnCredentials
+```

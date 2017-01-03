@@ -155,9 +155,15 @@ func dataSourceAwsS3BucketObjectRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("metadata", pointersMapToStringList(out.Metadata))
 	d.Set("server_side_encryption", out.ServerSideEncryption)
 	d.Set("sse_kms_key_id", out.SSEKMSKeyId)
-	d.Set("storage_class", out.StorageClass)
 	d.Set("version_id", out.VersionId)
 	d.Set("website_redirect_location", out.WebsiteRedirectLocation)
+
+	// The "STANDARD" (which is also the default) storage
+	// class when set would not be included in the results.
+	d.Set("storage_class", s3.StorageClassStandard)
+	if out.StorageClass != nil {
+		d.Set("storage_class", out.StorageClass)
+	}
 
 	if isContentTypeAllowed(out.ContentType) {
 		input := s3.GetObjectInput{

@@ -47,7 +47,7 @@ func testAccPrivilegeExists(rn string, privilege string) resource.TestCheckFunc 
 		user := userhost[0]
 		host := userhost[1]
 
-		conn := testAccProvider.Meta().(mysqlc.Conn)
+		conn := testAccProvider.Meta().(*providerConfiguration).Conn
 		stmtSQL := fmt.Sprintf("SHOW GRANTS for '%s'@'%s'", user, host)
 		log.Println("Executing statement:", stmtSQL)
 		rows, _, err := conn.Query(stmtSQL)
@@ -77,7 +77,7 @@ func testAccPrivilegeExists(rn string, privilege string) resource.TestCheckFunc 
 }
 
 func testAccGrantCheckDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(mysqlc.Conn)
+	conn := testAccProvider.Meta().(*providerConfiguration).Conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mysql_grant" {

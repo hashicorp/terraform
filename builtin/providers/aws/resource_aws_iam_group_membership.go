@@ -56,25 +56,35 @@ func resourceAwsIamGroupMembershipCreate(d *schema.ResourceData, meta interface{
 func resourceAwsIamGroupMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	group := d.Get("group").(string)
-	resp, err := conn.GetGroup(&iam.GetGroupInput{
-		GroupName: aws.String(group),
-	})
 
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			// aws specific error
-			if awsErr.Code() == "NoSuchEntity" {
-				// group not found
-				d.SetId("")
-				return nil
+	var ul []string
+	var marker *string
+	for {
+		resp, err := conn.GetGroup(&iam.GetGroupInput{
+			GroupName: aws.String(group),
+			Marker:    marker,
+		})
+
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				// aws specific error
+				if awsErr.Code() == "NoSuchEntity" {
+					// group not found
+					d.SetId("")
+					return nil
+				}
 			}
+			return err
 		}
-		return err
-	}
 
-	ul := make([]string, 0, len(resp.Users))
-	for _, u := range resp.Users {
-		ul = append(ul, *u.UserName)
+		for _, u := range resp.Users {
+			ul = append(ul, *u.UserName)
+		}
+
+		if !*resp.IsTruncated {
+			break
+		}
+		marker = resp.Marker
 	}
 
 	if err := d.Set("users", ul); err != nil {

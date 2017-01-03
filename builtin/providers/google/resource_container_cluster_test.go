@@ -26,6 +26,23 @@ func TestAccContainerCluster_basic(t *testing.T) {
 	})
 }
 
+func TestAccContainerCluster_withVersion(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withVersion,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_version"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContainerCluster_withNodeConfig(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -37,6 +54,42 @@ func TestAccContainerCluster_withNodeConfig(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckContainerClusterExists(
 						"google_container_cluster.with_node_config"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainerCluster_withNodeConfigScopeAlias(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withNodeConfigScopeAlias,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_node_config_scope_alias"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccContainerCluster_network(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_networkRef,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_net_ref_by_url"),
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_net_ref_by_name"),
 				),
 			},
 		},
@@ -102,6 +155,19 @@ resource "google_container_cluster" "primary" {
 	}
 }`, acctest.RandString(10))
 
+var testAccContainerCluster_withVersion = fmt.Sprintf(`
+resource "google_container_cluster" "with_version" {
+	name = "cluster-test-%s"
+	zone = "us-central1-a"
+	node_version = "1.4.7"
+	initial_node_count = 1
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+}`, acctest.RandString(10))
+
 var testAccContainerCluster_withNodeConfig = fmt.Sprintf(`
 resource "google_container_cluster" "with_node_config" {
 	name = "cluster-test-%s"
@@ -124,3 +190,53 @@ resource "google_container_cluster" "with_node_config" {
 		]
 	}
 }`, acctest.RandString(10))
+
+var testAccContainerCluster_withNodeConfigScopeAlias = fmt.Sprintf(`
+resource "google_container_cluster" "with_node_config_scope_alias" {
+	name = "cluster-test-%s"
+	zone = "us-central1-f"
+	initial_node_count = 1
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	node_config {
+		machine_type = "g1-small"
+		disk_size_gb = 15
+		oauth_scopes = [ "compute-rw", "storage-ro", "logging-write", "monitoring" ]
+	}
+}`, acctest.RandString(10))
+
+var testAccContainerCluster_networkRef = fmt.Sprintf(`
+resource "google_compute_network" "container_network" {
+	name = "container-net-%s"
+	auto_create_subnetworks = true
+}
+
+resource "google_container_cluster" "with_net_ref_by_url" {
+	name = "cluster-test-%s"
+	zone = "us-central1-a"
+	initial_node_count = 1
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	network = "${google_compute_network.container_network.self_link}"
+}
+
+resource "google_container_cluster" "with_net_ref_by_name" {
+	name = "cluster-test-%s"
+	zone = "us-central1-a"
+	initial_node_count = 1
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+
+	network = "${google_compute_network.container_network.name}"
+}`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))

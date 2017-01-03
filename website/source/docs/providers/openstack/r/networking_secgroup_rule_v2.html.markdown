@@ -65,7 +65,7 @@ The following arguments are supported:
     Openstack ID of a security group in the same tenant. Changing this creates
     a new security group rule.
 
-* `security_group_id` - (Required) The security group id the rule shoudl belong
+* `security_group_id` - (Required) The security group id the rule should belong
     to, the value needs to be an Openstack ID of a security group in the same
     tenant. Changing this creates a new security group rule.
 

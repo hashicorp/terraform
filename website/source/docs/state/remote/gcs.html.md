@@ -42,7 +42,7 @@ resource "template_file" "bar" {
   template = "${greeting}"
 
   vars {
-    greeting = "${data.terraform_remote_state.foo.output.greeting}"
+    greeting = "${data.terraform_remote_state.foo.greeting}"
   }
 }
 ```
@@ -53,3 +53,4 @@ The following configuration options are supported:
 
  * `bucket` - (Required) The name of the GCS bucket
  * `path` - (Required) The path where to place/look for state file inside the bucket
+ * `credentials` / `GOOGLE_CREDENTIALS` - (Required) Google Cloud Platform account credentials in json format

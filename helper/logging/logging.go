@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"syscall"
 
 	"github.com/hashicorp/logutils"
 )
@@ -31,7 +32,7 @@ func LogOutput() (logOutput io.Writer, err error) {
 	logOutput = os.Stderr
 	if logPath := os.Getenv(EnvLogFile); logPath != "" {
 		var err error
-		logOutput, err = os.Create(logPath)
+		logOutput, err = os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
 		if err != nil {
 			return nil, err
 		}
@@ -45,6 +46,22 @@ func LogOutput() (logOutput io.Writer, err error) {
 	}
 
 	return
+}
+
+// SetOutput checks for a log destination with LogOutput, and calls
+// log.SetOutput with the result. If LogOutput returns nil, SetOutput uses
+// ioutil.Discard. Any error from LogOutout is fatal.
+func SetOutput() {
+	out, err := LogOutput()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if out == nil {
+		out = ioutil.Discard
+	}
+
+	log.SetOutput(out)
 }
 
 // LogLevel returns the current log level string based the environment vars

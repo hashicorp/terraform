@@ -44,6 +44,18 @@ const (
 	SystemAssigned ResourceIdentityType = "SystemAssigned"
 )
 
+// AliasPathType is the type of the paths for alias.
+type AliasPathType struct {
+	Path        *string   `json:"path,omitempty"`
+	APIVersions *[]string `json:"apiVersions,omitempty"`
+}
+
+// AliasType is the alias type.
+type AliasType struct {
+	Name  *string          `json:"name,omitempty"`
+	Paths *[]AliasPathType `json:"paths,omitempty"`
+}
+
 // BasicDependency is deployment dependency information.
 type BasicDependency struct {
 	ID           *string `json:"id,omitempty"`
@@ -69,7 +81,7 @@ type Deployment struct {
 	Properties *DeploymentProperties `json:"properties,omitempty"`
 }
 
-// DeploymentExportResult is
+// DeploymentExportResult is the deployment export result.
 type DeploymentExportResult struct {
 	autorest.Response `json:"-"`
 	Template          *map[string]interface{} `json:"template,omitempty"`
@@ -153,7 +165,7 @@ type DeploymentProperties struct {
 	Parameters     *map[string]interface{} `json:"parameters,omitempty"`
 	ParametersLink *ParametersLink         `json:"parametersLink,omitempty"`
 	Mode           DeploymentMode          `json:"mode,omitempty"`
-	DebugSetting   *DebugSetting           `json:"debugSetting,omitempty"`
+	*DebugSetting  `json:"debugSetting,omitempty"`
 }
 
 // DeploymentPropertiesExtended is deployment properties with additional
@@ -170,7 +182,7 @@ type DeploymentPropertiesExtended struct {
 	Parameters        *map[string]interface{} `json:"parameters,omitempty"`
 	ParametersLink    *ParametersLink         `json:"parametersLink,omitempty"`
 	Mode              DeploymentMode          `json:"mode,omitempty"`
-	DebugSetting      *DebugSetting           `json:"debugSetting,omitempty"`
+	*DebugSetting     `json:"debugSetting,omitempty"`
 }
 
 // DeploymentValidateResult is information from validate template deployment
@@ -208,7 +220,6 @@ type GenericResourceFilter struct {
 	ResourceType *string `json:"resourceType,omitempty"`
 	Tagname      *string `json:"tagname,omitempty"`
 	Tagvalue     *string `json:"tagvalue,omitempty"`
-	Expand       *string `json:"expand,omitempty"`
 }
 
 // HTTPMessage is
@@ -276,6 +287,7 @@ func (client ProviderListResult) ProviderListResultPreparer() (*http.Request, er
 type ProviderResourceType struct {
 	ResourceType *string             `json:"resourceType,omitempty"`
 	Locations    *[]string           `json:"locations,omitempty"`
+	Aliases      *[]AliasType        `json:"aliases,omitempty"`
 	APIVersions  *[]string           `json:"apiVersions,omitempty"`
 	Properties   *map[string]*string `json:"properties,omitempty"`
 }
@@ -296,6 +308,7 @@ type ResourceGroup struct {
 	Name              *string                  `json:"name,omitempty"`
 	Properties        *ResourceGroupProperties `json:"properties,omitempty"`
 	Location          *string                  `json:"location,omitempty"`
+	ManagedBy         *string                  `json:"managedBy,omitempty"`
 	Tags              *map[string]*string      `json:"tags,omitempty"`
 }
 
@@ -373,7 +386,7 @@ type ResourceProviderOperationDisplayProperties struct {
 	Description *string `json:"description,omitempty"`
 }
 
-// Sku is sku for the resource.
+// Sku is sKU for the resource.
 type Sku struct {
 	Name     *string `json:"name,omitempty"`
 	Tier     *string `json:"tier,omitempty"`

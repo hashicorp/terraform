@@ -374,7 +374,7 @@ func (s *SnapshotService) NewListSnapshotsParams() *ListSnapshotsParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *SnapshotService) GetSnapshotID(name string, opts ...OptionFunc) (string, error) {
+func (s *SnapshotService) GetSnapshotID(name string, opts ...OptionFunc) (string, int, error) {
 	p := &ListSnapshotsParams{}
 	p.p = make(map[string]interface{})
 
@@ -382,38 +382,38 @@ func (s *SnapshotService) GetSnapshotID(name string, opts ...OptionFunc) (string
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListSnapshots(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", name, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", name, l)
 	}
 
 	if l.Count == 1 {
-		return l.Snapshots[0].Id, nil
+		return l.Snapshots[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.Snapshots {
 			if v.Name == name {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
 func (s *SnapshotService) GetSnapshotByName(name string, opts ...OptionFunc) (*Snapshot, int, error) {
-	id, err := s.GetSnapshotID(name, opts...)
+	id, count, err := s.GetSnapshotID(name, opts...)
 	if err != nil {
-		return nil, -1, err
+		return nil, count, err
 	}
 
 	r, count, err := s.GetSnapshotByID(id, opts...)
@@ -1275,7 +1275,7 @@ func (s *SnapshotService) NewListVMSnapshotParams() *ListVMSnapshotParams {
 }
 
 // This is a courtesy helper function, which in some cases may not work as expected!
-func (s *SnapshotService) GetVMSnapshotID(name string, opts ...OptionFunc) (string, error) {
+func (s *SnapshotService) GetVMSnapshotID(name string, opts ...OptionFunc) (string, int, error) {
 	p := &ListVMSnapshotParams{}
 	p.p = make(map[string]interface{})
 
@@ -1283,31 +1283,31 @@ func (s *SnapshotService) GetVMSnapshotID(name string, opts ...OptionFunc) (stri
 
 	for _, fn := range opts {
 		if err := fn(s.cs, p); err != nil {
-			return "", err
+			return "", -1, err
 		}
 	}
 
 	l, err := s.ListVMSnapshot(p)
 	if err != nil {
-		return "", err
+		return "", -1, err
 	}
 
 	if l.Count == 0 {
-		return "", fmt.Errorf("No match found for %s: %+v", name, l)
+		return "", l.Count, fmt.Errorf("No match found for %s: %+v", name, l)
 	}
 
 	if l.Count == 1 {
-		return l.VMSnapshot[0].Id, nil
+		return l.VMSnapshot[0].Id, l.Count, nil
 	}
 
 	if l.Count > 1 {
 		for _, v := range l.VMSnapshot {
 			if v.Name == name {
-				return v.Id, nil
+				return v.Id, l.Count, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
+	return "", l.Count, fmt.Errorf("Could not find an exact match for %s: %+v", name, l)
 }
 
 // List virtual machine snapshot by conditions

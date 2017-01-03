@@ -45,22 +45,31 @@ func (c *StateShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	if len(results) == 0 {
+		return 0
+	}
+
 	instance, err := c.filterInstance(results)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+
+	if instance == nil {
+		return 0
+	}
+
 	is := instance.Value.(*terraform.InstanceState)
 
 	// Sort the keys
-	keys := make([]string, 0, len(is.Attributes))
+	var keys []string
 	for k, _ := range is.Attributes {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
 	// Build the output
-	output := make([]string, 0, len(is.Attributes)+1)
+	var output []string
 	output = append(output, fmt.Sprintf("id | %s", is.ID))
 	for _, k := range keys {
 		if k != "id" {

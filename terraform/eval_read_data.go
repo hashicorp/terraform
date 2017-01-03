@@ -47,14 +47,17 @@ func (n *EvalReadDataDiff) Eval(ctx EvalContext) (interface{}, error) {
 			diff = new(InstanceDiff)
 		}
 
-		// id is always computed, because we're always "creating a new resource"
+		// if id isn't explicitly set then it's always computed, because we're
+		// always "creating a new resource".
 		diff.init()
-		diff.SetAttribute("id", &ResourceAttrDiff{
-			Old:         "",
-			NewComputed: true,
-			RequiresNew: true,
-			Type:        DiffAttrOutput,
-		})
+		if _, ok := diff.Attributes["id"]; !ok {
+			diff.SetAttribute("id", &ResourceAttrDiff{
+				Old:         "",
+				NewComputed: true,
+				RequiresNew: true,
+				Type:        DiffAttrOutput,
+			})
+		}
 	}
 
 	err = ctx.Hook(func(h Hook) (HookAction, error) {

@@ -72,12 +72,12 @@ type CreateLogentriesInput struct {
 	Service string
 	Version string
 
-	Name              string      `form:"name,omitempty"`
-	Port              uint        `form:"port,omitempty"`
-	UseTLS            Compatibool `form:"use_tls,omitempty"`
-	Token             string      `form:"token,omitempty"`
-	Format            string      `form:"format,omitempty"`
-	ResponseCondition string      `form:"response_condition,omitempty"`
+	Name              string       `form:"name,omitempty"`
+	Port              uint         `form:"port,omitempty"`
+	UseTLS            *Compatibool `form:"use_tls,omitempty"`
+	Token             string       `form:"token,omitempty"`
+	Format            string       `form:"format,omitempty"`
+	ResponseCondition string       `form:"response_condition,omitempty"`
 }
 
 // CreateLogentries creates a new Fastly logentries.
@@ -151,12 +151,12 @@ type UpdateLogentriesInput struct {
 	// Name is the name of the logentries to update.
 	Name string
 
-	NewName           string      `form:"name,omitempty"`
-	Port              uint        `form:"port,omitempty"`
-	UseTLS            Compatibool `form:"use_tls,omitempty"`
-	Token             string      `form:"token,omitempty"`
-	Format            string      `form:"format,omitempty"`
-	ResponseCondition string      `form:"response_condition,omitempty"`
+	NewName           string       `form:"name,omitempty"`
+	Port              uint         `form:"port,omitempty"`
+	UseTLS            *Compatibool `form:"use_tls,omitempty"`
+	Token             string       `form:"token,omitempty"`
+	Format            string       `form:"format,omitempty"`
+	ResponseCondition string       `form:"response_condition,omitempty"`
 }
 
 // UpdateLogentries updates a specific logentries.

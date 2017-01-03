@@ -248,6 +248,36 @@ func TestAccAWSELB_iam_server_cert(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_swap_subnets(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_elb.ourapp",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig_subnets,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBConfig_subnet_swap,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.ourapp", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.ourapp", "subnets.#", "2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccLoadTags(conf *elb.LoadBalancerDescription, td *elb.TagDescription) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).elbconn
@@ -596,6 +626,183 @@ func TestResourceAWSELB_validateElbNameCannotEndWithHyphen(t *testing.T) {
 
 	if len(errors) != 1 {
 		t.Fatalf("Expected the ELB Name to trigger a validation error")
+	}
+}
+
+func TestResourceAWSELB_validateAccessLogsInterval(t *testing.T) {
+	type testCases struct {
+		Value    int
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    0,
+			ErrCount: 1,
+		},
+		{
+			Value:    10,
+			ErrCount: 1,
+		},
+		{
+			Value:    -1,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateAccessLogsInterval(tc.Value, "interval")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+}
+
+func TestResourceAWSELB_validateListenerProtocol(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect",
+			ErrCount: 1,
+		},
+		{
+			Value:    "HTTP:",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateListenerProtocol(tc.Value, "protocol")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    "TCP",
+			ErrCount: 0,
+		},
+		{
+			Value:    "ssl",
+			ErrCount: 0,
+		},
+		{
+			Value:    "HTTP",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateListenerProtocol(tc.Value, "protocol")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
+func TestResourceAWSELB_validateHealthCheckTarget(t *testing.T) {
+	type testCase struct {
+		Value    string
+		ErrCount int
+	}
+
+	randomRunes := func(n int) string {
+		rand.Seed(time.Now().UTC().UnixNano())
+
+		// A complete set of modern Katakana characters.
+		runes := []rune("アイウエオ" +
+			"カキクケコガギグゲゴサシスセソザジズゼゾ" +
+			"タチツテトダヂヅデドナニヌネノハヒフヘホ" +
+			"バビブベボパピプペポマミムメモヤユヨラリ" +
+			"ルレロワヰヱヲン")
+
+		s := make([]rune, n)
+		for i := range s {
+			s[i] = runes[rand.Intn(len(runes))]
+		}
+		return string(s)
+	}
+
+	validCases := []testCase{
+		{
+			Value:    "TCP:1234",
+			ErrCount: 0,
+		},
+		{
+			Value:    "http:80/test",
+			ErrCount: 0,
+		},
+		{
+			Value:    fmt.Sprintf("HTTP:8080/%s", randomRunes(5)),
+			ErrCount: 0,
+		},
+		{
+			Value:    "SSL:8080",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateHeathCheckTarget(tc.Value, "target")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+
+	invalidCases := []testCase{
+		{
+			Value:    "",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:1234/",
+			ErrCount: 1,
+		},
+		{
+			Value:    "SSL:8080/",
+			ErrCount: 1,
+		},
+		{
+			Value:    "HTTP:8080",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect-value",
+			ErrCount: 1,
+		},
+		{
+			Value:    "TCP:123456",
+			ErrCount: 1,
+		},
+		{
+			Value:    "incorrect:80/",
+			ErrCount: 1,
+		},
+		{
+			Value:    fmt.Sprintf("HTTP:8080/%s%s", randomString(512), randomRunes(512)),
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateHeathCheckTarget(tc.Value, "target")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
 	}
 }
 
@@ -1152,3 +1359,127 @@ resource "aws_elb" "bar" {
 }
 `, certName)
 }
+
+const testAccAWSELBConfig_subnets = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_one.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`
+
+const testAccAWSELBConfig_subnet_swap = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "azelb" {
+  cidr_block           = "10.1.0.0/16"
+  enable_dns_hostnames = true
+
+  tags {
+    Name = "subnet-vpc"
+  }
+}
+
+resource "aws_subnet" "public_a_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_subnet" "public_b_one" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.7.0/24"
+  availability_zone = "us-west-2b"
+}
+
+resource "aws_subnet" "public_a_two" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  cidr_block        = "10.1.2.0/24"
+  availability_zone = "us-west-2a"
+}
+
+resource "aws_elb" "ourapp" {
+  name = "terraform-asg-deployment-example"
+
+  subnets = [
+    "${aws_subnet.public_a_two.id}",
+    "${aws_subnet.public_b_one.id}",
+  ]
+
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.azelb.id}"
+
+  tags {
+    Name = "main"
+  }
+}
+`

@@ -454,6 +454,35 @@ resource "aws_route53_record" "default" {
 	records = ["127.0.0.1", "127.0.0.27"]
 }
 `
+
+const testAccRoute53RecordConfigCNAMERecord = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = "host123.domain"
+	type = "CNAME"
+	ttl = "30"
+	records = ["1.2.3.4"]
+}
+`
+
+const testAccRoute53RecordConfigCNAMERecordUpdateToCNAME = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = "host123.domain"
+	type = "A"
+	ttl = "30"
+	records = ["1.2.3.4"]
+}
+`
+
 const testAccRoute53RecordConfig_fqdn = `
 resource "aws_route53_zone" "main" {
   name = "notexample.com"

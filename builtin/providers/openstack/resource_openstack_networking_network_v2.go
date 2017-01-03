@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 )
 
 func resourceNetworkingNetworkV2() *schema.Resource {
@@ -53,20 +53,28 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 				ForceNew: true,
 				Computed: true,
 			},
+			"value_specs": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	createOpts := networks.CreateOpts{
-		Name:     d.Get("name").(string),
-		TenantID: d.Get("tenant_id").(string),
+	createOpts := NetworkCreateOpts{
+		networks.CreateOpts{
+			Name:     d.Get("name").(string),
+			TenantID: d.Get("tenant_id").(string),
+		},
+		MapValueSpecs(d),
 	}
 
 	asuRaw := d.Get("admin_state_up").(string)
@@ -114,7 +122,7 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -124,19 +132,20 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 		return CheckDeleted(d, err, "network")
 	}
 
-	log.Printf("[DEBUG] Retreived Network %s: %+v", d.Id(), n)
+	log.Printf("[DEBUG] Retrieved Network %s: %+v", d.Id(), n)
 
 	d.Set("name", n.Name)
 	d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
 	d.Set("shared", strconv.FormatBool(n.Shared))
 	d.Set("tenant_id", n.TenantID)
+	d.Set("region", GetRegion(d))
 
 	return nil
 }
 
 func resourceNetworkingNetworkV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -178,7 +187,7 @@ func resourceNetworkingNetworkV2Update(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkingNetworkV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
+	networkingClient, err := config.networkingV2Client(GetRegion(d))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -223,26 +232,25 @@ func waitForNetworkDelete(networkingClient *gophercloud.ServiceClient, networkId
 
 		n, err := networks.Get(networkingClient, networkId).Extract()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return n, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
 				return n, "DELETED", nil
 			}
+			return n, "ACTIVE", err
 		}
 
 		err = networks.Delete(networkingClient, networkId).ExtractErr()
 		if err != nil {
-			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-			if !ok {
-				return n, "ACTIVE", err
-			}
-			if errCode.Actual == 404 {
+			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[DEBUG] Successfully deleted OpenStack Network %s", networkId)
 				return n, "DELETED", nil
 			}
+			if errCode, ok := err.(gophercloud.ErrUnexpectedResponseCode); ok {
+				if errCode.Actual == 409 {
+					return n, "ACTIVE", nil
+				}
+			}
+			return n, "ACTIVE", err
 		}
 
 		log.Printf("[DEBUG] OpenStack Network %s still active.\n", networkId)

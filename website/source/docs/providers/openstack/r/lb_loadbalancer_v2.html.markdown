@@ -13,7 +13,7 @@ Manages a V2 loadbalancer resource within OpenStack.
 ## Example Usage
 
 ```
-resource "openstack_lbaas_loadbalancer_v2" "lb_1" {
+resource "openstack_lb_loadbalancer_v2" "lb_1" {
   vip_subnet_id = "d9415786-5f1a-428b-b35f-2f1523e146d2"
 }
 ```
@@ -27,7 +27,7 @@ The following arguments are supported:
     `OS_REGION_NAME` environment variable is used. Changing this creates a new
     LB member.
 
-* `vip_subnet_id` - (Required) The network on which to allocate the 
+* `vip_subnet_id` - (Required) The network on which to allocate the
     Loadbalancer's address. A tenant can only create Loadbalancers on networks
     authorized by policy (e.g. networks that belong to them or networks that
     are shared).  Changing this creates a new loadbalancer.
@@ -40,13 +40,13 @@ The following arguments are supported:
 * `tenant_id` - (Optional) Required for admins. The UUID of the tenant who owns
     the Loadbalancer.  Only administrative users can specify a tenant UUID
     other than their own.  Changing this creates a new loadbalancer.
-    
+
 * `vip_address` - (Optional) The ip address of the load balancer.
     Changing this creates a new loadbalancer.
-    
+
 * `admin_state_up` - (Optional) The administrative state of the Loadbalancer.
     A valid value is true (UP) or false (DOWN).
-    
+
 * `flavor` - (Optional) The UUID of a flavor. Changing this creates a new
     loadbalancer.
 
@@ -66,3 +66,4 @@ The following attributes are exported:
 * `admin_state_up` - See Argument Reference above.
 * `flavor` - See Argument Reference above.
 * `provider` - See Argument Reference above.
+* `vip_port_id` - The Port ID of the Load Balancer IP.

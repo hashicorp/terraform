@@ -37,6 +37,33 @@ func TestPlan(t *testing.T) {
 	}
 }
 
+func TestPlan_plan(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	planPath := testPlanFile(t, &terraform.Plan{
+		Module: testModule(t, "apply"),
+	})
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{planPath}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if p.RefreshCalled {
+		t.Fatal("refresh should not be called")
+	}
+}
+
 func TestPlan_destroy(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
@@ -392,6 +419,40 @@ func TestPlan_statePast(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestPlan_validate(t *testing.T) {
+	// This is triggered by not asking for input so we have to set this to false
+	test = false
+	defer func() { test = true }()
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(testFixturePath("plan-invalid")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	actual := ui.ErrorWriter.String()
+	if !strings.Contains(actual, "can't reference") {
+		t.Fatalf("bad: %s", actual)
 	}
 }
 

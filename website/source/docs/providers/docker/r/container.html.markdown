@@ -63,7 +63,7 @@ The following arguments are supported:
   kept running. If false, then as long as the container exists, Terraform
   assumes it is successful.
 * `ports` - (Optional, block) See [Ports](#ports) below for details.
-* `host_entry` - (Optional, block) See [Extra Hosts](#extra_hosts) below for
+* `host` - (Optional, block) See [Extra Hosts](#extra_hosts) below for
   details.
 * `privileged` - (Optional, bool) Run container in privileged mode.
 * `publish_all_ports` - (Optional, bool) Publish all ports of the container.
@@ -80,6 +80,7 @@ The following arguments are supported:
 * `networks` - (Optional, set of strings) Id of the networks in which the
   container is.
 * `destroy_grace_seconds` - (Optional, int) If defined will attempt to stop the container before destroying. Container will be destroyed after `n` seconds or on successful stop.
+* `upload` - (Optional, block) See [File Upload](#upload) below for details.
 
 <a id="ports"></a>
 ### Ports
@@ -97,12 +98,12 @@ the following:
 <a id="extra_hosts"></a>
 ### Extra Hosts
 
-`host_entry` is a block within the configuration that can be repeated to specify
-the extra host mappings for the container. Each `host_entry` block supports
+`host` is a block within the configuration that can be repeated to specify
+the extra host mappings for the container. Each `host` block supports
 the following:
 
-* `host` - (Required, int) Hostname to add.
-* `ip` - (Required, int) IP address this hostname should resolve to..
+* `host` - (Required, string) Hostname to add.
+* `ip` - (Required, string) IP address this hostname should resolve to.
 
 This is equivalent to using the `--add-host` option when using the `run`
 command of the Docker CLI.
@@ -126,6 +127,16 @@ the following:
   Defaults to false.
 
 One of `from_container`, `host_path` or `volume_name` must be set.
+
+<a id="upload"></a>
+### File Upload
+
+`upload` is a block within the configuration that can be repeated to specify
+files to upload to the container before starting it.
+Each `upload` supports the following
+
+* `content` - (Required, string) A content of a file to upload.
+* `file` - (Required, string) path to a file in the container.
 
 ## Attributes Reference
 

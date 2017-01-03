@@ -1,6 +1,7 @@
 package test
 
 import (
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -386,6 +387,99 @@ resource "test_resource" "foo" {
 }
 				`),
 				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
+// Reproduces plan-time panic when the wrong type is interpolated in a list of
+// maps.
+// TODO: this should return a type error, rather than silently setting an empty
+//       list
+func TestResource_dataSourceListMapPanic(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required = "val"
+  required_map = {x = "y"}
+  list_of_map = "${var.maplist}"
+}
+
+variable "maplist" {
+  type = "list"
+
+  default = [
+    {a = "b"}
+  ]
+}
+				`),
+				ExpectError: nil,
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}
+
+func TestResource_dataSourceIndexMapList(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_resource" "foo" {
+  required = "val"
+
+  required_map = {
+    x = "y"
+  }
+
+  list_of_map = [
+    {
+      a = "1"
+      b = "2"
+    },
+    {
+      c = "3"
+      d = "4"
+    },
+  ]
+}
+
+output "map_from_list" {
+  value = "${test_resource.foo.list_of_map[0]}"
+}
+
+output "value_from_map_from_list" {
+  value = "${lookup(test_resource.foo.list_of_map[1], "d")}"
+}
+				`),
+				ExpectError: nil,
+				Check: func(s *terraform.State) error {
+					root := s.ModuleByPath(terraform.RootModulePath)
+					mapOut := root.Outputs["map_from_list"].Value
+					expectedMapOut := map[string]interface{}{
+						"a": "1",
+						"b": "2",
+					}
+
+					valueOut := root.Outputs["value_from_map_from_list"].Value
+					expectedValueOut := "4"
+
+					if !reflect.DeepEqual(mapOut, expectedMapOut) {
+						t.Fatalf("Expected: %#v\nGot: %#v", expectedMapOut, mapOut)
+					}
+					if !reflect.DeepEqual(valueOut, expectedValueOut) {
+						t.Fatalf("Expected: %#v\nGot: %#v", valueOut, expectedValueOut)
+					}
 					return nil
 				},
 			},

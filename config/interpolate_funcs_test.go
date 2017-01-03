@@ -6,10 +6,120 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hil"
 	"github.com/hashicorp/hil/ast"
 )
+
+func TestInterpolateFuncZipMap(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${zipmap(var.list, var.list2)}`,
+				map[string]interface{}{
+					"Hello": "bar",
+					"World": "baz",
+				},
+				false,
+			},
+			{
+				`${zipmap(var.list, var.nonstrings)}`,
+				map[string]interface{}{
+					"Hello": []interface{}{"bar", "baz"},
+					"World": []interface{}{"boo", "foo"},
+				},
+				false,
+			},
+			{
+				`${zipmap(var.nonstrings, var.list2)}`,
+				nil,
+				true,
+			},
+			{
+				`${zipmap(var.list, var.differentlengthlist)}`,
+				nil,
+				true,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.list": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "Hello",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "World",
+					},
+				},
+			},
+			"var.list2": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "bar",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "baz",
+					},
+				},
+			},
+			"var.differentlengthlist": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type:  ast.TypeString,
+						Value: "bar",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "baz",
+					},
+					{
+						Type:  ast.TypeString,
+						Value: "boo",
+					},
+				},
+			},
+			"var.nonstrings": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{
+								Type:  ast.TypeString,
+								Value: "bar",
+							},
+							{
+								Type:  ast.TypeString,
+								Value: "baz",
+							},
+						},
+					},
+					{
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{
+								Type:  ast.TypeString,
+								Value: "boo",
+							},
+							{
+								Type:  ast.TypeString,
+								Value: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+}
 
 func TestInterpolateFuncList(t *testing.T) {
 	testFunction(t, testFunctionConfig{
@@ -108,6 +218,150 @@ func TestInterpolateFuncList(t *testing.T) {
 						Value: "baz",
 					},
 				},
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncMax(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${max()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${max("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${max(-1, 0, 1)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${max(1, 0, -1)}`,
+				"1",
+				false,
+			},
+
+			{
+				`${max(-1, -2)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${max(-1)}`,
+				"-1",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncMin(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${min()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${min("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${min(-1, 0, 1)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${min(1, 0, -1)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${min(-1, -2)}`,
+				"-2",
+				false,
+			},
+
+			{
+				`${min(-1)}`,
+				"-1",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncFloor(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${floor()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${floor("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${floor("-1.3")}`, // there appears to be a AST bug where the parsed argument ends up being -1 without the "s
+				"-2",
+				false,
+			},
+
+			{
+				`${floor(1.7)}`,
+				"1",
+				false,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncCeil(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${ceil()}`,
+				nil,
+				true,
+			},
+
+			{
+				`${ceil("")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${ceil(-1.8)}`,
+				"-1",
+				false,
+			},
+
+			{
+				`${ceil(1.2)}`,
+				"2",
+				false,
 			},
 		},
 	})
@@ -362,17 +616,19 @@ func TestInterpolateFuncConcat(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
 			// String + list
+			// no longer supported, now returns an error
 			{
 				`${concat("a", split(",", "b,c"))}`,
-				[]interface{}{"a", "b", "c"},
-				false,
+				nil,
+				true,
 			},
 
 			// List + string
+			// no longer supported, now returns an error
 			{
 				`${concat(split(",", "a,b"), "c")}`,
-				[]interface{}{"a", "b", "c"},
-				false,
+				nil,
+				true,
 			},
 
 			// Single list
@@ -425,6 +681,14 @@ func TestInterpolateFuncConcat(t *testing.T) {
 				`${concat("${var.maps}", "${var.maps}")}`,
 				[]interface{}{map[string]interface{}{"key1": "a", "key2": "b"}, map[string]interface{}{"key1": "a", "key2": "b"}},
 				false,
+			},
+
+			// multiple strings
+			// no longer supported, now returns an error
+			{
+				`${concat("string1", "string2")}`,
+				nil,
+				true,
 			},
 
 			// mismatched types
@@ -486,6 +750,103 @@ func TestInterpolateFuncConcat(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestInterpolateFuncMerge(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// basic merge
+			{
+				`${merge(map("a", "b"), map("c", "d"))}`,
+				map[string]interface{}{"a": "b", "c": "d"},
+				false,
+			},
+
+			// merge with conflicts is ok, last in wins.
+			{
+				`${merge(map("a", "b", "c", "X"), map("c", "d"))}`,
+				map[string]interface{}{"a": "b", "c": "d"},
+				false,
+			},
+
+			// merge variadic
+			{
+				`${merge(map("a", "b"), map("c", "d"), map("e", "f"))}`,
+				map[string]interface{}{"a": "b", "c": "d", "e": "f"},
+				false,
+			},
+
+			// merge with variables
+			{
+				`${merge(var.maps[0], map("c", "d"))}`,
+				map[string]interface{}{"key1": "a", "key2": "b", "c": "d"},
+				false,
+			},
+
+			// only accept maps
+			{
+				`${merge(map("a", "b"), list("c", "d"))}`,
+				nil,
+				true,
+			},
+
+			// merge maps of maps
+			{
+				`${merge(map("a", var.maps[0]), map("b", var.maps[1]))}`,
+				map[string]interface{}{
+					"b": map[string]interface{}{"key3": "d", "key4": "c"},
+					"a": map[string]interface{}{"key1": "a", "key2": "b"},
+				},
+				false,
+			},
+			// merge maps of lists
+			{
+				`${merge(map("a", list("b")), map("c", list("d", "e")))}`,
+				map[string]interface{}{"a": []interface{}{"b"}, "c": []interface{}{"d", "e"}},
+				false,
+			},
+			// merge map of various kinds
+			{
+				`${merge(map("a", var.maps[0]), map("b", list("c", "d")))}`,
+				map[string]interface{}{"a": map[string]interface{}{"key1": "a", "key2": "b"}, "b": []interface{}{"c", "d"}},
+				false,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.maps": {
+				Type: ast.TypeList,
+				Value: []ast.Variable{
+					{
+						Type: ast.TypeMap,
+						Value: map[string]ast.Variable{
+							"key1": {
+								Type:  ast.TypeString,
+								Value: "a",
+							},
+							"key2": {
+								Type:  ast.TypeString,
+								Value: "b",
+							},
+						},
+					},
+					{
+						Type: ast.TypeMap,
+						Value: map[string]ast.Variable{
+							"key3": {
+								Type:  ast.TypeString,
+								Value: "d",
+							},
+							"key4": {
+								Type:  ast.TypeString,
+								Value: "c",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
 }
 
 func TestInterpolateFuncDistinct(t *testing.T) {
@@ -633,6 +994,18 @@ func TestInterpolateFuncFormatList(t *testing.T) {
 				`${formatlist("%s.id", split(",", "demo-rest-elb"))}`,
 				[]interface{}{"demo-rest-elb.id"},
 				false,
+			},
+			// Works with empty lists [GH-7607]
+			{
+				`${formatlist("%s", var.emptylist)}`,
+				[]interface{}{},
+				false,
+			},
+		},
+		Vars: map[string]ast.Variable{
+			"var.emptylist": {
+				Type:  ast.TypeList,
+				Value: []ast.Variable{},
 			},
 		},
 	})
@@ -1446,6 +1819,36 @@ func TestInterpolateFuncSha256(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncTitle(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${title("hello")}`,
+				"Hello",
+				false,
+			},
+
+			{
+				`${title("hello world")}`,
+				"Hello World",
+				false,
+			},
+
+			{
+				`${title("")}`,
+				"",
+				false,
+			},
+
+			{
+				`${title()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncTrimSpace(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -1519,6 +1922,27 @@ func TestInterpolateFuncUUID(t *testing.T) {
 	}
 }
 
+func TestInterpolateFuncTimestamp(t *testing.T) {
+	currentTime := time.Now().UTC()
+	ast, err := hil.Parse("${timestamp()}")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	result, err := hil.Eval(ast, langEvalConfig(nil))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	resultTime, err := time.Parse(time.RFC3339, result.Value.(string))
+	if err != nil {
+		t.Fatalf("Error parsing timestamp: %s", err)
+	}
+
+	if resultTime.Sub(currentTime).Seconds() > 10.0 {
+		t.Fatalf("Timestamp Diff too large. Expected: %s\nRecieved: %s", currentTime.Format(time.RFC3339), result.Value.(string))
+	}
+}
+
 type testFunctionConfig struct {
 	Cases []testFunctionCase
 	Vars  map[string]ast.Variable
@@ -1534,13 +1958,12 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 	for i, tc := range config.Cases {
 		ast, err := hil.Parse(tc.Input)
 		if err != nil {
-			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
+			t.Fatalf("Case #%d: input: %#v\nerr: %v", i, tc.Input, err)
 		}
 
 		result, err := hil.Eval(ast, langEvalConfig(config.Vars))
-		t.Logf("err: %s", err)
 		if err != nil != tc.Error {
-			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
+			t.Fatalf("Case #%d:\ninput: %#v\nerr: %v", i, tc.Input, err)
 		}
 
 		if !reflect.DeepEqual(result.Value, tc.Result) {

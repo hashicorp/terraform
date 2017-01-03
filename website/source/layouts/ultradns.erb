@@ -3,19 +3,31 @@
 		<div class="docs-sidebar hidden-print affix-top" role="complementary">
 			<ul class="nav docs-sidenav">
 				<li<%= sidebar_current("docs-home") %>>
-				<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
-                </li>
+					<a href="/docs/providers/index.html">&laquo; Documentation Home</a>
+				</li>
 
 				<li<%= sidebar_current("docs-ultradns-index") %>>
-				<a href="/docs/providers/ultradns/index.html">UltraDNS Provider</a>
-                </li>
+					<a href="/docs/providers/ultradns/index.html">UltraDNS Provider</a>
+				</li>
 
 				<li<%= sidebar_current(/^docs-ultradns-resource/) %>>
 				<a href="#">Resources</a>
-                <ul class="nav nav-visible">
-                    <li<%= sidebar_current("docs-ultradns-resource-record") %>>
-					<a href="/docs/providers/ultradns/r/record.html">ultradns_record</a>
-                    </li>
+				<ul class="nav nav-visible">
+					<li<%= sidebar_current("docs-ultradns-resource-dirpool") %>>
+						<a href="/docs/providers/ultradns/r/dirpool.html">ultradns_dirpool</a>
+					</li>
+					<li<%= sidebar_current("docs-ultradns-resource-probe-http") %>>
+						<a href="/docs/providers/ultradns/r/probe_http.html">ultradns_probe_http</a>
+					</li>
+					<li<%= sidebar_current("docs-ultradns-resource-probe-ping") %>>
+						<a href="/docs/providers/ultradns/r/probe_ping.html">ultradns_probe_ping</a>
+					</li>
+					<li<%= sidebar_current("docs-ultradns-resource-record") %>>
+						<a href="/docs/providers/ultradns/r/record.html">ultradns_record</a>
+					</li>
+					<li<%= sidebar_current("docs-ultradns-resource-tcpool") %>>
+						<a href="/docs/providers/ultradns/r/tcpool.html">ultradns_tcpool</a>
+					</li>
 				</ul>
 				</li>
 			</ul>

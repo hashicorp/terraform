@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -27,7 +28,11 @@ const DefaultBackupExtension = ".backup"
 const DefaultParallelism = 10
 
 func validateContext(ctx *terraform.Context, ui cli.Ui) bool {
-	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
+	log.Println("[INFO] Validating the context...")
+	ws, es := ctx.Validate()
+	log.Printf("[INFO] Validation result: %d warnings, %d errors", len(ws), len(es))
+
+	if len(ws) > 0 || len(es) > 0 {
 		ui.Output(
 			"There are warnings and/or errors related to your configuration. Please\n" +
 				"fix these before continuing.\n")

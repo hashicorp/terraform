@@ -16,10 +16,15 @@ to `terraform apply` to ensure only the pre-planned actions are executed.
 
 ## Usage
 
-Usage: `terraform plan [options] [dir]`
+Usage: `terraform plan [options] [dir-or-plan]`
 
 By default, `plan` requires no flags and looks in the current directory
 for the configuration and state file to refresh.
+
+If the command is given an existing saved plan as an argument, the
+command will output the contents of the saved plan. In this scenario,
+the `plan` command will not modify the given plan. This can be used to
+inspect a planfile.
 
 The command-line flags are all optional. The list of available flags are:
 
@@ -51,6 +56,7 @@ The command-line flags are all optional. The list of available flags are:
 * `-refresh=true` - Update the state prior to checking for differences.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
+  Ignored when [remote state](/docs/state/remote/index.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/internals/resource-addressing.html) to target. Operation will

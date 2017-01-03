@@ -22,6 +22,7 @@ func TestAccStatusCake_basic(t *testing.T) {
 				Config: testAccTestConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTestCheckExists("statuscake_test.google", &test),
+					testAccTestCheckAttributes("statuscake_test.google", &test),
 				),
 			},
 		},
@@ -47,8 +48,10 @@ func TestAccStatusCake_withUpdate(t *testing.T) {
 				Config: testAccTestConfig_update,
 				Check: resource.ComposeTestCheckFunc(
 					testAccTestCheckExists("statuscake_test.google", &test),
+					testAccTestCheckAttributes("statuscake_test.google", &test),
 					resource.TestCheckResourceAttr("statuscake_test.google", "check_rate", "500"),
 					resource.TestCheckResourceAttr("statuscake_test.google", "paused", "true"),
+					resource.TestCheckResourceAttr("statuscake_test.google", "contact_id", "0"),
 				),
 			},
 		},
@@ -74,11 +77,51 @@ func testAccTestCheckExists(rn string, test *statuscake.Test) resource.TestCheck
 
 		gotTest, err := client.Tests().Detail(testId)
 		if err != nil {
-			return fmt.Errorf("error getting project: %s", err)
+			return fmt.Errorf("error getting test: %s", err)
 		}
 
 		*test = *gotTest
 
+		return nil
+	}
+}
+
+func testAccTestCheckAttributes(rn string, test *statuscake.Test) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		attrs := s.RootModule().Resources[rn].Primary.Attributes
+
+		check := func(key, stateValue, testValue string) error {
+			if testValue != stateValue {
+				return fmt.Errorf("different values for %s in state (%s) and in statuscake (%s)",
+					key, stateValue, testValue)
+			}
+			return nil
+		}
+
+		for key, value := range attrs {
+			var err error
+
+			switch key {
+			case "website_name":
+				err = check(key, value, test.WebsiteName)
+			case "website_url":
+				err = check(key, value, test.WebsiteURL)
+			case "check_rate":
+				err = check(key, value, strconv.Itoa(test.CheckRate))
+			case "test_type":
+				err = check(key, value, test.TestType)
+			case "paused":
+				err = check(key, value, strconv.FormatBool(test.Paused))
+			case "timeout":
+				err = check(key, value, strconv.Itoa(test.Timeout))
+			case "contact_id":
+				err = check(key, value, strconv.Itoa(test.ContactID))
+			}
+
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 }
@@ -97,19 +140,20 @@ func testAccTestCheckDestroy(test *statuscake.Test) resource.TestCheckFunc {
 
 const testAccTestConfig_basic = `
 resource "statuscake_test" "google" {
-  website_name = "google.com"
-  website_url = "www.google.com"
-  test_type = "HTTP"
-  check_rate = 300
+	website_name = "google.com"
+	website_url = "www.google.com"
+	test_type = "HTTP"
+	check_rate = 300
+	contact_id = 12345
 }
 `
 
 const testAccTestConfig_update = `
 resource "statuscake_test" "google" {
-  website_name = "google.com"
-  website_url = "www.google.com"
-  test_type = "HTTP"
-  check_rate = 500
-  paused = true
+	website_name = "google.com"
+	website_url = "www.google.com"
+	test_type = "HTTP"
+	check_rate = 500
+	paused = true
 }
 `

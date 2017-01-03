@@ -46,14 +46,19 @@ func trustedSignersConf() []interface{} {
 
 func forwardedValuesConf() map[string]interface{} {
 	return map[string]interface{}{
-		"query_string": true,
-		"cookies":      schema.NewSet(cookiePreferenceHash, []interface{}{cookiePreferenceConf()}),
-		"headers":      headersConf(),
+		"query_string":            true,
+		"query_string_cache_keys": queryStringCacheKeysConf(),
+		"cookies":                 schema.NewSet(cookiePreferenceHash, []interface{}{cookiePreferenceConf()}),
+		"headers":                 headersConf(),
 	}
 }
 
 func headersConf() []interface{} {
 	return []interface{}{"X-Example1", "X-Example2"}
+}
+
+func queryStringCacheKeysConf() []interface{} {
+	return []interface{}{"foo", "bar"}
 }
 
 func cookiePreferenceConf() map[string]interface{} {
@@ -250,7 +255,7 @@ func TestCloudFrontStructure_expandDefaultCacheBehavior(t *testing.T) {
 		t.Fatalf("Expected TrustedSigners.Items to be %v, got %v", trustedSignersConf(), dcb.TrustedSigners.Items)
 	}
 	if *dcb.MaxTTL != 365000000 {
-		t.Fatalf("Expected MaxTTL to be 86400, got %v", *dcb.MaxTTL)
+		t.Fatalf("Expected MaxTTL to be 365000000, got %v", *dcb.MaxTTL)
 	}
 	if *dcb.SmoothStreaming != false {
 		t.Fatalf("Expected SmoothStreaming to be false, got %v", *dcb.SmoothStreaming)
@@ -412,7 +417,7 @@ func TestCloudFrontStructure_expandTrustedSigners_empty(t *testing.T) {
 	data := []interface{}{}
 	ts := expandTrustedSigners(data)
 	if *ts.Quantity != 0 {
-		t.Fatalf("Expected Quantity to be 2, got %v", *ts.Quantity)
+		t.Fatalf("Expected Quantity to be 0, got %v", *ts.Quantity)
 	}
 	if *ts.Enabled != false {
 		t.Fatalf("Expected Enabled to be true, got %v", *ts.Enabled)
@@ -473,6 +478,27 @@ func TestCloudFrontStructure_flattenHeaders(t *testing.T) {
 	}
 }
 
+func TestCloudFrontStructure_expandQueryStringCacheKeys(t *testing.T) {
+	data := queryStringCacheKeysConf()
+	k := expandQueryStringCacheKeys(data)
+	if *k.Quantity != 2 {
+		t.Fatalf("Expected Quantity to be 2, got %v", *k.Quantity)
+	}
+	if reflect.DeepEqual(k.Items, expandStringList(data)) != true {
+		t.Fatalf("Expected Items to be %v, got %v", data, k.Items)
+	}
+}
+
+func TestCloudFrontStructure_flattenQueryStringCacheKeys(t *testing.T) {
+	in := queryStringCacheKeysConf()
+	k := expandQueryStringCacheKeys(in)
+	out := flattenQueryStringCacheKeys(k)
+
+	if reflect.DeepEqual(in, out) != true {
+		t.Fatalf("Expected out to be %v, got %v", in, out)
+	}
+}
+
 func TestCloudFrontStructure_expandCookiePreference(t *testing.T) {
 	data := cookiePreferenceConf()
 	cp := expandCookiePreference(data)
@@ -519,7 +545,7 @@ func TestCloudFrontStructure_expandAllowedMethods(t *testing.T) {
 	data := allowedMethodsConf()
 	am := expandAllowedMethods(data)
 	if *am.Quantity != 7 {
-		t.Fatalf("Expected Quantity to be 3, got %v", *am.Quantity)
+		t.Fatalf("Expected Quantity to be 7, got %v", *am.Quantity)
 	}
 	if reflect.DeepEqual(am.Items, expandStringList(data)) != true {
 		t.Fatalf("Expected Items to be %v, got %v", data, am.Items)

@@ -16,15 +16,15 @@ import (
 // programmatically. For general information about AWS KMS, see the AWS Key
 // Management Service Developer Guide (http://docs.aws.amazon.com/kms/latest/developerguide/).
 //
-//  AWS provides SDKs that consist of libraries and sample code for various
-// programming languages and platforms (Java, Ruby, .Net, iOS, Android, etc.).
-// The SDKs provide a convenient way to create programmatic access to AWS KMS
-// and other AWS services. For example, the SDKs take care of tasks such as
-// signing requests (see below), managing errors, and retrying requests automatically.
-// For more information about the AWS SDKs, including how to download and install
-// them, see Tools for Amazon Web Services (http://aws.amazon.com/tools/).
+// AWS provides SDKs that consist of libraries and sample code for various programming
+// languages and platforms (Java, Ruby, .Net, iOS, Android, etc.). The SDKs
+// provide a convenient way to create programmatic access to AWS KMS and other
+// AWS services. For example, the SDKs take care of tasks such as signing requests
+// (see below), managing errors, and retrying requests automatically. For more
+// information about the AWS SDKs, including how to download and install them,
+// see Tools for Amazon Web Services (http://aws.amazon.com/tools/).
 //
-//  We recommend that you use the AWS SDKs to make programmatic API calls to
+// We recommend that you use the AWS SDKs to make programmatic API calls to
 // AWS KMS.
 //
 // Clients must support TLS (Transport Layer Security) 1.0. We recommend TLS
@@ -33,7 +33,7 @@ import (
 // Diffie-Hellman (ECDHE). Most modern systems such as Java 7 and later support
 // these modes.
 //
-//  Signing Requests
+// Signing Requests
 //
 // Requests must be signed by using an access key ID and a secret access key.
 // We strongly recommend that you do not use your AWS account (root) access
@@ -44,7 +44,7 @@ import (
 //
 // All AWS KMS operations require Signature Version 4 (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 //
-//  Logging API Requests
+// Logging API Requests
 //
 // AWS KMS supports AWS CloudTrail, a service that logs AWS API calls and related
 // events for your AWS account and delivers them to an Amazon S3 bucket that
@@ -53,37 +53,38 @@ import (
 // and so on. To learn more about CloudTrail, including how to turn it on and
 // find your log files, see the AWS CloudTrail User Guide (http://docs.aws.amazon.com/awscloudtrail/latest/userguide/).
 //
-//  Additional Resources
+// Additional Resources
 //
 // For more information about credentials and request signing, see the following:
 //
-//    AWS Security Credentials (http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html)
-// - This topic provides general information about the types of credentials
-// used for accessing AWS.
+//    * AWS Security Credentials (http://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html)
+//    - This topic provides general information about the types of credentials
+//    used for accessing AWS.
 //
-//    Temporary Security Credentials (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html)
-// - This section of the IAM User Guide describes how to create and use temporary
-// security credentials.
+//    * Temporary Security Credentials (http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html)
+//    - This section of the IAM User Guide describes how to create and use temporary
+//    security credentials.
 //
-//    Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
-// - This set of topics walks you through the process of signing a request using
-// an access key ID and a secret access key.
+//    * Signature Version 4 Signing Process (http://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
+//    - This set of topics walks you through the process of signing a request
+//    using an access key ID and a secret access key.
 //
-//    Commonly Used APIs
+// Commonly Used APIs
 //
 // Of the APIs discussed in this guide, the following will prove the most useful
 // for most applications. You will likely perform actions other than these,
 // such as creating keys and assigning policies, by using the console.
 //
-//    Encrypt
+//    * Encrypt
 //
-//    Decrypt
+//    * Decrypt
 //
-//    GenerateDataKey
+//    * GenerateDataKey
 //
-//    GenerateDataKeyWithoutPlaintext
-//The service client's operations are safe to be used concurrently.
+//    * GenerateDataKeyWithoutPlaintext
+// The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
+// Please also see https://docs.aws.amazon.com/goto/WebAPI/kms-2014-11-01
 type KMS struct {
 	*client.Client
 }
@@ -94,8 +95,11 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// A ServiceName is the name of the service the client will make API calls to.
-const ServiceName = "kms"
+// Service information constants
+const (
+	ServiceName = "kms"       // Service endpoint prefix API calls made to.
+	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
+)
 
 // New creates a new instance of the KMS client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -108,17 +112,18 @@ const ServiceName = "kms"
 //     // Create a KMS client with additional configuration
 //     svc := kms.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *KMS {
-	c := p.ClientConfig(ServiceName, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
+	c := p.ClientConfig(EndpointsID, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *KMS {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *KMS {
 	svc := &KMS{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
+				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2014-11-01",

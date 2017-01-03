@@ -14,18 +14,18 @@ Provides an Application AutoScaling Policy resource.
 ```
 resource "aws_appautoscaling_policy" "down" {
   name = "scale-down"
-	service_namespace = "ecs"
-	resource_id = "service/ecsclustername/servicename"
-	scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace = "ecs"
+  resource_id = "service/ecsclustername/servicename"
+  scalable_dimension = "ecs:service:DesiredCount"
 
-	adjustment_type = "ChangeInCapacity"
-	cooldown = 60
-	metric_aggregation_type = "Maximum"
+  adjustment_type = "ChangeInCapacity"
+  cooldown = 60
+  metric_aggregation_type = "Maximum"
 
-	step_adjustment {
+  step_adjustment {
     metric_interval_lower_bound = 0
-		scaling_adjustment = -1
-	}
+    scaling_adjustment = -1
+  }
   depends_on = ["aws_appautoscaling_target.target"]
 }
 ```

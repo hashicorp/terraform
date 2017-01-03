@@ -380,9 +380,9 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 							Default:  "eager_zeroed",
 							ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
 								value := v.(string)
-								if value != "thin" && value != "eager_zeroed" {
+								if value != "thin" && value != "eager_zeroed" && value != "lazy" {
 									errors = append(errors, fmt.Errorf(
-										"only 'thin' and 'eager_zeroed' are supported values for 'type'"))
+										"only 'thin', 'eager_zeroed', and 'lazy' are supported values for 'type'"))
 								}
 								return
 							},
@@ -445,6 +445,12 @@ func resourceVSphereVirtualMachine() *schema.Resource {
 						},
 					},
 				},
+			},
+
+			"detach_unknown_disks_on_delete": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 			},
 
 			"cdrom": &schema.Schema{
@@ -580,8 +586,15 @@ func resourceVSphereVirtualMachineUpdate(d *schema.ResourceData, meta interface{
 					return fmt.Errorf("[ERROR] resourceVSphereVirtualMachineUpdate - Neither vmdk path nor vmdk name was given")
 				}
 
+				var initType string
+				if disk["type"] != "" {
+					initType = disk["type"].(string)
+				} else {
+					initType = "thin"
+				}
+
 				log.Printf("[INFO] Attaching disk: %v", diskPath)
-				err = addHardDisk(vm, size, iops, "thin", datastore, diskPath, controller_type)
+				err = addHardDisk(vm, size, iops, initType, datastore, diskPath, controller_type)
 				if err != nil {
 					log.Printf("[ERROR] Add Hard Disk Failed: %v", err)
 					return err
@@ -918,10 +931,14 @@ func resourceVSphereVirtualMachineRead(d *schema.ResourceData, meta interface{})
 
 	if state == types.VirtualMachinePowerStatePoweredOn {
 		// wait for interfaces to appear
-		_, err = vm.WaitForNetIP(context.TODO(), true)
+		log.Printf("[DEBUG] Waiting for interfaces to appear")
+
+		_, err = vm.WaitForNetIP(context.TODO(), false)
 		if err != nil {
 			return err
 		}
+
+		log.Printf("[DEBUG] Successfully waited for interfaces to appear")
 	}
 
 	var mvm mo.VirtualMachine
@@ -1138,10 +1155,11 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 	}
 
 	// Safely eject any disks the user marked as keep_on_remove
+	var diskSetList []interface{}
 	if vL, ok := d.GetOk("disk"); ok {
 		if diskSet, ok := vL.(*schema.Set); ok {
-
-			for _, value := range diskSet.List() {
+			diskSetList = diskSet.List()
+			for _, value := range diskSetList {
 				disk := value.(map[string]interface{})
 
 				if v, ok := disk["keep_on_remove"].(bool); ok && v == true {
@@ -1153,6 +1171,36 @@ func resourceVSphereVirtualMachineDelete(d *schema.ResourceData, meta interface{
 						return err
 					}
 				}
+			}
+		}
+	}
+
+	// Safely eject any disks that are not managed by this resource
+	if v, ok := d.GetOk("detach_unknown_disks_on_delete"); ok && v.(bool) {
+		var disksToRemove object.VirtualDeviceList
+		for _, device := range devices {
+			if devices.TypeName(device) != "VirtualDisk" {
+				continue
+			}
+			vd := device.GetVirtualDevice()
+			var skip bool
+			for _, value := range diskSetList {
+				disk := value.(map[string]interface{})
+				if int32(disk["key"].(int)) == vd.Key {
+					skip = true
+					break
+				}
+			}
+			if skip {
+				continue
+			}
+			disksToRemove = append(disksToRemove, device)
+		}
+		if len(disksToRemove) != 0 {
+			err = vm.RemoveDevice(context.TODO(), true, disksToRemove...)
+			if err != nil {
+				log.Printf("[ERROR] Update Remove Disk - Error removing disk: %v", err)
+				return err
 			}
 		}
 	}
@@ -1198,6 +1246,12 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	}
 
 	if err != nil || controller == nil {
+		// Check if max number of scsi controller are already used
+		diskControllers := getSCSIControllers(devices)
+		if len(diskControllers) >= 4 {
+			return fmt.Errorf("[ERROR] Maximum number of SCSI controllers created")
+		}
+
 		log.Printf("[DEBUG] Couldn't find a %v controller.  Creating one..", controller_type)
 
 		var c types.BaseVirtualDevice
@@ -1262,11 +1316,18 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	if diskPath == "" {
 		return fmt.Errorf("[ERROR] addHardDisk - No path proided")
 	} else {
-		// TODO Check if diskPath & datastore exist
-		diskPath = fmt.Sprintf("[%v] %v", datastore.Name(), diskPath)
+		diskPath = datastore.Path(diskPath)
 	}
 	log.Printf("[DEBUG] addHardDisk - diskPath: %v", diskPath)
 	disk := devices.CreateDisk(controller, datastore.Reference(), diskPath)
+
+	if strings.Contains(controller_type, "scsi") {
+		unitNumber, err := getNextUnitNumber(devices, controller)
+		if err != nil {
+			return err
+		}
+		*disk.UnitNumber = unitNumber
+	}
 
 	existing := devices.SelectByBackingInfo(disk.Backing)
 	log.Printf("[DEBUG] disk: %#v\n", disk)
@@ -1284,6 +1345,10 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 			// eager zeroed thick virtual disk
 			backing.ThinProvisioned = types.NewBool(false)
 			backing.EagerlyScrub = types.NewBool(true)
+		} else if diskType == "lazy" {
+			// lazy zeroed thick virtual disk
+			backing.ThinProvisioned = types.NewBool(false)
+			backing.EagerlyScrub = types.NewBool(false)
 		} else if diskType == "thin" {
 			// thin provisioned virtual disk
 			backing.ThinProvisioned = types.NewBool(true)
@@ -1300,8 +1365,46 @@ func addHardDisk(vm *object.VirtualMachine, size, iops int64, diskType string, d
 	}
 }
 
+func getSCSIControllers(vmDevices object.VirtualDeviceList) []*types.VirtualController {
+	// get virtual scsi controllers of all supported types
+	var scsiControllers []*types.VirtualController
+	for _, device := range vmDevices {
+		devType := vmDevices.Type(device)
+		switch devType {
+		case "scsi", "lsilogic", "buslogic", "pvscsi", "lsilogic-sas":
+			if c, ok := device.(types.BaseVirtualController); ok {
+				scsiControllers = append(scsiControllers, c.GetVirtualController())
+			}
+		}
+	}
+	return scsiControllers
+}
+
+func getNextUnitNumber(devices object.VirtualDeviceList, c types.BaseVirtualController) (int32, error) {
+	key := c.GetVirtualController().Key
+
+	var unitNumbers [16]bool
+	unitNumbers[7] = true
+
+	for _, device := range devices {
+		d := device.GetVirtualDevice()
+
+		if d.ControllerKey == key {
+			if d.UnitNumber != nil {
+				unitNumbers[*d.UnitNumber] = true
+			}
+		}
+	}
+	for i, taken := range unitNumbers {
+		if !taken {
+			return int32(i), nil
+		}
+	}
+	return -1, fmt.Errorf("[ERROR] getNextUnitNumber - controller is full")
+}
+
 // addCdrom adds a new virtual cdrom drive to the VirtualMachine and attaches an image (ISO) to it from a datastore path.
-func addCdrom(vm *object.VirtualMachine, datastore, path string) error {
+func addCdrom(client *govmomi.Client, vm *object.VirtualMachine, datacenter *object.Datacenter, datastore, path string) error {
 	devices, err := vm.Device(context.TODO())
 	if err != nil {
 		return err
@@ -1343,7 +1446,14 @@ func addCdrom(vm *object.VirtualMachine, datastore, path string) error {
 		return err
 	}
 
-	c = devices.InsertIso(c, fmt.Sprintf("[%s] %s", datastore, path))
+	finder := find.NewFinder(client.Client, true)
+	finder = finder.SetDatacenter(datacenter)
+	ds, err := getDatastore(finder, datastore)
+	if err != nil {
+		return err
+	}
+
+	c = devices.InsertIso(c, ds.Path(path))
 	log.Printf("[DEBUG] addCdrom: %#v", c)
 
 	return vm.AddDevice(context.TODO(), c)
@@ -1425,6 +1535,7 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 	}
 
 	isThin := initType == "thin"
+	eagerScrub := initType == "eager_zeroed"
 	rpr := rp.Reference()
 	dsr := ds.Reference()
 	return types.VirtualMachineRelocateSpec{
@@ -1437,7 +1548,7 @@ func buildVMRelocateSpec(rp *object.ResourcePool, ds *object.Datastore, vm *obje
 				DiskBackingInfo: &types.VirtualDiskFlatVer2BackingInfo{
 					DiskMode:        "persistent",
 					ThinProvisioned: types.NewBool(isThin),
-					EagerlyScrub:    types.NewBool(!isThin),
+					EagerlyScrub:    types.NewBool(eagerScrub),
 				},
 				DiskId: key,
 			},
@@ -1550,12 +1661,12 @@ func findDatastore(c *govmomi.Client, sps types.StoragePlacementSpec) (*object.D
 }
 
 // createCdroms is a helper function to attach virtual cdrom devices (and their attached disk images) to a virtual IDE controller.
-func createCdroms(vm *object.VirtualMachine, cdroms []cdrom) error {
+func createCdroms(client *govmomi.Client, vm *object.VirtualMachine, datacenter *object.Datacenter, cdroms []cdrom) error {
 	log.Printf("[DEBUG] add cdroms: %v", cdroms)
 	for _, cd := range cdroms {
 		log.Printf("[DEBUG] add cdrom (datastore): %v", cd.datastore)
 		log.Printf("[DEBUG] add cdrom (cd path): %v", cd.path)
-		err := addCdrom(vm, cd.datastore, cd.path)
+		err := addCdrom(client, vm, datacenter, cd.datastore, cd.path)
 		if err != nil {
 			return err
 		}
@@ -1872,7 +1983,7 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 	}
 
 	// Create the cdroms if needed.
-	if err := createCdroms(newVM, vm.cdroms); err != nil {
+	if err := createCdroms(c, newVM, dc, vm.cdroms); err != nil {
 		return err
 	}
 
@@ -1899,9 +2010,12 @@ func (vm *virtualMachine) setupVirtualMachine(c *govmomi.Client) error {
 		default:
 			return fmt.Errorf("[ERROR] setupVirtualMachine - Neither vmdk path nor vmdk name was given: %#v", vm.hardDisks[i])
 		}
-
 		err = addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
 		if err != nil {
+			err2 := addHardDisk(newVM, vm.hardDisks[i].size, vm.hardDisks[i].iops, vm.hardDisks[i].initType, datastore, diskPath, vm.hardDisks[i].controller)
+			if err2 != nil {
+				return err2
+			}
 			return err
 		}
 	}

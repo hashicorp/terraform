@@ -1,0 +1,162 @@
+---
+layout: "downloads"
+page_title: "Upgrading to Terraform 0.8"
+sidebar_current: "upgrade-guides-0-8"
+description: |-
+  Upgrading to Terraform v0.8
+---
+
+# Upgrading to Terraform v0.8
+
+Terraform v0.8 is a major release and thus includes some backwards
+incompatibilities that you'll need to consider when upgrading. This guide is
+meant to help with that process.
+
+The goal of this guide is to cover the most common upgrade concerns and
+issues that would benefit from more explanation and background. The exhaustive
+list of changes will always be the
+[Terraform Changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md).
+After reviewing this guide, we recommend reviewing the Changelog to check on
+specific notes about the resources and providers you use.
+
+## Newlines in Strings
+
+Newlines are no longer allowed in strings unless it is a heredoc or an
+interpolation. This improves the performance of IDE syntax highlighting
+of Terraform configurations and simplifies parsing.
+
+**Behavior that no longer works in Terraform 0.8:**
+
+```
+resource "null_resource" "foo" {
+  value = "foo
+bar"
+}
+```
+
+**Valid Terraform 0.8 configuration:**
+
+```
+resource "null_resource" "foo" {
+  value = "foo\nbar"
+
+  value2 = <<EOF
+foo
+bar
+EOF
+
+  # You can still have newlines within interpolations.
+  value3 = "${lookup(
+    var.foo, var.bar)}"
+}
+```
+
+**Action:** Use heredocs or escape sequences when you have a string with newlines.
+
+## Math Order of Operations
+
+Math operations now follow standard mathematical order of operations.
+Prior to 0.8, math ordering was simply left-to-right. With 0.8, `*`, `/`, and
+`%` are done before `+`, `-`.
+
+Some examples are shown below:
+
+```
+${1+5*2}   => 11 (was 12 in 0.7)
+${4/2*5}   => 10 (was 10 in 0.7)
+${(1+5)*2} => 12 (was 12 in 0.7)
+```
+
+**Action:** Use parantheses where necessary to be explicit about ordering.
+
+## Escaped Variables in Templates
+
+The `template_file` resource now requires that any variables specified
+in an inline `template` attribute are now escaped. This _does not affect_
+templates read from files either via `file()` or the `filename` attribute.
+
+Inline variables must be escaped using two dollar signs. `${foo}` turns into
+`$${foo}`.
+
+This is necessary so that Terraform doesn't try to interpolate the values
+before executing the template (for example using standard Terraform
+interpolations). In Terraform 0.7, we had special case handling to ignore
+templates, but this would cause confusion and poor error messages. Terraform
+0.8 requires explicitly escaping variables.
+
+**Behavior that no longer works in Terraform 0.8:**
+
+```
+data "template_file" "foo" {
+    template = "${foo}"
+
+    vars { foo = "value" }
+}
+```
+
+**Valid Terraform 0.8 template:**
+
+```
+data "template_file" "foo" {
+    template = "$${foo}"
+
+    vars { foo = "value" }
+}
+```
+
+**Action:** Escape variables in inline templates in `template_file` resources.
+
+## Escape Sequences Within Interpolations
+
+Values within interpolations now only need to be escaped once.
+
+The exact behavior prior to 0.8 was inconsistent. In many cases, users
+just added `\` until it happened to work. The behavior is now consistent:
+single escape any values that need to be escaped.
+
+For example:
+
+```
+${replace(var.foo, "\\", "\\\\")}
+```
+
+This will now replace `\` with `\\` throughout `var.foo`. Note that `\` and
+`\\` are escaped exactly once. Prior to 0.8, this required double the escape
+sequences to function properly.
+
+A less complicated example:
+
+```
+${replace(var.foo, "\n", "")}
+
+```
+
+This does what you expect by replacing newlines with empty strings. Prior
+to 0.8, you'd have to specify `\\n`, which could be confusing.
+
+**Action:** Escape sequences within interpolations only need to be escaped
+once.
+
+## New Internal Graphs
+
+The core graphs used to execute Terraform operations have been changed to
+support new features. These require no configuration changes and should work
+as normal.
+
+They were tested extensively during 0.7.x behind experimental
+flags and using the shadow graph. However, it is possible that there
+are still edge cases that aren't properly handled.
+
+While we believe it will be unlikely, if you find that something is not
+working properly, you may use the `-Xlegacy-graph` flag on any Terraform
+operation to use the old code path.
+
+This flag will be removed prior to 0.9 (the next major release after 0.8),
+so please report any issues that require this flag so we can make sure
+they become fixed.
+
+~> **Warning:** Some features (such as `depends_on` referencing modules)
+do not work on the legacy graph code path. Specifically, any features
+introduced in Terraform 0.8 won't work with the legacy code path. These
+features will only work with the new, default graphs introduced with
+Terraform 0.8.

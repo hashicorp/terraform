@@ -16,21 +16,31 @@ is covered in more detail in the
 This page covers configuration syntax for outputs.
 
 Terraform knows a lot about the infrastructure it manages.
-Most resources have a handful or even a dozen or more attributes
-associated with it. Outputs are a way to easily extract
-information.
+Most resources have attributes associated with them, and
+outputs are a way to easily extract and query that information.
 
-This page assumes you're familiar with the
+This page assumes you are familiar with the
 [configuration syntax](/docs/configuration/syntax.html)
 already.
 
 ## Example
 
-An output configuration looks like the following:
+A simple output configuration looks like the following:
 
-```
+```ruby
 output "address" {
- value = "${aws_instance.web.public_dns}"
+  value = "${aws_instance.db.public_dns}"
+}
+```
+
+This will output a string value corresponding to the public
+DNS address of the Terraform-defined AWS instance named "db". It
+is possible to export complex data types like maps and strings as
+well:
+
+```ruby
+output "addresses" {
+  value = ["${aws_instance.web.*.public_dns}"]
 }
 ```
 
@@ -48,13 +58,18 @@ These are the parameters that can be set:
     or map. This usually includes an interpolation since outputs that are
     static aren't usually useful.
 
+  * `depends_on` (list of strings) - Explicit dependencies that this
+      output has. These dependencies will be created before this
+      output value is processed. The dependencies are in the format of
+      `TYPE.NAME`, for example `aws_instance.web`.
+
   * `sensitive` (optional, boolean) - See below.
 
 ## Syntax
 
 The full syntax is:
 
-```
+```ruby
 output NAME {
   value = VALUE
 }
@@ -65,7 +80,7 @@ output NAME {
 Outputs can be marked as containing sensitive material by setting the
 `sensitive` attribute to `true`, like this:
 
-```
+```ruby
 output "sensitive" {
   sensitive = true
   value     = VALUE

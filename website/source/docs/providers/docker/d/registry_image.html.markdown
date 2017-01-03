@@ -22,7 +22,7 @@ data "docker_registry_image" "ubuntu" {
 }
 
 resource "docker_image" "ubuntu" {
-    name = "${data.docker_image.ubuntu.name}"
+    name = "${data.docker_registry_image.ubuntu.name}"
     pull_trigger = "${data.docker_registry_image.ubuntu.sha256_digest}"
 }
 ```
@@ -37,4 +37,4 @@ The following arguments are supported:
 
 The following attributes are exported in addition to the above configuration:
 
-* `id` (string) - The ID of the image, as stored on the registry.
+* `sha256_digest` (string) - The content digest of the image, as stored on the registry.

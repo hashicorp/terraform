@@ -10,6 +10,13 @@ description: |-
 
 Provides a VPC Endpoint resource.
 
+~> **NOTE on VPC Endpoints and VPC Endpoint Route Table Associations:** Terraform provides
+both a standalone [VPC Endpoint Route Table Association](vpc_endpoint_route_table_association.html)
+(an association between a VPC endpoint and a single `route_table_id`) and a VPC Endpoint resource
+with a `route_table_ids` attribute. Do not use the same route table ID in both a VPC Endpoint resource
+and a VPC Endpoint Route Table Association resource. Doing so will cause a conflict of associations
+and will overwrite the association.
+
 ## Example Usage
 
 Basic usage:
@@ -36,11 +43,12 @@ The following attributes are exported:
 
 * `id` - The ID of the VPC endpoint.
 * `prefix_list_id` - The prefix list ID of the exposed service.
+* `cidr_blocks` - The list of CIDR blocks for the exposed service.
 
 
 ## Import
 
-VPN Endpoints can be imported using the `vpc endpoint id`, e.g. 
+VPC Endpoints can be imported using the `vpc endpoint id`, e.g.
 
 ```
 $ terraform import aws_vpc_endpoint.endpoint1 vpce-3ecf2a57

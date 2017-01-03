@@ -15,6 +15,9 @@ func resourceArmSqlServer() *schema.Resource {
 		Read:   resourceArmSqlServerRead,
 		Update: resourceArmSqlServerCreate,
 		Delete: resourceArmSqlServerDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -23,12 +26,7 @@ func resourceArmSqlServer() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"location": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				StateFunc: azureRMNormalizeLocation,
-			},
+			"location": locationSchema(),
 
 			"resource_group_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -111,6 +109,11 @@ func resourceArmSqlServerRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*ArmClient)
 	rivieraClient := client.rivieraClient
 
+	id, err := parseAzureResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+
 	readRequest := rivieraClient.NewRequestForURI(d.Id())
 	readRequest.Command = &sql.GetServer{}
 
@@ -126,6 +129,9 @@ func resourceArmSqlServerRead(d *schema.ResourceData, meta interface{}) error {
 
 	resp := readResponse.Parsed.(*sql.GetServerResponse)
 
+	d.Set("name", id.Path["servers"])
+	d.Set("resource_group_name", id.ResourceGroup)
+	d.Set("location", azureRMNormalizeLocation(*resp.Location))
 	d.Set("fully_qualified_domain_name", resp.FullyQualifiedDomainName)
 	d.Set("administrator_login", resp.AdministratorLogin)
 	d.Set("version", resp.Version)

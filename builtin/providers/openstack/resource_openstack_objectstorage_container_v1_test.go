@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/openstack/objectstorage/v1/containers"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rackspace/gophercloud/openstack/objectstorage/v1/containers"
 )
 
 func TestAccObjectStorageV1Container_basic(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -19,14 +18,17 @@ func TestAccObjectStorageV1Container_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccObjectStorageV1Container_basic,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_objectstorage_container_v1.container_1", "name", "tf-test-container"),
-					resource.TestCheckResourceAttr("openstack_objectstorage_container_v1.container_1", "content_type", "application/json"),
+					resource.TestCheckResourceAttr(
+						"openstack_objectstorage_container_v1.container_1", "name", "container_1"),
+					resource.TestCheckResourceAttr(
+						"openstack_objectstorage_container_v1.container_1", "content_type", "application/json"),
 				),
 			},
 			resource.TestStep{
 				Config: testAccObjectStorageV1Container_update,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("openstack_objectstorage_container_v1.container_1", "content_type", "text/plain"),
+					resource.TestCheckResourceAttr(
+						"openstack_objectstorage_container_v1.container_1", "content_type", "text/plain"),
 				),
 			},
 		},
@@ -54,24 +56,22 @@ func testAccCheckObjectStorageV1ContainerDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccObjectStorageV1Container_basic = fmt.Sprintf(`
-	resource "openstack_objectstorage_container_v1" "container_1" {
-		region = "%s"
-		name = "tf-test-container"
-		metadata {
-			test = "true"
-		}
-		content_type = "application/json"
-	}`,
-	OS_REGION_NAME)
+const testAccObjectStorageV1Container_basic = `
+resource "openstack_objectstorage_container_v1" "container_1" {
+  name = "container_1"
+  metadata {
+    test = "true"
+  }
+  content_type = "application/json"
+}
+`
 
-var testAccObjectStorageV1Container_update = fmt.Sprintf(`
-	resource "openstack_objectstorage_container_v1" "container_1" {
-		region = "%s"
-		name = "tf-test-container"
-		metadata {
-			test = "true"
-		}
-		content_type = "text/plain"
-	}`,
-	OS_REGION_NAME)
+const testAccObjectStorageV1Container_update = `
+resource "openstack_objectstorage_container_v1" "container_1" {
+  name = "container_1"
+  metadata {
+    test = "true"
+  }
+  content_type = "text/plain"
+}
+`

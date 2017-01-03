@@ -1,16 +1,8 @@
-TEST?=.
+TEST?=$$(go list ./... | grep -v '/go-datadog-api/vendor/')
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
+GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
-default: test
-
-# get dependencies
-updatedeps:
-	go list ./... \
-        | xargs go list -f '{{join .Deps "\n"}}' \
-		| grep -v go-datadog-api\
-        | grep -v '/internal/' \
-        | sort -u \
-        | xargs go get -f -u -v
+default: test fmt
 
 # test runs the unit tests and vets the code
 test:
@@ -25,14 +17,17 @@ testacc:
 testrace:
 	go test -race $(TEST) $(TESTARGS)
 
+fmt:
+	gofmt -w $(GOFMT_FILES)
+
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
 vet:
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
 		go get golang.org/x/tools/cmd/vet; \
 	fi
-	@echo "go tool vet $(VETARGS) $(TEST) "
-	@go tool vet $(VETARGS) $(TEST) ; if [ $$? -eq 1 ]; then \
+	@echo "go tool vet $(VETARGS)"
+	@go tool vet $(VETARGS) $$(ls -d */ | grep -v vendor) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \

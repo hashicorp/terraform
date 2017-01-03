@@ -14,6 +14,10 @@ func resourceScalewayServer() *schema.Resource {
 		Read:   resourceScalewayServerRead,
 		Update: resourceScalewayServerUpdate,
 		Delete: resourceScalewayServerDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
+
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -53,6 +57,29 @@ func resourceScalewayServer() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"volume": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"size_in_gb": {
+							Type:         schema.TypeInt,
+							Required:     true,
+							ValidateFunc: validateVolumeSize,
+						},
+						"type": &schema.Schema{
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validateVolumeType,
+						},
+						"volume_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"private_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -91,6 +118,28 @@ func resourceScalewayServerCreate(d *schema.ResourceData, m interface{}) error {
 
 	if bootscript, ok := d.GetOk("bootscript"); ok {
 		server.Bootscript = String(bootscript.(string))
+	}
+
+	if vs, ok := d.GetOk("volume"); ok {
+		server.Volumes = make(map[string]string)
+
+		volumes := vs.([]interface{})
+		for i, v := range volumes {
+			volume := v.(map[string]interface{})
+
+			volumeID, err := scaleway.PostVolume(api.ScalewayVolumeDefinition{
+				Size: uint64(volume["size_in_gb"].(int)) * gb,
+				Type: volume["type"].(string),
+				Name: fmt.Sprintf("%s-%d", server.Name, volume["size_in_gb"].(int)),
+			})
+			if err != nil {
+				return err
+			}
+			volume["volume_id"] = volumeID
+			volumes[i] = volume
+			server.Volumes[fmt.Sprintf("%d", i+1)] = volumeID
+		}
+		d.Set("volume", volumes)
 	}
 
 	if raw, ok := d.GetOk("tags"); ok {
@@ -138,6 +187,10 @@ func resourceScalewayServerRead(d *schema.ResourceData, m interface{}) error {
 		return err
 	}
 
+	d.Set("name", server.Name)
+	d.Set("image", server.Image.Identifier)
+	d.Set("type", server.CommercialType)
+	d.Set("enable_ipv6", server.EnableIPV6)
 	d.Set("private_ip", server.PrivateIP)
 	d.Set("public_ip", server.PublicAddress.IP)
 
@@ -197,22 +250,20 @@ func resourceScalewayServerUpdate(d *schema.ResourceData, m interface{}) error {
 func resourceScalewayServerDelete(d *schema.ResourceData, m interface{}) error {
 	scaleway := m.(*Client).scaleway
 
-	def, err := scaleway.GetServer(d.Id())
-	if err != nil {
-		if serr, ok := err.(api.ScalewayAPIError); ok {
-			if serr.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
-		}
-		return err
-	}
-
-	err = deleteServerSafe(scaleway, def.Identifier)
+	s, err := scaleway.GetServer(d.Id())
 	if err != nil {
 		return err
 	}
 
-	d.SetId("")
-	return nil
+	if s.State == "stopped" {
+		return deleteStoppedServer(scaleway, s)
+	}
+
+	err = deleteRunningServer(scaleway, s)
+
+	if err == nil {
+		d.SetId("")
+	}
+
+	return err
 }

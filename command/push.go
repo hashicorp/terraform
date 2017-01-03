@@ -47,6 +47,22 @@ func (c *PushCommand) Run(args []string) int {
 		overwriteMap[v] = struct{}{}
 	}
 
+	// This is a map of variables specifically from the CLI that we want to overwrite.
+	// We need this because there is a chance that the user is trying to modify
+	// a variable we don't see in our context, but which exists in this atlas
+	// environment.
+	cliVars := make(map[string]string)
+	for k, v := range c.variables {
+		if _, ok := overwriteMap[k]; ok {
+			if val, ok := v.(string); ok {
+				cliVars[k] = val
+			} else {
+				c.Ui.Error(fmt.Sprintf("Error reading value for variable: %s", k))
+				return 1
+			}
+		}
+	}
+
 	// The pwd is used for the configuration path if one is not given
 	pwd, err := os.Getwd()
 	if err != nil {
@@ -145,19 +161,14 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
-	// filter any overwrites from the atlas vars
-	for k := range overwriteMap {
-		delete(atlasVars, k)
-	}
-
 	// Set remote variables in the context if we don't have a value here. These
 	// don't have to be correct, it just prevents the Input walk from prompting
-	// the user for input, The atlas variable may be an hcl-encoded object, but
-	// we're just going to set it as the raw string value.
+	// the user for input.
 	ctxVars := ctx.Variables()
-	for k, av := range atlasVars {
+	atlasVarSentry := "ATLAS_78AC153CA649EAA44815DAD6CBD4816D"
+	for k, _ := range atlasVars {
 		if _, ok := ctxVars[k]; !ok {
-			ctx.SetVariable(k, av.Value)
+			ctx.SetVariable(k, atlasVarSentry)
 		}
 	}
 
@@ -180,16 +191,42 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get the absolute path for our data directory, since the Extra field
+	// value below needs to be absolute.
+	dataDirAbs, err := filepath.Abs(c.DataDir())
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error while expanding the data directory %q: %s", c.DataDir(), err))
+		return 1
+	}
+
 	// Build the archiving options, which includes everything it can
 	// by default according to VCS rules but forcing the data directory.
 	archiveOpts := &archive.ArchiveOpts{
 		VCS: archiveVCS,
 		Extra: map[string]string{
-			DefaultDataDir: c.DataDir(),
+			DefaultDataDir: archive.ExtraEntryDir,
 		},
 	}
-	if !moduleUpload {
-		// If we're not uploading modules, then exclude the modules dir.
+
+	// Always store the state file in here so we can find state
+	statePathKey := fmt.Sprintf("%s/%s", DefaultDataDir, DefaultStateFilename)
+	archiveOpts.Extra[statePathKey] = filepath.Join(dataDirAbs, DefaultStateFilename)
+	if moduleUpload {
+		// If we're uploading modules, explicitly add that directory if exists.
+		moduleKey := fmt.Sprintf("%s/%s", DefaultDataDir, "modules")
+		moduleDir := filepath.Join(dataDirAbs, "modules")
+		_, err := os.Stat(moduleDir)
+		if err == nil {
+			archiveOpts.Extra[moduleKey] = filepath.Join(dataDirAbs, "modules")
+		}
+		if err != nil && !os.IsNotExist(err) {
+			c.Ui.Error(fmt.Sprintf(
+				"Error checking for module dir %q: %s", moduleDir, err))
+			return 1
+		}
+	} else {
+		// If we're not uploading modules, explicitly exclude add that
 		archiveOpts.Exclude = append(
 			archiveOpts.Exclude,
 			filepath.Join(c.DataDir(), "modules"))
@@ -203,23 +240,47 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Output to the user the variables that will be uploaded
+	// List of the vars we're uploading to display to the user.
+	// We always upload all vars from atlas, but only report them if they are overwritten.
 	var setVars []string
+
 	// variables to upload
 	var uploadVars []atlas.TFVar
 
-	// Now we can combine the vars for upload to atlas and list the variables
-	// we're uploading for the user
+	// first add all the variables we want to send which have been serialized
+	// from the local context.
 	for _, sv := range serializedVars {
-		if av, ok := atlasVars[sv.Key]; ok {
-			// this belongs to Atlas
-			uploadVars = append(uploadVars, av)
-		} else {
-			// we're uploading our local version
-			setVars = append(setVars, sv.Key)
+		_, inOverwrite := overwriteMap[sv.Key]
+		_, inAtlas := atlasVars[sv.Key]
+
+		// We have a variable that's not in atlas, so always send it.
+		if !inAtlas {
 			uploadVars = append(uploadVars, sv)
+			setVars = append(setVars, sv.Key)
 		}
 
+		// We're overwriting an atlas variable.
+		// We also want to check that we
+		// don't send the dummy sentry value back to atlas. This could happen
+		// if it's specified as an overwrite on the cli, but we didn't set a
+		// new value.
+		if inAtlas && inOverwrite && sv.Value != atlasVarSentry {
+			uploadVars = append(uploadVars, sv)
+			setVars = append(setVars, sv.Key)
+
+			// remove this value from the atlas vars, because we're going to
+			// send back the remainder regardless.
+			delete(atlasVars, sv.Key)
+		}
+	}
+
+	// now send back all the existing atlas vars, inserting any overwrites from the cli.
+	for k, av := range atlasVars {
+		if v, ok := cliVars[k]; ok {
+			av.Value = v
+			setVars = append(setVars, k)
+		}
+		uploadVars = append(uploadVars, av)
 	}
 
 	sort.Strings(setVars)
@@ -327,25 +388,15 @@ RANGE:
 		case string:
 			tfv.Value = v
 
-		case []interface{}:
-			hcl, err = encodeHCL(v)
-			if err != nil {
-				break RANGE
-			}
-
-			tfv.Value = string(hcl)
-			tfv.IsHCL = true
-
-		case map[string]interface{}:
-			hcl, err = encodeHCL(v)
-			if err != nil {
-				break RANGE
-			}
-
-			tfv.Value = string(hcl)
-			tfv.IsHCL = true
 		default:
-			err = fmt.Errorf("unknown type %T for variable %s", v, k)
+			// everything that's not a string is now HCL encoded
+			hcl, err = encodeHCL(v)
+			if err != nil {
+				break RANGE
+			}
+
+			tfv.Value = string(hcl)
+			tfv.IsHCL = true
 		}
 
 		tfVars = append(tfVars, tfv)

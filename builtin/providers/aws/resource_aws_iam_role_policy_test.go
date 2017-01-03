@@ -52,14 +52,16 @@ func testAccCheckIAMRolePolicyDestroy(s *terraform.State) error {
 			continue
 		}
 
-		role, name := resourceAwsIamRolePolicyParseId(rs.Primary.ID)
+		role, name, err := resourceAwsIamRolePolicyParseId(rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		request := &iam.GetRolePolicyInput{
 			PolicyName: aws.String(name),
 			RoleName:   aws.String(role),
 		}
 
-		var err error
 		getResp, err := iamconn.GetRolePolicy(request)
 		if err != nil {
 			if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
@@ -96,12 +98,15 @@ func testAccCheckIAMRolePolicy(
 		}
 
 		iamconn := testAccProvider.Meta().(*AWSClient).iamconn
-		role, name := resourceAwsIamRolePolicyParseId(policy.Primary.ID)
-		_, err := iamconn.GetRolePolicy(&iam.GetRolePolicyInput{
+		role, name, err := resourceAwsIamRolePolicyParseId(policy.Primary.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = iamconn.GetRolePolicy(&iam.GetRolePolicyInput{
 			RoleName:   aws.String(role),
 			PolicyName: aws.String(name),
 		})
-
 		if err != nil {
 			return err
 		}
@@ -115,13 +120,36 @@ func testAccIAMRolePolicyConfig(role, policy1 string) string {
 resource "aws_iam_role" "role" {
 	name = "tf_test_role_%s"
 	path = "/"
-	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Effect\":\"Allow\",\"Sid\":\"\"}]}"
+	assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
 }
 
 resource "aws_iam_role_policy" "foo" {
 	name = "tf_test_policy_%s"
 	role = "${aws_iam_role.role.name}"
-	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "*",
+    "Resource": "*"
+  }
+}
+EOF
 }
 `, role, policy1)
 }
@@ -131,19 +159,51 @@ func testAccIAMRolePolicyConfigUpdate(role, policy1, policy2 string) string {
 resource "aws_iam_role" "role" {
 	name = "tf_test_role_%s"
 	path = "/"
-	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"},\"Effect\":\"Allow\",\"Sid\":\"\"}]}"
+	assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
 }
 
 resource "aws_iam_role_policy" "foo" {
 	name = "tf_test_policy_%s"
 	role = "${aws_iam_role.role.name}"
-	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "*",
+    "Resource": "*"
+  }
+}
+EOF
 }
 
 resource "aws_iam_role_policy" "bar" {
 	name = "tf_test_policy_2_%s"
 	role = "${aws_iam_role.role.name}"
-	policy = "{\"Version\":\"2012-10-17\",\"Statement\":{\"Effect\":\"Allow\",\"Action\":\"*\",\"Resource\":\"*\"}}"
+	policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": {
+    "Effect": "Allow",
+    "Action": "*",
+    "Resource": "*"
+  }
+}
+EOF
 }
 `, role, policy1, policy2)
 }

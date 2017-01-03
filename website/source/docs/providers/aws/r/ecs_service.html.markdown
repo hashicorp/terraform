@@ -41,7 +41,7 @@ The following arguments are supported:
 * `task_definition` - (Required) The family and revision (`family:revision`) or full ARN of the task definition that you want to run in your service.
 * `desired_count` - (Required) The number of instances of the task definition to place and keep running
 * `cluster` - (Optional) ARN of an ECS cluster
-* `iam_role` - (Optional) IAM role that allows your Amazon ECS container agent to make calls to your load balancer on your behalf. This parameter is only required if you are using a load balancer with your service.
+* `iam_role` - (Optional) The ARN of IAM role that allows your Amazon ECS container agent to make calls to your load balancer on your behalf. This parameter is only required if you are using a load balancer with your service.
 * `deployment_maximum_percent` - (Optional) The upper limit (as a percentage of the service's desiredCount) of the number of running tasks that can be running in a service during a deployment.
 * `deployment_minimum_healthy_percent` - (Optional) The lower limit (as a percentage of the service's desiredCount) of the number of running tasks that must remain running and healthy in a service during a deployment.
 * `load_balancer` - (Optional) A load balancer block. Load balancers documented below.
@@ -50,7 +50,8 @@ The following arguments are supported:
 
 Load balancers support the following:
 
-* `elb_name` - (Required) The name of the load balancer.
+* `elb_name` - (Required for ELB Classic) The name of the ELB (Classic) to associate with the service.
+* `target_group_arn` - (Required for ALB) The ARN of the ALB target group to associate with the service.
 * `container_name` - (Required) The name of the container to associate with the load balancer (as it appears in a container definition).
 * `container_port` - (Required) The port on the container to associate with the load balancer.
 

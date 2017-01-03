@@ -110,6 +110,67 @@ resource "openstack_compute_instance_v2" "boot-from-volume" {
 }
 ```
 
+### Boot Instance, Create Volume, and Attach Volume as a Block Device
+
+```
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+  image_id = "<image-id>"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    uuid = "<image-id>"
+    source_type = "image"
+    destination_type = "local"
+    boot_index = 0
+    delete_on_termination = true
+  }
+
+  block_device {
+    source_type = "blank"
+    destination_type = "volume"
+    volume_size = 1
+    boot_index = 1
+    delete_on_termination = true
+  }
+}
+```
+
+### Boot Instance and Attach Existing Volume as a Block Device
+
+```
+resource "openstack_blockstorage_volume_v2" "volume_1" {
+  name = "volume_1"
+  size = 1
+}
+
+resource "openstack_compute_instance_v2" "instance_1" {
+  name = "instance_1"
+  image_id = "<image-id>"
+  flavor_id = "3"
+  key_pair = "my_key_pair_name"
+  security_groups = ["default"]
+
+  block_device {
+    uuid = "<image-id>"
+    source_type = "image"
+    destination_type = "local"
+    boot_index = 0
+    delete_on_termination = true
+  }
+
+  block_device {
+    uuid = "${openstack_blockstorage_volume_v2.volume_1.id}"
+    source_type = "volume"
+    destination_type = "volume"
+    boot_index = 1
+    delete_on_termination = true
+  }
+}
+```
+
 ### Instance With Multiple Networks
 
 ```
@@ -251,13 +312,18 @@ The following arguments are supported:
     pair must already be created and associated with the tenant's account.
     Changing this creates a new server.
 
-* `block_device` - (Optional) The object for booting by volume. The block_device
-    object structure is documented below. Changing this creates a new server.
+* `block_device` - (Optional) Configuration of block devices. The block_device
+    structure is documented below. Changing this creates a new server.
     You can specify multiple block devices which will create an instance with
-    multiple ephemeral (local) disks.
+    multiple disks. This configuration is very flexible, so please see the
+    following [reference](http://docs.openstack.org/developer/nova/block_device_mapping.html)
+    for more information.
 
 * `volume` - (Optional) Attach an existing volume to the instance. The volume
-    structure is described below.
+    structure is described below. *Note*: This is no longer the recommended
+    method of attaching a volume to an instance. Please see `block_device`
+    (above) or the `openstack_compute_volume_attach_v2` and
+    `openstack_blockstorage_volume_attach_v2` resources.
 
 * `scheduler_hints` - (Optional) Provide the Nova scheduler with hints on how
     the instance should be launched. The available hints are described below.
@@ -306,7 +372,8 @@ The `block_device` block supports:
 
 * `volume_size` - The size of the volume to create (in gigabytes). Required
     in the following combinations: source=image and destination=volume,
-    source=blank and destination=local. Changing this creates a new server.
+    source=blank and destination=local, and source=blank and destination=volume.
+    Changing this creates a new server.
 
 * `boot_index` - (Optional) The boot index of the volume. It defaults to 0.
     Changing this creates a new server.

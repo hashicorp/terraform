@@ -20,16 +20,46 @@ func Provider() terraform.ResourceProvider {
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CONSUL_ADDRESS",
+					"CONSUL_HTTP_ADDR",
+				}, "localhost:8500"),
 			},
 
 			"scheme": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CONSUL_SCHEME",
+					"CONSUL_HTTP_SCHEME",
+				}, "http"),
+			},
+
+			"ca_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CA_FILE", ""),
+			},
+
+			"cert_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CERT_FILE", ""),
+			},
+
+			"key_file": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("CONSUL_KEY_FILE", ""),
 			},
 
 			"token": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"CONSUL_TOKEN",
+					"CONSUL_HTTP_TOKEN",
+				}, ""),
 			},
 		},
 
@@ -38,12 +68,13 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"consul_agent_service": resourceConsulAgentService(),
-			"consul_catalog_entry": resourceConsulCatalogEntry(),
-			"consul_keys":          resourceConsulKeys(),
-			"consul_key_prefix":    resourceConsulKeyPrefix(),
-			"consul_node":          resourceConsulNode(),
-			"consul_service":       resourceConsulService(),
+			"consul_agent_service":  resourceConsulAgentService(),
+			"consul_catalog_entry":  resourceConsulCatalogEntry(),
+			"consul_keys":           resourceConsulKeys(),
+			"consul_key_prefix":     resourceConsulKeyPrefix(),
+			"consul_node":           resourceConsulNode(),
+			"consul_prepared_query": resourceConsulPreparedQuery(),
+			"consul_service":        resourceConsulService(),
 		},
 
 		ConfigureFunc: providerConfigure,

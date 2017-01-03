@@ -16,12 +16,12 @@ func TestResourceProvisioner_impl(t *testing.T) {
 
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"environment":            "_default",
-		"node_name":              "nodename1",
-		"run_list":               []interface{}{"cookbook::recipe"},
-		"server_url":             "https://chef.local",
-		"validation_client_name": "validator",
-		"validation_key":         "contentsofsomevalidator.pem",
+		"environment": "_default",
+		"node_name":   "nodename1",
+		"run_list":    []interface{}{"cookbook::recipe"},
+		"server_url":  "https://chef.local",
+		"user_name":   "bob",
+		"user_key":    "USER-KEY",
 	})
 	r := new(ResourceProvisioner)
 	warn, errs := r.Validate(c)
@@ -65,11 +65,11 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 	}{
 		"Sudo": {
 			Config: testConfig(t, map[string]interface{}{
-				"node_name":              "nodename1",
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
+				"node_name":  "nodename1",
+				"run_list":   []interface{}{"cookbook::recipe"},
+				"server_url": "https://chef.local",
+				"user_name":  "bob",
+				"user_key":   "USER-KEY",
 			}),
 
 			ChefCmd: linuxChefCmd,
@@ -85,12 +85,12 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 
 		"NoSudo": {
 			Config: testConfig(t, map[string]interface{}{
-				"node_name":              "nodename1",
-				"prevent_sudo":           true,
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
+				"node_name":    "nodename1",
+				"prevent_sudo": true,
+				"run_list":     []interface{}{"cookbook::recipe"},
+				"server_url":   "https://chef.local",
+				"user_name":    "bob",
+				"user_key":     "USER-KEY",
 			}),
 
 			ChefCmd: linuxChefCmd,
@@ -106,13 +106,13 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 
 		"Environment": {
 			Config: testConfig(t, map[string]interface{}{
-				"environment":            "production",
-				"node_name":              "nodename1",
-				"prevent_sudo":           true,
-				"run_list":               []interface{}{"cookbook::recipe"},
-				"server_url":             "https://chef.local",
-				"validation_client_name": "validator",
-				"validation_key_path":    "test-fixtures/validator.pem",
+				"environment":  "production",
+				"node_name":    "nodename1",
+				"prevent_sudo": true,
+				"run_list":     []interface{}{"cookbook::recipe"},
+				"server_url":   "https://chef.local",
+				"user_name":    "bob",
+				"user_key":     "USER-KEY",
 			}),
 
 			ChefCmd: windowsChefCmd,
@@ -162,8 +162,8 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 				"node_name":               "nodename1",
 				"run_list":                []interface{}{"cookbook::recipe"},
 				"server_url":              "https://chef.local",
-				"validation_client_name":  "validator",
-				"validation_key_path":     "test-fixtures/validator.pem",
+				"user_name":               "bob",
+				"user_key":                "USER-KEY",
 			}),
 
 			KnifeCmd: linuxKnifeCmd,
@@ -184,8 +184,8 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 				"prevent_sudo":            true,
 				"run_list":                []interface{}{"cookbook::recipe"},
 				"server_url":              "https://chef.local",
-				"validation_client_name":  "validator",
-				"validation_key_path":     "test-fixtures/validator.pem",
+				"user_name":               "bob",
+				"user_key":                "USER-KEY",
 			}),
 
 			KnifeCmd: windowsKnifeCmd,
@@ -216,6 +216,131 @@ func TestResourceProvider_fetchChefCertificates(t *testing.T) {
 		p.useSudo = !p.PreventSudo
 
 		err = p.fetchChefCertificates(o, c)
+		if err != nil {
+			t.Fatalf("Test %q failed: %v", k, err)
+		}
+	}
+}
+
+func TestResourceProvider_configureVaults(t *testing.T) {
+	cases := map[string]struct {
+		Config   *terraform.ResourceConfig
+		GemCmd   string
+		KnifeCmd string
+		ConfDir  string
+		Commands map[string]bool
+	}{
+		"Linux Vault string": {
+			Config: testConfig(t, map[string]interface{}{
+				"node_name":    "nodename1",
+				"prevent_sudo": true,
+				"run_list":     []interface{}{"cookbook::recipe"},
+				"server_url":   "https://chef.local",
+				"user_name":    "bob",
+				"user_key":     "USER-KEY",
+				"vault_json":   `{"vault1": "item1"}`,
+			}),
+
+			GemCmd:   linuxGemCmd,
+			KnifeCmd: linuxKnifeCmd,
+			ConfDir:  linuxConfDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf("%s install chef-vault", linuxGemCmd): true,
+				fmt.Sprintf("%s vault update vault1 item1 -A nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
+			},
+		},
+
+		"Linux Vault []string": {
+			Config: testConfig(t, map[string]interface{}{
+				"fetch_chef_certificates": true,
+				"node_name":               "nodename1",
+				"prevent_sudo":            true,
+				"run_list":                []interface{}{"cookbook::recipe"},
+				"server_url":              "https://chef.local",
+				"user_name":               "bob",
+				"user_key":                "USER-KEY",
+				"vault_json":              `{"vault1": ["item1", "item2"]}`,
+			}),
+
+			GemCmd:   linuxGemCmd,
+			KnifeCmd: linuxKnifeCmd,
+			ConfDir:  linuxConfDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf("%s install chef-vault", linuxGemCmd): true,
+				fmt.Sprintf("%s vault update vault1 item1 -A nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
+				fmt.Sprintf("%s vault update vault1 item2 -A nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", linuxKnifeCmd, linuxConfDir, linuxConfDir): true,
+			},
+		},
+
+		"Windows Vault string": {
+			Config: testConfig(t, map[string]interface{}{
+				"node_name":    "nodename1",
+				"prevent_sudo": true,
+				"run_list":     []interface{}{"cookbook::recipe"},
+				"server_url":   "https://chef.local",
+				"user_name":    "bob",
+				"user_key":     "USER-KEY",
+				"vault_json":   `{"vault1": "item1"}`,
+			}),
+
+			GemCmd:   windowsGemCmd,
+			KnifeCmd: windowsKnifeCmd,
+			ConfDir:  windowsConfDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
+				fmt.Sprintf("%s vault update vault1 item1 -A nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
+			},
+		},
+
+		"Windows Vault []string": {
+			Config: testConfig(t, map[string]interface{}{
+				"fetch_chef_certificates": true,
+				"node_name":               "nodename1",
+				"prevent_sudo":            true,
+				"run_list":                []interface{}{"cookbook::recipe"},
+				"server_url":              "https://chef.local",
+				"user_name":               "bob",
+				"user_key":                "USER-KEY",
+				"vault_json":              `{"vault1": ["item1", "item2"]}`,
+			}),
+
+			GemCmd:   windowsGemCmd,
+			KnifeCmd: windowsKnifeCmd,
+			ConfDir:  windowsConfDir,
+
+			Commands: map[string]bool{
+				fmt.Sprintf("%s install chef-vault", windowsGemCmd): true,
+				fmt.Sprintf("%s vault update vault1 item1 -A nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
+				fmt.Sprintf("%s vault update vault1 item2 -A nodename1 -M client -c %s/client.rb "+
+					"-u bob --key %s/bob.pem", windowsKnifeCmd, windowsConfDir, windowsConfDir): true,
+			},
+		},
+	}
+
+	r := new(ResourceProvisioner)
+	o := new(terraform.MockUIOutput)
+	c := new(communicator.MockCommunicator)
+
+	for k, tc := range cases {
+		c.Commands = tc.Commands
+
+		p, err := r.decodeConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+
+		p.configureVaults = p.configureVaultsFunc(tc.GemCmd, tc.KnifeCmd, tc.ConfDir)
+		p.useSudo = !p.PreventSudo
+
+		err = p.configureVaults(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
 		}

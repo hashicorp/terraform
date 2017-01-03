@@ -113,7 +113,6 @@ resource "cloudstack_ipaddress" "foo" {
 
 resource "cloudstack_static_nat" "foo" {
 	ip_address_id = "${cloudstack_ipaddress.foo.id}"
-	network_id = "${cloudstack_ipaddress.foo.network_id}"
   virtual_machine_id = "${cloudstack_instance.foobar.id}"
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,

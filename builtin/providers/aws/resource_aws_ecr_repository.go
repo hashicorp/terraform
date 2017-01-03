@@ -2,12 +2,14 @@ package aws
 
 import (
 	"log"
+	"time"
 
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -60,8 +62,8 @@ func resourceAwsEcrRepositoryCreate(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] ECR repository created: %q", *repository.RepositoryArn)
 
 	d.SetId(*repository.RepositoryName)
-	d.Set("arn", *repository.RepositoryArn)
-	d.Set("registry_id", *repository.RegistryId)
+	d.Set("arn", repository.RepositoryArn)
+	d.Set("registry_id", repository.RegistryId)
 
 	return resourceAwsEcrRepositoryRead(d, meta)
 }
@@ -86,8 +88,8 @@ func resourceAwsEcrRepositoryRead(d *schema.ResourceData, meta interface{}) erro
 	log.Printf("[DEBUG] Received repository %s", out)
 
 	d.SetId(*repository.RepositoryName)
-	d.Set("arn", *repository.RepositoryArn)
-	d.Set("registry_id", *repository.RegistryId)
+	d.Set("arn", repository.RepositoryArn)
+	d.Set("registry_id", repository.RegistryId)
 	d.Set("name", repository.RepositoryName)
 
 	repositoryUrl := buildRepositoryUrl(repository, meta.(*AWSClient).region)
@@ -117,7 +119,34 @@ func resourceAwsEcrRepositoryDelete(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	log.Printf("[DEBUG] repository %q deleted.", d.Get("arn").(string))
+	log.Printf("[DEBUG] Waiting for ECR Repository %q to be deleted", d.Id())
+	err = resource.Retry(20*time.Minute, func() *resource.RetryError {
+		_, err := conn.DescribeRepositories(&ecr.DescribeRepositoriesInput{
+			RepositoryNames: []*string{aws.String(d.Id())},
+		})
+
+		if err != nil {
+			awsErr, ok := err.(awserr.Error)
+			if !ok {
+				return resource.NonRetryableError(err)
+			}
+
+			if awsErr.Code() == "RepositoryNotFoundException" {
+				return nil
+			}
+
+			return resource.NonRetryableError(err)
+		}
+
+		return resource.RetryableError(
+			fmt.Errorf("%q: Timeout while waiting for the ECR Repository to be deleted", d.Id()))
+	})
+	if err != nil {
+		return err
+	}
+
+	d.SetId("")
+	log.Printf("[DEBUG] repository %q deleted.", d.Get("name").(string))
 
 	return nil
 }

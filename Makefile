@@ -39,7 +39,7 @@ plugin-dev: generate
 	mv $(GOPATH)/bin/$(PLUGIN) $(GOPATH)/bin/terraform-$(PLUGIN)
 
 # test runs the unit tests
-test: fmtcheck generate
+test: fmtcheck errcheck generate
 	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
 
 # testacc runs acceptance tests
@@ -50,6 +50,14 @@ testacc: fmtcheck generate
 		exit 1; \
 	fi
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+
+test-compile: fmtcheck generate
+	@if [ "$(TEST)" = "./..." ]; then \
+		echo "ERROR: Set TEST to a specific package. For example,"; \
+		echo "  make test-compile TEST=./builtin/providers/aws"; \
+		exit 1; \
+	fi
+	go test -c $(TEST) $(TESTARGS)
 
 # testrace runs the race checker
 testrace: fmtcheck generate
@@ -77,7 +85,7 @@ vet:
 # generate runs `go generate` to build the dynamically generated
 # source files.
 generate:
-	@which stringer ; if [ $$? -ne 0 ]; then \
+	@which stringer > /dev/null; if [ $$? -ne 0 ]; then \
 	  go get -u golang.org/x/tools/cmd/stringer; \
 	fi
 	go generate $$(go list ./... | grep -v /terraform/vendor/)
@@ -88,5 +96,8 @@ fmt:
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
+
+errcheck:
+	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
 .PHONY: bin default generate test vet fmt fmtcheck tools

@@ -13,7 +13,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
@@ -67,14 +66,6 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							Default:  "immediate",
-							// this parameter is not actually state, but a
-							// meta-parameter describing how the RDS API call
-							// to modify the parameter group should be made.
-							// Future reads of the resource from AWS don't tell
-							// us what we used for apply_method previously, so
-							// by squashing state to an empty string we avoid
-							// needing to do an update for every future run.
-							StateFunc: func(interface{}) string { return "" },
 						},
 					},
 				},
@@ -150,7 +141,7 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
 	paramGroup := describeResp.DBParameterGroups[0]
-	arn, err := buildRDSPGARN(d, meta)
+	arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region)
 	if err != nil {
 		name := "<empty>"
 		if paramGroup.DBParameterGroupName != nil && *paramGroup.DBParameterGroupName != "" {
@@ -226,7 +217,7 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	if arn, err := buildRDSPGARN(d, meta); err == nil {
+	if arn, err := buildRDSPGARN(d.Id(), meta.(*AWSClient).partition, meta.(*AWSClient).accountid, meta.(*AWSClient).region); err == nil {
 		if err := setTagsRDS(rdsconn, d, arn); err != nil {
 			return err
 		} else {
@@ -287,16 +278,14 @@ func resourceAwsDbParameterHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func buildRDSPGARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamconn
-	region := meta.(*AWSClient).region
-	// An zero value GetUserInput{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserInput{})
-	if err != nil {
-		return "", err
+func buildRDSPGARN(identifier, partition, accountid, region string) (string, error) {
+	if partition == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS partition")
 	}
-	userARN := *resp.User.Arn
-	accountID := strings.Split(userARN, ":")[4]
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:pg:%s", region, accountID, d.Id())
+	if accountid == "" {
+		return "", fmt.Errorf("Unable to construct RDS ARN because of missing AWS Account ID")
+	}
+	arn := fmt.Sprintf("arn:%s:rds:%s:%s:pg:%s", partition, region, accountid, identifier)
 	return arn, nil
+
 }

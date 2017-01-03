@@ -10,6 +10,27 @@
 		<a href="/docs/providers/google/index.html">Google Provider</a>
 		</li>
 
+		<li<%= sidebar_current(/^docs-google-datasource/) %>>
+		<a href="#">Google Cloud Platform Data Sources</a>
+		<ul class="nav nav-visible">
+			<li<%= sidebar_current("docs-google-datasource-iam-policy") %>>
+			<a href="/docs/providers/google/d/google_iam_policy.html">google_iam_policy</a>
+			</li>
+		</ul>
+		</li>
+
+		<li<%= sidebar_current(/^docs-google-project/) %>>
+		<a href="#">Google Cloud Platform Resources</a>
+		<ul class="nav nav-visible">
+			<li<%= sidebar_current("docs-google-project") %>>
+			<a href="/docs/providers/google/r/google_project.html">google_project</a>
+            </li>
+            <li<%= sidebar_current("docs-google-service-account") %>>
+            <a href="/docs/providers/google/r/google_service_account.html">google_service_account</a>
+            </li>
+		</ul>
+		</li>
+
 		<li<%= sidebar_current(/^docs-google-compute/) %>>
 		<a href="#">Google Compute Engine Resources</a>
 		<ul class="nav nav-visible">
@@ -45,12 +66,20 @@
 			<a href="/docs/providers/google/r/compute_global_forwarding_rule.html">google_compute_global_forwarding_rule</a>
 			</li>
 
+			<li<%= sidebar_current("docs-google-compute-health-check") %>>
+			<a href="/docs/providers/google/r/compute_health_check.html">google_compute_health_check</a>
+			</li>
+
 			<li<%= sidebar_current("docs-google-compute-http-health-check") %>>
 			<a href="/docs/providers/google/r/compute_http_health_check.html">google_compute_http_health_check</a>
 			</li>
 
 			<li<%= sidebar_current("docs-google-compute-https-health-check") %>>
 			<a href="/docs/providers/google/r/compute_https_health_check.html">google_compute_https_health_check</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-compute-image") %>>
+			<a href="/docs/providers/google/r/compute_image.html">google_compute_image</a>
 			</li>
 
 			<li<%= sidebar_current("docs-google-compute-instance") %>>
@@ -75,6 +104,10 @@
 
 			<li<%= sidebar_current("docs-google-compute-project-metadata") %>>
 			<a href="/docs/providers/google/r/compute_project_metadata.html">google_compute_project_metadata</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-compute-region-backend-service") %>>
+			<a href="/docs/providers/google/r/compute_region_backend_service.html">google_compute_region_backend_service</a>
 			</li>
 
 			<li<%= sidebar_current("docs-google-compute-route") %>>

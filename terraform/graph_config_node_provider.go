@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/dot"
 )
 
 // GraphNodeConfigProvider represents a configured provider within the
@@ -59,11 +58,14 @@ func (n *GraphNodeConfigProvider) ProviderConfig() *config.RawConfig {
 }
 
 // GraphNodeDotter impl.
-func (n *GraphNodeConfigProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
-	return dot.NewNode(name, map[string]string{
-		"label": n.Name(),
-		"shape": "diamond",
-	})
+func (n *GraphNodeConfigProvider) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
+	return &dag.DotNode{
+		Name: name,
+		Attrs: map[string]string{
+			"label": n.Name(),
+			"shape": "diamond",
+		},
+	}
 }
 
 // GraphNodeDotterOrigin impl.

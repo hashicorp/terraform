@@ -46,7 +46,6 @@ func TestAccComputeBackendService_withBackend(t *testing.T) {
 	itName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
 	var svc compute.BackendService
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -54,7 +53,7 @@ func TestAccComputeBackendService_withBackend(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccComputeBackendService_withBackend(
-					serviceName, igName, itName, checkName),
+					serviceName, igName, itName, checkName, 10),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeBackendServiceExists(
 						"google_compute_backend_service.lipsum", &svc),
@@ -65,6 +64,47 @@ func TestAccComputeBackendService_withBackend(t *testing.T) {
 
 	if svc.TimeoutSec != 10 {
 		t.Errorf("Expected TimeoutSec == 10, got %d", svc.TimeoutSec)
+	}
+	if svc.Protocol != "HTTP" {
+		t.Errorf("Expected Protocol to be HTTP, got %q", svc.Protocol)
+	}
+	if len(svc.Backends) != 1 {
+		t.Errorf("Expected 1 backend, got %d", len(svc.Backends))
+	}
+}
+
+func TestAccComputeBackendService_withBackendAndUpdate(t *testing.T) {
+	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	igName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	itName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	var svc compute.BackendService
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeBackendService_withBackend(
+					serviceName, igName, itName, checkName, 10),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeBackendServiceExists(
+						"google_compute_backend_service.lipsum", &svc),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeBackendService_withBackend(
+					serviceName, igName, itName, checkName, 20),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeBackendServiceExists(
+						"google_compute_backend_service.lipsum", &svc),
+				),
+			},
+		},
+	})
+
+	if svc.TimeoutSec != 20 {
+		t.Errorf("Expected TimeoutSec == 20, got %d", svc.TimeoutSec)
 	}
 	if svc.Protocol != "HTTP" {
 		t.Errorf("Expected Protocol to be HTTP, got %q", svc.Protocol)
@@ -121,11 +161,88 @@ func testAccCheckComputeBackendServiceExists(n string, svc *compute.BackendServi
 	}
 }
 
+func TestAccComputeBackendService_withCDNEnabled(t *testing.T) {
+	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	var svc compute.BackendService
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeBackendService_withCDNEnabled(
+					serviceName, checkName),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeBackendServiceExists(
+						"google_compute_backend_service.foobar", &svc),
+				),
+			},
+		},
+	})
+
+	if svc.EnableCDN != true {
+		t.Errorf("Expected EnableCDN == true, got %t", svc.EnableCDN)
+	}
+}
+
+func TestAccComputeBackendService_withSessionAffinity(t *testing.T) {
+	serviceName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	checkName := fmt.Sprintf("tf-test-%s", acctest.RandString(10))
+	var svc compute.BackendService
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeBackendServiceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeBackendService_withSessionAffinity(
+					serviceName, checkName, "CLIENT_IP"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeBackendServiceExists(
+						"google_compute_backend_service.foobar", &svc),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeBackendService_withSessionAffinity(
+					serviceName, checkName, "GENERATED_COOKIE"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeBackendServiceExists(
+						"google_compute_backend_service.foobar", &svc),
+				),
+			},
+		},
+	})
+
+	if svc.SessionAffinity != "GENERATED_COOKIE" {
+		t.Errorf("Expected SessionAffinity == \"GENERATED_COOKIE\", got %s", svc.SessionAffinity)
+	}
+}
+
 func testAccComputeBackendService_basic(serviceName, checkName string) string {
 	return fmt.Sprintf(`
 resource "google_compute_backend_service" "foobar" {
   name          = "%s"
   health_checks = ["${google_compute_http_health_check.zero.self_link}"]
+}
+
+resource "google_compute_http_health_check" "zero" {
+  name               = "%s"
+  request_path       = "/"
+  check_interval_sec = 1
+  timeout_sec        = 1
+}
+`, serviceName, checkName)
+}
+
+func testAccComputeBackendService_withCDNEnabled(serviceName, checkName string) string {
+	return fmt.Sprintf(`
+resource "google_compute_backend_service" "foobar" {
+  name          = "%s"
+  health_checks = ["${google_compute_http_health_check.zero.self_link}"]
+  enable_cdn    = true
 }
 
 resource "google_compute_http_health_check" "zero" {
@@ -161,14 +278,14 @@ resource "google_compute_http_health_check" "one" {
 }
 
 func testAccComputeBackendService_withBackend(
-	serviceName, igName, itName, checkName string) string {
+	serviceName, igName, itName, checkName string, timeout int64) string {
 	return fmt.Sprintf(`
 resource "google_compute_backend_service" "lipsum" {
   name        = "%s"
   description = "Hello World 1234"
   port_name   = "http"
   protocol    = "HTTP"
-  timeout_sec = 10
+  timeout_sec = %v
 
   backend {
     group = "${google_compute_instance_group_manager.foobar.instance_group}"
@@ -194,7 +311,7 @@ resource "google_compute_instance_template" "foobar" {
   }
 
   disk {
-    source_image = "debian-7-wheezy-v20160301"
+    source_image = "debian-8-jessie-v20160803"
     auto_delete  = true
     boot         = true
   }
@@ -206,5 +323,22 @@ resource "google_compute_http_health_check" "default" {
   check_interval_sec = 1
   timeout_sec        = 1
 }
-`, serviceName, igName, itName, checkName)
+`, serviceName, timeout, igName, itName, checkName)
+}
+
+func testAccComputeBackendService_withSessionAffinity(serviceName, checkName, affinityName string) string {
+	return fmt.Sprintf(`
+resource "google_compute_backend_service" "foobar" {
+  name             = "%s"
+  health_checks    = ["${google_compute_http_health_check.zero.self_link}"]
+  session_affinity = "%s"
+}
+
+resource "google_compute_http_health_check" "zero" {
+  name               = "%s"
+  request_path       = "/"
+  check_interval_sec = 1
+  timeout_sec        = 1
+}
+`, serviceName, affinityName, checkName)
 }

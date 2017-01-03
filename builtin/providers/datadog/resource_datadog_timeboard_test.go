@@ -14,7 +14,7 @@ import (
 const config1 = `
 resource "datadog_timeboard" "acceptance_test" {
   title = "Acceptance Test Timeboard"
-  description = "Created using the Datadog prodivider in Terraform"
+  description = "Created using the Datadog provider in Terraform"
   read_only = true
   graph {
     title = "Top System CPU by Docker container"
@@ -29,7 +29,7 @@ resource "datadog_timeboard" "acceptance_test" {
 const config2 = `
 resource "datadog_timeboard" "acceptance_test" {
   title = "Acceptance Test Timeboard"
-  description = "Created using the Datadog prodivider in Terraform"
+  description = "Created using the Datadog provider in Terraform"
   graph {
     title = "Redis latency (ms)"
     viz = "timeseries"
@@ -47,6 +47,63 @@ resource "datadog_timeboard" "acceptance_test" {
     request {
       q = "avg:redis.mem.rss{$host}"
     }
+    request {
+      q = "avg:redis.mem.rss{$host}"
+      type = "bars"
+      style {
+        palette = "warm"
+      }
+    }
+  }
+  template_variable {
+    name = "host"
+    prefix = "host"
+  }
+}
+`
+
+const config3 = `
+resource "datadog_timeboard" "acceptance_test" {
+  title = "Acceptance Test Timeboard"
+  description = "Created using the Datadog provider in Terraform"
+  graph {
+    title = "Redis latency (ms)"
+    viz = "timeseries"
+    request {
+      q = "avg:redis.info.latency_ms{$host}"
+    }
+    events = ["sources:capistrano"]
+
+    marker {
+      label = "High Latency"
+      type = "error solid"
+      value = "y > 100"
+    }
+    yaxis {
+      max = "50"
+      scale = "sqrt"
+    }
+  }
+  graph {
+    title = "ELB Requests"
+    viz = "query_value"
+    request {
+      q = "sum:aws.elb.request_count{*}.as_count()"
+      type = "line"
+      conditional_format {
+        comparator = ">"
+        value = "1000"
+        palette = "white_on_red"
+      }
+      conditional_format {
+        comparator = "<="
+        value = "1000"
+        palette = "white_on_green"
+      }
+    }
+    custom_unit = "hits"
+    precision = "*"
+    text_align = "left"
   }
   template_variable {
     name = "host"
@@ -62,7 +119,7 @@ func TestAccDatadogTimeboard_update(t *testing.T) {
 		Check: resource.ComposeTestCheckFunc(
 			checkExists,
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "title", "Acceptance Test Timeboard"),
-			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "description", "Created using the Datadog prodivider in Terraform"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "description", "Created using the Datadog provider in Terraform"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "read_only", "true"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.title", "Top System CPU by Docker container"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.viz", "toplist"),
@@ -75,7 +132,7 @@ func TestAccDatadogTimeboard_update(t *testing.T) {
 		Check: resource.ComposeTestCheckFunc(
 			checkExists,
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "title", "Acceptance Test Timeboard"),
-			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "description", "Created using the Datadog prodivider in Terraform"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "description", "Created using the Datadog provider in Terraform"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.title", "Redis latency (ms)"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.viz", "timeseries"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.request.0.q", "avg:redis.info.latency_ms{$host}"),
@@ -86,6 +143,41 @@ func TestAccDatadogTimeboard_update(t *testing.T) {
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.1.q", "avg:redis.mem.rss{$host}"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "template_variable.0.name", "host"),
 			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "template_variable.0.prefix", "host"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.2.type", "bars"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.2.style.palette", "warm"),
+		),
+	}
+
+	step3 := resource.TestStep{
+		Config: config3,
+		Check: resource.ComposeTestCheckFunc(
+			checkExists,
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "title", "Acceptance Test Timeboard"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "description", "Created using the Datadog provider in Terraform"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.title", "Redis latency (ms)"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.viz", "timeseries"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.request.0.q", "avg:redis.info.latency_ms{$host}"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.events.#", "1"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.marker.0.label", "High Latency"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.marker.0.type", "error solid"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.marker.0.value", "y > 100"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.yaxis.max", "50"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.0.yaxis.scale", "sqrt"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.title", "ELB Requests"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.viz", "query_value"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.q", "sum:aws.elb.request_count{*}.as_count()"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.type", "line"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.conditional_format.0.comparator", ">"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.conditional_format.0.value", "1000"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.conditional_format.0.palette", "white_on_red"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.conditional_format.1.comparator", "<="),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.conditional_format.1.value", "1000"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.request.0.conditional_format.1.palette", "white_on_green"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.custom_unit", "hits"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.precision", "*"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "graph.1.text_align", "left"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "template_variable.0.name", "host"),
+			resource.TestCheckResourceAttr("datadog_timeboard.acceptance_test", "template_variable.0.prefix", "host"),
 		),
 	}
 
@@ -93,7 +185,7 @@ func TestAccDatadogTimeboard_update(t *testing.T) {
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: checkDestroy,
-		Steps:        []resource.TestStep{step1, step2},
+		Steps:        []resource.TestStep{step1, step2, step3},
 	})
 }
 

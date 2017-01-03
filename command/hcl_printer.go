@@ -35,7 +35,13 @@ func encodeHCL(i interface{}) ([]byte, error) {
 	// now strip that first assignment off
 	eq := regexp.MustCompile(`=\s+`).FindIndex(hcl)
 
-	return hcl[eq[1]:], nil
+	// strip of an extra \n if it's there
+	end := len(hcl)
+	if hcl[end-1] == '\n' {
+		end -= 1
+	}
+
+	return hcl[eq[1]:end], nil
 }
 
 type encodeState struct {
@@ -107,7 +113,7 @@ func (e *encodeState) encodeInt(i interface{}) error {
 }
 
 func (e *encodeState) encodeFloat(f interface{}) error {
-	_, err := fmt.Fprintf(e, "%f", f)
+	_, err := fmt.Fprintf(e, "%g", f)
 	return err
 }
 

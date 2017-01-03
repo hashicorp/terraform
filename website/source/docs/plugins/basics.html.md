@@ -19,22 +19,13 @@ this section of the documentation.
 
 ## How it Works
 
-The plugin system for Terraform is based on multi-process RPC. Every
-provider, provisioner, etc. in Terraform is actually a separate compiled
-binary. You can see this when you download Terraform: the Terraform package
-contains multiple binaries.
+Terraform providers and provisioners are provided via plugins. Each plugin
+exposes an implementation for a specific service, such as AWS, or provisioner,
+such as bash. Plugins are executed as a separate process and communicate with
+the main Terraform binary over an RPC interface.
 
-Terraform executes these binaries in a certain way and uses Unix domain
-sockets or network sockets to perform RPC with the plugins.
-
-If you try to execute a plugin directly, an error will be shown:
-
-```
-$ terraform-provider-aws
-This binary is a Terraform plugin. These are not meant to be
-executed directly. Please execute `terraform`, which will load
-any plugins automatically.
-```
+More details are available in 
+[Internal Docs](/docs/internals/internal-plugins.html).
 
 The code within the binaries must adhere to certain interfaces.
 The network communication and RPC is handled automatically by higher-level

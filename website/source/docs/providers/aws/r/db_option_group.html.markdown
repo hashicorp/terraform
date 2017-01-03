@@ -28,10 +28,10 @@ resource "aws_db_option_group" "bar" {
   option {
     option_name = "TDE"
   }
-
-  apply_immediately = true
 }
 ```
+
+~> **Note**: Any modifications to the `db_option_group` are set to happen immediately as we default to applying immediately.
 
 ## Argument Reference
 

@@ -1,8 +1,11 @@
 package aws
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func TestValidateEcrRepositoryName(t *testing.T) {
@@ -88,7 +91,7 @@ func TestValidateLambdaFunctionName(t *testing.T) {
 	invalidNames := []string{
 		"/FunctionNameWithSlash",
 		"function.name.with.dots",
-		// lenght > 140
+		// length > 140
 		"arn:aws:lambda:us-west-2:123456789012:function:TooLoooooo" +
 			"ooooooooooooooooooooooooooooooooooooooooooooooooooooooo" +
 			"ooooooooooooooooongFunctionName",
@@ -119,7 +122,7 @@ func TestValidateLambdaQualifier(t *testing.T) {
 	invalidNames := []string{
 		// No ARNs allowed
 		"arn:aws:lambda:us-west-2:123456789012:function:prod",
-		// lenght > 128
+		// length > 128
 		"TooLooooooooooooooooooooooooooooooooooooooooooooooooooo" +
 			"ooooooooooooooooooooooooooooooooooooooooooooooooooo" +
 			"oooooooooooongQualifier",
@@ -186,6 +189,12 @@ func TestValidateAwsAccountId(t *testing.T) {
 }
 
 func TestValidateArn(t *testing.T) {
+	v := ""
+	_, errors := validateArn(v, "arn")
+	if len(errors) != 0 {
+		t.Fatalf("%q should not be validated as an ARN: %q", v, errors)
+	}
+
 	validNames := []string{
 		"arn:aws:elasticbeanstalk:us-east-1:123456789012:environment/My App/MyEnvironment", // Beanstalk
 		"arn:aws:iam::123456789012:user/David",                                             // IAM User
@@ -276,12 +285,48 @@ func TestValidateCIDRNetworkAddress(t *testing.T) {
 }
 
 func TestValidateHTTPMethod(t *testing.T) {
-	validCases := []string{"GET", "PUT", "POST", "DELETE", "OPTIONS", "HEAD", "PATCH"}
-	for i, method := range validCases {
-		_, errs := validateHTTPMethod(method, "foo")
-		if len(errs) != 0 {
-			t.Fatalf("%d/%d: Expected no error, got errs: %#v",
-				i+1, len(validCases), errs)
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    "incorrect",
+			ErrCount: 1,
+		},
+		{
+			Value:    "delete",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateHTTPMethod(tc.Value, "http_method")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    "ANY",
+			ErrCount: 0,
+		},
+		{
+			Value:    "DELETE",
+			ErrCount: 0,
+		},
+		{
+			Value:    "OPTIONS",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateHTTPMethod(tc.Value, "http_method")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
 		}
 	}
 }
@@ -434,6 +479,111 @@ func TestValidateS3BucketLifecycleStorageClass(t *testing.T) {
 	}
 }
 
+func TestValidateS3BucketReplicationRuleId(t *testing.T) {
+	validId := []string{
+		"YadaHereAndThere",
+		"Valid-5Rule_ID",
+		"This . is also %% valid@!)+*(:ID",
+		"1234",
+		strings.Repeat("W", 255),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketReplicationRuleId(v, "id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid lifecycle rule id: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		// length > 255
+		strings.Repeat("W", 256),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketReplicationRuleId(v, "id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid replication configuration rule id", v)
+		}
+	}
+}
+
+func TestValidateS3BucketReplicationRulePrefix(t *testing.T) {
+	validId := []string{
+		"YadaHereAndThere",
+		"Valid-5Rule_ID",
+		"This . is also %% valid@!)+*(:ID",
+		"1234",
+		strings.Repeat("W", 1024),
+	}
+	for _, v := range validId {
+		_, errors := validateS3BucketReplicationRulePrefix(v, "id")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be a valid lifecycle rule id: %q", v, errors)
+		}
+	}
+
+	invalidId := []string{
+		// length > 1024
+		strings.Repeat("W", 1025),
+	}
+	for _, v := range invalidId {
+		_, errors := validateS3BucketReplicationRulePrefix(v, "id")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be an invalid replication configuration rule id", v)
+		}
+	}
+}
+
+func TestValidateS3BucketReplicationDestinationStorageClass(t *testing.T) {
+	validStorageClass := []string{
+		s3.StorageClassStandard,
+		s3.StorageClassStandardIa,
+		s3.StorageClassReducedRedundancy,
+	}
+
+	for _, v := range validStorageClass {
+		_, errors := validateS3BucketReplicationDestinationStorageClass(v, "storage_class")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid storage class: %q", v, errors)
+		}
+	}
+
+	invalidStorageClass := []string{
+		"FOO",
+		"1234",
+	}
+	for _, v := range invalidStorageClass {
+		_, errors := validateS3BucketReplicationDestinationStorageClass(v, "storage_class")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid storage class", v)
+		}
+	}
+}
+
+func TestValidateS3BucketReplicationRuleStatus(t *testing.T) {
+	validRuleStatuses := []string{
+		s3.ReplicationRuleStatusEnabled,
+		s3.ReplicationRuleStatusDisabled,
+	}
+
+	for _, v := range validRuleStatuses {
+		_, errors := validateS3BucketReplicationRuleStatus(v, "status")
+		if len(errors) != 0 {
+			t.Fatalf("%q should be valid rule status: %q", v, errors)
+		}
+	}
+
+	invalidRuleStatuses := []string{
+		"FOO",
+		"1234",
+	}
+	for _, v := range invalidRuleStatuses {
+		_, errors := validateS3BucketReplicationRuleStatus(v, "status")
+		if len(errors) == 0 {
+			t.Fatalf("%q should be invalid rule status", v)
+		}
+	}
+}
+
 func TestValidateS3BucketLifecycleRuleId(t *testing.T) {
 	validId := []string{
 		"YadaHereAndThere",
@@ -550,6 +700,226 @@ func TestValidateDbEventSubscriptionName(t *testing.T) {
 		_, errors := validateDbEventSubscriptionName(v, "name")
 		if len(errors) == 0 {
 			t.Fatalf("%q should be an invalid RDS Event Subscription Name", v)
+		}
+	}
+}
+
+func TestValidateJsonString(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    `{0:"1"}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `{'abc':1}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `{"def":}`,
+			ErrCount: 1,
+		},
+		{
+			Value:    `{"xyz":[}}`,
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateJsonString(tc.Value, "json")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    ``,
+			ErrCount: 0,
+		},
+		{
+			Value:    `{}`,
+			ErrCount: 0,
+		},
+		{
+			Value:    `{"abc":["1","2"]}`,
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateJsonString(tc.Value, "json")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
+func TestValidateApiGatewayIntegrationType(t *testing.T) {
+	type testCases struct {
+		Value    string
+		ErrCount int
+	}
+
+	invalidCases := []testCases{
+		{
+			Value:    "incorrect",
+			ErrCount: 1,
+		},
+		{
+			Value:    "aws_proxy",
+			ErrCount: 1,
+		},
+	}
+
+	for _, tc := range invalidCases {
+		_, errors := validateApiGatewayIntegrationType(tc.Value, "types")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q to trigger a validation error.", tc.Value)
+		}
+	}
+
+	validCases := []testCases{
+		{
+			Value:    "MOCK",
+			ErrCount: 0,
+		},
+		{
+			Value:    "AWS_PROXY",
+			ErrCount: 0,
+		},
+	}
+
+	for _, tc := range validCases {
+		_, errors := validateApiGatewayIntegrationType(tc.Value, "types")
+		if len(errors) != tc.ErrCount {
+			t.Fatalf("Expected %q not to trigger a validation error.", tc.Value)
+		}
+	}
+}
+
+func TestValidateSQSQueueName(t *testing.T) {
+	validNames := []string{
+		"valid-name",
+		"valid02-name",
+		"Valid-Name1",
+		"_",
+		"-",
+		strings.Repeat("W", 80),
+	}
+	for _, v := range validNames {
+		if errors := validateSQSQueueName(v, "name"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SQS queue Name", v)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		"*",
+		"",
+		" ",
+		".",
+		strings.Repeat("W", 81), // length > 80
+	}
+	for _, v := range invalidNames {
+		if errors := validateSQSQueueName(v, "name"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SQS queue Name", v)
+		}
+	}
+}
+
+func TestValidateSQSFifoQueueName(t *testing.T) {
+	validNames := []string{
+		"valid-name.fifo",
+		"valid02-name.fifo",
+		"Valid-Name1.fifo",
+		"_.fifo",
+		"a.fifo",
+		"A.fifo",
+		"9.fifo",
+		"-.fifo",
+		fmt.Sprintf("%s.fifo", strings.Repeat("W", 75)),
+	}
+	for _, v := range validNames {
+		if errors := validateSQSFifoQueueName(v, "name"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SQS FIFO queue Name: %v", v, errors)
+		}
+	}
+
+	invalidNames := []string{
+		"Here is a name with: colon",
+		"another * invalid name",
+		"also $ invalid",
+		"This . is also %% invalid@!)+(",
+		".fifo",
+		"*",
+		"",
+		" ",
+		".",
+		strings.Repeat("W", 81), // length > 80
+	}
+	for _, v := range invalidNames {
+		if errors := validateSQSFifoQueueName(v, "name"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SQS FIFO queue Name: %v", v, errors)
+		}
+	}
+}
+
+func TestValidateSNSSubscriptionProtocol(t *testing.T) {
+	validProtocols := []string{
+		"lambda",
+		"sqs",
+		"sqs",
+		"application",
+		"http",
+		"https",
+	}
+	for _, v := range validProtocols {
+		if _, errors := validateSNSSubscriptionProtocol(v, "protocol"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid SNS Subscription protocol: %v", v, errors)
+		}
+	}
+
+	invalidProtocols := []string{
+		"Email",
+		"email",
+		"Email-JSON",
+		"email-json",
+		"SMS",
+		"sms",
+	}
+	for _, v := range invalidProtocols {
+		if _, errors := validateSNSSubscriptionProtocol(v, "protocol"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid SNS Subscription protocol: %v", v, errors)
+		}
+	}
+}
+
+func TestValidateSecurityRuleType(t *testing.T) {
+	validTypes := []string{
+		"ingress",
+		"egress",
+	}
+	for _, v := range validTypes {
+		if _, errors := validateSecurityRuleType(v, "type"); len(errors) > 0 {
+			t.Fatalf("%q should be a valid Security Group Rule type: %v", v, errors)
+		}
+	}
+
+	invalidTypes := []string{
+		"foo",
+		"ingresss",
+	}
+	for _, v := range invalidTypes {
+		if _, errors := validateSecurityRuleType(v, "type"); len(errors) == 0 {
+			t.Fatalf("%q should be an invalid Security Group Rule type: %v", v, errors)
 		}
 	}
 }

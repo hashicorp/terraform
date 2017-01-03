@@ -81,7 +81,7 @@ func testAccComputeDisk_basic(diskName string) string {
 	return fmt.Sprintf(`
 resource "google_compute_disk" "foobar" {
 	name = "%s"
-	image = "debian-7-wheezy-v20160301"
+	image = "debian-8-jessie-v20160803"
 	size = 50
 	type = "pd-ssd"
 	zone = "us-central1-a"

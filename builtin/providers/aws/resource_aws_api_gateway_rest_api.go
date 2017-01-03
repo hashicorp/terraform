@@ -20,17 +20,29 @@ func resourceAwsApiGatewayRestApi() *schema.Resource {
 		Delete: resourceAwsApiGatewayRestApiDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"description": &schema.Schema{
+			"description": {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"root_resource_id": &schema.Schema{
+			"binary_media_types": {
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"root_resource_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"created_date": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -46,17 +58,29 @@ func resourceAwsApiGatewayRestApiCreate(d *schema.ResourceData, meta interface{}
 	if d.Get("description").(string) != "" {
 		description = aws.String(d.Get("description").(string))
 	}
-	gateway, err := conn.CreateRestApi(&apigateway.CreateRestApiInput{
+
+	params := &apigateway.CreateRestApiInput{
 		Name:        aws.String(d.Get("name").(string)),
 		Description: description,
-	})
+	}
+
+	binaryMediaTypes, binaryMediaTypesOk := d.GetOk("binary_media_types")
+	if binaryMediaTypesOk {
+		params.BinaryMediaTypes = expandStringList(binaryMediaTypes.([]interface{}))
+	}
+
+	gateway, err := conn.CreateRestApi(params)
 	if err != nil {
 		return fmt.Errorf("Error creating API Gateway: %s", err)
 	}
 
 	d.SetId(*gateway.Id)
 
-	return resourceAwsApiGatewayRestApiRefreshResources(d, meta)
+	if err = resourceAwsApiGatewayRestApiRefreshResources(d, meta); err != nil {
+		return err
+	}
+
+	return resourceAwsApiGatewayRestApiRead(d, meta)
 }
 
 func resourceAwsApiGatewayRestApiRefreshResources(d *schema.ResourceData, meta interface{}) error {
@@ -94,9 +118,13 @@ func resourceAwsApiGatewayRestApiRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.SetId(*api.Id)
 	d.Set("name", api.Name)
 	d.Set("description", api.Description)
+	d.Set("binary_media_types", api.BinaryMediaTypes)
+
+	if err := d.Set("created_date", api.CreatedDate.Format(time.RFC3339)); err != nil {
+		log.Printf("[DEBUG] Error setting created_date: %s", err)
+	}
 
 	return nil
 }

@@ -74,13 +74,6 @@ func resourceAwsCodeCommitRepository() *schema.Resource {
 
 func resourceAwsCodeCommitRepositoryCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).codecommitconn
-	region := meta.(*AWSClient).region
-
-	//	This is a temporary thing - we need to ensure that CodeCommit is only being run against us-east-1
-	//	As this is the only place that AWS currently supports it
-	if region != "us-east-1" {
-		return fmt.Errorf("CodeCommit can only be used with us-east-1. You are trying to use it on %s", region)
-	}
 
 	input := &codecommit.CreateRepositoryInput{
 		RepositoryName:        aws.String(d.Get("repository_name").(string)),
@@ -93,10 +86,10 @@ func resourceAwsCodeCommitRepositoryCreate(d *schema.ResourceData, meta interfac
 	}
 
 	d.SetId(d.Get("repository_name").(string))
-	d.Set("repository_id", *out.RepositoryMetadata.RepositoryId)
-	d.Set("arn", *out.RepositoryMetadata.Arn)
-	d.Set("clone_url_http", *out.RepositoryMetadata.CloneUrlHttp)
-	d.Set("clone_url_ssh", *out.RepositoryMetadata.CloneUrlSsh)
+	d.Set("repository_id", out.RepositoryMetadata.RepositoryId)
+	d.Set("arn", out.RepositoryMetadata.Arn)
+	d.Set("clone_url_http", out.RepositoryMetadata.CloneUrlHttp)
+	d.Set("clone_url_ssh", out.RepositoryMetadata.CloneUrlSsh)
 
 	return resourceAwsCodeCommitRepositoryUpdate(d, meta)
 }
@@ -133,14 +126,14 @@ func resourceAwsCodeCommitRepositoryRead(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error reading CodeCommit Repository: %s", err.Error())
 	}
 
-	d.Set("repository_id", *out.RepositoryMetadata.RepositoryId)
-	d.Set("arn", *out.RepositoryMetadata.Arn)
-	d.Set("clone_url_http", *out.RepositoryMetadata.CloneUrlHttp)
-	d.Set("clone_url_ssh", *out.RepositoryMetadata.CloneUrlSsh)
+	d.Set("repository_id", out.RepositoryMetadata.RepositoryId)
+	d.Set("arn", out.RepositoryMetadata.Arn)
+	d.Set("clone_url_http", out.RepositoryMetadata.CloneUrlHttp)
+	d.Set("clone_url_ssh", out.RepositoryMetadata.CloneUrlSsh)
 
 	if _, ok := d.GetOk("default_branch"); ok {
 		if out.RepositoryMetadata.DefaultBranch != nil {
-			d.Set("default_branch", *out.RepositoryMetadata.DefaultBranch)
+			d.Set("default_branch", out.RepositoryMetadata.DefaultBranch)
 		}
 	}
 

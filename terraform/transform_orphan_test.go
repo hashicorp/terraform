@@ -35,7 +35,7 @@ func TestOrphanTransformer(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -86,7 +86,7 @@ func TestOrphanTransformer_modules(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -140,7 +140,7 @@ func TestOrphanTransformer_modulesDeps(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -194,7 +194,7 @@ func TestOrphanTransformer_modulesDepsOrphan(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -233,7 +233,7 @@ func TestOrphanTransformer_modulesNoRoot(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -282,7 +282,7 @@ func TestOrphanTransformer_resourceDepends(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -305,7 +305,7 @@ func TestOrphanTransformer_nilState(t *testing.T) {
 
 	g := Graph{Path: RootModulePath}
 	{
-		tf := &ConfigTransformer{Module: mod}
+		tf := &ConfigTransformerOld{Module: mod}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

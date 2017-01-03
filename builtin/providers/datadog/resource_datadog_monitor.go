@@ -18,6 +18,9 @@ func resourceDatadogMonitor() *schema.Resource {
 		Update: resourceDatadogMonitorUpdate,
 		Delete: resourceDatadogMonitorDelete,
 		Exists: resourceDatadogMonitorExists,
+		Importer: &schema.ResourceImporter{
+			State: resourceDatadogMonitorImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -53,7 +56,7 @@ func resourceDatadogMonitor() *schema.Resource {
 			// Options
 			"thresholds": &schema.Schema{
 				Type:     schema.TypeMap,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"ok": &schema.Schema{
@@ -66,10 +69,11 @@ func resourceDatadogMonitor() *schema.Resource {
 						},
 						"critical": &schema.Schema{
 							Type:     schema.TypeFloat,
-							Required: true,
+							Optional: true,
 						},
 					},
 				},
+				DiffSuppressFunc: suppressDataDogFloatIntDiff,
 			},
 			"notify_no_data": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -114,6 +118,11 @@ func resourceDatadogMonitor() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"tags": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -147,7 +156,7 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		o.NotifyNoData = attr.(bool)
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
-		o.NoDataTimeframe = attr.(int)
+		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
 	}
 	if attr, ok := d.GetOk("renotify_interval"); ok {
 		o.RenotifyInterval = attr.(int)
@@ -177,6 +186,14 @@ func buildMonitorStruct(d *schema.ResourceData) *datadog.Monitor {
 		Name:    d.Get("name").(string),
 		Message: d.Get("message").(string),
 		Options: o,
+	}
+
+	if attr, ok := d.GetOk("tags"); ok {
+		tags := []string{}
+		for _, s := range attr.([]interface{}) {
+			tags = append(tags, s.(string))
+		}
+		m.Tags = tags
 	}
 
 	return &m
@@ -230,12 +247,29 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	thresholds := make(map[string]string)
+	for k, v := range map[string]json.Number{
+		"ok":       m.Options.Thresholds.Ok,
+		"warning":  m.Options.Thresholds.Warning,
+		"critical": m.Options.Thresholds.Critical,
+	} {
+		s := v.String()
+		if s != "" {
+			thresholds[k] = s
+		}
+	}
+
+	tags := []string{}
+	for _, s := range m.Tags {
+		tags = append(tags, s)
+	}
+
 	log.Printf("[DEBUG] monitor: %v", m)
 	d.Set("name", m.Name)
 	d.Set("message", m.Message)
 	d.Set("query", m.Query)
 	d.Set("type", m.Type)
-	d.Set("thresholds", m.Options.Thresholds)
+	d.Set("thresholds", thresholds)
 	d.Set("notify_no_data", m.Options.NotifyNoData)
 	d.Set("no_data_timeframe", m.Options.NoDataTimeframe)
 	d.Set("renotify_interval", m.Options.RenotifyInterval)
@@ -244,6 +278,7 @@ func resourceDatadogMonitorRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("escalation_message", m.Options.EscalationMessage)
 	d.Set("silenced", m.Options.Silenced)
 	d.Set("include_tags", m.Options.IncludeTags)
+	d.Set("tags", tags)
 	d.Set("require_full_window", m.Options.RequireFullWindow)
 	d.Set("locked", m.Options.Locked)
 
@@ -271,6 +306,14 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		m.Query = attr.(string)
 	}
 
+	if attr, ok := d.GetOk("tags"); ok {
+		s := make([]string, 0)
+		for _, v := range attr.([]interface{}) {
+			s = append(s, v.(string))
+		}
+		m.Tags = s
+	}
+
 	o := datadog.Options{}
 	if attr, ok := d.GetOk("thresholds"); ok {
 		thresholds := attr.(map[string]interface{})
@@ -289,7 +332,7 @@ func resourceDatadogMonitorUpdate(d *schema.ResourceData, meta interface{}) erro
 		o.NotifyNoData = attr.(bool)
 	}
 	if attr, ok := d.GetOk("no_data_timeframe"); ok {
-		o.NoDataTimeframe = attr.(int)
+		o.NoDataTimeframe = datadog.NoDataTimeframe(attr.(int))
 	}
 	if attr, ok := d.GetOk("renotify_interval"); ok {
 		o.RenotifyInterval = attr.(int)
@@ -343,4 +386,34 @@ func resourceDatadogMonitorDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	return nil
+}
+
+func resourceDatadogMonitorImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	if err := resourceDatadogMonitorRead(d, meta); err != nil {
+		return nil, err
+	}
+	return []*schema.ResourceData{d}, nil
+}
+
+// Ignore any diff that results from the mix of ints or floats returned from the
+// DataDog API.
+func suppressDataDogFloatIntDiff(k, old, new string, d *schema.ResourceData) bool {
+	oF, err := strconv.ParseFloat(old, 64)
+	if err != nil {
+		log.Printf("Error parsing float of old value (%s): %s", old, err)
+		return false
+	}
+
+	nF, err := strconv.ParseFloat(new, 64)
+	if err != nil {
+		log.Printf("Error parsing float of new value (%s): %s", new, err)
+		return false
+	}
+
+	// if the float values of these attributes are equivalent, ignore this
+	// diff
+	if oF == nF {
+		return true
+	}
+	return false
 }

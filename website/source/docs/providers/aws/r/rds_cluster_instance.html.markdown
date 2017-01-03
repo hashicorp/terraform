@@ -65,8 +65,11 @@ details on controlling this property.
 * `db_parameter_group_name` - (Optional) The name of the DB parameter group to associate with this instance.
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is`false`.
-* `storage_encrypted` - (Optional) Specifies whether the DB cluster instance is encrypted. The default is `false` if not specified.
-* `kms_key_id` - (Optional) The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to true
+* `monitoring_role_arn` - (Optional) The ARN for the IAM role that permits RDS to send
+enhanced monitoring metrics to CloudWatch Logs. You can find more information on the [AWS Documentation](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_Monitoring.html)
+what IAM permissions are needed to allow Enhanced Monitoring for RDS Instances.
+* `monitoring_interval` - (Optional) The interval, in seconds, between points when Enhanced Monitoring metrics are collected for the DB instance. To disable collecting Enhanced Monitoring metrics, specify 0. The default is 0. Valid Values: 0, 1, 5, 10, 15, 30, 60.
+* `promotion_tier` - (Optional) Default 0. Failover Priority setting on instance level. The reader who has lower tier has higher priority to get promoter to writer
 * `tags` - (Optional) A mapping of tags to assign to the instance.
 
 ## Attributes Reference
@@ -86,6 +89,8 @@ this instance is a read replica
 * `database_name` - The database name
 * `port` - The database port
 * `status` - The RDS instance status
+* `storage_encrypted` - Specifies whether the DB cluster is encrypted.
+* `kms_key_id` - The ARN for the KMS encryption key if one is set to the cluster.
 
 [2]: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Aurora.html
 [3]: /docs/providers/aws/r/rds_cluster.html
@@ -95,7 +100,7 @@ this instance is a read replica
 
 ## Import
 
-Redshift Cluster Instances can be imported using the `identifier`, e.g.
+RDS Cluster Instances can be imported using the `identifier`, e.g.
 
 ```
 $ terraform import aws_rds_cluster_instance.prod_instance_1 aurora-cluster-instance-1

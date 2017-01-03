@@ -36,16 +36,15 @@ func NewClient(t string, conf map[string]string) (Client, error) {
 // BuiltinClients is the list of built-in clients that can be used with
 // NewClient.
 var BuiltinClients = map[string]Factory{
+	"artifactory": artifactoryFactory,
 	"atlas":       atlasFactory,
 	"azure":       azureFactory,
 	"consul":      consulFactory,
 	"etcd":        etcdFactory,
 	"gcs":         gcsFactory,
 	"http":        httpFactory,
+	"local":       fileFactory,
 	"s3":          s3Factory,
 	"swift":       swiftFactory,
-	"artifactory": artifactoryFactory,
-
-	// This is used for development purposes only.
-	"_local": fileFactory,
+	"manta":       mantaFactory,
 }

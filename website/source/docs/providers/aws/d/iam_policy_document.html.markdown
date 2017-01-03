@@ -60,7 +60,7 @@ data "aws_iam_policy_document" "example" {
 resource "aws_iam_policy" "example" {
     name = "example_policy"
     path = "/"
-    policy = "${data.aws_iam_policy.example.json}"
+    policy = "${data.aws_iam_policy_document.example.json}"
 }
 ```
 
@@ -88,7 +88,7 @@ each accept the following arguments:
   apply to. Used to apply a policy statement to all actions *except* those
   listed.
 * `resources` (Optional) - A list of resource ARNs that this statement applies
-  to.
+  to. This is required by AWS if used for an IAM policy.
 * `not_resources` (Optional) - A list of resource ARNs that this statement
   does *not* apply to. Used to apply a policy statement to all resources
   *except* those listed.
@@ -139,4 +139,3 @@ should be processed by AWS rather than by Terraform.
 The following attribute is exported:
 
 * `json` - The above arguments serialized as a standard JSON policy document.
-
