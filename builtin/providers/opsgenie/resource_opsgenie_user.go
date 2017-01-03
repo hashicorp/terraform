@@ -3,6 +3,8 @@ package opsgenie
 import (
 	"log"
 
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/opsgenie/opsgenie-go-sdk/user"
 )
@@ -18,20 +20,20 @@ func resourceOpsGenieUser() *schema.Resource {
 		},
 		Schema: map[string]*schema.Schema{
 			"username": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Required: true,
-				// TODO: validation as it's an email address, max length 100
+				Type:         schema.TypeString,
+				ForceNew:     true,
+				Required:     true,
+				ValidateFunc: validateOpsGenieUserUsername,
 			},
 			"full_name": {
-				Type:     schema.TypeString,
-				Required: true,
-				// TODO: Max length 512
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateOpsGenieUserFullName,
 			},
 			"role": {
-				Type:     schema.TypeString,
-				Required: true,
-				// TODO: Max length 512
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validateOpsGenieUserRole,
 			},
 			"locale": {
 				Type:     schema.TypeString,
@@ -176,4 +178,34 @@ func resourceOpsGenieUserDelete(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	return nil
+}
+
+func validateOpsGenieUserUsername(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) >= 100 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 100 characters: %q %d", k, value, len(value)))
+	}
+
+	return
+}
+
+func validateOpsGenieUserFullName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) >= 512 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 512 characters: %q %d", k, value, len(value)))
+	}
+
+	return
+}
+
+func validateOpsGenieUserRole(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+
+	if len(value) >= 512 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 512 characters: %q %d", k, value, len(value)))
+	}
+
+	return
 }

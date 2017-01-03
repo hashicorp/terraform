@@ -10,7 +10,6 @@ import (
 	"github.com/opsgenie/opsgenie-go-sdk/team"
 )
 
-//
 func TestAccOpsGenieTeamName_validation(t *testing.T) {
 	cases := []struct {
 		Value    string
