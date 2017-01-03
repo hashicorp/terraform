@@ -15,6 +15,7 @@ IMPROVEMENTS:
  * provider/aws: Add support for instance tenancy in `aws_opsworks_instance` [GH-10885]
  * provider/aws: Added a validation for security group rule types [GH-10864]
  * provider/azurerm: Azure resource providers which are already registered are no longer re-registered. [GH-10991]
+ * provider/docker: Add network create --internal flag support [GH-10932]
  * provider/pagerduty Add delete support to `pagerduty_service_integration` [GH-10891]
  * provider/postgresql Add permissions support to `postgresql_schema` as nested `policy` attributes [GH-10808]
 
