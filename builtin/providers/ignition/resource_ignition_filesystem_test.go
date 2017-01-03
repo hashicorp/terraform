@@ -13,7 +13,7 @@ func TestIngnitionFilesystem(t *testing.T) {
 			name = "foo"
 			path = "/foo"
 		}
-		
+
 		resource "ignition_filesystem" "qux" {
 			name = "qux"
 			mount {
@@ -50,10 +50,10 @@ func TestIngnitionFilesystem(t *testing.T) {
 		}
 
 		if f.Mount != nil {
-			return fmt.Errorf("mount, found %q", f.Mount)
+			return fmt.Errorf("mount, found %q", f.Mount.Device)
 		}
 
-		if f.Path != "/foo" {
+		if string(*f.Path) != "/foo" {
 			return fmt.Errorf("path, found %q", f.Path)
 		}
 

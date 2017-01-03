@@ -15,8 +15,8 @@
 package types
 
 type Group struct {
-	Name         string `json:"name,omitempty"          yaml:"name"`
-	Gid          *uint  `json:"gid,omitempty"           yaml:"gid"`
-	PasswordHash string `json:"passwordHash,omitempty"  yaml:"password_hash"`
-	System       bool   `json:"system,omitempty"        yaml:"system"`
+	Name         string `json:"name,omitempty"`
+	Gid          *uint  `json:"gid,omitempty"`
+	PasswordHash string `json:"passwordHash,omitempty"`
+	System       bool   `json:"system,omitempty"`
 }

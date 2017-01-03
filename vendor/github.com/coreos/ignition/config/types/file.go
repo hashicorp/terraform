@@ -15,64 +15,52 @@
 package types
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
+
+	"github.com/coreos/ignition/config/validate/report"
 )
 
 var (
 	ErrFileIllegalMode = errors.New("illegal file mode")
+	ErrNoFilesystem    = errors.New("no filesystem specified")
 )
 
 type File struct {
-	Filesystem string       `json:"filesystem,omitempty" yaml:"filesystem"`
-	Path       Path         `json:"path,omitempty"       yaml:"path"`
-	Contents   FileContents `json:"contents,omitempty"   yaml:"contents"`
-	Mode       FileMode     `json:"mode,omitempty"       yaml:"mode"`
-	User       FileUser     `json:"user,omitempty"       yaml:"uid"`
-	Group      FileGroup    `json:"group,omitempty"      yaml:"gid"`
+	Filesystem string       `json:"filesystem,omitempty"`
+	Path       Path         `json:"path,omitempty"`
+	Contents   FileContents `json:"contents,omitempty"`
+	Mode       FileMode     `json:"mode,omitempty"`
+	User       FileUser     `json:"user,omitempty"`
+	Group      FileGroup    `json:"group,omitempty"`
+}
+
+func (f File) Validate() report.Report {
+	if f.Filesystem == "" {
+		return report.ReportFromError(ErrNoFilesystem, report.EntryError)
+	}
+	return report.Report{}
 }
 
 type FileUser struct {
-	Id int `json:"id,omitempty" yaml:"id"`
+	Id int `json:"id,omitempty"`
 }
 
 type FileGroup struct {
-	Id int `json:"id,omitempty" yaml:"id"`
+	Id int `json:"id,omitempty"`
 }
 
 type FileContents struct {
-	Compression  Compression  `json:"compression,omitempty"  yaml:"compression"`
-	Source       Url          `json:"source,omitempty"       yaml:"source"`
-	Verification Verification `json:"verification,omitempty" yaml:"verification"`
+	Compression  Compression  `json:"compression,omitempty"`
+	Source       Url          `json:"source,omitempty"`
+	Verification Verification `json:"verification,omitempty"`
 }
 
 type FileMode os.FileMode
 
-func (m *FileMode) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	return m.unmarshal(unmarshal)
-}
-
-func (m *FileMode) UnmarshalJSON(data []byte) error {
-	return m.unmarshal(func(tm interface{}) error {
-		return json.Unmarshal(data, tm)
-	})
-}
-
-type fileMode FileMode
-
-func (m *FileMode) unmarshal(unmarshal func(interface{}) error) error {
-	tm := fileMode(*m)
-	if err := unmarshal(&tm); err != nil {
-		return err
-	}
-	*m = FileMode(tm)
-	return m.assertValid()
-}
-
-func (m FileMode) assertValid() error {
+func (m FileMode) Validate() report.Report {
 	if (m &^ 07777) != 0 {
-		return ErrFileIllegalMode
+		return report.ReportFromError(ErrFileIllegalMode, report.EntryError)
 	}
-	return nil
+	return report.Report{}
 }

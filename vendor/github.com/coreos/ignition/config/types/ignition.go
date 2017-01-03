@@ -19,6 +19,8 @@ import (
 	"errors"
 
 	"github.com/coreos/go-semver/semver"
+
+	"github.com/coreos/ignition/config/validate/report"
 )
 
 var (
@@ -27,51 +29,41 @@ var (
 )
 
 type Ignition struct {
-	Version IgnitionVersion `json:"version,omitempty" yaml:"version" merge:"old"`
-	Config  IgnitionConfig  `json:"config,omitempty"  yaml:"config"  merge:"new"`
+	Version IgnitionVersion `json:"version,omitempty" merge:"old"`
+	Config  IgnitionConfig  `json:"config,omitempty"  merge:"new"`
 }
 
 type IgnitionConfig struct {
-	Append  []ConfigReference `json:"append,omitempty"  yaml:"append"`
-	Replace *ConfigReference  `json:"replace,omitempty" yaml:"replace"`
+	Append  []ConfigReference `json:"append,omitempty"`
+	Replace *ConfigReference  `json:"replace,omitempty"`
 }
 
 type ConfigReference struct {
-	Source       Url          `json:"source,omitempty"       yaml:"source"`
-	Verification Verification `json:"verification,omitempty" yaml:"verification"`
+	Source       Url          `json:"source,omitempty"`
+	Verification Verification `json:"verification,omitempty"`
 }
 
 type IgnitionVersion semver.Version
 
-func (v *IgnitionVersion) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	return v.unmarshal(unmarshal)
-}
-
 func (v *IgnitionVersion) UnmarshalJSON(data []byte) error {
-	return v.unmarshal(func(tv interface{}) error {
-		return json.Unmarshal(data, tv)
-	})
-}
-
-func (v IgnitionVersion) MarshalJSON() ([]byte, error) {
-	return semver.Version(v).MarshalJSON()
-}
-
-func (v *IgnitionVersion) unmarshal(unmarshal func(interface{}) error) error {
 	tv := semver.Version(*v)
-	if err := unmarshal(&tv); err != nil {
+	if err := json.Unmarshal(data, &tv); err != nil {
 		return err
 	}
 	*v = IgnitionVersion(tv)
 	return nil
 }
 
-func (v IgnitionVersion) AssertValid() error {
+func (v IgnitionVersion) MarshalJSON() ([]byte, error) {
+	return semver.Version(v).MarshalJSON()
+}
+
+func (v IgnitionVersion) Validate() report.Report {
 	if MaxVersion.Major > v.Major {
-		return ErrOldVersion
+		return report.ReportFromError(ErrOldVersion, report.EntryError)
 	}
 	if MaxVersion.LessThan(semver.Version(v)) {
-		return ErrNewVersion
+		return report.ReportFromError(ErrNewVersion, report.EntryError)
 	}
-	return nil
+	return report.Report{}
 }

@@ -69,7 +69,7 @@ func TestIngnitionFileAppend(t *testing.T) {
 
 func testIgnition(t *testing.T, input string, assert func(*types.Config) error) {
 	check := func(s *terraform.State) error {
-		got := s.RootModule().Outputs["rendered"].String()
+		got := s.RootModule().Outputs["rendered"].Value.(string)
 
 		c := &types.Config{}
 		err := json.Unmarshal([]byte(got), c)

@@ -15,63 +15,45 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"github.com/coreos/ignition/config/validate/report"
 )
 
 type Disk struct {
-	Device     Path        `json:"device,omitempty"     yaml:"device"`
-	WipeTable  bool        `json:"wipeTable,omitempty"  yaml:"wipe_table"`
-	Partitions []Partition `json:"partitions,omitempty" yaml:"partitions"`
+	Device     Path        `json:"device,omitempty"`
+	WipeTable  bool        `json:"wipeTable,omitempty"`
+	Partitions []Partition `json:"partitions,omitempty"`
 }
 
-func (n *Disk) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	if err := n.unmarshal(unmarshal); err != nil {
-		return err
-	}
-	if err := n.preparePartitions(); err != nil {
-		return err
-	}
-	return n.assertValid()
-}
-
-func (n *Disk) UnmarshalJSON(data []byte) error {
-	err := n.unmarshal(func(tn interface{}) error {
-		return json.Unmarshal(data, tn)
-	})
-	if err != nil {
-		return err
-	}
-	return n.assertValid()
-}
-
-type disk Disk
-
-func (n *Disk) unmarshal(unmarshal func(interface{}) error) error {
-	tn := disk(*n)
-	if err := unmarshal(&tn); err != nil {
-		return err
-	}
-	*n = Disk(tn)
-	return nil
-}
-
-func (n Disk) assertValid() error {
-	// This applies to YAML (post-prepare) and JSON unmarshals equally:
+func (n Disk) Validate() report.Report {
+	r := report.Report{}
 	if len(n.Device) == 0 {
-		return fmt.Errorf("disk device is required")
+		r.Add(report.Entry{
+			Message: "disk device is required",
+			Kind:    report.EntryError,
+		})
 	}
 	if n.partitionNumbersCollide() {
-		return fmt.Errorf("disk %q: partition numbers collide", n.Device)
+		r.Add(report.Entry{
+			Message: fmt.Sprintf("disk %q: partition numbers collide", n.Device),
+			Kind:    report.EntryError,
+		})
 	}
 	if n.partitionsOverlap() {
-		return fmt.Errorf("disk %q: partitions overlap", n.Device)
+		r.Add(report.Entry{
+			Message: fmt.Sprintf("disk %q: partitions overlap", n.Device),
+			Kind:    report.EntryError,
+		})
 	}
 	if n.partitionsMisaligned() {
-		return fmt.Errorf("disk %q: partitions misaligned", n.Device)
+		r.Add(report.Entry{
+			Message: fmt.Sprintf("disk %q: partitions misaligned", n.Device),
+			Kind:    report.EntryError,
+		})
 	}
-	// Disks which get to this point will likely succeed in sgdisk
-	return nil
+	// Disks which have no errors at this point will likely succeed in sgdisk
+	return r
 }
 
 // partitionNumbersCollide returns true if partition numbers in n.Partitions are not unique.
@@ -139,29 +121,4 @@ func (n Disk) partitionsMisaligned() bool {
 		}
 	}
 	return false
-}
-
-// preparePartitions performs some checks and potentially adjusts the partitions for alignment.
-// This is only invoked when unmarshalling YAML, since there we parse human-friendly units.
-func (n *Disk) preparePartitions() error {
-	// On the YAML side we accept human-friendly units which may require massaging.
-
-	// align partition starts
-	for i := range n.Partitions {
-		// skip automatically placed partitions
-		if n.Partitions[i].Start == 0 {
-			continue
-		}
-
-		// keep partitions out of the first 2048 sectors
-		if n.Partitions[i].Start < 2048 {
-			n.Partitions[i].Start = 2048
-		}
-
-		// toss the bottom 11 bits
-		n.Partitions[i].Start &= ^PartitionDimension(2048 - 1)
-	}
-
-	// TODO(vc): may be interesting to do something about potentially overlapping partitions
-	return nil
 }

@@ -1038,6 +1038,18 @@
 			"revision": "e5527914aa42cae3063f52892e1ca4518da0e4ae"
 		},
 		{
+			"checksumSHA1": "0sYnSIFxkXCVRYj3afRu8EyIl0g=",
+			"path": "github.com/coreos/ignition/config/types",
+			"revision": "211ab9d5a30be883c39a47642d05fdc6ce32b76e",
+			"revisionTime": "2016-12-23T13:37:58Z"
+		},
+		{
+			"checksumSHA1": "ViLVCc7CzzrGdJINAg8hv98CVkg=",
+			"path": "github.com/coreos/ignition/config/validate/report",
+			"revision": "211ab9d5a30be883c39a47642d05fdc6ce32b76e",
+			"revisionTime": "2016-12-23T13:37:58Z"
+		},
+		{
 			"path": "github.com/cyberdelia/heroku-go/v3",
 			"revision": "81c5afa1abcf69cc18ccc24fa3716b5a455c9208"
 		},
@@ -2311,6 +2323,12 @@
 			"path": "github.com/ugorji/go/codec",
 			"revision": "faddd6128c66c4708f45fdc007f575f75e592a3c",
 			"revisionTime": "2016-09-28T01:52:44Z"
+		},
+		{
+			"checksumSHA1": "CdE9OUEGLn2pAv1UMuM5rSlaUpM=",
+			"path": "github.com/vincent-petithory/dataurl",
+			"revision": "9a301d65acbb728fcc3ace14f45f511a4cfeea9c",
+			"revisionTime": "2016-03-30T18:21:26Z"
 		},
 		{
 			"comment": "v0.6.2",

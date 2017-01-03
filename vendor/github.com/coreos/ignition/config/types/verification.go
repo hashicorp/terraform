@@ -15,5 +15,5 @@
 package types
 
 type Verification struct {
-	Hash *Hash `json:"hash,omitempty" yaml:"hash"`
+	Hash *Hash `json:"hash,omitempty"`
 }

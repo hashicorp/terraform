@@ -103,9 +103,11 @@ func buildFilesystem(d *schema.ResourceData, c *cache) (string, error) {
 		}
 	}
 
+	path := types.Path(d.Get("path").(string))
+
 	return c.addFilesystem(&types.Filesystem{
 		Name:  d.Get("name").(string),
 		Mount: mount,
-		Path:  types.Path(d.Get("path").(string)),
+		Path:  &path,
 	}), nil
 }
