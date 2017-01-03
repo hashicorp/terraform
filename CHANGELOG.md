@@ -16,6 +16,7 @@ IMPROVEMENTS:
  * provider/aws: Added a validation for security group rule types [GH-10864]
  * provider/azurerm: Azure resource providers which are already registered are no longer re-registered. [GH-10991]
  * provider/docker: Add network create --internal flag support [GH-10932]
+ * provider/docker: Add support for a list of pull_triggers within the docker_image resource. [GH-10845]
  * provider/pagerduty Add delete support to `pagerduty_service_integration` [GH-10891]
  * provider/postgresql Add permissions support to `postgresql_schema` as nested `policy` attributes [GH-10808]
 
