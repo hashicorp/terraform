@@ -17,6 +17,8 @@ resource "opsgenie_user" "test" {
   username  = "user@domain.com"
   full_name = "Cookie Monster"
   role      = "User"
+  locale    = "en_US"
+  timezone  = "America/New_York"
 }
 ```
 
@@ -29,6 +31,10 @@ The following arguments are supported:
 * `full_name` - (Required) The Full Name of the User.
 
 * `role` - (Required) The Role assigned to the User. Either a built-in such as 'Owner', 'Admin' or 'User' - or the name of a custom role.
+
+* `locale` - (Optional) Location information for the user. Please look at [Supported Locale Ids](https://www.opsgenie.com/docs/miscellaneous/supported-locales) for available locales - Defaults to "en_US".
+
+* `timezone` - (Optional) Timezone information of the user. Please look at [Supported Timezone Ids](https://www.opsgenie.com/docs/miscellaneous/supported-timezone-ids) for available timezones - Defaults to "America/New_York".
 
 ## Attributes Reference
 

@@ -29,6 +29,25 @@ func TestAccOpsGenieUser_basic(t *testing.T) {
 	})
 }
 
+func TestAccOpsGenieUser_complete(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccOpsGenieUser_complete, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckOpsGenieUserDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckOpsGenieUserExists("opsgenie_user.test"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckOpsGenieUserDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*OpsGenieClient).users
 
@@ -81,5 +100,15 @@ resource "opsgenie_user" "test" {
   username  = "acctest-%d@example.tld"
   full_name = "Acceptance Test User"
   role      = "User"
+}
+`
+
+var testAccOpsGenieUser_complete = `
+resource "opsgenie_user" "test" {
+  username  = "acctest-%d@example.tld"
+  full_name = "Acceptance Test User"
+  role      = "User"
+  locale    = "en_GB"
+  timezone  = "Etc/GMT"
 }
 `

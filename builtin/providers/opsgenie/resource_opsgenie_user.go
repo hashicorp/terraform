@@ -26,15 +26,23 @@ func resourceOpsGenieUser() *schema.Resource {
 			"full_name": {
 				Type:     schema.TypeString,
 				Required: true,
-				// TODO: Max length 255
+				// TODO: Max length 512
 			},
 			"role": {
 				Type:     schema.TypeString,
 				Required: true,
-				// TODO: Max length 255
+				// TODO: Max length 512
 			},
-
-			// TODO: Locale & Timezone
+			"locale": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "en_US",
+			},
+			"timezone": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "America/New_York",
+			},
 		},
 	}
 }
@@ -45,15 +53,18 @@ func resourceOpsGenieUserCreate(d *schema.ResourceData, meta interface{}) error 
 	username := d.Get("username").(string)
 	fullName := d.Get("full_name").(string)
 	role := d.Get("role").(string)
+	locale := d.Get("locale").(string)
+	timeZone := d.Get("timezone").(string)
 
 	createRequest := user.CreateUserRequest{
 		Username: username,
 		Fullname: fullName,
 		Role:     role,
+		Locale:   locale,
+		Timezone: timeZone,
 	}
 
 	log.Printf("[INFO] Creating OpsGenie user '%s'", username)
-
 	createResponse, err := client.Create(createRequest)
 	if err != nil {
 		return err
@@ -113,6 +124,8 @@ func resourceOpsGenieUserRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("username", getResponse.Username)
 	d.Set("full_name", getResponse.Fullname)
 	d.Set("role", getResponse.Role)
+	d.Set("locale", getResponse.Locale)
+	d.Set("timezone", getResponse.Timezone)
 
 	return nil
 }
@@ -120,23 +133,21 @@ func resourceOpsGenieUserRead(d *schema.ResourceData, meta interface{}) error {
 func resourceOpsGenieUserUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*OpsGenieClient).users
 
-	updateRequest := user.UpdateUserRequest{
-		Id: d.Id(),
-	}
-
 	username := d.Get("username").(string)
 	fullName := d.Get("full_name").(string)
 	role := d.Get("role").(string)
-
-	if d.HasChange("full_name") {
-		updateRequest.Fullname = fullName
-	}
-
-	if d.HasChange("role") {
-		updateRequest.Role = role
-	}
+	locale := d.Get("locale").(string)
+	timeZone := d.Get("timezone").(string)
 
 	log.Printf("[INFO] Updating OpsGenie user '%s'", username)
+
+	updateRequest := user.UpdateUserRequest{
+		Id:       d.Id(),
+		Fullname: fullName,
+		Role:     role,
+		Locale:   locale,
+		Timezone: timeZone,
+	}
 
 	updateResponse, err := client.Update(updateRequest)
 	if err != nil {
