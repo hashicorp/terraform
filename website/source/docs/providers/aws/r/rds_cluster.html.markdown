@@ -63,7 +63,7 @@ string.
     made.
 * `skip_final_snapshot` - (Optional) Determines whether a final DB snapshot is created before the DB cluster is deleted. If true is specified, no DB snapshot is created. If false is specified, a DB snapshot is created before the DB cluster is deleted, using the value from `final_snapshot_identifier`. Default is true.
 * `availability_zones` - (Optional) A list of EC2 Availability Zones that
-  instances in the DB cluster can be created in
+  instances in the DB cluster can be created in. **NOTE:** If specified, a minimum of 3 AZs is needed, otherwise this resource will be forced recreation at every apply run regardless of template changes. See [Amazon RDS Aurora Cluster documentation for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Aurora.CreateInstance.html)
 * `backup_retention_period` - (Optional) The days to retain backups for. Default
 1
 * `preferred_backup_window` - (Optional) The daily time range during which automated backups are created if automated backups are enabled using the BackupRetentionPeriod parameter.
