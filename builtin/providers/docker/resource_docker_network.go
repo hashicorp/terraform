@@ -42,6 +42,13 @@ func resourceDockerNetwork() *schema.Resource {
 				Computed: true,
 			},
 
+			"internal": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"ipam_driver": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,

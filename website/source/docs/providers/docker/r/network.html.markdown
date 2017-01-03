@@ -34,6 +34,8 @@ The following arguments are supported:
   `bridge` driver.
 * `options` - (Optional, map of strings) Network specific options to be used by
   the drivers.
+* `internal` - (Optional, boolean) Restrict external access to the network.
+  Defaults to `false`.
 * `ipam_driver` - (Optional, string) Driver used by the custom IP scheme of the
   network.
 * `ipam_config` - (Optional, block) See [IPAM config](#ipam_config) below for
