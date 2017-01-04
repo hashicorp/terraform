@@ -16,6 +16,7 @@ type VCDClient struct {
 	OrgVdc      Vdc     // Org vDC
 	Client      Client  // Client for the underlying VCD instance
 	sessionHREF url.URL // HREF for the session API
+	QueryHREF   url.URL // HREF for the query API
 	Mutex       sync.Mutex
 }
 
@@ -97,7 +98,7 @@ func (c *VCDClient) vcdauthorize(user, pass, org string) error {
 	}
 
 	org_found := false
-	// Loop in the session struct to find the organization.
+	// Loop in the session struct to find the organization and query api.
 	for _, s := range session.Link {
 		if s.Type == "application/vnd.vmware.vcloud.org+xml" && s.Rel == "down" {
 			u, err := url.Parse(s.HREF)
@@ -106,6 +107,13 @@ func (c *VCDClient) vcdauthorize(user, pass, org string) error {
 			}
 			c.OrgHREF = *u
 			org_found = true
+		}
+		if s.Type == "application/vnd.vmware.vcloud.query.queryList+xml" && s.Rel == "down" {
+			u, err := url.Parse(s.HREF)
+			if err != nil {
+				return fmt.Errorf("couldn't find a Query API in current session, %v", err)
+			}
+			c.QueryHREF = *u
 		}
 	}
 	if !org_found {

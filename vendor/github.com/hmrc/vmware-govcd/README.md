@@ -22,6 +22,7 @@ type Config struct {
 	Org      string
 	Href     string
 	VDC      string
+	Insecure bool
 }
 
 func (c *Config) Client() (*govcd.VCDClient, error) {
@@ -30,7 +31,7 @@ func (c *Config) Client() (*govcd.VCDClient, error) {
 		return nil, fmt.Errorf("Unable to pass url: %s", err)
 	}
 
-	vcdclient := govcd.NewVCDClient(*u)
+	vcdclient := govcd.NewVCDClient(*u, c.Insecure)
 	org, vcd, err := vcdclient.Authenticate(c.User, c.Password, c.Org, c.VDC)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to authenticate: %s", err)
