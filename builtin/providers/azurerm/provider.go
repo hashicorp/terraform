@@ -45,6 +45,12 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_TENANT_ID", ""),
 			},
 
+			"environment": {
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_ENVIRONMENT", "public"),
+			},
+
 			"skip_provider_registration": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -134,6 +140,7 @@ type Config struct {
 	ClientID                 string
 	ClientSecret             string
 	TenantID                 string
+	Environment              string
 	SkipProviderRegistration bool
 
 	validateCredentialsOnce sync.Once
@@ -154,6 +161,9 @@ func (c *Config) validate() error {
 	if c.TenantID == "" {
 		err = multierror.Append(err, fmt.Errorf("Tenant ID must be configured for the AzureRM provider"))
 	}
+	if c.Environment == "" {
+		err = multierror.Append(err, fmt.Errorf("Environment must be configured for the AzureRM provider"))
+	}
 
 	return err.ErrorOrNil()
 }
@@ -165,6 +175,7 @@ func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
 			ClientID:                 d.Get("client_id").(string),
 			ClientSecret:             d.Get("client_secret").(string),
 			TenantID:                 d.Get("tenant_id").(string),
+			Environment:              d.Get("environment").(string),
 			SkipProviderRegistration: d.Get("skip_provider_registration").(bool),
 		}
 

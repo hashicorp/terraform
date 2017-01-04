@@ -2,26 +2,25 @@ package azure
 
 import "fmt"
 
-type RegisterResourceProviderResponse struct {
+type GetResourceProviderResponse struct {
 	ID                *string `mapstructure:"id"`
 	Namespace         *string `mapstructure:"namespace"`
 	RegistrationState *string `mapstructure:"registrationState"`
-	ApplicationID     *string `mapstructure:"applicationId"`
 }
 
-type RegisterResourceProvider struct {
+type GetResourceProvider struct {
 	Namespace string `json:"-"`
 }
 
-func (command RegisterResourceProvider) APIInfo() APIInfo {
+func (command GetResourceProvider) APIInfo() APIInfo {
 	return APIInfo{
 		APIVersion: resourceGroupAPIVersion,
-		Method:     "POST",
+		Method:     "GET",
 		URLPathFunc: func() string {
-			return fmt.Sprintf("providers/%s/register", command.Namespace)
+			return fmt.Sprintf("providers/%s", command.Namespace)
 		},
 		ResponseTypeFunc: func() interface{} {
-			return &RegisterResourceProviderResponse{}
+			return &GetResourceProviderResponse{}
 		},
 	}
 }
