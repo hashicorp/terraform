@@ -225,10 +225,7 @@ func (c *Config) Client() (interface{}, error) {
 		return nil, errwrap.Wrapf("Error creating AWS session: {{err}}", err)
 	}
 
-	// Removes the SDK Version handler, so we only have the provider User-Agent
-	// Ex: "User-Agent: APN/1.0 HashiCorp/1.0 Terraform/0.7.9-dev"
-	sess.Handlers.Build.Remove(request.NamedHandler{Name: "core.SDKVersionUserAgentHandler"})
-	sess.Handlers.Build.PushFrontNamed(addTerraformVersionToUserAgent)
+	sess.Handlers.Build.PushBackNamed(addTerraformVersionToUserAgent)
 
 	if extraDebug := os.Getenv("TERRAFORM_AWS_AUTHFAILURE_DEBUG"); extraDebug != "" {
 		sess.Handlers.UnmarshalError.PushFrontNamed(debugAuthFailure)
