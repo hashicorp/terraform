@@ -34,7 +34,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"aws_efs_mount_target.alpha",
 						"dns_name",
-						regexp.MustCompile("^us-west-2a.[^.]+.efs.us-west-2.amazonaws.com$"),
+						regexp.MustCompile("^[^.]+.efs.us-west-2.amazonaws.com$"),
 					),
 				),
 			},
@@ -48,7 +48,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"aws_efs_mount_target.alpha",
 						"dns_name",
-						regexp.MustCompile("^us-west-2a.[^.]+.efs.us-west-2.amazonaws.com$"),
+						regexp.MustCompile("^[^.]+.efs.us-west-2.amazonaws.com$"),
 					),
 					testAccCheckEfsMountTarget(
 						"aws_efs_mount_target.beta",
@@ -57,7 +57,7 @@ func TestAccAWSEFSMountTarget_basic(t *testing.T) {
 					resource.TestMatchResourceAttr(
 						"aws_efs_mount_target.beta",
 						"dns_name",
-						regexp.MustCompile("^us-west-2b.[^.]+.efs.us-west-2.amazonaws.com$"),
+						regexp.MustCompile("^[^.]+.efs.us-west-2.amazonaws.com$"),
 					),
 				),
 			},
@@ -91,10 +91,9 @@ func TestAccAWSEFSMountTarget_disappears(t *testing.T) {
 }
 
 func TestResourceAWSEFSMountTarget_mountTargetDnsName(t *testing.T) {
-	actual := resourceAwsEfsMountTargetDnsName("non-existent-1c",
-		"fs-123456ab", "non-existent-1")
+	actual := resourceAwsEfsMountTargetDnsName("fs-123456ab", "non-existent-1")
 
-	expected := "non-existent-1c.fs-123456ab.efs.non-existent-1.amazonaws.com"
+	expected := "fs-123456ab.efs.non-existent-1.amazonaws.com"
 	if actual != expected {
 		t.Fatalf("Expected EFS mount target DNS name to be %s, got %s",
 			expected, actual)
