@@ -1,14 +1,14 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_kms_secrets"
-sidebar_current: "docs-aws-datasource-kms-secrets"
+page_title: "AWS: aws_kms_secret"
+sidebar_current: "docs-aws-datasource-kms-secret"
 description: |-
 	Provides secret data encrypted with the KMS service
 ---
 
-# aws\_kms\_secrets
+# aws\_kms\_secret
 
-The KMS secrets data source allows you to use data encrypted with the AWS KMS
+The KMS secret data source allows you to use data encrypted with the AWS KMS
 service within your resource definitions.
 
 ## Note about encrypted data
@@ -21,11 +21,28 @@ Please take care to secure your secret data outside of resource definitions.
 
 ## Example Usage
 
+First, let's encrypt a password with KMS using the [AWS CLI
+tools](http://docs.aws.amazon.com/cli/latest/reference/kms/encrypt.html).  This
+requires you to have your AWS CLI setup correctly, and you would replace the
+key-id with your own.
+
 ```
-data "aws_kms_secrets" "db" {
+$ echo 'master-password' > plaintext-password
+$ aws kms encrypt \
+> --key-id ab123456-c012-4567-890a-deadbeef123 \
+> --plaintext fileb://plaintext-example \
+> --encryption-context foo=bar \
+> --output text --query CiphertextBlob
+AQECAHgaPa0J8WadplGCqqVAr4HNvDaFSQ+NaiwIBhmm6qDSFwAAAGIwYAYJKoZIhvcNAQcGoFMwUQIBADBMBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDI+LoLdvYv8l41OhAAIBEIAfx49FFJCLeYrkfMfAw6XlnxP23MmDBdqP8dPp28OoAQ==
+```
+
+Now, take that output and add it to your resource definitions.
+
+```
+data "aws_kms_secret" "db" {
     secret {
         name = "master_password"
-        payload = "AQECAHhhE7rnmbnLg..."
+        payload = "AQECAHgaPa0J8WadplGCqqVAr4HNvDaFSQ+NaiwIBhmm6qDSFwAAAGIwYAYJKoZIhvcNAQcGoFMwUQIBADBMBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDI+LoLdvYv8l41OhAAIBEIAfx49FFJCLeYrkfMfAw6XlnxP23MmDBdqP8dPp28OoAQ=="
 
         context {
             foo = "bar"
@@ -35,10 +52,12 @@ data "aws_kms_secrets" "db" {
 
 resource "aws_rds_cluster" "rds" {
     master_username = "root"
-    master_password = "${data.aws_kms_secrets.db.master_password}"
+    master_password = "${data.aws_kms_secret.db.master_password}"
     ...
 }
 ```
+
+And your RDS cluster would have the root password set to "master-password"
 
 ## Argument Reference
 

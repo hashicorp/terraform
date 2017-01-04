@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func dataSourceAwsKmsSecrets() *schema.Resource {
+func dataSourceAwsKmsSecret() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceAwsKmsSecretsRead,
+		Read: dataSourceAwsKmsSecretRead,
 
 		Schema: map[string]*schema.Schema{
 			"secret": &schema.Schema{
@@ -51,8 +51,8 @@ func dataSourceAwsKmsSecrets() *schema.Resource {
 	}
 }
 
-// dataSourceAwsKmsSecretsRead decrypts the specified secrets
-func dataSourceAwsKmsSecretsRead(d *schema.ResourceData, meta interface{}) error {
+// dataSourceAwsKmsSecretRead decrypts the specified secrets
+func dataSourceAwsKmsSecretRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kmsconn
 	secrets := d.Get("secret").(*schema.Set)
 
@@ -91,7 +91,7 @@ func dataSourceAwsKmsSecretsRead(d *schema.ResourceData, meta interface{}) error
 		}
 
 		// Set the secret via the name
-		log.Printf("[DEBUG] aws_kms_secrets - successfully decrypted secret: %s", secret["name"].(string))
+		log.Printf("[DEBUG] aws_kms_secret - successfully decrypted secret: %s", secret["name"].(string))
 		d.UnsafeSetFieldRaw(secret["name"].(string), string(resp.Plaintext))
 	}
 

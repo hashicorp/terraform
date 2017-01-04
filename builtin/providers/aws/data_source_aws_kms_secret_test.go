@@ -12,16 +12,16 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSKmsSecretsDataSource_basic(t *testing.T) {
+func TestAccAWSKmsSecretDataSource_basic(t *testing.T) {
 	// Run a resource test to setup our KMS key
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckAwsKmsSecretsDataSourceKey,
+				Config: testAccCheckAwsKmsSecretDataSourceKey,
 				Check: func(s *terraform.State) error {
-					encryptedPayload, err := testAccCheckAwsKmsSecretsDataSourceCheckKeySetup(s)
+					encryptedPayload, err := testAccCheckAwsKmsSecretDataSourceCheckKeySetup(s)
 					if err != nil {
 						return err
 					}
@@ -35,9 +35,9 @@ func TestAccAWSKmsSecretsDataSource_basic(t *testing.T) {
 						Providers: testAccProviders,
 						Steps: []resource.TestStep{
 							{
-								Config: fmt.Sprintf(testAccCheckAwsKmsSecretsDataSourceSecrets, encryptedPayload),
+								Config: fmt.Sprintf(testAccCheckAwsKmsSecretDataSourceSecret, encryptedPayload),
 								Check: resource.ComposeTestCheckFunc(
-									resource.TestCheckResourceAttr("data.aws_kms_secrets.testing", "secret_name", "PAYLOAD"),
+									resource.TestCheckResourceAttr("data.aws_kms_secret.testing", "secret_name", "PAYLOAD"),
 								),
 							},
 						},
@@ -51,7 +51,7 @@ func TestAccAWSKmsSecretsDataSource_basic(t *testing.T) {
 
 }
 
-func testAccCheckAwsKmsSecretsDataSourceCheckKeySetup(s *terraform.State) (string, error) {
+func testAccCheckAwsKmsSecretDataSourceCheckKeySetup(s *terraform.State) (string, error) {
 	rs, ok := s.RootModule().Resources["aws_kms_key.terraform_data_source_testing"]
 	if !ok {
 		return "", fmt.Errorf("Failed to setup a KMS key for data source testing!")
@@ -76,14 +76,14 @@ func testAccCheckAwsKmsSecretsDataSourceCheckKeySetup(s *terraform.State) (strin
 	return base64.StdEncoding.EncodeToString(resp.CiphertextBlob), nil
 }
 
-const testAccCheckAwsKmsSecretsDataSourceKey = `
+const testAccCheckAwsKmsSecretDataSourceKey = `
 resource "aws_kms_key" "terraform_data_source_testing" {
-    description = "Testing the Terraform AWS KMS Secrets data_source"
+    description = "Testing the Terraform AWS KMS Secret data_source"
 }
 `
 
-const testAccCheckAwsKmsSecretsDataSourceSecrets = `
-data "aws_kms_secrets" "testing" {
+const testAccCheckAwsKmsSecretDataSourceSecret = `
+data "aws_kms_secret" "testing" {
     secret {
         name = "secret_name"
         payload = "%s"
