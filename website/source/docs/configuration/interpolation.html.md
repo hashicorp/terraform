@@ -244,7 +244,7 @@ The supported built-in functions are:
       * `${list("a", "b", "c")}` returns a list of `"a", "b", "c"`.
       * `${list()}` returns an empty list.
 
-  * `lookup(map, key, [default])` - Performs a dynamic lookup into a map
+  * `lookup(map, key, [default])` - Performs a dynamic lookup into a map
       variable. The `map` parameter should be another variable, such
       as `var.amis`. If `key` does not exist in `map`, the interpolation will
       fail unless you specify a third argument, `default`, which should be a

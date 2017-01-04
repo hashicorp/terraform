@@ -1,40 +1,84 @@
-## 0.8.2 (unreleased)
-
-BACKWARDS INCOMPATIBILITIES / NOTES:
-
- * `aws_lambda_function` Please note that `runtime` is now a required field as AWS have deprecated the use of nodejs 0.10 in lambda functions [GH-9724]
+## 0.8.3 (unreleased)
 
 FEATURES:
 
- * **New Provider:**  `New Relic` [GH-10317]
- * **New Resource:**  `aws_ses_configuration_set` [GH-10735]
- * **New Resource:**  `aws_ses_event_destination` [GH-10735]
- * **New Resource:**  `azurerm_redis_cache` [GH-10184]
- * **New Resource:**  `ultradns_dirpool` [GH-9788]
- * **New Resource:**  `ultradns_probe_http` [GH-9788]
- * **New Resource:**  `ultradns_probe_ping` [GH-9788]
- * **New Resource:**  `ultradns_record` [GH-9788]
- * **New Resource:**  `ultradns_tcpool` [GH-9788]
- * **New Data Source:**  `aws_iam_account_alias` [GH-10804]
- 
-IMPROVEMENTS:
+ * **New Provider:**  `Ignition` [GH-6189]
+ * **New Data Source:**  `aws_vpc_peering_connection` [GH-10913]
+ * **New Resource:**  `azurerm_container_registry` [GH-10973]
+ * **New Resource:**  `azurerm_eventhub_authorization_rule` [GH-10971]
+ * **New Resource:**  `azurerm_eventhub_consumer_group` [GH-9902]
 
- * provider/aws: Add support for BinaryMediaTypes and ContentHandling to AWS API Gateway [GH-10776]
- * provider/aws: Deprecated aws_lambda_function nodejs runtime in favor of nodejs4.3 [GH-9724]
- * provider/aws: Support updating of aws_db_instance db_subnet_group_name [GH-10818]
- * provider/aws: Allow update to RDS password when restoring from snapshot [GH-8622]
- * provider/azurerm: add support for tags to dns_zone [GH-10750]
- * provider/pagerduty pagerduty_schedule - support for start_day_of_week (schedule restriction) [GH-10069]
+IMPROVEMENTS:
+ 
+ * provider/archive: `archive_file` now exports `output_md5` attribute in addition to existing SHA1 and Base64 SHA256 hashes. [GH-10851]
+ * provider/aws: Add `most_recent` to the `ebs_snapshot` data source [GH-10986]
+ * provider/aws: Add support for instance tenancy in `aws_opsworks_instance` [GH-10885]
+ * provider/aws: Added a validation for security group rule types [GH-10864]
+ * provider:aws: Add support for updating aws_emr_cluster parameters [GH-11008]
+ * provider/azurerm: support non public clouds [GH-11026]
+ * provider/azurerm: Azure resource providers which are already registered are no longer re-registered. [GH-10991]
+ * provider/docker: Add network create --internal flag support [GH-10932]
+ * provider/docker: Add support for a list of pull_triggers within the docker_image resource. [GH-10845]
+ * provider/pagerduty Add delete support to `pagerduty_service_integration` [GH-10891]
+ * provider/postgresql Add permissions support to `postgresql_schema` as nested `policy` attributes [GH-10808]
 
 BUG FIXES:
 
- * core: Improve validation for provider aliases to allow inheritance in moduels. [GH-10807]
- * provider/aws: Fixed crash in `data_source_ami` with empty `owner` value [GH-10763]
- * provider/aws: Require `master_username` and `master_password` if no snapshot given in Redshift Cluster [GH-9837]
- * provider/azurerm: fix network_interface.ip_configuration hash for load balancers [GH-10834]
- * provider/docker: Fix regression, 'cert_path' stop working [GH-10801]
- * provider/google: Use node_version during google_container_cluster creation [GH-10817]
- * provider/openstack: Handle Volume Creation Errors [GH-10821]
+ * provider/aws: Guard against nil change output in `route53_zone` that causes panic [GH-10798]
+ * provider/aws: Reworked validateArn function to handle empty values [GH-10833]
+ * provider/aws: Set `aws_autoscaling_policy` `metric_aggregation_type` to be Computed [GH-10904]
+ * provider/aws: `storage_class` is now correctly treated as optional when configuring replication for `aws_s3_bucket` resources. [GH-10921]
+ * provider/aws: `user_data` on `aws_launch_configuration` resources is only base 64 encoded if the value provided is not already base 64 encoded. [GH-10871]
+ * provider/aws: Add snapshotting to the list of pending state for elasticache [GH-10965]
+ * provider/aws: Add support for updating tags in aws_emr_cluster [GH-11003]
+ * provider/aws: Fix the normalization of AWS policy statements [GH-11009]
+ * provider/aws: data_source_aws_iam_server_certificate latest should be bool not string causes panic [GH-11016]
+ * provider/aws: Fix typo in aws_redshift_cluster causing security groups to not allow update [GH-11025]
+ * provider/google: Fix backwards incompatibility around create_timeout in instances [GH-10858]
+ * provider/openstack: Handle `PENDING_UPDATE` status with LBaaS v2 members [GH-10875]
+ * provider/rancher: Add 'finishing-upgrade' state to rancher stack [GH-11019]
+
+
+## 0.8.2 (December 21, 2016)
+
+BACKWARDS INCOMPATIBILITIES / NOTES:
+
+ * `aws_lambda_function` Please note that `runtime` is now a required field as AWS have deprecated the use of nodejs 0.10 in lambda functions ([#9724](https://github.com/hashicorp/terraform/issues/9724))
+
+FEATURES:
+
+ * **New Provider:**  `New Relic` ([#10317](https://github.com/hashicorp/terraform/issues/10317))
+ * **New Resource:**  `aws_ses_configuration_set` ([#10735](https://github.com/hashicorp/terraform/issues/10735))
+ * **New Resource:**  `aws_ses_event_destination` ([#10735](https://github.com/hashicorp/terraform/issues/10735))
+ * **New Resource:**  `azurerm_redis_cache` ([#10184](https://github.com/hashicorp/terraform/issues/10184))
+ * **New Resource:**  `ultradns_dirpool` ([#9788](https://github.com/hashicorp/terraform/issues/9788))
+ * **New Resource:**  `ultradns_probe_http` ([#9788](https://github.com/hashicorp/terraform/issues/9788))
+ * **New Resource:**  `ultradns_probe_ping` ([#9788](https://github.com/hashicorp/terraform/issues/9788))
+ * **New Resource:**  `ultradns_record` ([#9788](https://github.com/hashicorp/terraform/issues/9788))
+ * **New Resource:**  `ultradns_tcpool` ([#9788](https://github.com/hashicorp/terraform/issues/9788))
+ * **New Data Source:**  `aws_iam_account_alias` ([#10804](https://github.com/hashicorp/terraform/issues/10804))
+ 
+IMPROVEMENTS:
+
+ * provider/aws: Add support for BinaryMediaTypes and ContentHandling to AWS API Gateway ([#10776](https://github.com/hashicorp/terraform/issues/10776))
+ * provider/aws: Deprecated aws_lambda_function nodejs runtime in favor of nodejs4.3 ([#9724](https://github.com/hashicorp/terraform/issues/9724))
+ * provider/aws: Support updating of aws_db_instance db_subnet_group_name ([#10818](https://github.com/hashicorp/terraform/issues/10818))
+ * provider/aws: Allow update to RDS password when restoring from snapshot ([#8622](https://github.com/hashicorp/terraform/issues/8622))
+ * provider/azurerm: add support for tags to dns_zone ([#10750](https://github.com/hashicorp/terraform/issues/10750))
+ * provider/pagerduty pagerduty_schedule - support for start_day_of_week (schedule restriction) ([#10069](https://github.com/hashicorp/terraform/issues/10069))
+ * state/remote/swift: add support for token authentication ([#10866](https://github.com/hashicorp/terraform/issues/10866))
+
+BUG FIXES:
+
+ * core: Improve validation for provider aliases to allow inheritance in moduels. ([#10807](https://github.com/hashicorp/terraform/issues/10807))
+ * core: Math operations always prefer floating point if an argument is floating point. ([#10886](https://github.com/hashicorp/terraform/issues/10886))
+ * core: Strings are implicitly converted to integers/floats for comparison. ([#10886](https://github.com/hashicorp/terraform/issues/10886))
+ * provider/aws: Fixed crash in `data_source_ami` with empty `owner` value ([#10763](https://github.com/hashicorp/terraform/issues/10763))
+ * provider/aws: Require `master_username` and `master_password` if no snapshot given in Redshift Cluster ([#9837](https://github.com/hashicorp/terraform/issues/9837))
+ * provider/azurerm: fix network_interface.ip_configuration hash for load balancers ([#10834](https://github.com/hashicorp/terraform/issues/10834))
+ * provider/docker: Fix regression, 'cert_path' stop working ([#10801](https://github.com/hashicorp/terraform/issues/10801))
+ * provider/google: Use node_version during google_container_cluster creation ([#10817](https://github.com/hashicorp/terraform/issues/10817))
+ * provider/openstack: Handle Volume Creation Errors ([#10821](https://github.com/hashicorp/terraform/issues/10821))
 
 ## 0.8.1 (December 14, 2016)
 

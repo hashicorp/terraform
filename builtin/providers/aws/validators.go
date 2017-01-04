@@ -292,6 +292,10 @@ func validateAwsAccountId(v interface{}, k string) (ws []string, errors []error)
 func validateArn(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
+	if value == "" {
+		return
+	}
+
 	// http://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
 	pattern := `^arn:aws:([a-zA-Z0-9\-])+:([a-z]{2}-[a-z]+-\d{1})?:(\d{12})?:(.*)$`
 	if !regexp.MustCompile(pattern).MatchString(value) {
@@ -601,6 +605,22 @@ func validateSNSSubscriptionProtocol(v interface{}, k string) (ws []string, erro
 				fmt.Errorf("Unsupported protocol (%s) for SNS Topic", value),
 			)
 		}
+	}
+	return
+}
+
+func validateSecurityRuleType(v interface{}, k string) (ws []string, errors []error) {
+	value := strings.ToLower(v.(string))
+
+	validTypes := map[string]bool{
+		"ingress": true,
+		"egress":  true,
+	}
+
+	if _, ok := validTypes[value]; !ok {
+		errors = append(errors, fmt.Errorf(
+			"%q contains an invalid Security Group Rule type %q. Valid types are either %q or %q.",
+			k, value, "ingress", "egress"))
 	}
 	return
 }

@@ -1058,14 +1058,7 @@ func buildAwsInstanceOpts(
 
 	user_data := d.Get("user_data").(string)
 
-	// Check whether the user_data is already Base64 encoded; don't double-encode
-	_, base64DecodeError := base64.StdEncoding.DecodeString(user_data)
-
-	if base64DecodeError == nil {
-		opts.UserData64 = aws.String(user_data)
-	} else {
-		opts.UserData64 = aws.String(base64.StdEncoding.EncodeToString([]byte(user_data)))
-	}
+	opts.UserData64 = aws.String(base64Encode([]byte(user_data)))
 
 	// check for non-default Subnet, and cast it to a String
 	subnet, hasSubnet := d.GetOk("subnet_id")

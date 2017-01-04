@@ -50,3 +50,11 @@ The following attributes are exported:
 * `arn` - The Amazon Resource Name (ARN) specifying the role.
 * `create_date` - The creation date of the IAM role.
 * `unique_id` - The stable and unique string identifying the role.
+
+## Import
+
+IAM Roles can be imported using the `name`, e.g.
+
+```
+$ terraform import aws_iam_role.developer developer_name
+```

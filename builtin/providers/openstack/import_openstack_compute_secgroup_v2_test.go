@@ -7,7 +7,7 @@ import (
 )
 
 func TestAccComputeV2SecGroup_importBasic(t *testing.T) {
-	resourceName := "openstack_compute_secgroup_v2.foo"
+	resourceName := "openstack_compute_secgroup_v2.sg_1"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },

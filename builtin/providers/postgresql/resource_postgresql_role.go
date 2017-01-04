@@ -13,18 +13,20 @@ import (
 )
 
 const (
-	roleBypassRLSAttr     = "bypass_row_level_security"
-	roleConnLimitAttr     = "connection_limit"
-	roleCreateDBAttr      = "create_database"
-	roleCreateRoleAttr    = "create_role"
-	roleEncryptedPassAttr = "encrypted_password"
-	roleInheritAttr       = "inherit"
-	roleLoginAttr         = "login"
-	roleNameAttr          = "name"
-	rolePasswordAttr      = "password"
-	roleReplicationAttr   = "replication"
-	roleSuperuserAttr     = "superuser"
-	roleValidUntilAttr    = "valid_until"
+	roleBypassRLSAttr         = "bypass_row_level_security"
+	roleConnLimitAttr         = "connection_limit"
+	roleCreateDBAttr          = "create_database"
+	roleCreateRoleAttr        = "create_role"
+	roleEncryptedPassAttr     = "encrypted_password"
+	roleInheritAttr           = "inherit"
+	roleLoginAttr             = "login"
+	roleNameAttr              = "name"
+	rolePasswordAttr          = "password"
+	roleReplicationAttr       = "replication"
+	roleSkipDropRoleAttr      = "skip_drop_role"
+	roleSkipReassignOwnedAttr = "skip_reassign_owned"
+	roleSuperuserAttr         = "superuser"
+	roleValidUntilAttr        = "valid_until"
 
 	// Deprecated options
 	roleDepEncryptedAttr = "encrypted"
@@ -36,6 +38,7 @@ func resourcePostgreSQLRole() *schema.Resource {
 		Read:   resourcePostgreSQLRoleRead,
 		Update: resourcePostgreSQLRoleUpdate,
 		Delete: resourcePostgreSQLRoleDelete,
+		Exists: resourcePostgreSQLRoleExists,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -120,12 +123,27 @@ func resourcePostgreSQLRole() *schema.Resource {
 				Default:     false,
 				Description: "Determine whether a role bypasses every row-level security (RLS) policy",
 			},
+			roleSkipDropRoleAttr: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Skip actually running the DROP ROLE command when removing a ROLE from PostgreSQL",
+			},
+			roleSkipReassignOwnedAttr: {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Skip actually running the REASSIGN OWNED command when removing a role from PostgreSQL",
+			},
 		},
 	}
 }
 
 func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return errwrap.Wrapf("Error connecting to PostgreSQL: {{err}}", err)
@@ -229,22 +247,49 @@ func resourcePostgreSQLRoleCreate(d *schema.ResourceData, meta interface{}) erro
 
 	d.SetId(roleName)
 
-	return resourcePostgreSQLRoleRead(d, meta)
+	return resourcePostgreSQLRoleReadImpl(d, meta)
 }
 
 func resourcePostgreSQLRoleDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*Client)
-	conn, err := client.Connect()
+	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
+	conn, err := c.Connect()
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
 
-	roleName := d.Get(roleNameAttr).(string)
-	query := fmt.Sprintf("DROP ROLE %s", pq.QuoteIdentifier(roleName))
-	_, err = conn.Query(query)
+	txn, err := conn.Begin()
 	if err != nil {
-		return errwrap.Wrapf("Error deleting role: {{err}}", err)
+		return err
+	}
+	defer txn.Rollback()
+
+	roleName := d.Get(roleNameAttr).(string)
+
+	queries := make([]string, 0, 3)
+	if !d.Get(roleSkipReassignOwnedAttr).(bool) {
+		queries = append(queries, fmt.Sprintf("REASSIGN OWNED BY %s TO CURRENT_USER", pq.QuoteIdentifier(roleName)))
+		queries = append(queries, fmt.Sprintf("DROP OWNED BY %s", pq.QuoteIdentifier(roleName)))
+	}
+
+	if !d.Get(roleSkipDropRoleAttr).(bool) {
+		queries = append(queries, fmt.Sprintf("DROP ROLE %s", pq.QuoteIdentifier(roleName)))
+	}
+
+	if len(queries) > 0 {
+		for _, query := range queries {
+			_, err = conn.Query(query)
+			if err != nil {
+				return errwrap.Wrapf("Error deleting role: {{err}}", err)
+			}
+		}
+
+		if err := txn.Commit(); err != nil {
+			return errwrap.Wrapf("Error committing schema: {{err}}", err)
+		}
 	}
 
 	d.SetId("")
@@ -252,7 +297,38 @@ func resourcePostgreSQLRoleDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
+func resourcePostgreSQLRoleExists(d *schema.ResourceData, meta interface{}) (bool, error) {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	conn, err := c.Connect()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
+	var roleName string
+	err = conn.QueryRow("SELECT rolname FROM pg_catalog.pg_roles WHERE rolname=$1", d.Id()).Scan(&roleName)
+	switch {
+	case err == sql.ErrNoRows:
+		return false, nil
+	case err != nil:
+		return false, err
+	}
+
+	return true, nil
+}
+
 func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error {
+	c := meta.(*Client)
+	c.catalogLock.RLock()
+	defer c.catalogLock.RUnlock()
+
+	return resourcePostgreSQLRoleReadImpl(d, meta)
+}
+
+func resourcePostgreSQLRoleReadImpl(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
 	conn, err := c.Connect()
 	if err != nil {
@@ -282,6 +358,8 @@ func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error 
 		d.Set(roleInheritAttr, roleInherit)
 		d.Set(roleLoginAttr, roleCanLogin)
 		d.Set(roleReplicationAttr, roleReplication)
+		d.Set(roleSkipDropRoleAttr, d.Get(roleSkipDropRoleAttr).(bool))
+		d.Set(roleSkipReassignOwnedAttr, d.Get(roleSkipReassignOwnedAttr).(bool))
 		d.Set(roleSuperuserAttr, roleSuperuser)
 		d.Set(roleValidUntilAttr, roleValidUntil)
 		d.SetId(roleName)
@@ -296,7 +374,7 @@ func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error 
 	err = conn.QueryRow("SELECT COALESCE(passwd, '') FROM pg_catalog.pg_shadow AS s WHERE s.usename = $1", roleId).Scan(&rolePassword)
 	switch {
 	case err == sql.ErrNoRows:
-		return fmt.Errorf("PostgreSQL role (%s) not found in shadow database: {{err}}", roleId)
+		return errwrap.Wrapf(fmt.Sprintf("PostgreSQL role (%s) not found in shadow database: {{err}}", roleId), err)
 	case err != nil:
 		return errwrap.Wrapf("Error reading role: {{err}}", err)
 	default:
@@ -307,6 +385,9 @@ func resourcePostgreSQLRoleRead(d *schema.ResourceData, meta interface{}) error 
 
 func resourcePostgreSQLRoleUpdate(d *schema.ResourceData, meta interface{}) error {
 	c := meta.(*Client)
+	c.catalogLock.Lock()
+	defer c.catalogLock.Unlock()
+
 	conn, err := c.Connect()
 	if err != nil {
 		return err
@@ -353,7 +434,7 @@ func resourcePostgreSQLRoleUpdate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	return resourcePostgreSQLRoleRead(d, meta)
+	return resourcePostgreSQLRoleReadImpl(d, meta)
 }
 
 func setRoleName(conn *sql.DB, d *schema.ResourceData) error {

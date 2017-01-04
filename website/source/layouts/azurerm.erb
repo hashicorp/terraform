@@ -44,6 +44,17 @@
               </ul>
             </li>
 
+            <li<%= sidebar_current(/^docs-azurerm-resource-container/) %>>
+              <a href="#">Container Resources</a>
+              <ul class="nav nav-visible">
+
+                <li<%= sidebar_current("docs-azurerm-resource-container-registry") %>>
+                  <a href="/docs/providers/azurerm/r/container_registry.html">azurerm_container_registry</a>
+                </li>
+
+              </ul>
+            </li>
+
             <li<%= sidebar_current(/^docs-azurerm-resource-dns/) %>>
                 <a href="#">DNS Resources</a>
                 <ul class="nav nav-visible">
@@ -83,12 +94,17 @@
                 </ul>
             </li>
 
-
             <li<%= sidebar_current(/^docs-azurerm-resource-eventhub/) %>>
               <a href="#">Event Hubs</a>
               <ul class="nav nav-visible">
                 <li<%= sidebar_current("docs-azurerm-resource-eventhub") %>>
                   <a href="/docs/providers/azurerm/r/eventhub.html">azurerm_eventhub</a>
+                </li>
+                <li<%= sidebar_current("docs-azurerm-resource-eventhub-authorization-rule") %>>
+                  <a href="/docs/providers/azurerm/r/eventhub_authorization_rule.html">azurerm_eventhub_authorization_rule</a>
+                </li>
+                <li<%= sidebar_current("docs-azurerm-resource-eventhub-consumer-group") %>>
+                  <a href="/docs/providers/azurerm/r/eventhub_consumer_group.html">azurerm_eventhub_consumer_group</a>
                 </li>
                 <li<%= sidebar_current("docs-azurerm-resource-eventhub-namespace") %>>
                   <a href="/docs/providers/azurerm/r/eventhub_namespace.html">azurerm_eventhub_namespace</a>
