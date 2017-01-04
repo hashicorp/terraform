@@ -36,16 +36,22 @@ type SoftLayer_Virtual_Guest_Service interface {
 	GetLastTransaction(instanceId int) (datatypes.SoftLayer_Provisioning_Version1_Transaction, error)
 	GetActiveTransactions(instanceId int) ([]datatypes.SoftLayer_Provisioning_Version1_Transaction, error)
 	GetAllowedHost(instanceId int) (datatypes.SoftLayer_Network_Storage_Allowed_Host, error)
+	GetLocalDiskFlag(instanceId int) (bool, error)
+	GetNetworkComponents(instanceId int) ([]datatypes.SoftLayer_Virtual_Guest_Network_Component, error)
 	GetNetworkVlans(instanceId int) ([]datatypes.SoftLayer_Network_Vlan, error)
 	GetObject(instanceId int) (datatypes.SoftLayer_Virtual_Guest, error)
 	GetObjectByPrimaryIpAddress(ipAddress string) (datatypes.SoftLayer_Virtual_Guest, error)
 	GetObjectByPrimaryBackendIpAddress(ipAddress string) (datatypes.SoftLayer_Virtual_Guest, error)
 	GetPrimaryIpAddress(instanceId int) (string, error)
+	GetPrimaryBackendIpAddress(instanceId int) (string, error)
+	GetPrimaryBackendNetworkComponent(instanceId int) (datatypes.SoftLayer_Virtual_Guest_Network_Component, error)
+	GetPrimaryNetworkComponent(instanceId int) (datatypes.SoftLayer_Virtual_Guest_Network_Component, error)
 	GetPowerState(instanceId int) (datatypes.SoftLayer_Virtual_Guest_Power_State, error)
 	GetSshKeys(instanceId int) ([]datatypes.SoftLayer_Security_Ssh_Key, error)
 	GetTagReferences(instanceId int) ([]datatypes.SoftLayer_Tag_Reference, error)
 	GetUpgradeItemPrices(instanceId int) ([]datatypes.SoftLayer_Product_Item_Price, error)
 	GetUserData(instanceId int) ([]datatypes.SoftLayer_Virtual_Guest_Attribute, error)
+	GetAvailableUpgradeItemPrices(upgradeOptions *UpgradeOptions) ([]datatypes.SoftLayer_Product_Item_Price, error)
 
 	PowerCycle(instanceId int) (bool, error)
 	PowerOff(instanceId int) (bool, error)
@@ -63,5 +69,4 @@ type SoftLayer_Virtual_Guest_Service interface {
 	ReloadOperatingSystem(instanceId int, template datatypes.Image_Template_Config) error
 
 	UpgradeObject(instanceId int, upgradeOptions *UpgradeOptions) (bool, error)
-	GetAvailableUpgradeItemPrices(upgradeOptions *UpgradeOptions) ([]datatypes.SoftLayer_Product_Item_Price, error)
 }

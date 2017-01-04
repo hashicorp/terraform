@@ -28,6 +28,8 @@ type SoftLayer_Virtual_Guest_Block_Device_Template_Group_Service interface {
 
 	GetTransaction(id int) (datatypes.SoftLayer_Provisioning_Version1_Transaction, error)
 
+	GetGlobalIdentifier(id int) (string, error)
+
 	PermitSharingAccess(id int, accountId int) (bool, error)
 
 	RemoveLocations(id int, locations []datatypes.SoftLayer_Location) (bool, error)
