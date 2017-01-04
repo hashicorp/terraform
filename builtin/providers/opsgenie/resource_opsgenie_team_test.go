@@ -143,6 +143,25 @@ func TestAccOpsGenieTeam_withUserComplete(t *testing.T) {
 	})
 }
 
+func TestAccOpsGenieTeam_withMultipleUsers(t *testing.T) {
+	ri := acctest.RandInt()
+	config := fmt.Sprintf(testAccOpsGenieTeam_withMultipleUsers, ri, ri)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckOpsGenieTeamDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: config,
+				Check: resource.ComposeTestCheckFunc(
+					testCheckOpsGenieTeamExists("opsgenie_team.test"),
+				),
+			},
+		},
+	})
+}
+
 func testCheckOpsGenieTeamDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*OpsGenieClient).teams
 
@@ -223,6 +242,29 @@ resource "opsgenie_team" "test" {
   member {
     username = "${opsgenie_user.test.username}"
     role     = "user"
+  }
+}
+`
+
+var testAccOpsGenieTeam_withMultipleUsers = `
+resource "opsgenie_user" "first" {
+  username  = "acctest-1-%d@example.tld"
+  full_name = "First Acceptance Test User"
+  role      = "User"
+}
+resource "opsgenie_user" "second" {
+  username  = "acctest-2-%d@example.tld"
+  full_name = "Second Acceptance Test User"
+  role      = "User"
+}
+
+resource "opsgenie_team" "test" {
+  name  = "acctest%d"
+  member {
+    username = "${opsgenie_user.first.username}"
+  }
+  member {
+    username = "${opsgenie_user.second.username}"
   }
 }
 `
