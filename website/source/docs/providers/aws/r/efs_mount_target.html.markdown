@@ -10,9 +10,6 @@ description: |-
 
 Provides an Elastic File System (EFS) mount target.
 
-~> **NOTE:** As per the current [documentation](https://docs.aws.amazon.com/efs/latest/ug/limits.html)
-the limit is 1 mount target per Availability Zone for a single EFS file system.
-
 ## Example Usage
 
 ```
