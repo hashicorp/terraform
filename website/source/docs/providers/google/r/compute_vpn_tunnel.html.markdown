@@ -104,6 +104,11 @@ The following arguments are supported:
     custom subnetted network. Refer to Google documentation for more
     information.
 
+* `remote_traffic_selector` - (Optional) Specifies which CIDR ranges the VPN
+    tunnel can route to the remote side. Mandatory if the VPN gateway is attached to a
+    custom subnetted network. Refer to Google documentation for more
+    information.
+
 * `project` - (Optional) The project in which the resource belongs. If it
     is not provided, the provider project is used.
 
