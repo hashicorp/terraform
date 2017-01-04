@@ -6,10 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"regexp"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/opsgenie/opsgenie-go-sdk/team"
+	"regexp"
 )
 
 func resourceOpsGenieTeam() *schema.Resource {
@@ -207,7 +206,7 @@ func validateOpsGenieTeamName(v interface{}, k string) (ws []string, errors []er
 	value := v.(string)
 	if !regexp.MustCompile(`^[a-zA-Z0-9_]+$`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
-			"alpha numeric characters and underscoresare allowed in %q: %q", k, value))
+			"only alpha numeric characters and underscores are allowed in %q: %q", k, value))
 	}
 
 	if len(value) >= 100 {
@@ -216,6 +215,7 @@ func validateOpsGenieTeamName(v interface{}, k string) (ws []string, errors []er
 
 	return
 }
+
 
 func validateOpsGenieTeamRole(v interface{}, k string) (ws []string, errors []error) {
 	value := strings.ToLower(v.(string))

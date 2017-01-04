@@ -44,10 +44,12 @@ func dataSourceOpsGenieUserRead(d *schema.ResourceData, meta interface{}) error 
 
 	var found *user.GetUserResponse
 
-	for _, user := range resp.Users {
-		if user.Username == username {
-			found = &user
-			break
+	if len(resp.Users) > 0 {
+		for _, user := range resp.Users {
+			if user.Username == username {
+				found = &user
+				break
+			}
 		}
 	}
 

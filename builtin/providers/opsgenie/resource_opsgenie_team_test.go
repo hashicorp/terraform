@@ -145,7 +145,7 @@ func TestAccOpsGenieTeam_withUserComplete(t *testing.T) {
 
 func TestAccOpsGenieTeam_withMultipleUsers(t *testing.T) {
 	ri := acctest.RandInt()
-	config := fmt.Sprintf(testAccOpsGenieTeam_withMultipleUsers, ri, ri)
+	config := fmt.Sprintf(testAccOpsGenieTeam_withMultipleUsers, ri, ri, ri)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
