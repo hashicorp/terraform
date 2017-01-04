@@ -26,6 +26,23 @@ func TestAccContainerCluster_basic(t *testing.T) {
 	})
 }
 
+func TestAccContainerCluster_withAdditionalZones(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckContainerClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccContainerCluster_withAdditionalZones,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckContainerClusterExists(
+						"google_container_cluster.with_additional_zones"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccContainerCluster_withVersion(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -148,6 +165,23 @@ resource "google_container_cluster" "primary" {
 	name = "cluster-test-%s"
 	zone = "us-central1-a"
 	initial_node_count = 3
+
+	master_auth {
+		username = "mr.yoda"
+		password = "adoy.rm"
+	}
+}`, acctest.RandString(10))
+
+var testAccContainerCluster_withAdditionalZones = fmt.Sprintf(`
+resource "google_container_cluster" "with_additional_zones" {
+	name = "cluster-test-%s"
+	zone = "us-central1-a"
+	initial_node_count = 1
+
+	additional_zones = [
+		"us-central1-b",
+		"us-central1-c"
+	]
 
 	master_auth {
 		username = "mr.yoda"

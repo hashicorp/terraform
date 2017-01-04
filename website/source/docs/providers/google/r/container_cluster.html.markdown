@@ -20,6 +20,11 @@ resource "google_container_cluster" "primary" {
   zone = "us-central1-a"
   initial_node_count = 3
 
+  additional_zones = [
+    "us-central1-b",
+    "us-central1-c"
+  ]
+
   master_auth {
     username = "mr.yoda"
     password = "adoy.rm"
@@ -47,9 +52,13 @@ resource "google_container_cluster" "primary" {
 * `name` - (Required) The name of the cluster, unique within the project and
     zone.
 
-* `zone` - (Required) The zone that all resources should be created in.
+* `zone` - (Required) The zone that the master and the number of nodes specified
+    in `initial_node_count` should be created in.
 
 - - -
+* `additional_zones` - (Optional) If additional zones are configured, the number
+    of nodes specified in `initial_node_count` is created in all specified zones.
+
 * `addons_config` - (Optional) The configuration for addons supported by Google
     Container Engine
 
