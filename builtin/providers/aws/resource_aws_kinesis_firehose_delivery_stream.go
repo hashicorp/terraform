@@ -83,43 +83,6 @@ func resourceAwsKinesisFirehoseDeliveryStream() *schema.Resource {
 				},
 			},
 
-			// elements removed in v0.7.0
-			"role_arn": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "role_arn has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_bucket_arn": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "s3_bucket_arn has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_prefix": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "s3_prefix has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_buffer_size": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Removed:  "s3_buffer_size has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_buffer_interval": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Removed:  "s3_buffer_interval has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
-			"s3_data_compression": {
-				Type:     schema.TypeString,
-				Optional: true,
-				Removed:  "s3_data_compression has been removed. Use a s3_configuration block instead. See https://terraform.io/docs/providers/aws/r/kinesis_firehose_delivery_stream.html",
-			},
-
 			"s3_configuration": {
 				Type:     schema.TypeList,
 				Required: true,
