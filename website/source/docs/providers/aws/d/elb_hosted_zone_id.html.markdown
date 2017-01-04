@@ -8,7 +8,7 @@ description: |-
 
 # aws\_elb\_hosted\_zone\_id
 
-Use this data source to get the HostedZoneId of the [AWS Elastic Load Balancing Service Account](http://docs.aws.amazon.com/elasticloadbalancing/latest/classic/enable-access-logs.html#attach-bucket-policy)
+Use this data source to get the HostedZoneId of the AWS Elastic Load Balancing HostedZoneId
 in a given region for the purpose of using in an AWS Route53 Alias.
 
 ## Example Usage
