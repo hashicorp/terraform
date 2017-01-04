@@ -106,6 +106,17 @@ func TestExpand(t *testing.T) {
 				"list2": []interface{}{"c"},
 			},
 		},
+
+		{
+			Map: map[string]string{
+				"set.#":    "3",
+				"set.1234": "a",
+				"set.1235": "b",
+				"set.1236": "c",
+			},
+			Key:    "set",
+			Output: []interface{}{"a", "b", "c"},
+		},
 	}
 
 	for _, tc := range cases {
