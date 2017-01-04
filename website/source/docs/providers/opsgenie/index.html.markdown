@@ -35,7 +35,7 @@ The following arguments are supported:
 * `api_key` - (Required) The API Key for the OpsGenie Integration. If omitted, the
   `OPSGENIE_API_KEY` environment variable is used.
 
-TODO: more details on setting up an integration (including access types required)
+You can generate an API Key within OpsGenie by creating a new API Integration with Read/Write permissions.
 
 ## Testing and Development
 
