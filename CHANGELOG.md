@@ -16,6 +16,7 @@ IMPROVEMENTS:
  * provider/aws: Added a validation for security group rule types [GH-10864]
  * provider:aws: Add support for updating aws_emr_cluster parameters [GH-11008]
  * provider/aws: Add Placement Constraints to `aws_ecs_task_definition` [GH-11030]
+ * provider/aws: Increasing timeout for redshift cluster creation to 75 minutes [GH-11041]
  * provider/azurerm: support non public clouds [GH-11026]
  * provider/azurerm: Azure resource providers which are already registered are no longer re-registered. [GH-10991]
  * provider/docker: Add network create --internal flag support [GH-10932]
