@@ -3,9 +3,6 @@ package opsgenie
 import (
 	"log"
 
-	"fmt"
-
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -34,24 +31,11 @@ func Provider() terraform.ResourceProvider {
 	}
 }
 
-func (c *Config) validate() error {
-	var err *multierror.Error
-
-	if c.ApiKey == "" {
-		err = multierror.Append(err, fmt.Errorf("API Key must be configured for the OpsGenie provider"))
-	}
-
-	return err.ErrorOrNil()
-}
-
 func providerConfigure(data *schema.ResourceData) (interface{}, error) {
 	log.Println("[INFO] Initializing OpsGenie client")
+
 	config := Config{
 		ApiKey: data.Get("api_key").(string),
-	}
-
-	if err := config.validate(); err != nil {
-		return nil, err
 	}
 
 	return config.Client()
