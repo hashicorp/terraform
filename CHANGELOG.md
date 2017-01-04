@@ -37,6 +37,7 @@ BUG FIXES:
  * provider/aws: data_source_aws_iam_server_certificate latest should be bool not string causes panic [GH-11016]
  * provider/aws: Fix typo in aws_redshift_cluster causing security groups to not allow update [GH-11025]
  * provider/aws: Set `key_name` in `aws_key_pair` if omited in configuration [GH-10987]
+ * provider/aws: Updating the aws_efs_mount_target dns_name [GH-11023]
  * provider/google: Fix backwards incompatibility around create_timeout in instances [GH-10858]
  * provider/openstack: Handle `PENDING_UPDATE` status with LBaaS v2 members [GH-10875]
  * provider/rancher: Add 'finishing-upgrade' state to rancher stack [GH-11019]
