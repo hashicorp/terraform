@@ -138,10 +138,9 @@ func resourceAwsEMRCluster() *schema.Resource {
 							Required: true,
 						},
 						"args": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
-							Set:      schema.HashString,
 						},
 					},
 				},
@@ -699,7 +698,7 @@ func expandBootstrapActions(bootstrapActions []interface{}) []*emr.BootstrapActi
 		actionAttributes := raw.(map[string]interface{})
 		actionName := actionAttributes["name"].(string)
 		actionPath := actionAttributes["path"].(string)
-		actionArgs := actionAttributes["args"].(*schema.Set).List()
+		actionArgs := actionAttributes["args"].([]interface{})
 
 		action := &emr.BootstrapActionConfig{
 			Name: aws.String(actionName),
