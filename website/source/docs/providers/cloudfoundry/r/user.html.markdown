@@ -1,7 +1,7 @@
 ---
 layout: "cloudfoundry"
 page_title: "Cloud Foundry: cf_user"
-sidebar_current: "docs-cloudfoundry-resource-asg"
+sidebar_current: "docs-cloudfoundry-resource-user"
 description: |-
   Provides a Cloud Foundry User resource.
 ---
