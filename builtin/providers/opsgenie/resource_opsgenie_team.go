@@ -216,7 +216,6 @@ func validateOpsGenieTeamName(v interface{}, k string) (ws []string, errors []er
 	return
 }
 
-
 func validateOpsGenieTeamRole(v interface{}, k string) (ws []string, errors []error) {
 	value := strings.ToLower(v.(string))
 	families := map[string]bool{
