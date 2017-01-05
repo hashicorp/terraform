@@ -196,7 +196,7 @@ func resourceComputeRegionBackendServiceRead(d *schema.ResourceData, meta interf
 	d.Set("fingerprint", service.Fingerprint)
 	d.Set("self_link", service.SelfLink)
 
-	d.Set("backend", flattenBackends(service.Backends))
+	d.Set("backend", service.Backends)
 	d.Set("health_checks", service.HealthChecks)
 
 	return nil

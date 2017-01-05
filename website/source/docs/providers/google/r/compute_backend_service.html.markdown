@@ -99,9 +99,12 @@ The following arguments are supported:
 
 **Backend** supports the following attributes:
 
-* `group` - (Required) The name or URI of a Compute Engine instance group
+* `group` - (Optional) The name or URI of a Compute Engine instance group
     (`google_compute_instance_group_manager.xyz.instance_group`) that can
     receive traffic.
+
+* `groups` - (Optional) A list of of Compute Engine instance group URIs or
+   names that will receive traffic.
 
 * `balancing_mode` - (Optional) Defines the strategy for balancing load.
     Defaults to `UTILIZATION`
